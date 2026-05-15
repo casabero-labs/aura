@@ -1,0 +1,5 @@
+{
+  "name": "DataHealth AI Auditor",
+  "description": "An intelligent data quality auditor that combines classical deterministic logic with Gemini AI to diagnose, score, and generate Python cleaning code for CSV datasets.",
+  "requestFramePermissions": []
+}
