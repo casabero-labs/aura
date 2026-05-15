@@ -24,20 +24,20 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
     };
 
     return (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
-            <div className="bg-[var(--bg-color)] w-full max-w-md border border-[var(--border-color)] shadow-2xl rounded-none overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[var(--ink)]/60 animate-in fade-in duration-300">
+            <div className="bg-[var(--bg)] w-full max-w-md border border-[var(--border)] shadow-xl rounded-sm overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
 
-                <div className="px-6 py-5 border-b border-[var(--border-color)] flex justify-between items-center bg-[var(--technical-bg)]">
+                <div className="px-6 py-5 border-b border-[var(--border)] flex justify-between items-center bg-[var(--surface)]">
                     <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 border border-[var(--main-color)] flex items-center justify-center">
-                            <Settings size={16} className="text-[var(--main-color)] animate-spin-slow" />
+                        <div className="w-8 h-8 border border-[var(--border)] bg-[var(--bg)] flex items-center justify-center rounded-sm">
+                            <Settings size={16} className="text-[var(--ink)]" />
                         </div>
                         <div>
-                            <h2 className="font-display text-sm font-bold text-[var(--main-color)] uppercase tracking-tight">AJUSTES_SISTEMA</h2>
-                            <p className="text-[8px] font-mono text-[var(--secondary-color)] uppercase tracking-widest font-bold">Configuración Kernel v1.0</p>
+                            <h2 className="heading-md text-[var(--ink)]">Ajustes del Sistema</h2>
+                            <p className="text-[11px] font-sans text-[var(--ink2)] mt-1">Configuración del Motor Cognitivo</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="text-[var(--secondary-color)] hover:text-[var(--main-color)] transition-colors p-2">
+                    <button onClick={onClose} className="text-[var(--ink2)] hover:text-[var(--ink)] transition-colors p-2">
                         <X size={18} />
                     </button>
                 </div>
@@ -46,31 +46,31 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
 
                     {/* Selección de Capa 0: Infraestructura */}
                     <div className="space-y-3">
-                        <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--secondary-color)]">Capa 0_Infraestructura</label>
+                        <label className="block eyebrow text-[var(--ink2)]">Capa 0: Infraestructura</label>
                         <div className="grid grid-cols-2 gap-2">
                             <button
                                 onClick={() => setLocalConfig({ ...localConfig, providerType: 'cloud', model: AVAILABLE_MODELS.cloud[0].id })}
-                                className={`flex items-center justify-center gap-2 p-3 border text-xs font-bold uppercase tracking-widest transition-all ${localConfig.providerType === 'cloud' ? 'bg-[var(--main-color)] border-[var(--main-color)] text-white' : 'bg-[var(--technical-bg)] border-[var(--border-color)] text-[var(--secondary-color)] hover:border-[var(--main-color)]'}`}
+                                className={`flex items-center justify-center gap-2 p-3 text-[12px] font-sans font-medium transition-all rounded-sm border ${localConfig.providerType === 'cloud' ? 'bg-[var(--ink)] border-[var(--ink)] text-[var(--bg)] shadow-sm' : 'bg-[var(--surface)] border-[var(--border)] text-[var(--ink2)] hover:border-[var(--ink-soft)] hover:text-[var(--ink)]'}`}
                             >
                                 <Server size={14} /> Cloud API
                             </button>
                             <button
                                 onClick={() => setLocalConfig({ ...localConfig, providerType: 'local', model: AVAILABLE_MODELS.local[0].id })}
-                                className={`flex items-center justify-center gap-2 p-3 border text-xs font-bold uppercase tracking-widest transition-all ${localConfig.providerType === 'local' ? 'bg-[var(--main-color)] border-[var(--main-color)] text-white' : 'bg-[var(--technical-bg)] border-[var(--border-color)] text-[var(--secondary-color)] hover:border-[var(--main-color)]'}`}
+                                className={`flex items-center justify-center gap-2 p-3 text-[12px] font-sans font-medium transition-all rounded-sm border ${localConfig.providerType === 'local' ? 'bg-[var(--ink)] border-[var(--ink)] text-[var(--bg)] shadow-sm' : 'bg-[var(--surface)] border-[var(--border)] text-[var(--ink2)] hover:border-[var(--ink-soft)] hover:text-[var(--ink)]'}`}
                             >
                                 <HardDrive size={14} /> WebGPU Local
                             </button>
                         </div>
                         {localConfig.providerType === 'local' && webGpuSupported === false && (
-                            <div className="flex items-start gap-2 p-3 mt-2 bg-red-900/20 border border-red-500/50 text-red-400 text-xs font-mono">
+                            <div className="flex items-start gap-2 p-3 mt-2 bg-red-50 border border-red-200 text-red-800 text-[12px] font-sans rounded-sm">
                                 <AlertTriangle size={14} className="shrink-0 mt-0.5" />
                                 <p>Tu navegador no soporta WebGPU. El motor local no funcionará. Usa Chrome/Edge 113+.</p>
                             </div>
                         )}
                         {localConfig.providerType === 'local' && webGpuSupported === true && (
-                            <div className="flex items-start gap-2 p-3 mt-2 bg-green-900/20 border border-green-500/50 text-green-400 text-[10px] font-mono leading-relaxed">
+                            <div className="flex items-start gap-2 p-3 mt-2 bg-emerald-50 border border-emerald-200 text-emerald-800 text-[12px] font-sans leading-relaxed rounded-sm">
                                 <CheckCircle size={14} className="shrink-0 mt-0.5" />
-                                <p>WebGPU detectado. Al iniciar el análisis, el modelo se descargará en caché (~1.8GB) y se ejecutará 100% en tu tarjeta gráfica. Cero datos saldrán de este dispositivo.</p>
+                                <p>WebGPU detectado. El modelo se ejecutará 100% en tu dispositivo local. Cero datos saldrán de este entorno.</p>
                             </div>
                         )}
                     </div>
@@ -78,23 +78,23 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                     {/* API Key (Solo Cloud) */}
                     {localConfig.providerType === 'cloud' && (
                         <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
-                            <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--secondary-color)]">
-                                <label className="flex items-center gap-2"><Cpu size={12} className="text-[var(--main-color)]" /> Gemini API Key</label>
+                            <div className="flex justify-between items-center eyebrow text-[var(--ink2)]">
+                                <label className="flex items-center gap-2"><Cpu size={12} className="text-[var(--ink)]" /> Gemini API Key</label>
                                 <button
                                     onClick={() => setShowHelp(!showHelp)}
-                                    className="flex items-center gap-1 text-[var(--main-color)] hover:underline"
+                                    className="flex items-center gap-1 text-[var(--ink)] hover:underline"
                                 >
                                     <HelpCircle size={12} /> Ayuda
                                 </button>
                             </div>
 
                             {showHelp && (
-                                <div className="p-4 bg-[var(--technical-bg)] border border-[var(--border-color)] text-[11px] text-[var(--secondary-color)] leading-relaxed mb-4 animate-in slide-in-from-top-2 border-l-2 border-l-[var(--main-color)]">
-                                    <p className="mb-3 font-bold text-[var(--main-color)] uppercase tracking-tight flex items-center gap-2">
+                                <div className="p-4 bg-[var(--surface)] border border-[var(--border)] text-[12px] text-[var(--ink2)] leading-relaxed mb-4 animate-in slide-in-from-top-2 rounded-sm">
+                                    <p className="mb-2 font-sans font-medium text-[var(--ink)] flex items-center gap-2">
                                         <Shield size={12} /> Protocolo de Adquisición:
                                     </p>
-                                    <ol className="list-decimal list-inside space-y-2 font-sans font-light">
-                                        <li>Acceda a <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" className="text-[var(--main-color)] underline font-medium">Google AI Studio</a></li>
+                                    <ol className="list-decimal list-inside space-y-1 font-sans">
+                                        <li>Acceda a <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" className="text-[var(--ink)] underline font-medium">Google AI Studio</a></li>
                                         <li>Autentíquese con su cuenta de servicios</li>
                                         <li>Genere una nueva llave de API (gratuita)</li>
                                     </ol>
@@ -106,19 +106,19 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                                 placeholder="Introduzca llave..."
                                 value={localConfig.apiKey}
                                 onChange={(e) => setLocalConfig({ ...localConfig, apiKey: e.target.value })}
-                                className="w-full bg-[var(--technical-bg)] border border-[var(--border-color)] px-4 py-3 outline-none text-[var(--main-color)] font-mono text-xs focus:border-[var(--main-color)] transition-colors placeholder:text-[var(--secondary-color)] placeholder:opacity-30"
+                                className="w-full bg-[var(--surface-raised)] border border-[var(--border-strong)] px-4 py-3 outline-none text-[var(--ink)] font-mono text-[13px] focus:border-[var(--ink-soft)] transition-colors rounded-sm placeholder:text-[var(--ink-muted)]"
                             />
                         </div>
                     )}
 
                     {/* Selección de Modelo */}
                     <div className="space-y-3">
-                        <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--secondary-color)]">Modelo_Motor_IA</label>
+                        <label className="block eyebrow text-[var(--ink2)]">Modelo del Motor IA</label>
                         <div className="relative">
                             <select
                                 value={localConfig.model}
                                 onChange={(e) => setLocalConfig({ ...localConfig, model: e.target.value })}
-                                className="w-full bg-[var(--technical-bg)] border border-[var(--border-color)] px-4 py-3 outline-none text-[var(--main-color)] appearance-none cursor-pointer font-sans text-xs focus:border-[var(--main-color)] transition-colors"
+                                className="w-full bg-[var(--surface-raised)] border border-[var(--border-strong)] px-4 py-3 outline-none text-[var(--ink)] appearance-none cursor-pointer font-sans text-[13px] focus:border-[var(--ink-soft)] transition-colors rounded-sm"
                             >
                                 {AVAILABLE_MODELS[localConfig.providerType].map(m => (
                                     <option key={m.id} value={m.id}>
@@ -126,16 +126,16 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                                     </option>
                                 ))}
                             </select>
-                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">
-                                <Cpu size={14} />
+                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-50">
+                                <Cpu size={14} className="text-[var(--ink)]" />
                             </div>
                         </div>
                     </div>
 
-                    <div className="flex items-center justify-between p-4 bg-[var(--technical-bg)] border border-[var(--border-color)] group hover:border-[var(--main-color)] transition-colors">
+                    <div className="flex items-center justify-between p-4 bg-[var(--surface)] border border-[var(--border)] hover:border-[var(--border-strong)] transition-colors rounded-sm">
                         <div>
-                            <p className="text-xs font-bold text-[var(--main-color)] uppercase tracking-tight">Auto_Análisis_Kernel</p>
-                            <p className="text-[9px] text-[var(--secondary-color)] font-mono uppercase tracking-tighter opacity-70">Ejecutar motor al cargar dataset</p>
+                            <p className="text-[13px] font-sans font-medium text-[var(--ink)] tracking-tight">Auto-Análisis</p>
+                            <p className="text-[11px] text-[var(--ink2)] font-sans mt-0.5">Ejecutar motor al cargar dataset</p>
                         </div>
                         <label className="relative inline-flex items-center cursor-pointer">
                             <input
@@ -144,18 +144,21 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                                 onChange={(e) => setLocalConfig({ ...localConfig, autoAnalyze: e.target.checked })}
                                 className="sr-only peer"
                             />
-                            <div className="w-10 h-5 bg-[var(--border-color)] rounded-none border border-[var(--border-color)] peer peer-checked:bg-[var(--main-color)] transition-colors after:content-[''] after:absolute after:top-1 after:left-1 after:bg-[var(--bg-color)] after:h-3 after:w-3 after:transition-all peer-checked:after:translate-x-5 shadow-inner"></div>
+                            <div className="w-10 h-5 bg-[var(--border-strong)] rounded-full peer peer-checked:bg-[var(--ink)] transition-colors after:content-[''] after:absolute after:top-1 after:left-1 after:bg-[var(--bg)] after:h-3 after:w-3 after:rounded-full after:transition-all peer-checked:after:translate-x-5 shadow-sm"></div>
                         </label>
                     </div>
 
                 </div>
 
-                <div className="px-6 py-6 bg-[var(--technical-bg)] border-t border-[var(--border-color)] flex justify-end">
+                <div className="px-6 py-5 bg-[var(--surface)] border-t border-[var(--border)] flex justify-end gap-3">
+                    <button onClick={onClose} className="casabero-btn-secondary">
+                        Cancelar
+                    </button>
                     <button
                         onClick={handleSave}
-                        className="flex items-center gap-3 bg-[var(--main-color)] text-white px-8 py-3 font-display font-bold text-xs hover:bg-[var(--accent-focus)] transition-all active:translate-y-0.5 uppercase tracking-widest shadow-lg"
+                        className="casabero-btn-primary flex items-center gap-2"
                     >
-                        <Save size={14} /> Guardar_Configuración
+                        <Save size={14} /> Guardar Cambios
                     </button>
                 </div>
             </div>

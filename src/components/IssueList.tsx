@@ -31,9 +31,10 @@ const getCategoryIcon = (category: IssueCategory) => {
 const IssueList: React.FC<IssueListProps> = ({ issues }) => {
   if (issues.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-[var(--secondary-color)] border border-dashed border-[var(--border-color)] m-4">
-        <CheckCircle size={32} strokeWidth={1} className="mb-4 text-emerald-600 opacity-40" />
-        <p className="font-mono text-[9px] uppercase tracking-widest font-bold">./no_se_detectaron_anomalias</p>
+      <div className="flex flex-col items-center justify-center py-20 text-[var(--ink-muted)] m-4">
+        <CheckCircle size={32} strokeWidth={1.5} className="mb-4 text-[var(--success)] opacity-40" />
+        <h3 className="heading-md text-[var(--ink2)]">Estructura Saludable</h3>
+        <p className="font-sans text-[13px] text-[var(--ink-muted)] mt-1">No se detectaron anomalías lógicas.</p>
       </div>
     );
   }
@@ -61,34 +62,34 @@ const IssueList: React.FC<IssueListProps> = ({ issues }) => {
 
         return (
           <div key={catKey} className="space-y-4">
-            <h4 className="text-[10px] font-mono font-bold uppercase tracking-[0.3em] text-[var(--secondary-color)] flex items-center gap-3 border-b border-[var(--border-color)] pb-3">
+            <h4 className="eyebrow text-[var(--ink2)] flex items-center gap-2 border-b border-[var(--border)] pb-3">
               {getCategoryIcon(catKey as IssueCategory)} {catKey}
             </h4>
             <div className="grid gap-2">
               {catIssues.map((issue) => (
-                <div key={issue.id} className="bg-[var(--bg-color)] border border-[var(--border-color)] group hover:border-[var(--main-color)] p-4 flex items-start gap-4 transition-all">
+                <div key={issue.id} className="bg-[var(--surface)] border border-[var(--border)] p-4 flex items-start gap-4 rounded-sm">
                   <div className="mt-1 flex-shrink-0">
                     {getSeverityIcon(issue.severity)}
                   </div>
                   <div className="flex-1 min-w-0" >
                     <div className="flex justify-between items-start mb-2">
-                      <h4 className="text-sm font-display font-bold text-[var(--main-color)] uppercase tracking-tight flex items-center gap-2">
+                      <h4 className="text-[14px] font-sans font-bold text-[var(--ink)] flex items-center gap-2">
                         {issue.column && (
-                          <span className="text-[8px] font-mono font-bold text-white bg-[var(--main-color)] px-1.5 py-0.5 uppercase tracking-widest">
+                          <span className="text-[10px] font-mono font-medium text-[var(--bg)] bg-[var(--ink)] px-1.5 py-0.5 rounded-sm">
                             {issue.column}
                           </span>
                         )}
                         {issue.ruleName}
                       </h4>
-                      <span className="text-[9px] font-mono font-bold text-[var(--secondary-color)] bg-[var(--technical-bg)] px-2 py-0.5 uppercase">
+                      <span className="text-[11px] font-mono font-medium text-[var(--ink2)] bg-[var(--surface-raised)] px-2 py-0.5 rounded-sm">
                         {issue.count} registros
                       </span>
                     </div>
-                    <p className="text-xs text-[var(--secondary-color)] leading-relaxed font-sans font-light">{issue.description}</p>
+                    <p className="text-[13px] text-[var(--ink2)] leading-relaxed font-sans">{issue.description}</p>
                     {issue.sampleValues.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 mt-3">
                         {issue.sampleValues.map((val, idx) => (
-                          <span key={idx} className="px-2 py-0.5 bg-[var(--technical-bg)] text-[var(--main-color)] text-[8px] font-mono border border-[var(--border-color)] group-hover:border-[var(--secondary-color)] transition-colors">
+                          <span key={idx} className="px-2 py-0.5 bg-[var(--bg)] text-[var(--ink-soft)] text-[11px] font-mono border border-[var(--border)] rounded-sm">
                             "{String(val).substring(0, 30)}"
                           </span>
                         ))}

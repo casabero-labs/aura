@@ -1,0 +1,141 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Casabero Design System - Light Mode (Warm) */
+    --ink: #1E1E1C;
+    --ink2: #4A4540;
+    --ink-soft: #3A3632;
+    --ink-muted: #8A857E;
+    --bg: #FAF8F4;
+    --surface: #F5F1E8;
+    --surface-raised: #F0ECE2;
+    --surface-hover: #EBE6DB;
+    --border: rgba(30, 30, 28, 0.1);
+    --border-strong: rgba(30, 30, 28, 0.18);
+    --border-faint: rgba(30, 30, 28, 0.05);
+    --accent: #b08d57; /* Acento oro/tan */
+    --error: #8b3a3a; /* Deep Crimson */
+    --success: #3e5a32; /* Forest Green */
+  }
+
+  [data-theme="dark"] {
+    /* Casabero Design System - Dark Mode (Warm) */
+    --ink: #F5F1E8;
+    --ink2: #9A9690;
+    --ink-soft: #C4C0B8;
+    --ink-muted: #6B675F;
+    --ink-faint: #4A4740;
+    --bg: #242220;
+    --surface: #1A1916;
+    --surface-raised: #2E2C28;
+    --surface-hover: #38352F;
+    --border: rgba(245, 241, 232, 0.1);
+    --border-strong: rgba(245, 241, 232, 0.18);
+    --border-faint: rgba(245, 241, 232, 0.05);
+    --accent: #b08d57;
+    --error: #e66565;
+    --success: #74a062;
+  }
+
+  body {
+    font-family: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    background-color: var(--bg);
+    color: var(--ink);
+    transition: background-color 0.4s ease-out, color 0.4s ease-out;
+  }
+}
+
+@layer utilities {
+  .font-serif {
+    font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  }
+  
+  .font-sans {
+    font-family: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  }
+
+  .font-mono {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  }
+
+  /* Componentes Semánticos Casabero */
+  .casabero-card {
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+  }
+
+  .casabero-btn-primary {
+    background-color: var(--ink-soft);
+    color: var(--bg);
+    border-radius: 6px;
+    padding: 9px 18px;
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    border: none;
+    cursor: pointer;
+    transition: opacity 0.15s ease-out, transform 0.15s ease-out;
+  }
+
+  .casabero-btn-primary:hover {
+    opacity: 0.88;
+  }
+
+  .casabero-btn-primary:active {
+    transform: scale(0.97);
+  }
+
+  .casabero-btn-secondary {
+    background-color: transparent;
+    color: var(--ink-soft);
+    border-radius: 6px;
+    padding: 9px 18px;
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid var(--ink-soft);
+    cursor: pointer;
+    transition: opacity 0.15s ease-out;
+  }
+
+  .casabero-btn-secondary:hover {
+    opacity: 0.75;
+  }
+
+  /* Typography Utilities */
+  .heading-xl {
+    font-family: 'Playfair Display', serif;
+    font-size: 26px;
+    font-weight: 800;
+    line-height: 1.15;
+  }
+
+  .heading-lg {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-weight: 800;
+    line-height: 1.15;
+  }
+
+  .heading-md {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .eyebrow {
+    font-family: 'Inter', sans-serif;
+    font-size: 9px;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+}

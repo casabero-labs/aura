@@ -11,9 +11,9 @@ const ScoreGauge: React.FC<ScoreGaugeProps> = ({ score }) => {
     { name: 'Remaining', value: 100 - score },
   ];
 
-  let color = '#8b3a3a';
-  if (score >= 60) color = '#666666';
-  if (score >= 85) color = '#111111';
+  let color = 'var(--error)';
+  if (score >= 60) color = 'var(--ink-soft)';
+  if (score >= 85) color = 'var(--ink)';
 
   return (
     <div className="relative h-32 w-32 flex items-center justify-center">
@@ -32,7 +32,7 @@ const ScoreGauge: React.FC<ScoreGaugeProps> = ({ score }) => {
             stroke="none"
           >
             <Cell key="score" fill={color} />
-            <Cell key="bg" fill="var(--border-color)" opacity={0.2} />
+            <Cell key="bg" fill="var(--border)" opacity={0.5} />
           </Pie>
         </PieChart>
       </ResponsiveContainer>

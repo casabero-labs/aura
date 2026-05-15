@@ -136,7 +136,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row overflow-hidden bg-[var(--bg-color)] selection:bg-[var(--accent-focus)] selection:text-white">
+    <div className="min-h-screen flex flex-col md:flex-row overflow-hidden bg-[var(--bg)] selection:bg-[var(--ink-soft)] selection:text-[var(--bg)]">
 
       {showSettings && (
         <SettingsPanel
@@ -148,26 +148,26 @@ const App: React.FC = () => {
 
       {/* Panel Orquestador Principal */}
       <div className={`flex-1 flex flex-col h-screen overflow-y-auto transition-all duration-700 scroll-smooth`}>
-        <header className="px-8 py-6 border-b border-[var(--border-color)] bg-[var(--bg-color)]/80 backdrop-blur-md sticky top-0 z-20 flex items-center justify-between">
+        <header className="px-8 py-6 border-b border-[var(--border)] bg-[var(--bg)] sticky top-0 z-20 flex items-center justify-between">
           <div className="flex items-center gap-6">
             <AuraLogo />
             <div className="pt-1">
-              <h1 className="text-2xl font-display font-bold text-[var(--main-color)] tracking-tighter">AURA</h1>
-              <p className="text-[10px] text-[var(--secondary-color)] font-mono uppercase tracking-[0.3em] font-medium">Auditoría Técnica de Datos // v1.0.4</p>
+              <h1 className="text-2xl font-sans font-bold text-[var(--ink)] tracking-widest uppercase">AURA</h1>
+              <p className="text-[10px] text-[var(--ink2)] font-mono uppercase tracking-[0.2em] font-medium mt-1">Auditoría Técnica de Datos // v1.0.4</p>
             </div>
           </div>
 
           {report && (
-            <nav className="flex items-center bg-[var(--technical-bg)] border border-[var(--border-color)] p-1">
+            <nav className="flex items-center bg-[var(--surface)] border border-[var(--border)] p-1 rounded-sm">
               <button
                 onClick={() => setActiveTab('DASHBOARD')}
-                className={`flex items-center gap-2 px-6 py-2 text-[10px] font-mono font-bold uppercase tracking-widest transition-all ${activeTab === 'DASHBOARD' ? 'bg-[var(--main-color)] text-white' : 'text-[var(--secondary-color)] hover:text-[var(--main-color)]'}`}
+                className={`flex items-center gap-2 px-6 py-2 text-[10px] font-mono font-bold uppercase tracking-widest transition-all rounded-sm ${activeTab === 'DASHBOARD' ? 'bg-[var(--ink)] text-[var(--bg)] shadow-sm' : 'text-[var(--ink2)] hover:text-[var(--ink)]'}`}
               >
                 <BarChart3 size={14} /> ./dashboard
               </button>
               <button
                 onClick={() => setActiveTab('IA')}
-                className={`flex items-center gap-2 px-6 py-2 text-[10px] font-mono font-bold uppercase tracking-widest transition-all ${activeTab === 'IA' ? 'bg-[var(--main-color)] text-white' : 'text-[var(--secondary-color)] hover:text-[var(--main-color)]'}`}
+                className={`flex items-center gap-2 px-6 py-2 text-[10px] font-mono font-bold uppercase tracking-widest transition-all rounded-sm ${activeTab === 'IA' ? 'bg-[var(--ink)] text-[var(--bg)] shadow-sm' : 'text-[var(--ink2)] hover:text-[var(--ink)]'}`}
               >
                 <Brain size={14} /> ./analisis_ia
               </button>
@@ -179,7 +179,7 @@ const App: React.FC = () => {
               <div className="flex items-center gap-3">
                 <button
                   onClick={handleReset}
-                  className="p-2 text-[var(--secondary-color)] hover:text-red-500 transition-colors rounded border border-[var(--border-color)] bg-[var(--technical-bg)]"
+                  className="p-2 text-[var(--ink2)] hover:text-[var(--error)] transition-colors rounded-sm border border-[var(--border)] bg-[var(--surface)]"
                   title="Reiniciar Auditoría"
                 >
                   <RotateCcw size={18} />
@@ -187,16 +187,16 @@ const App: React.FC = () => {
                 <button
                   onClick={handleDownloadPdf}
                   disabled={isPdfGenerating}
-                  className="flex items-center gap-2 px-6 py-2 text-xs font-display font-bold bg-[var(--main-color)] text-white hover:bg-[var(--accent-focus)] transition-all disabled:opacity-50"
+                  className="casabero-btn-primary flex items-center gap-2 disabled:opacity-50"
                 >
                   {isPdfGenerating ? <Loader2 size={14} className="animate-spin" /> : <FileDown size={14} />}
-                  EXPORTAR_REPORTE
+                  EXPORTAR REPORTE
                 </button>
               </div>
             )}
             <button
               onClick={() => setShowSettings(true)}
-              className="p-2 text-[var(--secondary-color)] hover:text-[var(--main-color)] transition-colors rounded border border-transparent hover:border-[var(--border-color)]"
+              className="p-2 text-[var(--ink2)] hover:text-[var(--ink)] transition-colors rounded border border-transparent hover:border-[var(--border)]"
             >
               <Settings size={20} />
             </button>
@@ -206,40 +206,40 @@ const App: React.FC = () => {
         <main className="flex-1 p-8 relative">
           {!report ? (
             <div className="h-full flex flex-col items-center justify-center space-y-12 animate-in fade-in duration-1000">
-              <div className="text-center max-w-xl space-y-6">
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-[var(--technical-bg)] border border-[var(--border-color)] text-[var(--secondary-color)] text-[10px] font-mono rounded-full animate-in slide-in-from-top-4 duration-500">
+              <div className="text-center max-w-2xl space-y-8">
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-[var(--surface)] border border-[var(--border)] text-[var(--ink2)] text-[10px] font-mono rounded-sm animate-in slide-in-from-top-4 duration-500">
                   <Shield size={10} /> ENTORNO SEGURO // EJECUCIÓN_LOCAL
                 </div>
                 <div className="relative inline-block">
-                  <h2 className="text-5xl font-display font-bold text-[var(--main-color)] tracking-tight leading-none cursor-default">
-                    AURA: Diagnóstico Integral del Dataset
+                  <h2 className="text-5xl font-serif font-black text-[var(--ink)] tracking-tight leading-[1.1] cursor-default">
+                    Diagnóstico Integral de Calidad de Datos
                   </h2>
                 </div>
-                <p className="text-[var(--secondary-color)] font-sans text-lg font-light leading-relaxed">
-                  Analítica de precisión para la integridad estructural y validez de sus datos.
+                <p className="text-[var(--ink2)] font-serif text-lg font-light leading-relaxed italic">
+                  Análisis determinista de precisión quirúrgica combinado con razonamiento cognitivo local para la validación estructural de sus datasets.
                 </p>
               </div>
 
               <FileUpload onFileSelect={processFile} />
 
-              <div className="mt-20 grid grid-cols-3 gap-10 max-w-3xl opacity-40 text-[var(--main-color)] border-t border-[var(--border-color)] pt-12">
-                <div className="text-center space-y-2">
-                  <p className="font-bold font-display text-xl">20+</p>
-                  <p className="text-[9px] font-mono uppercase tracking-widest font-black">REGLAS_LÓGICAS</p>
+              <div className="mt-20 grid grid-cols-3 gap-10 max-w-3xl text-[var(--ink2)] border-t border-[var(--border)] pt-12">
+                <div className="text-center space-y-3">
+                  <p className="font-serif font-bold text-3xl text-[var(--ink)]">20+</p>
+                  <p className="text-[9px] font-sans uppercase tracking-[0.15em] font-medium">Reglas Lógicas</p>
                 </div>
-                <div className="text-center space-y-2 border-x border-[var(--border-color)] px-10">
-                  <p className="font-bold font-display text-xl">100%</p>
-                  <p className="text-[9px] font-mono uppercase tracking-widest font-black">PRIVACIDAD_LOCAL</p>
+                <div className="text-center space-y-3 border-x border-[var(--border)] px-10">
+                  <p className="font-serif font-bold text-3xl text-[var(--ink)]">100%</p>
+                  <p className="text-[9px] font-sans uppercase tracking-[0.15em] font-medium">Privacidad Local</p>
                 </div>
-                <div className="text-center space-y-2">
-                  <p className="font-bold font-display text-xl">DEEP</p>
-                  <p className="text-[9px] font-mono uppercase tracking-widest font-black">ANÁLISIS_NODOS</p>
+                <div className="text-center space-y-3">
+                  <p className="font-serif font-bold text-3xl text-[var(--ink)]">IA</p>
+                  <p className="text-[9px] font-sans uppercase tracking-[0.15em] font-medium">Análisis Cognitivo</p>
                 </div>
               </div>
 
               <footer className="absolute bottom-8 left-0 right-0 text-center">
-                <p className="text-[10px] font-mono text-[var(--secondary-color)] opacity-50 uppercase tracking-[0.2em]">
-                  by <a href="https://casabero.com" target="_blank" rel="noopener noreferrer" className="hover:text-[var(--main-color)] transition-colors">casabero.com</a>
+                <p className="text-[11px] font-serif italic text-[var(--ink-muted)]">
+                  by <a href="https://casabero.com" target="_blank" rel="noopener noreferrer" className="hover:text-[var(--ink)] transition-colors">casabero.com</a>
                 </p>
               </footer>
             </div>
@@ -248,75 +248,75 @@ const App: React.FC = () => {
               {activeTab === 'DASHBOARD' ? (
                 <div className="space-y-10 pb-20">
                   {/* Cabecera de Métricas Técnicas */}
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-[1px] border border-[var(--border-color)] bg-[var(--border-color)] shadow-sm">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-[1px] border border-[var(--border)] bg-[var(--border)] rounded-lg overflow-hidden">
                     {/* Salud */}
-                    <div className="bg-[var(--bg-color)] p-8 flex flex-col justify-between group hover:bg-[var(--technical-bg)] transition-colors relative overflow-hidden md:col-span-2">
+                    <div className="bg-[var(--bg)] p-8 flex flex-col justify-between group hover:bg-[var(--surface)] transition-colors relative overflow-hidden md:col-span-2">
                       <div className="relative z-10">
-                        <span className="text-[10px] font-mono font-bold text-[var(--secondary-color)] uppercase tracking-widest mb-8 block">Salud_Integral_Dataset</span>
+                        <span className="eyebrow text-[var(--ink2)] mb-8 block">Salud Integral del Dataset</span>
                         <div className="flex items-baseline gap-2">
-                          <span className={`text-7xl font-display font-bold ${report.score >= 80 ? 'text-[var(--main-color)]' : 'text-[var(--secondary-color)]'}`}>
+                          <span className={`text-7xl font-sans font-black tracking-tighter ${report.score >= 80 ? 'text-[var(--ink)]' : 'text-[var(--ink-soft)]'}`}>
                             {report.score}
                           </span>
-                          <span className="text-[var(--secondary-color)] font-mono text-sm">/ 100</span>
+                          <span className="text-[var(--ink2)] font-serif italic text-sm">/ 100</span>
                         </div>
                         <ScoreBreakdown deductions={report.scoreBreakdown} />
                       </div>
-                      <div className="absolute right-0 top-0 h-full w-1/3 opacity-[0.05] pointer-events-none p-4">
+                      <div className="absolute right-0 top-0 h-full w-1/3 opacity-[0.05] pointer-events-none p-4 mix-blend-multiply">
                         <ScoreGauge score={report.score} />
                       </div>
                     </div>
 
                     {/* Diseño */}
-                    <div className="bg-[var(--bg-color)] p-8 flex flex-col justify-between group hover:bg-[var(--technical-bg)] transition-colors">
-                      <span className="text-[10px] font-mono font-bold text-[var(--secondary-color)] uppercase tracking-widest mb-8">Diseño_Dataset</span>
-                      <div className="space-y-1">
-                        <p className="text-2xl font-display font-bold text-[var(--main-color)]">{report.rowCount.toLocaleString()} <span className="text-[10px] font-mono text-[var(--secondary-color)] font-normal uppercase italic">registros</span></p>
-                        <p className="text-xl font-display font-bold text-[var(--main-color)]">{report.colCount} <span className="text-[10px] font-mono text-[var(--secondary-color)] font-normal uppercase italic">dimensiones</span></p>
+                    <div className="bg-[var(--bg)] p-8 flex flex-col justify-between group hover:bg-[var(--surface)] transition-colors">
+                      <span className="eyebrow text-[var(--ink2)] mb-8">Estructura Dimensional</span>
+                      <div className="space-y-2">
+                        <p className="text-3xl font-sans font-black tracking-tight text-[var(--ink)]">{report.rowCount.toLocaleString()} <span className="text-[11px] font-serif text-[var(--ink2)] font-normal italic">filas</span></p>
+                        <p className="text-3xl font-sans font-black tracking-tight text-[var(--ink)]">{report.colCount} <span className="text-[11px] font-serif text-[var(--ink2)] font-normal italic">columnas</span></p>
                       </div>
                     </div>
 
                     {/* Críticos */}
-                    <div className="bg-[var(--bg-color)] p-8 flex flex-col justify-between group hover:bg-[var(--technical-bg)] transition-colors">
-                      <span className="text-[10px] font-mono font-bold text-[var(--secondary-color)] uppercase tracking-widest mb-8">Errores_Lógicos</span>
+                    <div className="bg-[var(--bg)] p-8 flex flex-col justify-between group hover:bg-[var(--surface)] transition-colors">
+                      <span className="eyebrow text-[var(--ink2)] mb-8">Alertas Detectadas</span>
                       <div className="flex items-baseline gap-4">
-                        <span className="text-6xl font-display font-bold text-[var(--main-color)]">{report.issues.length}</span>
+                        <span className="text-6xl font-sans font-black tracking-tighter text-[var(--ink)]">{report.issues.length}</span>
                         <div className="flex flex-col gap-1">
-                          <span className={`w-3 h-3 ${report.issues.length > 0 ? 'bg-red-600 animate-pulse' : 'bg-green-600'}`} />
-                          <span className="text-[9px] font-mono font-bold text-[var(--secondary-color)] uppercase">Alertas</span>
+                          <span className={`w-3 h-3 rounded-sm ${report.issues.length > 0 ? 'bg-[var(--error)]' : 'bg-[var(--success)]'}`} />
+                          <span className="text-[11px] font-serif italic text-[var(--ink2)]">{report.issues.length > 0 ? 'Requiere atención' : 'Limpio'}</span>
                         </div>
                       </div>
                     </div>
                   </div>
 
                   {/* Panel de Perfiles Estructurales */}
-                  <div className="bg-[var(--bg-color)] border border-[var(--border-color)] shadow-sm">
-                    <div className="px-6 py-4 border-b border-[var(--border-color)] bg-[var(--technical-bg)] flex items-center justify-between">
-                      <h3 className="font-mono text-[10px] font-bold text-[var(--main-color)] uppercase tracking-[0.2em]">./estructura_del_dataset</h3>
+                  <div className="bg-[var(--surface)] border border-[var(--border)] rounded-lg overflow-hidden">
+                    <div className="px-6 py-4 border-b border-[var(--border)] bg-[var(--surface-raised)]">
+                      <h3 className="heading-md text-[var(--ink)]">Perfil de Columnas</h3>
                     </div>
                     <DataProfile stats={report.columnStats} issues={report.issues} />
                   </div>
 
                   {/* Log de Anomalías */}
                   {report.issues.length > 0 && (
-                    <div className="bg-[var(--bg-color)] border border-[var(--border-color)] shadow-sm">
-                      <div className="px-6 py-4 border-b border-[var(--border-color)] bg-[var(--technical-bg)]">
-                        <h3 className="font-mono text-[10px] font-bold text-[var(--main-color)] uppercase tracking-[0.2em]">./log_reporte_anomalias</h3>
+                    <div className="bg-[var(--surface)] border border-[var(--border)] rounded-lg overflow-hidden">
+                      <div className="px-6 py-4 border-b border-[var(--border)] bg-[var(--surface-raised)]">
+                        <h3 className="heading-md text-[var(--ink)]">Registro de Anomalías</h3>
                       </div>
-                      <div className="p-2 bg-[var(--technical-bg)]/20 overflow-hidden">
+                      <div className="p-4 overflow-hidden bg-[var(--bg)]">
                         <IssueList issues={report.issues} />
                       </div>
                     </div>
                   )}
                 </div>
               ) : (
-                <div className="h-[calc(100vh-200px)] min-h-[600px] bg-[var(--bg-color)] animate-in slide-in-from-right duration-500 overflow-hidden border border-[var(--border-color)]">
+                <div className="h-[calc(100vh-200px)] min-h-[600px] bg-[var(--bg)] animate-in slide-in-from-right duration-500 overflow-hidden border border-[var(--border)] rounded-lg shadow-sm">
                   <GeminiAdvisor analysis={aiAnalysis} isLoading={isAiLoading} />
                 </div>
               )}
 
               <footer className="text-center py-10">
-                <p className="text-[10px] font-mono text-[var(--secondary-color)] opacity-50 uppercase tracking-[0.2em]">
-                  by <a href="https://casabero.com" target="_blank" rel="noopener noreferrer" className="hover:text-[var(--main-color)] transition-colors">casabero.com</a>
+                <p className="text-[11px] font-serif italic text-[var(--ink-muted)]">
+                  by <a href="https://casabero.com" target="_blank" rel="noopener noreferrer" className="hover:text-[var(--ink)] transition-colors">casabero.com</a>
                 </p>
               </footer>
             </div>

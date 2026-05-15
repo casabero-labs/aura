@@ -32,44 +32,44 @@ const ScriptReview: React.FC<ScriptReviewProps> = ({ code, language = 'python' }
   };
 
   return (
-    <div className="my-6 border border-[var(--border-color)] bg-[var(--technical-bg)] shadow-md overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-500">
+    <div className="my-6 border border-[var(--border-strong)] bg-[var(--surface)] shadow-sm rounded-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-500">
       {/* Header del Script */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-[var(--border-color)] bg-[var(--bg-color)]">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)] bg-[var(--surface-raised)]">
         <div className="flex items-center gap-2">
-          <Terminal size={14} className="text-[var(--main-color)]" />
-          <span className="text-[10px] font-mono font-bold text-[var(--main-color)] uppercase tracking-widest">
-            {language} // Script de Limpieza (HITL)
+          <Terminal size={14} className="text-[var(--ink)]" />
+          <span className="eyebrow text-[var(--ink)]">
+            {language} - Gobernanza (HITL)
           </span>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={handleCopy}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-[9px] font-mono font-bold uppercase tracking-widest text-[var(--secondary-color)] hover:text-[var(--main-color)] hover:bg-[var(--technical-bg)] transition-all border border-transparent hover:border-[var(--border-color)]"
+            className="casabero-btn-secondary flex items-center gap-1.5 !px-3 !py-1.5 !text-[10px]"
             title="Copiar al portapapeles"
           >
-            {copied ? <Check size={12} className="text-green-500" /> : <Copy size={12} />}
-            {copied ? 'COPIADO' : 'COPIAR'}
+            {copied ? <Check size={12} className="text-[var(--success)]" /> : <Copy size={12} />}
+            {copied ? 'Copiado' : 'Copiar'}
           </button>
           <button
             onClick={handleDownload}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-[9px] font-mono font-bold uppercase tracking-widest bg-[var(--main-color)] text-white hover:bg-[var(--accent-focus)] transition-all"
+            className="casabero-btn-primary flex items-center gap-1.5 !px-3 !py-1.5 !text-[10px]"
             title="Descargar script .py"
           >
             <Download size={12} />
-            GUARDAR .PY
+            Guardar .py
           </button>
         </div>
       </div>
 
       {/* Contenido del Código */}
-      <div className="relative group">
-        <pre className="p-4 overflow-x-auto text-[11px] font-mono text-gray-300 bg-[#0d1117] m-0 !rounded-none">
+      <div className="relative group bg-[var(--bg)] p-4">
+        <pre className="overflow-x-auto text-[12px] font-mono text-[var(--ink2)] m-0 leading-relaxed custom-scrollbar">
           <code>{code}</code>
         </pre>
         {/* Marca de agua sutil */}
-        <div className="absolute bottom-2 right-4 opacity-10 pointer-events-none flex items-center gap-2">
-          <FileCode2 size={24} className="text-white" />
-          <span className="font-display font-bold text-white uppercase tracking-widest">AURA GOVERNANCE</span>
+        <div className="absolute bottom-2 right-4 opacity-[0.03] pointer-events-none flex items-center gap-2">
+          <FileCode2 size={24} className="text-[var(--ink)]" />
+          <span className="font-serif font-black text-[var(--ink)] uppercase tracking-widest text-xl">AURA GOVERNANCE</span>
         </div>
       </div>
     </div>
