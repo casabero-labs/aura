@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import FileUpload from './components/FileUpload';
 import ScoreGauge from './components/ScoreGauge';
 import IssueList from './components/IssueList';
@@ -8,10 +8,10 @@ import SettingsPanel from './components/SettingsPanel';
 import AuraLogo from './components/AuraLogo';
 import { parseCsv } from './services/csvService';
 import { runAudit } from './services/auditEngine';
-import { getGeminiAnalysisStream, generateExecutiveReport } from './services/geminiService';
+import { createAIProvider } from './services/aiProvider';
 import { generatePdfReport } from './services/pdfGenerator';
 import ScoreBreakdown from './components/ScoreBreakdown';
-import { AuditReport, AIConfig } from './types';
+import { AuditReport, AIConfig, ProviderMetrics } from './types';
 import { FileSpreadsheet, RotateCcw, LayoutDashboard, AlertCircle, CheckCircle, AlertTriangle, FileDown, Loader2, Settings, Sparkles, BookOpen, Cpu, Terminal, Shield, BarChart3, Brain } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -23,14 +23,24 @@ const App: React.FC = () => {
   const [isPdfGenerating, setIsPdfGenerating] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [activeTab, setActiveTab] = useState<'DASHBOARD' | 'IA'>('DASHBOARD');
+  const [lastMetrics, setLastMetrics] = useState<ProviderMetrics | null>(null);
   const [aiConfig, setAiConfig] = useState<AIConfig>(() => {
     const saved = localStorage.getItem('aura_ai_config');
-    return saved ? JSON.parse(saved) : {
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // Migración: agregar providerType si no existe
+      return { providerType: 'cloud', ...parsed };
+    }
+    return {
       apiKey: '',
       model: 'gemini-2.0-flash',
-      autoAnalyze: true
+      autoAnalyze: true,
+      providerType: 'cloud' as const
     };
   });
+
+  // Capa 2: Proveedor de IA reactivo a la configuración
+  const aiProvider = useMemo(() => createAIProvider(aiConfig), [aiConfig]);
 
   useEffect(() => {
     localStorage.setItem('aura_ai_config', JSON.stringify(aiConfig));
@@ -57,7 +67,8 @@ const App: React.FC = () => {
   }, []);
 
   const runAiAnalysis = async (currentReport: AuditReport) => {
-    if (!aiConfig.apiKey && !(import.meta as any).env.VITE_GEMINI_API_KEY) {
+    const isAvailable = await aiProvider.isAvailable();
+    if (!isAvailable) {
       alert("Por favor, configura tu API Key en los ajustes para usar la IA.");
       setShowSettings(true);
       return;
@@ -65,9 +76,12 @@ const App: React.FC = () => {
     setIsAiLoading(true);
     setAiAnalysis('');
     try {
-      await getGeminiAnalysisStream(currentReport, aiConfig, (chunk) => {
+      // Capa 2: Análisis via proveedor abstracto (Gemini o WebLLM)
+      const metrics = await aiProvider.analyzeStream(currentReport, (chunk) => {
         setAiAnalysis(prev => prev + chunk);
       });
+      setLastMetrics(metrics);
+      console.log('[AURA] Métricas de análisis:', metrics);
     } catch (err: any) {
       console.error(err);
       alert(`Error en IA: ${err.message}`);
@@ -103,10 +117,12 @@ const App: React.FC = () => {
     if (!report) return;
     setIsPdfGenerating(true);
     try {
-      const executiveContent = await generateExecutiveReport(report, aiConfig);
+      // Capa 3: Reporte ejecutivo via proveedor abstracto
+      const { content: executiveContent, metrics } = await aiProvider.generateExecutiveReport(report);
+      setLastMetrics(metrics);
       generatePdfReport(report, executiveContent);
     } catch (error: any) {
-      console.error("PDF Generation Error:", error);
+      console.error('PDF Generation Error:', error);
       alert(`Error generando el PDF: ${error.message || "Verifica tu API Key o conexión"}`);
     } finally {
       setIsPdfGenerating(false);

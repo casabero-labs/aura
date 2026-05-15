@@ -1,0 +1,114 @@
+# Borrador de Artículo Científico — AURA
+
+> **Estado**: Pre-borrador. Acumular material aquí durante el desarrollo del TFM.
+> **Objetivo**: Artículo publicable tras la defensa del TFM.
+
+---
+
+## Título Propuesto
+
+**AURA: A Hybrid Deterministic-Cognitive Architecture for Browser-Native Data Quality Diagnosis with Hallucination-Resistant LLM Integration**
+
+## Autores
+
+- Joseph David Gari Bustos (UNIR)
+- Luis Guadalupe Macias Trejo (UNIR, Director)
+
+---
+
+## Abstract (borrador)
+
+_Por redactar tras completar la validación experimental._
+
+Elementos clave a incluir:
+- Problema: Herramientas de calidad de dato ciegas al contexto + riesgos de privacidad en cloud
+- Contribución: Arquitectura híbrida de 4 capas con 5 mecanismos anti-alucinación
+- Método: Motor determinista (22 reglas, EM=1.00) + LLM controlado + local-first
+- Resultados: [métricas por completar]
+- Conclusión: [por completar]
+
+---
+
+## 1. Introduction
+
+_Basarse en Cap. 1 de la tesis. Condensar motivación, gap, y contribución._
+
+### Contribuciones del artículo:
+1. Arquitectura híbrida determinista + LLM para diagnóstico de calidad del dato
+2. Catálogo de 22+ reglas deterministas con mapeo a ISO/IEC 25012
+3. 5 mecanismos formales anti-alucinación (M1–M5) con evaluación empírica
+4. Validación sobre N datasets públicos comparando M modelos LLM
+5. Implementación browser-native open-source como prueba de concepto
+
+---
+
+## 2. Related Work
+
+_Basarse en Cap. 2 de la tesis. Incluir tabla comparativa de docs/tablas/_
+
+---
+
+## 3. Architecture
+
+_Basarse en Cap. 5 de la tesis._
+
+### 3.1 Layer 0: Sovereign Infrastructure
+### 3.2 Layer 1: Deterministic Engine
+### 3.3 Layer 2: Cognitive Stability
+### 3.4 Layer 3: HITL Governance
+
+---
+
+## 4. Anti-Hallucination Mechanisms
+
+_Basarse en docs/tablas/diseno_capa_cognitiva.md_
+
+### 4.1 M1: Low Temperature Sampling
+### 4.2 M2: Semantic Anchoring
+### 4.3 M3: Copy-Paste Paradigm
+### 4.4 M4: Forced Chain of Reasoning
+### 4.5 M5: Structured JSON Output
+
+---
+
+## 5. Experimental Evaluation
+
+_Por completar tras experiments/_
+
+### 5.1 Datasets
+### 5.2 Metrics
+### 5.3 Baselines
+### 5.4 Results
+
+---
+
+## 6. Discussion
+
+_Por completar_
+
+---
+
+## 7. Conclusion
+
+_Por completar_
+
+---
+
+## Material Acumulado
+
+> Ir agregando aquí fragmentos, tablas, figuras que servirán para el paper.
+
+### Tablas listas
+- [ ] Tabla comparativa herramientas (docs/tablas/tabla_comparativa_herramientas.md)
+- [ ] Catálogo de reglas con ISO 25012 (docs/tablas/catalogo_reglas_motor_determinista.md)
+
+### Figuras por crear
+- [ ] Diagrama de arquitectura de 4 capas (formato publicable, no screenshot)
+- [ ] Flujo de datos end-to-end
+- [ ] Gráfico de resultados de benchmark
+
+### Métricas por generar
+- [ ] Precision/Recall del motor determinista por regla
+- [ ] Latencia por modelo LLM
+- [ ] Hallucination rate por modelo
+- [ ] Comparativa con/sin mecanismos anti-alucinación

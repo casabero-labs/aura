@@ -69,14 +69,58 @@ export interface AIConfig {
   apiKey: string;
   model: string;
   autoAnalyze: boolean;
+  providerType: 'cloud' | 'local';  // Capa 0: Selección de infraestructura
 }
 
 export interface ExecutiveReportContent {
   title: string;
   domain_inferred: string;
-  dataset_technical_description: string; // New: AI narration of the structure
+  dataset_technical_description: string;
   executive_summary: string;
   business_impact: string;
   key_findings: string[];
   recommendations: string[];
+  python_script?: string;
+}
+
+// --- Capa 2: Abstracción del Proveedor de IA ---
+
+/**
+ * Métricas de rendimiento por ejecución del proveedor.
+ * Utilizadas en el benchmark multi-modelo (OE2).
+ */
+export interface ProviderMetrics {
+  provider: string;
+  model: string;
+  latencyMs: number;
+  firstTokenMs: number;
+  tokensGenerated: number;
+  isLocal: boolean;
+  timestamp: string;
+}
+
+/**
+ * Interfaz abstracta para proveedores de IA.
+ * Permite intercambiar Gemini Cloud ↔ WebLLM Local
+ * sin modificar la lógica de la aplicación.
+ * 
+ * Referencia: §3.3.3 Capa 2 — Estabilidad Cognitiva
+ */
+export interface AIProvider {
+  readonly name: string;
+  readonly type: 'cloud' | 'local';
+
+  /** Análisis streaming (Tab IA del Dashboard) — Mecanismos M1-M4 */
+  analyzeStream(
+    report: AuditReport,
+    onChunk: (text: string) => void
+  ): Promise<ProviderMetrics>;
+
+  /** Reporte ejecutivo JSON estructurado (PDF) — Mecanismo M5 */
+  generateExecutiveReport(
+    report: AuditReport
+  ): Promise<{ content: ExecutiveReportContent; metrics: ProviderMetrics }>;
+
+  /** Verifica si el proveedor está disponible en el entorno actual */
+  isAvailable(): Promise<boolean>;
 }

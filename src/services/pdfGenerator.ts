@@ -269,6 +269,51 @@ export const generatePdfReport = (auditReport: AuditReport, executiveContent: Ex
     yPos = doc.lastAutoTable.finalY + 10;
   });
 
+  // --- PAGE Y: GOVERNANCE & TRACEABILITY (PYTHON SCRIPT) ---
+  if (executiveContent.python_script) {
+    doc.addPage();
+    yPos = margin;
+    
+    drawSectionHeader("8. Gobernanza y Trazabilidad (Script de Limpieza)");
+    
+    doc.setFont('times', 'italic');
+    doc.setFontSize(10);
+    doc.setTextColor(colors.red);
+    doc.text("ATENCIÓN: Código generado automáticamente por IA. Requiere revisión humana (HITL) antes de ejecución en producción.", margin, yPos - 3);
+    yPos += 5;
+
+    // Simulate code block background
+    const scriptLines = doc.splitTextToSize(executiveContent.python_script, pageWidth - margin * 2 - 10);
+    const boxHeight = scriptLines.length * 5 + 10;
+    
+    // If the box is too big for the page, we'll just let it overflow normally or we can draw multiple pages.
+    // For simplicity, we draw the background for whatever fits or just don't draw the gray box if it's too complex.
+    // We'll draw a simple border and use courier font.
+    doc.setFillColor(248, 250, 252); // Very light gray/blue
+    doc.setDrawColor(203, 213, 225);
+    doc.rect(margin, yPos, pageWidth - margin * 2, Math.min(boxHeight, pageHeight - margin - yPos), 'FD');
+
+    doc.setFont('courier', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(51, 65, 85); // Slate 700
+    
+    // Handle multi-page script if it's very long
+    let codeYPos = yPos + 6;
+    scriptLines.forEach((line: string) => {
+      if (codeYPos > pageHeight - margin) {
+        doc.addPage();
+        codeYPos = margin;
+        doc.setFillColor(248, 250, 252);
+        doc.rect(margin, codeYPos, pageWidth - margin * 2, pageHeight - margin * 2, 'FD');
+        codeYPos += 6;
+      }
+      doc.text(line, margin + 5, codeYPos);
+      codeYPos += 5;
+    });
+
+    yPos = codeYPos + 10;
+  }
+
   // Footer
   addFooters();
 

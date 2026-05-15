@@ -9,15 +9,16 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "react": "^19.2.0",
     "@google/genai": "^1.30.0",
-    "lucide-react": "^0.555.0",
-    "react-markdown": "^10.1.0",
-    "react-dom": "^19.2.0",
-    "recharts": "^3.5.1",
-    "papaparse": "^5.5.3",
+    "@mlc-ai/web-llm": "^0.2.83",
     "jspdf": "^2.5.2",
-    "jspdf-autotable": "^3.8.4"
+    "jspdf-autotable": "^3.8.4",
+    "lucide-react": "^0.555.0",
+    "papaparse": "^5.5.3",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-markdown": "^10.1.0",
+    "recharts": "^3.5.1"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

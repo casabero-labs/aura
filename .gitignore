@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+src/node_modules/
+
+# Build
+src/dist/
+dist/
+
+# Environment
+.env
+.env.local
+src/.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Experiments data (too large for git)
+experiments/datasets/*.csv
+experiments/datasets/*.xlsx
+!experiments/datasets/README.md
+
+# Lock files (optional - uncomment if you want to track)
+# package-lock.json

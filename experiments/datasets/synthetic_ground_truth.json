@@ -1,0 +1,48 @@
+{
+  "dataset": "synthetic_ground_truth.csv",
+  "total_rows": 15,
+  "injected_issues": {
+    "R01_duplicados_exactos": {
+      "expected_count": 1,
+      "description": "Fila 5 es duplicado exacto de Fila 1"
+    },
+    "R02_nulos_criticos": {
+      "expected_count": 1,
+      "column": "nombre",
+      "description": "Fila 7 no tiene nombre"
+    },
+    "R03_formato_email": {
+      "expected_count": 1,
+      "column": "email",
+      "description": "Fila 4 tiene email sin dominio válido (ana.torres@empresa)"
+    },
+    "R06_mojibake_encoding": {
+      "expected_count": 1,
+      "column": "nombre",
+      "description": "Fila 6 tiene mojibake (Luis GarcÃ­a)"
+    },
+    "R08_placeholders_toxicos": {
+      "expected_count": 3,
+      "description": "Fila 11 (edad: N/A), Fila 12 (email: NULL), Fila 13 (estado: N/A)"
+    },
+    "R14_numeros_negativos_imposibles": {
+      "expected_count": 1,
+      "column": "salario",
+      "description": "Fila 3 tiene salario negativo (-1500)"
+    },
+    "R15_outliers_iqr": {
+      "expected_count": 2,
+      "description": "Fila 8 (edad 150) y Fila 9 (salario 9999999.99)"
+    },
+    "R19_pii_detectado": {
+      "expected_count": 15,
+      "column": "ip_acceso",
+      "description": "Todas las filas tienen direcciones IPv4"
+    },
+    "R12_formatos_fecha_mixtos": {
+      "expected_count": 1,
+      "column": "fecha_ingreso",
+      "description": "Fila 10 usa MM/DD/YYYY en lugar de YYYY-MM-DD"
+    }
+  }
+}

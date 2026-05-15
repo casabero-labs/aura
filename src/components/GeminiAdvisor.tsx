@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Bot, Terminal, Cpu } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import ScriptReview from './ScriptReview';
 
 interface GeminiAdvisorProps {
   analysis: string;
@@ -33,8 +34,28 @@ const GeminiAdvisor: React.FC<GeminiAdvisorProps> = ({ analysis, isLoading }) =>
 
       <div className="flex-1 overflow-y-auto p-8 custom-markdown select-text font-sans">
         {analysis ? (
-          <div className="prose prose-sm max-w-none prose-p:text-[var(--text-main)] prose-headings:font-display prose-headings:font-bold prose-headings:text-[var(--main-color)] prose-headings:uppercase prose-headings:tracking-tight prose-strong:text-[var(--main-color)] prose-code:bg-[var(--technical-bg)] prose-code:text-[var(--main-color)] prose-code:font-mono prose-pre:bg-[var(--main-color)] prose-pre:text-white prose-pre:rounded-none">
-            <ReactMarkdown>{analysis}</ReactMarkdown>
+          <div className="prose prose-sm max-w-none prose-p:text-[var(--text-main)] prose-headings:font-display prose-headings:font-bold prose-headings:text-[var(--main-color)] prose-headings:uppercase prose-headings:tracking-tight prose-strong:text-[var(--main-color)] prose-code:bg-[var(--technical-bg)] prose-code:text-[var(--main-color)] prose-code:font-mono prose-pre:p-0 prose-pre:bg-transparent">
+            <ReactMarkdown
+              components={{
+                code({ node, inline, className, children, ...props }: any) {
+                  const match = /language-(\w+)/.exec(className || '');
+                  const language = match ? match[1] : '';
+                  const codeString = String(children).replace(/\n$/, '');
+                  
+                  if (!inline && language) {
+                    return <ScriptReview code={codeString} language={language} />;
+                  }
+                  
+                  return (
+                    <code className={className} {...props}>
+                      {children}
+                    </code>
+                  );
+                }
+              }}
+            >
+              {analysis}
+            </ReactMarkdown>
             <div ref={bottomRef} />
           </div>
         ) : (

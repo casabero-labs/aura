@@ -1,0 +1,26 @@
+{
+  "timestamp": "2026-05-15T22:17:47.694Z",
+  "dataset": "titanic.csv",
+  "results": [
+    {
+      "model": "gemini-2.0-flash",
+      "latencyMs": 0,
+      "tokensGenerated": 0,
+      "tokensPerSecond": 0,
+      "formatCompliance": false,
+      "pythonScriptIncluded": false,
+      "hallucinatedFields": false,
+      "error": "{\"error\":{\"code\":400,\"message\":\"API Key not found. Please pass a valid API key.\",\"status\":\"INVALID_ARGUMENT\",\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.ErrorInfo\",\"reason\":\"API_KEY_INVALID\",\"domain\":\"googleapis.com\",\"metadata\":{\"service\":\"generativelanguage.googleapis.com\"}},{\"@type\":\"type.googleapis.com/google.rpc.LocalizedMessage\",\"locale\":\"en-US\",\"message\":\"API Key not found. Please pass a valid API key.\"}]}}"
+    },
+    {
+      "model": "gemini-1.5-pro",
+      "latencyMs": 0,
+      "tokensGenerated": 0,
+      "tokensPerSecond": 0,
+      "formatCompliance": false,
+      "pythonScriptIncluded": false,
+      "hallucinatedFields": false,
+      "error": "{\"error\":{\"code\":400,\"message\":\"API Key not found. Please pass a valid API key.\",\"status\":\"INVALID_ARGUMENT\",\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.ErrorInfo\",\"reason\":\"API_KEY_INVALID\",\"domain\":\"googleapis.com\",\"metadata\":{\"service\":\"generativelanguage.googleapis.com\"}},{\"@type\":\"type.googleapis.com/google.rpc.LocalizedMessage\",\"locale\":\"en-US\",\"message\":\"API Key not found. Please pass a valid API key.\"}]}}"
+    }
+  ]
+}
