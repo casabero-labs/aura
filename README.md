@@ -17,11 +17,11 @@ Máster Universitario en Análisis y Visualización de Datos Masivos
 
 AURA es una herramienta de auditoría inteligente de calidad del dato que combina un motor determinista de 22+ reglas con análisis cognitivo mediante LLMs (Large Language Models). A diferencia de las soluciones tradicionales que operan sobre reglas fijas y no comprenden el contexto, AURA integra tres capacidades en una sola arquitectura:
 
-1. **Diagnóstico determinista** — Detección precisa de anomalías estructurales, de higiene, tipado, lógica y seguridad
+1. **Diagnóstico determinista** — Detección reproducible de anomalías estructurales, de higiene, tipado, lógica y seguridad
 2. **Análisis cognitivo** — Interpretación semántica de hallazgos usando modelos de lenguaje (Gemini, Llama)
 3. **Gobernanza auditable** — Generación de scripts de limpieza Python/Pandas revisables por humanos
 
-Todo bajo una arquitectura **local-first** que garantiza que los datos sensibles permanezcan en el navegador del usuario.
+La arquitectura es **local-first**: el CSV crudo y la auditoría determinista se procesan en el navegador. La capa cognitiva puede ejecutarse localmente con WebLLM/WebGPU o mediante proveedor cloud, enviando en ese caso un resumen inteligente en lugar del dataset completo.
 
 ## Arquitectura de Capas de Estabilidad
 
@@ -78,9 +78,9 @@ GEMINI_API_KEY=tu_clave_aqui
 
 | ID | Objetivo | Descripción |
 |---|---|---|
-| OE1 | Motor de auditoría determinista | TypeScript, 22+ reglas, precisión EM = 1.00 |
-| OE2 | Benchmarking multi-modelo | Gemini vs Llama: precisión, latencia, alucinaciones |
-| OE3 | Arquitectura local-first | Inferencia en navegador, cumplimiento GDPR |
+| OE1 | Motor de auditoría determinista | TypeScript, 22+ reglas reproducibles, precisión/recall medidos experimentalmente |
+| OE2 | Benchmarking multi-modelo | Gemini vs modelos locales: latencia, formato, alucinaciones, utilidad |
+| OE3 | Arquitectura local-first | CSV y reglas en navegador; comparación inferencia local vs cloud |
 | OE4 | Scripts de limpieza auditables | Generación automática de Pandas, HITL |
 
 ## Licencia

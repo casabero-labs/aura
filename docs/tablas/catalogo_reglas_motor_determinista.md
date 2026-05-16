@@ -16,7 +16,8 @@
 | Líneas de código | 527 |
 | Total de reglas | 22+ |
 | Categorías | 5 (Integridad, Higiene, Tipos, Lógica, Semántica) |
-| Precisión (EM) | 1.00 (determinista) |
+| Propiedad principal | Reproducibilidad determinista |
+| Métricas empíricas | Ver `docs/tablas/resultados_motor_determinista.md` |
 | Dependencias externas | Ninguna (TypeScript puro) |
 | Límite de filas | 5.000 (PapaParse preview) |
 
@@ -234,6 +235,16 @@
 | **Penalización** | **20 pts** (la más alta del sistema) |
 | **Justificación** | Exposición de PII es un riesgo regulatorio (GDPR/LOPDGDD) y ético |
 
+### R23 — Redundancia Temporal Derivable
+| Campo | Detalle |
+|---|---|
+| **ID** | `semantic-temporal-redundancy-{datetime}-{time}` |
+| **Severidad** | INFO |
+| **Algoritmo** | Detecta columnas tipo `datetime/timestamp/fecha_hora` y columnas tipo `time/hora`; extrae la hora del datetime y la compara contra la columna de hora |
+| **Penalización** | 0 pts (evidencia para revisión) |
+| **Umbral** | Coincidencia >=95% en más de 10 filas comparables |
+| **Justificación** | Identifica posible redundancia derivable sin eliminar automáticamente la columna; requiere interpretación de dominio por Capa 2 y validación HITL |
+
 ---
 
 ## Tabla Resumen de Penalizaciones
@@ -262,6 +273,7 @@
 | R20 Espacios Dobles | Higiene | 2 pts | INFO |
 | R21 URLs | Lógica | 5 pts | WARNING |
 | R22 Símbolos | Higiene | 5 pts | WARNING |
+| R23 Redundancia temporal derivable | Semántica | 0 pts | INFO |
 
 **Penalización máxima teórica por columna**: Variable (depende del tipo de columna y problemas detectados).  
 **Score mínimo posible**: 0 (capped a `max(0, 100 - total)`).

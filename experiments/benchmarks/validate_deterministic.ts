@@ -113,7 +113,7 @@ console.log(`------------------------------------------------------`);
 console.log(`Precision : ${(precision * 100).toFixed(2)}% (Qué % de lo detectado era realmente error)`);
 console.log(`Recall    : ${(recall * 100).toFixed(2)}% (Qué % de los errores totales encontró)`);
 console.log(`F1-Score  : ${(f1 * 100).toFixed(2)}%`);
-console.log(`\nNota para Tesis: Si Precision y Recall = 100%, la afirmación "EM=1.00" del Cap. 3.3.3 es empíricamente cierta.\n`);
+console.log(`\nNota para Tesis: usar estas métricas para discutir reproducibilidad, precision, recall y límites semánticos de la Capa 1. Evitar afirmar "EM=1.00" salvo que una validación posterior lo demuestre explícitamente.\n`);
 
 // Guardar resultados
 const outputPath = path.join(__dirname, '../results/deterministic_validation.json');

@@ -1,7 +1,7 @@
 # Capa Cognitiva — Diseño de Prompts y Estrategias Anti-Alucinación
 
 > Documentación para **Capítulo 5.4 — Capa 2: Estabilidad Cognitiva** de la memoria TFM.
-> Archivo fuente: `src/services/geminiService.ts`
+> Archivos fuente: `src/services/aiProvider.ts`, `src/services/providers/prompts.ts`, `src/services/providers/geminiProvider.ts`, `src/services/providers/webllmProvider.ts`
 
 ---
 
@@ -25,7 +25,7 @@ La Capa 2 de AURA **nunca opera sobre datos crudos**. Recibe exclusivamente el o
 
 | Capa | Responsabilidad | ¿Toca datos crudos? |
 |---|---|---|
-| Capa 1 (Determinista) | Detectar anomalías con precisión EM=1.00 | ✅ Sí |
+| Capa 1 (Determinista) | Generar hallazgos reproducibles y evidencia factual | ✅ Sí |
 | Capa 2 (Cognitiva) | Interpretar, contextualizar, generar scripts | ❌ No — solo ve el JSON resumen |
 
 ---
@@ -176,7 +176,7 @@ responseSchema: {
 
 ### Modo 1: Análisis Streaming (Tab IA del Dashboard)
 
-- **Función**: `getGeminiAnalysisStream()`
+- **Interfaz**: `AIProvider.analyzeStream()`
 - **Modelo**: Configurable (default: `gemini-2.0-flash`)
 - **Output**: Markdown renderizado en tiempo real
 - **Interactividad**: El usuario ve el diagnóstico construirse token a token
@@ -184,7 +184,7 @@ responseSchema: {
 
 ### Modo 2: Reporte Ejecutivo (Exportar PDF)
 
-- **Función**: `generateExecutiveReport()`
+- **Interfaz**: `AIProvider.generateExecutiveReport()`
 - **Modelo**: El mismo configurado
 - **Output**: JSON estricto (`ExecutiveReportContent`)
 - **Mecanismos**: M1 + M2 + M5

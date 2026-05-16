@@ -70,7 +70,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                         {localConfig.providerType === 'local' && webGpuSupported === true && (
                             <div className="flex items-start gap-2 p-3 mt-2 bg-emerald-50 border border-emerald-200 text-emerald-800 text-[12px] font-sans leading-relaxed rounded-sm">
                                 <CheckCircle size={14} className="shrink-0 mt-0.5" />
-                                <p>WebGPU detectado. El modelo se ejecutará 100% en tu dispositivo local. Cero datos saldrán de este entorno.</p>
+                                <p>WebGPU detectado. En modo local, el modelo y el smart sample se ejecutan en tu dispositivo sin llamar a una API cloud.</p>
                             </div>
                         )}
                     </div>

@@ -7,7 +7,7 @@
  * 
  * Este proveedor descarga y ejecuta modelos LLM (ej. Llama 3.2 3B) 
  * directamente en el navegador del usuario mediante WebGPU.
- * Asegura privacidad del 100% (cero datos salen de la máquina).
+ * En modo local evita llamadas a APIs cloud durante la inferencia.
  */
 
 import { CreateMLCEngine, MLCEngine, InitProgressReport } from '@mlc-ai/web-llm';
@@ -174,6 +174,34 @@ export class WebLLMProvider implements AIProvider {
     };
 
     return { content, metrics };
+  }
+
+  async generateText(prompt: string): Promise<{ text: string; metrics: ProviderMetrics }> {
+    if (!await this.isAvailable()) {
+      throw new Error('WebGPU no soportado para análisis local.');
+    }
+
+    const engine = await this.ensureEngineLoaded();
+    const startTime = performance.now();
+    const response = await engine.chat.completions.create({
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.1,
+    });
+    const totalTime = performance.now() - startTime;
+    const text = response.choices[0]?.message?.content || '';
+
+    return {
+      text,
+      metrics: {
+        provider: this.name,
+        model: this.model,
+        latencyMs: Math.round(totalTime),
+        firstTokenMs: Math.round(totalTime),
+        tokensGenerated: response.usage?.completion_tokens || text.split(/\s+/).filter(Boolean).length,
+        isLocal: true,
+        timestamp: new Date().toISOString()
+      }
+    };
   }
 
   private emptyMetrics(): ProviderMetrics {

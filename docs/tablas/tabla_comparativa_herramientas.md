@@ -12,7 +12,7 @@
 | **Diagnóstico en lenguaje natural** | ❌ | ❌ | ❌ (dashboards) | ❌ | ✅ Parcial | ✅ Completo (streaming) |
 | **Generación automática de código de limpieza** | ❌ | ❌ | ❌ | ❌ | ✅ (Pandas) | ✅ (Pandas, auditable HITL) |
 | **Privacidad / Local-first** | ✅ On-premises | ✅ Desktop | ❌ Cloud SaaS | ✅ CI/CD local | ❌ Cloud API | ✅ Browser-native (Capa 0) |
-| **Motor determinista propio** | ✅ (basado en reglas YAML) | ❌ (manual) | ❌ (ML) | ✅ (checks YAML) | ❌ (solo LLM) | ✅ (22+ reglas TypeScript, EM = 1.00) |
+| **Motor determinista propio** | ✅ (basado en reglas YAML) | ❌ (manual) | ❌ (ML) | ✅ (checks YAML) | ❌ (solo LLM) | ✅ (22+ reglas TypeScript, reproducible) |
 | **Mitigación de alucinaciones** | N/A | N/A | N/A | N/A | ❌ No documentada | ✅ (Copy-Paste, t=0.1, JSON estricto, M4) |
 | **Reporte ejecutivo PDF** | ❌ (JSON/HTML) | ❌ | Dashboard web | ❌ | ❌ | ✅ (jsPDF multi-página) |
 | **Benchmarking multi-modelo** | N/A | N/A | N/A | N/A | ❌ (modelo fijo) | ✅ (intercambio Gemini/Llama) |
@@ -25,9 +25,9 @@
 
 La tabla evidencia que **ninguna herramienta existente combina simultáneamente** las tres dimensiones que AURA integra:
 
-1. **Motor determinista propio** con precisión garantizada (no depende de ML probabilístico ni de reglas manuales extensas)
+1. **Motor determinista propio** que genera evidencia reproducible antes de consultar al LLM
 2. **Capa cognitiva LLM** con mecanismos formales de mitigación de alucinaciones (anclaje semántico, Copy-Paste)
-3. **Arquitectura local-first** que garantiza la soberanía del dato sin transmisión a terceros
+3. **Arquitectura local-first** que procesa el CSV crudo en navegador y permite comparar inferencia local frente a cloud
 
 ### Posicionamiento de AURA
 

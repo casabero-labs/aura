@@ -14,6 +14,12 @@
 
 El documento de tesis (`docs/memoria/`) es el **norte absoluto** del proyecto. Todo código, toda decisión de arquitectura, y toda documentación debe alinearse con lo que la memoria TFM define. El código existente en `src/` es un recurso que se adapta a la tesis, no al revés.
 
+Para la segunda entrega, la línea oficial está en:
+
+`docs/memoria/entregas/segunda_entrega/LINEA_OFICIAL_AURA.md`
+
+Resumen canónico: AURA no debe prometer precisión perfecta del motor determinista. La tesis defendible es que la Capa 1 genera evidencia reproducible, la Capa 2 interpreta esa evidencia bajo restricciones anti-alucinación y la Capa 3 conserva gobernanza humana.
+
 **Regla de oro**: Ningún feature se considera terminado hasta que:
 1. ✅ El código compila y funciona
 2. 📸 Se captura evidencia (screenshot/métricas)
@@ -24,17 +30,17 @@ El documento de tesis (`docs/memoria/`) es el **norte absoluto** del proyecto. T
 
 AURA sigue una **Arquitectura de 4 Capas de Estabilidad**:
 
-1. **Capa 0**: Infraestructura Soberana (Local-First) — Los datos nunca salen del navegador
-2. **Capa 1**: Motor Determinista (`src/services/auditEngine.ts`) — 22+ reglas, precisión 100%
-3. **Capa 2**: Estabilidad Cognitiva (`src/services/geminiService.ts`) — LLM controlado con anclaje semántico
+1. **Capa 0**: Infraestructura Soberana (Local-First) — CSV y auditoría determinista en navegador; inferencia local opcional con WebLLM/WebGPU
+2. **Capa 1**: Motor Determinista (`src/services/auditEngine.ts`) — 22+ reglas reproducibles que generan evidencia factual
+3. **Capa 2**: Estabilidad Cognitiva (`src/services/providers/`) — LLM cloud/local controlado con smart sample y anclaje semántico
 4. **Capa 3**: Gobernanza y Trazabilidad (`src/services/pdfGenerator.ts`) — HITL, scripts Pandas, PDF
 
 ## Objetivos Específicos (OE)
 
-- **OE1**: Motor de auditoría determinista → `src/services/auditEngine.ts`
-- **OE2**: Benchmarking multi-modelo → `experiments/benchmarks/`
-- **OE3**: Arquitectura local-first → Evaluación de WebGPU/WASM
-- **OE4**: Scripts de limpieza auditables → Generación via LLM en `geminiService.ts`
+- **OE1**: Motor de auditoría determinista reproducible → `src/services/auditEngine.ts`
+- **OE2**: Benchmarking multi-modelo cloud/local → `experiments/benchmarks/`
+- **OE3**: Arquitectura local-first y comparación WebLLM/Gemini → `src/services/aiProvider.ts`
+- **OE4**: Scripts de limpieza auditables → generación vía proveedores IA y reporte PDF
 
 ## Stack Tecnológico
 
@@ -84,6 +90,7 @@ aura/
 6. Cada feature debe generar evidencia en `docs/` antes de considerarse terminado
 7. Las métricas experimentales se registran en `experiments/results/` con formato reproducible
 8. Las referencias bibliográficas se mantienen en `docs/referencias/registro_bibliografico.md`
+9. No introducir afirmaciones de "precisión 100%", "EM=1.00" o "todo local" sin evidencia experimental y matiz de modo de ejecución
 
 ## Cronograma Crítico
 

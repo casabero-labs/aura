@@ -23,7 +23,7 @@ _Por redactar tras completar la validación experimental._
 Elementos clave a incluir:
 - Problema: Herramientas de calidad de dato ciegas al contexto + riesgos de privacidad en cloud
 - Contribución: Arquitectura híbrida de 4 capas con 5 mecanismos anti-alucinación
-- Método: Motor determinista (22 reglas, EM=1.00) + LLM controlado + local-first
+- Método: Motor determinista reproducible (22+ reglas) + LLM controlado + arquitectura local-first evaluable
 - Resultados: [métricas por completar]
 - Conclusión: [por completar]
 
@@ -35,7 +35,7 @@ _Basarse en Cap. 1 de la tesis. Condensar motivación, gap, y contribución._
 
 ### Contribuciones del artículo:
 1. Arquitectura híbrida determinista + LLM para diagnóstico de calidad del dato
-2. Catálogo de 22+ reglas deterministas con mapeo a ISO/IEC 25012
+2. Catálogo de 22+ reglas deterministas con mapeo a ISO/IEC 25012 y evaluación precision/recall
 3. 5 mecanismos formales anti-alucinación (M1–M5) con evaluación empírica
 4. Validación sobre N datasets públicos comparando M modelos LLM
 5. Implementación browser-native open-source como prueba de concepto

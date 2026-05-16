@@ -67,7 +67,7 @@ const GeminiAdvisor: React.FC<GeminiAdvisorProps> = ({ analysis, isLoading }) =>
       </div>
 
       <div className="px-6 py-4 border-t border-[var(--border)] bg-[var(--surface)] text-[11px] text-[var(--ink2)] font-sans flex justify-between items-center group cursor-default">
-        <span className="flex items-center gap-2 group-hover:text-[var(--ink)] transition-colors"><Bot size={14} className="text-[var(--ink)]" /> Análisis Local-First</span>
+        <span className="flex items-center gap-2 group-hover:text-[var(--ink)] transition-colors"><Bot size={14} className="text-[var(--ink)]" /> Análisis anclado a evidencia</span>
         <span className="italic opacity-80 font-serif text-[11px]">Impulsado por Casabero AI</span>
       </div>
     </div>

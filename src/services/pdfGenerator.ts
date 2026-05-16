@@ -209,7 +209,7 @@ export const generatePdfReport = (auditReport: AuditReport, executiveContent: Ex
     yPos = margin;
   }
 
-  drawSectionHeader("7. Reporte de Anomalías (Motor de 20 Reglas)");
+  drawSectionHeader("7. Reporte de Anomalías (Motor de 22+ Reglas)");
 
   // Group issues by category for better readability
   const categories = [

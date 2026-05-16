@@ -5,13 +5,14 @@ import IssueList from './components/IssueList';
 import GeminiAdvisor from './components/GeminiAdvisor';
 import DataProfile from './components/DataProfile';
 import SettingsPanel from './components/SettingsPanel';
+import BenchmarkPanel from './components/BenchmarkPanel';
 import { parseCsv } from './services/csvService';
 import { runAudit } from './services/auditEngine';
 import { createAIProvider } from './services/aiProvider';
 import { generatePdfReport } from './services/pdfGenerator';
 import ScoreBreakdown from './components/ScoreBreakdown';
 import { AuditReport, AIConfig, ProviderMetrics } from './types';
-import { Terminal, Copy, Download, Check, FileCode2, Moon, Sun, Settings, BoxSelect, Sparkles, LayoutDashboard, Database, Activity, ShieldAlert, Cpu } from 'lucide-react';
+import { Moon, Sun, Settings, Database, Activity, ShieldAlert, Cpu } from 'lucide-react';
 
 const App: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -27,8 +28,8 @@ const App: React.FC = () => {
   
   const [aiConfig, setAiConfig] = useState<AIConfig>(() => {
     const saved = localStorage.getItem('aura_ai_config');
-    if (saved) return { providerType: 'cloud', ...JSON.parse(saved) };
-    return { apiKey: '', model: 'gemini-2.0-flash', autoAnalyze: true, providerType: 'cloud' };
+    if (saved) return { providerType: 'local', ...JSON.parse(saved) };
+    return { apiKey: '', model: 'Llama-3.2-3B-Instruct-q4f16_1-MLC', autoAnalyze: false, providerType: 'local' };
   });
 
   const aiProvider = useMemo(() => createAIProvider(aiConfig), [aiConfig]);
@@ -45,7 +46,10 @@ const App: React.FC = () => {
   const runAiAnalysis = async (currentReport: AuditReport) => {
     const isAvailable = await aiProvider.isAvailable();
     if (!isAvailable) {
-      alert("Por favor, configura tu API Key en los ajustes para usar la IA.");
+      alert(aiConfig.providerType === 'local'
+        ? "Tu navegador no tiene WebGPU disponible para el modelo local. Puedes usar Chrome/Edge compatible o ejecutar el contraste cloud desde ajustes."
+        : "Configura tu API Key en ajustes para usar el proveedor cloud."
+      );
       setShowSettings(true);
       return;
     }
@@ -133,17 +137,17 @@ const App: React.FC = () => {
         <div className="system-card">
           <div className="status-line">
             <span className="label">Modo ejecución</span>
-            <span className="status-pill">LOCAL</span>
+            <span className="status-pill">{aiConfig.providerType === 'local' ? 'LOCAL' : 'CLOUD'}</span>
           </div>
           <div className="status-line">
-            <span class="label">Modelo IA</span>
+            <span className="label">Modelo IA</span>
             <span className="status-pill">{aiConfig.providerType === 'local' ? 'WebGPU' : 'Cloud'}</span>
           </div>
           <div className="status-line">
             <span className="label">Privacidad</span>
             <span className="status-pill">PII SAFE</span>
           </div>
-          <p className="fine">Sólo se expone el resumen inteligente: nombres de columnas, estadísticos y muestras acotadas.</p>
+          <p className="fine">El CSV y las reglas se ejecutan localmente; si usas cloud, solo se envía el smart sample.</p>
         </div>
       </aside>
 
@@ -178,12 +182,12 @@ const App: React.FC = () => {
               <div>
                 <p className="eyebrow">Motor Determinista + Cognitivo // v1.0.4</p>
                 <h1 id="hero-title">Consola soberana de diagnóstico de datos.</h1>
-                <p className="lead">AURA opera como un instrumento de gobernanza: primero verifica con precisión, interpreta con IA anclada a evidencia, y entrega scripts auditables.</p>
+                <p className="lead">AURA opera como un instrumento de gobernanza: primero genera evidencia reproducible, interpreta con IA anclada a hallazgos, y entrega scripts auditables.</p>
               </div>
               <div className="hero-footer" aria-label="Indicadores clave">
-                <div className="metric"><strong>20+</strong><span>Reglas deterministas</span></div>
-                <div class="metric"><strong>4</strong><span>Capas de estabilidad</span></div>
-                <div className="metric"><strong>100%</strong><span>Local first</span></div>
+                <div className="metric"><strong>22+</strong><span>Reglas deterministas</span></div>
+                <div className="metric"><strong>4</strong><span>Capas de estabilidad</span></div>
+                <div className="metric"><strong>L/C</strong><span>Local vs Cloud</span></div>
                 <div className="metric"><strong>HITL</strong><span>Gobernanza revisable</span></div>
               </div>
             </div>
@@ -306,14 +310,14 @@ const App: React.FC = () => {
                   <p className="eyebrow">Capa Cognitiva</p>
                   <h2 id="ai-title">Análisis e Interpretación</h2>
                 </div>
-                <p>El LLM local interpreta dominios, clasifica impacto estructural y propone rutinas de mitigación basadas en la evidencia recolectada.</p>
+                <p>El proveedor cognitivo interpreta dominios, clasifica impacto estructural y propone rutinas de mitigación basadas en evidencia determinista.</p>
               </div>
 
               <div className="ai-layout mt-8">
                 <div className="analysis min-h-[500px]">
                   <header>
                     <span className="screen-label">./analisis_cognitivo</span>
-                    <span className="badge">Motor: {aiConfig.model}</span>
+                    <span className="badge">Motor: {aiConfig.providerType === 'local' ? 'Local' : 'Cloud'} · {aiConfig.model}</span>
                   </header>
                   <div className="bg-[var(--bg)] h-[calc(100%-58px)] overflow-hidden">
                      <GeminiAdvisor analysis={aiAnalysis} isLoading={isAiLoading} />
@@ -342,6 +346,10 @@ const App: React.FC = () => {
                 </aside>
               </div>
             </section>
+          )}
+
+          {report && (
+            <BenchmarkPanel report={report} config={aiConfig} onLog={addLog} />
           )}
 
         </div>

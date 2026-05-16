@@ -99,6 +99,25 @@ export interface ProviderMetrics {
   timestamp: string;
 }
 
+export interface BenchmarkResult {
+  id: string;
+  provider: string;
+  providerType: 'local' | 'cloud';
+  inputMode: 'smart_sample' | 'prompt_libre';
+  model: string;
+  status: 'pending' | 'running' | 'completed' | 'error' | 'unavailable';
+  latencyMs: number;
+  firstTokenMs: number;
+  tokensGenerated: number;
+  tokensPerSecond: number;
+  formatCompliance: boolean;
+  pythonScriptIncluded: boolean;
+  hallucinatedColumns: string[];
+  unsupportedClaims: number;
+  error?: string;
+  timestamp: string;
+}
+
 /**
  * Interfaz abstracta para proveedores de IA.
  * Permite intercambiar Gemini Cloud ↔ WebLLM Local
@@ -120,6 +139,9 @@ export interface AIProvider {
   generateExecutiveReport(
     report: AuditReport
   ): Promise<{ content: ExecutiveReportContent; metrics: ProviderMetrics }>;
+
+  /** Respuesta libre para benchmarks de prompt no controlado */
+  generateText(prompt: string): Promise<{ text: string; metrics: ProviderMetrics }>;
 
   /** Verifica si el proveedor está disponible en el entorno actual */
   isAvailable(): Promise<boolean>;

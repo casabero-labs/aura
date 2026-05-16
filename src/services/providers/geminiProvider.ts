@@ -60,7 +60,7 @@ export class GeminiProvider implements AIProvider {
     let tokensGenerated = 0;
 
     try {
-      const responseStream = await this.ai.models.generateContentStream({
+      const responseStream = await this.client.models.generateContentStream({
         model: this.model,
         contents: prompt,
         config: {
@@ -109,7 +109,7 @@ export class GeminiProvider implements AIProvider {
     const prompt = buildExecutivePrompt(report);
     const startTime = performance.now();
 
-    const response = await this.ai.models.generateContent({
+    const response = await this.client.models.generateContent({
       model: this.model,
       contents: prompt,
       config: {
@@ -146,6 +146,36 @@ export class GeminiProvider implements AIProvider {
     };
 
     return { content, metrics };
+  }
+
+  async generateText(prompt: string): Promise<{ text: string; metrics: ProviderMetrics }> {
+    if (!await this.isAvailable()) {
+      throw new Error('API_KEY no encontrada');
+    }
+
+    const startTime = performance.now();
+    const response = await this.client.models.generateContent({
+      model: this.model,
+      contents: prompt,
+      config: {
+        temperature: 0.1,
+      }
+    });
+    const totalTime = performance.now() - startTime;
+    const text = response.text || '';
+
+    return {
+      text,
+      metrics: {
+        provider: this.name,
+        model: this.model,
+        latencyMs: Math.round(totalTime),
+        firstTokenMs: Math.round(totalTime),
+        tokensGenerated: text.split(/\s+/).filter(Boolean).length,
+        isLocal: false,
+        timestamp: new Date().toISOString()
+      }
+    };
   }
 
   private emptyMetrics(): ProviderMetrics {

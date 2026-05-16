@@ -4,6 +4,9 @@
 > Cada avance técnico debe tener su reflejo en el documento de tesis.
 > Cada capítulo de la tesis debe estar respaldado por evidencia del código.
 
+> **Línea oficial de segunda entrega**: ver `docs/memoria/entregas/segunda_entrega/LINEA_OFICIAL_AURA.md`.
+> AURA se debe describir como arquitectura de evidencia reproducible + LLM anclado + gobernanza HITL. Evitar afirmaciones de precisión perfecta o local-first absoluto sin matiz experimental.
+
 ---
 
 ## Cronograma TFM — UNIR
@@ -98,12 +101,12 @@
 |---|---|---|---|
 | `src/services/auditEngine.ts` | §5.3 Motor Determinista | "Deterministic Quality Engine" | ✅ Código listo, 📝 documentar |
 | `src/services/csvService.ts` | §5.2 Capa 0 | "Local-First Architecture" | ✅ Código listo, 📝 documentar |
-| `src/services/geminiService.ts` | §5.4 Capa Cognitiva | "Anti-Hallucination Mechanisms" | ✅ Código listo, 📝 documentar |
+| `src/services/aiProvider.ts` + `src/services/providers/` | §5.4 Capa Cognitiva | "Anti-Hallucination Mechanisms" | ✅ Código listo, 📝 documentar |
 | `src/services/pdfGenerator.ts` | §5.5 Capa 3 Gobernanza | "HITL Governance Layer" | ✅ Código listo, 📝 documentar |
 | `src/components/*.tsx` | §5.6 Interfaz | — | ✅ Código listo, 📸 screenshots |
-| `experiments/benchmarks/` | §5.7 Benchmarking | "Multi-Model Evaluation" | 🔴 Por crear |
-| `experiments/datasets/` | §5.7 + Cap. 6 | "Experimental Validation" | 🔴 Por poblar |
-| `experiments/results/` | Resultados | "Results and Discussion" | 🔴 Por generar |
+| `experiments/benchmarks/` | §5.7 Benchmarking | "Multi-Model Evaluation" | 🔶 Scripts iniciales creados, falta ejecución válida |
+| `experiments/datasets/` | §5.7 + Cap. 6 | "Experimental Validation" | 🔶 Dataset sintético creado, ampliar |
+| `experiments/results/` | Resultados | "Results and Discussion" | 🔶 Resultados Capa 1 preliminares, LLM pendiente |
 | `docs/tablas/tabla_comparativa*.md` | §2.2 Estado del Arte | "Related Work Comparison" | ✅ Creada |
 | `docs/tablas/catalogo_reglas*.md` | §5.3 Motor Det. | "Rule Catalog" | ✅ Creada |
 | `docs/tablas/diseno_capa_cognitiva.md` | §5.4 Capa Cogn. | "Cognitive Layer Design" | ✅ Creada |
@@ -174,8 +177,8 @@ El profesor señaló potencial de publicación. Para maximizar esa posibilidad:
 | IEEE Access | Revista | Open access, buen IF |
 
 ### Elementos diferenciadores para publicación
-1. **Arquitectura híbrida determinista + LLM** con precisión garantizada en Capa 1
-2. **5 mecanismos anti-alucinación formales** (M1–M5) con evaluación empírica
+1. **Arquitectura híbrida determinista + LLM** con evidencia reproducible en Capa 1
+2. **5 mecanismos anti-alucinación formales** (M1–M5) evaluables empíricamente
 3. **Browser-native / local-first** como respuesta a preocupaciones de privacidad
 4. **Benchmark multi-modelo** con métricas reproducibles
 5. **Human-in-the-Loop** con scripts auditables (no "black box")

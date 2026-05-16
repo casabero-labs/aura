@@ -4,6 +4,8 @@ import { AuditReport, IssueSeverity, QualityIssue, IssueCategory, ColumnStats, S
 const REGEX_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const REGEX_DATE_ISO = /^\d{4}-\d{2}-\d{2}/;
 const REGEX_DATE_DMY = /^\d{2}[/-]\d{2}[/-]\d{4}/;
+const REGEX_DATETIME = /(?:^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(?::\d{2})?|^\d{2}[/-]\d{2}[/-]\d{4}[ T]\d{2}:\d{2}(?::\d{2})?)/;
+const REGEX_TIME = /^\d{1,2}:\d{2}(?::\d{2})?$/;
 const REGEX_MOJIBAKE = /[Ã±Ã¡Ã©ÃíÃ³ÃºÃ¼Â©Â®â€“â€”]/; // Common UTF-8 decoding errors
 const REGEX_IP = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/;
 const REGEX_URL = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([\/\w .-]*)*\/?$/;
@@ -29,6 +31,31 @@ const getFastHash = (obj: any): number => {
 const isDate = (val: string): boolean => {
   if (val.length < 8) return false;
   return REGEX_DATE_ISO.test(val) || REGEX_DATE_DMY.test(val);
+};
+
+const normalizeTimeValue = (val: any): string | null => {
+  if (val === null || val === undefined || val === '') return null;
+  const strVal = String(val).trim();
+  const timeMatch = strVal.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+  if (!timeMatch) return null;
+  const hour = timeMatch[1].padStart(2, '0');
+  const minute = timeMatch[2];
+  const second = timeMatch[3] || '00';
+  return `${hour}:${minute}:${second}`;
+};
+
+const looksLikeDateTimeColumn = (col: string, values: any[], rowCount: number): boolean => {
+  const lower = col.toLowerCase();
+  const nameHint = lower.includes('datetime') || lower.includes('timestamp') || lower.includes('fecha_hora') || lower.includes('date_time');
+  const matches = values.filter(v => typeof v === 'string' && REGEX_DATETIME.test(v.trim())).length;
+  return nameHint || (rowCount > 0 && matches / rowCount > 0.8);
+};
+
+const looksLikeTimeColumn = (col: string, values: any[], rowCount: number): boolean => {
+  const lower = col.toLowerCase();
+  const nameHint = lower === 'time' || lower === 'hora' || lower.endsWith('_time') || lower.endsWith('_hora');
+  const matches = values.filter(v => normalizeTimeValue(v) !== null && !isDate(String(v))).length;
+  return nameHint || (rowCount > 0 && matches / rowCount > 0.8);
 };
 
 const getQuartiles = (values: number[]) => {
@@ -510,6 +537,55 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
         sampleValues: sampleInconsistent
       });
     }
+  });
+
+  // 23. Redundancia Temporal Derivable - Cross Column
+  const temporalCandidates = fields
+    .map(field => ({ field, values: data.map(row => row[field]) }))
+    .filter(candidate => looksLikeDateTimeColumn(candidate.field, candidate.values, rowCount));
+
+  const timeCandidates = fields
+    .map(field => ({ field, values: data.map(row => row[field]) }))
+    .filter(candidate => looksLikeTimeColumn(candidate.field, candidate.values, rowCount));
+
+  temporalCandidates.forEach(datetimeCol => {
+    timeCandidates.forEach(timeCol => {
+      if (datetimeCol.field === timeCol.field) return;
+
+      let comparable = 0;
+      let matches = 0;
+      const samples: any[] = [];
+
+      for (let i = 0; i < rowCount; i++) {
+        const datetimeTime = normalizeTimeValue(data[i][datetimeCol.field]);
+        const explicitTime = normalizeTimeValue(data[i][timeCol.field]);
+        if (!datetimeTime || !explicitTime) continue;
+        comparable++;
+        if (datetimeTime === explicitTime) {
+          matches++;
+          if (samples.length < 3) {
+            samples.push(`${datetimeCol.field}=${data[i][datetimeCol.field]} -> ${timeCol.field}=${data[i][timeCol.field]}`);
+          }
+        }
+      }
+
+      if (comparable > 10) {
+        const matchPct = (matches / comparable) * 100;
+        if (matchPct >= 95) {
+          issues.push({
+            id: `semantic-temporal-redundancy-${datetimeCol.field}-${timeCol.field}`,
+            column: timeCol.field,
+            ruleName: 'Redundancia Temporal Derivable',
+            category: IssueCategory.SEMANTIC,
+            description: `La columna '${timeCol.field}' parece derivarse de '${datetimeCol.field}' en ${matchPct.toFixed(1)}% de filas comparables. Requiere validación de dominio antes de eliminarla.`,
+            severity: IssueSeverity.INFO,
+            count: matches,
+            affectedPercentage: matchPct,
+            sampleValues: samples
+          });
+        }
+      }
+    });
   });
 
   const totalScore = Math.max(0, Math.round(100 - penaltyPoints));
