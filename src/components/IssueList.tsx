@@ -9,10 +9,10 @@ interface IssueListProps {
 const getSeverityIcon = (severity: IssueSeverity) => {
   const common = "text-[var(--main-color)]";
   switch (severity) {
-    case IssueSeverity.CRITICAL: return <AlertCircle className="text-red-600" size={16} />;
+    case IssueSeverity.CRITICAL: return <AlertCircle className={common} size={16} />;
     case IssueSeverity.WARNING: return <AlertTriangle className={common} size={16} />;
     case IssueSeverity.INFO: return <Info className={common} size={16} />;
-    default: return <CheckCircle className="text-emerald-600" size={16} />;
+    default: return <CheckCircle className={common} size={16} />;
   }
 };
 

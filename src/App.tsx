@@ -1,69 +1,86 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import FileUpload from './components/FileUpload';
-import ScoreGauge from './components/ScoreGauge';
-import IssueList from './components/IssueList';
-import GeminiAdvisor from './components/GeminiAdvisor';
-import DataProfile from './components/DataProfile';
-import SettingsPanel from './components/SettingsPanel';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Brain, Database, FileText, HelpCircle, Play, Settings, ShieldCheck } from 'lucide-react';
 import BenchmarkPanel from './components/BenchmarkPanel';
-import { parseCsv } from './services/csvService';
-import { runAudit } from './services/auditEngine';
-import { createAIProvider } from './services/aiProvider';
-import { generatePdfReport } from './services/pdfGenerator';
+import DataProfile from './components/DataProfile';
+import FileUpload from './components/FileUpload';
+import GeminiAdvisor from './components/GeminiAdvisor';
+import IssueList from './components/IssueList';
 import ScoreBreakdown from './components/ScoreBreakdown';
-import { AuditReport, AIConfig, ProviderMetrics } from './types';
-import { Moon, Sun, Settings, Database, Activity, ShieldAlert, Cpu } from 'lucide-react';
+import SettingsPanel from './components/SettingsPanel';
+import { createAIProvider } from './services/aiProvider';
+import { runAudit } from './services/auditEngine';
+import { parseCsv } from './services/csvService';
+import { generatePdfReport } from './services/pdfGenerator';
+import { AIConfig, AuditReport, IssueSeverity, ProviderMetrics } from './types';
+
+const countBySeverity = (report: AuditReport | null, severity: IssueSeverity) =>
+  report?.issues.filter((issue) => issue.severity === severity).length ?? 0;
 
 const App: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
   const [report, setReport] = useState<AuditReport | null>(null);
-  const [aiAnalysis, setAiAnalysis] = useState<string>('');
+  const [aiAnalysis, setAiAnalysis] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [isPdfGenerating, setIsPdfGenerating] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
-  const [logs, setLogs] = useState<{time: string, msg: string, bold: string}[]>([]);
+  const [showHelp, setShowHelp] = useState(false);
+  const [logs, setLogs] = useState<{ time: string; msg: string; bold: string }[]>([]);
   const [lastMetrics, setLastMetrics] = useState<ProviderMetrics | null>(null);
-  
+
   const [aiConfig, setAiConfig] = useState<AIConfig>(() => {
     const saved = localStorage.getItem('aura_ai_config');
     if (saved) return { providerType: 'local', ...JSON.parse(saved) };
-    return { apiKey: '', model: 'Llama-3.2-3B-Instruct-q4f16_1-MLC', autoAnalyze: false, providerType: 'local' };
+    return {
+      apiKey: '',
+      model: 'Llama-3.2-3B-Instruct-q4f16_1-MLC',
+      autoAnalyze: false,
+      providerType: 'local',
+    };
   });
 
   const aiProvider = useMemo(() => createAIProvider(aiConfig), [aiConfig]);
+  const criticalCount = countBySeverity(report, IssueSeverity.CRITICAL);
+  const warningCount = countBySeverity(report, IssueSeverity.WARNING);
 
   useEffect(() => {
     localStorage.setItem('aura_ai_config', JSON.stringify(aiConfig));
   }, [aiConfig]);
 
   const addLog = (bold: string, msg: string) => {
-    const time = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute:'2-digit', second:'2-digit' });
-    setLogs(prev => [...prev, { time, bold, msg }]);
+    const time = new Date().toLocaleTimeString('es-CO', {
+      hour12: false,
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+    setLogs((prev) => [...prev, { time, bold, msg }].slice(-9));
   };
 
   const runAiAnalysis = async (currentReport: AuditReport) => {
     const isAvailable = await aiProvider.isAvailable();
     if (!isAvailable) {
-      alert(aiConfig.providerType === 'local'
-        ? "Tu navegador no tiene WebGPU disponible para el modelo local. Puedes usar Chrome/Edge compatible o ejecutar el contraste cloud desde ajustes."
-        : "Configura tu API Key en ajustes para usar el proveedor cloud."
+      alert(
+        aiConfig.providerType === 'local'
+          ? 'WebGPU no esta disponible en este navegador. Usa Chrome/Edge compatible o cambia a proveedor cloud.'
+          : 'Configura la API key para usar el proveedor cloud.'
       );
       setShowSettings(true);
       return;
     }
+
     setIsAiLoading(true);
     setAiAnalysis('');
-    addLog('llm.guard', 'generando smart sample y llamando motor cognitivo...');
+    addLog('capa_2', 'smart sample enviado al motor cognitivo');
+
     try {
       const metrics = await aiProvider.analyzeStream(currentReport, (chunk) => {
-        setAiAnalysis(prev => prev + chunk);
+        setAiAnalysis((prev) => prev + chunk);
       });
       setLastMetrics(metrics);
-      addLog('llm.done', `análisis cognitivo completado en ${metrics.latencyMs}ms`);
+      addLog('capa_2.ok', `respuesta completada en ${metrics.latencyMs} ms`);
     } catch (err: any) {
-      addLog('llm.error', `fallo en motor: ${err.message}`);
+      addLog('capa_2.error', err.message);
     } finally {
       setIsAiLoading(false);
     }
@@ -75,21 +92,21 @@ const App: React.FC = () => {
     setReport(null);
     setAiAnalysis('');
     setLogs([]);
-    addLog('csv.parse', `cargando ${uploadedFile.name} en memoria local`);
+    addLog('aura.run', `${uploadedFile.name} cargado en memoria local`);
 
     try {
       const { data, meta } = await parseCsv(uploadedFile);
-      addLog('csv.ready', `detectadas ${data.length} filas y ${meta.fields?.length} columnas`);
-      
+      addLog('csv.parse', `${data.length} registros · ${meta.fields?.length ?? 0} columnas · delimitador ${meta.delimiter}`);
+
       const auditResult = runAudit(data, meta.fields, meta.delimiter);
-      addLog('rules.run', `22 reglas aplicadas deterministas finalizadas. Score: ${auditResult.score}`);
       setReport(auditResult);
+      addLog('capa_1.ok', `${auditResult.issues.length} anomalías · score ${auditResult.score}/100`);
 
       if (aiConfig.autoAnalyze) {
         await runAiAnalysis(auditResult);
       }
     } catch (err: any) {
-      addLog('error', `fallo crítico: ${err.message}`);
+      addLog('aura.error', err.message);
     } finally {
       setIsProcessing(false);
     }
@@ -98,262 +115,216 @@ const App: React.FC = () => {
   const handleDownloadPdf = async () => {
     if (!report) return;
     setIsPdfGenerating(true);
-    addLog('report.build', 'generando reporte ejecutivo PDF y scripts HITL');
+    addLog('report', 'generando informe ejecutivo');
     try {
       const { content: executiveContent, metrics } = await aiProvider.generateExecutiveReport(report);
       setLastMetrics(metrics);
       generatePdfReport(report, executiveContent);
-      addLog('report.done', 'reporte descargado exitosamente');
+      addLog('report.ok', 'PDF descargado');
     } catch (error: any) {
-      addLog('report.error', 'error al generar PDF');
+      addLog('report.error', error.message || 'no fue posible generar el PDF');
     } finally {
       setIsPdfGenerating(false);
     }
   };
 
-  const toggleTheme = () => setTheme(theme === 'dark' ? 'light' : 'dark');
+  const scrollTo = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const terminalRows = logs.length > 0
+    ? logs
+    : [
+        { time: '--:--:--', bold: 'aura.idle', msg: 'esperando dataset CSV' },
+        { time: '--:--:--', bold: 'capa_0', msg: `${aiConfig.providerType === 'local' ? 'llm local configurado' : 'contraste cloud configurado'}` },
+      ];
 
   return (
-    <div className="page" data-theme={theme}>
+    <div className="aura-system">
       {showSettings && (
         <SettingsPanel config={aiConfig} onSave={setAiConfig} onClose={() => setShowSettings(false)} />
       )}
 
-      {/* Sidebar */}
-      <aside className="sidebar" aria-label="Navegación de AURA">
-        <div className="brand">
-          <div className="brand-mark">AU</div>
-          <p className="brand-title">AURA</p>
-          <p className="brand-subtitle">Entorno de diagnóstico cognitivo para calidad del dato.</p>
+      {showHelp && (
+        <div className="help-backdrop" role="dialog" aria-modal="true" aria-labelledby="help-title">
+          <section className="help-panel">
+            <div className="panel-line">
+              <p className="sec-eye">centro de ayuda</p>
+              <button className="icon-btn" onClick={() => setShowHelp(false)} aria-label="Cerrar ayuda">×</button>
+            </div>
+            <h2 id="help-title" className="sec-title">Flujo operativo.</h2>
+            <ol className="help-steps">
+              <li>Carga un CSV. La Capa 0 y Capa 1 se ejecutan localmente.</li>
+              <li>Revisa score, reglas, columnas y muestras afectadas.</li>
+              <li>Ejecuta la Capa 2 para interpretación con LLM local o contraste cloud.</li>
+              <li>Usa Benchmark para comparar condiciones y obtener evidencia del TFM.</li>
+            </ol>
+          </section>
         </div>
+      )}
 
-        <nav className="nav" aria-label="Secciones">
-          <button aria-current="page"><span className="nav-icon"><Activity size={12} className="absolute inset-0 m-auto" /></span>Diagnóstico</button>
-          <button><span className="nav-icon"><Database size={12} className="absolute inset-0 m-auto" /></span>Motor de reglas</button>
-          <button><span className="nav-icon"><Cpu size={12} className="absolute inset-0 m-auto" /></span>Capa cognitiva</button>
-          <button><span className="nav-icon"><ShieldAlert size={12} className="absolute inset-0 m-auto" /></span>Gobernanza</button>
-        </nav>
-
-        <div className="system-card">
-          <div className="status-line">
-            <span className="label">Modo ejecución</span>
-            <span className="status-pill">{aiConfig.providerType === 'local' ? 'LOCAL' : 'CLOUD'}</span>
-          </div>
-          <div className="status-line">
-            <span className="label">Modelo IA</span>
-            <span className="status-pill">{aiConfig.providerType === 'local' ? 'WebGPU' : 'Cloud'}</span>
-          </div>
-          <div className="status-line">
-            <span className="label">Privacidad</span>
-            <span className="status-pill">PII SAFE</span>
-          </div>
-          <p className="fine">El CSV y las reglas se ejecutan localmente; si usas cloud, solo se envía el smart sample.</p>
+      <nav className="sys-nav">
+        <span className="nav-logo">
+          <span className="logo-full">AURA</span>
+          <span className="logo-short">AU</span>
+        </span>
+        <div className="nav-links">
+          <button className="nav-link" onClick={() => scrollTo('sistema')}>Sistema</button>
+          <button className="nav-link" onClick={() => scrollTo('capas')}>Capas</button>
+          <button className="nav-link" onClick={() => scrollTo('benchmark')}>Benchmark</button>
+          <button className="nav-link" onClick={() => scrollTo('evidencia')}>Docs</button>
+          <div className="nav-status"><div className="pulse" />{isProcessing || isAiLoading ? 'running' : 'online'}</div>
+          <button className="nav-cta" onClick={() => scrollTo('sistema')}>Iniciar diagnóstico</button>
+          <button className="icon-btn" onClick={() => setShowHelp(true)} aria-label="Centro de ayuda"><HelpCircle size={14} /></button>
+          <button className="icon-btn" onClick={() => setShowSettings(true)} aria-label="Ajustes"><Settings size={14} /></button>
         </div>
-      </aside>
+      </nav>
 
-      {/* Main Content */}
-      <main className="main">
-        {/* Topbar */}
-        <header className="topbar">
-          <div className="breadcrumb" aria-label="Ruta">
-            <span>aura</span><span>/</span><span>diagnostico</span><span>/</span><b>v1.0.4</b>
+      <main className="sys-main">
+        <section className="hero" id="sistema">
+          <div className="hero-pre">
+            <span>aura</span><span className="sep">·</span>
+            <span>tfm tipo 2</span><span className="sep">·</span>
+            <span>{aiConfig.providerType === 'local' ? 'local-first' : 'cloud contrast'}</span><span className="sep">·</span>
+            <span>{file?.name ?? 'sin dataset'}</span>
           </div>
-          <div className="actions">
-            {report && (
-              <button onClick={handleDownloadPdf} disabled={isPdfGenerating} className="secondary">
-                {isPdfGenerating ? 'Generando...' : 'Exportar Reporte'}
+          <h1 className="hero-h1">Diagnóstico<br /><em>cognitivo</em> de<br />calidad de datos.</h1>
+          <p className="hero-body">
+            AURA ejecuta un flujo de auditoría reproducible: primero verifica con reglas deterministas,
+            después interpreta con IA anclada a evidencia y finalmente compara LLM local frente a cloud.
+          </p>
+          <div className="hero-actions">
+            <button className="btn-p" onClick={() => scrollTo('ingesta')}>Ejecutar AURA →</button>
+            <button className="btn-s" onClick={() => scrollTo('evidencia')}>$ docs --open</button>
+          </div>
+        </section>
+
+        <section id="ingesta" className="ingest-block">
+          <FileUpload onFileSelect={processFile} />
+        </section>
+
+        <section className="term" aria-label="Bitacora de ejecucion">
+          <div className="term-bar">
+            <div className="term-dot" /><div className="term-dot" /><div className="term-dot" />
+            <span className="term-label">aura · pipeline · diagnostico activo</span>
+          </div>
+          <div className="term-body">
+            {terminalRows.map((row, index) => (
+              <span className="tl" key={`${row.time}-${index}`}>
+                <span className="pr">→ </span>
+                <span className="cm">{row.bold}</span>
+                <span className="ok"> · {row.msg}</span>
+                {index === terminalRows.length - 1 && (isProcessing || isAiLoading) && <span className="cursor" />}
+              </span>
+            ))}
+          </div>
+        </section>
+
+        <section className="stats">
+          <div className="stat"><p className="stat-lbl">registros</p><p className="stat-num">{report?.rowCount ?? '-'}</p><p className="stat-sub">dataset activo</p></div>
+          <div className="stat"><p className="stat-lbl">anomalías</p><p className="stat-num">{report?.issues.length ?? '-'}</p><p className="stat-sub">detectadas</p></div>
+          <div className="stat"><p className="stat-lbl">score</p><p className="stat-num">{report ? `${report.score}%` : '-'}</p><p className="stat-sub">motor determinista</p></div>
+        </section>
+
+        <section className="section" id="capas">
+          <p className="sec-eye">arquitectura · capas de control</p>
+          <h2 className="sec-title">Un sistema que razona<br />sobre sus propios datos.</h2>
+          <p className="sec-body">
+            Cada capa reduce incertidumbre desde una responsabilidad distinta: privacidad, reglas,
+            interpretación cognitiva, validación humana y evidencia experimental.
+          </p>
+          <div className="layers">
+            <div className="layer"><span className="layer-n">00</span><span className="layer-name">Infraestructura local</span><span className="layer-desc">WebLLM/WebGPU como ruta principal</span><span className="layer-tag">local</span></div>
+            <div className="layer"><span className="layer-n">01</span><span className="layer-name">Motor determinista</span><span className="layer-desc">Reglas Python/TypeScript auditables</span><span className="layer-tag">rules</span></div>
+            <div className="layer"><span className="layer-n">02</span><span className="layer-name">Estabilidad cognitiva</span><span className="layer-desc">Smart sample + salida estructurada</span><span className="layer-tag">LLM</span></div>
+            <div className="layer"><span className="layer-n">03</span><span className="layer-name">Gobernanza HITL</span><span className="layer-desc">Scripts revisables antes de aplicar</span><span className="layer-tag">human</span></div>
+            <div className="layer"><span className="layer-n">04</span><span className="layer-name">Benchmark experimental</span><span className="layer-desc">Local vs cloud bajo condiciones comparables</span><span className="layer-tag">evidence</span></div>
+          </div>
+        </section>
+
+        {report && (
+          <section className="section diagnostic-section">
+            <p className="sec-eye">capa 1 · reporte determinista</p>
+            <div className="score-grid">
+              <div>
+                <h2 className="hero-h1 score-title">{report.score}<em>%</em></h2>
+                <p className="sec-body">
+                  {report.score >= 80
+                    ? 'Base de datos consistente para análisis asistido.'
+                    : 'Se requiere limpieza antes de automatizar decisiones o conclusiones.'}
+                </p>
+              </div>
+              <div className="score-bars">
+                <ScoreBreakdown deductions={report.scoreBreakdown} />
+              </div>
+            </div>
+          </section>
+        )}
+
+        {report && (
+          <section className="section">
+            <p className="sec-eye">hallazgos · reglas activadas</p>
+            <h2 className="sec-title">Anomalías detectadas.</h2>
+            <IssueList issues={report.issues} />
+          </section>
+        )}
+
+        {report && (
+          <section className="section">
+            <p className="sec-eye">perfil · columnas</p>
+            <h2 className="sec-title">Estructura observada.</h2>
+            <DataProfile stats={report.columnStats} issues={report.issues} />
+          </section>
+        )}
+
+        {report && (
+          <section className="section">
+            <div className="panel-line">
+              <div>
+                <p className="sec-eye">capa 2 · interpretacion</p>
+                <h2 className="sec-title">IA anclada a evidencia.</h2>
+              </div>
+              <button className="btn-p" disabled={isAiLoading} onClick={() => runAiAnalysis(report)}>
+                <Play size={14} /> {isAiLoading ? 'Procesando' : 'Ejecutar IA'}
               </button>
-            )}
-            <button onClick={() => setShowSettings(true)} className="icon-button" title="Ajustes">
-              <Settings size={16} />
-            </button>
-            <button onClick={toggleTheme} className="icon-button" title="Cambiar tema">
-              {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-            </button>
-          </div>
-        </header>
-
-        {/* Workspace */}
-        <div className="workspace">
-          
-          {/* Hero & Terminal */}
-          <section className="proposal" aria-labelledby="hero-title">
-            <div className="hero">
-              <div>
-                <p className="eyebrow">Motor Determinista + Cognitivo // v1.0.4</p>
-                <h1 id="hero-title">Consola soberana de diagnóstico de datos.</h1>
-                <p className="lead">AURA opera como un instrumento de gobernanza: primero genera evidencia reproducible, interpreta con IA anclada a hallazgos, y entrega scripts auditables.</p>
-              </div>
-              <div className="hero-footer" aria-label="Indicadores clave">
-                <div className="metric"><strong>22+</strong><span>Reglas deterministas</span></div>
-                <div className="metric"><strong>4</strong><span>Capas de estabilidad</span></div>
-                <div className="metric"><strong>L/C</strong><span>Local vs Cloud</span></div>
-                <div className="metric"><strong>HITL</strong><span>Gobernanza revisable</span></div>
-              </div>
             </div>
-
-            <div className="terminal" aria-label="Bitácora de proceso">
-              <div className="terminal-head">
-                <span>pipeline.log</span>
-                <span>{isProcessing || isAiLoading ? 'streaming activo' : 'idle'}</span>
+            <div className="cognitive-grid">
+              <div className="advisor-shell">
+                <GeminiAdvisor analysis={aiAnalysis} isLoading={isAiLoading} />
               </div>
-              <div className="terminal-body">
-                {logs.length === 0 && (
-                  <div className="log-row opacity-50"><span>--:--</span><span>Esperando inserción de dataset...<span className="cursor"></span></span></div>
-                )}
-                {logs.map((l, i) => (
-                  <div key={i} className="log-row">
-                    <span>{l.time}</span>
-                    <span><b>{l.bold}</b> {l.msg}
-                      {i === logs.length - 1 && (isProcessing || isAiLoading) && <span className="cursor"></span>}
-                    </span>
-                  </div>
-                ))}
-              </div>
+              <aside className="mini-panel">
+                <div className="layer"><span className="layer-n"><Database size={14} /></span><span className="layer-name">Smart sample</span><span className="layer-tag">{report.issues.length} issues</span></div>
+                <div className="layer"><span className="layer-n"><Brain size={14} /></span><span className="layer-name">{aiConfig.model}</span><span className="layer-tag">{aiConfig.providerType}</span></div>
+                <div className="layer"><span className="layer-n"><ShieldCheck size={14} /></span><span className="layer-name">Última latencia</span><span className="layer-tag">{lastMetrics ? `${lastMetrics.latencyMs}ms` : '-'}</span></div>
+              </aside>
             </div>
           </section>
+        )}
 
-          {/* Área de Trabajo Interactiva */}
-          <section>
-            <div className="section-title">
-              <div>
-                <p className="eyebrow">Flujo Operativo</p>
-                <h2>Análisis Integral</h2>
-              </div>
-              <p>Arrastre su archivo CSV para iniciar el flujo de validación. Los datos crudos nunca abandonarán su navegador durante la fase determinista.</p>
-            </div>
-
-            <div className="app-grid mt-8">
-              
-              {/* Panel de Subida / Progreso */}
-              <div className="panel">
-                <div className="panel-head">
-                  <h3>Ingreso de datos</h3>
-                  <span className="badge">CSV</span>
-                </div>
-                
-                <div className="border border-[var(--border)] rounded-md overflow-hidden bg-[var(--bg)]">
-                   <FileUpload onFileSelect={processFile} />
-                </div>
-
-                {isProcessing && (
-                  <div className="progress-block mt-4">
-                    <div className="progress-meta"><span>Aplicando reglas deterministas</span><b>Procesando...</b></div>
-                    <div className="progress animating"><span style={{ '--value': '60%' } as React.CSSProperties}></span></div>
-                  </div>
-                )}
-                
-                {report && (
-                   <div className="progress-block mt-4">
-                     <div className="progress-meta"><span>Motor determinista completado</span><b>100%</b></div>
-                     <div className="progress"><span style={{ '--value': '100%' } as React.CSSProperties}></span></div>
-                   </div>
-                )}
-              </div>
-
-              {/* Dashboard Resultante (Aparece al tener reporte) */}
-              {report && (
-                <div className="dashboard">
-                  <div className="score-row">
-                    <div className="score-card relative overflow-hidden">
-                      <div className="relative z-10">
-                        <p className="eyebrow text-[var(--ink2)]">Salud del Dataset</p>
-                        <div className="score mt-4 mb-2">{report.score}<small>/100</small></div>
-                        <p className="font-serif text-[15px] leading-relaxed text-[var(--ink2)]">
-                           {report.score >= 80 ? 'Calidad óptima para despliegues analíticos.' : 'Insuficiente para automatización sin limpieza rigurosa previa.'}
-                        </p>
-                      </div>
-                      <div className="absolute -right-10 -top-10 opacity-10 pointer-events-none mix-blend-multiply w-64 h-64">
-                         <ScoreGauge score={report.score} />
-                      </div>
-                    </div>
-                    
-                    <div className="quality-bars">
-                       <ScoreBreakdown deductions={report.scoreBreakdown} />
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </section>
-
-          {/* Grillas de Datos (Aparece si hay reporte) */}
-          {report && (
-            <section className="mt-8 space-y-8">
-               <div className="card !p-0 overflow-hidden border-[var(--border-strong)]">
-                  <div className="px-6 py-4 border-b border-[var(--border)] bg-[var(--surface-raised)] flex justify-between items-center">
-                    <h3 className="font-serif text-[21px] m-0">Perfil de Columnas</h3>
-                    <span className="screen-label">./perfil</span>
-                  </div>
-                  <DataProfile stats={report.columnStats} issues={report.issues} />
-               </div>
-
-               {report.issues.length > 0 && (
-                 <div className="card !p-0 overflow-hidden border-[var(--border-strong)]">
-                    <div className="px-6 py-4 border-b border-[var(--border)] bg-[var(--surface-raised)] flex justify-between items-center">
-                      <h3 className="font-serif text-[21px] m-0">Registro de Anomalías</h3>
-                      <span className="screen-label">./hallazgos</span>
-                    </div>
-                    <div className="bg-[var(--bg)] p-2">
-                      <IssueList issues={report.issues} />
-                    </div>
-                 </div>
-               )}
-            </section>
-          )}
-
-          {/* Capa Cognitiva */}
-          {report && (
-            <section aria-labelledby="ai-title" className="mt-12">
-              <div className="section-title">
-                <div>
-                  <p className="eyebrow">Capa Cognitiva</p>
-                  <h2 id="ai-title">Análisis e Interpretación</h2>
-                </div>
-                <p>El proveedor cognitivo interpreta dominios, clasifica impacto estructural y propone rutinas de mitigación basadas en evidencia determinista.</p>
-              </div>
-
-              <div className="ai-layout mt-8">
-                <div className="analysis min-h-[500px]">
-                  <header>
-                    <span className="screen-label">./analisis_cognitivo</span>
-                    <span className="badge">Motor: {aiConfig.providerType === 'local' ? 'Local' : 'Cloud'} · {aiConfig.model}</span>
-                  </header>
-                  <div className="bg-[var(--bg)] h-[calc(100%-58px)] overflow-hidden">
-                     <GeminiAdvisor analysis={aiAnalysis} isLoading={isAiLoading} />
-                  </div>
-                </div>
-
-                <aside className="side-stack">
-                  <div className="evidence">
-                    <h3>Smart Sample</h3>
-                    <p className="mt-2 text-[13px]">Dataset curado enviado al motor cognitivo post-análisis determinista.</p>
-                    <div className="evidence-list">
-                      <div className="evidence-row"><span className="badge">Estructura</span><span>{report.rowCount} filas, {report.colCount} columnas</span></div>
-                      <div className="evidence-row"><span className="badge">Reglas</span><span>{report.issues.length} violaciones detectadas</span></div>
-                      <div className="evidence-row"><span className="badge">Salud</span><span>Score global: {report.score}/100</span></div>
-                    </div>
-                  </div>
-                  
-                  <div className="evidence">
-                    <h3>Gobernanza HITL</h3>
-                    <p className="mt-2 text-[13px]">Las recomendaciones deben aprobarse manualmente antes de incorporarse al pipeline.</p>
-                    <div className="progress-block mt-4">
-                      <div className="progress-meta"><span>Revisión Humana</span><b>Pendiente</b></div>
-                      <div className="progress"><span style={{ '--value': '30%' } as React.CSSProperties}></span></div>
-                    </div>
-                  </div>
-                </aside>
-              </div>
-            </section>
-          )}
-
-          {report && (
+        {report && (
+          <section className="section" id="benchmark">
             <BenchmarkPanel report={report} config={aiConfig} onLog={addLog} />
-          )}
+          </section>
+        )}
 
-        </div>
+        {report && (
+          <section className="quote" id="evidencia">
+            <p className="quote-text">"La calidad de los datos no es un problema técnico: es un problema de conocimiento, evidencia y trazabilidad."</p>
+            <p className="quote-attr">AURA · memoria TFM · arquitectura experimental</p>
+            <div className="hero-actions quote-actions">
+              <button className="btn-p" onClick={handleDownloadPdf} disabled={isPdfGenerating}>
+                <FileText size={14} /> {isPdfGenerating ? 'Generando' : 'Exportar reporte'}
+              </button>
+              <button className="btn-s">críticos {criticalCount} · advertencias {warningCount}</button>
+            </div>
+          </section>
+        )}
       </main>
+
+      <footer className="sys-footer">
+        <span className="footer-brand">AURA</span>
+        <span className="footer-copy">casabero · tfm · 2026</span>
+      </footer>
     </div>
   );
 };

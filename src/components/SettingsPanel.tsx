@@ -25,7 +25,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
 
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[var(--ink)]/60 animate-in fade-in duration-300">
-            <div className="bg-[var(--bg)] w-full max-w-md border border-[var(--border)] shadow-xl rounded-sm overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+            <div className="bg-[var(--bg)] w-full max-w-md border border-[var(--border)] rounded-lg overflow-hidden flex flex-col">
 
                 <div className="px-6 py-5 border-b border-[var(--border)] flex justify-between items-center bg-[var(--surface)]">
                     <div className="flex items-center gap-3">
@@ -50,25 +50,25 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                         <div className="grid grid-cols-2 gap-2">
                             <button
                                 onClick={() => setLocalConfig({ ...localConfig, providerType: 'cloud', model: AVAILABLE_MODELS.cloud[0].id })}
-                                className={`flex items-center justify-center gap-2 p-3 text-[12px] font-sans font-medium transition-all rounded-sm border ${localConfig.providerType === 'cloud' ? 'bg-[var(--ink)] border-[var(--ink)] text-[var(--bg)] shadow-sm' : 'bg-[var(--surface)] border-[var(--border)] text-[var(--ink2)] hover:border-[var(--ink-soft)] hover:text-[var(--ink)]'}`}
+                                className={`flex items-center justify-center gap-2 p-3 text-[12px] font-sans font-medium transition-all rounded-sm border ${localConfig.providerType === 'cloud' ? 'bg-[var(--ink)] border-[var(--ink)] text-[var(--bg)]' : 'bg-[var(--surface)] border-[var(--border)] text-[var(--ink2)] hover:border-[var(--ink-soft)] hover:text-[var(--ink)]'}`}
                             >
                                 <Server size={14} /> Cloud API
                             </button>
                             <button
                                 onClick={() => setLocalConfig({ ...localConfig, providerType: 'local', model: AVAILABLE_MODELS.local[0].id })}
-                                className={`flex items-center justify-center gap-2 p-3 text-[12px] font-sans font-medium transition-all rounded-sm border ${localConfig.providerType === 'local' ? 'bg-[var(--ink)] border-[var(--ink)] text-[var(--bg)] shadow-sm' : 'bg-[var(--surface)] border-[var(--border)] text-[var(--ink2)] hover:border-[var(--ink-soft)] hover:text-[var(--ink)]'}`}
+                                className={`flex items-center justify-center gap-2 p-3 text-[12px] font-sans font-medium transition-all rounded-sm border ${localConfig.providerType === 'local' ? 'bg-[var(--ink)] border-[var(--ink)] text-[var(--bg)]' : 'bg-[var(--surface)] border-[var(--border)] text-[var(--ink2)] hover:border-[var(--ink-soft)] hover:text-[var(--ink)]'}`}
                             >
                                 <HardDrive size={14} /> WebGPU Local
                             </button>
                         </div>
                         {localConfig.providerType === 'local' && webGpuSupported === false && (
-                            <div className="flex items-start gap-2 p-3 mt-2 bg-red-50 border border-red-200 text-red-800 text-[12px] font-sans rounded-sm">
+                            <div className="flex items-start gap-2 p-3 mt-2 bg-[var(--surface)] border-2 border-[var(--ink-soft)] text-[var(--ink)] text-[12px] font-sans rounded-sm">
                                 <AlertTriangle size={14} className="shrink-0 mt-0.5" />
                                 <p>Tu navegador no soporta WebGPU. El motor local no funcionará. Usa Chrome/Edge 113+.</p>
                             </div>
                         )}
                         {localConfig.providerType === 'local' && webGpuSupported === true && (
-                            <div className="flex items-start gap-2 p-3 mt-2 bg-emerald-50 border border-emerald-200 text-emerald-800 text-[12px] font-sans leading-relaxed rounded-sm">
+                            <div className="flex items-start gap-2 p-3 mt-2 bg-[var(--surface)] border border-[var(--border-strong)] text-[var(--ink2)] text-[12px] font-sans leading-relaxed rounded-sm">
                                 <CheckCircle size={14} className="shrink-0 mt-0.5" />
                                 <p>WebGPU detectado. En modo local, el modelo y el smart sample se ejecutan en tu dispositivo sin llamar a una API cloud.</p>
                             </div>
@@ -144,19 +144,19 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                                 onChange={(e) => setLocalConfig({ ...localConfig, autoAnalyze: e.target.checked })}
                                 className="sr-only peer"
                             />
-                            <div className="w-10 h-5 bg-[var(--border-strong)] rounded-full peer peer-checked:bg-[var(--ink)] transition-colors after:content-[''] after:absolute after:top-1 after:left-1 after:bg-[var(--bg)] after:h-3 after:w-3 after:rounded-full after:transition-all peer-checked:after:translate-x-5 shadow-sm"></div>
+                            <div className="w-10 h-5 bg-[var(--border-strong)] rounded-full peer peer-checked:bg-[var(--ink)] transition-colors after:content-[''] after:absolute after:top-1 after:left-1 after:bg-[var(--bg)] after:h-3 after:w-3 after:rounded-full after:transition-all peer-checked:after:translate-x-5"></div>
                         </label>
                     </div>
 
                 </div>
 
                 <div className="px-6 py-5 bg-[var(--surface)] border-t border-[var(--border)] flex justify-end gap-3">
-                    <button onClick={onClose} className="casabero-btn-secondary">
+                    <button onClick={onClose} className="cs-button">
                         Cancelar
                     </button>
                     <button
                         onClick={handleSave}
-                        className="casabero-btn-primary flex items-center gap-2"
+                        className="cs-button cs-button-primary flex items-center gap-2"
                     >
                         <Save size={14} /> Guardar Cambios
                     </button>

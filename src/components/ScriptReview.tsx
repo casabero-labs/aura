@@ -32,7 +32,7 @@ const ScriptReview: React.FC<ScriptReviewProps> = ({ code, language = 'python' }
   };
 
   return (
-    <div className="my-6 border border-[var(--border-strong)] bg-[var(--surface)] shadow-sm rounded-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-500">
+    <div className="my-6 border border-[var(--border-strong)] bg-[var(--surface)] rounded-sm overflow-hidden">
       {/* Header del Script */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)] bg-[var(--surface-raised)]">
         <div className="flex items-center gap-2">
@@ -44,7 +44,7 @@ const ScriptReview: React.FC<ScriptReviewProps> = ({ code, language = 'python' }
         <div className="flex items-center gap-2">
           <button
             onClick={handleCopy}
-            className="casabero-btn-secondary flex items-center gap-1.5 !px-3 !py-1.5 !text-[10px]"
+            className="cs-button flex items-center gap-1.5 !min-h-8 !px-3 !py-1.5 !text-[10px]"
             title="Copiar al portapapeles"
           >
             {copied ? <Check size={12} className="text-[var(--success)]" /> : <Copy size={12} />}
@@ -52,7 +52,7 @@ const ScriptReview: React.FC<ScriptReviewProps> = ({ code, language = 'python' }
           </button>
           <button
             onClick={handleDownload}
-            className="casabero-btn-primary flex items-center gap-1.5 !px-3 !py-1.5 !text-[10px]"
+            className="cs-button cs-button-primary flex items-center gap-1.5 !min-h-8 !px-3 !py-1.5 !text-[10px]"
             title="Descargar script .py"
           >
             <Download size={12} />
