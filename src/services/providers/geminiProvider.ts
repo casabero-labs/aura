@@ -73,7 +73,7 @@ export class GeminiProvider implements AIProvider {
           if (firstTokenTime === 0) {
             firstTokenTime = performance.now() - startTime;
           }
-          tokensGenerated += chunk.text.split(/\s+/).length; // Aproximación
+          tokensGenerated += Math.round(chunk.text.length / 4);
           onChunk(chunk.text);
         }
       }
@@ -140,7 +140,7 @@ export class GeminiProvider implements AIProvider {
       model: this.model,
       latencyMs: Math.round(totalTime),
       firstTokenMs: Math.round(totalTime), // No streaming, single response
-      tokensGenerated: response.text.split(/\s+/).length,
+      tokensGenerated: Math.round(response.text.length / 4),
       isLocal: false,
       timestamp: new Date().toISOString()
     };

@@ -16,7 +16,18 @@ export default defineConfig(({ mode }) => {
       },
       resolve: {
         alias: {
-          '@': path.resolve(__dirname, '.'),
+          '@': path.resolve(__dirname, './'),
+        }
+      },
+      build: {
+        rollupOptions: {
+          output: {
+            manualChunks: {
+              'webllm': ['@mlc-ai/web-llm'],
+              'vendor': ['react', 'react-dom', 'recharts', 'lucide-react'],
+              'pdf': ['jspdf', 'jspdf-autotable'],
+            }
+          }
         }
       }
     };

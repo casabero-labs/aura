@@ -105,7 +105,7 @@ export class WebLLMProvider implements AIProvider {
           if (firstTokenTime === 0) {
             firstTokenTime = performance.now() - startTime;
           }
-          tokensGenerated += 1;
+          tokensGenerated += Math.round(delta.length / 4);
           onChunk(delta);
         }
       }
@@ -156,10 +156,22 @@ export class WebLLMProvider implements AIProvider {
 
     if (!text) throw new Error('No response from WebLLM');
 
-    // Intentar extraer JSON si el modelo lo encapsuló en markdown
+    // Parser JSON robusto: directo → markdown → braces → error descriptivo
     let cleanJson = text;
-    if (text.includes('```json')) {
-      cleanJson = text.split('```json')[1].split('```')[0].trim();
+    try {
+      JSON.parse(cleanJson);
+    } catch {
+      const jsonBlockMatch = text.match(/```json?\s*([\s\S]*?)\s*```/);
+      if (jsonBlockMatch) {
+        cleanJson = jsonBlockMatch[1].trim();
+      } else {
+        const firstBrace = text.indexOf('{');
+        const lastBrace = text.lastIndexOf('}');
+        if (firstBrace !== -1 && lastBrace > firstBrace) {
+          cleanJson = text.substring(firstBrace, lastBrace + 1);
+        }
+      }
+      JSON.parse(cleanJson);
     }
 
     const content = JSON.parse(cleanJson) as ExecutiveReportContent;
@@ -168,7 +180,7 @@ export class WebLLMProvider implements AIProvider {
       model: this.model,
       latencyMs: Math.round(totalTime),
       firstTokenMs: Math.round(totalTime),
-      tokensGenerated: response.usage?.completion_tokens || text.split(/\s+/).length,
+      tokensGenerated: response.usage?.completion_tokens || Math.round(text.length / 4),
       isLocal: true,
       timestamp: new Date().toISOString()
     };
