@@ -7,7 +7,7 @@ const REGEX_DATE_DMY = /^\d{2}[/-]\d{2}[/-]\d{4}/;
 const REGEX_DATETIME = /(?:^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(?::\d{2})?|^\d{2}[/-]\d{2}[/-]\d{4}[ T]\d{2}:\d{2}(?::\d{2})?)/;
 const REGEX_TIME = /^\d{1,2}:\d{2}(?::\d{2})?$/;
 const REGEX_MOJIBAKE = /[Ã±Ã¡Ã©ÃíÃ³ÃºÃ¼Â©Â®â€“â€”]/; // Common UTF-8 decoding errors
-const REGEX_IP = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/;
+const REGEX_IP = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
 const REGEX_URL = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([\/\w .-]*)*\/?$/;
 const REGEX_DOUBLE_SPACE = /\s\s+/;
 const REGEX_SYMBOLS = /[!@#$%^&*()_+={}\[\]|\\;:'",.<>?/]/;
@@ -615,7 +615,13 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
     });
   });
 
-  const totalScore = Math.max(0, Math.round(100 - penaltyPoints));
+  let normalizedPenalty = penaltyPoints;
+  if (rowCount < 100) {
+    normalizedPenalty = penaltyPoints * 1.5;
+  } else if (rowCount > 10000) {
+    normalizedPenalty = penaltyPoints / 2;
+  }
+  const totalScore = Math.max(0, Math.min(100, Math.round(100 - normalizedPenalty)));
 
   return {
     score: totalScore,

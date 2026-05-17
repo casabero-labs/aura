@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Brain, Database, FileCode2, FileText, HelpCircle, Play, Settings, ShieldCheck } from 'lucide-react';
 import BenchmarkPanel from './components/BenchmarkPanel';
+import ErrorBoundary from './components/ErrorBoundary';
 import DataProfile from './components/DataProfile';
 import FileUpload from './components/FileUpload';
 import GeminiAdvisor from './components/GeminiAdvisor';
@@ -193,7 +194,7 @@ const App: React.FC = () => {
       ];
 
   return (
-    <div className="aura-system">
+    <ErrorBoundary><div className="aura-system">
       {showSettings && (
         <SettingsPanel config={aiConfig} onSave={setAiConfig} onClose={() => setShowSettings(false)} />
       )}
@@ -386,7 +387,7 @@ const App: React.FC = () => {
         <span className="footer-brand">AURA</span>
         <span className="footer-copy">casabero · tfm · 2026</span>
       </footer>
-    </div>
+    </div></ErrorBoundary>
   );
 };
 
