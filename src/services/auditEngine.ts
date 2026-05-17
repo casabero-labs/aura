@@ -219,8 +219,9 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
       });
     }
 
-    // 4. Mixed Types (Dirty Object)
-    if (stats.inferredType === 'mixed') {
+    // 4. Mixed Types (Dirty Object) — Skip alphanumeric code columns (R4 fix)
+    const isCodeCol = col.toLowerCase().includes('ticket') || col.toLowerCase().includes('code') || col.toLowerCase().includes('ref') || col.toLowerCase().includes('num') || col.toLowerCase().includes('nro');
+    if (stats.inferredType === 'mixed' && !isCodeCol) {
       addDeduction(`Tipos Mixtos en [${col}]`, 10, IssueCategory.INTEGRITY);
       const numSample = values.find(v => typeof v === 'number');
       const strSample = values.find(v => typeof v === 'string');
@@ -247,6 +248,7 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
     let hiddenDateCount = 0;
     let corruptIdCount = 0;
     let redundantTimeCount = 0;
+    let futureDateCount = 0;
     let negativeCount = 0;
     let outlierCount = 0;
     let invalidEmailCount = 0;
@@ -259,7 +261,7 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
 
     const samples: Record<string, any[]> = {
       ghost: [], mojibake: [], toxic: [], overflow: [], negative: [], outlier: [], email: [], pii: [], disguised: [],
-      doubleSpace: [], url: [], symbol: []
+      doubleSpace: [], url: [], symbol: [], futureDate: []
     };
 
     // IQR Calculation for Logic Rule 15
@@ -337,6 +339,19 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
       // 13. Redundant Time
       if (typeof val === 'string' && (val.endsWith(' 00:00:00') || val.endsWith('T00:00:00'))) {
         redundantTimeCount++;
+      }
+
+      // R-Freshness: Future Dates (> today + 30 days)
+      if (looksLikeDateTimeColumn(col, values, rowCount)) {
+        const parsedDate = new Date(strVal);
+        if (!isNaN(parsedDate.getTime())) {
+          const futureThreshold = new Date();
+          futureThreshold.setDate(futureThreshold.getDate() + 30);
+          if (parsedDate > futureThreshold) {
+            futureDateCount++;
+            if (samples.futureDate.length < 3) samples.futureDate.push(val);
+          }
+        }
       }
 
       // Group 4: Logic
@@ -505,6 +520,18 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
     if (piiCount > 0) {
       addDeduction(`Hallazgo PII en [${col}]`, 20, IssueCategory.SEMANTIC);
       issues.push({ id: `sec-pii-${col}`, column: col, category: IssueCategory.SEMANTIC, ruleName: 'Datos Sensibles (PII)', description: 'Patrones de Tarjeta de Crédito o IP detectados.', severity: IssueSeverity.CRITICAL, count: piiCount, affectedPercentage: (piiCount / rowCount) * 100, sampleValues: samples.pii });
+    }
+
+    // R-Freshness: Future Dates Detection (> today + 30 days)
+    if (futureDateCount > 0) {
+      const futurePct = (futureDateCount / rowCount) * 100;
+      if (futurePct >= 20) {
+        addDeduction(`Fechas Futuras Irrealistas en [${col}]`, 5, IssueCategory.LOGIC);
+        issues.push({ id: `logic-freshness-${col}`, column: col, category: IssueCategory.LOGIC, ruleName: 'Fechas Futuras (Freshness)', description: `>${futurePct.toFixed(1)}% de valores son fechas posteriores a hoy + 30 días (típico de defaults de migración como 2099-12-31).`, severity: IssueSeverity.CRITICAL, count: futureDateCount, affectedPercentage: futurePct, sampleValues: samples.futureDate });
+      } else if (futurePct > 5) {
+        addDeduction(`Fechas Futuras Irrealistas en [${col}]`, 5, IssueCategory.LOGIC);
+        issues.push({ id: `logic-freshness-${col}`, column: col, category: IssueCategory.LOGIC, ruleName: 'Fechas Futuras (Freshness)', description: `${futurePct.toFixed(1)}% de valores son fechas posteriores a hoy + 30 días (típico de defaults de migración como 2099-12-31).`, severity: IssueSeverity.WARNING, count: futureDateCount, affectedPercentage: futurePct, sampleValues: samples.futureDate });
+      }
     }
   });
 

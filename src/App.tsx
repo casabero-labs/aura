@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Brain, Database, FileText, HelpCircle, Play, Settings, ShieldCheck } from 'lucide-react';
+import { Brain, Database, FileCode2, FileText, HelpCircle, Play, Settings, ShieldCheck } from 'lucide-react';
 import BenchmarkPanel from './components/BenchmarkPanel';
 import DataProfile from './components/DataProfile';
 import FileUpload from './components/FileUpload';
 import GeminiAdvisor from './components/GeminiAdvisor';
 import IssueList from './components/IssueList';
 import ScoreBreakdown from './components/ScoreBreakdown';
+import ScriptReview from './components/ScriptReview';
 import SettingsPanel from './components/SettingsPanel';
 import { createAIProvider } from './services/aiProvider';
 import { runAudit } from './services/auditEngine';
@@ -20,6 +21,8 @@ const App: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
   const [report, setReport] = useState<AuditReport | null>(null);
   const [aiAnalysis, setAiAnalysis] = useState('');
+  const [cleaningScript, setCleaningScript] = useState('');
+  const [isScriptLoading, setIsScriptLoading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [isPdfGenerating, setIsPdfGenerating] = useState(false);
@@ -86,6 +89,35 @@ const App: React.FC = () => {
     }
   };
 
+  const generateScript = async (currentReport: AuditReport) => {
+    const isAvailable = await aiProvider.isAvailable();
+    if (!isAvailable) {
+      alert(
+        aiConfig.providerType === 'local'
+          ? 'WebGPU no esta disponible en este navegador. Usa Chrome/Edge compatible o cambia a proveedor cloud.'
+          : 'Configura la API key para usar el proveedor cloud.'
+      );
+      setShowSettings(true);
+      return;
+    }
+
+    setIsScriptLoading(true);
+    setCleaningScript('');
+    addLog('capa_3', 'generando script de limpieza python');
+
+    try {
+      const { content, metrics } = await aiProvider.generateExecutiveReport(currentReport);
+      setLastMetrics(metrics);
+      const script = content.python_script || '';
+      setCleaningScript(script);
+      addLog('capa_3.ok', `script generado · ${script.split('\n').length} líneas`);
+    } catch (err: any) {
+      addLog('capa_3.error', err.message);
+    } finally {
+      setIsScriptLoading(false);
+    }
+  };
+
   const processFile = async (uploadedFile: File) => {
     setFile(uploadedFile);
     setIsProcessing(true);
@@ -117,10 +149,31 @@ const App: React.FC = () => {
     setIsPdfGenerating(true);
     addLog('report', 'generando informe ejecutivo');
     try {
-      const { content: executiveContent, metrics } = await aiProvider.generateExecutiveReport(report);
-      setLastMetrics(metrics);
-      generatePdfReport(report, executiveContent);
-      addLog('report.ok', 'PDF descargado');
+      const isAiAvailable = await aiProvider.isAvailable();
+
+      if (isAiAvailable) {
+        const { content: executiveContent, metrics } = await aiProvider.generateExecutiveReport(report);
+        setLastMetrics(metrics);
+        generatePdfReport(report, executiveContent);
+        addLog('report.ok', 'PDF descargado (con IA)');
+      } else {
+        // Offline fallback - generate PDF with minimal executive content
+        const fallbackContent = {
+          title: 'AURA — Informe de Auditoría',
+          domain_inferred: 'Dataset cargado por el usuario',
+          dataset_technical_description: `Dataset CSV con ${report.rowCount} registros y ${report.colCount} columnas. ${report.duplicateRows} filas duplicadas detectadas.`,
+          executive_summary: 'Generado sin asistencia de IA. Los hallazgos se basan únicamente en el motor determinista de AURA.',
+          business_impact: `Se detectaron ${report.issues.length} anomalías que pueden afectar la calidad del análisis. Revisar hallazgos antes de usar los datos.`,
+          key_findings: report.issues.slice(0, 5).map((issue) => `${issue.severity.toUpperCase()}: ${issue.description}`),
+          recommendations: [
+            'Revisar las anomalías detectadas antes de usar el dataset',
+            'Ejecutar con IA habilitada para obtener interpretación completa',
+            'Verificar manualmente las muestras afectadas'
+          ]
+        };
+        generatePdfReport(report, fallbackContent);
+        addLog('report.ok', 'PDF descargado (offline)');
+      }
     } catch (error: any) {
       addLog('report.error', error.message || 'no fue posible generar el PDF');
     } finally {
@@ -287,6 +340,9 @@ const App: React.FC = () => {
               <button className="btn-p" disabled={isAiLoading} onClick={() => runAiAnalysis(report)}>
                 <Play size={14} /> {isAiLoading ? 'Procesando' : 'Ejecutar IA'}
               </button>
+              <button className="btn-p" disabled={isScriptLoading} onClick={() => generateScript(report)}>
+                <FileCode2 size={14} /> {isScriptLoading ? 'Generando' : 'Generar script'}
+              </button>
             </div>
             <div className="cognitive-grid">
               <div className="advisor-shell">
@@ -298,6 +354,11 @@ const App: React.FC = () => {
                 <div className="layer"><span className="layer-n"><ShieldCheck size={14} /></span><span className="layer-name">Última latencia</span><span className="layer-tag">{lastMetrics ? `${lastMetrics.latencyMs}ms` : '-'}</span></div>
               </aside>
             </div>
+            {cleaningScript && (
+              <div className="mt-6">
+                <ScriptReview code={cleaningScript} language="python" />
+              </div>
+            )}
           </section>
         )}
 
