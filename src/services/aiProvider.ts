@@ -13,6 +13,7 @@
 import { AIConfig, AIProvider } from '../types';
 import { GeminiProvider } from './providers/geminiProvider';
 import { OpenAIProvider } from './providers/openaiProvider';
+import { ChromePromptProvider } from './providers/chromeProvider';
 
 class LazyWebLLMProvider implements AIProvider {
   readonly name = 'WebLLM';
@@ -58,6 +59,9 @@ class LazyWebLLMProvider implements AIProvider {
  */
 export const createAIProvider = (config: AIConfig): AIProvider => {
   switch (config.providerType) {
+    case 'chrome':
+      return new ChromePromptProvider(config.temperature);
+    
     case 'local':
       return new LazyWebLLMProvider(config.model, config.temperature);
     
@@ -120,5 +124,8 @@ export const AVAILABLE_MODELS = {
     { id: 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC', name: 'Qwen 2.5 0.5B (4-bit)', provider: 'WebLLM', sizeGB: 0.4 },
     { id: 'Phi-3.5-mini-instruct-q4f16_1-MLC', name: 'Phi-3.5 Mini (4-bit)', provider: 'WebLLM', sizeGB: 2.1 },
     { id: 'Gemma-2-2B-it-q4f16_1-MLC', name: 'Gemma 2 2B (4-bit)', provider: 'WebLLM', sizeGB: 1.2 },
+  ],
+  chrome: [
+    { id: 'gemini-nano', name: 'Gemini Nano (Chrome Built-in)', provider: 'Chrome AI' },
   ]
 };

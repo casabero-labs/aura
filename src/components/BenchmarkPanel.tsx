@@ -76,6 +76,7 @@ const BenchmarkPanel: React.FC<BenchmarkPanelProps> = ({
   const [selectedCloudModel, setSelectedCloudModel] = useState(
     config.providerType === 'cloud' ? config.model : AVAILABLE_MODELS.cloud[0].id
   );
+  const [selectedChromeModel, setSelectedChromeModel] = useState('gemini-nano');
 
   const cloudConfig = useMemo<AIConfig>(() => ({
     ...config,
@@ -88,6 +89,12 @@ const BenchmarkPanel: React.FC<BenchmarkPanelProps> = ({
     providerType: 'local',
     model: selectedLocalModel
   }), [config, selectedLocalModel]);
+
+  const chromeConfig = useMemo<AIConfig>(() => ({
+    ...config,
+    providerType: 'chrome',
+    model: 'gemini-nano'
+  }), [config]);
 
   useEffect(() => {
     if (!isRunning) return;
@@ -164,20 +171,22 @@ const BenchmarkPanel: React.FC<BenchmarkPanelProps> = ({
     onLog?.('improvement.run', `${run.healthDelta?.scoreDelta ?? 0} puntos de mejora simulada`);
   };
 
-  const runSuite = async (suite: 'local' | 'cloud' | 'both' | 'all') => {
+  const runSuite = async (suite: 'local' | 'cloud' | 'chrome' | 'both' | 'all') => {
     if (suite === 'all') {
       const localConfigs = AVAILABLE_MODELS.local.map(model => ({ ...config, providerType: 'local' as const, model: model.id }));
       const cloudConfigs = AVAILABLE_MODELS.cloud.map(model => ({ ...config, providerType: 'cloud' as const, model: model.id }));
-      await runConfigs([...localConfigs, ...cloudConfigs]);
+      const chromeConfigs = AVAILABLE_MODELS.chrome.map(model => ({ ...config, providerType: 'chrome' as const, model: model.id }));
+      await runConfigs([...localConfigs, ...cloudConfigs, ...chromeConfigs]);
       return;
     }
 
-    const configs = suite === 'both' ? [localConfig, cloudConfig] : suite === 'local' ? [localConfig] : [cloudConfig];
+    const configs = suite === 'both' ? [localConfig, cloudConfig] : suite === 'local' ? [localConfig] : suite === 'chrome' ? [chromeConfig] : [cloudConfig];
     await runConfigs(configs);
   };
 
   const latestLocal = results.find(result => result.providerType === 'local' && result.status === 'completed');
   const latestCloud = results.find(result => result.providerType === 'cloud' && result.status === 'completed');
+  const latestChrome = results.find(result => result.providerType === 'chrome' && result.status === 'completed');
   const activeRuns = results.filter(result => result.status === 'running');
   const traceRows = results.flatMap((result) =>
     (result.executionTrace || []).map((event) => ({ result, event }))
@@ -254,6 +263,27 @@ const BenchmarkPanel: React.FC<BenchmarkPanelProps> = ({
           </button>
         </div>
 
+        <div className="benchmark-card">
+          <div className="benchmark-head">
+            <span className="benchmark-icon"><Cpu size={18} /></span>
+            <div>
+              <h3>Chrome AI</h3>
+              <p>Gemini Nano integrado en el navegador.</p>
+            </div>
+          </div>
+          <div className="benchmark-metric">
+            <span>Modelo</span>
+            <strong className="text-[var(--ink)]">Gemini Nano</strong>
+          </div>
+          <div className="benchmark-metric">
+            <span>Ultima latencia</span>
+            <strong>{latestChrome ? `${latestChrome.latencyMs}ms` : '-'}</strong>
+          </div>
+          <button className="secondary w-full" disabled={isRunning} onClick={() => runSuite('chrome')}>
+            <Play size={14} /> Ejecutar Chrome AI
+          </button>
+        </div>
+
         <div className="benchmark-card benchmark-card-strong">
           <div className="benchmark-head">
             <span className="benchmark-icon"><Gauge size={18} /></span>
@@ -264,7 +294,7 @@ const BenchmarkPanel: React.FC<BenchmarkPanelProps> = ({
           </div>
           <div className="benchmark-metric">
             <span>Banco de modelos</span>
-            <strong>{AVAILABLE_MODELS.local.length} locales · {AVAILABLE_MODELS.cloud.length} cloud</strong>
+            <strong>{AVAILABLE_MODELS.local.length} locales · {AVAILABLE_MODELS.cloud.length} cloud · {AVAILABLE_MODELS.chrome.length} Chrome</strong>
           </div>
           <div className="benchmark-metric">
             <span>Base factual</span>

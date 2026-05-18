@@ -1,0 +1,71 @@
+- generic [ref=e3]:
+  - navigation [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]: AURA
+      - generic [ref=e7]: AU
+    - generic [ref=e8]:
+      - button "Inicio" [ref=e9] [cursor=pointer]
+      - generic [ref=e10]: online
+      - button "Empezar" [ref=e12] [cursor=pointer]
+      - button "Centro de ayuda" [ref=e13] [cursor=pointer]:
+        - img [ref=e14]
+      - button "Cambiar tema" [active] [ref=e17] [cursor=pointer]:
+        - img [ref=e119]
+      - button "Ajustes" [ref=e24] [cursor=pointer]:
+        - img [ref=e25]
+  - main [ref=e28]:
+    - generic [ref=e30]:
+      - generic [ref=e31]:
+        - img [ref=e33]
+        - generic [ref=e36]: Carga
+      - generic [ref=e38]:
+        - img [ref=e40]
+        - generic [ref=e48]: Analiza
+      - generic [ref=e50]:
+        - img [ref=e52]
+        - generic [ref=e55]: Exporta
+    - generic [ref=e56]:
+      - heading "Audita la calidad de tus datos." [level=1] [ref=e57]
+      - paragraph [ref=e58]: AURA detecta anomalías, interpreta con IA y genera reportes — todo en tu navegador.
+    - button "Seleccionar CSV Arrastra el archivo o haz clic para cargarlo. AURA procesa la fase determinista en el navegador." [ref=e60] [cursor=pointer]:
+      - img [ref=e62]
+      - generic [ref=e66]:
+        - heading "Seleccionar CSV" [level=3] [ref=e67]
+        - paragraph [ref=e68]: Arrastra el archivo o haz clic para cargarlo. AURA procesa la fase determinista en el navegador.
+    - region "Bitacora de ejecucion" [ref=e69]:
+      - generic [ref=e74]: actividad
+      - generic [ref=e76]: → Esperando un archivo CSV para analizar
+    - generic [ref=e77]:
+      - generic [ref=e78]:
+        - paragraph [ref=e79]: registros
+        - paragraph [ref=e80]: "-"
+        - paragraph [ref=e81]: dataset activo
+      - generic [ref=e82]:
+        - paragraph [ref=e83]: anomalías
+        - paragraph [ref=e84]: "-"
+        - paragraph [ref=e85]: detectadas
+      - generic [ref=e86]:
+        - paragraph [ref=e87]: score
+        - paragraph [ref=e88]: "-"
+        - paragraph [ref=e89]: motor determinista
+    - generic [ref=e90]:
+      - paragraph [ref=e91]: arquitectura
+      - generic [ref=e92]:
+        - generic [ref=e93]:
+          - generic [ref=e94]: "00"
+          - generic [ref=e95]: Infraestructura
+        - generic [ref=e96]:
+          - generic [ref=e97]: "01"
+          - generic [ref=e98]: Motor determinista
+        - generic [ref=e99]:
+          - generic [ref=e100]: "02"
+          - generic [ref=e101]: Cognitivo IA
+        - generic [ref=e102]:
+          - generic [ref=e103]: "03"
+          - generic [ref=e104]: Gobernanza
+        - generic [ref=e105]:
+          - generic [ref=e106]: "04"
+          - generic [ref=e107]: Benchmark
+  - contentinfo [ref=e108]:
+    - generic [ref=e109]: AURA
+    - generic [ref=e110]: casabero · tfm · 2026

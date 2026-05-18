@@ -101,7 +101,7 @@ export interface AIConfig {
   model: string;
   temperature: number;  // M1: Control de varianza estocástica (0.0 - 1.0)
   autoAnalyze: boolean;
-  providerType: 'cloud' | 'local';  // Capa 0: Selección de infraestructura
+  providerType: 'cloud' | 'local' | 'chrome';  // Capa 0: Selección de infraestructura
   cloudProvider?: string;  // Proveedor cloud específico: 'google' | 'groq' | 'deepseek' | 'openrouter' | 'minimax'
   modelDownloadState?: Record<string, ModelDownloadState>;
 }
@@ -245,7 +245,7 @@ export interface ImprovementRun {
  */
 export interface AIProvider {
   readonly name: string;
-  readonly type: 'cloud' | 'local';
+  readonly type: 'cloud' | 'local' | 'chrome';
 
   /** Análisis streaming (Tab IA del Dashboard) — Mecanismos M1-M4 */
   analyzeStream(

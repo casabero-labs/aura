@@ -13,6 +13,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
     const [localConfig, setLocalConfig] = useState<AIConfig>(config);
     const [showHelp, setShowHelp] = useState(false);
     const [webGpuSupported, setWebGpuSupported] = useState<boolean | null>(null);
+    const [chromeAvailable, setChromeAvailable] = useState<boolean | null>(null);
     const [downloadingModel, setDownloadingModel] = useState<string | null>(null);
     const [downloadProgress, setDownloadProgress] = useState<ModelDownloadState>({
         status: 'idle',
@@ -22,6 +23,15 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
 
     useEffect(() => {
         checkWebGPUSupport().then(setWebGpuSupported);
+        // Check Chrome AI availability
+        if (typeof window !== 'undefined' && (window as any).ai) {
+            (window as any).ai.assistant()
+                .then((ai: any) => ai.capabilities())
+                .then((caps: any) => setChromeAvailable(caps.available))
+                .catch(() => setChromeAvailable(false));
+        } else {
+            setChromeAvailable(false);
+        }
     }, []);
 
     const handleSave = () => {
@@ -79,18 +89,24 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                     {/* Infraestructura */}
                     <div className="space-y-3">
                         <label className="block text-[11px] font-sans font-medium uppercase tracking-wider text-[var(--ink2)]">Infraestructura</label>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-3 gap-2">
                             <button
                                 onClick={() => setLocalConfig({ ...localConfig, providerType: 'cloud', cloudProvider: localConfig.cloudProvider || 'google', model: AVAILABLE_MODELS.cloud.filter(m => m.cloudProvider === (localConfig.cloudProvider || 'google'))[0]?.id || AVAILABLE_MODELS.cloud[0].id })}
                                 className={`flex items-center justify-center gap-2 p-3 text-[12px] font-sans font-medium transition-all rounded-sm border ${localConfig.providerType === 'cloud' ? 'bg-[var(--ink)] border-[var(--ink)] text-[var(--bg)]' : 'bg-[var(--surface)] border-[var(--border)] text-[var(--ink2)] hover:border-[var(--ink-soft)] hover:text-[var(--ink)]'}`}
                             >
-                                <Server size={14} /> Cloud API
+                                <Server size={14} /> Cloud
                             </button>
                             <button
                                 onClick={() => setLocalConfig({ ...localConfig, providerType: 'local', model: AVAILABLE_MODELS.local[0].id })}
                                 className={`flex items-center justify-center gap-2 p-3 text-[12px] font-sans font-medium transition-all rounded-sm border ${localConfig.providerType === 'local' ? 'bg-[var(--ink)] border-[var(--ink)] text-[var(--bg)]' : 'bg-[var(--surface)] border-[var(--border)] text-[var(--ink2)] hover:border-[var(--ink-soft)] hover:text-[var(--ink)]'}`}
                             >
-                                <HardDrive size={14} /> WebGPU Local
+                                <HardDrive size={14} /> WebGPU
+                            </button>
+                            <button
+                                onClick={() => setLocalConfig({ ...localConfig, providerType: 'chrome', model: 'gemini-nano' })}
+                                className={`flex items-center justify-center gap-2 p-3 text-[12px] font-sans font-medium transition-all rounded-sm border ${localConfig.providerType === 'chrome' ? 'bg-[var(--ink)] border-[var(--ink)] text-[var(--bg)]' : 'bg-[var(--surface)] border-[var(--border)] text-[var(--ink2)] hover:border-[var(--ink-soft)] hover:text-[var(--ink)]'}`}
+                            >
+                                <Cpu size={14} /> Chrome AI
                             </button>
                         </div>
                         {localConfig.providerType === 'local' && webGpuSupported === false && (
@@ -103,6 +119,18 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                             <div className="flex items-start gap-2 p-3 mt-2 bg-[var(--surface)] border border-[var(--border-strong)] text-[var(--ink2)] text-[12px] font-sans leading-relaxed rounded-sm">
                                 <CheckCircle size={14} className="shrink-0 mt-0.5" />
                                 <p>WebGPU disponible. El modelo se ejecuta en tu dispositivo sin enviar datos a servidores.</p>
+                            </div>
+                        )}
+                        {localConfig.providerType === 'chrome' && chromeAvailable === false && (
+                            <div className="flex items-start gap-2 p-3 mt-2 bg-[var(--surface)] border-2 border-[var(--ink-soft)] text-[var(--ink)] text-[12px] font-sans rounded-sm">
+                                <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+                                <p>Chrome AI no disponible. Habilitá en <code className="text-[var(--ink)]">chrome://flags/#prompt-api-for-gemini-nano</code></p>
+                            </div>
+                        )}
+                        {localConfig.providerType === 'chrome' && chromeAvailable === true && (
+                            <div className="flex items-start gap-2 p-3 mt-2 bg-[var(--surface)] border border-[var(--border-strong)] text-[var(--ink2)] text-[12px] font-sans leading-relaxed rounded-sm">
+                                <CheckCircle size={14} className="shrink-0 mt-0.5" />
+                                <p>Gemini Nano listo. Modelo integrado en Chrome, sin API key ni descarga adicional.</p>
                             </div>
                         )}
 
@@ -198,6 +226,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                             >
                                 {(localConfig.providerType === 'cloud' 
                                     ? AVAILABLE_MODELS.cloud.filter(m => m.cloudProvider === localConfig.cloudProvider)
+                                    : localConfig.providerType === 'chrome'
+                                    ? AVAILABLE_MODELS.chrome
                                     : AVAILABLE_MODELS.local
                                 ).map(m => (
                                     <option key={m.id} value={m.id}>
