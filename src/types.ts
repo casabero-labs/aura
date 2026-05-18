@@ -68,6 +68,7 @@ export interface AuditReport {
 export interface AIConfig {
   apiKey: string;
   model: string;
+  temperature: number;  // M1: Control de varianza estocástica (0.0 - 1.0)
   autoAnalyze: boolean;
   providerType: 'cloud' | 'local';  // Capa 0: Selección de infraestructura
 }

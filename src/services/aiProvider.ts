@@ -20,11 +20,11 @@ import { WebLLMProvider } from './providers/webllmProvider';
 export const createAIProvider = (config: AIConfig): AIProvider => {
   switch (config.providerType) {
     case 'local':
-      return new WebLLMProvider(config.model);
+      return new WebLLMProvider(config.model, config.temperature);
     
     case 'cloud':
     default:
-      return new GeminiProvider(config.apiKey, config.model);
+      return new GeminiProvider(config.apiKey, config.model, config.temperature);
   }
 };
 
@@ -56,5 +56,9 @@ export const AVAILABLE_MODELS = {
     { id: 'Llama-3.2-3B-Instruct-q4f16_1-MLC', name: 'Llama 3.2 3B (4-bit)', provider: 'WebLLM', sizeGB: 1.8 },
     { id: 'Llama-3.2-1B-Instruct-q4f16_1-MLC', name: 'Llama 3.2 1B (4-bit)', provider: 'WebLLM', sizeGB: 0.7 },
     { id: 'Qwen2.5-3B-Instruct-q4f16_1-MLC', name: 'Qwen 2.5 3B (4-bit)', provider: 'WebLLM', sizeGB: 1.7 },
+    { id: 'Qwen2.5-1.5B-Instruct-q4f16_1-MLC', name: 'Qwen 2.5 1.5B (4-bit)', provider: 'WebLLM', sizeGB: 0.9 },
+    { id: 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC', name: 'Qwen 2.5 0.5B (4-bit)', provider: 'WebLLM', sizeGB: 0.4 },
+    { id: 'Phi-3.5-mini-instruct-q4f16_1-MLC', name: 'Phi-3.5 Mini (4-bit)', provider: 'WebLLM', sizeGB: 2.1 },
+    { id: 'Gemma-2-2B-it-q4f16_1-MLC', name: 'Gemma 2 2B (4-bit)', provider: 'WebLLM', sizeGB: 1.2 },
   ]
 };

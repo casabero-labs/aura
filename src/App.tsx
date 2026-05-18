@@ -35,10 +35,11 @@ const App: React.FC = () => {
 
   const [aiConfig, setAiConfig] = useState<AIConfig>(() => {
     const saved = localStorage.getItem('aura_ai_config');
-    if (saved) return { providerType: 'local', ...JSON.parse(saved) };
+    if (saved) return { providerType: 'local', temperature: 0.1, ...JSON.parse(saved) };
     return {
       apiKey: '',
       model: 'Llama-3.2-3B-Instruct-q4f16_1-MLC',
+      temperature: 0.1,
       autoAnalyze: false,
       providerType: 'local',
     };
@@ -217,6 +218,7 @@ const App: React.FC = () => {
                   <li><strong>Ejecuta la Capa 2.</strong> Interpretación con LLM local (WebGPU) o contraste cloud (Gemini).</li>
                   <li><strong>Script de limpieza.</strong> La Capa 3 genera un script Python revisable antes de aplicarlo.</li>
                   <li><strong>Benchmark.</strong> Capa 4: compara LLM local vs cloud bajo las mismas condiciones.</li>
+                  <li><strong>Reglas activas.</strong> 24 reglas deterministas: 3 globales (duplicados, incoherencia temporal, redundancia derivable) y 21 por columna (nulos, tipos, formatos, PII, freshness, etc).</li>
                   <li><strong>Exporta.</strong> Descarga el reporte PDF con evidencia completa.</li>
                 </ol>
               </details>
@@ -225,7 +227,7 @@ const App: React.FC = () => {
                 <summary className="help-summary">Arquitectura</summary>
                 <div className="layers help-layers">
                   <div className="layer"><span className="layer-n">00</span><span className="layer-name">Infraestructura</span><span className="layer-desc">WebLLM/WebGPU como ruta principal. Sin datos al servidor.</span><span className="layer-tag">local</span></div>
-                  <div className="layer"><span className="layer-n">01</span><span className="layer-name">Motor determinista</span><span className="layer-desc">18+ reglas Typescript auditables. Sin IA, sin secretos.</span><span className="layer-tag">rules</span></div>
+                  <div className="layer"><span className="layer-n">01</span><span className="layer-name">Motor determinista</span><span className="layer-desc">24 reglas Typescript auditables. Sin IA, sin secretos.</span><span className="layer-tag">rules</span></div>
                   <div className="layer"><span className="layer-n">02</span><span className="layer-name">Cognitivo</span><span className="layer-desc">Smart sample + salida estructurada. Interpretación anclada a evidencia.</span><span className="layer-tag">LLM</span></div>
                   <div className="layer"><span className="layer-n">03</span><span className="layer-name">Gobernanza</span><span className="layer-desc">Scripts revisables antes de aplicar. Control humano (HITL).</span><span className="layer-tag">human</span></div>
                   <div className="layer"><span className="layer-n">04</span><span className="layer-name">Benchmark</span><span className="layer-desc">Local vs cloud bajo condiciones comparables. Evidencia para TFM.</span><span className="layer-tag">evidence</span></div>
@@ -245,7 +247,7 @@ const App: React.FC = () => {
                 <summary className="help-summary">Reportes y scores</summary>
                 <div className="help-text">
                   <p><strong>Score (0-100):</strong> Penaliza por anomalías detectadas. &gt;80 = dataset confiable, &lt;80 = requiere limpieza.</p>
-                  <p><strong>Reglas:</strong> Cada regla (R1-R18) verifica un aspecto: nulos, duplicados, outliers, formatos, integridad referencial, etc.</p>
+                  <p><strong>Reglas:</strong> 24 reglas verifican aspectos distintos: nulos, duplicados, outliers, formatos, integridad referencial, PII, freshness, etc.</p>
                   <p><strong>Anomalías:</strong> CRITICAL (bloqueante), WARNING (requiere revisión), INFO (sugerencia).</p>
                   <p><strong>PDF:</strong> Incluye score, reglas activadas, perfil de columnas e interpretación IA (si está disponible).</p>
                 </div>
@@ -327,7 +329,7 @@ const App: React.FC = () => {
           </p>
           <div className="layers">
             <div className="layer"><span className="layer-n">00</span><span className="layer-name">Infraestructura local</span><span className="layer-desc">WebLLM/WebGPU como ruta principal</span><span className="layer-tag">local</span></div>
-            <div className="layer"><span className="layer-n">01</span><span className="layer-name">Motor determinista</span><span className="layer-desc">Reglas Python/TypeScript auditables</span><span className="layer-tag">rules</span></div>
+            <div className="layer"><span className="layer-n">01</span><span className="layer-name">Motor determinista</span><span className="layer-desc">24 reglas TypeScript auditables</span><span className="layer-tag">rules</span></div>
             <div className="layer"><span className="layer-n">02</span><span className="layer-name">Estabilidad cognitiva</span><span className="layer-desc">Smart sample + salida estructurada</span><span className="layer-tag">LLM</span></div>
             <div className="layer"><span className="layer-n">03</span><span className="layer-name">Gobernanza HITL</span><span className="layer-desc">Scripts revisables antes de aplicar</span><span className="layer-tag">human</span></div>
             <div className="layer"><span className="layer-n">04</span><span className="layer-name">Benchmark experimental</span><span className="layer-desc">Local vs cloud bajo condiciones comparables</span><span className="layer-tag">evidence</span></div>

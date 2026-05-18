@@ -23,11 +23,13 @@ export class GeminiProvider implements AIProvider {
   
   private apiKey: string;
   private model: string;
+  private temperature: number;
   private _client: GoogleGenAI | null = null;
 
-  constructor(apiKey: string, model: string = 'gemini-2.0-flash') {
+  constructor(apiKey: string, model: string = 'gemini-2.0-flash', temperature: number = 0.1) {
     this.apiKey = apiKey;
     this.model = model;
+    this.temperature = temperature;
   }
 
   private get client(): GoogleGenAI {
@@ -64,7 +66,7 @@ export class GeminiProvider implements AIProvider {
         model: this.model,
         contents: prompt,
         config: {
-          temperature: 0.1, // M1: Temperatura baja
+          temperature: this.temperature, // M1: Control de varianza estocástica
         },
       });
 
@@ -158,7 +160,7 @@ export class GeminiProvider implements AIProvider {
       model: this.model,
       contents: prompt,
       config: {
-        temperature: 0.1,
+        temperature: this.temperature,
       }
     });
     const totalTime = performance.now() - startTime;

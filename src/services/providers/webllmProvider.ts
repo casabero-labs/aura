@@ -19,11 +19,13 @@ export class WebLLMProvider implements AIProvider {
   readonly type = 'local' as const;
   
   private model: string;
+  private temperature: number;
   private engine: MLCEngine | null = null;
   private isLoaded: boolean = false;
 
-  constructor(model: string = 'Llama-3.2-3B-Instruct-q4f16_1-MLC') {
+  constructor(model: string = 'Llama-3.2-3B-Instruct-q4f16_1-MLC', temperature: number = 0.1) {
     this.model = model;
+    this.temperature = temperature;
   }
 
   async isAvailable(): Promise<boolean> {
@@ -95,7 +97,7 @@ export class WebLLMProvider implements AIProvider {
       // 2. Inferencia Streaming compatible con OpenAI API
       const chunks = await engine.chat.completions.create({
         messages: [{ role: 'user', content: prompt }],
-        temperature: 0.1, // M1: Temperatura baja para consistencia
+        temperature: this.temperature, // M1: Control de varianza estocástica
         stream: true,
       });
 
@@ -147,7 +149,7 @@ export class WebLLMProvider implements AIProvider {
     // Inferencia con modo JSON estricto
     const response = await engine.chat.completions.create({
       messages: [{ role: 'user', content: prompt }],
-      temperature: 0.1,
+      temperature: this.temperature,
       response_format: { type: 'json_object' } // M5: Output forzado
     });
 
@@ -197,7 +199,7 @@ export class WebLLMProvider implements AIProvider {
     const startTime = performance.now();
     const response = await engine.chat.completions.create({
       messages: [{ role: 'user', content: prompt }],
-      temperature: 0.1,
+      temperature: this.temperature,
     });
     const totalTime = performance.now() - startTime;
     const text = response.choices[0]?.message?.content || '';
