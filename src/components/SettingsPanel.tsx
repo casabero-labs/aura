@@ -49,7 +49,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                         <label className="block eyebrow text-[var(--ink2)]">Capa 0: Infraestructura</label>
                         <div className="grid grid-cols-2 gap-2">
                             <button
-                                onClick={() => setLocalConfig({ ...localConfig, providerType: 'cloud', cloudProvider: 'google', model: AVAILABLE_MODELS.cloud[0].id })}
+                                onClick={() => setLocalConfig({ ...localConfig, providerType: 'cloud', cloudProvider: localConfig.cloudProvider || 'google', model: AVAILABLE_MODELS.cloud.filter(m => m.cloudProvider === (localConfig.cloudProvider || 'google'))[0]?.id || AVAILABLE_MODELS.cloud[0].id })}
                                 className={`flex items-center justify-center gap-2 p-3 text-[12px] font-sans font-medium transition-all rounded-sm border ${localConfig.providerType === 'cloud' ? 'bg-[var(--ink)] border-[var(--ink)] text-[var(--bg)]' : 'bg-[var(--surface)] border-[var(--border)] text-[var(--ink2)] hover:border-[var(--ink-soft)] hover:text-[var(--ink)]'}`}
                             >
                                 <Server size={14} /> Cloud API
@@ -73,13 +73,41 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                                 <p>WebGPU detectado. En modo local, el modelo y el smart sample se ejecutan en tu dispositivo sin llamar a una API cloud.</p>
                             </div>
                         )}
+
+                        {localConfig.providerType === 'cloud' && (
+                            <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
+                                <label className="block eyebrow text-[var(--ink2)]">Proveedor Cloud</label>
+                                <div className="grid grid-cols-5 gap-1">
+                                    {['google', 'groq', 'deepseek', 'openrouter', 'minimax'].map(provider => (
+                                        <button
+                                            key={provider}
+                                            onClick={() => {
+                                                const providerModels = AVAILABLE_MODELS.cloud.filter(m => m.cloudProvider === provider);
+                                                setLocalConfig({
+                                                    ...localConfig,
+                                                    cloudProvider: provider,
+                                                    model: providerModels[0]?.id || localConfig.model
+                                                });
+                                            }}
+                                            className={`p-2 text-[10px] font-sans font-medium transition-all rounded-sm border capitalize ${
+                                                localConfig.cloudProvider === provider
+                                                    ? 'bg-[var(--ink)] border-[var(--ink)] text-[var(--bg)]'
+                                                    : 'bg-[var(--surface)] border-[var(--border)] text-[var(--ink2)] hover:border-[var(--ink-soft)] hover:text-[var(--ink)]'
+                                            }`}
+                                        >
+                                            {provider}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
-                    {/* API Key (Solo Cloud) */}
-                    {localConfig.providerType === 'cloud' && (
+                    {/* API Key (Solo Cloud, excepto OpenRouter) */}
+                    {localConfig.providerType === 'cloud' && localConfig.cloudProvider !== 'openrouter' && (
                         <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
                             <div className="flex justify-between items-center eyebrow text-[var(--ink2)]">
-                                <label className="flex items-center gap-2"><Cpu size={12} className="text-[var(--ink)]" /> Gemini API Key</label>
+                                <label className="flex items-center gap-2"><Cpu size={12} className="text-[var(--ink)]" /> {localConfig.cloudProvider === 'google' ? 'Google' : localConfig.cloudProvider === 'groq' ? 'Groq' : localConfig.cloudProvider === 'deepseek' ? 'DeepSeek' : 'MiniMax'} API Key</label>
                                 <button
                                     onClick={() => setShowHelp(!showHelp)}
                                     className="flex items-center gap-1 text-[var(--ink)] hover:underline"
@@ -93,11 +121,34 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                                     <p className="mb-2 font-sans font-medium text-[var(--ink)] flex items-center gap-2">
                                         <Shield size={12} /> Protocolo de Adquisición:
                                     </p>
-                                    <ol className="list-decimal list-inside space-y-1 font-sans">
-                                        <li>Acceda a <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" className="text-[var(--ink)] underline font-medium">Google AI Studio</a></li>
-                                        <li>Autentíquese con su cuenta de servicios</li>
-                                        <li>Genere una nueva llave de API (gratuita)</li>
-                                    </ol>
+                                    {localConfig.cloudProvider === 'google' && (
+                                        <ol className="list-decimal list-inside space-y-1 font-sans">
+                                            <li>Acceda a <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" className="text-[var(--ink)] underline font-medium">Google AI Studio</a></li>
+                                            <li>Autentíquese con su cuenta de servicios</li>
+                                            <li>Genere una nueva llave de API (gratuita)</li>
+                                        </ol>
+                                    )}
+                                    {localConfig.cloudProvider === 'groq' && (
+                                        <ol className="list-decimal list-inside space-y-1 font-sans">
+                                            <li>Acceda a <a href="https://console.groq.com/" target="_blank" rel="noopener noreferrer" className="text-[var(--ink)] underline font-medium">Groq Console</a></li>
+                                            <li>Cree una cuenta o autentíquese</li>
+                                            <li>Genere una nueva llave de API</li>
+                                        </ol>
+                                    )}
+                                    {localConfig.cloudProvider === 'deepseek' && (
+                                        <ol className="list-decimal list-inside space-y-1 font-sans">
+                                            <li>Acceda a <a href="https://platform.deepseek.com/" target="_blank" rel="noopener noreferrer" className="text-[var(--ink)] underline font-medium">DeepSeek Platform</a></li>
+                                            <li>Cree una cuenta o autentíquese</li>
+                                            <li>Genere una nueva llave de API</li>
+                                        </ol>
+                                    )}
+                                    {localConfig.cloudProvider === 'minimax' && (
+                                        <ol className="list-decimal list-inside space-y-1 font-sans">
+                                            <li>Acceda a <a href="https://platform.minimax.io/" target="_blank" rel="noopener noreferrer" className="text-[var(--ink)] underline font-medium">MiniMax Platform</a></li>
+                                            <li>Cree una cuenta o autentíquese</li>
+                                            <li>Genere una nueva llave de API</li>
+                                        </ol>
+                                    )}
                                 </div>
                             )}
 
@@ -120,7 +171,10 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                                 onChange={(e) => setLocalConfig({ ...localConfig, model: e.target.value })}
                                 className="w-full bg-[var(--surface-raised)] border border-[var(--border-strong)] px-4 py-3 outline-none text-[var(--ink)] appearance-none cursor-pointer font-sans text-[13px] focus:border-[var(--ink-soft)] transition-colors rounded-sm"
                             >
-                                {AVAILABLE_MODELS[localConfig.providerType].map(m => (
+                                {(localConfig.providerType === 'cloud' 
+                                    ? AVAILABLE_MODELS.cloud.filter(m => m.cloudProvider === localConfig.cloudProvider)
+                                    : AVAILABLE_MODELS.local
+                                ).map(m => (
                                     <option key={m.id} value={m.id}>
                                         {m.name} {m.sizeGB ? `(~${m.sizeGB}GB)` : ''}
                                     </option>

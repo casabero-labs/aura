@@ -3,6 +3,7 @@ import { Brain, Database, FileCode2, FileText, HelpCircle, Play, Settings, Shiel
 import BenchmarkPanel from './components/BenchmarkPanel';
 import ErrorBoundary from './components/ErrorBoundary';
 import DataProfile from './components/DataProfile';
+import { ExperimentDesigner } from './components/ExperimentDesigner';
 import FileUpload from './components/FileUpload';
 import GeminiAdvisor from './components/GeminiAdvisor';
 import IssueList from './components/IssueList';
@@ -266,6 +267,7 @@ const App: React.FC = () => {
           <button className="nav-link" onClick={() => { scrollTo('sistema'); setShowMobileNav(false); }}>Sistema</button>
           <button className="nav-link" onClick={() => { scrollTo('capas'); setShowMobileNav(false); }}>Capas</button>
           <button className="nav-link" onClick={() => { scrollTo('benchmark'); setShowMobileNav(false); }}>Benchmark</button>
+          <button className="nav-link" onClick={() => { scrollTo('experimentos'); setShowMobileNav(false); }}>Experimentos</button>
           <button className="nav-link" onClick={() => { scrollTo('evidencia'); setShowMobileNav(false); }}>Docs</button>
           <div className="nav-status"><div className="pulse" />{isProcessing || isAiLoading ? 'running' : 'online'}</div>
           <button className="nav-cta" onClick={() => { scrollTo('sistema'); setShowMobileNav(false); }}>Iniciar diagnóstico</button>
@@ -406,6 +408,12 @@ const App: React.FC = () => {
         {report && (
           <section className="section" id="benchmark">
             <BenchmarkPanel report={report} config={aiConfig} onLog={addLog} />
+          </section>
+        )}
+
+        {report && (
+          <section className="section" id="experimentos">
+            <ExperimentDesigner report={report} config={aiConfig} onLog={addLog} />
           </section>
         )}
 
