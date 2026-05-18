@@ -293,6 +293,40 @@
     border-color: var(--ink2);
   }
 
+  /* ═══ Theme Toggle Pill ═══ */
+  .theme-toggle {
+    width: 40px;
+    height: 22px;
+    border-radius: 11px;
+    border: 1.5px solid var(--ink);
+    background: transparent;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.3s, border-color 0.3s;
+    flex-shrink: 0;
+    padding: 0;
+  }
+
+  .theme-toggle.on {
+    background: var(--ink);
+  }
+
+  .theme-toggle-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--ink);
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    transition: transform 0.3s, background 0.3s;
+  }
+
+  .theme-toggle.on .theme-toggle-thumb {
+    transform: translateX(18px);
+    background: var(--bg);
+  }
+
   .mobile-nav-toggle {
     display: none;
     width: 34px;
