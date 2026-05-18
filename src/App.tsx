@@ -113,6 +113,8 @@ const App: React.FC = () => {
       temperature: 0.1,
       autoAnalyze: false,
       providerType: 'local',
+      apiKey: '',
+      cloudProvider: undefined,
     };
   });
 

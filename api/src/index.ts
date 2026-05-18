@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { serve } from '@hono/node-server';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { settingsRoutes } from './routes/settings.js';
@@ -33,11 +34,7 @@ async function start() {
   }
 
   console.log(`Aura API starting on port ${port}`);
+  serve({ fetch: app.fetch, port });
 }
 
 start();
-
-export default {
-  fetch: app.fetch,
-  port,
-};

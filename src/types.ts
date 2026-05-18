@@ -100,9 +100,13 @@ export interface AIConfig {
   model: string;
   temperature: number;
   autoAnalyze: boolean;
-  providerType: 'local';
+  providerType: 'cloud' | 'local' | 'chrome';
+  cloudProvider?: CloudProvider;
+  apiKey?: string;
   modelDownloadState?: Record<string, ModelDownloadState>;
 }
+
+export type CloudProvider = 'google' | 'groq' | 'deepseek' | 'openrouter' | 'minimax' | 'nvidia';
 
 export interface ExecutiveReportContent {
   title: string;
