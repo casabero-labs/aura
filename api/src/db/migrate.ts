@@ -10,8 +10,10 @@ export async function migrate() {
       value JSONB NOT NULL,
       created_at TIMESTAMPTZ DEFAULT NOW(),
       updated_at TIMESTAMPTZ DEFAULT NOW()
-    );
+    )
+  `;
 
+  await sql`
     CREATE TABLE IF NOT EXISTS analysis_sessions (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       file_name VARCHAR(500),
@@ -27,8 +29,10 @@ export async function migrate() {
       evidence JSONB,
       created_at TIMESTAMPTZ DEFAULT NOW(),
       updated_at TIMESTAMPTZ DEFAULT NOW()
-    );
+    )
+  `;
 
+  await sql`
     CREATE TABLE IF NOT EXISTS benchmark_runs (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       session_id UUID REFERENCES analysis_sessions(id) ON DELETE CASCADE,
@@ -51,12 +55,12 @@ export async function migrate() {
       dataset_fingerprint VARCHAR(255),
       web_gpu_available BOOLEAN,
       created_at TIMESTAMPTZ DEFAULT NOW()
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_sessions_fingerprint ON analysis_sessions(dataset_fingerprint);
-    CREATE INDEX IF NOT EXISTS idx_benchmarks_session ON benchmark_runs(session_id);
-    CREATE INDEX IF NOT EXISTS idx_benchmarks_provider ON benchmark_runs(provider);
+    )
   `;
+
+  await sql`CREATE INDEX IF NOT EXISTS idx_sessions_fingerprint ON analysis_sessions(dataset_fingerprint)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_benchmarks_session ON benchmark_runs(session_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_benchmarks_provider ON benchmark_runs(provider)`;
 
   console.log('Migrations applied successfully');
 }
