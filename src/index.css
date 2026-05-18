@@ -1117,8 +1117,7 @@
     justify-content: flex-start;
     gap: 0;
     padding: 1.5rem 1rem;
-    background: rgba(13, 13, 12, 0.97);
-    backdrop-filter: blur(14px);
+    background: var(--bg);
     border-top: 1px solid var(--border);
   }
 

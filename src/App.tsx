@@ -260,11 +260,6 @@ const App: React.FC = () => {
           <span className="logo-full">AURA</span>
           <span className="logo-short">AU</span>
         </span>
-        <button className="mobile-nav-toggle" onClick={() => setShowMobileNav(!showMobileNav)} aria-label="Menú de navegación">
-          <span className={`hamburger ${showMobileNav ? 'open' : ''}`}>
-            <span /><span /><span />
-          </span>
-        </button>
         <div className={`nav-links ${showMobileNav ? 'nav-links-open' : ''}`}>
           <button className="nav-link" onClick={() => { scrollTo('sistema'); setShowMobileNav(false); }}>Sistema</button>
           <button className="nav-link" onClick={() => { scrollTo('capas'); setShowMobileNav(false); }}>Capas</button>
@@ -275,6 +270,11 @@ const App: React.FC = () => {
           <button className="icon-btn" onClick={() => { setShowHelp(true); setShowMobileNav(false); }} aria-label="Centro de ayuda"><HelpCircle size={14} /></button>
           <button className="icon-btn" onClick={() => { setShowSettings(true); setShowMobileNav(false); }} aria-label="Ajustes"><Settings size={14} /></button>
         </div>
+        <button className="mobile-nav-toggle" onClick={() => setShowMobileNav(!showMobileNav)} aria-label="Menú de navegación">
+          <span className={`hamburger ${showMobileNav ? 'open' : ''}`}>
+            <span /><span /><span />
+          </span>
+        </button>
       </nav>
 
       <main className="sys-main">
