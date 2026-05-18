@@ -3,10 +3,17 @@ import { Activity, AlertTriangle, CheckCircle2, Cloud, Cpu, Gauge, Layers3, Play
 import { AIConfig, AuditReport, BenchmarkResult } from '../types';
 import { AVAILABLE_MODELS } from '../services/aiProvider';
 import { runBenchmarkForConfig } from '../services/benchmarkService';
+import { createImprovementRun } from '../services/improvementService';
 
 interface BenchmarkPanelProps {
   report: AuditReport;
   config: AIConfig;
+  originalData?: Record<string, any>[];
+  fields?: string[];
+  delimiter?: string;
+  fileName?: string;
+  cleaningScript?: string;
+  onImprovementRun?: (run: ReturnType<typeof createImprovementRun>) => void;
   onLog?: (bold: string, msg: string) => void;
 }
 
@@ -18,7 +25,24 @@ const statusLabel: Record<BenchmarkResult['status'], string> = {
   unavailable: 'No disponible'
 };
 
-const BenchmarkPanel: React.FC<BenchmarkPanelProps> = ({ report, config, onLog }) => {
+const evidenceLabel: Record<BenchmarkResult['evidenceStatus'], string> = {
+  planned: 'Plan',
+  attempted_failed: 'Inválida',
+  preliminary_valid: 'Preliminar',
+  formal_valid: 'Formal'
+};
+
+const BenchmarkPanel: React.FC<BenchmarkPanelProps> = ({
+  report,
+  config,
+  originalData = [],
+  fields = [],
+  delimiter = ',',
+  fileName,
+  cleaningScript,
+  onImprovementRun,
+  onLog
+}) => {
   const [results, setResults] = useState<BenchmarkResult[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [selectedLocalModel, setSelectedLocalModel] = useState(
@@ -62,6 +86,7 @@ const BenchmarkPanel: React.FC<BenchmarkPanelProps> = ({ report, config, onLog }
           pythonScriptIncluded: false,
           hallucinatedColumns: [],
           unsupportedClaims: 0,
+          evidenceStatus: 'planned',
           timestamp: new Date().toISOString()
         };
         setResults(prev => [pending, ...prev]);
@@ -76,6 +101,21 @@ const BenchmarkPanel: React.FC<BenchmarkPanelProps> = ({ report, config, onLog }
     }
 
     setIsRunning(false);
+  };
+
+  const buildImprovementRun = () => {
+    if (!originalData.length || !fields.length) return;
+    const run = createImprovementRun({
+      fileName,
+      originalData,
+      fields,
+      delimiter,
+      initialReport: report,
+      benchmarkResults: results,
+      generatedScript: cleaningScript,
+    });
+    onImprovementRun?.(run);
+    onLog?.('improvement.run', `${run.healthDelta?.scoreDelta ?? 0} puntos de mejora simulada`);
   };
 
   const runSuite = async (suite: 'local' | 'cloud' | 'both' | 'all') => {
@@ -186,6 +226,9 @@ const BenchmarkPanel: React.FC<BenchmarkPanelProps> = ({ report, config, onLog }
           <button className="secondary w-full" disabled={isRunning} onClick={() => runSuite('all')}>
             <Layers3 size={14} /> Probar todos los LLM
           </button>
+          <button className="secondary w-full" disabled={isRunning || results.length === 0 || !originalData.length} onClick={buildImprovementRun}>
+            <ShieldCheck size={14} /> Simular mejora
+          </button>
         </div>
       </div>
 
@@ -200,13 +243,14 @@ const BenchmarkPanel: React.FC<BenchmarkPanelProps> = ({ report, config, onLog }
               <th>Tokens/s</th>
               <th>JSON</th>
               <th>Script HITL</th>
+              <th>Evidencia</th>
               <th>Alucinación columnas</th>
             </tr>
           </thead>
           <tbody>
             {results.length === 0 && (
               <tr>
-                <td colSpan={8} className="benchmark-empty">Sin ejecuciones. Corre primero el benchmark local, cloud o comparativo.</td>
+                <td colSpan={9} className="benchmark-empty">Sin ejecuciones. Corre primero el benchmark local, cloud o comparativo.</td>
               </tr>
             )}
             {results.map(result => (
@@ -227,6 +271,7 @@ const BenchmarkPanel: React.FC<BenchmarkPanelProps> = ({ report, config, onLog }
                 <td>{result.tokensPerSecond || '-'}</td>
                 <td>{result.formatCompliance ? 'OK' : '-'}</td>
                 <td>{result.pythonScriptIncluded ? 'OK' : '-'}</td>
+                <td>{evidenceLabel[result.evidenceStatus]}</td>
                 <td>
                   {result.hallucinatedColumns.length === 0 ? (
                     <span className="benchmark-clean"><ShieldCheck size={13} /> 0</span>

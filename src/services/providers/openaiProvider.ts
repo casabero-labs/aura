@@ -218,13 +218,15 @@ export class OpenAIProvider implements AIProvider {
 
     const responseText = await response.text();
     const totalTime = performance.now() - startTime;
+    const apiPayload = JSON.parse(responseText);
+    const messageText = apiPayload.choices?.[0]?.message?.content || responseText;
 
     let content: ExecutiveReportContent;
     try {
-      content = JSON.parse(responseText);
+      content = JSON.parse(messageText);
     } catch {
       // If JSON parsing fails, try to extract JSON from the response
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      const jsonMatch = messageText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         content = JSON.parse(jsonMatch[0]);
       } else {
@@ -237,7 +239,7 @@ export class OpenAIProvider implements AIProvider {
       model: this.model,
       latencyMs: Math.round(totalTime),
       firstTokenMs: Math.round(totalTime),
-      tokensGenerated: responseText.split(/\s+/).filter(Boolean).length,
+      tokensGenerated: messageText.split(/\s+/).filter(Boolean).length,
       isLocal: false,
       timestamp: new Date().toISOString()
     };
@@ -259,8 +261,10 @@ export class OpenAIProvider implements AIProvider {
       { temperature: this.temperature }
     );
 
-    const text = await response.text();
+    const responseText = await response.text();
     const totalTime = performance.now() - startTime;
+    const apiPayload = JSON.parse(responseText);
+    const text = apiPayload.choices?.[0]?.message?.content || responseText;
 
     return {
       text,

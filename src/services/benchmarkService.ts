@@ -1,25 +1,8 @@
 import { AIConfig, AuditReport, BenchmarkResult } from '../types';
 import { createAIProvider } from './aiProvider';
-
-const extractScriptColumns = (script: string): string[] => {
-  const matches = script.matchAll(/df\[['"]([^'"]+)['"]\]/g);
-  return Array.from(new Set(Array.from(matches, match => match[1])));
-};
-
-const extractMentionedColumns = (text: string): string[] => {
-  const quoted = Array.from(text.matchAll(/[`'"]([A-Za-z_][\w .-]{1,60})[`'"]/g), match => match[1]);
-  return Array.from(new Set([...quoted, ...extractScriptColumns(text)]));
-};
-
-const detectHallucinatedColumns = (report: AuditReport, text?: string): string[] => {
-  if (!text) return [];
-  const knownColumns = new Set(Object.keys(report.columnStats));
-  const knownIssueNames = new Set(report.issues.map(issue => issue.ruleName));
-  return extractMentionedColumns(text)
-    .filter(column => !knownColumns.has(column))
-    .filter(column => !knownIssueNames.has(column))
-    .filter(column => !['dataset.csv', 'df', 'python', 'pandas'].includes(column.toLowerCase()));
-};
+import { detectHallucinations } from './benchmark/hallucinationDetector';
+import { deriveEvidenceStatus } from './improvementService';
+import { validateCleaningScript } from './scriptValidationService';
 
 const buildLoosePrompt = (report: AuditReport): string => {
   const columnNames = Object.keys(report.columnStats).join(', ');
@@ -45,7 +28,7 @@ export const runBenchmarkForConfig = async (
   inputMode: BenchmarkResult['inputMode'] = 'smart_sample'
 ): Promise<BenchmarkResult> => {
   const provider = createAIProvider(config);
-  const baseResult = {
+  const baseResult: Omit<BenchmarkResult, 'status'> = {
     id: `${config.providerType}-${config.model}-${Date.now()}`,
     provider: provider.name,
     providerType: config.providerType,
@@ -61,6 +44,7 @@ export const runBenchmarkForConfig = async (
     pythonScriptIncluded: false,
     hallucinatedColumns: [],
     unsupportedClaims: 0,
+    evidenceStatus: 'planned',
     timestamp: new Date().toISOString()
   };
 
@@ -69,6 +53,7 @@ export const runBenchmarkForConfig = async (
     return {
       ...baseResult,
       status: 'unavailable',
+      evidenceStatus: 'attempted_failed',
       error: config.providerType === 'local'
         ? 'WebGPU no disponible en este navegador.'
         : 'API key cloud no configurada.'
@@ -81,9 +66,9 @@ export const runBenchmarkForConfig = async (
       const tokensPerSecond = metrics.latencyMs > 0
         ? Number((metrics.tokensGenerated / (metrics.latencyMs / 1000)).toFixed(2))
         : 0;
-      const hallucinatedColumns = detectHallucinatedColumns(report, text);
-
-      return {
+      const hallucinationReport = detectHallucinations(report, text);
+      const scriptValidation = validateCleaningScript(report, text);
+      const result: BenchmarkResult = {
         ...baseResult,
         status: 'completed',
         latencyMs: metrics.latencyMs,
@@ -92,9 +77,22 @@ export const runBenchmarkForConfig = async (
         tokensPerSecond,
         formatCompliance: false,
         pythonScriptIncluded: text.includes('import pandas') || text.includes('pd.'),
-        hallucinatedColumns,
-        unsupportedClaims: hallucinatedColumns.length,
+        hallucinatedColumns: hallucinationReport.hallucinatedColumns,
+        unsupportedClaims: hallucinationReport.unsupportedClaims.length,
+        hallucinationReport: {
+          hallucinatedColumns: hallucinationReport.hallucinatedColumns,
+          unsupportedClaimsCount: hallucinationReport.unsupportedClaims.length,
+          jsonCompliance: hallucinationReport.jsonCompliance,
+          formatErrorCount: hallucinationReport.formatErrors.length,
+          invalidScriptColumns: hallucinationReport.invalidScriptColumns,
+        },
+        scriptValidation,
         timestamp: metrics.timestamp
+      };
+
+      return {
+        ...result,
+        evidenceStatus: deriveEvidenceStatus(result)
       };
     }
 
@@ -104,9 +102,9 @@ export const runBenchmarkForConfig = async (
     const tokensPerSecond = metrics.latencyMs > 0
       ? Number((metrics.tokensGenerated / (metrics.latencyMs / 1000)).toFixed(2))
       : 0;
-    const hallucinatedColumns = detectHallucinatedColumns(report, serializedContent);
-
-    return {
+    const hallucinationReport = detectHallucinations(report, serializedContent, script);
+    const scriptValidation = validateCleaningScript(report, script);
+    const result: BenchmarkResult = {
       ...baseResult,
       status: 'completed',
       latencyMs: metrics.latencyMs,
@@ -121,14 +119,28 @@ export const runBenchmarkForConfig = async (
         Array.isArray(content.recommendations)
       ),
       pythonScriptIncluded: script.includes('import pandas') || script.includes('pd.'),
-      hallucinatedColumns,
-      unsupportedClaims: hallucinatedColumns.length,
+      hallucinatedColumns: hallucinationReport.hallucinatedColumns,
+      unsupportedClaims: hallucinationReport.unsupportedClaims.length,
+      hallucinationReport: {
+        hallucinatedColumns: hallucinationReport.hallucinatedColumns,
+        unsupportedClaimsCount: hallucinationReport.unsupportedClaims.length,
+        jsonCompliance: hallucinationReport.jsonCompliance,
+        formatErrorCount: hallucinationReport.formatErrors.length,
+        invalidScriptColumns: hallucinationReport.invalidScriptColumns,
+      },
+      scriptValidation,
       timestamp: metrics.timestamp
+    };
+
+    return {
+      ...result,
+      evidenceStatus: deriveEvidenceStatus(result)
     };
   } catch (error: any) {
     return {
       ...baseResult,
       status: 'error',
+      evidenceStatus: 'attempted_failed',
       error: error?.message || 'Error desconocido durante benchmark.'
     };
   }

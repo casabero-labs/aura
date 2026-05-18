@@ -1,20 +1,44 @@
-# Resultados del Benchmark Multi-Modelo (Capa Cognitiva)
+# Resultados del Benchmark Multi-Modelo y Ciclo de Mejora
 
-**Objetivo Específico 2 (OE2):** Evaluar el comportamiento empírico de modelos de lenguaje grandes (LLMs) bajo condiciones idénticas de anclaje semántico (M2) y cadena de razonamiento forzada (M4).
+**Objetivo Específico 2 (OE2):** evaluar modelos LLM bajo condiciones comparables.
+**Objetivo Específico 3 (OE3):** contrastar inferencia local y cloud.
+**Objetivo Específico 4 (OE4):** verificar si las salidas generan scripts auditables y útiles para mejorar el dataset.
 
-## Contexto Experimental
-- **Dataset de Prueba**: `titanic.csv` (891 filas, 12 columnas)
-- **Motor Determinista (Baseline)**: 7 reglas violadas detectadas.
-- **Tamaño del Prompt (Context Window)**: ~2400 caracteres (Inyección de metadatos + JSON estricto).
+## Criterio de validez
 
-## Métricas de Rendimiento y Compliance
+Las corridas fallidas por API key, WebGPU no disponible, error de proveedor, columnas alucinadas críticas o script inválido se registran como `attempted_failed`. Sirven como trazabilidad, pero **no deben presentarse como resultados experimentales validos de OE2/OE3**.
 
-| Modelo | Arquitectura | Inferencia | Latencia Promedio (ms) | Tokens / Segundo | Format Compliance (JSON) | Python Script (HITL) | Alucinaciones (Detección básica) |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Gemini 2.0 Flash** | MoE Mixto | Nube (API) | *[Ejecutar Script]* | *[Ejecutar Script]* | ✅/❌ | ✅/❌ | ✅/❌ |
-| **Gemini 1.5 Pro** | Denso | Nube (API) | *[Ejecutar Script]* | *[Ejecutar Script]* | ✅/❌ | ✅/❌ | ✅/❌ |
-| **Llama 3.2 3B (q4f16_1)** | Denso (3B) | Local (WebGPU) | *[Prueba Manual UI]* | *[Prueba Manual UI]* | ✅/❌ | ✅/❌ | ✅/❌ |
-| **Qwen 2.5 3B (q4f16_1)** | Denso (3B) | Local (WebGPU) | *[Prueba Manual UI]* | *[Prueba Manual UI]* | ✅/❌ | ✅/❌ | ✅/❌ |
+| Estado | Interpretación |
+|---|---|
+| `planned` | Experimento preparado, no ejecutado |
+| `attempted_failed` | Intento fallido o salida no usable como evidencia |
+| `preliminary_valid` | Resultado preliminar defendible para segunda entrega |
+| `formal_valid` | Resultado formal con protocolo completo, repeticiones y datasets definidos |
 
-## Discusión Preliminar (A Completar por el Autor)
-*(Espacio reservado para discutir en el Capítulo 5 por qué un modelo superó a otro, especialmente comparando la velocidad de la API en la nube vs. la soberanía de los datos garantizada por la inferencia WebGPU local)*.
+## Tabla de resultados esperada
+
+| Modelo | Proveedor | Input mode | Estado evidencia | Latencia (ms) | JSON | Script válido | Columnas alucinadas | Delta salud simulado | Recomendación |
+|---|---|---|---|---:|---|---|---:|---:|---|
+| Gemini 2.0 Flash | Cloud | smart_sample | attempted_failed si API key falla | pendiente | pendiente | pendiente | pendiente | pendiente | contraste cloud |
+| Gemini 1.5 Pro | Cloud | smart_sample | attempted_failed si API key falla | pendiente | pendiente | pendiente | pendiente | pendiente | contraste cloud |
+| Llama 3.2 3B | Local WebLLM | smart_sample | pending/preliminary_valid según WebGPU | pendiente | pendiente | pendiente | pendiente | pendiente | candidato local |
+| Qwen 2.5 3B | Local WebLLM | smart_sample | pending/preliminary_valid según WebGPU | pendiente | pendiente | pendiente | pendiente | pendiente | candidato local |
+| Modelo seleccionado | Local o cloud | smart_sample | preliminary_valid/formal_valid | exportado por AURA | exportado | exportado | exportado | exportado | recomendado si mejora salud |
+
+## Resultado actualmente conocido
+
+`experiments/results/benchmark_multimodelo.json` contiene intentos Gemini fallidos por API key. Por tanto, ese archivo debe interpretarse como `attempted_failed`, no como validación de OE2.
+
+## Uso en la memoria
+
+Para la segunda entrega, esta tabla debe completarse únicamente con corridas exportadas desde AURA o desde scripts `experiments/` que incluyan:
+
+- dataset;
+- modelo;
+- proveedor;
+- temperatura;
+- input mode;
+- estado de evidencia;
+- validación de alucinaciones;
+- validación de script;
+- delta de salud si se ejecutó el Ciclo de Mejora Guiado por Evidencia.

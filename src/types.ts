@@ -90,6 +90,7 @@ export interface ExecutiveReportContent {
   key_findings: string[];
   recommendations: string[];
   python_script?: string;
+  remediation_actions?: RemediationAction[];
 }
 
 // --- Capa 2: Abstracción del Proveedor de IA ---
@@ -125,9 +126,83 @@ export interface BenchmarkResult {
   pythonScriptIncluded: boolean;
   hallucinatedColumns: string[];
   unsupportedClaims: number;
+  evidenceStatus: EvidenceStatus;
+  hallucinationReport?: HallucinationReportSummary;
+  scriptValidation?: ScriptValidationResult;
+  recommendedForRemediation?: boolean;
   compositeScore?: number;  // Score compuesto post-evaluación
   error?: string;
   timestamp: string;
+}
+
+export type EvidenceStatus = 'planned' | 'attempted_failed' | 'preliminary_valid' | 'formal_valid';
+
+export type RemediationActionType =
+  | 'trim_whitespace'
+  | 'normalize_placeholders'
+  | 'drop_exact_duplicates'
+  | 'normalize_casing'
+  | 'convert_disguised_numbers'
+  | 'requires_human_review';
+
+export interface RemediationAction {
+  id: string;
+  type: RemediationActionType;
+  column?: string;
+  description: string;
+  sourceIssueId?: string;
+  sourceRuleName?: string;
+  safeToSimulate: boolean;
+  requiresHumanReview?: boolean;
+}
+
+export interface ScriptValidationResult {
+  valid: boolean;
+  hasScript: boolean;
+  invalidColumns: string[];
+  destructiveOperations: string[];
+  coveredIssueIds: string[];
+  requiresHumanReview: boolean;
+  warnings: string[];
+}
+
+export interface HallucinationReportSummary {
+  hallucinatedColumns: string[];
+  unsupportedClaimsCount: number;
+  jsonCompliance: boolean;
+  formatErrorCount: number;
+  invalidScriptColumns: string[];
+}
+
+export interface HealthDelta {
+  beforeScore: number;
+  afterScore: number;
+  scoreDelta: number;
+  beforeCriticalIssues: number;
+  afterCriticalIssues: number;
+  criticalDelta: number;
+  beforeIssueCount: number;
+  afterIssueCount: number;
+  issueDelta: number;
+  correctedRules: string[];
+  unchangedRules: string[];
+  requiresHumanReview: string[];
+}
+
+export interface ImprovementRun {
+  id: string;
+  fileName?: string;
+  evidenceStatus: EvidenceStatus;
+  initialReport: AuditReport;
+  benchmarkResults: BenchmarkResult[];
+  recommendedResult?: BenchmarkResult;
+  generatedScript?: string;
+  scriptValidation?: ScriptValidationResult;
+  remediationActions: RemediationAction[];
+  simulatedData?: Record<string, any>[];
+  simulatedReport?: AuditReport;
+  healthDelta?: HealthDelta;
+  createdAt: string;
 }
 
 /**

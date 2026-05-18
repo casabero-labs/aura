@@ -1,68 +1,66 @@
-# Alineacion desarrollo-capaz benchmark
+# Alineacion desarrollo-capas-benchmark
 
 > Evidencia de avance tecnico para segunda entrega.
-> Cambio implementado: modulo de benchmark local vs cloud dentro de AURA.
+> Cambio de criterio: el benchmark deja de ser una vista separada y pasa a funcionar como selector de estrategia dentro del ciclo de mejora del dataset.
 
 ## 1. Decision de arquitectura
 
-AURA debe reflejar en la aplicacion la arquitectura de capas propuesta en la memoria. La Capa 0 local-first no es solo una idea documental: el flujo principal debe privilegiar inferencia local mediante WebLLM/WebGPU. Los proveedores cloud quedan como contraste secundario para evaluar diferencias de rendimiento, formato y alucinacion.
+AURA debe integrar la parte tecnica y la parte cientifica en un unico flujo de trabajo. La aplicacion no se presenta como dos productos: uno operativo y otro academico. La aplicacion diagnostica el dataset, compara estrategias de inferencia, selecciona el modelo mas conveniente, genera un script revisable y mide si la salud del dataset mejora tras una simulacion segura.
 
-## 2. Cambios implementados en la app
+La formulacion integrada es:
 
-| Archivo | Cambio |
+```text
+Diagnosticar -> Comparar modelos -> Elegir estrategia -> Generar script -> Simular limpieza -> Re-auditar -> Medir mejora
+```
+
+## 2. Relacion entre flujo tecnico y flujo cientifico
+
+| Lectura tecnica | Lectura cientifica | Evidencia generada |
+|---|---|---|
+| Cargar CSV y ejecutar auditoria | OE1: motor determinista reproducible | `AuditReport`, score inicial, issues, reglas activadas |
+| Comparar local/cloud y smart sample/prompt libre | OE2/OE3: benchmark multi-modelo e input mode | `BenchmarkResult`, latencia, JSON, alucinaciones, script HITL |
+| Elegir modelo para limpiar | Decision guiada por evidencia | Ranking por validez, privacidad, alucinaciones y rendimiento |
+| Generar script Python/Pandas | OE4: salida accionable HITL | `python_script`, validacion de columnas y riesgos |
+| Simular acciones seguras | Validacion de impacto | dataset simulado, acciones aplicadas, acciones bloqueadas |
+| Re-auditar | Medicion de mejora | `HealthDelta`: score antes/despues e issues corregidos |
+
+## 3. Cambios implementados en la app
+
+| Area | Cambio |
 |---|---|
-| `src/services/benchmarkService.ts` | Nuevo servicio para ejecutar benchmarks por proveedor usando el mismo `AuditReport`; compara smart sample contra prompt libre. |
-| `src/components/BenchmarkPanel.tsx` | Nuevo modulo visual "Local vs Cloud" con seleccion de modelos, ejecucion local, cloud, comparativa y prueba de todos los LLM disponibles. |
-| `src/types.ts` | Nuevo tipo `BenchmarkResult` para guardar metricas experimentales. |
-| `src/App.tsx` | Integracion del modulo benchmark tras la Capa Cognitiva; WebLLM local queda como configuracion principal por defecto. |
-| `src/services/auditEngine.ts` | Nueva regla R23 para detectar redundancia temporal derivable (`datetime` -> `time`). |
-| `src/index.css` | Estilos del panel de benchmark y tabla de resultados. |
+| Modelo de datos | Se introduce `ImprovementRun` como entidad que une auditoria inicial, benchmark, script, simulacion, re-auditoria y estado de evidencia. |
+| Benchmark | Las corridas fallidas quedan como `attempted_failed`; no deben contarse como evidencia valida de OE2/OE3. |
+| Detector de alucinaciones | El benchmark usa verificacion de columnas fantasma, claims no soportados, compliance JSON y columnas invalidas en scripts. |
+| Script HITL | El script se valida contra columnas reales y operaciones potencialmente destructivas. |
+| Simulacion | AURA no ejecuta Python arbitrario; aplica acciones seguras en TypeScript sobre una copia del dataset. |
+| Re-auditoria | El dataset simulado vuelve a pasar por `runAudit` para calcular delta de salud. |
+| Exportacion | El ciclo completo se puede exportar como evidencia JSON para memoria o articulo. |
 
-## 3. Relacion con capas
+## 4. Acciones seguras v1
 
-| Capa | Reflejo actual en AURA |
-|---|---|
-| Capa 0 | Selector local/cloud, WebLLM como proveedor primario, CSV y reglas ejecutados en navegador. |
-| Capa 1 | `auditEngine.ts` genera el `AuditReport` usado como base factual unica para ambos proveedores; ahora detecta redundancia temporal derivable. |
-| Capa 2 | El benchmark ejecuta salida controlada sobre smart sample y respuesta libre sobre esquema minimo para medir diferencia de alucinacion. |
-| Capa 3 | Se mide si el proveedor devuelve script Pandas HITL y si referencia columnas inexistentes. |
+La primera version solo simula acciones que pueden ejecutarse en navegador con bajo riesgo:
 
-## 4. Metricas del modulo
+- `trim_whitespace`: recorte de espacios externos y compactacion interna.
+- `normalize_placeholders`: conversion de placeholders toxicos a `null`.
+- `drop_exact_duplicates`: eliminacion de duplicados exactos en una copia simulada.
+- `normalize_casing`: normalizacion basica de capitalizacion.
+- `convert_disguised_numbers`: conversion segura de textos numericos a `number`.
 
-| Metrica | Proposito |
-|---|---|
-| Latencia total | Comparar coste temporal de inferencia local vs cloud. |
-| First token | Evaluar rapidez inicial del proveedor cuando la metrica este disponible. |
-| Tokens generados | Aproximar volumen de salida. |
-| Tokens por segundo | Comparar rendimiento relativo. |
-| Cumplimiento JSON | Verificar salida estructurada para reporte ejecutivo. |
-| Script HITL incluido | Verificar si el modelo genera acciones auditables. |
-| Columnas alucinadas | Detectar referencias `df['columna']` que no existen en el dataset. |
-| Modo de entrada | Comparar `smart_sample` frente a `prompt_libre`. |
+Las acciones ambiguas, destructivas o dependientes de dominio quedan marcadas como `requires_human_review`.
 
-## 5. Uso experimental
+## 5. Criterio de evidencia valida
 
-Flujo esperado:
+| Estado | Significado | Uso academico |
+|---|---|---|
+| `planned` | Experimento preparado, no ejecutado | Metodologia o plan experimental |
+| `attempted_failed` | Intento fallido por API key, WebGPU, error de formato o alucinacion critica | Trazabilidad, no resultado OE2/OE3 |
+| `preliminary_valid` | Corrida valida preliminar con evidencia suficiente para discusion | Segunda entrega y resultados preliminares |
+| `formal_valid` | Corrida con protocolo completo, repeticiones y datasets definidos | Articulo cientifico / entrega final |
 
-1. Cargar CSV en AURA.
-2. Ejecutar motor determinista.
-3. Revisar hallazgos y smart sample.
-4. Seleccionar modelo local o cloud especifico.
-5. Ejecutar benchmark local: smart sample y prompt libre.
-6. Ejecutar benchmark cloud como contraste secundario: smart sample y prompt libre.
-7. Opcionalmente ejecutar "Probar todos los LLM" para comparar todo el banco de modelos registrado.
-8. Comparar resultados en la tabla del modulo.
-9. Registrar resultados consolidados en `experiments/results/` cuando se haga una corrida formal.
+## 6. Lectura para el TFM
 
-## 6. Estado actual
+El valor cientifico ya no esta solo en demostrar que AURA detecta problemas. La contribucion se vuelve mas fuerte:
 
-El modulo ya esta integrado y la app compila. La ejecucion real dependera de:
+> AURA permite evaluar que estrategia de diagnostico y remediacion mejora de forma medible la salud de un dataset, privilegiando modelos locales sencillos cuando producen resultados validos, trazables y comparables a alternativas cloud.
 
-- soporte WebGPU del navegador para WebLLM local;
-- API key valida para Gemini cloud;
-- datasets definidos para benchmark formal.
-
-Verificacion tecnica:
-
-- `npm run build` ejecutado correctamente.
-- Servidor local levantado en `http://127.0.0.1:3000/`.
+Esta formulacion conecta directamente la herramienta tecnica con la validacion experimental: el benchmark no es decorativo, sino el mecanismo que justifica la decision de limpieza.

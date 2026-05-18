@@ -51,9 +51,12 @@ const extractMentionedColumns = (text: string): string[] => {
   const scriptMatches = text.matchAll(/df\[[']([^'"]+)['"]\]|df\[["]([^"]+)["]\]]/g);
   const scriptCols = Array.from(scriptMatches, m => m[1] || m[2]);
 
-  // Columnas entre comillas/backticks en texto
-  const quotedMatches = text.matchAll(/[`'"]([A-Za-z_][\w .\-+]{1,60})[`'"]/g);
-  const quotedCols = Array.from(quotedMatches, m => m[1]);
+  // Columnas entre comillas/backticks en texto. Se separan delimitadores
+  // para evitar capturas cruzadas dentro de JSON serializado.
+  const doubleQuoted = Array.from(text.matchAll(/"([A-Za-z_][^"\n]{1,60})"/g), m => m[1]);
+  const singleQuoted = Array.from(text.matchAll(/'([A-Za-z_][^'\n]{1,60})'/g), m => m[1]);
+  const backtickQuoted = Array.from(text.matchAll(/`([A-Za-z_][^`\n]{1,60})`/g), m => m[1]);
+  const quotedCols = [...doubleQuoted, ...singleQuoted, ...backtickQuoted];
 
   return Array.from(new Set([...scriptCols, ...quotedCols]));
 };
@@ -78,7 +81,10 @@ const detectPhantomColumns = (report: AuditReport, text: string): string[] => {
 
   const nonColumns = new Set([
     'dataset.csv', 'df', 'python', 'pandas', 'numpy', 'csv', 'dataframe',
-    'dataset', 'data', 'file', 'column', 'row', 'value', 'index'
+    'dataset', 'data', 'file', 'column', 'row', 'value', 'index',
+    'title', 'domain_inferred', 'dataset_technical_description',
+    'executive_summary', 'business_impact', 'key_findings',
+    'recommendations', 'python_script', 'remediation_actions'
   ]);
 
   return extractMentionedColumns(text)

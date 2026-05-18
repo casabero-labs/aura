@@ -22,9 +22,9 @@ _Por redactar tras completar la validación experimental._
 
 Elementos clave a incluir:
 - Problema: Herramientas de calidad de dato ciegas al contexto + riesgos de privacidad en cloud
-- Contribución: Arquitectura híbrida de 4 capas con 5 mecanismos anti-alucinación
+- Contribución: Arquitectura híbrida de 4 capas con ciclo de mejora guiado por evidencia
 - Método: Motor determinista reproducible (22+ reglas) + LLM controlado + arquitectura local-first evaluable
-- Resultados: [métricas por completar]
+- Resultados: [métricas por completar: precision/recall, benchmark LLM, delta de salud antes/después]
 - Conclusión: [por completar]
 
 ---
@@ -37,8 +37,9 @@ _Basarse en Cap. 1 de la tesis. Condensar motivación, gap, y contribución._
 1. Arquitectura híbrida determinista + LLM para diagnóstico de calidad del dato
 2. Catálogo de 22+ reglas deterministas con mapeo a ISO/IEC 25012 y evaluación precision/recall
 3. 5 mecanismos formales anti-alucinación (M1–M5) con evaluación empírica
-4. Validación sobre N datasets públicos comparando M modelos LLM
-5. Implementación browser-native open-source como prueba de concepto
+4. Ciclo de mejora guiado por evidencia: benchmark, script, simulación segura y re-auditoría
+5. Validación sobre N datasets públicos comparando M modelos LLM
+6. Implementación browser-native open-source como prueba de concepto
 
 ---
 
@@ -80,6 +81,21 @@ _Por completar tras experiments/_
 ### 5.3 Baselines
 ### 5.4 Results
 
+### 5.5 Evidence-Guided Remediation Loop
+
+_Describir el ciclo AURA: diagnóstico inicial, benchmark de estrategias, selección del modelo, generación de script Pandas, simulación segura y re-auditoría._
+
+Métrica principal:
+- delta de salud del dataset antes/después.
+
+Métricas secundarias:
+- reducción de issues críticos;
+- reducción de issues totales;
+- acciones bloqueadas por requerir revisión humana;
+- columnas alucinadas;
+- validez del script;
+- comparación local/cloud.
+
 ---
 
 ## 6. Discussion
@@ -112,3 +128,5 @@ _Por completar_
 - [ ] Latencia por modelo LLM
 - [ ] Hallucination rate por modelo
 - [ ] Comparativa con/sin mecanismos anti-alucinación
+- [ ] Delta de salud antes/después del ciclo de mejora
+- [ ] Validez y cobertura de scripts Pandas generados

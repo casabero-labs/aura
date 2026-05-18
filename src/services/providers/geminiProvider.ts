@@ -125,7 +125,23 @@ export class GeminiProvider implements AIProvider {
             executive_summary: { type: Type.STRING },
             business_impact: { type: Type.STRING },
             key_findings: { type: Type.ARRAY, items: { type: Type.STRING } },
-            recommendations: { type: Type.ARRAY, items: { type: Type.STRING } }
+            recommendations: { type: Type.ARRAY, items: { type: Type.STRING } },
+            python_script: { type: Type.STRING },
+            remediation_actions: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  id: { type: Type.STRING },
+                  type: { type: Type.STRING },
+                  column: { type: Type.STRING },
+                  description: { type: Type.STRING },
+                  safeToSimulate: { type: Type.BOOLEAN },
+                  requiresHumanReview: { type: Type.BOOLEAN }
+                },
+                required: ['id', 'type', 'description', 'safeToSimulate']
+              }
+            }
           },
           required: ['title', 'domain_inferred', 'dataset_technical_description', 'executive_summary', 'business_impact', 'key_findings', 'recommendations']
         }

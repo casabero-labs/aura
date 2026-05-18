@@ -12,8 +12,46 @@
 
 import { AIConfig, AIProvider } from '../types';
 import { GeminiProvider } from './providers/geminiProvider';
-import { WebLLMProvider } from './providers/webllmProvider';
 import { OpenAIProvider } from './providers/openaiProvider';
+
+class LazyWebLLMProvider implements AIProvider {
+  readonly name = 'WebLLM';
+  readonly type = 'local' as const;
+
+  private providerPromise?: Promise<AIProvider>;
+
+  constructor(private model: string, private temperature: number) {}
+
+  private async provider(): Promise<AIProvider> {
+    if (!this.providerPromise) {
+      this.providerPromise = import('./providers/webllmProvider').then(({ WebLLMProvider }) =>
+        new WebLLMProvider(this.model, this.temperature)
+      );
+    }
+    return this.providerPromise;
+  }
+
+  async analyzeStream(...args: Parameters<AIProvider['analyzeStream']>) {
+    return (await this.provider()).analyzeStream(...args);
+  }
+
+  async generateExecutiveReport(...args: Parameters<AIProvider['generateExecutiveReport']>) {
+    return (await this.provider()).generateExecutiveReport(...args);
+  }
+
+  async generateText(...args: Parameters<AIProvider['generateText']>) {
+    return (await this.provider()).generateText(...args);
+  }
+
+  async isAvailable() {
+    if (typeof navigator === 'undefined' || !navigator.gpu) return false;
+    return (await this.provider()).isAvailable();
+  }
+
+  async preloadModel(...args: Parameters<NonNullable<AIProvider['preloadModel']>>) {
+    return (await this.provider()).preloadModel?.(...args);
+  }
+}
 
 /**
  * Crea el proveedor de IA según la configuración del usuario.
@@ -21,7 +59,7 @@ import { OpenAIProvider } from './providers/openaiProvider';
 export const createAIProvider = (config: AIConfig): AIProvider => {
   switch (config.providerType) {
     case 'local':
-      return new WebLLMProvider(config.model, config.temperature);
+      return new LazyWebLLMProvider(config.model, config.temperature);
     
     case 'cloud':
     default: {

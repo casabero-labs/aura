@@ -56,6 +56,10 @@ Smart sample vs prompt libre, mismo modelo y temperatura.
 Misma configuración (Llama 3.2 3B, temp 0.1) contra 3 datasets distintos.
 *Objetivo:* verificar que los resultados no son casualidad de un dataset.
 
+### E6 — Health Improvement Loop
+Ejecutar el ciclo completo sobre un dataset: auditoría inicial, benchmark de estrategias, generación de script, simulación segura, re-auditoría y cálculo de delta de salud.
+*Objetivo:* demostrar que AURA no solo diagnostica, sino que ayuda a seleccionar una intervención que mejora de forma medible la salud del dataset.
+
 ## Criterios de Éxito
 
 - **E1**: latencia local < 30s, JSON compliance = 100%
@@ -63,6 +67,21 @@ Misma configuración (Llama 3.2 3B, temp 0.1) contra 3 datasets distintos.
 - **E3**: top 3 modelos locales tienen compliance ≥ 90% vs cloud
 - **E4**: smart sample reduce alucinaciones ≥ 50% vs prompt libre
 - **E5**: varianza entre datasets < 15% en todas las métricas
+- **E6**: score posterior > score inicial, sin ejecutar acciones destructivas no revisadas
+
+## Métricas del Ciclo de Mejora
+
+- **Métrica principal**: delta de salud del dataset (`score_after - score_before`)
+- **Métricas secundarias**:
+  - issues totales antes/después
+  - issues críticos antes/después
+  - reglas corregidas
+  - script válido contra columnas reales
+  - acciones destructivas o ambiguas bloqueadas
+  - columnas alucinadas
+  - claims no soportados
+  - modo de inferencia local/cloud
+  - estado de evidencia (`planned`, `attempted_failed`, `preliminary_valid`, `formal_valid`)
 
 ## Salida Científica
 
@@ -71,3 +90,4 @@ Cada experimento genera:
 - Marca de tiempo para reproducibilidad
 - Configuración completa (modelo, temp, input mode, fecha)
 - Evidencia para el TFM §4 (Resultados Experimentales)
+- Cuando aplique, un `ImprovementRun` exportable con score antes/después y acciones de remediación simuladas

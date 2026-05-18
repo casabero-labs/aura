@@ -6,6 +6,7 @@ import DataProfile from './components/DataProfile';
 import { ExperimentDesigner } from './components/ExperimentDesigner';
 import FileUpload from './components/FileUpload';
 import GeminiAdvisor from './components/GeminiAdvisor';
+import ImprovementRunPanel from './components/ImprovementRunPanel';
 import IssueList from './components/IssueList';
 import ScoreBreakdown from './components/ScoreBreakdown';
 import ScriptReview from './components/ScriptReview';
@@ -14,7 +15,7 @@ import { createAIProvider } from './services/aiProvider';
 import { runAudit } from './services/auditEngine';
 import { parseCsv } from './services/csvService';
 import { generatePdfReport } from './services/pdfGenerator';
-import { AIConfig, AuditReport, ExecutiveReportContent, IssueSeverity, ProviderMetrics } from './types';
+import { AIConfig, AuditReport, ExecutiveReportContent, ImprovementRun, IssueSeverity, ProviderMetrics } from './types';
 
 const countBySeverity = (report: AuditReport | null, severity: IssueSeverity) =>
   report?.issues.filter((issue) => issue.severity === severity).length ?? 0;
@@ -39,6 +40,10 @@ const csvCell = (value: unknown) => {
 const App: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
   const [report, setReport] = useState<AuditReport | null>(null);
+  const [rawData, setRawData] = useState<Record<string, any>[]>([]);
+  const [csvFields, setCsvFields] = useState<string[]>([]);
+  const [csvDelimiter, setCsvDelimiter] = useState(',');
+  const [improvementRun, setImprovementRun] = useState<ImprovementRun | null>(null);
   const [aiAnalysis, setAiAnalysis] = useState('');
   const [cleaningScript, setCleaningScript] = useState('');
   const [approvedCleaningScript, setApprovedCleaningScript] = useState('');
@@ -158,12 +163,19 @@ const App: React.FC = () => {
     setAiAnalysis('');
     setCleaningScript('');
     setApprovedCleaningScript('');
+    setRawData([]);
+    setCsvFields([]);
+    setCsvDelimiter(',');
+    setImprovementRun(null);
     setHasExported(false);
     setLogs([]);
     addLog(`Cargando ${uploadedFile.name}...`);
 
     try {
       const { data, meta } = await parseCsv(uploadedFile);
+      setRawData(data);
+      setCsvFields(meta.fields);
+      setCsvDelimiter(meta.delimiter);
       addLog(`${data.length} registros · ${meta.fields?.length ?? 0} columnas`);
 
       const auditResult = runAudit(data, meta.fields, meta.delimiter);
@@ -229,7 +241,7 @@ const App: React.FC = () => {
     if (!report) return;
     downloadTextFile(
       `aura_audit_${Date.now()}.json`,
-      JSON.stringify({ fileName: file?.name, generatedAt: new Date().toISOString(), report, aiAnalysis }, null, 2),
+      JSON.stringify({ fileName: file?.name, generatedAt: new Date().toISOString(), report, aiAnalysis, improvementRun }, null, 2),
       'application/json;charset=utf-8'
     );
     setHasExported(true);
@@ -278,7 +290,8 @@ const App: React.FC = () => {
     { num: 3, label: 'Explorar', icon: <Table2 size={14} />, target: 'explorar', done: hasData, active: false },
     { num: 4, label: 'Análisis IA', icon: <Brain size={14} />, target: 'ia', done: hasAiAnalysis, active: hasData && (isAiLoading || (hasAiAnalysis && !hasScript)) },
     { num: 5, label: 'Revisar', icon: <ClipboardCheck size={14} />, target: 'revision', done: hasApprovedScript, active: hasScript && !hasApprovedScript },
-    { num: 6, label: 'Exportar', icon: <FileText size={14} />, target: 'evidencia', done: hasExported, active: hasData && (hasApprovedScript || hasAiAnalysis) && !hasExported },
+    { num: 6, label: 'Mejorar', icon: <ShieldCheck size={14} />, target: 'benchmark', done: !!improvementRun, active: hasData && !improvementRun },
+    { num: 7, label: 'Exportar', icon: <FileText size={14} />, target: 'evidencia', done: hasExported, active: hasData && (hasApprovedScript || hasAiAnalysis || !!improvementRun) && !hasExported },
   ];
 
   return (
@@ -542,9 +555,24 @@ const App: React.FC = () => {
 
         {report && (
           <section className="section" id="benchmark">
-            <BenchmarkPanel report={report} config={aiConfig} onLog={(msg) => addLog(msg)} />
+            <BenchmarkPanel
+              report={report}
+              config={aiConfig}
+              originalData={rawData}
+              fields={csvFields}
+              delimiter={csvDelimiter}
+              fileName={file?.name}
+              cleaningScript={approvedCleaningScript || cleaningScript}
+              onImprovementRun={(run) => {
+                setImprovementRun(run);
+                addLog(`Ciclo de mejora: ${run.healthDelta?.scoreDelta ?? 0} puntos simulados`);
+              }}
+              onLog={(msg) => addLog(msg)}
+            />
           </section>
         )}
+
+        {improvementRun && <ImprovementRunPanel run={improvementRun} />}
 
         {report && (
           <section className="section" id="experimentos">

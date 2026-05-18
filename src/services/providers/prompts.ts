@@ -170,6 +170,7 @@ export const buildExecutivePrompt = (report: AuditReport): string => {
     2. "executive_summary": Un resumen de alto nivel sobre la salud de los datos.
     3. "business_impact": Riesgos de negocio reales.
     4. "python_script": Genera un script en Python (con Pandas) que resuelva los problemas prioritarios detectados. El código debe estar listo para ejecutarse y usar la variable 'df'.
+    5. "remediation_actions": Genera acciones estructuradas para simulacion segura. Usa solo estos tipos: trim_whitespace, normalize_placeholders, drop_exact_duplicates, normalize_casing, convert_disguised_numbers, requires_human_review. Marca safeToSimulate=false cuando sea ambiguo, destructivo o requiera criterio de dominio.
     
     La estructura JSON requerida es:
     {
@@ -180,7 +181,17 @@ export const buildExecutivePrompt = (report: AuditReport): string => {
       "business_impact": "Impacto en negocio...",
       "key_findings": ["Hallazgo 1", "Hallazgo 2", "Hallazgo 3"],
       "recommendations": ["Recomendación 1", "Recomendación 2", "Recomendación 3"],
-      "python_script": "import pandas as pd\\nimport numpy as np\\n\\n# Código de limpieza aquí..."
+      "python_script": "import pandas as pd\\nimport numpy as np\\n\\n# Código de limpieza aquí...",
+      "remediation_actions": [
+        {
+          "id": "accion-1",
+          "type": "trim_whitespace",
+          "column": "nombre_columna",
+          "description": "Descripcion breve de la accion",
+          "safeToSimulate": true,
+          "requiresHumanReview": false
+        }
+      ]
     }
   `;
 };
