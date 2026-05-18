@@ -132,6 +132,29 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                         </div>
                     </div>
 
+                    {/* Temperatura */}
+                    <div className="space-y-3">
+                        <label className="block eyebrow text-[var(--ink2)]">Temperatura del Modelo <span className="text-[var(--ink)]">{(localConfig.temperature ?? 0.1).toFixed(1)}</span></label>
+                        <div className="flex items-center gap-4">
+                            <span className="text-[10px] font-sans text-[var(--ink-muted)]">0.0</span>
+                            <input
+                                type="range"
+                                min="0"
+                                max="1"
+                                step="0.1"
+                                value={localConfig.temperature ?? 0.1}
+                                onChange={(e) => setLocalConfig({ ...localConfig, temperature: parseFloat(e.target.value) })}
+                                className="flex-1 h-1.5 appearance-none bg-[var(--border-strong)] rounded-full outline-none cursor-pointer
+                                    [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[var(--ink)] [&::-webkit-slider-thumb]:cursor-pointer
+                                    [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[var(--ink)] [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:cursor-pointer"
+                            />
+                            <span className="text-[10px] font-sans text-[var(--ink-muted)]">1.0</span>
+                        </div>
+                        <p className="text-[10px] font-sans text-[var(--ink2)] leading-relaxed">
+                            M1: Control de varianza estocástica. Valores bajos (&lt;0.3) favorecen consistencia y adherencia a formato. Valores altos (&gt;0.5) aumentan creatividad pero pueden reducir precisión.
+                        </p>
+                    </div>
+
                     <div className="flex items-center justify-between p-4 bg-[var(--surface)] border border-[var(--border)] hover:border-[var(--border-strong)] transition-colors rounded-sm">
                         <div>
                             <p className="text-[13px] font-sans font-medium text-[var(--ink)] tracking-tight">Auto-Análisis</p>
