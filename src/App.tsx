@@ -179,6 +179,7 @@ const App: React.FC = () => {
       const trace = createTraceRecorder();
       const startedAt = new Date().toISOString();
       trace.mark('csv.parse.start', { fileName: uploadedFile.name, fileSize: uploadedFile.size });
+      addLog('csv.parse.start :: leyendo archivo en navegador');
       const parseStart = performance.now();
       const { data, meta } = await parseCsv(uploadedFile);
       const parseDurationMs = Math.round(performance.now() - parseStart);
@@ -192,10 +193,11 @@ const App: React.FC = () => {
       setRawData(data);
       setCsvFields(meta.fields);
       setCsvDelimiter(meta.delimiter);
-      addLog(`${data.length} registros · ${meta.fields?.length ?? 0} columnas`);
+      addLog(`csv.parse.end :: ${data.length} registros · ${meta.fields?.length ?? 0} columnas · ${parseDurationMs}ms`);
 
       const datasetFingerprint = fingerprintDataset(data, meta.fields);
       trace.mark('audit.run.start', { datasetFingerprint });
+      addLog(`audit.run.start :: fingerprint=${datasetFingerprint}`);
       const auditStart = performance.now();
       const auditResult = runAudit(data, meta.fields, meta.delimiter);
       const auditDurationMs = Math.round(performance.now() - auditStart);
@@ -221,10 +223,13 @@ const App: React.FC = () => {
         trace: trace.events,
       }));
       setReport(auditResult);
-      addLog(`Score: ${auditResult.score}/100 · ${auditResult.issues.length} anomalías detectadas`);
+      addLog(`audit.run.end :: score=${auditResult.score}/100 · issues=${auditResult.issues.length} · ${auditDurationMs}ms`);
 
       if (aiConfig.autoAnalyze) {
-        await runAiAnalysis(auditResult);
+        addLog('ia.autoAnalyze.queued :: el diagnóstico determinista ya quedó cerrado');
+        window.setTimeout(() => {
+          void runAiAnalysis(auditResult);
+        }, 0);
       }
     } catch (err: any) {
       addLog(`Error: ${err.message}`);

@@ -280,6 +280,7 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
     const isIdCol = col.toLowerCase().includes('id') || col.toLowerCase().endsWith('cod') || col.toLowerCase().endsWith('code') || col.toLowerCase().endsWith('key');
     const isUrlCol = col.toLowerCase().includes('url') || col.toLowerCase().includes('web') || col.toLowerCase().includes('link') || col.toLowerCase().includes('sitio');
     const isNameCol = col.toLowerCase().includes('name') || col.toLowerCase().includes('nombre') || col.toLowerCase().includes('ape');
+    const isDateTimeLikeColumn = looksLikeDateTimeColumn(col, values, rowCount);
 
     // --- Row Iteration ---
     values.forEach(val => {
@@ -342,7 +343,7 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
       }
 
       // R-Freshness: Future Dates (> today + 30 days)
-      if (looksLikeDateTimeColumn(col, values, rowCount)) {
+      if (isDateTimeLikeColumn) {
         const parsedDate = new Date(strVal);
         if (!isNaN(parsedDate.getTime())) {
           const futureThreshold = new Date();
