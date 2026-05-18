@@ -105,3 +105,5 @@ Toda corrida debe distinguir entre "se solicito ejecutar" y "se ejecuto realment
 - traza exportable en JSON.
 
 Si una etapa no puede cerrarse con evidencia, se reporta como `attempted_failed` y no se usa para defender OE2/OE3.
+
+La traza tambien debe verse durante la ejecucion. AURA presenta una consola tipo `tail -f` para auditoria determinista y benchmark, de modo que el evaluador pueda observar preflight, inicio, cierre, error y resultado medido sin depender solo del artefacto exportado posterior.

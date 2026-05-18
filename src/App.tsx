@@ -97,7 +97,7 @@ const App: React.FC = () => {
       minute: '2-digit',
       second: '2-digit',
     });
-    setLogs((prev) => [...prev, { time, msg }].slice(-9));
+    setLogs((prev) => [...prev, { time, msg }].slice(-18));
   };
 
   const runAiAnalysis = async (currentReport: AuditReport) => {
@@ -451,12 +451,14 @@ const App: React.FC = () => {
         <section className="term" aria-label="Bitacora de ejecucion">
           <div className="term-bar">
             <div className="term-dot" /><div className="term-dot" /><div className="term-dot" />
-            <span className="term-label">actividad</span>
+            <span className="term-label">tail -f aura.pipeline.log</span>
+            <code>{auditEvidence?.datasetFingerprint || 'trace.ready()'}</code>
           </div>
           <div className="term-body">
             {terminalRows.map((row, index) => (
               <span className="tl" key={`${row.time}-${index}`}>
-                <span className="pr">→ </span>
+                <span className="ts">{row.time}</span>
+                <span className="pr">→</span>
                 <span className="ok">{row.msg}</span>
                 {index === terminalRows.length - 1 && (isProcessing || isAiLoading) && <span className="cursor" />}
               </span>
@@ -610,7 +612,7 @@ const App: React.FC = () => {
                 setImprovementRun(run);
                 addLog(`Ciclo de mejora: ${run.healthDelta?.scoreDelta ?? 0} puntos simulados`);
               }}
-              onLog={(msg) => addLog(msg)}
+              onLog={(stage, msg) => addLog(`${stage} :: ${msg}`)}
             />
           </section>
         )}

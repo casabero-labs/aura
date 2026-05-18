@@ -1,4 +1,4 @@
-import { AIConfig, AuditReport, BenchmarkResult } from '../types';
+import { AIConfig, AuditReport, BenchmarkResult, ExecutionTraceEvent } from '../types';
 import { createAIProvider } from './aiProvider';
 import { detectHallucinations } from './benchmark/hallucinationDetector';
 import { createTraceRecorder, fingerprintReport } from './executionEvidence';
@@ -26,14 +26,19 @@ Responde en español.
 export const runBenchmarkForConfig = async (
   report: AuditReport,
   config: AIConfig,
-  inputMode: BenchmarkResult['inputMode'] = 'smart_sample'
+  inputMode: BenchmarkResult['inputMode'] = 'smart_sample',
+  onTrace?: (event: ExecutionTraceEvent) => void
 ): Promise<BenchmarkResult> => {
   const provider = createAIProvider(config);
   const trace = createTraceRecorder();
+  const mark = (stage: string, details?: ExecutionTraceEvent['details']) => {
+    trace.mark(stage, details);
+    onTrace?.(trace.events[trace.events.length - 1]);
+  };
   const startedAt = new Date().toISOString();
   const datasetFingerprint = fingerprintReport(report);
   const webGpuAvailable = typeof navigator !== 'undefined' && Boolean(navigator.gpu);
-  trace.mark('benchmark.created', {
+  mark('benchmark.created', {
     providerType: config.providerType,
     model: config.model,
     inputMode,
@@ -42,7 +47,7 @@ export const runBenchmarkForConfig = async (
     reportFingerprint: datasetFingerprint,
   });
   if (config.providerType === 'local') {
-    trace.mark('webgpu.preflight', { navigatorGpu: webGpuAvailable });
+    mark('webgpu.preflight', { navigatorGpu: webGpuAvailable });
   }
   const baseResult: Omit<BenchmarkResult, 'status'> = {
     id: `${config.providerType}-${config.model}-${Date.now()}`,
@@ -68,9 +73,9 @@ export const runBenchmarkForConfig = async (
     timestamp: new Date().toISOString()
   };
 
-  trace.mark('provider.availability.start');
+  mark('provider.availability.start');
   const isAvailable = await provider.isAvailable();
-  trace.mark('provider.availability.end', { available: isAvailable });
+  mark('provider.availability.end', { available: isAvailable });
   if (!isAvailable) {
     return {
       ...baseResult,
@@ -86,9 +91,9 @@ export const runBenchmarkForConfig = async (
 
   try {
     if (inputMode === 'prompt_libre') {
-      trace.mark('provider.generateText.start');
+      mark('provider.generateText.start');
       const { text, metrics } = await provider.generateText(buildLoosePrompt(report));
-      trace.mark('provider.generateText.end', {
+      mark('provider.generateText.end', {
         latencyMs: metrics.latencyMs,
         firstTokenMs: metrics.firstTokenMs,
         tokensGenerated: metrics.tokensGenerated,
@@ -129,9 +134,9 @@ export const runBenchmarkForConfig = async (
       };
     }
 
-    trace.mark('provider.generateExecutiveReport.start');
+    mark('provider.generateExecutiveReport.start');
     const { content, metrics } = await provider.generateExecutiveReport(report);
-    trace.mark('provider.generateExecutiveReport.end', {
+    mark('provider.generateExecutiveReport.end', {
       latencyMs: metrics.latencyMs,
       firstTokenMs: metrics.firstTokenMs,
       tokensGenerated: metrics.tokensGenerated,
@@ -180,20 +185,13 @@ export const runBenchmarkForConfig = async (
       evidenceStatus: deriveEvidenceStatus(result)
     };
   } catch (error: any) {
+    mark('benchmark.error', { message: error?.message || 'Error desconocido durante benchmark.' });
     return {
       ...baseResult,
       status: 'error',
       evidenceStatus: 'attempted_failed',
       completedAt: new Date().toISOString(),
-      executionTrace: [
-        ...trace.events,
-        {
-          stage: 'benchmark.error',
-          timestamp: new Date().toISOString(),
-          elapsedMs: Math.round(performance.now() - trace.startedAtMs),
-          details: { message: error?.message || 'Error desconocido durante benchmark.' },
-        }
-      ],
+      executionTrace: trace.events,
       error: error?.message || 'Error desconocido durante benchmark.'
     };
   }

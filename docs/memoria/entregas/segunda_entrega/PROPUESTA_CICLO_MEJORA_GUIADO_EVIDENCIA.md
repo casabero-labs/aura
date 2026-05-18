@@ -78,6 +78,16 @@ Para evitar especulacion, cada ejecucion debe registrar evidencia verificable:
 
 Una tabla con estado `Ejecutando` no es suficiente como evidencia academica. La corrida debe cerrar con traza exportable o quedar como `attempted_failed`.
 
+## 4.2 Consola viva de ejecucion
+
+La evidencia no debe quedar oculta en un archivo exportado ni en una tabla final. La interfaz debe mostrar el proceso mientras ocurre:
+
+- `tail -f aura.pipeline.log`: bitacora principal de ingestion, auditoria, IA, benchmark, simulacion y exportacion.
+- `tail -f aura.audit.log`: parseo, fingerprint, ejecucion del motor determinista, score e issues detectados.
+- `tail -f aura.benchmark.log`: preflight WebGPU/API key, inicio de llamada al proveedor, cierre, error o invalidacion.
+
+Esto permite diferenciar visualmente entre "se pidio ejecutar", "esta ejecutando", "termino con resultado valido" y "fallo como intento invalido". El resultado cientifico aparece despues de la ejecucion observada, no como una afirmacion aislada.
+
 ## 5. Criterios de decision
 
 La recomendacion de modelo en v1 sigue este orden:

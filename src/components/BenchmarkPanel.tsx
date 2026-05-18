@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Activity, AlertTriangle, CheckCircle2, Cloud, Cpu, Fingerprint, Gauge, Layers3, Play, ShieldCheck } from 'lucide-react';
-import { AIConfig, AuditExecutionEvidence, AuditReport, BenchmarkResult } from '../types';
+import { Activity, AlertTriangle, CheckCircle2, Cloud, Cpu, Gauge, Layers3, Play, ShieldCheck } from 'lucide-react';
+import { AIConfig, AuditExecutionEvidence, AuditReport, BenchmarkResult, ExecutionTraceEvent } from '../types';
 import { AVAILABLE_MODELS } from '../services/aiProvider';
 import { runBenchmarkForConfig } from '../services/benchmarkService';
 import { createImprovementRun } from '../services/improvementService';
@@ -36,6 +36,22 @@ const evidenceLabel: Record<BenchmarkResult['evidenceStatus'], string> = {
 const elapsedFrom = (startedAt?: string) => {
   if (!startedAt) return '-';
   return `${Math.max(0, Math.round((Date.now() - new Date(startedAt).getTime()) / 1000))}s`;
+};
+
+const timeLabel = (timestamp: string) =>
+  new Date(timestamp).toLocaleTimeString('es-CO', {
+    hour12: false,
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+
+const eventDetails = (event: ExecutionTraceEvent) => {
+  if (!event.details) return '';
+  return Object.entries(event.details)
+    .filter(([, value]) => value !== undefined && value !== null && value !== '')
+    .map(([key, value]) => `${key}=${String(value)}`)
+    .join(' · ');
 };
 
 const BenchmarkPanel: React.FC<BenchmarkPanelProps> = ({
@@ -113,7 +129,13 @@ const BenchmarkPanel: React.FC<BenchmarkPanelProps> = ({
         };
         setResults(prev => [pending, ...prev]);
 
-        const result = await runBenchmarkForConfig(report, runConfig, inputMode);
+        const result = await runBenchmarkForConfig(report, runConfig, inputMode, (event) => {
+          setResults(prev => prev.map(item => item.id === pending.id
+            ? { ...item, executionTrace: [...(item.executionTrace || []), event] }
+            : item
+          ));
+          onLog?.(event.stage, eventDetails(event) || `${runConfig.providerType} :: ${inputMode}`);
+        });
         setResults(prev => prev.map(item => item.id === pending.id ? result : item));
         onLog?.(
           result.status === 'completed' ? 'benchmark.done' : 'benchmark.warn',
@@ -155,6 +177,10 @@ const BenchmarkPanel: React.FC<BenchmarkPanelProps> = ({
 
   const latestLocal = results.find(result => result.providerType === 'local' && result.status === 'completed');
   const latestCloud = results.find(result => result.providerType === 'cloud' && result.status === 'completed');
+  const activeRuns = results.filter(result => result.status === 'running');
+  const traceRows = results.flatMap((result) =>
+    (result.executionTrace || []).map((event) => ({ result, event }))
+  );
 
   return (
     <section aria-labelledby="benchmark-title" className="mt-12">
@@ -255,6 +281,43 @@ const BenchmarkPanel: React.FC<BenchmarkPanelProps> = ({
         </div>
       </div>
 
+      <div className="live-trace-panel mt-6" aria-label="Log visible del benchmark">
+        <div className="live-trace-head">
+          <span>tail -f aura.benchmark.log</span>
+          <code>{auditEvidence?.datasetFingerprint || 'sin-fingerprint'}</code>
+        </div>
+        <div className="terminal-log" role="log" aria-live="polite">
+          {activeRuns.map((result) => (
+            <div className="terminal-log-row terminal-log-row-active" key={`active-${result.id}`}>
+              <span className="terminal-log-time">{elapsedFrom(result.startedAt)}</span>
+              <strong className="terminal-log-stage">benchmark.running</strong>
+              <span className="terminal-log-elapsed">live</span>
+              <code className="terminal-log-meta">
+                provider={result.providerType} · model={result.model} · input={result.inputMode}
+              </code>
+            </div>
+          ))}
+          {traceRows.length === 0 && activeRuns.length === 0 && (
+            <div className="terminal-log-row">
+              <span className="terminal-log-time">--:--:--</span>
+              <strong className="terminal-log-stage">benchmark.idle</strong>
+              <span className="terminal-log-elapsed">0ms</span>
+              <code className="terminal-log-meta">Esperando ejecucion local, cloud o comparativa.</code>
+            </div>
+          )}
+          {traceRows.map(({ result, event }) => (
+            <div className="terminal-log-row" key={`${result.id}-${event.stage}-${event.elapsedMs}`}>
+              <span className="terminal-log-time">{timeLabel(event.timestamp)}</span>
+              <strong className="terminal-log-stage">{event.stage}</strong>
+              <span className="terminal-log-elapsed">{event.elapsedMs}ms</span>
+              <code className="terminal-log-meta">
+                {result.providerType}/{result.inputMode} · {eventDetails(event) || result.evidenceStatus}
+              </code>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <div className="benchmark-table-wrap mt-6">
         <table className="benchmark-table">
           <thead>
@@ -309,26 +372,6 @@ const BenchmarkPanel: React.FC<BenchmarkPanelProps> = ({
           </tbody>
         </table>
       </div>
-      {results.length > 0 && (
-        <div className="benchmark-trace-list">
-          {results.map((result) => (
-            <details key={`trace-${result.id}`} className="execution-trace">
-              <summary>
-                <Fingerprint size={13} /> {result.provider} · {result.inputMode} · {result.datasetFingerprint || auditEvidence?.datasetFingerprint || 'sin-fingerprint'}
-              </summary>
-              <ol>
-                {(result.executionTrace || []).map((event) => (
-                  <li key={`${result.id}-${event.stage}-${event.elapsedMs}`}>
-                    <span>{event.elapsedMs}ms</span>
-                    <strong>{event.stage}</strong>
-                    {event.details && <code>{JSON.stringify(event.details)}</code>}
-                  </li>
-                ))}
-              </ol>
-            </details>
-          ))}
-        </div>
-      )}
     </section>
   );
 };
