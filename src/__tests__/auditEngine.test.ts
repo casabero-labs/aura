@@ -5,7 +5,7 @@ import Papa from 'papaparse';
 import { runAudit } from '../services/auditEngine';
 import { IssueSeverity, IssueCategory } from '../types';
 
-const TITANIC_PATH = path.resolve(process.cwd(), '../experiments/datasets/titanic.csv');
+const TITANIC_PATH = path.resolve(process.cwd(), 'experiments/datasets/titanic.csv');
 
 function loadTitanic() {
   const csvData = fs.readFileSync(TITANIC_PATH, 'utf-8');

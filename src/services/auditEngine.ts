@@ -6,7 +6,7 @@ const REGEX_DATE_ISO = /^\d{4}-\d{2}-\d{2}/;
 const REGEX_DATE_DMY = /^\d{2}[/-]\d{2}[/-]\d{4}/;
 const REGEX_DATETIME = /(?:^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(?::\d{2})?|^\d{2}[/-]\d{2}[/-]\d{4}[ T]\d{2}:\d{2}(?::\d{2})?)/;
 const REGEX_TIME = /^\d{1,2}:\d{2}(?::\d{2})?$/;
-const REGEX_MOJIBAKE = /[Ã±Ã¡Ã©ÃíÃ³ÃºÃ¼Â©Â®â€“â€”]/; // Common UTF-8 decoding errors
+const REGEX_MOJIBAKE = /\u00C3[\u0080-\u00BF]/; // UTF-8 bytes decoded as Latin-1 (e.g. Ã± for ñ)
 const REGEX_IP = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
 const REGEX_URL = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([\/\w .-]*)*\/?$/;
 const REGEX_DOUBLE_SPACE = /\s\s+/;
@@ -71,15 +71,27 @@ const calculateStats = (data: any[], fields: string[]): Record<string, ColumnSta
 
   fields.forEach(field => {
     const values = data.map(row => row[field]);
-    const nonNulls = values.filter(v => v !== null && v !== undefined && v !== '');
+    const nonNulls = values.filter(v => 
+      v !== null && 
+      v !== undefined && 
+      v !== '' && 
+      !TOXIC_PLACEHOLDERS.includes(String(v).toLowerCase().trim())
+    );
     const numValues = nonNulls.filter(v => typeof v === 'number').map(Number);
+    const strValues = nonNulls.filter(v => typeof v === 'string').map(String);
+    const dateMatches = strValues.filter(v => isDate(v)).length;
 
     // Inferred Type
     let inferredType: ColumnStats['inferredType'] = 'string';
     if (nonNulls.length > 0) {
-      if (nonNulls.every(v => typeof v === 'number')) inferredType = 'number';
+      const numPct = numValues.length / nonNulls.length;
+      const strPct = strValues.length / nonNulls.length;
+      const datePct = dateMatches / nonNulls.length;
+
+      if (numPct > 0.9) inferredType = 'number';
       else if (nonNulls.every(v => typeof v === 'boolean')) inferredType = 'boolean';
-      else if (nonNulls.some(v => typeof v === 'number') && nonNulls.some(v => typeof v === 'string')) inferredType = 'mixed';
+      else if (datePct > 0.8) inferredType = 'date';
+      else if (numPct > 0.1 && strPct > 0.1) inferredType = 'mixed';
     }
 
     // Frequencies
@@ -258,10 +270,12 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
     let doubleSpaceCount = 0;
     let urlPatternCount = 0;
     let symbolChaosCount = 0;
+    let isoDateCount = 0;
+    let dmyDateCount = 0;
 
     const samples: Record<string, any[]> = {
       ghost: [], mojibake: [], toxic: [], overflow: [], negative: [], outlier: [], email: [], pii: [], disguised: [],
-      doubleSpace: [], url: [], symbol: [], futureDate: []
+      doubleSpace: [], url: [], symbol: [], futureDate: [], mixedDate: []
     };
 
     // IQR Calculation for Logic Rule 15
@@ -321,6 +335,15 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
       }
 
       // Group 3: Data Types
+      // R12: Mixed Date Formats
+      if (typeof val === 'string') {
+        const isIso = REGEX_DATE_ISO.test(val);
+        const isDmy = REGEX_DATE_DMY.test(val);
+        if (isIso) isoDateCount++;
+        if (isDmy) dmyDateCount++;
+        if ((isIso || isDmy) && samples.mixedDate.length < 3) samples.mixedDate.push(val);
+      }
+
       // 10. Disguised Numbers
       if (stats.inferredType === 'string' && !isNaN(Number(val)) && val !== '' && !isPhoneCol && !isIdCol) {
         disguisedNumberCount++;
@@ -374,9 +397,9 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
         }
       }
 
-      // 17. Invalid Email
+      // 17. Invalid Email (skip known placeholders — already caught by R08)
       if (isEmailCol && typeof val === 'string') {
-        if (!REGEX_EMAIL.test(val)) {
+        if (!TOXIC_PLACEHOLDERS.includes(strVal.toLowerCase().trim()) && !REGEX_EMAIL.test(val)) {
           invalidEmailCount++;
           if (samples.email.length < 3) samples.email.push(val);
         }
@@ -436,7 +459,12 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
 
     if (toxicCount > 0) {
       addDeduction(`Placeholders Tóxicos en [${col}]`, 5, IssueCategory.HYGIENE);
-      issues.push({ id: `hygiene-toxic-${col}`, column: col, category: IssueCategory.HYGIENE, ruleName: 'Placeholders Tóxicos', description: 'Valores nulos disfrazados (nan, null, ?).', severity: IssueSeverity.WARNING, count: toxicCount, affectedPercentage: (toxicCount / rowCount) * 100, sampleValues: samples.toxic });
+      issues.push({ id: `hygiene-toxic-${col}`, column: col, category: IssueCategory.HYGIENE, ruleName: 'Placeholders Tóxicos', description: 'Valores como "n/a", "null" o "999" detectados.', severity: IssueSeverity.WARNING, count: toxicCount, affectedPercentage: (toxicCount / rowCount) * 100, sampleValues: samples.toxic });
+    }
+
+    if (isoDateCount > 0 && dmyDateCount > 0) {
+      addDeduction(`Formatos de Fecha Mixtos en [${col}]`, 5, IssueCategory.LOGIC);
+      issues.push({ id: `logic-mixed-date-${col}`, column: col, category: IssueCategory.LOGIC, ruleName: 'Formatos de Fecha Mixtos', description: 'Múltiples estándares de fecha (ISO y DMY) en la misma columna.', severity: IssueSeverity.WARNING, count: Math.min(isoDateCount, dmyDateCount), affectedPercentage: (Math.min(isoDateCount, dmyDateCount) / rowCount) * 100, sampleValues: samples.mixedDate });
     }
 
     if (stats.inferredType === 'string' && stats.uniqueCount > 0) {
@@ -468,12 +496,12 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
     }
 
     // Group 3 Checks
-    if (disguisedNumberCount > rowCount * 0.95) {
+    if (disguisedNumberCount > rowCount * 0.95 && stats.inferredType !== 'number') {
       penaltyPoints += 2;
       issues.push({ id: `type-disguised-${col}`, column: col, category: IssueCategory.TYPES, ruleName: 'Números Disfrazados', description: 'Columna de texto que es 100% numérica.', severity: IssueSeverity.INFO, count: disguisedNumberCount, affectedPercentage: (disguisedNumberCount / rowCount) * 100, sampleValues: samples.disguised });
     }
 
-    if (hiddenDateCount > rowCount * 0.95) {
+    if (hiddenDateCount > rowCount * 0.95 && stats.inferredType !== 'date') {
       issues.push({ id: `type-date-${col}`, column: col, category: IssueCategory.TYPES, ruleName: 'Fechas Ocultas', description: 'Texto con formato claro de fecha.', severity: IssueSeverity.INFO, count: hiddenDateCount, affectedPercentage: 100, sampleValues: [] });
     }
 
