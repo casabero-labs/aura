@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Brain, Database, FileCode2, FileText, HelpCircle, Play, Settings, ShieldCheck } from 'lucide-react';
+import { Brain, Database, FileCode2, FileText, HelpCircle, Play, Settings, ShieldCheck, Check, ArrowRight, Upload, BarChart3 } from 'lucide-react';
 import BenchmarkPanel from './components/BenchmarkPanel';
 import ErrorBoundary from './components/ErrorBoundary';
 import DataProfile from './components/DataProfile';
@@ -31,7 +31,7 @@ const App: React.FC = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showMobileNav, setShowMobileNav] = useState(false);
-  const [logs, setLogs] = useState<{ time: string; msg: string; bold: string }[]>([]);
+  const [logs, setLogs] = useState<{ time: string; msg: string }[]>([]);
   const [lastMetrics, setLastMetrics] = useState<ProviderMetrics | null>(null);
 
   const [aiConfig, setAiConfig] = useState<AIConfig>(() => {
@@ -54,14 +54,14 @@ const App: React.FC = () => {
     localStorage.setItem('aura_ai_config', JSON.stringify(aiConfig));
   }, [aiConfig]);
 
-  const addLog = (bold: string, msg: string) => {
+  const addLog = (msg: string) => {
     const time = new Date().toLocaleTimeString('es-CO', {
       hour12: false,
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
     });
-    setLogs((prev) => [...prev, { time, bold, msg }].slice(-9));
+    setLogs((prev) => [...prev, { time, msg }].slice(-9));
   };
 
   const runAiAnalysis = async (currentReport: AuditReport) => {
@@ -78,16 +78,16 @@ const App: React.FC = () => {
 
     setIsAiLoading(true);
     setAiAnalysis('');
-    addLog('capa_2', 'smart sample enviado al motor cognitivo');
+    addLog('Analizando con IA...');
 
     try {
       const metrics = await aiProvider.analyzeStream(currentReport, (chunk) => {
         setAiAnalysis((prev) => prev + chunk);
       });
       setLastMetrics(metrics);
-      addLog('capa_2.ok', `respuesta completada en ${metrics.latencyMs} ms`);
+      addLog(`Análisis completado en ${Math.round(metrics.latencyMs / 1000)}s`);
     } catch (err: any) {
-      addLog('capa_2.error', err.message);
+      addLog(`Error: ${err.message}`);
     } finally {
       setIsAiLoading(false);
     }
@@ -107,16 +107,16 @@ const App: React.FC = () => {
 
     setIsScriptLoading(true);
     setCleaningScript('');
-    addLog('capa_3', 'generando script de limpieza python');
+    addLog('Generando script de limpieza...');
 
     try {
       const { content, metrics } = await aiProvider.generateExecutiveReport(currentReport);
       setLastMetrics(metrics);
       const script = content.python_script || '';
       setCleaningScript(script);
-      addLog('capa_3.ok', `script generado · ${script.split('\n').length} líneas`);
+      addLog(`Script generado: ${script.split('\n').length} líneas`);
     } catch (err: any) {
-      addLog('capa_3.error', err.message);
+      addLog(`Error: ${err.message}`);
     } finally {
       setIsScriptLoading(false);
     }
@@ -128,21 +128,21 @@ const App: React.FC = () => {
     setReport(null);
     setAiAnalysis('');
     setLogs([]);
-    addLog('aura.run', `${uploadedFile.name} cargado en memoria local`);
+    addLog(`Cargando ${uploadedFile.name}...`);
 
     try {
       const { data, meta } = await parseCsv(uploadedFile);
-      addLog('csv.parse', `${data.length} registros · ${meta.fields?.length ?? 0} columnas · delimitador ${meta.delimiter}`);
+      addLog(`${data.length} registros · ${meta.fields?.length ?? 0} columnas`);
 
       const auditResult = runAudit(data, meta.fields, meta.delimiter);
       setReport(auditResult);
-      addLog('capa_1.ok', `${auditResult.issues.length} anomalías · score ${auditResult.score}/100`);
+      addLog(`Score: ${auditResult.score}/100 · ${auditResult.issues.length} anomalías detectadas`);
 
       if (aiConfig.autoAnalyze) {
         await runAiAnalysis(auditResult);
       }
     } catch (err: any) {
-      addLog('aura.error', err.message);
+      addLog(`Error: ${err.message}`);
     } finally {
       setIsProcessing(false);
     }
@@ -151,7 +151,7 @@ const App: React.FC = () => {
   const handleDownloadPdf = async () => {
     if (!report) return;
     setIsPdfGenerating(true);
-    addLog('report', 'generando informe ejecutivo');
+    addLog('Generando PDF...');
     try {
       const isAiAvailable = await aiProvider.isAvailable();
 
@@ -159,9 +159,8 @@ const App: React.FC = () => {
         const { content: executiveContent, metrics } = await aiProvider.generateExecutiveReport(report);
         setLastMetrics(metrics);
         generatePdfReport(report, executiveContent);
-        addLog('report.ok', 'PDF descargado (con IA)');
+        addLog('PDF generado con análisis IA');
       } else {
-        // Offline fallback - generate PDF with minimal executive content
         const fallbackContent = {
           title: 'AURA — Informe de Auditoría',
           domain_inferred: 'Dataset cargado por el usuario',
@@ -176,10 +175,10 @@ const App: React.FC = () => {
           ]
         };
         generatePdfReport(report, fallbackContent);
-        addLog('report.ok', 'PDF descargado (offline)');
+        addLog('PDF generado (sin IA)');
       }
     } catch (error: any) {
-      addLog('report.error', error.message || 'no fue posible generar el PDF');
+      addLog(`Error generando PDF: ${error.message || 'no fue posible generar el PDF'}`);
     } finally {
       setIsPdfGenerating(false);
     }
@@ -191,10 +190,17 @@ const App: React.FC = () => {
 
   const terminalRows = logs.length > 0
     ? logs
-    : [
-        { time: '--:--:--', bold: 'aura.idle', msg: 'esperando dataset CSV' },
-        { time: '--:--:--', bold: 'capa_0', msg: `${aiConfig.providerType === 'local' ? 'llm local configurado' : 'contraste cloud configurado'}` },
-      ];
+    : [{ time: '--:--:--', msg: 'Esperando un archivo CSV para analizar' }];
+
+  const hasData = !!report;
+  const hasAiAnalysis = !!aiAnalysis;
+  const hasExport = hasData;
+
+  const steps = [
+    { num: 1, label: 'Carga', icon: <Upload size={14} />, done: hasData, active: !hasData },
+    { num: 2, label: 'Analiza', icon: <Brain size={14} />, done: hasAiAnalysis, active: hasData && !hasAiAnalysis },
+    { num: 3, label: 'Exporta', icon: <FileText size={14} />, done: false, active: hasAiAnalysis },
+  ];
 
   return (
     <ErrorBoundary><div className="aura-system">
@@ -212,46 +218,30 @@ const App: React.FC = () => {
 
             <div className="help-sections">
               <details className="help-section" open>
-                <summary className="help-summary">Flujo operativo</summary>
+                <summary className="help-summary">Cómo usar AURA</summary>
                 <ol className="help-steps">
-                  <li><strong>Carga un CSV.</strong> La Capa 0 (WebLLM local) y Capa 1 (motor determinista) se ejecutan al instante.</li>
-                  <li><strong>Revisa resultados.</strong> Score general, reglas activadas, perfil de columnas y muestras afectadas.</li>
-                  <li><strong>Ejecuta la Capa 2.</strong> Interpretación con LLM local (WebGPU) o contraste cloud (Gemini).</li>
-                  <li><strong>Script de limpieza.</strong> La Capa 3 genera un script Python revisable antes de aplicarlo.</li>
-                  <li><strong>Benchmark.</strong> Capa 4: compara LLM local vs cloud bajo las mismas condiciones.</li>
-                  <li><strong>Reglas activas.</strong> 24 reglas deterministas: 3 globales (duplicados, incoherencia temporal, redundancia derivable) y 21 por columna (nulos, tipos, formatos, PII, freshness, etc).</li>
-                  <li><strong>Exporta.</strong> Descarga el reporte PDF con evidencia completa.</li>
+                  <li><strong>Carga un CSV.</strong> El motor determinista analiza al instante.</li>
+                  <li><strong>Revisa resultados.</strong> Score, anomalías y perfil de columnas.</li>
+                  <li><strong>Ejecuta la IA.</strong> Interpretación con modelo local o cloud.</li>
+                  <li><strong>Genera script.</strong> Código Python para limpiar los datos.</li>
+                  <li><strong>Exporta.</strong> Descarga el reporte PDF.</li>
                 </ol>
               </details>
 
               <details className="help-section">
-                <summary className="help-summary">Arquitectura</summary>
-                <div className="layers help-layers">
-                  <div className="layer"><span className="layer-n">00</span><span className="layer-name">Infraestructura</span><span className="layer-desc">WebLLM/WebGPU como ruta principal. Sin datos al servidor.</span><span className="layer-tag">local</span></div>
-                  <div className="layer"><span className="layer-n">01</span><span className="layer-name">Motor determinista</span><span className="layer-desc">24 reglas Typescript auditables. Sin IA, sin secretos.</span><span className="layer-tag">rules</span></div>
-                  <div className="layer"><span className="layer-n">02</span><span className="layer-name">Cognitivo</span><span className="layer-desc">Smart sample + salida estructurada. Interpretación anclada a evidencia.</span><span className="layer-tag">LLM</span></div>
-                  <div className="layer"><span className="layer-n">03</span><span className="layer-name">Gobernanza</span><span className="layer-desc">Scripts revisables antes de aplicar. Control humano (HITL).</span><span className="layer-tag">human</span></div>
-                  <div className="layer"><span className="layer-n">04</span><span className="layer-name">Benchmark</span><span className="layer-desc">Local vs cloud bajo condiciones comparables. Evidencia para TFM.</span><span className="layer-tag">evidence</span></div>
-                  <div className="layer"><span className="layer-n">05</span><span className="layer-name">Experiment Designer</span><span className="layer-desc">N configs con modelo + temperatura + modo. Score compuesto.</span><span className="layer-tag">experimental</span></div>
+                <summary className="help-summary">Modelos locales vs cloud</summary>
+                <div className="help-text">
+                  <p><strong>Local (WebGPU):</strong> El modelo se descarga en tu navegador. Sin datos salen de tu dispositivo. Configura y descarga el modelo desde Ajustes antes de cargar datos.</p>
+                  <p><strong>Cloud:</strong> Usa APIs de Google, Groq, DeepSeek u otros. Mayor capacidad pero los datos viajan al proveedor.</p>
+                  <p><strong>Recomendación:</strong> Usa local para datos sensibles, cloud para análisis profundos.</p>
                 </div>
               </details>
 
               <details className="help-section">
-                <summary className="help-summary">Modelos y proveedores</summary>
+                <summary className="help-summary">Scores y anomalías</summary>
                 <div className="help-text">
-                  <p><strong>Local (WebLLM):</strong> Usa WebGPU en Chrome/Edge. Modelo por defecto: Llama-3.2-3B-Instruct. Sin API key, sin datos que salgan del navegador.</p>
-                  <p><strong>Cloud (Gemini):</strong> Ingresa tu API key de Google AI Studio en Ajustes. Mayor capacidad de análisis, pero los datos viajan al proveedor.</p>
-                  <p><strong>Pro tip:</strong> Usa local para datos sensibles, cloud para análisis profundos. Benchmark te ayuda a comparar ambos.</p>
-                </div>
-              </details>
-
-              <details className="help-section">
-                <summary className="help-summary">Reportes y scores</summary>
-                <div className="help-text">
-                  <p><strong>Score (0-100):</strong> Penaliza por anomalías detectadas. &gt;80 = dataset confiable, &lt;80 = requiere limpieza.</p>
-                  <p><strong>Reglas:</strong> 24 reglas verifican aspectos distintos: nulos, duplicados, outliers, formatos, integridad referencial, PII, freshness, etc.</p>
-                  <p><strong>Anomalías:</strong> CRITICAL (bloqueante), WARNING (requiere revisión), INFO (sugerencia).</p>
-                  <p><strong>PDF:</strong> Incluye score, reglas activadas, perfil de columnas e interpretación IA (si está disponible).</p>
+                  <p><strong>Score (0-100):</strong> &gt;80 = dataset confiable, &lt;80 = requiere limpieza.</p>
+                  <p><strong>CRITICAL:</strong> bloqueante. <strong>WARNING:</strong> requiere revisión. <strong>INFO:</strong> sugerencia.</p>
                 </div>
               </details>
             </div>
@@ -265,13 +255,14 @@ const App: React.FC = () => {
           <span className="logo-short">AU</span>
         </span>
         <div className={`nav-links ${showMobileNav ? 'nav-links-open' : ''}`}>
-          <button className="nav-link" onClick={() => { scrollTo('sistema'); setShowMobileNav(false); }}>Sistema</button>
-          <button className="nav-link" onClick={() => { scrollTo('capas'); setShowMobileNav(false); }}>Capas</button>
-          <button className="nav-link" onClick={() => { scrollTo('benchmark'); setShowMobileNav(false); }}>Benchmark</button>
-          <button className="nav-link" onClick={() => { scrollTo('experimentos'); setShowMobileNav(false); }}>Experimentos</button>
-          <button className="nav-link" onClick={() => { scrollTo('evidencia'); setShowMobileNav(false); }}>Docs</button>
+          <button className="nav-link" onClick={() => { scrollTo('sistema'); setShowMobileNav(false); }}>Inicio</button>
+          {hasData && <button className="nav-link" onClick={() => { scrollTo('resultados'); setShowMobileNav(false); }}>Resultados</button>}
+          {hasData && <button className="nav-link" onClick={() => { scrollTo('ia'); setShowMobileNav(false); }}>IA</button>}
+          {hasData && <button className="nav-link" onClick={() => { scrollTo('benchmark'); setShowMobileNav(false); }}>Benchmark</button>}
           <div className="nav-status"><div className="pulse" />{isProcessing || isAiLoading ? 'running' : 'online'}</div>
-          <button className="nav-cta" onClick={() => { scrollTo('sistema'); setShowMobileNav(false); }}>Iniciar diagnóstico</button>
+          <button className="nav-cta" onClick={() => { scrollTo('sistema'); setShowMobileNav(false); }}>
+            {hasData ? 'Nuevo análisis' : 'Empezar'}
+          </button>
           <button className="icon-btn" onClick={() => { setShowHelp(true); setShowMobileNav(false); }} aria-label="Centro de ayuda"><HelpCircle size={14} /></button>
           <button className="icon-btn" onClick={() => { setShowSettings(true); setShowMobileNav(false); }} aria-label="Ajustes"><Settings size={14} /></button>
         </div>
@@ -283,84 +274,110 @@ const App: React.FC = () => {
       </nav>
 
       <main className="sys-main">
-        <section className="hero" id="sistema">
-          <div className="hero-pre">
-            <span className="hero-badge">tfm · tipo 2</span>
-            <span className="hero-badge">{aiConfig.providerType === 'local' ? 'local-first' : 'cloud contrast'}</span>
-            {file && <span className="hero-badge">{file.name}</span>}
-          </div>
-          <h1 className="hero-h1">Diagnóstico<br /><em>cognitivo</em> de<br />calidad de datos.</h1>
-          <div className="hero-actions">
-            <button className="btn-p" onClick={() => scrollTo('ingesta')}>Ejecutar AURA →</button>
-            <button className="btn-s" onClick={() => setShowHelp(true)}>? Ayuda</button>
+        {/* Stepper */}
+        <section className="stepper" id="sistema">
+          <div className="stepper-track">
+            {steps.map((step, i) => (
+              <React.Fragment key={step.num}>
+                <div className={`stepper-step ${step.done ? 'done' : ''} ${step.active ? 'active' : ''}`}>
+                  <div className="stepper-icon">{step.done ? <Check size={14} /> : step.icon}</div>
+                  <span className="stepper-label">{step.label}</span>
+                </div>
+                {i < steps.length - 1 && <div className="stepper-line" />}
+              </React.Fragment>
+            ))}
           </div>
         </section>
 
+        {/* Hero simplificado */}
+        <section className="hero">
+          <h1 className="hero-h1">Audita la calidad de tus datos.</h1>
+          <p className="hero-sub">
+            AURA detecta anomalías, interpreta con IA y genera reportes — todo en tu navegador.
+          </p>
+        </section>
+
+        {/* Upload */}
         <section id="ingesta" className="ingest-block">
           <FileUpload onFileSelect={processFile} />
         </section>
 
+        {/* Terminal */}
         <section className="term" aria-label="Bitacora de ejecucion">
           <div className="term-bar">
             <div className="term-dot" /><div className="term-dot" /><div className="term-dot" />
-            <span className="term-label">aura · pipeline · diagnostico activo</span>
+            <span className="term-label">actividad</span>
           </div>
           <div className="term-body">
             {terminalRows.map((row, index) => (
               <span className="tl" key={`${row.time}-${index}`}>
                 <span className="pr">→ </span>
-                <span className="cm">{row.bold}</span>
-                <span className="ok"> · {row.msg}</span>
+                <span className="ok">{row.msg}</span>
                 {index === terminalRows.length - 1 && (isProcessing || isAiLoading) && <span className="cursor" />}
               </span>
             ))}
           </div>
         </section>
 
+        {/* Stats */}
         <section className="stats">
           <div className="stat"><p className="stat-lbl">registros</p><p className="stat-num">{report?.rowCount ?? '-'}</p><p className="stat-sub">dataset activo</p></div>
           <div className="stat"><p className="stat-lbl">anomalías</p><p className="stat-num">{report?.issues.length ?? '-'}</p><p className="stat-sub">detectadas</p></div>
           <div className="stat"><p className="stat-lbl">score</p><p className="stat-num">{report ? `${report.score}%` : '-'}</p><p className="stat-sub">motor determinista</p></div>
         </section>
 
-        <section className="section" id="capas">
-          <p className="sec-eye">arquitectura · capas de control</p>
-          <h2 className="sec-title">Un sistema que razona<br />sobre sus propios datos.</h2>
-          <p className="sec-body">
-            Cada capa reduce incertidumbre desde una responsabilidad distinta: privacidad, reglas,
-            interpretación cognitiva, validación humana y evidencia experimental.
-          </p>
-          <div className="layers">
-            <div className="layer"><span className="layer-n">00</span><span className="layer-name">Infraestructura local</span><span className="layer-desc">WebLLM/WebGPU como ruta principal</span><span className="layer-tag">local</span></div>
-            <div className="layer"><span className="layer-n">01</span><span className="layer-name">Motor determinista</span><span className="layer-desc">24 reglas TypeScript auditables</span><span className="layer-tag">rules</span></div>
-            <div className="layer"><span className="layer-n">02</span><span className="layer-name">Estabilidad cognitiva</span><span className="layer-desc">Smart sample + salida estructurada</span><span className="layer-tag">LLM</span></div>
-            <div className="layer"><span className="layer-n">03</span><span className="layer-name">Gobernanza HITL</span><span className="layer-desc">Scripts revisables antes de aplicar</span><span className="layer-tag">human</span></div>
-            <div className="layer"><span className="layer-n">04</span><span className="layer-name">Benchmark experimental</span><span className="layer-desc">Local vs cloud bajo condiciones comparables</span><span className="layer-tag">evidence</span></div>
-          </div>
-        </section>
+        {/* Capas compactas */}
+        {!hasData && (
+          <section className="section" id="capas">
+            <p className="sec-eye">arquitectura</p>
+            <div className="layers-compact">
+              <div className="layer-c"><span className="layer-cn">00</span><span>Infraestructura</span></div>
+              <div className="layer-c"><span className="layer-cn">01</span><span>Motor determinista</span></div>
+              <div className="layer-c"><span className="layer-cn">02</span><span>Cognitivo IA</span></div>
+              <div className="layer-c"><span className="layer-cn">03</span><span>Gobernanza</span></div>
+              <div className="layer-c"><span className="layer-cn">04</span><span>Benchmark</span></div>
+            </div>
+          </section>
+        )}
 
+        {/* Resultados */}
         {report && (
-          <section className="section diagnostic-section">
-            <p className="sec-eye">capa 1 · reporte determinista</p>
+          <section className="section diagnostic-section" id="resultados">
+            <div className="section-header">
+              <div>
+                <p className="sec-eye">resultados</p>
+                <h2 className="sec-title">Análisis completado.</h2>
+              </div>
+            </div>
             <div className="score-grid">
               <div>
                 <h2 className="hero-h1 score-title">{report.score}<em>%</em></h2>
                 <p className="sec-body">
                   {report.score >= 80
-                    ? 'Base de datos consistente para análisis asistido.'
-                    : 'Se requiere limpieza antes de automatizar decisiones o conclusiones.'}
+                    ? 'Dataset consistente para análisis.'
+                    : 'Requiere limpieza antes de usar los datos.'}
                 </p>
               </div>
               <div className="score-bars">
                 <ScoreBreakdown deductions={report.scoreBreakdown} />
               </div>
             </div>
+
+            {/* Guía contextual: siguiente paso */}
+            <div className="context-guide">
+              <span className="guide-icon"><ArrowRight size={14} /></span>
+              <div>
+                <p className="guide-title">Siguiente paso: interpreta con IA</p>
+                <p className="guide-desc">El motor detectó {report.issues.length} anomalías. La IA puede explicar el impacto y generar un script de limpieza.</p>
+              </div>
+              <button className="btn-p btn-sm" onClick={() => scrollTo('ia')}>Ir a IA <ArrowRight size={12} /></button>
+            </div>
           </section>
         )}
 
         {report && (
           <section className="section">
-            <p className="sec-eye">hallazgos · reglas activadas</p>
+            <p className="sec-eye">hallazgos</p>
             <h2 className="sec-title">Anomalías detectadas.</h2>
             <IssueList issues={report.issues} />
           </section>
@@ -368,25 +385,28 @@ const App: React.FC = () => {
 
         {report && (
           <section className="section">
-            <p className="sec-eye">perfil · columnas</p>
+            <p className="sec-eye">perfil de columnas</p>
             <h2 className="sec-title">Estructura observada.</h2>
             <DataProfile stats={report.columnStats} issues={report.issues} />
           </section>
         )}
 
+        {/* IA Section */}
         {report && (
-          <section className="section">
-            <div className="panel-line">
+          <section className="section" id="ia">
+            <div className="section-header">
               <div>
-                <p className="sec-eye">capa 2 · interpretacion</p>
-                <h2 className="sec-title">IA anclada a evidencia.</h2>
+                <p className="sec-eye">capa 2 · IA</p>
+                <h2 className="sec-title">Interpretación cognitiva.</h2>
               </div>
-              <button className="btn-p" disabled={isAiLoading} onClick={() => runAiAnalysis(report)}>
-                <Play size={14} /> {isAiLoading ? 'Procesando' : 'Ejecutar IA'}
-              </button>
-              <button className="btn-p" disabled={isScriptLoading} onClick={() => generateScript(report)}>
-                <FileCode2 size={14} /> {isScriptLoading ? 'Generando' : 'Generar script'}
-              </button>
+              <div className="section-actions">
+                <button className="btn-p" disabled={isAiLoading} onClick={() => runAiAnalysis(report)}>
+                  <Play size={14} /> {isAiLoading ? 'Procesando' : 'Ejecutar IA'}
+                </button>
+                <button className="btn-p" disabled={isScriptLoading} onClick={() => generateScript(report)}>
+                  <FileCode2 size={14} /> {isScriptLoading ? 'Generando' : 'Generar script'}
+                </button>
+              </div>
             </div>
             <div className="cognitive-grid">
               <div className="advisor-shell">
@@ -403,18 +423,30 @@ const App: React.FC = () => {
                 <ScriptReview code={cleaningScript} language="python" />
               </div>
             )}
+
+            {/* Guía contextual: exportar */}
+            {hasAiAnalysis && (
+              <div className="context-guide">
+                <span className="guide-icon"><ArrowRight size={14} /></span>
+                <div>
+                  <p className="guide-title">Siguiente paso: exporta el reporte</p>
+                  <p className="guide-desc">Descarga un PDF con el análisis completo, hallazgos y recomendaciones.</p>
+                </div>
+                <button className="btn-p btn-sm" onClick={() => scrollTo('evidencia')}>Exportar <FileText size={12} /></button>
+              </div>
+            )}
           </section>
         )}
 
         {report && (
           <section className="section" id="benchmark">
-            <BenchmarkPanel report={report} config={aiConfig} onLog={addLog} />
+            <BenchmarkPanel report={report} config={aiConfig} onLog={(msg) => addLog(msg)} />
           </section>
         )}
 
         {report && (
           <section className="section" id="experimentos">
-            <ExperimentDesigner report={report} config={aiConfig} onLog={addLog} />
+            <ExperimentDesigner report={report} config={aiConfig} onLog={(msg) => addLog(msg)} />
           </section>
         )}
 

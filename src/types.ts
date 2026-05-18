@@ -65,6 +65,12 @@ export interface AuditReport {
   delimiterDetected: string;
 }
 
+export interface ModelDownloadState {
+  status: 'idle' | 'downloading' | 'ready' | 'error';
+  progress: number;
+  message: string;
+}
+
 export interface AIConfig {
   apiKey: string;
   model: string;
@@ -72,6 +78,7 @@ export interface AIConfig {
   autoAnalyze: boolean;
   providerType: 'cloud' | 'local';  // Capa 0: Selección de infraestructura
   cloudProvider?: string;  // Proveedor cloud específico: 'google' | 'groq' | 'deepseek' | 'openrouter' | 'minimax'
+  modelDownloadState?: Record<string, ModelDownloadState>;
 }
 
 export interface ExecutiveReportContent {
@@ -150,4 +157,7 @@ export interface AIProvider {
 
   /** Verifica si el proveedor está disponible en el entorno actual */
   isAvailable(): Promise<boolean>;
+
+  /** Precarga el modelo en caché (solo local) */
+  preloadModel?(onProgress?: (progress: number, message: string) => void): Promise<void>;
 }

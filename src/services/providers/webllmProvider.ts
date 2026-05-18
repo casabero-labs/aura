@@ -218,6 +218,35 @@ export class WebLLMProvider implements AIProvider {
     };
   }
 
+  /**
+   * Precarga el modelo en memoria sin ejecutar análisis.
+   * Permite descargar el modelo antes de subir un CSV.
+   */
+  async preloadModel(onProgress?: (progress: number, message: string) => void): Promise<void> {
+    if (!await this.isAvailable()) {
+      throw new Error('WebGPU no soportado en este navegador.');
+    }
+
+    if (this.engine && this.isLoaded) {
+      if (onProgress) onProgress(100, 'Modelo ya está cargado en memoria.');
+      return;
+    }
+
+    const initProgressCallback = (report: InitProgressReport) => {
+      if (onProgress) {
+        const percentage = Math.round(report.progress * 100);
+        onProgress(percentage, report.text);
+      }
+    };
+
+    this.engine = await CreateMLCEngine(
+      this.model,
+      { initProgressCallback }
+    );
+
+    this.isLoaded = true;
+  }
+
   private emptyMetrics(): ProviderMetrics {
     return {
       provider: this.name,

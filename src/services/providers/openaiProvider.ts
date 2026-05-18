@@ -276,6 +276,11 @@ export class OpenAIProvider implements AIProvider {
     };
   }
 
+  async preloadModel(_onProgress?: (progress: number, message: string) => void): Promise<void> {
+    // Cloud providers don't need model preloading
+    return;
+  }
+
   private emptyMetrics(): ProviderMetrics {
     return {
       provider: this.name,
