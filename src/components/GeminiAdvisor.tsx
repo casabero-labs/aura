@@ -1,20 +1,16 @@
-import React, { useEffect, useRef } from 'react';
-import { Bot, Terminal, Cpu } from 'lucide-react';
+import React from 'react';
+import { Bot, Cpu } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import ScriptReview from './ScriptReview';
 
 interface GeminiAdvisorProps {
   analysis: string;
   isLoading: boolean;
+  providerType: 'local' | 'cloud';
+  model: string;
 }
 
-const GeminiAdvisor: React.FC<GeminiAdvisorProps> = ({ analysis, isLoading }) => {
-  const bottomRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [analysis]);
-
+const GeminiAdvisor: React.FC<GeminiAdvisorProps> = ({ analysis, isLoading, providerType, model }) => {
   if (!analysis && !isLoading) return null;
 
   return (
@@ -25,14 +21,16 @@ const GeminiAdvisor: React.FC<GeminiAdvisorProps> = ({ analysis, isLoading }) =>
             <Cpu size={20} className="text-[var(--ink)]" />
           </div>
           <div>
-            <h2 className="heading-md text-[var(--ink)] tracking-tight">Motor Cognitivo</h2>
-            <p className="eyebrow text-[var(--ink2)] mt-1">Análisis Asistido por IA</p>
+            <h2 className="heading-md text-[var(--ink)] tracking-tight">Análisis LLM observado</h2>
+            <p className="eyebrow text-[var(--ink2)] mt-1">
+              {providerType === 'local' ? 'WebGPU local' : 'Proveedor cloud'} · {model}
+            </p>
           </div>
         </div>
-        {isLoading && <span className="text-[10px] text-[var(--ink-soft)] font-sans font-medium uppercase tracking-wider flex items-center gap-2"><div className="w-1.5 h-1.5 bg-[var(--accent)] rounded-full animate-pulse" /> Procesando...</span>}
+        {isLoading && <span className="text-[10px] text-[var(--ink-soft)] font-sans font-medium uppercase tracking-wider flex items-center gap-2"><div className="w-1.5 h-1.5 bg-[var(--accent)] rounded-full animate-pulse" /> Ejecutando inferencia</span>}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-8 custom-markdown select-text font-sans">
+      <div className="flex-1 overflow-y-auto p-8 custom-markdown select-text font-sans" aria-live="polite">
         {analysis ? (
           <div className="prose prose-sm max-w-none prose-p:text-[var(--ink2)] prose-p:leading-relaxed prose-headings:font-serif prose-headings:font-bold prose-headings:text-[var(--ink)] prose-strong:text-[var(--ink)] prose-code:bg-[var(--surface-raised)] prose-code:text-[var(--ink)] prose-code:font-mono prose-code:border prose-code:border-[var(--border)] prose-pre:p-0 prose-pre:bg-transparent">
             <ReactMarkdown
@@ -56,18 +54,17 @@ const GeminiAdvisor: React.FC<GeminiAdvisorProps> = ({ analysis, isLoading }) =>
             >
               {analysis}
             </ReactMarkdown>
-            <div ref={bottomRef} />
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-[var(--ink-muted)] gap-6 opacity-60 m-4">
             <Bot size={48} strokeWidth={1} />
-            <p className="font-serif text-[15px] italic text-center px-12 leading-relaxed">Esperando inicialización del motor cognitivo para decodificar hallazgos...</p>
+            <p className="font-serif text-[15px] italic text-center px-12 leading-relaxed">Esperando inicio del análisis LLM sobre los hallazgos deterministas.</p>
           </div>
         )}
       </div>
 
       <div className="px-6 py-4 border-t border-[var(--border)] bg-[var(--surface)] text-[11px] text-[var(--ink2)] font-sans flex justify-between items-center group cursor-default">
-        <span className="flex items-center gap-2 group-hover:text-[var(--ink)] transition-colors"><Bot size={14} className="text-[var(--ink)]" /> Análisis anclado a evidencia</span>
+        <span className="flex items-center gap-2 group-hover:text-[var(--ink)] transition-colors"><Bot size={14} className="text-[var(--ink)]" /> Salida LLM no equivalente a evidencia formal</span>
         <span className="italic opacity-80 font-serif text-[11px]">Impulsado por Casabero AI</span>
       </div>
     </div>

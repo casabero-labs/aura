@@ -47,9 +47,8 @@ export class WebLLMProvider implements AIProvider {
 
     const initProgressCallback = (report: InitProgressReport) => {
       if (onProgress) {
-        // Formatear progreso como código markdown para que se vea bien en la UI
         const percentage = Math.round(report.progress * 100);
-        onProgress(`\n> ⚙️ **Capa 0 (Local-First)**: Iniciando Motor WebGPU...\n> 📥 Descargando/Cargando pesos de **${this.model}** en memoria VRAM.\n> 📊 Progreso: **${percentage}%** \n> 🗄️ ${report.text}\n\n`);
+        onProgress(`\n> WebGPU local: cargando ${this.model}\n> Progreso: ${percentage}%\n> Estado: ${report.text}\n\n`);
       }
     };
 
@@ -79,12 +78,14 @@ export class WebLLMProvider implements AIProvider {
     try {
       // 1. Asegurar que el modelo está en memoria
       let hasSentLoadMessage = false;
+      let hasSentReadyMessage = false;
       const engine = await this.ensureEngineLoaded((progressText) => {
         if (!hasSentLoadMessage) {
            onChunk(progressText); // Enviamos el estado de carga inicial
            hasSentLoadMessage = true;
-        } else if (progressText.includes('100%')) {
-           onChunk(`\n\n---\n✅ **Modelo cargado exitosamente en VRAM.** Iniciando análisis local de datos...\n\n`);
+        } else if (!hasSentReadyMessage && progressText.includes('100%')) {
+           onChunk(`\n\n---\n**Modelo local cargado en VRAM. Iniciando analisis anclado a evidencia determinista.**\n\n`);
+           hasSentReadyMessage = true;
         }
       });
 

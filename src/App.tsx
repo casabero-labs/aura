@@ -39,6 +39,40 @@ const csvCell = (value: unknown) => {
   return `"${text.replace(/"/g, '""')}"`;
 };
 
+const buildDeterministicPdfContent = (auditReport: AuditReport, approvedScript?: string): ExecutiveReportContent => {
+  const criticalIssues = auditReport.issues.filter((issue) => issue.severity === IssueSeverity.CRITICAL);
+  const topIssues = auditReport.issues.slice(0, 6);
+  const healthLabel = auditReport.score >= 80
+    ? 'salud alta'
+    : auditReport.score >= 50
+      ? 'salud intermedia'
+      : 'salud critica';
+
+  return {
+    title: 'AURA - Informe de Auditoria Determinista',
+    domain_inferred: 'Dominio no inferido por defecto',
+    dataset_technical_description:
+      `Dataset CSV auditado en navegador con ${auditReport.rowCount} filas, ${auditReport.colCount} columnas y delimitador "${auditReport.delimiterDetected}". ` +
+      `El motor determinista calculo un score de ${auditReport.score}/100, detecto ${auditReport.issues.length} reglas activadas y ${auditReport.duplicateRows} filas duplicadas.`,
+    executive_summary:
+      `El dataset presenta ${healthLabel} segun el motor determinista de AURA. ` +
+      `${criticalIssues.length} hallazgos fueron clasificados como criticos y requieren revision antes de usar el dataset en analisis o entrenamiento.`,
+    business_impact:
+      'El riesgo principal es tecnico: valores nulos, duplicados, formatos inconsistentes o reglas logicas activadas pueden sesgar analisis posteriores. ' +
+      'Este informe no incorpora inferencias no verificadas del LLM; las conclusiones se limitan a reglas reproducibles.',
+    key_findings: topIssues.length > 0
+      ? topIssues.map((issue) => `${issue.severity.toUpperCase()} - ${issue.ruleName}${issue.column ? ` [${issue.column}]` : ''}: ${issue.description}`)
+      : ['No se activaron reglas de anomalía en el motor determinista.'],
+    recommendations: [
+      'Priorizar los hallazgos criticos antes de publicar o reutilizar el dataset.',
+      'Aplicar solo acciones de limpieza reproducibles y conservar una copia del dataset original.',
+      'Validar manualmente cualquier accion destructiva, cambio semantico o eliminacion de columnas.',
+      'Re-auditar el dataset despues de la limpieza para medir delta de salud.',
+    ],
+    python_script: approvedScript || undefined,
+  };
+};
+
 const App: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
   const [report, setReport] = useState<AuditReport | null>(null);
@@ -114,16 +148,16 @@ const App: React.FC = () => {
 
     setIsAiLoading(true);
     setAiAnalysis('');
-    addLog('Analizando con IA...');
+    addLog(`${aiConfig.providerType === 'local' ? 'llm.local.start' : 'llm.cloud.start'} :: ${aiConfig.model}`);
 
     try {
       const metrics = await aiProvider.analyzeStream(currentReport, (chunk) => {
         setAiAnalysis((prev) => prev + chunk);
       });
       setLastMetrics(metrics);
-      addLog(`Análisis completado en ${Math.round(metrics.latencyMs / 1000)}s`);
+      addLog(`llm.analysis.end :: ${metrics.model} · ${Math.round(metrics.latencyMs / 1000)}s · ${metrics.tokensGenerated} tokens`);
     } catch (err: any) {
-      addLog(`Error: ${err.message}`);
+      addLog(`llm.analysis.error :: ${err.message}`);
     } finally {
       setIsAiLoading(false);
     }
@@ -241,39 +275,13 @@ const App: React.FC = () => {
   const handleDownloadPdf = async () => {
     if (!report) return;
     setIsPdfGenerating(true);
-    addLog('Generando PDF...');
+    addLog('pdf.generate.start :: usando evidencia determinista, sin nueva llamada LLM');
     try {
-      const isAiAvailable = await aiProvider.isAvailable();
-
-      if (isAiAvailable) {
-        const { content: executiveContent, metrics } = await aiProvider.generateExecutiveReport(report);
-        setLastMetrics(metrics);
-        generatePdfReport(report, {
-          ...executiveContent,
-          python_script: approvedCleaningScript || executiveContent.python_script,
-        });
-        addLog('PDF generado con análisis IA');
-      } else {
-        const fallbackContent: ExecutiveReportContent = {
-          title: 'AURA — Informe de Auditoría',
-          domain_inferred: 'Dataset cargado por el usuario',
-          dataset_technical_description: `Dataset CSV con ${report.rowCount} registros y ${report.colCount} columnas. ${report.duplicateRows} filas duplicadas detectadas.`,
-          executive_summary: 'Generado sin asistencia de IA. Los hallazgos se basan únicamente en el motor determinista de AURA.',
-          business_impact: `Se detectaron ${report.issues.length} anomalías que pueden afectar la calidad del análisis. Revisar hallazgos antes de usar los datos.`,
-          key_findings: report.issues.slice(0, 5).map((issue) => `${issue.severity.toUpperCase()}: ${issue.description}`),
-          recommendations: [
-            'Revisar las anomalías detectadas antes de usar el dataset',
-            'Ejecutar con IA habilitada para obtener interpretación completa',
-            'Verificar manualmente las muestras afectadas'
-          ],
-          python_script: approvedCleaningScript || undefined,
-        };
-        generatePdfReport(report, fallbackContent);
-        addLog('PDF generado (sin IA)');
-      }
+      generatePdfReport(report, buildDeterministicPdfContent(report, approvedCleaningScript));
       setHasExported(true);
+      addLog('pdf.generate.end :: reporte descargado');
     } catch (error: any) {
-      addLog(`Error generando PDF: ${error.message || 'no fue posible generar el PDF'}`);
+      addLog(`pdf.generate.error :: ${error.message || 'no fue posible generar el PDF'}`);
     } finally {
       setIsPdfGenerating(false);
     }
@@ -551,11 +559,11 @@ const App: React.FC = () => {
             <div className="section-header">
               <div>
                 <p className="sec-eye">consulta IA</p>
-                <h2 className="sec-title">Análisis asistido.</h2>
+                <h2 className="sec-title">Interpretación LLM de hallazgos.</h2>
               </div>
               <div className="section-actions">
                 <button className="btn-p" disabled={isAiLoading} onClick={() => runAiAnalysis(report)}>
-                  <Play size={14} /> {isAiLoading ? 'Procesando' : 'Ejecutar IA'}
+                  <Play size={14} /> {isAiLoading ? 'Ejecutando LLM' : `Analizar con ${aiConfig.providerType === 'local' ? 'LLM local' : 'LLM cloud'}`}
                 </button>
                 <button className="btn-p" disabled={isScriptLoading} onClick={() => generateScript(report)}>
                   <FileCode2 size={14} /> {isScriptLoading ? 'Generando' : 'Generar script'}
@@ -564,12 +572,13 @@ const App: React.FC = () => {
             </div>
             <div className="cognitive-grid">
               <div className="advisor-shell">
-                <GeminiAdvisor analysis={aiAnalysis} isLoading={isAiLoading} />
+                <GeminiAdvisor analysis={aiAnalysis} isLoading={isAiLoading} providerType={aiConfig.providerType} model={aiConfig.model} />
               </div>
               <aside className="mini-panel">
                 <div className="layer"><span className="layer-n"><Database size={14} /></span><span className="layer-name">Evidencia enviada</span><span className="layer-tag">{report.issues.length} issues</span></div>
                 <div className="layer"><span className="layer-n"><Brain size={14} /></span><span className="layer-name">{aiConfig.model}</span><span className="layer-tag">{aiConfig.providerType}</span></div>
                 <div className="layer"><span className="layer-n"><ShieldCheck size={14} /></span><span className="layer-name">Última latencia</span><span className="layer-tag">{lastMetrics ? `${lastMetrics.latencyMs}ms` : '-'}</span></div>
+                <div className="layer"><span className="layer-n"><FileText size={14} /></span><span className="layer-name">Salida</span><span className="layer-tag">interpretativa</span></div>
               </aside>
             </div>
             {cleaningScript && (
@@ -593,8 +602,8 @@ const App: React.FC = () => {
               <div className="context-guide">
                 <span className="guide-icon"><ArrowRight size={14} /></span>
                 <div>
-                  <p className="guide-title">Siguiente paso: exporta el reporte</p>
-                  <p className="guide-desc">Descarga un PDF con el análisis completo, hallazgos y recomendaciones.</p>
+                  <p className="guide-title">Siguiente paso: exporta evidencia determinista</p>
+                  <p className="guide-desc">El PDF se genera desde reglas reproducibles. La salida LLM queda como interpretación, no como evidencia formal.</p>
                 </div>
                 <button className="btn-p btn-sm" onClick={() => scrollTo('evidencia')}>Exportar <FileText size={12} /></button>
               </div>

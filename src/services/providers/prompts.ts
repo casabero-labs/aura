@@ -44,104 +44,55 @@ export const buildSmartSample = (report: AuditReport) => ({
 });
 
 /**
- * Prompt de análisis streaming.
- * Mecanismo M4 (Cadena de Razonamiento Forzada):
- * 5 pasos obligatorios en orden estricto.
+ * Prompt de analisis streaming.
+ * Contrato de evidencia: el LLM explica hallazgos deterministas sin inventar.
  */
 export const buildAnalysisPrompt = (report: AuditReport): string => {
   const jsonSummary = buildSmartSample(report);
   const json_data = JSON.stringify(jsonSummary, null, 2);
 
   return `
-        Actúa como Ingeniero de Datos Senior + Arquitecto de Datos con más de 15 años de experiencia en data governance y modelado. Tu misión es ser extremadamente crítico y exhaustivo.
+Actua como revisor tecnico de calidad de datos para un trabajo academico. Tu tarea NO es impresionar ni descubrir defectos imaginarios: tu tarea es explicar la evidencia disponible de forma reproducible.
 
-        Te voy a pasar un resumen JSON con: nombres de columnas, tipos inferidos, nulls, unique, top_values y issues detectados.
+Recibiras un resumen JSON generado por el motor determinista de AURA. El JSON contiene solo columnas observadas, tipos inferidos, estadisticas basicas y reglas activadas. No tienes acceso al CSV completo.
 
-        Tu objetivo es encontrar **todos los defectos posibles de diseño, nombrado, redundancia, normalización y calidad semántica**. No te limites a lo obvio: busca errores sutiles y sistémicos que normalmente pasan desapercibidos.
+JSON observado:
+${json_data}
 
-        Este es el JSON del dataset:
-        ${json_data}
+Reglas obligatorias de honestidad:
+- No inventes columnas, valores, relaciones, tablas dimension, PII, dominios ni causas.
+- No afirmes que una columna es constante, derivable, sensible o eliminable si eso no aparece en "detected_issues" o en las estadisticas entregadas.
+- Si haces una inferencia de dominio, etiquetala como "Hipotesis no validada" y explica que se basa solo en nombres de columnas.
+- Si una recomendacion requiere criterio humano o conocimiento de dominio, etiquetala como "requiere revision humana".
+- Cita siempre la regla determinista, la columna y la evidencia disponible cuando exista.
+- No generes script Python en esta respuesta. El script se genera en otro paso con validacion HITL.
 
-        ### Pasos obligatorios (sigue este orden exacto):
+Formato obligatorio:
 
-        1. **Inferir el dominio real del dataset**  
-           Una sola frase precisa (ej. "Registro de ventas retail en México 2024-2025", "Base de clientes de telecomunicaciones Perú").
+## Estado de ejecucion
+Indica que el analisis parte del motor determinista de AURA, con filas, columnas, score y numero de reglas activadas.
 
-        2. **Análisis exhaustivo de defectos**  
-           Detecta y enumera con viñetas **todos** los problemas que encuentres de los siguientes tipos (incluye aunque sean sutiles):
+## Hallazgos respaldados por evidencia
+Lista solo problemas presentes en "detected_issues". Para cada hallazgo:
+- Regla:
+- Columna:
+- Evidencia observada:
+- Riesgo tecnico:
+- Accion segura:
 
-           **Nombres de columnas**
-           - Nombre engañoso, ambiguo o directamente falso respecto al contenido real
-           - Falta convención snake_case (o camelCase si aplica en tu org)
-           - Uso de espacios, acentos, ñ, mayúsculas mixtas, caracteres especiales
-           - Nombres demasiado genéricos: "campo1", "dato", "valor", "columna_a"
-           - Nombres en otro idioma mezclado (ej. "email" + "correo_electronico")
+## Hipotesis no validadas
+Incluye aqui cualquier interpretacion de dominio o decision que no pueda probarse con el JSON. Si no hay base suficiente, escribe "Sin hipotesis defendible con la evidencia actual".
 
-           **Redundancia y derivación**
-           - Columnas 100% derivables de otras (edad + fecha_nacimiento, total + precio*cantidad)
-           - Información repetida en diferentes formatos (código postal + ciudad + estado)
-           - Columna que es copia exacta o casi exacta de otra
-           - Columnas "flag" que se pueden calcular con una condición simple
+## Acciones recomendadas
+Separa en:
+- Automatizables de bajo riesgo.
+- Requieren revision humana.
+- No recomendadas por falta de evidencia.
 
-           **Problemas de normalización y consistencia**
-           - Mismo concepto con múltiples representaciones ("M", "Masculino", "Hombre", "male", 1)
-           - País/estado/ciudad con ISO, nombre completo, abreviatura mezclados
-           - Moneda con y sin símbolo, con y sin separador de miles
-           - Teléfonos con/sin lada, con/sin +52, con guiones/espacios
-           - Fechas en diferentes formatos dentro de la misma columna
+## Limites de la respuesta
+Explica en 2-3 bullets que este LLM no sustituye el motor determinista, que no vio el dataset completo y que sus inferencias no cuentan como evidencia experimental formal.
 
-           **Problemas semánticos y de dominio**
-           - Valores imposibles o extremadamente improbables (edad 150, peso 500kg, fecha futura en fecha_nacimiento)
-           - Columna de ID que contiene descripciones o está duplicada como texto
-           - Categorías que deberían ser tabla dimensión pero están como texto libre
-           - PII o datos sensibles expuestos (CURP, RFC, INE, tarjeta, dirección completa)
-           - Columna que mezcla conceptos (ej. "producto_categoria" con "Camisa - Ropa Hombre")
-
-           **Otros defectos comunes de diseño**
-           - Columnas con más del 90% de valores nulos o únicos → candidatas a eliminar
-           - Columna con un solo valor repetido (constante) en todo el dataset
-           - Uso innecesario de texto cuando debería ser booleano, categoría o fecha
-           - Nombres que incluyen tipo de dato o formato ("fecha_str", "monto_float")
-
-        3. **Recomendaciones de refactorización**  
-           Para cada problema encontrado, usa este formato exacto:
-
-           *   **Prioridad:** Alta / Media / Baja  
-           *   **Columna(s):** lista_de_columnas  
-           *   **Problema:** descripción breve y directa  
-           *   **Acción recomendada:** (Renombrar / Eliminar / Normalizar / Crear nueva columna / Mover a tabla dimensión)
-
-        4. **Tabla resumen final obligatoria**
-
-           | Métrica | Evaluación |
-           |---|---|
-           | Dominio inferido | ... |
-           | Hallazgos críticos (Prioridad Alta) | X |
-           | Columnas a renombrar | X |
-           | Columnas a eliminar | X |
-           | Nuevas columnas sugeridas | X |
-           | Tablas dimensión faltantes | país, estado, categoría, etc. |
-           | Calidad de diseño actual | Excelente / Buena / Regular / Mala / Crítica |
-           | Impacto si no se corrige          | [una frase fuerte y realista]     |
-
-        5. **Scripts de Limpieza (Python)**
-           Genera un script de Python usando Pandas que resuelva los problemas de **Prioridad Alta y Media**. El código debe estar listo para copiar y pegar.
-           
-           \`\`\`python
-           import pandas as pd
-           import numpy as np
-
-           # Asumiendo carga del df
-           # df = pd.read_csv('dataset.csv')
-
-           # 1. Renombrado de columnas (Convención Snake Case)
-           # ...
-
-           # 2. Manejo de Nulos y Tipos
-           # ...
-           \`\`\`
-
-        Responde **exclusivamente en español**, con tono técnico, directo y sin piedad. Usa negritas y Markdown estructurado.
+Responde en español, con tono sobrio, academico y verificable.
   `;
 };
 
@@ -152,24 +103,48 @@ export const buildAnalysisPrompt = (report: AuditReport): string => {
 export const buildExecutivePrompt = (report: AuditReport): string => {
   const summaryContext = {
     score: report.score,
+    rows: report.rowCount,
+    columns: report.colCount,
+    duplicate_rows: report.duplicateRows,
     total_issues: report.issues.length,
     critical_issues: report.issues.filter(i => i.severity === 'critical').length,
-    dataset_structure: Object.values(report.columnStats).map(c => ({ name: c.name, type: c.inferredType })),
-    top_issues: report.issues.slice(0, 5).map(i => `${i.ruleName} en columna ${i.column}: ${i.description}`)
+    dataset_structure: Object.values(report.columnStats).map(c => ({
+      name: c.name,
+      type: c.inferredType,
+      nulls: c.nullCount,
+      unique: c.uniqueCount,
+      sample_values: c.sampleValues,
+    })),
+    top_issues: report.issues.slice(0, 12).map(i => ({
+      rule: i.ruleName,
+      category: i.category,
+      column: i.column,
+      severity: i.severity,
+      count: i.count,
+      affected_percentage: i.affectedPercentage,
+      description: i.description,
+      sample_values: i.sampleValues.slice(0, 3),
+    }))
   };
 
   return `
-    Actúa como un Consultor de Estrategia de Datos Senior preparando un informe profesional PDF (Estilo LaTeX/Científico).
+    Actua como un revisor tecnico de calidad de datos preparando un informe profesional y verificable.
     
     Analiza este resumen de calidad de datos y estructura:
     ${JSON.stringify(summaryContext)}
 
     Genera un informe ejecutivo en JSON estricto. 
+
+    Reglas de honestidad:
+    - No inventes columnas, cifras, dominios, PII, relaciones derivables ni causas.
+    - Solo puedes reportar problemas contenidos en "top_issues" o estadisticas presentes en "dataset_structure".
+    - Si el dominio no es demostrable, usa "Dominio no inferible con evidencia suficiente".
+    - Las acciones destructivas deben ir como requires_human_review y safeToSimulate=false.
     
-    1. "dataset_technical_description": Redacta un párrafo técnico (aprox 80 palabras) describiendo la composición del dataset basándote en la lista de columnas y tipos. NO inventes cifras. Describe si es transaccional, demográfico, series de tiempo, etc.
-    2. "executive_summary": Un resumen de alto nivel sobre la salud de los datos.
-    3. "business_impact": Riesgos de negocio reales.
-    4. "python_script": Genera un script en Python (con Pandas) que resuelva los problemas prioritarios detectados. El código debe estar listo para ejecutarse y usar la variable 'df'.
+    1. "dataset_technical_description": Redacta un parrafo tecnico describiendo filas, columnas, tipos y score. NO inventes cifras.
+    2. "executive_summary": Resume la salud de datos segun score y reglas activadas.
+    3. "business_impact": Describe riesgos tecnicos verificables, no riesgos de negocio especulativos.
+    4. "python_script": Genera solo operaciones Pandas de bajo riesgo sobre columnas existentes. No elimines columnas salvo que haya una regla determinista clara y aun asi comenta que requiere revision humana.
     5. "remediation_actions": Genera acciones estructuradas para simulacion segura. Usa solo estos tipos: trim_whitespace, normalize_placeholders, drop_exact_duplicates, normalize_casing, convert_disguised_numbers, requires_human_review. Marca safeToSimulate=false cuando sea ambiguo, destructivo o requiera criterio de dominio.
     
     La estructura JSON requerida es:

@@ -66,7 +66,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                         </div>
                         <div>
                             <h2 className="heading-md text-[var(--ink)]">Ajustes</h2>
-                            <p className="text-[11px] font-sans text-[var(--ink2)] mt-1">Motor cognitivo e infraestructura</p>
+                            <p className="text-[11px] font-sans text-[var(--ink2)] mt-1">Proveedor LLM e infraestructura</p>
                         </div>
                     </div>
                     <button onClick={onClose} className="text-[var(--ink2)] hover:text-[var(--ink)] transition-colors p-2">
