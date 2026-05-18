@@ -1,0 +1,30 @@
+import { Hono } from 'hono';
+import { cors } from 'hono/cors';
+import { logger } from 'hono/logger';
+import { settingsRoutes } from './routes/settings.js';
+import { sessionsRoutes } from './routes/sessions.js';
+import { benchmarksRoutes } from './routes/benchmarks.js';
+
+const app = new Hono();
+
+app.use('*', cors({
+  origin: ['http://localhost:5173', 'https://aura.casabero.com', 'http://aura.casabero.com'],
+  credentials: true,
+}));
+
+app.use('*', logger());
+
+app.get('/health', (c) => c.json({ status: 'ok', timestamp: new Date().toISOString() }));
+
+app.route('/api/settings', settingsRoutes);
+app.route('/api/sessions', sessionsRoutes);
+app.route('/api/benchmarks', benchmarksRoutes);
+
+const port = parseInt(process.env.PORT || '4000');
+
+console.log(`Aura API starting on port ${port}`);
+
+export default {
+  fetch: app.fetch,
+  port,
+};

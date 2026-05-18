@@ -97,12 +97,10 @@ export interface ModelDownloadState {
 }
 
 export interface AIConfig {
-  apiKey: string;
   model: string;
-  temperature: number;  // M1: Control de varianza estocástica (0.0 - 1.0)
+  temperature: number;
   autoAnalyze: boolean;
-  providerType: 'cloud' | 'local' | 'chrome';  // Capa 0: Selección de infraestructura
-  cloudProvider?: string;  // Proveedor cloud específico: 'google' | 'groq' | 'deepseek' | 'openrouter' | 'minimax'
+  providerType: 'local';
   modelDownloadState?: Record<string, ModelDownloadState>;
 }
 

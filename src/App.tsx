@@ -12,6 +12,7 @@ import IssueList from './components/IssueList';
 import ScoreBreakdown from './components/ScoreBreakdown';
 import ScriptReview from './components/ScriptReview';
 import SettingsPanel from './components/SettingsPanel';
+import { api } from './services/api';
 import { createAIProvider } from './services/aiProvider';
 import { runAudit } from './services/auditEngine';
 import { parseCsv } from './services/csvService';
@@ -104,25 +105,26 @@ const App: React.FC = () => {
   const [logs, setLogs] = useState<{ time: string; msg: string }[]>([]);
   const [lastMetrics, setLastMetrics] = useState<ProviderMetrics | null>(null);
 
-  const [aiConfig, setAiConfig] = useState<AIConfig>(() => {
-    const saved = localStorage.getItem('aura_ai_config');
-    if (saved) return { providerType: 'local', temperature: 0.1, ...JSON.parse(saved) };
-    return {
-      apiKey: '',
-      model: 'Llama-3.2-3B-Instruct-q4f16_1-MLC',
-      temperature: 0.1,
-      autoAnalyze: false,
-      providerType: 'local',
-    };
+  const [aiConfig, setAiConfig] = useState<AIConfig>({
+    model: 'Qwen2.5-3B-Instruct-q4f16_1-MLC',
+    temperature: 0.1,
+    autoAnalyze: false,
+    providerType: 'local',
   });
+
+  useEffect(() => {
+    api.settings.get('ai_config')
+      .then(({ value }) => setAiConfig({ providerType: 'local', temperature: 0.1, autoAnalyze: false, ...value } as AIConfig))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    api.settings.save('ai_config', aiConfig as unknown as Record<string, unknown>).catch(() => {});
+  }, [aiConfig]);
 
   const aiProvider = useMemo(() => createAIProvider(aiConfig), [aiConfig]);
   const criticalCount = countBySeverity(report, IssueSeverity.CRITICAL);
   const warningCount = countBySeverity(report, IssueSeverity.WARNING);
-
-  useEffect(() => {
-    localStorage.setItem('aura_ai_config', JSON.stringify(aiConfig));
-  }, [aiConfig]);
 
   const addLog = (msg: string) => {
     const time = new Date().toLocaleTimeString('es-CO', {
@@ -137,18 +139,14 @@ const App: React.FC = () => {
   const runAiAnalysis = async (currentReport: AuditReport) => {
     const isAvailable = await aiProvider.isAvailable();
     if (!isAvailable) {
-      alert(
-        aiConfig.providerType === 'local'
-          ? 'WebGPU no esta disponible en este navegador. Usa Chrome/Edge compatible o cambia a proveedor cloud.'
-          : 'Configura la API key para usar el proveedor cloud.'
-      );
+      alert('WebGPU no esta disponible en este navegador. Usa Chrome/Edge compatible.');
       setShowSettings(true);
       return;
     }
 
     setIsAiLoading(true);
     setAiAnalysis('');
-    addLog(`${aiConfig.providerType === 'local' ? 'llm.local.start' : 'llm.cloud.start'} :: ${aiConfig.model}`);
+    addLog(`llm.local.start :: ${aiConfig.model}`);
 
     try {
       const metrics = await aiProvider.analyzeStream(currentReport, (chunk) => {
@@ -166,11 +164,7 @@ const App: React.FC = () => {
   const generateScript = async (currentReport: AuditReport) => {
     const isAvailable = await aiProvider.isAvailable();
     if (!isAvailable) {
-      alert(
-        aiConfig.providerType === 'local'
-          ? 'WebGPU no esta disponible en este navegador. Usa Chrome/Edge compatible o cambia a proveedor cloud.'
-          : 'Configura la API key para usar el proveedor cloud.'
-      );
+      alert('WebGPU no esta disponible en este navegador. Usa Chrome/Edge compatible.');
       setShowSettings(true);
       return;
     }
@@ -563,7 +557,7 @@ const App: React.FC = () => {
               </div>
               <div className="section-actions">
                 <button className="btn-p" disabled={isAiLoading} onClick={() => runAiAnalysis(report)}>
-                  <Play size={14} /> {isAiLoading ? 'Ejecutando LLM' : `Analizar con ${aiConfig.providerType === 'local' ? 'LLM local' : 'LLM cloud'}`}
+                  <Play size={14} /> {isAiLoading ? 'Ejecutando LLM' : `Analizar con ${aiConfig.model.split('-').slice(0, 2).join(' ')}`}
                 </button>
                 <button className="btn-p" disabled={isScriptLoading} onClick={() => generateScript(report)}>
                   <FileCode2 size={14} /> {isScriptLoading ? 'Generando' : 'Generar script'}
