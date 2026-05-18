@@ -112,4 +112,30 @@ describe('Evidence-guided improvement loop', () => {
     expect(run.healthDelta!.afterScore).toBeGreaterThanOrEqual(run.healthDelta!.beforeScore);
     expect(run.benchmarkResults[0].recommendedForRemediation).toBe(true);
   });
+
+  it('preserves benchmark execution trace for auditability', () => {
+    const report = runAudit(baseData, fields, ',');
+    const benchmark = makeBenchmarkResult(report, {
+      startedAt: '2026-05-18T00:00:00.000Z',
+      completedAt: '2026-05-18T00:00:01.000Z',
+      datasetFingerprint: 'abc123',
+      executionTrace: [
+        { stage: 'benchmark.created', timestamp: '2026-05-18T00:00:00.000Z', elapsedMs: 0 },
+        { stage: 'provider.generateExecutiveReport.end', timestamp: '2026-05-18T00:00:01.000Z', elapsedMs: 1000 },
+      ],
+    });
+
+    const run = createImprovementRun({
+      fileName: 'sample.csv',
+      originalData: baseData,
+      fields,
+      delimiter: ',',
+      initialReport: report,
+      benchmarkResults: [benchmark],
+      generatedScript: "import pandas as pd\ndf['name'] = df['name'].str.strip()",
+    });
+
+    expect(run.benchmarkResults[0].executionTrace?.map((event) => event.stage)).toContain('provider.generateExecutiveReport.end');
+    expect(run.benchmarkResults[0].datasetFingerprint).toBe('abc123');
+  });
 });

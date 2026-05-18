@@ -4,6 +4,7 @@ import BenchmarkPanel from './components/BenchmarkPanel';
 import ErrorBoundary from './components/ErrorBoundary';
 import DataProfile from './components/DataProfile';
 import { ExperimentDesigner } from './components/ExperimentDesigner';
+import ExecutionEvidencePanel from './components/ExecutionEvidencePanel';
 import FileUpload from './components/FileUpload';
 import GeminiAdvisor from './components/GeminiAdvisor';
 import ImprovementRunPanel from './components/ImprovementRunPanel';
@@ -14,8 +15,9 @@ import SettingsPanel from './components/SettingsPanel';
 import { createAIProvider } from './services/aiProvider';
 import { runAudit } from './services/auditEngine';
 import { parseCsv } from './services/csvService';
+import { buildAuditEvidence, createTraceRecorder, fingerprintDataset } from './services/executionEvidence';
 import { generatePdfReport } from './services/pdfGenerator';
-import { AIConfig, AuditReport, ExecutiveReportContent, ImprovementRun, IssueSeverity, ProviderMetrics } from './types';
+import { AIConfig, AuditExecutionEvidence, AuditReport, ExecutiveReportContent, ImprovementRun, IssueSeverity, ProviderMetrics } from './types';
 
 const countBySeverity = (report: AuditReport | null, severity: IssueSeverity) =>
   report?.issues.filter((issue) => issue.severity === severity).length ?? 0;
@@ -43,6 +45,7 @@ const App: React.FC = () => {
   const [rawData, setRawData] = useState<Record<string, any>[]>([]);
   const [csvFields, setCsvFields] = useState<string[]>([]);
   const [csvDelimiter, setCsvDelimiter] = useState(',');
+  const [auditEvidence, setAuditEvidence] = useState<AuditExecutionEvidence | null>(null);
   const [improvementRun, setImprovementRun] = useState<ImprovementRun | null>(null);
   const [aiAnalysis, setAiAnalysis] = useState('');
   const [cleaningScript, setCleaningScript] = useState('');
@@ -166,19 +169,57 @@ const App: React.FC = () => {
     setRawData([]);
     setCsvFields([]);
     setCsvDelimiter(',');
+    setAuditEvidence(null);
     setImprovementRun(null);
     setHasExported(false);
     setLogs([]);
     addLog(`Cargando ${uploadedFile.name}...`);
 
     try {
+      const trace = createTraceRecorder();
+      const startedAt = new Date().toISOString();
+      trace.mark('csv.parse.start', { fileName: uploadedFile.name, fileSize: uploadedFile.size });
+      const parseStart = performance.now();
       const { data, meta } = await parseCsv(uploadedFile);
+      const parseDurationMs = Math.round(performance.now() - parseStart);
+      trace.mark('csv.parse.end', {
+        rows: data.length,
+        columns: meta.fields?.length ?? 0,
+        delimiter: meta.delimiter,
+        truncated: meta.truncated,
+        durationMs: parseDurationMs,
+      });
       setRawData(data);
       setCsvFields(meta.fields);
       setCsvDelimiter(meta.delimiter);
       addLog(`${data.length} registros · ${meta.fields?.length ?? 0} columnas`);
 
+      const datasetFingerprint = fingerprintDataset(data, meta.fields);
+      trace.mark('audit.run.start', { datasetFingerprint });
+      const auditStart = performance.now();
       const auditResult = runAudit(data, meta.fields, meta.delimiter);
+      const auditDurationMs = Math.round(performance.now() - auditStart);
+      trace.mark('audit.run.end', {
+        durationMs: auditDurationMs,
+        score: auditResult.score,
+        issues: auditResult.issues.length,
+        duplicateRows: auditResult.duplicateRows,
+      });
+      const completedAt = new Date().toISOString();
+      setAuditEvidence(buildAuditEvidence({
+        fileName: uploadedFile.name,
+        datasetFingerprint,
+        startedAt,
+        completedAt,
+        parseDurationMs,
+        auditDurationMs,
+        rowsProcessed: data.length,
+        columnsProcessed: meta.fields.length,
+        delimiter: meta.delimiter,
+        truncated: meta.truncated,
+        report: auditResult,
+        trace: trace.events,
+      }));
       setReport(auditResult);
       addLog(`Score: ${auditResult.score}/100 · ${auditResult.issues.length} anomalías detectadas`);
 
@@ -241,7 +282,7 @@ const App: React.FC = () => {
     if (!report) return;
     downloadTextFile(
       `aura_audit_${Date.now()}.json`,
-      JSON.stringify({ fileName: file?.name, generatedAt: new Date().toISOString(), report, aiAnalysis, improvementRun }, null, 2),
+      JSON.stringify({ fileName: file?.name, generatedAt: new Date().toISOString(), report, auditEvidence, aiAnalysis, improvementRun }, null, 2),
       'application/json;charset=utf-8'
     );
     setHasExported(true);
@@ -467,6 +508,7 @@ const App: React.FC = () => {
                 <ScoreBreakdown deductions={report.scoreBreakdown} />
               </div>
             </div>
+            {auditEvidence && <ExecutionEvidencePanel evidence={auditEvidence} />}
 
             {/* Guía contextual: siguiente paso */}
             <div className="context-guide">
@@ -562,6 +604,7 @@ const App: React.FC = () => {
               fields={csvFields}
               delimiter={csvDelimiter}
               fileName={file?.name}
+              auditEvidence={auditEvidence || undefined}
               cleaningScript={approvedCleaningScript || cleaningScript}
               onImprovementRun={(run) => {
                 setImprovementRun(run);

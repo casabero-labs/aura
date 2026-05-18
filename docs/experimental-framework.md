@@ -91,3 +91,17 @@ Cada experimento genera:
 - Configuración completa (modelo, temp, input mode, fecha)
 - Evidencia para el TFM §4 (Resultados Experimentales)
 - Cuando aplique, un `ImprovementRun` exportable con score antes/después y acciones de remediación simuladas
+
+## Evidencia Operacional
+
+Toda corrida debe distinguir entre "se solicito ejecutar" y "se ejecuto realmente". Para ello AURA registra:
+
+- inicio y fin de auditoria determinista;
+- duracion de parseo y motor determinista;
+- fingerprint del dataset/reporte;
+- inicio y fin de llamadas a proveedor LLM;
+- preflight WebGPU para proveedores locales;
+- salida del proveedor medida en tokens, latencia y cumplimiento;
+- traza exportable en JSON.
+
+Si una etapa no puede cerrarse con evidencia, se reporta como `attempted_failed` y no se usa para defender OE2/OE3.

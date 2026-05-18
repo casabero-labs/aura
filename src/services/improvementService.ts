@@ -6,6 +6,7 @@ import {
   ImprovementRun,
   RemediationAction,
   ScriptValidationResult,
+  AuditExecutionEvidence,
 } from '../types';
 import { runAudit } from './auditEngine';
 import { buildDeterministicRemediationActions, simulateRemediation } from './remediationSimulator';
@@ -78,6 +79,7 @@ export const createImprovementRun = (params: {
   fields: string[];
   delimiter: string;
   initialReport: AuditReport;
+  auditEvidence?: AuditExecutionEvidence;
   benchmarkResults: BenchmarkResult[];
   generatedScript?: string;
   remediationActions?: RemediationAction[];
@@ -102,6 +104,7 @@ export const createImprovementRun = (params: {
     id: `improvement-${Date.now()}`,
     fileName: params.fileName,
     evidenceStatus,
+    auditEvidence: params.auditEvidence,
     initialReport: params.initialReport,
     benchmarkResults: params.benchmarkResults.map((result) => ({
       ...result,

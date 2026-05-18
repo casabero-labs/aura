@@ -1,6 +1,7 @@
 import { AIConfig, AuditReport, BenchmarkResult } from '../types';
 import { createAIProvider } from './aiProvider';
 import { detectHallucinations } from './benchmark/hallucinationDetector';
+import { createTraceRecorder, fingerprintReport } from './executionEvidence';
 import { deriveEvidenceStatus } from './improvementService';
 import { validateCleaningScript } from './scriptValidationService';
 
@@ -28,6 +29,21 @@ export const runBenchmarkForConfig = async (
   inputMode: BenchmarkResult['inputMode'] = 'smart_sample'
 ): Promise<BenchmarkResult> => {
   const provider = createAIProvider(config);
+  const trace = createTraceRecorder();
+  const startedAt = new Date().toISOString();
+  const datasetFingerprint = fingerprintReport(report);
+  const webGpuAvailable = typeof navigator !== 'undefined' && Boolean(navigator.gpu);
+  trace.mark('benchmark.created', {
+    providerType: config.providerType,
+    model: config.model,
+    inputMode,
+    rows: report.rowCount,
+    columns: report.colCount,
+    reportFingerprint: datasetFingerprint,
+  });
+  if (config.providerType === 'local') {
+    trace.mark('webgpu.preflight', { navigatorGpu: webGpuAvailable });
+  }
   const baseResult: Omit<BenchmarkResult, 'status'> = {
     id: `${config.providerType}-${config.model}-${Date.now()}`,
     provider: provider.name,
@@ -45,15 +61,23 @@ export const runBenchmarkForConfig = async (
     hallucinatedColumns: [],
     unsupportedClaims: 0,
     evidenceStatus: 'planned',
+    startedAt,
+    datasetFingerprint,
+    webGpuAvailable: config.providerType === 'local' ? webGpuAvailable : undefined,
+    executionTrace: trace.events,
     timestamp: new Date().toISOString()
   };
 
+  trace.mark('provider.availability.start');
   const isAvailable = await provider.isAvailable();
+  trace.mark('provider.availability.end', { available: isAvailable });
   if (!isAvailable) {
     return {
       ...baseResult,
       status: 'unavailable',
       evidenceStatus: 'attempted_failed',
+      completedAt: new Date().toISOString(),
+      executionTrace: trace.events,
       error: config.providerType === 'local'
         ? 'WebGPU no disponible en este navegador.'
         : 'API key cloud no configurada.'
@@ -62,7 +86,14 @@ export const runBenchmarkForConfig = async (
 
   try {
     if (inputMode === 'prompt_libre') {
+      trace.mark('provider.generateText.start');
       const { text, metrics } = await provider.generateText(buildLoosePrompt(report));
+      trace.mark('provider.generateText.end', {
+        latencyMs: metrics.latencyMs,
+        firstTokenMs: metrics.firstTokenMs,
+        tokensGenerated: metrics.tokensGenerated,
+        outputChars: text.length,
+      });
       const tokensPerSecond = metrics.latencyMs > 0
         ? Number((metrics.tokensGenerated / (metrics.latencyMs / 1000)).toFixed(2))
         : 0;
@@ -87,6 +118,8 @@ export const runBenchmarkForConfig = async (
           invalidScriptColumns: hallucinationReport.invalidScriptColumns,
         },
         scriptValidation,
+        completedAt: new Date().toISOString(),
+        executionTrace: trace.events,
         timestamp: metrics.timestamp
       };
 
@@ -96,7 +129,15 @@ export const runBenchmarkForConfig = async (
       };
     }
 
+    trace.mark('provider.generateExecutiveReport.start');
     const { content, metrics } = await provider.generateExecutiveReport(report);
+    trace.mark('provider.generateExecutiveReport.end', {
+      latencyMs: metrics.latencyMs,
+      firstTokenMs: metrics.firstTokenMs,
+      tokensGenerated: metrics.tokensGenerated,
+      hasPythonScript: Boolean(content.python_script),
+      remediationActions: content.remediation_actions?.length || 0,
+    });
     const script = content.python_script || '';
     const serializedContent = JSON.stringify(content);
     const tokensPerSecond = metrics.latencyMs > 0
@@ -129,6 +170,8 @@ export const runBenchmarkForConfig = async (
         invalidScriptColumns: hallucinationReport.invalidScriptColumns,
       },
       scriptValidation,
+      completedAt: new Date().toISOString(),
+      executionTrace: trace.events,
       timestamp: metrics.timestamp
     };
 
@@ -141,6 +184,16 @@ export const runBenchmarkForConfig = async (
       ...baseResult,
       status: 'error',
       evidenceStatus: 'attempted_failed',
+      completedAt: new Date().toISOString(),
+      executionTrace: [
+        ...trace.events,
+        {
+          stage: 'benchmark.error',
+          timestamp: new Date().toISOString(),
+          elapsedMs: Math.round(performance.now() - trace.startedAtMs),
+          details: { message: error?.message || 'Error desconocido durante benchmark.' },
+        }
+      ],
       error: error?.message || 'Error desconocido durante benchmark.'
     };
   }

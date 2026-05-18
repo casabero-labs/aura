@@ -65,6 +65,31 @@ export interface AuditReport {
   delimiterDetected: string;
 }
 
+export interface ExecutionTraceEvent {
+  stage: string;
+  timestamp: string;
+  elapsedMs: number;
+  details?: Record<string, string | number | boolean | null | undefined>;
+}
+
+export interface AuditExecutionEvidence {
+  id: string;
+  fileName?: string;
+  datasetFingerprint: string;
+  startedAt: string;
+  completedAt: string;
+  parseDurationMs: number;
+  auditDurationMs: number;
+  totalDurationMs: number;
+  rowsProcessed: number;
+  columnsProcessed: number;
+  delimiter: string;
+  truncated: boolean;
+  issueCount: number;
+  score: number;
+  trace: ExecutionTraceEvent[];
+}
+
 export interface ModelDownloadState {
   status: 'idle' | 'downloading' | 'ready' | 'error';
   progress: number;
@@ -127,6 +152,11 @@ export interface BenchmarkResult {
   hallucinatedColumns: string[];
   unsupportedClaims: number;
   evidenceStatus: EvidenceStatus;
+  startedAt?: string;
+  completedAt?: string;
+  datasetFingerprint?: string;
+  webGpuAvailable?: boolean;
+  executionTrace?: ExecutionTraceEvent[];
   hallucinationReport?: HallucinationReportSummary;
   scriptValidation?: ScriptValidationResult;
   recommendedForRemediation?: boolean;
@@ -193,6 +223,7 @@ export interface ImprovementRun {
   id: string;
   fileName?: string;
   evidenceStatus: EvidenceStatus;
+  auditEvidence?: AuditExecutionEvidence;
   initialReport: AuditReport;
   benchmarkResults: BenchmarkResult[];
   recommendedResult?: BenchmarkResult;

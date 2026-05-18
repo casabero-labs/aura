@@ -65,6 +65,19 @@ HealthDelta + evidencia exportable
 
 Esta entidad evita que los resultados queden dispersos entre UI, tablas y archivos JSON. Cada ciclo puede exportarse y trazarse en la memoria.
 
+## 4.1 Evidencia operacional obligatoria
+
+Para evitar especulacion, cada ejecucion debe registrar evidencia verificable:
+
+- `AuditExecutionEvidence`: prueba de que el motor determinista corrio sobre un dataset concreto.
+- `ExecutionTraceEvent`: eventos con timestamp, etapa, tiempo acumulado y detalles tecnicos.
+- `datasetFingerprint`: huella reproducible del dataset o del reporte usado como base factual.
+- `startedAt` y `completedAt`: inicio y cierre de cada corrida.
+- `parseDurationMs`, `auditDurationMs` y `latencyMs`: tiempos medidos por la app.
+- `webGpuAvailable`: preflight del entorno cuando se ejecuta proveedor local.
+
+Una tabla con estado `Ejecutando` no es suficiente como evidencia academica. La corrida debe cerrar con traza exportable o quedar como `attempted_failed`.
+
 ## 5. Criterios de decision
 
 La recomendacion de modelo en v1 sigue este orden:

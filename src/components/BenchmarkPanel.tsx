@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from 'react';
-import { Activity, AlertTriangle, CheckCircle2, Cloud, Cpu, Gauge, Layers3, Play, ShieldCheck } from 'lucide-react';
-import { AIConfig, AuditReport, BenchmarkResult } from '../types';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Activity, AlertTriangle, CheckCircle2, Cloud, Cpu, Fingerprint, Gauge, Layers3, Play, ShieldCheck } from 'lucide-react';
+import { AIConfig, AuditExecutionEvidence, AuditReport, BenchmarkResult } from '../types';
 import { AVAILABLE_MODELS } from '../services/aiProvider';
 import { runBenchmarkForConfig } from '../services/benchmarkService';
 import { createImprovementRun } from '../services/improvementService';
@@ -12,6 +12,7 @@ interface BenchmarkPanelProps {
   fields?: string[];
   delimiter?: string;
   fileName?: string;
+  auditEvidence?: AuditExecutionEvidence;
   cleaningScript?: string;
   onImprovementRun?: (run: ReturnType<typeof createImprovementRun>) => void;
   onLog?: (bold: string, msg: string) => void;
@@ -32,6 +33,11 @@ const evidenceLabel: Record<BenchmarkResult['evidenceStatus'], string> = {
   formal_valid: 'Formal'
 };
 
+const elapsedFrom = (startedAt?: string) => {
+  if (!startedAt) return '-';
+  return `${Math.max(0, Math.round((Date.now() - new Date(startedAt).getTime()) / 1000))}s`;
+};
+
 const BenchmarkPanel: React.FC<BenchmarkPanelProps> = ({
   report,
   config,
@@ -39,12 +45,14 @@ const BenchmarkPanel: React.FC<BenchmarkPanelProps> = ({
   fields = [],
   delimiter = ',',
   fileName,
+  auditEvidence,
   cleaningScript,
   onImprovementRun,
   onLog
 }) => {
   const [results, setResults] = useState<BenchmarkResult[]>([]);
   const [isRunning, setIsRunning] = useState(false);
+  const [, setClockTick] = useState(0);
   const [selectedLocalModel, setSelectedLocalModel] = useState(
     config.providerType === 'local' ? config.model : AVAILABLE_MODELS.local[0].id
   );
@@ -63,6 +71,12 @@ const BenchmarkPanel: React.FC<BenchmarkPanelProps> = ({
     providerType: 'local',
     model: selectedLocalModel
   }), [config, selectedLocalModel]);
+
+  useEffect(() => {
+    if (!isRunning) return;
+    const interval = window.setInterval(() => setClockTick((value) => value + 1), 1000);
+    return () => window.clearInterval(interval);
+  }, [isRunning]);
 
   const runConfigs = async (configs: AIConfig[]) => {
     setIsRunning(true);
@@ -87,6 +101,14 @@ const BenchmarkPanel: React.FC<BenchmarkPanelProps> = ({
           hallucinatedColumns: [],
           unsupportedClaims: 0,
           evidenceStatus: 'planned',
+          startedAt: new Date().toISOString(),
+          datasetFingerprint: auditEvidence?.datasetFingerprint,
+          executionTrace: [{
+            stage: 'ui.benchmark.pending',
+            timestamp: new Date().toISOString(),
+            elapsedMs: 0,
+            details: { providerType: runConfig.providerType, model: runConfig.model, inputMode }
+          }],
           timestamp: new Date().toISOString()
         };
         setResults(prev => [pending, ...prev]);
@@ -111,6 +133,7 @@ const BenchmarkPanel: React.FC<BenchmarkPanelProps> = ({
       fields,
       delimiter,
       initialReport: report,
+      auditEvidence,
       benchmarkResults: results,
       generatedScript: cleaningScript,
     });
@@ -240,6 +263,7 @@ const BenchmarkPanel: React.FC<BenchmarkPanelProps> = ({
               <th>Entrada</th>
               <th>Estado</th>
               <th>Latencia</th>
+              <th>Activo</th>
               <th>Tokens/s</th>
               <th>JSON</th>
               <th>Script HITL</th>
@@ -250,7 +274,7 @@ const BenchmarkPanel: React.FC<BenchmarkPanelProps> = ({
           <tbody>
             {results.length === 0 && (
               <tr>
-                <td colSpan={9} className="benchmark-empty">Sin ejecuciones. Corre primero el benchmark local, cloud o comparativo.</td>
+                <td colSpan={10} className="benchmark-empty">Sin ejecuciones. Corre primero el benchmark local, cloud o comparativo.</td>
               </tr>
             )}
             {results.map(result => (
@@ -268,6 +292,7 @@ const BenchmarkPanel: React.FC<BenchmarkPanelProps> = ({
                   {result.error && <small>{result.error}</small>}
                 </td>
                 <td>{result.latencyMs ? `${result.latencyMs}ms` : '-'}</td>
+                <td>{result.status === 'running' ? elapsedFrom(result.startedAt) : result.completedAt ? 'cerrado' : '-'}</td>
                 <td>{result.tokensPerSecond || '-'}</td>
                 <td>{result.formatCompliance ? 'OK' : '-'}</td>
                 <td>{result.pythonScriptIncluded ? 'OK' : '-'}</td>
@@ -284,6 +309,26 @@ const BenchmarkPanel: React.FC<BenchmarkPanelProps> = ({
           </tbody>
         </table>
       </div>
+      {results.length > 0 && (
+        <div className="benchmark-trace-list">
+          {results.map((result) => (
+            <details key={`trace-${result.id}`} className="execution-trace">
+              <summary>
+                <Fingerprint size={13} /> {result.provider} · {result.inputMode} · {result.datasetFingerprint || auditEvidence?.datasetFingerprint || 'sin-fingerprint'}
+              </summary>
+              <ol>
+                {(result.executionTrace || []).map((event) => (
+                  <li key={`${result.id}-${event.stage}-${event.elapsedMs}`}>
+                    <span>{event.elapsedMs}ms</span>
+                    <strong>{event.stage}</strong>
+                    {event.details && <code>{JSON.stringify(event.details)}</code>}
+                  </li>
+                ))}
+              </ol>
+            </details>
+          ))}
+        </div>
+      )}
     </section>
   );
 };
