@@ -1,6 +1,8 @@
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+const API_BASE = import.meta.env.VITE_API_URL || '';
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  if (!API_BASE) throw new Error('API not configured');
+
   const res = await fetch(`${API_BASE}${path}`, {
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     ...options,
@@ -15,6 +17,8 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  available: () => !!API_BASE,
+
   settings: {
     list: () => request<{ settings: { key: string; value: Record<string, unknown>; updated_at: string }[] }>('/api/settings'),
     get: (key: string) => request<{ key: string; value: Record<string, unknown>; updated_at: string }>(`/api/settings/${key}`),
@@ -42,3 +46,18 @@ export const api = {
       request(`/api/benchmarks/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   },
 };
+
+export function syncToApi<T>(key: string, data: T): void {
+  if (!api.available()) return;
+  api.settings.save(key, data as unknown as Record<string, unknown>).catch(() => {});
+}
+
+export async function loadFromApi<T>(key: string, fallback: T): Promise<T> {
+  if (!api.available()) return fallback;
+  try {
+    const { value } = await api.settings.get(key);
+    return value as unknown as T;
+  } catch {
+    return fallback;
+  }
+}

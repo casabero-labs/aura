@@ -12,7 +12,7 @@ import IssueList from './components/IssueList';
 import ScoreBreakdown from './components/ScoreBreakdown';
 import ScriptReview from './components/ScriptReview';
 import SettingsPanel from './components/SettingsPanel';
-import { api } from './services/api';
+import { api, loadFromApi, syncToApi } from './services/api';
 import { createAIProvider } from './services/aiProvider';
 import { runAudit } from './services/auditEngine';
 import { parseCsv } from './services/csvService';
@@ -105,21 +105,28 @@ const App: React.FC = () => {
   const [logs, setLogs] = useState<{ time: string; msg: string }[]>([]);
   const [lastMetrics, setLastMetrics] = useState<ProviderMetrics | null>(null);
 
-  const [aiConfig, setAiConfig] = useState<AIConfig>({
-    model: 'Qwen2.5-3B-Instruct-q4f16_1-MLC',
-    temperature: 0.1,
-    autoAnalyze: false,
-    providerType: 'local',
+  const [aiConfig, setAiConfig] = useState<AIConfig>(() => {
+    const local = localStorage.getItem('aura_ai_config');
+    if (local) return { providerType: 'local', temperature: 0.1, autoAnalyze: false, ...JSON.parse(local) };
+    return {
+      model: 'Qwen2.5-3B-Instruct-q4f16_1-MLC',
+      temperature: 0.1,
+      autoAnalyze: false,
+      providerType: 'local',
+    };
   });
 
   useEffect(() => {
-    api.settings.get('ai_config')
-      .then(({ value }) => setAiConfig({ providerType: 'local', temperature: 0.1, autoAnalyze: false, ...value } as AIConfig))
-      .catch(() => {});
+    loadFromApi<AIConfig>('ai_config', aiConfig).then((remote) => {
+      if (JSON.stringify(remote) !== JSON.stringify(aiConfig)) {
+        setAiConfig(remote);
+      }
+    });
   }, []);
 
   useEffect(() => {
-    api.settings.save('ai_config', aiConfig as unknown as Record<string, unknown>).catch(() => {});
+    localStorage.setItem('aura_ai_config', JSON.stringify(aiConfig));
+    syncToApi('ai_config', aiConfig);
   }, [aiConfig]);
 
   const aiProvider = useMemo(() => createAIProvider(aiConfig), [aiConfig]);
