@@ -49,7 +49,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                         <label className="block eyebrow text-[var(--ink2)]">Capa 0: Infraestructura</label>
                         <div className="grid grid-cols-2 gap-2">
                             <button
-                                onClick={() => setLocalConfig({ ...localConfig, providerType: 'cloud', model: AVAILABLE_MODELS.cloud[0].id })}
+                                onClick={() => setLocalConfig({ ...localConfig, providerType: 'cloud', cloudProvider: 'google', model: AVAILABLE_MODELS.cloud[0].id })}
                                 className={`flex items-center justify-center gap-2 p-3 text-[12px] font-sans font-medium transition-all rounded-sm border ${localConfig.providerType === 'cloud' ? 'bg-[var(--ink)] border-[var(--ink)] text-[var(--bg)]' : 'bg-[var(--surface)] border-[var(--border)] text-[var(--ink2)] hover:border-[var(--ink-soft)] hover:text-[var(--ink)]'}`}
                             >
                                 <Server size={14} /> Cloud API

@@ -13,6 +13,7 @@
 import { AIConfig, AIProvider } from '../types';
 import { GeminiProvider } from './providers/geminiProvider';
 import { WebLLMProvider } from './providers/webllmProvider';
+import { OpenAIProvider } from './providers/openaiProvider';
 
 /**
  * Crea el proveedor de IA según la configuración del usuario.
@@ -23,8 +24,23 @@ export const createAIProvider = (config: AIConfig): AIProvider => {
       return new WebLLMProvider(config.model, config.temperature);
     
     case 'cloud':
-    default:
-      return new GeminiProvider(config.apiKey, config.model, config.temperature);
+    default: {
+      // Google usa su SDK nativo; el resto son OpenAI-compatibles
+      if (config.cloudProvider === 'google') {
+        return new GeminiProvider(config.apiKey, config.model, config.temperature);
+      }
+      
+      // Buscar baseURL en el registro de modelos
+      const modelEntry = AVAILABLE_MODELS.cloud.find(m => m.id === config.model);
+      const baseURL = modelEntry?.baseURL || 'https://api.openai.com/v1';
+      
+      return new OpenAIProvider({
+        baseURL,
+        apiKey: config.apiKey,
+        model: config.model,
+        temperature: config.temperature,
+      });
+    }
   }
 };
 
@@ -48,9 +64,15 @@ export const checkWebGPUSupport = async (): Promise<boolean> => {
  */
 export const AVAILABLE_MODELS = {
   cloud: [
-    { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', provider: 'Gemini' },
-    { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', provider: 'Gemini' },
-    { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', provider: 'Gemini' },
+    { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', provider: 'Gemini', cloudProvider: 'google' },
+    { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', provider: 'Gemini', cloudProvider: 'google' },
+    { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', provider: 'Gemini', cloudProvider: 'google' },
+    { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B', provider: 'Groq', cloudProvider: 'groq', baseURL: 'https://api.groq.com/openai/v1' },
+    { id: 'mixtral-8x7b-32768', name: 'Mixtral 8x7B', provider: 'Groq', cloudProvider: 'groq', baseURL: 'https://api.groq.com/openai/v1' },
+    { id: 'deepseek-chat', name: 'DeepSeek V3', provider: 'DeepSeek', cloudProvider: 'deepseek', baseURL: 'https://api.deepseek.com/v1' },
+    { id: 'deepseek-reasoner', name: 'DeepSeek R1', provider: 'DeepSeek', cloudProvider: 'deepseek', baseURL: 'https://api.deepseek.com/v1' },
+    { id: 'openrouter/auto', name: 'OpenRouter Auto', provider: 'OpenRouter', cloudProvider: 'openrouter', baseURL: 'https://openrouter.ai/api/v1' },
+    { id: 'minimax-m2.7', name: 'MiniMax M2.7', provider: 'MiniMax', cloudProvider: 'minimax', baseURL: 'https://api.minimax.io/v1' },
   ],
   local: [
     { id: 'Llama-3.2-3B-Instruct-q4f16_1-MLC', name: 'Llama 3.2 3B (4-bit)', provider: 'WebLLM', sizeGB: 1.8 },
