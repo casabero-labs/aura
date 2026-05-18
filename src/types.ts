@@ -105,8 +105,10 @@ export interface BenchmarkResult {
   id: string;
   provider: string;
   providerType: 'local' | 'cloud';
+  cloudProvider?: string;  // Proveedor cloud específico
   inputMode: 'smart_sample' | 'prompt_libre';
   model: string;
+  temperature: number;  // Temperatura usada en el experimento
   status: 'pending' | 'running' | 'completed' | 'error' | 'unavailable';
   latencyMs: number;
   firstTokenMs: number;
@@ -116,6 +118,7 @@ export interface BenchmarkResult {
   pythonScriptIncluded: boolean;
   hallucinatedColumns: string[];
   unsupportedClaims: number;
+  compositeScore?: number;  // Score compuesto post-evaluación
   error?: string;
   timestamp: string;
 }
