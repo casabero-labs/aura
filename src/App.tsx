@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Brain, Database, FileCode2, FileText, HelpCircle, Play, Settings, ShieldCheck, Check, ArrowRight, Upload, BarChart3 } from 'lucide-react';
+import { Brain, ClipboardCheck, Database, Download, FileCode2, FileJson, FileText, HelpCircle, Play, Settings, ShieldCheck, Check, ArrowRight, Upload, Table2, Search } from 'lucide-react';
 import BenchmarkPanel from './components/BenchmarkPanel';
 import ErrorBoundary from './components/ErrorBoundary';
 import DataProfile from './components/DataProfile';
@@ -14,16 +14,34 @@ import { createAIProvider } from './services/aiProvider';
 import { runAudit } from './services/auditEngine';
 import { parseCsv } from './services/csvService';
 import { generatePdfReport } from './services/pdfGenerator';
-import { AIConfig, AuditReport, IssueSeverity, ProviderMetrics } from './types';
+import { AIConfig, AuditReport, ExecutiveReportContent, IssueSeverity, ProviderMetrics } from './types';
 
 const countBySeverity = (report: AuditReport | null, severity: IssueSeverity) =>
   report?.issues.filter((issue) => issue.severity === severity).length ?? 0;
+
+const downloadTextFile = (filename: string, content: string, type: string) => {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
+
+const csvCell = (value: unknown) => {
+  const text = value === undefined || value === null ? '' : String(value);
+  return `"${text.replace(/"/g, '""')}"`;
+};
 
 const App: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
   const [report, setReport] = useState<AuditReport | null>(null);
   const [aiAnalysis, setAiAnalysis] = useState('');
   const [cleaningScript, setCleaningScript] = useState('');
+  const [approvedCleaningScript, setApprovedCleaningScript] = useState('');
   const [isScriptLoading, setIsScriptLoading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isAiLoading, setIsAiLoading] = useState(false);
@@ -31,6 +49,16 @@ const App: React.FC = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showMobileNav, setShowMobileNav] = useState(false);
+  const [hasExported, setHasExported] = useState(false);
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    const saved = localStorage.getItem('aura_theme');
+    return saved === 'light' ? 'light' : 'dark';
+  });
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('light', theme === 'light');
+    localStorage.setItem('aura_theme', theme);
+  }, [theme]);
   const [logs, setLogs] = useState<{ time: string; msg: string }[]>([]);
   const [lastMetrics, setLastMetrics] = useState<ProviderMetrics | null>(null);
 
@@ -107,6 +135,7 @@ const App: React.FC = () => {
 
     setIsScriptLoading(true);
     setCleaningScript('');
+    setApprovedCleaningScript('');
     addLog('Generando script de limpieza...');
 
     try {
@@ -127,6 +156,9 @@ const App: React.FC = () => {
     setIsProcessing(true);
     setReport(null);
     setAiAnalysis('');
+    setCleaningScript('');
+    setApprovedCleaningScript('');
+    setHasExported(false);
     setLogs([]);
     addLog(`Cargando ${uploadedFile.name}...`);
 
@@ -158,10 +190,13 @@ const App: React.FC = () => {
       if (isAiAvailable) {
         const { content: executiveContent, metrics } = await aiProvider.generateExecutiveReport(report);
         setLastMetrics(metrics);
-        generatePdfReport(report, executiveContent);
+        generatePdfReport(report, {
+          ...executiveContent,
+          python_script: approvedCleaningScript || executiveContent.python_script,
+        });
         addLog('PDF generado con análisis IA');
       } else {
-        const fallbackContent = {
+        const fallbackContent: ExecutiveReportContent = {
           title: 'AURA — Informe de Auditoría',
           domain_inferred: 'Dataset cargado por el usuario',
           dataset_technical_description: `Dataset CSV con ${report.rowCount} registros y ${report.colCount} columnas. ${report.duplicateRows} filas duplicadas detectadas.`,
@@ -172,11 +207,13 @@ const App: React.FC = () => {
             'Revisar las anomalías detectadas antes de usar el dataset',
             'Ejecutar con IA habilitada para obtener interpretación completa',
             'Verificar manualmente las muestras afectadas'
-          ]
+          ],
+          python_script: approvedCleaningScript || undefined,
         };
         generatePdfReport(report, fallbackContent);
         addLog('PDF generado (sin IA)');
       }
+      setHasExported(true);
     } catch (error: any) {
       addLog(`Error generando PDF: ${error.message || 'no fue posible generar el PDF'}`);
     } finally {
@@ -188,18 +225,60 @@ const App: React.FC = () => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
+  const handleExportJson = () => {
+    if (!report) return;
+    downloadTextFile(
+      `aura_audit_${Date.now()}.json`,
+      JSON.stringify({ fileName: file?.name, generatedAt: new Date().toISOString(), report, aiAnalysis }, null, 2),
+      'application/json;charset=utf-8'
+    );
+    setHasExported(true);
+    addLog('JSON de auditoría exportado');
+  };
+
+  const handleExportIssuesCsv = () => {
+    if (!report) return;
+    const header = ['id', 'severity', 'category', 'ruleName', 'column', 'count', 'affectedPercentage', 'description', 'sampleValues'];
+    const rows = report.issues.map((issue) => [
+      issue.id,
+      issue.severity,
+      issue.category,
+      issue.ruleName,
+      issue.column ?? '',
+      issue.count,
+      issue.affectedPercentage.toFixed(2),
+      issue.description,
+      issue.sampleValues.map(String).join(' | '),
+    ]);
+    const csv = [header, ...rows].map((row) => row.map(csvCell).join(',')).join('\n');
+    downloadTextFile(`aura_issues_${Date.now()}.csv`, csv, 'text/csv;charset=utf-8');
+    setHasExported(true);
+    addLog('CSV de anomalías exportado');
+  };
+
+  const handleExportApprovedScript = () => {
+    if (!approvedCleaningScript) return;
+    downloadTextFile(`aura_script_aprobado_${Date.now()}.py`, approvedCleaningScript, 'text/x-python;charset=utf-8');
+    setHasExported(true);
+    addLog('Script aprobado exportado');
+  };
+
   const terminalRows = logs.length > 0
     ? logs
     : [{ time: '--:--:--', msg: 'Esperando un archivo CSV para analizar' }];
 
   const hasData = !!report;
   const hasAiAnalysis = !!aiAnalysis;
-  const hasExport = hasData;
+  const hasScript = !!cleaningScript;
+  const hasApprovedScript = !!approvedCleaningScript;
 
   const steps = [
-    { num: 1, label: 'Carga', icon: <Upload size={14} />, done: hasData, active: !hasData },
-    { num: 2, label: 'Analiza', icon: <Brain size={14} />, done: hasAiAnalysis, active: hasData && !hasAiAnalysis },
-    { num: 3, label: 'Exporta', icon: <FileText size={14} />, done: false, active: hasAiAnalysis },
+    { num: 1, label: 'Subir CSV', icon: <Upload size={14} />, target: 'ingesta', done: hasData, active: !hasData },
+    { num: 2, label: 'Diagnóstico', icon: <Search size={14} />, target: 'resultados', done: hasData, active: hasData && !hasAiAnalysis && !hasScript && !isAiLoading },
+    { num: 3, label: 'Explorar', icon: <Table2 size={14} />, target: 'explorar', done: hasData, active: false },
+    { num: 4, label: 'Análisis IA', icon: <Brain size={14} />, target: 'ia', done: hasAiAnalysis, active: hasData && (isAiLoading || (hasAiAnalysis && !hasScript)) },
+    { num: 5, label: 'Revisar', icon: <ClipboardCheck size={14} />, target: 'revision', done: hasApprovedScript, active: hasScript && !hasApprovedScript },
+    { num: 6, label: 'Exportar', icon: <FileText size={14} />, target: 'evidencia', done: hasExported, active: hasData && (hasApprovedScript || hasAiAnalysis) && !hasExported },
   ];
 
   return (
@@ -257,13 +336,21 @@ const App: React.FC = () => {
         <div className={`nav-links ${showMobileNav ? 'nav-links-open' : ''}`}>
           <button className="nav-link" onClick={() => { scrollTo('sistema'); setShowMobileNav(false); }}>Inicio</button>
           {hasData && <button className="nav-link" onClick={() => { scrollTo('resultados'); setShowMobileNav(false); }}>Resultados</button>}
+          {hasData && <button className="nav-link" onClick={() => { scrollTo('explorar'); setShowMobileNav(false); }}>Explorar</button>}
           {hasData && <button className="nav-link" onClick={() => { scrollTo('ia'); setShowMobileNav(false); }}>IA</button>}
-          {hasData && <button className="nav-link" onClick={() => { scrollTo('benchmark'); setShowMobileNav(false); }}>Benchmark</button>}
+          {hasData && <button className="nav-link" onClick={() => { scrollTo('evidencia'); setShowMobileNav(false); }}>Exportar</button>}
           <div className="nav-status"><div className="pulse" />{isProcessing || isAiLoading ? 'running' : 'online'}</div>
           <button className="nav-cta" onClick={() => { scrollTo('sistema'); setShowMobileNav(false); }}>
             {hasData ? 'Nuevo análisis' : 'Empezar'}
           </button>
           <button className="icon-btn" onClick={() => { setShowHelp(true); setShowMobileNav(false); }} aria-label="Centro de ayuda"><HelpCircle size={14} /></button>
+          <button
+            className={`theme-toggle ${theme === 'light' ? 'on' : ''}`}
+            onClick={() => { setTheme(t => t === 'dark' ? 'light' : 'dark'); setShowMobileNav(false); }}
+            aria-label="Cambiar tema"
+          >
+            <span className="theme-toggle-thumb" />
+          </button>
           <button className="icon-btn" onClick={() => { setShowSettings(true); setShowMobileNav(false); }} aria-label="Ajustes"><Settings size={14} /></button>
         </div>
         <button className="mobile-nav-toggle" onClick={() => setShowMobileNav(!showMobileNav)} aria-label="Menú de navegación">
@@ -279,10 +366,14 @@ const App: React.FC = () => {
           <div className="stepper-track">
             {steps.map((step, i) => (
               <React.Fragment key={step.num}>
-                <div className={`stepper-step ${step.done ? 'done' : ''} ${step.active ? 'active' : ''}`}>
+                <button
+                  className={`stepper-step ${step.done ? 'done' : ''} ${step.active ? 'active' : ''}`}
+                  onClick={() => scrollTo(step.target)}
+                  disabled={!hasData && step.num > 1}
+                >
                   <div className="stepper-icon">{step.done ? <Check size={14} /> : step.icon}</div>
                   <span className="stepper-label">{step.label}</span>
-                </div>
+                </button>
                 {i < steps.length - 1 && <div className="stepper-line" />}
               </React.Fragment>
             ))}
@@ -326,16 +417,17 @@ const App: React.FC = () => {
           <div className="stat"><p className="stat-lbl">score</p><p className="stat-num">{report ? `${report.score}%` : '-'}</p><p className="stat-sub">motor determinista</p></div>
         </section>
 
-        {/* Capas compactas */}
+        {/* Flujo compactado */}
         {!hasData && (
-          <section className="section" id="capas">
-            <p className="sec-eye">arquitectura</p>
+          <section className="section" id="flujo">
+            <p className="sec-eye">flujo de trabajo</p>
             <div className="layers-compact">
-              <div className="layer-c"><span className="layer-cn">00</span><span>Infraestructura</span></div>
-              <div className="layer-c"><span className="layer-cn">01</span><span>Motor determinista</span></div>
-              <div className="layer-c"><span className="layer-cn">02</span><span>Cognitivo IA</span></div>
-              <div className="layer-c"><span className="layer-cn">03</span><span>Gobernanza</span></div>
-              <div className="layer-c"><span className="layer-cn">04</span><span>Benchmark</span></div>
+              <div className="layer-c"><span className="layer-cn">01</span><span>Subir CSV</span></div>
+              <div className="layer-c"><span className="layer-cn">02</span><span>Diagnóstico rápido</span></div>
+              <div className="layer-c"><span className="layer-cn">03</span><span>Explorar evidencia</span></div>
+              <div className="layer-c"><span className="layer-cn">04</span><span>Consultar IA</span></div>
+              <div className="layer-c"><span className="layer-cn">05</span><span>Aprobar tratamiento</span></div>
+              <div className="layer-c"><span className="layer-cn">06</span><span>Llevar informe</span></div>
             </div>
           </section>
         )}
@@ -376,7 +468,7 @@ const App: React.FC = () => {
         )}
 
         {report && (
-          <section className="section">
+          <section className="section" id="explorar">
             <p className="sec-eye">hallazgos</p>
             <h2 className="sec-title">Anomalías detectadas.</h2>
             <IssueList issues={report.issues} />
@@ -396,8 +488,8 @@ const App: React.FC = () => {
           <section className="section" id="ia">
             <div className="section-header">
               <div>
-                <p className="sec-eye">capa 2 · IA</p>
-                <h2 className="sec-title">Interpretación cognitiva.</h2>
+                <p className="sec-eye">consulta IA</p>
+                <h2 className="sec-title">Análisis asistido.</h2>
               </div>
               <div className="section-actions">
                 <button className="btn-p" disabled={isAiLoading} onClick={() => runAiAnalysis(report)}>
@@ -413,14 +505,24 @@ const App: React.FC = () => {
                 <GeminiAdvisor analysis={aiAnalysis} isLoading={isAiLoading} />
               </div>
               <aside className="mini-panel">
-                <div className="layer"><span className="layer-n"><Database size={14} /></span><span className="layer-name">Smart sample</span><span className="layer-tag">{report.issues.length} issues</span></div>
+                <div className="layer"><span className="layer-n"><Database size={14} /></span><span className="layer-name">Evidencia enviada</span><span className="layer-tag">{report.issues.length} issues</span></div>
                 <div className="layer"><span className="layer-n"><Brain size={14} /></span><span className="layer-name">{aiConfig.model}</span><span className="layer-tag">{aiConfig.providerType}</span></div>
                 <div className="layer"><span className="layer-n"><ShieldCheck size={14} /></span><span className="layer-name">Última latencia</span><span className="layer-tag">{lastMetrics ? `${lastMetrics.latencyMs}ms` : '-'}</span></div>
               </aside>
             </div>
             {cleaningScript && (
-              <div className="mt-6">
-                <ScriptReview code={cleaningScript} language="python" />
+              <div className="mt-6" id="revision">
+                <ScriptReview
+                  code={cleaningScript}
+                  language="python"
+                  report={report}
+                  approvedCode={approvedCleaningScript}
+                  onDraftChange={() => setApprovedCleaningScript('')}
+                  onApprove={(approvedCode) => {
+                    setApprovedCleaningScript(approvedCode);
+                    addLog('Script aprobado por revisión humana');
+                  }}
+                />
               </div>
             )}
 
@@ -452,13 +554,26 @@ const App: React.FC = () => {
 
         {report && (
           <section className="quote" id="evidencia">
-            <p className="quote-text">"La calidad de los datos no es un problema técnico: es un problema de conocimiento, evidencia y trazabilidad."</p>
-            <p className="quote-attr">AURA · memoria TFM · arquitectura experimental</p>
-            <div className="hero-actions quote-actions">
+            <p className="quote-text">Informe y evidencia listos para llevar.</p>
+            <p className="quote-attr">Exporta el diagnóstico determinista, la interpretación y los artefactos aprobados.</p>
+            <div className="export-grid">
               <button className="btn-p" onClick={handleDownloadPdf} disabled={isPdfGenerating}>
                 <FileText size={14} /> {isPdfGenerating ? 'Generando' : 'Exportar reporte'}
               </button>
-              <button className="btn-s">críticos {criticalCount} · advertencias {warningCount}</button>
+              <button className="btn-s" onClick={handleExportJson}>
+                <FileJson size={14} /> JSON audit
+              </button>
+              <button className="btn-s" onClick={handleExportIssuesCsv}>
+                <Download size={14} /> CSV issues
+              </button>
+              <button className="btn-s" onClick={handleExportApprovedScript} disabled={!approvedCleaningScript}>
+                <FileCode2 size={14} /> Script aprobado
+              </button>
+            </div>
+            <div className="export-summary">
+              <span>críticos {criticalCount}</span>
+              <span>advertencias {warningCount}</span>
+              <span>{approvedCleaningScript ? 'script HITL aprobado' : 'script pendiente de aprobación'}</span>
             </div>
           </section>
         )}
