@@ -1151,6 +1151,51 @@
     text-align: center;
   }
 
+  /* Benchmark Charts */
+  .benchmark-charts {
+    border-top: 1px solid var(--border);
+    padding-top: 2rem;
+  }
+
+  .benchmark-charts-head {
+    margin-bottom: 1.5rem;
+  }
+
+  .benchmark-charts-head h3 {
+    margin: 0.25rem 0 0;
+    color: var(--ink);
+    font-family: var(--mono);
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  .benchmark-charts-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .benchmark-chart-card {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    padding: 16px;
+    overflow: hidden;
+  }
+
+  .benchmark-chart-card-full {
+    grid-column: 1 / -1;
+  }
+
+  .benchmark-chart-title {
+    margin: 0 0 12px;
+    color: var(--ink3);
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
   .improvement-panel {
     border-top: 1px solid var(--border);
   }
@@ -1872,6 +1917,14 @@
 
   .benchmark-grid {
     grid-template-columns: 1fr;
+  }
+
+  .benchmark-charts-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .benchmark-chart-card-full {
+    grid-column: auto;
   }
 
   .improvement-grid,

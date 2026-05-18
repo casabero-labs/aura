@@ -3,6 +3,7 @@ import { AuditReport, AIConfig, BenchmarkResult } from '../types';
 import { AVAILABLE_MODELS } from '../services/aiProvider';
 import { runBenchmarkForConfig } from '../services/benchmarkService';
 import { exportBenchmarkJson, experimentStats, compositeScore } from '../services/benchmark/evaluationService';
+import { ScoreBarChart, RadarChart, ScatterPlot, HallucinationChart, LatencyChart } from './BenchmarkCharts';
 
 interface ExperimentConfig {
   model: string;
@@ -274,6 +275,32 @@ export const ExperimentDesigner = ({ report, config, onLog }: ExperimentDesigner
               </div>
             </div>
           </div>
+
+          <div style={styles.section}>
+            <h3 style={styles.sectionTitle}>Visualización de Métricas</h3>
+            <div style={styles.chartsGrid}>
+              <div style={styles.chartCard}>
+                <h4 style={styles.chartTitle}>Score Compuesto por Modelo</h4>
+                <ScoreBarChart results={completedResults} />
+              </div>
+              <div style={styles.chartCard}>
+                <h4 style={styles.chartTitle}>Perfil Multi-Dimensional</h4>
+                <RadarChart results={completedResults} />
+              </div>
+              <div style={styles.chartCard}>
+                <h4 style={styles.chartTitle}>Latencia vs Score</h4>
+                <ScatterPlot results={completedResults} />
+              </div>
+              <div style={styles.chartCard}>
+                <h4 style={styles.chartTitle}>Alucinaciones y Claims</h4>
+                <HallucinationChart results={completedResults} />
+              </div>
+              <div style={styles.chartCardFull}>
+                <h4 style={styles.chartTitle}>Latencia por Modelo (↓ mejor)</h4>
+                <LatencyChart results={completedResults} />
+              </div>
+            </div>
+          </div>
         </>
       )}
     </div>
@@ -452,5 +479,30 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '18px',
     fontWeight: 600,
     color: '#7FFF7F',
+  },
+  chartsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, 1fr)',
+    gap: '16px',
+  },
+  chartCard: {
+    backgroundColor: 'var(--bg)',
+    border: '1px solid var(--border)',
+    padding: '12px',
+  },
+  chartCardFull: {
+    backgroundColor: 'var(--bg)',
+    border: '1px solid var(--border)',
+    padding: '12px',
+    gridColumn: '1 / -1',
+  },
+  chartTitle: {
+    margin: '0 0 8px 0',
+    fontSize: '11px',
+    fontWeight: 600,
+    color: 'var(--ink3)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+    fontFamily: '"JetBrains Mono", monospace',
   },
 };

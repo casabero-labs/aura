@@ -4,6 +4,7 @@ import { AIConfig, AuditExecutionEvidence, AuditReport, BenchmarkResult, Executi
 import { AVAILABLE_MODELS } from '../services/aiProvider';
 import { runBenchmarkForConfig } from '../services/benchmarkService';
 import { createImprovementRun } from '../services/improvementService';
+import { ScoreBarChart, RadarChart, ScatterPlot, HallucinationChart, LatencyChart } from './BenchmarkCharts';
 
 interface BenchmarkPanelProps {
   report: AuditReport;
@@ -372,6 +373,37 @@ const BenchmarkPanel: React.FC<BenchmarkPanelProps> = ({
           </tbody>
         </table>
       </div>
+
+      {results.filter(r => r.status === 'completed').length > 0 && (
+        <div className="benchmark-charts mt-8">
+          <div className="benchmark-charts-head">
+            <p className="eyebrow">Análisis Visual de Métricas</p>
+            <h3>Resultados del Benchmark</h3>
+          </div>
+          <div className="benchmark-charts-grid">
+            <div className="benchmark-chart-card">
+              <h4 className="benchmark-chart-title">Score Compuesto por Modelo</h4>
+              <ScoreBarChart results={results.filter(r => r.status === 'completed')} />
+            </div>
+            <div className="benchmark-chart-card">
+              <h4 className="benchmark-chart-title">Perfil Multi-Dimensional</h4>
+              <RadarChart results={results.filter(r => r.status === 'completed')} />
+            </div>
+            <div className="benchmark-chart-card">
+              <h4 className="benchmark-chart-title">Latencia vs Score</h4>
+              <ScatterPlot results={results.filter(r => r.status === 'completed')} />
+            </div>
+            <div className="benchmark-chart-card">
+              <h4 className="benchmark-chart-title">Alucinaciones y Claims sin Soporte</h4>
+              <HallucinationChart results={results.filter(r => r.status === 'completed')} />
+            </div>
+            <div className="benchmark-chart-card benchmark-chart-card-full">
+              <h4 className="benchmark-chart-title">Latencia por Modelo (↓ mejor)</h4>
+              <LatencyChart results={results.filter(r => r.status === 'completed')} />
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 };
