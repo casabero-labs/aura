@@ -1113,46 +1113,30 @@
     z-index: 99;
     display: flex !important;
     flex-direction: column;
-    align-items: center;
+    align-items: stretch;
     justify-content: flex-start;
-    gap: 0;
-    padding: 1.5rem 1rem;
-    background: var(--bg);
-    border-top: 1px solid var(--border);
+    gap: 1px;
+    padding: 0;
+    background: var(--surface2);
   }
 
   .nav-links-open .nav-link,
   .nav-links-open .nav-status,
-  .nav-links-open .nav-cta {
+  .nav-links-open .nav-cta,
+  .nav-links-open .icon-btn {
     display: flex !important;
     width: 100%;
-    max-width: 280px;
-    min-height: 44px;
+    min-height: 48px;
     align-items: center;
     justify-content: center;
     font-size: 13px;
-    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    border: 0;
+    border-radius: 0;
   }
 
-  .nav-links-open .nav-link:last-of-type {
-    border-bottom: 0;
-  }
-
-  .nav-links-open .nav-status {
-    gap: 8px;
-    padding: 1rem 0;
-  }
-
-  .nav-links-open .nav-cta {
-    margin: 1rem 0;
-  }
-
-  .nav-links-open .icon-btn {
-    width: 100%;
-    max-width: 280px;
-    min-height: 40px;
-    gap: 8px;
-    margin-top: 0.25rem;
+  .nav-links-open .nav-link:hover {
+    background: var(--surface-hover);
   }
 
   .sys-main {
