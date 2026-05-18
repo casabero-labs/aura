@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { sql } from '../db.js';
+import { getDb } from '../db.js';
 
 export const settingsRoutes = new Hono();
 
@@ -10,12 +10,14 @@ const SettingsSchema = z.object({
 });
 
 settingsRoutes.get('/', async (c) => {
+  const sql = getDb();
   const settings = await sql`SELECT key, value, updated_at FROM user_settings ORDER BY key`;
   return c.json({ settings });
 });
 
 settingsRoutes.get('/:key', async (c) => {
   const key = c.req.param('key');
+  const sql = getDb();
   const result = await sql`SELECT key, value, updated_at FROM user_settings WHERE key = ${key}`;
 
   if (result.length === 0) {
@@ -34,6 +36,7 @@ settingsRoutes.post('/', async (c) => {
   }
 
   const { key, value } = parsed.data;
+  const sql = getDb();
 
   const result = await sql`
     INSERT INTO user_settings (key, value)
@@ -47,6 +50,7 @@ settingsRoutes.post('/', async (c) => {
 
 settingsRoutes.delete('/:key', async (c) => {
   const key = c.req.param('key');
+  const sql = getDb();
   await sql`DELETE FROM user_settings WHERE key = ${key}`;
   return c.json({ deleted: key });
 });

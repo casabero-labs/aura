@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { sql } from '../db.js';
+import { getDb } from '../db.js';
 
 export const benchmarksRoutes = new Hono();
 
@@ -27,18 +27,9 @@ const BenchmarkSchema = z.object({
 });
 
 benchmarksRoutes.get('/', async (c) => {
+  const sql = getDb();
   const sessionId = c.req.query('session_id');
   const limit = parseInt(c.req.query('limit') || '100');
-
-  let query = sql`
-    SELECT * FROM benchmark_runs
-  `;
-
-  if (sessionId) {
-    query = sql`
-      SELECT * FROM benchmark_runs WHERE session_id = ${sessionId}
-    `;
-  }
 
   const benchmarks = await sql`
     SELECT * FROM benchmark_runs
@@ -52,6 +43,7 @@ benchmarksRoutes.get('/', async (c) => {
 
 benchmarksRoutes.get('/:id', async (c) => {
   const id = c.req.param('id');
+  const sql = getDb();
   const result = await sql`SELECT * FROM benchmark_runs WHERE id = ${id}`;
 
   if (result.length === 0) {
@@ -70,6 +62,7 @@ benchmarksRoutes.post('/', async (c) => {
   }
 
   const data = parsed.data;
+  const sql = getDb();
 
   const result = await sql`
     INSERT INTO benchmark_runs (
@@ -108,6 +101,7 @@ benchmarksRoutes.post('/', async (c) => {
 benchmarksRoutes.patch('/:id', async (c) => {
   const id = c.req.param('id');
   const body = await c.req.json();
+  const sql = getDb();
 
   const existing = await sql`SELECT * FROM benchmark_runs WHERE id = ${id}`;
   if (existing.length === 0) {
@@ -146,6 +140,7 @@ benchmarksRoutes.patch('/:id', async (c) => {
 
 benchmarksRoutes.delete('/:id', async (c) => {
   const id = c.req.param('id');
+  const sql = getDb();
   await sql`DELETE FROM benchmark_runs WHERE id = ${id}`;
   return c.json({ deleted: id });
 });

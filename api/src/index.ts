@@ -4,6 +4,7 @@ import { logger } from 'hono/logger';
 import { settingsRoutes } from './routes/settings.js';
 import { sessionsRoutes } from './routes/sessions.js';
 import { benchmarksRoutes } from './routes/benchmarks.js';
+import { migrate } from './db/migrate.js';
 
 const app = new Hono();
 
@@ -22,7 +23,19 @@ app.route('/api/benchmarks', benchmarksRoutes);
 
 const port = parseInt(process.env.PORT || '4000');
 
-console.log(`Aura API starting on port ${port}`);
+async function start() {
+  try {
+    console.log('Running migrations...');
+    await migrate();
+    console.log('Migrations complete.');
+  } catch (err) {
+    console.error('Migration failed, continuing anyway:', err);
+  }
+
+  console.log(`Aura API starting on port ${port}`);
+}
+
+start();
 
 export default {
   fetch: app.fetch,

@@ -1,6 +1,8 @@
-import { sql } from '../db.js';
+import { getDb } from '../db.js';
 
 export async function migrate() {
+  const sql = getDb();
+
   await sql`
     CREATE TABLE IF NOT EXISTS user_settings (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

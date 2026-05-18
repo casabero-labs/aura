@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { sql } from '../db.js';
+import { getDb } from '../db.js';
 
 export const sessionsRoutes = new Hono();
 
@@ -19,6 +19,7 @@ const SessionSchema = z.object({
 });
 
 sessionsRoutes.get('/', async (c) => {
+  const sql = getDb();
   const limit = parseInt(c.req.query('limit') || '50');
   const offset = parseInt(c.req.query('offset') || '0');
 
@@ -34,6 +35,7 @@ sessionsRoutes.get('/', async (c) => {
 
 sessionsRoutes.get('/:id', async (c) => {
   const id = c.req.param('id');
+  const sql = getDb();
   const result = await sql`SELECT * FROM analysis_sessions WHERE id = ${id}`;
 
   if (result.length === 0) {
@@ -52,6 +54,7 @@ sessionsRoutes.post('/', async (c) => {
   }
 
   const data = parsed.data;
+  const sql = getDb();
 
   const result = await sql`
     INSERT INTO analysis_sessions (
@@ -79,6 +82,7 @@ sessionsRoutes.post('/', async (c) => {
 sessionsRoutes.patch('/:id', async (c) => {
   const id = c.req.param('id');
   const body = await c.req.json();
+  const sql = getDb();
 
   const existing = await sql`SELECT * FROM analysis_sessions WHERE id = ${id}`;
   if (existing.length === 0) {
@@ -113,6 +117,7 @@ sessionsRoutes.patch('/:id', async (c) => {
 
 sessionsRoutes.delete('/:id', async (c) => {
   const id = c.req.param('id');
+  const sql = getDb();
   await sql`DELETE FROM analysis_sessions WHERE id = ${id}`;
   return c.json({ deleted: id });
 });
