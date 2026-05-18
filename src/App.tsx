@@ -29,6 +29,7 @@ const App: React.FC = () => {
   const [isPdfGenerating, setIsPdfGenerating] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [showMobileNav, setShowMobileNav] = useState(false);
   const [logs, setLogs] = useState<{ time: string; msg: string; bold: string }[]>([]);
   const [lastMetrics, setLastMetrics] = useState<ProviderMetrics | null>(null);
 
@@ -200,19 +201,56 @@ const App: React.FC = () => {
       )}
 
       {showHelp && (
-        <div className="help-backdrop" role="dialog" aria-modal="true" aria-labelledby="help-title">
-          <section className="help-panel">
+        <div className="help-backdrop" role="dialog" aria-modal="true" aria-labelledby="help-title" onClick={() => setShowHelp(false)}>
+          <section className="help-panel" onClick={(e) => e.stopPropagation()}>
             <div className="panel-line">
               <p className="sec-eye">centro de ayuda</p>
               <button className="icon-btn" onClick={() => setShowHelp(false)} aria-label="Cerrar ayuda">×</button>
             </div>
-            <h2 id="help-title" className="sec-title">Flujo operativo.</h2>
-            <ol className="help-steps">
-              <li>Carga un CSV. La Capa 0 y Capa 1 se ejecutan localmente.</li>
-              <li>Revisa score, reglas, columnas y muestras afectadas.</li>
-              <li>Ejecuta la Capa 2 para interpretación con LLM local o contraste cloud.</li>
-              <li>Usa Benchmark para comparar condiciones y obtener evidencia del TFM.</li>
-            </ol>
+
+            <div className="help-sections">
+              <details className="help-section" open>
+                <summary className="help-summary">Flujo operativo</summary>
+                <ol className="help-steps">
+                  <li><strong>Carga un CSV.</strong> La Capa 0 (WebLLM local) y Capa 1 (motor determinista) se ejecutan al instante.</li>
+                  <li><strong>Revisa resultados.</strong> Score general, reglas activadas, perfil de columnas y muestras afectadas.</li>
+                  <li><strong>Ejecuta la Capa 2.</strong> Interpretación con LLM local (WebGPU) o contraste cloud (Gemini).</li>
+                  <li><strong>Script de limpieza.</strong> La Capa 3 genera un script Python revisable antes de aplicarlo.</li>
+                  <li><strong>Benchmark.</strong> Capa 4: compara LLM local vs cloud bajo las mismas condiciones.</li>
+                  <li><strong>Exporta.</strong> Descarga el reporte PDF con evidencia completa.</li>
+                </ol>
+              </details>
+
+              <details className="help-section">
+                <summary className="help-summary">Arquitectura</summary>
+                <div className="layers help-layers">
+                  <div className="layer"><span className="layer-n">00</span><span className="layer-name">Infraestructura</span><span className="layer-desc">WebLLM/WebGPU como ruta principal. Sin datos al servidor.</span><span className="layer-tag">local</span></div>
+                  <div className="layer"><span className="layer-n">01</span><span className="layer-name">Motor determinista</span><span className="layer-desc">18+ reglas Typescript auditables. Sin IA, sin secretos.</span><span className="layer-tag">rules</span></div>
+                  <div className="layer"><span className="layer-n">02</span><span className="layer-name">Cognitivo</span><span className="layer-desc">Smart sample + salida estructurada. Interpretación anclada a evidencia.</span><span className="layer-tag">LLM</span></div>
+                  <div className="layer"><span className="layer-n">03</span><span className="layer-name">Gobernanza</span><span className="layer-desc">Scripts revisables antes de aplicar. Control humano (HITL).</span><span className="layer-tag">human</span></div>
+                  <div className="layer"><span className="layer-n">04</span><span className="layer-name">Benchmark</span><span className="layer-desc">Local vs cloud bajo condiciones comparables. Evidencia para TFM.</span><span className="layer-tag">evidence</span></div>
+                </div>
+              </details>
+
+              <details className="help-section">
+                <summary className="help-summary">Modelos y proveedores</summary>
+                <div className="help-text">
+                  <p><strong>Local (WebLLM):</strong> Usa WebGPU en Chrome/Edge. Modelo por defecto: Llama-3.2-3B-Instruct. Sin API key, sin datos que salgan del navegador.</p>
+                  <p><strong>Cloud (Gemini):</strong> Ingresa tu API key de Google AI Studio en Ajustes. Mayor capacidad de análisis, pero los datos viajan al proveedor.</p>
+                  <p><strong>Pro tip:</strong> Usa local para datos sensibles, cloud para análisis profundos. Benchmark te ayuda a comparar ambos.</p>
+                </div>
+              </details>
+
+              <details className="help-section">
+                <summary className="help-summary">Reportes y scores</summary>
+                <div className="help-text">
+                  <p><strong>Score (0-100):</strong> Penaliza por anomalías detectadas. &gt;80 = dataset confiable, &lt;80 = requiere limpieza.</p>
+                  <p><strong>Reglas:</strong> Cada regla (R1-R18) verifica un aspecto: nulos, duplicados, outliers, formatos, integridad referencial, etc.</p>
+                  <p><strong>Anomalías:</strong> CRITICAL (bloqueante), WARNING (requiere revisión), INFO (sugerencia).</p>
+                  <p><strong>PDF:</strong> Incluye score, reglas activadas, perfil de columnas e interpretación IA (si está disponible).</p>
+                </div>
+              </details>
+            </div>
           </section>
         </div>
       )}
@@ -222,34 +260,34 @@ const App: React.FC = () => {
           <span className="logo-full">AURA</span>
           <span className="logo-short">AU</span>
         </span>
-        <div className="nav-links">
-          <button className="nav-link" onClick={() => scrollTo('sistema')}>Sistema</button>
-          <button className="nav-link" onClick={() => scrollTo('capas')}>Capas</button>
-          <button className="nav-link" onClick={() => scrollTo('benchmark')}>Benchmark</button>
-          <button className="nav-link" onClick={() => scrollTo('evidencia')}>Docs</button>
+        <button className="mobile-nav-toggle" onClick={() => setShowMobileNav(!showMobileNav)} aria-label="Menú de navegación">
+          <span className={`hamburger ${showMobileNav ? 'open' : ''}`}>
+            <span /><span /><span />
+          </span>
+        </button>
+        <div className={`nav-links ${showMobileNav ? 'nav-links-open' : ''}`}>
+          <button className="nav-link" onClick={() => { scrollTo('sistema'); setShowMobileNav(false); }}>Sistema</button>
+          <button className="nav-link" onClick={() => { scrollTo('capas'); setShowMobileNav(false); }}>Capas</button>
+          <button className="nav-link" onClick={() => { scrollTo('benchmark'); setShowMobileNav(false); }}>Benchmark</button>
+          <button className="nav-link" onClick={() => { scrollTo('evidencia'); setShowMobileNav(false); }}>Docs</button>
           <div className="nav-status"><div className="pulse" />{isProcessing || isAiLoading ? 'running' : 'online'}</div>
-          <button className="nav-cta" onClick={() => scrollTo('sistema')}>Iniciar diagnóstico</button>
-          <button className="icon-btn" onClick={() => setShowHelp(true)} aria-label="Centro de ayuda"><HelpCircle size={14} /></button>
-          <button className="icon-btn" onClick={() => setShowSettings(true)} aria-label="Ajustes"><Settings size={14} /></button>
+          <button className="nav-cta" onClick={() => { scrollTo('sistema'); setShowMobileNav(false); }}>Iniciar diagnóstico</button>
+          <button className="icon-btn" onClick={() => { setShowHelp(true); setShowMobileNav(false); }} aria-label="Centro de ayuda"><HelpCircle size={14} /></button>
+          <button className="icon-btn" onClick={() => { setShowSettings(true); setShowMobileNav(false); }} aria-label="Ajustes"><Settings size={14} /></button>
         </div>
       </nav>
 
       <main className="sys-main">
         <section className="hero" id="sistema">
           <div className="hero-pre">
-            <span>aura</span><span className="sep">·</span>
-            <span>tfm tipo 2</span><span className="sep">·</span>
-            <span>{aiConfig.providerType === 'local' ? 'local-first' : 'cloud contrast'}</span><span className="sep">·</span>
-            <span>{file?.name ?? 'sin dataset'}</span>
+            <span className="hero-badge">tfm · tipo 2</span>
+            <span className="hero-badge">{aiConfig.providerType === 'local' ? 'local-first' : 'cloud contrast'}</span>
+            {file && <span className="hero-badge">{file.name}</span>}
           </div>
           <h1 className="hero-h1">Diagnóstico<br /><em>cognitivo</em> de<br />calidad de datos.</h1>
-          <p className="hero-body">
-            AURA ejecuta un flujo de auditoría reproducible: primero verifica con reglas deterministas,
-            después interpreta con IA anclada a evidencia y finalmente compara LLM local frente a cloud.
-          </p>
           <div className="hero-actions">
             <button className="btn-p" onClick={() => scrollTo('ingesta')}>Ejecutar AURA →</button>
-            <button className="btn-s" onClick={() => scrollTo('evidencia')}>$ docs --open</button>
+            <button className="btn-s" onClick={() => setShowHelp(true)}>? Ayuda</button>
           </div>
         </section>
 
