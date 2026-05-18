@@ -232,6 +232,7 @@ const App: React.FC = () => {
                   <div className="layer"><span className="layer-n">02</span><span className="layer-name">Cognitivo</span><span className="layer-desc">Smart sample + salida estructurada. Interpretación anclada a evidencia.</span><span className="layer-tag">LLM</span></div>
                   <div className="layer"><span className="layer-n">03</span><span className="layer-name">Gobernanza</span><span className="layer-desc">Scripts revisables antes de aplicar. Control humano (HITL).</span><span className="layer-tag">human</span></div>
                   <div className="layer"><span className="layer-n">04</span><span className="layer-name">Benchmark</span><span className="layer-desc">Local vs cloud bajo condiciones comparables. Evidencia para TFM.</span><span className="layer-tag">evidence</span></div>
+                  <div className="layer"><span className="layer-n">05</span><span className="layer-name">Experiment Designer</span><span className="layer-desc">N configs con modelo + temperatura + modo. Score compuesto.</span><span className="layer-tag">experimental</span></div>
                 </div>
               </details>
 
