@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { ArrowRight, FileCode2, ShieldCheck } from 'lucide-react';
 import { AIProvider, AuditReport, ProviderMetrics, ScriptValidationResult } from '../types';
+import { highlightPython } from '../services/highlightPython';
 
 interface ScriptGenerationStepProps {
   report: AuditReport;
@@ -150,7 +151,7 @@ const ScriptGenerationStep: React.FC<ScriptGenerationStepProps> = ({
                     {cleaningScript.split('\n').map((line, index) => (
                       <span key={`${index}-${line}`} className="script-line">
                         <span className="line-number">{String(index + 1).padStart(2, '0')}</span>
-                        <code>{line || ' '}</code>
+                        <code dangerouslySetInnerHTML={{ __html: highlightPython(line) || ' ' }} />
                       </span>
                     ))}
                   </pre>

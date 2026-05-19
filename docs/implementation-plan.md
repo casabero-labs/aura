@@ -91,3 +91,54 @@
 - Evaluación humana automatizada (se hace manual con escala Likert)
 - Corrección automática de alucinaciones (solo detección y métricas)
 - Soporte para modelos locales mayores a 3B parámetros (límite de VRAM de navegador)
+
+---
+
+## Mejoras Próximas (Backlog Post-TFM)
+
+### 1. Soporte Unsloth/GGUF
+**Complejidad: Alta | ROI: Bajo (actualmente)**
+
+**Problema:** WebLLM solo soporta formato MLC. Los modelos GGUF/Unsloth (el estándar actual de HuggingFace) no son compatibles nativamente.
+
+**Opciones técnicas:**
+- **Opción A:** Integrar `llama.cpp` compilado a WASM (`@mlc-ai/web-llm` no soporta GGUF). Requiere runtime separado.
+- **Opción B:** Convertir GGUF → MLC con `mlc_llm convert`. Pipeline manual, pero mantiene WebLLM.
+- **Opción C:** Usar `transformers.js` + ONNX runtime como capa adicional. Complejidad de mantener dos runtimes.
+
+**Impacto:** Permitiría usar modelos como Llama 3.1 8B GGUF Q4_K_M, Mistral v0.3, etc. directamente en navegador sin conversión.
+
+**Recomendación:** Postergar hasta después del TFM. WebLLM + MLC cubre los 18 modelos actuales suficientes para la experimentación OE4.
+
+### 2. Gemini Nano Debug (Chrome AI)
+**Complejidad: Media | ROI: Medio**
+
+**Dependencia:** Chrome flag experimental `chrome://flags/#prompt-api-for-gemini-nano`.
+
+**Estado actual:** `ChromePromptProvider` implementa la interfaz completa (`analyzeStream`, `generateExecutiveReport`, `generateExecutiveReportStream`). La API usa `window.ai.assistant()` que es experimental en Chrome 127+.
+
+**Problemas conocidos:**
+- La API puede cambiar sin aviso (Chrome Canary → Stable)
+- Gemini Nano tiene contexto limitado (~4K tokens)
+- No soporta `response_format: json_object` nativamente
+- Requiere Chrome desktop (no Android, no otros navegadores)
+
+**Debug steps:**
+1. Verificar `chrome://flags/#prompt-api-for-gemini-nano` = Enabled
+2. Verificar `chrome://flags/#optimization-guide-debug-mode` = Enabled
+3. Abrir DevTools → Console → `window.ai` debe existir
+4. `await window.ai.assistant().capabilities()` debe retornar `{ available: true }`
+
+**Recomendación:** Mantener como fallback local alternativo. No depender para el TFM.
+
+### 3. Code Syntax Highlighting en Script Preview
+**Complejidad: Baja | ROI: Alto (UX)**
+
+**Estado:** Implementado con `highlight.js` en `ScriptGenerationStep.tsx` y `ReviewStep.tsx`.
+
+### 4. Métricas Comparativas Local vs Cloud en UI
+**Complejidad: Baja | ROI: Medio**
+
+**Idea:** Panel lateral que muestre lado-a-lado: latencia, tokens, first-token-ms del modelo local vs cloud seleccionado.
+
+**Implementación:** Componente `ModelComparisonPanel.tsx` que lee `llmAuditLog` y renderiza tabla comparativa.

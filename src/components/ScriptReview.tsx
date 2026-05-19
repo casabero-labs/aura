@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, Check, ClipboardCheck, Copy, Download, Edit3, Eye, FileCode2, Search, Terminal } from 'lucide-react';
 import { AuditReport } from '../types';
+import { highlightPython } from '../services/highlightPython';
 
 interface ScriptReviewProps {
   code: string;
@@ -176,7 +177,7 @@ const ScriptReview: React.FC<ScriptReviewProps> = ({
                   <span key={`${index}-${line}`} className="script-line">
                     <span className="line-number">{String(index + 1).padStart(2, '0')}</span>
                     {kind && <span className={`line-op ${operationMeta[kind].className}`}>{operationMeta[kind].label}</span>}
-                    <code>{line || ' '}</code>
+                    <code dangerouslySetInnerHTML={{ __html: highlightPython(line) || ' ' }} />
                   </span>
                 );
               })}
