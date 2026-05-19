@@ -4893,6 +4893,106 @@
   color: var(--error);
 }
 
+/* ── AURA flow fixes: settings drawer, grouped profile stats, wide diagnosis ── */
+.settings-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  justify-content: flex-end;
+  background: color-mix(in srgb, var(--ink) 62%, transparent);
+}
+
+.settings-sheet {
+  width: min(520px, 100vw);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--border-strong);
+  background: var(--bg);
+  overflow: hidden;
+  animation: aura-sheet-enter 180ms var(--ease-casabero);
+}
+
+@keyframes aura-sheet-enter {
+  from { transform: translateX(32px); opacity: 0.72; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.profile-statistics-group {
+  margin-top: 1.25rem;
+}
+
+.boxplot-container {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  padding: 1rem;
+}
+
+.file-drop {
+  position: relative;
+  isolation: isolate;
+  min-height: 240px;
+}
+
+.file-drop::before {
+  content: "";
+  position: absolute;
+  inset: 12px;
+  border: 1px solid var(--border-faint);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.cognitive-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 300px);
+}
+
+.advisor-shell {
+  min-width: 0;
+}
+
+.advisor-content {
+  overflow: auto;
+}
+
+.advisor-markdown table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 12px;
+}
+
+.advisor-markdown th,
+.advisor-markdown td {
+  border: 1px solid var(--border);
+  padding: 8px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.advisor-markdown th {
+  color: var(--ink);
+  background: var(--surface2);
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.advisor-markdown td {
+  color: var(--ink2);
+  background: var(--surface);
+}
+
+@media (max-width: 720px) {
+  .settings-sheet {
+    width: 100vw;
+    border-left: 0;
+  }
+}
+
 .lab-status {
   display: inline-flex;
   align-items: center;
@@ -5213,6 +5313,11 @@
 
 .model-select:focus {
   border-color: var(--blue);
+}
+
+.model-select option {
+  color: var(--ink);
+  background: var(--bg);
 }
 
 .lab-cta {

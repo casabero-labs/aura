@@ -85,7 +85,11 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
   useEffect(() => {
     if (aiConfig.providerType === 'local') {
       const checkDownloads = async () => {
-        const downloaded = new Set<string>();
+        const downloaded = new Set<string>(
+          Object.entries(aiConfig.modelDownloadState || {})
+            .filter(([, state]) => state.status === 'ready')
+            .map(([modelId]) => modelId),
+        );
         for (const model of LOCAL_MODELS) {
           if (await checkModelDownloaded(model.id)) {
             downloaded.add(model.id);
@@ -95,7 +99,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
       };
       checkDownloads();
     }
-  }, [aiConfig.providerType]);
+  }, [aiConfig.providerType, aiConfig.modelDownloadState]);
 
   const handleDeleteModel = async (modelId: string) => {
     setDeletingModel(modelId);
@@ -124,13 +128,15 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
 
   const handleProviderTypeChange = (type: 'local' | 'cloud') => {
     const models = type === 'local'
-      ? AVAILABLE_MODELS.local.filter(m => downloadedModels.has(m.id))
+      ? AVAILABLE_MODELS.local
       : AVAILABLE_MODELS.cloud.filter(m => {
           if (!aiConfig.apiKey) return false;
           if (m.provider === 'Google') return aiConfig.cloudProvider === 'google';
           return true;
         });
-    const firstModel = models[0];
+    const firstModel = type === 'local'
+      ? models.find((model) => model.id === aiConfig.model) || models.find((model) => downloadedModels.has(model.id)) || models[0]
+      : models[0];
     onAiConfigChange({
       ...aiConfig,
       providerType: type,
@@ -153,7 +159,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
   };
 
   const availableModels = aiConfig.providerType === 'local'
-    ? AVAILABLE_MODELS.local.filter(m => downloadedModels.has(m.id))
+    ? AVAILABLE_MODELS.local
     : AVAILABLE_MODELS.cloud.filter(m => {
         if (!aiConfig.apiKey) return false;
         if (m.provider === 'Google') return aiConfig.cloudProvider === 'google';
@@ -353,18 +359,23 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
                 return (
                   <option key={model.id} value={model.id}>
                     {model.name}
-                    {isDownloaded ? ' ✓' : ''}
+                    {isDownloaded ? ' · descargado' : localModel ? ' · descargable' : ''}
                   </option>
                 );
               })}
             </select>
 
-            {aiConfig.providerType === 'local' && downloadedModels.size > 0 && (
+            {aiConfig.providerType === 'local' && (
               <div className="downloaded-models-list">
                 <div className="downloaded-models-header">
                   <HardDrive size={10} />
-                  <span>Modelos descargados ({downloadedModels.size})</span>
+                  <span>{downloadedModels.size > 0 ? `Modelos descargados (${downloadedModels.size})` : 'Modelo local seleccionado'}</span>
                 </div>
+                {downloadedModels.size === 0 && (
+                  <div className="downloaded-model-item">
+                    <span className="downloaded-model-name">Se descargará al ejecutar si WebGPU está disponible.</span>
+                  </div>
+                )}
                 {Array.from(downloadedModels).map(modelId => {
                   const modelInfo = LOCAL_MODELS.find(m => m.id === modelId);
                   if (!modelInfo) return null;

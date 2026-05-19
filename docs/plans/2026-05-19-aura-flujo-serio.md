@@ -526,3 +526,35 @@ Validacion:
 ## Decision de alcance inmediata
 
 Empezar por Fase 1 y Fase 2. No tocar benchmark todavia hasta que Perfilar quede serio, porque Perfilar es la evidencia base que alimenta Diagnostico, Script y Benchmark.
+
+## Progreso adicional - 2026-05-19
+
+### Correccion de continuidad de flujo
+
+- Se detecto que `BenchmarkLab` desmontaba `MainPipeline`; al volver desde Laboratorio se reiniciaba el estado interno y el usuario tenia que cargar el dataset otra vez.
+- Se cambio `App.tsx` para mantener `MainPipeline` montado y ocultarlo visualmente mientras el laboratorio esta abierto.
+- Resultado esperado: al volver desde `Laboratorio de Modelos`, el dataset, el perfil, el diagnostico y el script permanecen disponibles.
+
+### Reagrupacion de Perfilar
+
+- Se movio `PERFIL ESTADISTICO COMPLETO` dentro del primer bloque de caracterizacion.
+- Se movio `DISTRIBUCION IQR POR COLUMNA NUMERICA` junto al perfil estadistico porque forma parte de la estadistica descriptiva del OE2.
+- El bloque de hallazgos queda reservado para problemas observados y paquete estructurado hacia la siguiente etapa.
+
+### Configuracion de modelos
+
+- Se reemplazo el patron visual de modal por un `Sheet/Drawer` lateral en `SettingsPanel.tsx`.
+- Se mejoro la persistencia del modelo local descargado: al terminar la descarga se guarda el modelo activo y se marca como listo.
+- Se amplio la deteccion de modelos descargados revisando tambien Cache API, no solo IndexedDB.
+- En Diagnostico ya no se bloquea la seleccion de modelos locales cuando la deteccion de cache no devuelve resultados; los modelos aparecen seleccionables y se distinguen como descargados o descargables.
+
+### Diagnostico mas legible
+
+- Se ensancho el area principal de `Diagnostico de causas probables`.
+- Las tablas generadas por Markdown dentro del diagnostico ahora usan ancho minimo completo y overflow horizontal para evitar columnas cortadas.
+
+### Pendiente inmediato
+
+- Verificar visualmente en navegador con dataset real.
+- Validar descarga local WebLLM en navegador compatible con WebGPU.
+- Si la descarga falla, registrar el error exacto del navegador para separar problema de UI, soporte WebGPU o disponibilidad del modelo en WebLLM.

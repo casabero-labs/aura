@@ -18,18 +18,36 @@ export interface DownloadedModelInfo {
  * WebLLM uses IndexedDB with key "webllm-model-cache" and Cache API.
  */
 export const checkModelDownloaded = async (modelId: string): Promise<boolean> => {
+  if (typeof indexedDB === 'undefined') return false;
+
   try {
     const db = await openModelDB();
     const tx = db.transaction('models', 'readonly');
     const store = tx.objectStore('models');
     const request = store.getKey(modelId);
-    return new Promise((resolve) => {
+    const indexedDbHit = await new Promise<boolean>((resolve) => {
       request.onsuccess = () => resolve(request.result !== undefined);
       request.onerror = () => resolve(false);
     });
+
+    if (indexedDbHit) return true;
+  } catch {
+    // WebLLM cache internals vary by version; fall back to Cache API inspection below.
+  }
+
+  try {
+    if (typeof caches === 'undefined') return false;
+    const cacheNames = await caches.keys();
+    for (const cacheName of cacheNames) {
+      const cache = await caches.open(cacheName);
+      const keys = await cache.keys();
+      if (keys.some((request) => request.url.includes(modelId))) return true;
+    }
   } catch {
     return false;
   }
+
+  return false;
 };
 
 /**

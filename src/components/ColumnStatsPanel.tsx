@@ -19,6 +19,7 @@ import type { ColumnStats } from '../types';
 
 interface ColumnStatsPanelProps {
   columnStats: Record<string, ColumnStats>;
+  totalRows?: number;
 }
 
 const formatNum = (n?: number | string, decimals = 2): string => {
@@ -319,16 +320,17 @@ const ColumnDetail: React.FC<ColumnDetailProps> = ({ col, totalRows }) => {
   );
 };
 
-const ColumnStatsPanel: React.FC<ColumnStatsPanelProps> = ({ columnStats }) => {
+const ColumnStatsPanel: React.FC<ColumnStatsPanelProps> = ({ columnStats, totalRows }) => {
   const columns = Object.values(columnStats);
 
   if (columns.length === 0) {
     return <p className="text-muted">Sin estadísticas disponibles.</p>;
   }
 
-  const totalRows = columns.length > 0
-    ? columns[0].nullCount + columns.reduce((sum, c) => sum + (columns[0].nullCount - c.nullCount), 0)
-    : 0;
+  const rowCount = totalRows ?? Math.max(
+    ...columns.map((column) => column.nullCount + Math.max(column.uniqueCount, 0)),
+    0,
+  );
 
   const [showAll, setShowAll] = useState(false);
   const displayedCols = showAll ? columns : columns.slice(0, 10);
@@ -349,7 +351,7 @@ const ColumnStatsPanel: React.FC<ColumnStatsPanelProps> = ({ columnStats }) => {
 
       <div className="colstats-full-list">
         {displayedCols.map(col => (
-          <ColumnDetail key={col.name} col={col} totalRows={totalRows > 0 ? totalRows : 1000} />
+          <ColumnDetail key={col.name} col={col} totalRows={rowCount > 0 ? rowCount : 1000} />
         ))}
       </div>
 

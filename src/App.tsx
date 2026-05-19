@@ -237,21 +237,6 @@ const App: React.FC = () => {
     <ErrorBoundary><div className="aura-system">
       {showAuditLog && <AuditLogViewer onClose={() => setShowAuditLog(false)} />}
 
-      {showLab && report ? (
-        <BenchmarkLab
-          report={report}
-          rawData={rawData}
-          csvFields={csvFields}
-          csvDelimiter={csvDelimiter}
-          fileName={file?.name}
-          aiConfig={aiConfig}
-          auditEvidence={auditEvidence || undefined}
-          onResultsChange={setLabBenchmarkResults}
-          onBack={() => setShowLab(false)}
-        />
-      ) : (
-        <>
-
       {/* Settings Modal */}
       {showSettings && (
         <SettingsPanel config={aiConfig} onSave={setAiConfig} onClose={() => setShowSettings(false)} />
@@ -428,8 +413,22 @@ const App: React.FC = () => {
         </button>
       </nav>
 
+      {showLab && report && (
+        <BenchmarkLab
+          report={report}
+          rawData={rawData}
+          csvFields={csvFields}
+          csvDelimiter={csvDelimiter}
+          fileName={file?.name}
+          aiConfig={aiConfig}
+          auditEvidence={auditEvidence || undefined}
+          onResultsChange={setLabBenchmarkResults}
+          onBack={() => setShowLab(false)}
+        />
+      )}
+
       {/* Main Content */}
-      <main className="sys-main">
+      <main className="sys-main" style={{ display: showLab ? 'none' : undefined }}>
         {/* Hero */}
         <section className="hero" id="sistema">
           <p className="hero-sub">
@@ -476,12 +475,10 @@ const App: React.FC = () => {
       </main>
 
       {/* Footer */}
-      <footer className="sys-footer">
+      <footer className="sys-footer" style={{ display: showLab ? 'none' : undefined }}>
         <span className="footer-brand">AURA</span>
         <span className="footer-copy">casabero · tfm · 2026</span>
       </footer>
-        </>
-      )}
     </div></ErrorBoundary>
   );
 };

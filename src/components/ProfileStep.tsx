@@ -29,7 +29,7 @@ const ProfileStep: React.FC<ProfileStepProps> = ({ report, auditEvidence, file, 
           <span className="profile-block-index">01</span>
           <div>
             <p className="sec-eye">caracterización</p>
-            <h2 id="profile-characterization-title" className="sec-title">Estructura observada del dataset.</h2>
+            <h2 id="profile-characterization-title" className="sec-title">Estructura y perfil estadístico del dataset.</h2>
           </div>
         </div>
         <DatasetProfile
@@ -41,6 +41,15 @@ const ProfileStep: React.FC<ProfileStepProps> = ({ report, auditEvidence, file, 
           datasetFingerprint={auditEvidence.datasetFingerprint}
         />
 
+        <section className="section section-nested profile-statistics-group" id="column-profile">
+          <ColumnStatsPanel columnStats={report.columnStats} totalRows={report.rowCount} />
+        </section>
+
+        {hasIqrColumns && (
+          <section className="section section-nested profile-statistics-group" id="boxplot">
+            <BoxPlot columnStats={report.columnStats} />
+          </section>
+        )}
       </section>
 
       <section className="profile-block" aria-labelledby="profile-validation-title">
@@ -69,16 +78,6 @@ const ProfileStep: React.FC<ProfileStepProps> = ({ report, auditEvidence, file, 
         </div>
 
         <FindingsTable issues={report.issues} rowCount={report.rowCount} />
-
-        <section className="section section-nested" id="column-profile">
-          <ColumnStatsPanel columnStats={report.columnStats} />
-        </section>
-
-        {hasIqrColumns && (
-          <section className="section section-nested" id="boxplot">
-            <BoxPlot columnStats={report.columnStats} />
-          </section>
-        )}
 
         <ProfileEvidencePackage report={report} />
       </section>

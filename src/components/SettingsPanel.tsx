@@ -40,6 +40,29 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
         checkChromeAiSupport().then(setChromeAiSupported);
     }, []);
 
+    useEffect(() => {
+        if (localConfig.providerType !== 'local') return;
+
+        const syncDownloadedModels = async () => {
+            const updatedStates = { ...(localConfig.modelDownloadState || {}) };
+            let changed = false;
+
+            for (const model of LOCAL_MODELS) {
+                if (updatedStates[model.id]?.status === 'ready') continue;
+                if (await checkModelDownloaded(model.id)) {
+                    updatedStates[model.id] = { status: 'ready', progress: 100, message: 'Detectado en caché local' };
+                    changed = true;
+                }
+            }
+
+            if (changed) {
+                setLocalConfig((current) => ({ ...current, modelDownloadState: updatedStates }));
+            }
+        };
+
+        syncDownloadedModels();
+    }, [localConfig.providerType]);
+
     const checkChromeAiSupport = async (): Promise<boolean> => {
         try {
             const { ChromePromptProvider } = await import('../services/providers/chromeProvider');
@@ -66,9 +89,26 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
             });
             setDownloadProgress({ status: 'ready', progress: 100, message: 'Modelo listo para usar.' });
 
-            const updatedStates = { ...(localConfig.modelDownloadState || {}), [modelId]: { status: 'ready' as const, progress: 100, message: 'Listo' } };
-            setLocalConfig({ ...localConfig, modelDownloadState: updatedStates });
+            const updatedConfig = {
+                ...localConfig,
+                providerType: 'local' as const,
+                model: modelId,
+                modelDownloadState: {
+                    ...(localConfig.modelDownloadState || {}),
+                    [modelId]: { status: 'ready' as const, progress: 100, message: 'Listo' },
+                },
+            };
+            setLocalConfig(updatedConfig);
+            onSave(updatedConfig);
         } catch (err: any) {
+            const updatedConfig = {
+                ...localConfig,
+                modelDownloadState: {
+                    ...(localConfig.modelDownloadState || {}),
+                    [modelId]: { status: 'error' as const, progress: 0, message: err.message },
+                },
+            };
+            setLocalConfig(updatedConfig);
             setDownloadProgress({ status: 'error', progress: 0, message: err.message });
         } finally {
             setDownloadingModel(null);
@@ -103,8 +143,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
     };
 
     return (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[var(--ink)]/60 animate-in fade-in duration-300">
-            <div className="bg-[var(--bg)] w-full max-w-md border border-[var(--border)] rounded-lg overflow-hidden flex flex-col">
+        <div className="settings-sheet-backdrop" role="dialog" aria-modal="true" aria-labelledby="settings-sheet-title" onClick={onClose}>
+            <aside className="settings-sheet" onClick={(event) => event.stopPropagation()}>
 
                 <div className="px-6 py-5 border-b border-[var(--border)] flex justify-between items-center bg-[var(--surface)]">
                     <div className="flex items-center gap-3">
@@ -112,7 +152,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                             <Settings size={16} className="text-[var(--ink)]" />
                         </div>
                         <div>
-                            <h2 className="heading-md text-[var(--ink)]">Ajustes</h2>
+                            <h2 id="settings-sheet-title" className="heading-md text-[var(--ink)]">Configuración de modelos</h2>
                             <p className="text-[11px] font-sans text-[var(--ink2)] mt-1">Proveedor de IA</p>
                         </div>
                     </div>
@@ -370,7 +410,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                         <Save size={14} /> Guardar
                     </button>
                 </div>
-            </div>
+            </aside>
         </div>
     );
 };
