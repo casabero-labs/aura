@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Download, FileCode2, FileJson, FileText, FlaskConical, HelpCircle, Settings } from 'lucide-react';
+import { ClipboardList, Download, FileCode2, FileJson, FileText, FlaskConical, HelpCircle, Settings } from 'lucide-react';
 import ErrorBoundary from './components/ErrorBoundary';
+import AuditLogViewer from './components/AuditLogViewer';
 import BenchmarkLab from './components/BenchmarkLab';
 import SettingsPanel from './components/SettingsPanel';
 import MainPipeline, { PipelineData } from './components/MainPipeline';
@@ -87,6 +88,7 @@ const App: React.FC = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showLab, setShowLab] = useState(false);
+  const [showAuditLog, setShowAuditLog] = useState(false);
   const [showMobileNav, setShowMobileNav] = useState(false);
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     const saved = localStorage.getItem('aura_theme');
@@ -219,6 +221,8 @@ const App: React.FC = () => {
 
   return (
     <ErrorBoundary><div className="aura-system">
+      {showAuditLog && <AuditLogViewer onClose={() => setShowAuditLog(false)} />}
+
       {showLab && report ? (
         <BenchmarkLab
           report={report}
@@ -290,6 +294,9 @@ const App: React.FC = () => {
               <FlaskConical size={14} /> Laboratorio
             </button>
           )}
+          <button className="nav-link" onClick={() => { setShowAuditLog(true); setShowMobileNav(false); }}>
+            <ClipboardList size={14} /> Auditoría
+          </button>
           <div className="nav-status"><div className="pulse" />{pipelineState === 'upload' ? 'listo' : 'online'}</div>
           <button className="nav-cta" onClick={() => { if (hasData) window.location.reload(); }}>
             {hasData ? 'Nuevo análisis' : 'Empezar'}

@@ -175,6 +175,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, onLog
       {state === 'diagnosis' && report && (
         <DiagnosisStep
           report={report}
+          auditEvidence={auditEvidence}
           aiConfig={aiConfig}
           aiProvider={aiProvider}
           analysisText={aiAnalysis}

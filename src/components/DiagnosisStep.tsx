@@ -1,12 +1,14 @@
 import React, { useCallback, useState } from 'react';
 import { Brain, Database, Play, ShieldCheck, FlaskConical, AlertTriangle, Lock, Globe, ChevronDown, ChevronRight, FileCode2, Package } from 'lucide-react';
 import GeminiAdvisor from './GeminiAdvisor';
-import { AIConfig, AIProvider, AuditReport, ProviderMetrics } from '../types';
-import { buildSmartSample } from '../services/providers/prompts';
+import { AIConfig, AIProvider, AuditReport, AuditExecutionEvidence, ProviderMetrics } from '../types';
+import { buildSmartSample, buildAnalysisPrompt } from '../services/providers/prompts';
 import { AVAILABLE_MODELS } from '../services/aiProvider';
+import { recordLlmCall, computePromptHash, computeInputHash } from '../services/llmAuditLog';
 
 interface DiagnosisStepProps {
   report: AuditReport;
+  auditEvidence?: AuditExecutionEvidence | null;
   aiConfig: AIConfig;
   aiProvider: AIProvider;
   analysisText: string;
@@ -39,6 +41,7 @@ const JsonSection: React.FC<JsonSectionProps> = ({ title, children, defaultOpen 
 
 const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
   report,
+  auditEvidence,
   aiConfig,
   aiProvider,
   analysisText,
@@ -101,6 +104,10 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
     setDraftAnalysis('');
     let finalText = '';
 
+    const prompt = buildAnalysisPrompt(report);
+    const promptHash = computePromptHash(prompt);
+    const inputHash = computeInputHash(report);
+
     onLog?.('diagnosis', `Iniciando diagnóstico con ${aiConfig.model} (${aiConfig.providerType})`);
 
     try {
@@ -112,14 +119,55 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
       onMetrics?.(metrics);
       onAnalysisComplete(finalText);
       onLog?.('diagnosis', `Diagnóstico completado · ${metrics.tokensGenerated} tokens · ${metrics.latencyMs}ms`);
+
+      recordLlmCall({
+        callType: 'diagnosis',
+        providerType: aiConfig.providerType as 'local' | 'cloud',
+        provider: aiConfig.providerType === 'local' ? 'WebLLM' : (aiConfig.cloudProvider || 'Cloud'),
+        model: aiConfig.model,
+        temperature: aiConfig.temperature,
+        promptHash,
+        inputJsonHash: inputHash,
+        promptLength: prompt.length,
+        inputColumnCount: report.colCount,
+        inputIssueCount: report.issues.length,
+        rowCount: report.rowCount,
+        colCount: report.colCount,
+        datasetFingerprint: auditEvidence?.datasetFingerprint || '',
+        responseLength: finalText.length,
+        latencyMs: metrics.latencyMs,
+        tokensGenerated: metrics.tokensGenerated,
+        status: 'completed',
+      });
     } catch (err: any) {
       const msg = err?.message ?? 'Error desconocido durante el diagnóstico';
       setError(msg);
       onLog?.('diagnosis', `Error: ${msg}`);
+
+      recordLlmCall({
+        callType: 'diagnosis',
+        providerType: aiConfig.providerType as 'local' | 'cloud',
+        provider: aiConfig.providerType === 'local' ? 'WebLLM' : (aiConfig.cloudProvider || 'Cloud'),
+        model: aiConfig.model,
+        temperature: aiConfig.temperature,
+        promptHash,
+        inputJsonHash: inputHash,
+        promptLength: prompt.length,
+        inputColumnCount: report.colCount,
+        inputIssueCount: report.issues.length,
+        rowCount: report.rowCount,
+        colCount: report.colCount,
+        datasetFingerprint: auditEvidence?.datasetFingerprint || '',
+        responseLength: finalText.length,
+        latencyMs: 0,
+        tokensGenerated: 0,
+        status: 'error',
+        error: msg,
+      });
     } finally {
       setIsLoading(false);
     }
-  }, [aiConfig.model, aiConfig.providerType, aiProvider, isLoading, onAnalysisComplete, onLog, onMetrics, report]);
+  }, [aiConfig.model, aiConfig.providerType, aiConfig.cloudProvider, aiConfig.temperature, aiProvider, isLoading, onAnalysisComplete, onLog, onMetrics, report, auditEvidence]);
 
   const isCloud = aiConfig.providerType === 'cloud';
 
