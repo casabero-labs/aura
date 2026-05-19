@@ -166,6 +166,68 @@ export class GeminiProvider implements AIProvider {
     return { content, metrics };
   }
 
+  /**
+   * Reporte ejecutivo streaming con razonamiento visible.
+   */
+  async generateExecutiveReportStream(
+    report: AuditReport,
+    onChunk: (text: string) => void
+  ): Promise<{ content: ExecutiveReportContent; metrics: ProviderMetrics }> {
+    if (!await this.isAvailable()) {
+      throw new Error('API_KEY no encontrada');
+    }
+
+    const prompt = buildExecutivePrompt(report);
+    const startTime = performance.now();
+    let firstTokenTime = 0;
+    let tokensGenerated = 0;
+    let fullText = '';
+
+    const responseStream = await this.client.models.generateContentStream({
+      model: this.model,
+      contents: prompt,
+      config: {
+        temperature: this.temperature,
+      },
+    });
+
+    for await (const chunk of responseStream) {
+      if (chunk.text) {
+        if (firstTokenTime === 0) firstTokenTime = performance.now() - startTime;
+        tokensGenerated += Math.round(chunk.text.length / 4);
+        fullText += chunk.text;
+        onChunk(chunk.text);
+      }
+    }
+
+    const totalTime = performance.now() - startTime;
+
+    let content: ExecutiveReportContent;
+    try {
+      content = JSON.parse(fullText);
+    } catch {
+      const jsonMatch = fullText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        content = JSON.parse(jsonMatch[0]);
+      } else {
+        throw new Error('No se pudo parsear la respuesta como JSON');
+      }
+    }
+
+    return {
+      content,
+      metrics: {
+        provider: this.name,
+        model: this.model,
+        latencyMs: Math.round(totalTime),
+        firstTokenMs: Math.round(firstTokenTime),
+        tokensGenerated,
+        isLocal: false,
+        timestamp: new Date().toISOString()
+      }
+    };
+  }
+
   async generateText(prompt: string): Promise<{ text: string; metrics: ProviderMetrics }> {
     if (!await this.isAvailable()) {
       throw new Error('API_KEY no encontrada');

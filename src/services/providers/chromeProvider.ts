@@ -159,10 +159,8 @@ export class ChromePromptProvider implements AIProvider {
       const response = await session.prompt(prompt);
       const totalTime = performance.now() - startTime;
 
-      // Intentar parsear JSON de la respuesta
       let content: ExecutiveReportContent;
       try {
-        // Chrome Nano puede no seguir strict JSON schema, intentamos extraer
         const jsonMatch = response.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           content = JSON.parse(jsonMatch[0]);
@@ -188,6 +186,74 @@ export class ChromePromptProvider implements AIProvider {
     } catch (error) {
       throw new Error(`Chrome AI error: ${(error as Error).message}`);
     }
+  }
+
+  async generateExecutiveReportStream(
+    report: AuditReport,
+    onChunk: (text: string) => void
+  ): Promise<{ content: ExecutiveReportContent; metrics: ProviderMetrics }> {
+    if (!await this.isAvailable()) {
+      throw new Error('Chrome AI API no disponible');
+    }
+
+    const prompt = buildExecutivePrompt(report);
+    const startTime = performance.now();
+    let firstTokenTime = 0;
+    let tokensGenerated = 0;
+    let fullText = '';
+
+    try {
+      const session = await this.getSession();
+      const stream = session.promptStreaming(prompt);
+      const reader = stream.getReader();
+      const decoder = new TextDecoder();
+      let previousText = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const text = decoder.decode(value);
+        if (firstTokenTime === 0) firstTokenTime = performance.now() - startTime;
+
+        const delta = text.slice(previousText.length);
+        if (delta) {
+          tokensGenerated += Math.round(delta.length / 4);
+          fullText += delta;
+          onChunk(delta);
+        }
+        previousText = text;
+      }
+    } catch (error) {
+      throw new Error(`Chrome AI streaming error: ${(error as Error).message}`);
+    }
+
+    const totalTime = performance.now() - startTime;
+
+    let content: ExecutiveReportContent;
+    try {
+      const jsonMatch = fullText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        content = JSON.parse(jsonMatch[0]);
+      } else {
+        content = this.fallbackContent(report, fullText);
+      }
+    } catch {
+      content = this.fallbackContent(report, fullText);
+    }
+
+    return {
+      content,
+      metrics: {
+        provider: this.name,
+        model: this.model,
+        latencyMs: Math.round(totalTime),
+        firstTokenMs: Math.round(firstTokenTime),
+        tokensGenerated,
+        isLocal: true,
+        timestamp: new Date().toISOString()
+      }
+    };
   }
 
   async generateText(prompt: string): Promise<{ text: string; metrics: ProviderMetrics }> {
