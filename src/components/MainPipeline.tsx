@@ -5,6 +5,8 @@ import PipelineProgress from './PipelineProgress';
 import ScoreBreakdown from './ScoreBreakdown';
 import IssueList from './IssueList';
 import ExecutionEvidencePanel from './ExecutionEvidencePanel';
+import BoxPlot from './BoxPlot';
+import ColumnStatsPanel from './ColumnStatsPanel';
 import AnalysisStep from './AnalysisStep';
 import ReviewStep from './ReviewStep';
 import { runAudit } from '../services/auditEngine';
@@ -210,6 +212,18 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, onLog
           </section>
 
           {auditEvidence && <ExecutionEvidencePanel evidence={auditEvidence} />}
+
+          {/* ── Column Profile: tipado semántico + IQR ── */}
+          <section className="section" id="column-profile">
+            <ColumnStatsPanel columnStats={report.columnStats} />
+          </section>
+
+          {/* ── Box Plot: distribución IQR ── */}
+          {Object.values(report.columnStats).some(c => c.inferredType === 'number' && c.iqr && c.iqr > 0) && (
+            <section className="section" id="boxplot">
+              <BoxPlot columnStats={report.columnStats} />
+            </section>
+          )}
 
           {report.issues.length > 0 && (
             <section className="section" id="issues-list">

@@ -35,14 +35,23 @@ export interface QualityIssue {
   sampleValues: any[];
 }
 
+export type SemanticType = 'string' | 'number' | 'boolean' | 'date' | 'mixed' | 'email' | 'phone' | 'ip' | 'url' | 'currency' | 'percentage' | 'uuid' | 'zip';
+
 export interface ColumnStats {
   name: string;
   inferredType: 'string' | 'number' | 'boolean' | 'date' | 'mixed';
+  semanticType?: SemanticType;
   nullCount: number;
   uniqueCount: number;
   min?: number | string;
   max?: number | string;
   mean?: number;
+  q1?: number;
+  q3?: number;
+  iqr?: number;
+  lowerFence?: number;
+  upperFence?: number;
+  outlierCount?: number;
   zeros?: number;
   topFreq?: { value: string; count: number }[];
   sampleValues?: any[];

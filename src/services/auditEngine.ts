@@ -14,6 +14,13 @@ const REGEX_SYMBOLS = /[!@#$%^&*()_+={}\[\]|\\;:'",.<>?/]/;
 const REGEX_CREDIT_CARD = /^(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13}|6(?:011|5[0-9]{2})[0-9]{12})$/;
 const TOXIC_PLACEHOLDERS = ['nan', 'null', 'n/a', '?', 'undefined', 'none', 'nil', 'sin dato', 'no data', '999', 'unknown', '..'];
 
+// --- Semantic Type Detection Patterns ---
+const REGEX_PHONE = /^[\+]?[\d\s\(\)\-\.]{7,20}$/;
+const REGEX_CURRENCY = /^[\$\€\£\¥]?\s?\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?\s?[\$\€\£\¥]?$/;
+const REGEX_PERCENTAGE = /^\d+(?:\.\d+)?\s?%$/;
+const REGEX_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const REGEX_ZIP = /^\d{4,10}(?:-\d{3,6})?$/;
+
 // Simple hash to avoid massive memory usage for duplicate check
 const getFastHash = (obj: any): number => {
   const str = JSON.stringify(obj);
@@ -49,6 +56,41 @@ const looksLikeDateTimeColumn = (col: string, values: any[], rowCount: number): 
   const nameHint = lower.includes('datetime') || lower.includes('timestamp') || lower.includes('fecha_hora') || lower.includes('date_time');
   const matches = values.filter(v => typeof v === 'string' && REGEX_DATETIME.test(v.trim())).length;
   return nameHint || (rowCount > 0 && matches / rowCount > 0.8);
+};
+
+// --- Semantic Type Detection ---
+
+const detectSemanticType = (strValues: string[], numValues: number[], nonNullCount: number): ColumnStats['semanticType'] => {
+  if (nonNullCount === 0) return undefined;
+  
+  const sample = 100;
+  const strSample = strValues.slice(0, sample);
+  const total = Math.min(nonNullCount, sample);
+
+  // Count matches per semantic category
+  const emailCount = strSample.filter(v => REGEX_EMAIL.test(v)).length;
+  const phoneCount = strSample.filter(v => REGEX_PHONE.test(v)).length;
+  const ipCount = strSample.filter(v => REGEX_IP.test(v)).length;
+  const urlCount = strSample.filter(v => REGEX_URL.test(v)).length;
+  const uuidCount = strSample.filter(v => REGEX_UUID.test(v)).length;
+  const zipCount = strSample.filter(v => REGEX_ZIP.test(v)).length;
+  const currencyCount = strSample.filter(v => REGEX_CURRENCY.test(v.trim())).length;
+  const percentCount = strSample.filter(v => REGEX_PERCENTAGE.test(v.trim())).length;
+
+  const THRESHOLD = 0.7; // 70% match rate to infer semantic type
+
+  if (total > 0) {
+    if (emailCount / total > THRESHOLD) return 'email';
+    if (phoneCount / total > THRESHOLD) return 'phone';
+    if (ipCount / total > THRESHOLD) return 'ip';
+    if (urlCount / total > THRESHOLD) return 'url';
+    if (uuidCount / total > THRESHOLD) return 'uuid';
+    if (zipCount / total > THRESHOLD) return 'zip';
+    if (currencyCount / total > THRESHOLD) return 'currency';
+    if (percentCount / total > THRESHOLD) return 'percentage';
+  }
+
+  return undefined; // No semantic type detected
 };
 
 const looksLikeTimeColumn = (col: string, values: any[], rowCount: number): boolean => {
@@ -114,6 +156,7 @@ const calculateStats = (data: any[], fields: string[]): Record<string, ColumnSta
     stats[field] = {
       name: field,
       inferredType,
+      semanticType: detectSemanticType(strValues, numValues, nonNulls.length),
       nullCount: values.length - nonNulls.length,
       uniqueCount: freqMap.size,
       topFreq: sortedFreq,
@@ -126,6 +169,15 @@ const calculateStats = (data: any[], fields: string[]): Record<string, ColumnSta
       stats[field].max = Math.max(...numValues);
       const sum = numValues.reduce((a, b) => a + b, 0);
       stats[field].mean = sum / numValues.length;
+
+      // IQR computation for numeric columns
+      const { q1, q3, iqr } = getQuartiles(numValues);
+      stats[field].q1 = q1;
+      stats[field].q3 = q3;
+      stats[field].iqr = iqr;
+      stats[field].lowerFence = q1 - 3 * iqr;
+      stats[field].upperFence = q3 + 3 * iqr;
+      stats[field].outlierCount = numValues.filter(n => n < stats[field].lowerFence! || n > stats[field].upperFence!).length;
     }
   });
 

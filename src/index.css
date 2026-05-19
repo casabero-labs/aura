@@ -2279,3 +2279,162 @@
     padding: 0 0.75rem;
   }
 }
+
+/* ── ColumnStatsPanel ── */
+.colstats-panel {
+  margin-top: 1rem;
+}
+
+.colstats-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  font-size: 0.8rem;
+}
+
+.colstats-header,
+.colstats-row {
+  display: grid;
+  grid-template-columns: 1.2fr 1.3fr 0.5fr 0.5fr 0.7fr 0.7fr 0.7fr 0.7fr 0.7fr 0.8fr;
+  gap: 0.25rem;
+  padding: 0.45rem 0.6rem;
+  align-items: center;
+}
+
+.colstats-header {
+  background: var(--surface2);
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.colstats-row {
+  border-top: 0.5px solid var(--border);
+  transition: background 0.2s;
+}
+
+.colstats-row:hover {
+  background: var(--surface-raised);
+}
+
+.colstats-row.row-warning {
+  border-left: 2px solid var(--warning);
+}
+
+.colstats-row.row-nulls {
+  background: rgba(var(--warning-rgb, 245, 158, 11), 0.04);
+}
+
+.col-name {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.75rem;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.col-type {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.semantic-badge {
+  display: inline-block;
+  background: var(--accent);
+  color: var(--bg);
+  font-size: 0.6rem;
+  padding: 0 4px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.col-iqr {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.72rem;
+  color: var(--accent);
+}
+
+.col-outliers {
+  font-size: 0.72rem;
+}
+
+.badge-outlier {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--warning);
+  font-weight: 600;
+}
+
+.badge-ok {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--good, #4ade80);
+}
+
+.badge-warn {
+  display: inline-block;
+  background: rgba(var(--warning-rgb, 245, 158, 11), 0.15);
+  color: var(--warning);
+  padding: 0 5px;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.colstats-legend {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ── BoxPlot ── */
+.boxplot-container {
+  margin-top: 0.5rem;
+  overflow-x: auto;
+}
+
+.boxplot-container svg {
+  display: block;
+  margin: 0 auto;
+}
+
+/* ── Responsive: hide IQR columns on mobile ── */
+@media (max-width: 900px) {
+  .colstats-header,
+  .colstats-row {
+    grid-template-columns: 1.2fr 1.5fr 0.5fr 0.5fr 0.8fr;
+  }
+
+  .hide-mobile {
+    display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .colstats-header,
+  .colstats-row {
+    grid-template-columns: 1.5fr 2fr 0.6fr;
+  }
+}
