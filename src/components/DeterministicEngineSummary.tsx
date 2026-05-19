@@ -12,21 +12,25 @@ const familyDescription = [
     icon: <ListChecks size={14} />,
     title: 'Reglas explícitas',
     body: 'Duplicados, nulos, columnas constantes, tipos mixtos y coherencia temporal.',
+    category: IssueCategory.INTEGRITY,
   },
   {
     icon: <Regex size={14} />,
     title: 'Expresiones regulares',
     body: 'Patrones de email, URL, teléfono, moneda, porcentaje, UUID, IP y valores sensibles.',
+    category: IssueCategory.HYGIENE,
   },
   {
     icon: <Braces size={14} />,
     title: 'Heurística de tipos',
     body: 'Inferencia de number, string, date, boolean y mixed con señales semánticas por nombre de columna.',
+    category: IssueCategory.TYPES,
   },
   {
     icon: <Calculator size={14} />,
     title: 'Estadística descriptiva',
     body: 'Nulos, únicos, cardinalidad, frecuencias, IQR, outliers extremos y Tukey 1.5x.',
+    category: IssueCategory.LOGIC,
   },
 ];
 
@@ -70,17 +74,25 @@ const DeterministicEngineSummary: React.FC<DeterministicEngineSummaryProps> = ({
       </div>
 
       <div className="benchmark-grid mt-8">
-        {familyDescription.map((family) => (
-          <div className="benchmark-card" key={family.title}>
-            <div className="benchmark-head">
-              <span className="benchmark-icon">{family.icon}</span>
-              <div>
-                <h3>{family.title}</h3>
-                <p>{family.body}</p>
+        {familyDescription.map((family) => {
+          const count = family.category
+            ? report.issues.filter(i => i.category === family.category).length
+            : 0;
+          return (
+            <div className="benchmark-card" key={family.title}>
+              <div className="benchmark-head">
+                <span className="benchmark-icon">{family.icon}</span>
+                <div>
+                  <h3>
+                    {family.title}
+                    {count > 0 && <span className="family-badge">{count}</span>}
+                  </h3>
+                  <p>{family.body}</p>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="benchmark-protocol mt-6">

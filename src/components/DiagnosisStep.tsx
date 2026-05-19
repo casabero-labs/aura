@@ -1,34 +1,60 @@
 import React, { useCallback, useState } from 'react';
-import { Brain, Database, Play, ShieldCheck } from 'lucide-react';
+import { Brain, Database, Play, ShieldCheck, FlaskConical, AlertTriangle, Lock, Globe, ChevronDown, ChevronRight, FileCode2, Package } from 'lucide-react';
 import GeminiAdvisor from './GeminiAdvisor';
 import { AIConfig, AIProvider, AuditReport, ProviderMetrics } from '../types';
+import { buildSmartSample } from '../services/providers/prompts';
+import { AVAILABLE_MODELS } from '../services/aiProvider';
 
 interface DiagnosisStepProps {
   report: AuditReport;
   aiConfig: AIConfig;
   aiProvider: AIProvider;
   analysisText: string;
+  onAiConfigChange: (config: AIConfig) => void;
   onAnalysisComplete: (analysis: string) => void;
   onMetrics?: (metrics: ProviderMetrics) => void;
   onLog?: (stage: string, msg: string) => void;
   onContinue: () => void;
+  onOpenLab?: () => void;
 }
+
+type JsonSectionProps = {
+  title: string;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+};
+
+const JsonSection: React.FC<JsonSectionProps> = ({ title, children, defaultOpen = false }) => {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="json-section">
+      <button className="json-section-toggle" onClick={() => setOpen(!open)} aria-expanded={open}>
+        <span className={`json-caret ${open ? 'open' : ''}`}>›</span>
+        <span>{title}</span>
+      </button>
+      {open && <div className="json-section-content">{children}</div>}
+    </div>
+  );
+};
 
 const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
   report,
   aiConfig,
   aiProvider,
   analysisText,
+  onAiConfigChange,
   onAnalysisComplete,
   onMetrics,
   onLog,
   onContinue,
+  onOpenLab,
 }) => {
   const [draftAnalysis, setDraftAnalysis] = useState(analysisText);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastMetrics, setLastMetrics] = useState<ProviderMetrics | null>(null);
   const [providerAvailable, setProviderAvailable] = useState<boolean | null>(null);
+  const [showEvidence, setShowEvidence] = useState(false);
 
   React.useEffect(() => {
     aiProvider.isAvailable().then(setProviderAvailable).catch(() => setProviderAvailable(false));
@@ -38,6 +64,36 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
     setDraftAnalysis(analysisText);
   }, [analysisText]);
 
+  const smartSample = React.useMemo(() => buildSmartSample(report), [report]);
+
+  const handleProviderTypeChange = (type: 'local' | 'cloud') => {
+    const models = type === 'local' ? AVAILABLE_MODELS.local : AVAILABLE_MODELS.cloud;
+    const firstModel = models[0];
+    onAiConfigChange({
+      ...aiConfig,
+      providerType: type,
+      model: firstModel?.id || aiConfig.model,
+      cloudProvider: type === 'cloud'
+        ? (firstModel?.provider?.toLowerCase() as AIConfig['cloudProvider'])
+        : undefined,
+    });
+  };
+
+  const handleModelChange = (modelId: string) => {
+    const cloudModel = AVAILABLE_MODELS.cloud.find(m => m.id === modelId);
+    onAiConfigChange({
+      ...aiConfig,
+      model: modelId,
+      cloudProvider: cloudModel
+        ? (cloudModel.provider.toLowerCase() as AIConfig['cloudProvider'])
+        : aiConfig.cloudProvider,
+    });
+  };
+
+  const availableModels = aiConfig.providerType === 'local'
+    ? AVAILABLE_MODELS.local
+    : AVAILABLE_MODELS.cloud;
+
   const runDiagnosis = useCallback(async () => {
     if (isLoading) return;
     setIsLoading(true);
@@ -45,7 +101,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
     setDraftAnalysis('');
     let finalText = '';
 
-    onLog?.('diagnosis', `Iniciando diagnóstico con ${aiConfig.model}`);
+    onLog?.('diagnosis', `Iniciando diagnóstico con ${aiConfig.model} (${aiConfig.providerType})`);
 
     try {
       const metrics = await aiProvider.analyzeStream(report, (chunk) => {
@@ -63,10 +119,168 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [aiConfig.model, aiProvider, isLoading, onAnalysisComplete, onLog, onMetrics, report]);
+  }, [aiConfig.model, aiConfig.providerType, aiProvider, isLoading, onAnalysisComplete, onLog, onMetrics, report]);
+
+  const isCloud = aiConfig.providerType === 'cloud';
 
   return (
     <>
+      {/* ── 1. Qué se recibe del perfil ── */}
+      <section className="section">
+        <header className="section-header">
+          <div>
+            <p className="sec-eye">entrada recibida</p>
+            <h2 className="sec-title">Paquete de evidencia del perfil.</h2>
+          </div>
+        </header>
+
+        <p className="section-note">
+          Este es el paquete estructurado que generó el motor determinista en la etapa anterior.
+          El modelo de IA solo recibe esta información; no tiene acceso al dataset completo.
+        </p>
+
+        <div className="benchmark-protocol mt-6">
+          <div>
+            <span>filas del dataset</span>
+            <strong>{report.rowCount.toLocaleString('es-CO')}</strong>
+          </div>
+          <div>
+            <span>columnas observadas</span>
+            <strong>{report.colCount}</strong>
+          </div>
+          <div>
+            <span>score de calidad</span>
+            <strong>{report.score}/100</strong>
+          </div>
+          <div>
+            <span>reglas activadas</span>
+            <strong>{report.issues.length}</strong>
+          </div>
+        </div>
+
+        <div className="mt-6">
+          <button
+            className="btn-s"
+            onClick={() => setShowEvidence(!showEvidence)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+          >
+            {showEvidence ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+            {showEvidence ? 'Ocultar paquete' : 'Ver paquete enviado al modelo'}
+          </button>
+        </div>
+
+        {showEvidence && (
+          <div className="smart-sample-viewer mt-6">
+            <div className="smart-sample-header">
+              <div className="smart-sample-title">
+                <Package size={14} />
+                <span>PAQUETE ESTRUCTURADO → MODELO</span>
+              </div>
+              <p className="smart-sample-subtitle">
+                JSON que se inyecta en el prompt del LLM. Contiene contexto, columnas observadas
+                y hallazgos con muestras de evidencia.
+              </p>
+            </div>
+            <div className="smart-sample-body">
+              <JsonSection title={`context — ${Object.keys(smartSample.context).length} campos`} defaultOpen>
+                <div className="json-kv">
+                  <span className="json-line"><span className="json-key">"total_rows"</span>: <span className="json-number">{smartSample.context.total_rows}</span>,</span>
+                  <span className="json-line"><span className="json-key">"total_columns"</span>: <span className="json-number">{smartSample.context.total_columns}</span>,</span>
+                  <span className="json-line"><span className="json-key">"detected_delimiter"</span>: <span className="json-string">"{smartSample.context.detected_delimiter}"</span>,</span>
+                  <span className="json-line"><span className="json-key">"quality_score"</span>: <span className="json-number">{smartSample.context.quality_score}</span></span>
+                </div>
+              </JsonSection>
+              <JsonSection title={`columns — ${smartSample.columns.length} columnas`}>
+                <pre className="json-raw">{JSON.stringify(smartSample.columns, null, 2)}</pre>
+              </JsonSection>
+              <JsonSection title={`detected_issues — ${smartSample.detected_issues.length} reglas activadas`}>
+                <pre className="json-raw">{JSON.stringify(smartSample.detected_issues, null, 2)}</pre>
+              </JsonSection>
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* ── 2. Selector de modelo ── */}
+      <section className="section">
+        <header className="section-header">
+          <div>
+            <p className="sec-eye">configuración del modelo</p>
+            <h2 className="sec-title">Elegir modelo para diagnóstico.</h2>
+          </div>
+        </header>
+
+        {/* Privacy warning */}
+        <div className={`privacy-notice ${isCloud ? 'privacy-notice--cloud' : 'privacy-notice--local'}`}>
+          {isCloud ? (
+            <>
+              <Globe size={14} />
+              <div>
+                <strong>Modo cloud</strong>
+                <p>Los datos del paquete de evidencia viajan al proveedor {aiConfig.cloudProvider || 'cloud'}. El modelo es más capaz pero los datos salen de tu dispositivo.</p>
+              </div>
+            </>
+          ) : (
+            <>
+              <Lock size={14} />
+              <div>
+                <strong>Modo local (WebGPU)</strong>
+                <p>El modelo se ejecuta en tu navegador. Ningún dato sale de tu dispositivo. Capacidad limitada según el modelo disponible.</p>
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="model-selector-grid mt-6">
+          {/* Provider type toggle */}
+          <div className="model-selector-group">
+            <label className="model-selector-label">Proveedor</label>
+            <div className="model-type-toggle">
+              <button
+                className={`model-type-btn ${aiConfig.providerType === 'local' ? 'active' : ''}`}
+                onClick={() => handleProviderTypeChange('local')}
+              >
+                <Database size={12} /> Local
+              </button>
+              <button
+                className={`model-type-btn ${aiConfig.providerType === 'cloud' ? 'active' : ''}`}
+                onClick={() => handleProviderTypeChange('cloud')}
+              >
+                <Globe size={12} /> Cloud
+              </button>
+            </div>
+          </div>
+
+          {/* Model dropdown */}
+          <div className="model-selector-group">
+            <label className="model-selector-label">Modelo</label>
+            <select
+              className="model-select"
+              value={aiConfig.model}
+              onChange={(e) => handleModelChange(e.target.value)}
+            >
+              {availableModels.map(model => (
+                <option key={model.id} value={model.id}>
+                  {model.name || model.id}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Lab CTA */}
+        {onOpenLab && (
+          <div className="lab-cta mt-6">
+            <FlaskConical size={14} />
+            <span>¿Querés comparar cómo se comporta otro modelo con la misma evidencia?</span>
+            <button className="btn-s btn-sm" onClick={onOpenLab}>
+              Abrir laboratorio experimental
+            </button>
+          </div>
+        )}
+      </section>
+
+      {/* ── 3. Ejecutar diagnóstico ── */}
       <section className="section">
         <header className="section-header">
           <div>
@@ -76,8 +290,8 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
         </header>
 
         <p className="section-note">
-          Esta etapa interpreta los hallazgos estructurados del perfil. El modelo seleccionado recibe reglas activadas,
-          columnas observadas y muestras de evidencia; no recibe una explicación inventada ni modifica el dataset.
+          El modelo interpreta los hallazgos estructurados del perfil. No recibe el dataset completo
+          ni puede inventar columnas, valores o relaciones que no estén en el paquete de evidencia.
         </p>
 
         <div className="cognitive-grid">
@@ -150,4 +364,3 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
 };
 
 export default DiagnosisStep;
-

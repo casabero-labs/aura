@@ -68,10 +68,6 @@ const ColumnDetail: React.FC<ColumnDetailProps> = ({ col, totalRows }) => {
   const sem = col.semanticType;
   const semInfo = sem ? semanticLabel[sem] : null;
 
-  const std = col.mean !== undefined && col.q1 !== undefined && col.q3 !== undefined
-    ? Math.sqrt(2 * Math.pow(col.q3! - col.q1!, 2) / 1.35) // aproximación rápida
-    : undefined;
-
   return (
     <div className={`col-detail ${hasOutliers ? 'col-detail--warning' : ''}`}>
       <button className="col-detail-header" onClick={() => setExpanded(e => !e)}>
@@ -144,8 +140,20 @@ const ColumnDetail: React.FC<ColumnDetailProps> = ({ col, totalRows }) => {
                     <span className="col-stat-val">{col.mean !== undefined ? formatNum(col.mean, 4) : '—'}</span>
                   </div>
                   <div className="col-stat-item">
-                    <span className="col-stat-lbl">Std (aprox)</span>
-                    <span className="col-stat-val">{std !== undefined ? formatNum(std, 4) : '—'}</span>
+                    <span className="col-stat-lbl">Median</span>
+                    <span className="col-stat-val">{col.median !== undefined ? formatNum(col.median, 4) : '—'}</span>
+                  </div>
+                  <div className="col-stat-item">
+                    <span className="col-stat-lbl">Std</span>
+                    <span className="col-stat-val">{col.std !== undefined ? formatNum(col.std, 4) : '—'}</span>
+                  </div>
+                  <div className="col-stat-item">
+                    <span className="col-stat-lbl">CV</span>
+                    <span className="col-stat-val">{col.cv !== undefined ? formatNum(col.cv, 4) : '—'}</span>
+                  </div>
+                  <div className="col-stat-item">
+                    <span className="col-stat-lbl">Skewness</span>
+                    <span className="col-stat-val">{col.skewness !== undefined ? formatNum(col.skewness, 4) : '—'}</span>
                   </div>
                   <div className="col-stat-item">
                     <span className="col-stat-lbl">Q1 (25%)</span>

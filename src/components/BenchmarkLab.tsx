@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Activity, FlaskConical, X, Play, BarChart3 } from 'lucide-react';
+import { Activity, FlaskConical, ArrowLeft, Play, BarChart3 } from 'lucide-react';
 import { AuditReport, AIConfig, BenchmarkResult, AuditExecutionEvidence } from '../types';
 import { AVAILABLE_MODELS } from '../services/aiProvider';
 import { runBenchmarkForConfig } from '../services/benchmarkService';
@@ -15,7 +15,7 @@ interface BenchmarkLabProps {
   fileName?: string;
   aiConfig: AIConfig;
   auditEvidence?: AuditExecutionEvidence;
-  onClose: () => void;
+  onBack: () => void;
 }
 
 const statusLabel: Record<BenchmarkResult['status'], string> = {
@@ -157,160 +157,151 @@ const BenchmarkLab: React.FC<BenchmarkLabProps> = ({
 
   const completedResults = results.filter(r => r.status === 'completed');
 
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
-  };
-
   return (
-    <div className="modal-backdrop" onClick={handleBackdropClick}>
-      <div className="lab-panel">
-        {/* Header */}
-        <div className="section section-header">
-          <div className="sec-eye">
-            <FlaskConical size={20} />
-          </div>
-          <div className="sec-title">
-            <h2>Laboratorio de Benchmark</h2>
+    <div className="benchmark-lab-page">
+      {/* Header */}
+      <header className="lab-header">
+        <button className="lab-back-btn" onClick={onBack}>
+          <ArrowLeft size={14} /> Volver al flujo
+        </button>
+        <div className="lab-title-block">
+          <FlaskConical size={20} className="lab-flask-icon" />
+          <div>
+            <h1>Laboratorio experimental</h1>
             <p>
-              Modo científico experimental. Ejecuta comparativas multi-modelo sobre la misma evidencia
-              determinista del pipeline principal. Los resultados son de solo lectura.
+              Compará modelos LLM bajo la misma evidencia determinista. Los resultados son de solo lectura
+              y no afectan el flujo principal de auditoría.
             </p>
           </div>
-          <button className="btn-s" onClick={onClose} aria-label="Cerrar laboratorio">
-            <X size={18} />
+        </div>
+      </header>
+
+      {/* Experiment Designer */}
+      <section className="lab-section">
+        <ExperimentDesigner report={report} config={aiConfig} />
+      </section>
+
+      {/* Quick Run Buttons */}
+      <section className="lab-section">
+        <div className="lab-controls">
+          <button
+            className="btn-p"
+            onClick={runAllLocalModels}
+            disabled={isRunning}
+          >
+            <Activity size={14} />
+            {isRunning && runningId ? 'Ejecutando...' : 'Benchmark Local'}
           </button>
-        </div>
 
-        {/* Experiment Designer */}
-        <div className="section">
-          <ExperimentDesigner report={report} config={aiConfig} />
-        </div>
-
-        {/* Quick Run Buttons */}
-        <div className="section">
-          <div className="lab-controls">
+          {aiConfig.apiKey && (
             <button
               className="btn-p"
-              onClick={runAllLocalModels}
+              onClick={runAllCloudModels}
               disabled={isRunning}
             >
               <Activity size={14} />
-              {isRunning && runningId ? 'Ejecutando...' : 'Benchmark Local'}
+              {isRunning ? 'Ejecutando...' : 'Benchmark Cloud'}
             </button>
+          )}
 
-            {aiConfig.apiKey && (
-              <button
-                className="btn-p"
-                onClick={runAllCloudModels}
-                disabled={isRunning}
-              >
-                <Activity size={14} />
-                {isRunning ? 'Ejecutando...' : 'Benchmark Cloud'}
-              </button>
-            )}
-
-            {aiConfig.apiKey && (
-              <button
-                className="btn-s"
-                onClick={runComparison}
-                disabled={isRunning}
-              >
-                <Play size={14} />
-                Comparativa Local vs Cloud
-              </button>
-            )}
-          </div>
+          {aiConfig.apiKey && (
+            <button
+              className="btn-s"
+              onClick={runComparison}
+              disabled={isRunning}
+            >
+              <Play size={14} /> Comparativa Local vs Cloud
+            </button>
+          )}
         </div>
+      </section>
 
-        {/* Results Table */}
-        <div className="section">
-          <div className="section-header">
-            <h3>Resultados de Benchmark</h3>
-            <span className="lab-count">{completedResults.length} corridas completadas</span>
-          </div>
-          <div className="lab-table-wrap">
-            <table className="lab-table">
-              <thead>
+      {/* Results Table */}
+      <section className="lab-section">
+        <div className="section-header">
+          <h3>Resultados de Benchmark</h3>
+          <span className="lab-count">{completedResults.length} corridas completadas</span>
+        </div>
+        <div className="lab-table-wrap">
+          <table className="lab-table">
+            <thead>
+              <tr>
+                <th>Proveedor</th>
+                <th>Modelo</th>
+                <th>Entrada</th>
+                <th>Estado</th>
+                <th>Latencia</th>
+                <th>Tokens/s</th>
+                <th>Hallucinaciones</th>
+                <th>Evidencia</th>
+              </tr>
+            </thead>
+            <tbody>
+              {results.length === 0 && (
                 <tr>
-                  <th>Proveedor</th>
-                  <th>Modelo</th>
-                  <th>Entrada</th>
-                  <th>Estado</th>
-                  <th>Latencia</th>
-                  <th>Tokens/s</th>
-                  <th>Hallucinaciones</th>
-                  <th>Evidencia</th>
+                  <td colSpan={8} className="lab-empty">
+                    Sin ejecuciones. Usá los botones de arriba para iniciar un benchmark.
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {results.length === 0 && (
-                  <tr>
-                    <td colSpan={8} className="lab-empty">
-                      Sin ejecuciones. Usa los botones de arriba para iniciar un benchmark.
-                    </td>
-                  </tr>
-                )}
-                {results.map(result => (
-                  <tr key={result.id} className={result.status === 'running' ? 'lab-running' : ''}>
-                    <td>
-                      <strong>{result.provider}</strong>
-                    </td>
-                    <td>{result.model}</td>
-                    <td>{result.inputMode === 'smart_sample' ? 'Smart' : 'Libre'}</td>
-                    <td>
-                      <span className={`lab-status lab-status-${result.status}`}>
-                        {result.status === 'running' && <Activity size={12} />}
-                        {result.status === 'completed' && <BarChart3 size={12} />}
-                        {statusLabel[result.status]}
-                      </span>
-                      {result.error && <small className="lab-error">{result.error}</small>}
-                    </td>
-                    <td>{result.latencyMs ? `${result.latencyMs}ms` : '-'}</td>
-                    <td>{result.tokensPerSecond || '-'}</td>
-                    <td>
-                      {result.hallucinatedColumns.length === 0 ? (
-                        <span className="lab-clean">0</span>
-                      ) : (
-                        <span className="lab-halluc">{result.hallucinatedColumns.length}</span>
-                      )}
-                    </td>
-                    <td>
-                      <span className={`lab-evidence lab-evidence-${result.evidenceStatus}`}>
-                        {evidenceLabel[result.evidenceStatus]}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              )}
+              {results.map(result => (
+                <tr key={result.id} className={result.status === 'running' ? 'lab-running' : ''}>
+                  <td>
+                    <strong>{result.provider}</strong>
+                  </td>
+                  <td>{result.model}</td>
+                  <td>{result.inputMode === 'smart_sample' ? 'Smart' : 'Libre'}</td>
+                  <td>
+                    <span className={`lab-status lab-status-${result.status}`}>
+                      {result.status === 'running' && <Activity size={12} />}
+                      {result.status === 'completed' && <BarChart3 size={12} />}
+                      {statusLabel[result.status]}
+                    </span>
+                    {result.error && <small className="lab-error">{result.error}</small>}
+                  </td>
+                  <td>{result.latencyMs ? `${result.latencyMs}ms` : '-'}</td>
+                  <td>{result.tokensPerSecond || '-'}</td>
+                  <td>
+                    {result.hallucinatedColumns.length === 0 ? (
+                      <span className="lab-clean">0</span>
+                    ) : (
+                      <span className="lab-halluc">{result.hallucinatedColumns.length}</span>
+                    )}
+                  </td>
+                  <td>
+                    <span className={`lab-evidence lab-evidence-${result.evidenceStatus}`}>
+                      {evidenceLabel[result.evidenceStatus]}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
+      </section>
 
-        {/* D3 Charts */}
-        {showCharts && completedResults.length > 0 && (
-          <div className="section">
-            <div className="section-header">
-              <h3>Visualización de Métricas</h3>
+      {/* D3 Charts */}
+      {showCharts && completedResults.length > 0 && (
+        <section className="lab-section">
+          <div className="section-header">
+            <h3>Visualización de Métricas</h3>
+          </div>
+          <div className="lab-charts-grid">
+            <div className="lab-chart-card">
+              <h4>Score Compuesto por Modelo</h4>
+              <ScoreBarChart results={completedResults} />
             </div>
-            <div className="lab-charts-grid">
-              <div className="lab-chart-card">
-                <h4>Score Compuesto por Modelo</h4>
-                <ScoreBarChart results={completedResults} />
-              </div>
-              <div className="lab-chart-card">
-                <h4>Perfil Multi-Dimensional</h4>
-                <RadarChart results={completedResults} />
-              </div>
-              <div className="lab-chart-card">
-                <h4>Latencia vs Score</h4>
-                <ScatterPlot results={completedResults} />
-              </div>
+            <div className="lab-chart-card">
+              <h4>Perfil Multi-Dimensional</h4>
+              <RadarChart results={completedResults} />
+            </div>
+            <div className="lab-chart-card">
+              <h4>Latencia vs Score</h4>
+              <ScatterPlot results={completedResults} />
             </div>
           </div>
-        )}
-      </div>
+        </section>
+      )}
     </div>
   );
 };

@@ -6,6 +6,7 @@ import DatasetProfile from './DatasetProfile';
 import DeterministicEngineSummary from './DeterministicEngineSummary';
 import FindingsTable from './FindingsTable';
 import ProfileEvidencePackage from './ProfileEvidencePackage';
+import ProfileExecutiveSummary from './ProfileExecutiveSummary';
 import RuleActivationMatrix from './RuleActivationMatrix';
 import ScoreBreakdown from './ScoreBreakdown';
 import { AuditExecutionEvidence, AuditReport, IssueSeverity } from '../types';
@@ -36,6 +37,8 @@ const ProfileStep: React.FC<ProfileStepProps> = ({ report, auditEvidence, file, 
         auditDurationMs={auditEvidence.auditDurationMs}
         datasetFingerprint={auditEvidence.datasetFingerprint}
       />
+
+      <ProfileExecutiveSummary report={report} auditEvidence={auditEvidence} />
 
       <DeterministicEngineSummary report={report} auditEvidence={auditEvidence} />
 

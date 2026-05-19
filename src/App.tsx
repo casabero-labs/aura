@@ -167,14 +167,26 @@ const App: React.FC = () => {
     downloadTextFile(
       `aura_audit_${Date.now()}.json`,
       JSON.stringify({
-        fileName: file?.name,
-        generatedAt: new Date().toISOString(),
-        report,
-        auditEvidence,
-        aiAnalysis,
-        scriptValidation,
-        benchmarkResults,
-        improvementRun,
+        profile: {
+          report,
+          auditEvidence,
+        },
+        diagnosis: {
+          model: aiConfig.model,
+          providerType: aiConfig.providerType,
+          diagnosisText: aiAnalysis,
+        },
+        script: {
+          generatedScript: pipelineData.cleaningScript,
+          scriptValidation,
+          approvedScript: pipelineData.approvedScript,
+        },
+        ...(benchmarkResults.length > 0 && {
+          experiment: {
+            benchmarkResults,
+            improvementRun,
+          },
+        }),
       }, null, 2),
       'application/json;charset=utf-8'
     );
@@ -207,7 +219,7 @@ const App: React.FC = () => {
 
   return (
     <ErrorBoundary><div className="aura-system">
-      {showLab && report && (
+      {showLab && report ? (
         <BenchmarkLab
           report={report}
           rawData={rawData}
@@ -216,9 +228,10 @@ const App: React.FC = () => {
           fileName={file?.name}
           aiConfig={aiConfig}
           auditEvidence={auditEvidence || undefined}
-          onClose={() => setShowLab(false)}
+          onBack={() => setShowLab(false)}
         />
-      )}
+      ) : (
+        <>
 
       {/* Settings Modal */}
       {showSettings && (
@@ -313,6 +326,8 @@ const App: React.FC = () => {
           aiConfig={aiConfig}
           aiProvider={aiProvider}
           onPipelineChange={setPipelineData}
+          onAiConfigChange={setAiConfig}
+          onOpenLab={() => setShowLab(true)}
           onLog={(stage, msg) => { /* logs handled internally by MainPipeline */ }}
         />
 
@@ -349,6 +364,8 @@ const App: React.FC = () => {
         <span className="footer-brand">AURA</span>
         <span className="footer-copy">casabero · tfm · 2026</span>
       </footer>
+        </>
+      )}
     </div></ErrorBoundary>
   );
 };

@@ -189,7 +189,27 @@ const calculateStats = (data: any[], fields: string[]): Record<string, ColumnSta
       stats[field].min = Math.min(...numValues);
       stats[field].max = Math.max(...numValues);
       const sum = numValues.reduce((a, b) => a + b, 0);
-      stats[field].mean = sum / numValues.length;
+      const mean = sum / numValues.length;
+      stats[field].mean = mean;
+
+      const sorted = [...numValues].sort((a, b) => a - b);
+      const mid = Math.floor(sorted.length / 2);
+      stats[field].median = sorted.length % 2 !== 0
+        ? sorted[mid]
+        : (sorted[mid - 1] + sorted[mid]) / 2;
+
+      const variance = numValues.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / numValues.length;
+      const std = Math.sqrt(variance);
+      stats[field].std = std;
+
+      if (mean !== 0) {
+        stats[field].cv = std / Math.abs(mean);
+      }
+
+      if (std > 0) {
+        const skewSum = numValues.reduce((acc, val) => acc + Math.pow((val - mean) / std, 3), 0);
+        stats[field].skewness = skewSum / numValues.length;
+      }
 
       // IQR computation for numeric columns
       const { q1, q3, iqr } = getQuartiles(numValues);

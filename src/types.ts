@@ -46,6 +46,10 @@ export interface ColumnStats {
   min?: number | string;
   max?: number | string;
   mean?: number;
+  median?: number;
+  std?: number;
+  cv?: number;
+  skewness?: number;
   q1?: number;
   q3?: number;
   iqr?: number;
