@@ -70,11 +70,20 @@ const BenchmarkPanel: React.FC<BenchmarkPanelProps> = ({
   const [results, setResults] = useState<BenchmarkResult[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [, setClockTick] = useState(0);
+  const isCloudConfigured = !!config.apiKey;
+  const isChromeConfigured = config.providerType === 'chrome';
+  const configuredCount = 1 + (isCloudConfigured ? 1 : 0) + (isChromeConfigured ? 1 : 0);
+
+  const cloudModels = useMemo(() => {
+    if (!config.cloudProvider) return AVAILABLE_MODELS.cloud;
+    return AVAILABLE_MODELS.cloud.filter(m => m.provider.toLowerCase() === config.cloudProvider);
+  }, [config.cloudProvider]);
+
   const [selectedLocalModel, setSelectedLocalModel] = useState(
     config.providerType === 'local' ? config.model : AVAILABLE_MODELS.local[0].id
   );
   const [selectedCloudModel, setSelectedCloudModel] = useState(
-    config.providerType === 'cloud' ? config.model : AVAILABLE_MODELS.cloud[0].id
+    config.providerType === 'cloud' ? config.model : (cloudModels[0]?.id || '')
   );
   const [selectedChromeModel, setSelectedChromeModel] = useState('gemini-nano');
 
@@ -174,13 +183,16 @@ const BenchmarkPanel: React.FC<BenchmarkPanelProps> = ({
   const runSuite = async (suite: 'local' | 'cloud' | 'chrome' | 'both' | 'all') => {
     if (suite === 'all') {
       const localConfigs = AVAILABLE_MODELS.local.map(model => ({ ...config, providerType: 'local' as const, model: model.id }));
-      const cloudConfigs = AVAILABLE_MODELS.cloud.map(model => ({ ...config, providerType: 'cloud' as const, model: model.id }));
-      const chromeConfigs = AVAILABLE_MODELS.chrome.map(model => ({ ...config, providerType: 'chrome' as const, model: model.id }));
+      const cloudConfigs = isCloudConfigured ? cloudModels.map(model => ({ ...config, providerType: 'cloud' as const, model: model.id })) : [];
+      const chromeConfigs = isChromeConfigured ? AVAILABLE_MODELS.chrome.map(model => ({ ...config, providerType: 'chrome' as const, model: model.id })) : [];
       await runConfigs([...localConfigs, ...cloudConfigs, ...chromeConfigs]);
       return;
     }
 
-    const configs = suite === 'both' ? [localConfig, cloudConfig] : suite === 'local' ? [localConfig] : suite === 'chrome' ? [chromeConfig] : [cloudConfig];
+    if (suite === 'cloud' && !isCloudConfigured) return;
+    if (suite === 'chrome' && !isChromeConfigured) return;
+
+    const configs = suite === 'both' ? [localConfig, ...(isCloudConfigured ? [cloudConfig] : [])] : suite === 'local' ? [localConfig] : suite === 'chrome' ? [chromeConfig] : [cloudConfig];
     await runConfigs(configs);
   };
 
@@ -233,12 +245,13 @@ const BenchmarkPanel: React.FC<BenchmarkPanelProps> = ({
           </button>
         </div>
 
+        {isCloudConfigured && (
         <div className="benchmark-card">
           <div className="benchmark-head">
             <span className="benchmark-icon"><Cloud size={18} /></span>
             <div>
               <h3>Contraste Cloud</h3>
-              <p>Gemini se usa como referencia secundaria.</p>
+              <p>{config.cloudProvider || 'Cloud'} como referencia secundaria.</p>
             </div>
           </div>
           <div className="benchmark-metric">
@@ -249,7 +262,7 @@ const BenchmarkPanel: React.FC<BenchmarkPanelProps> = ({
               className="benchmark-select"
               disabled={isRunning}
             >
-              {AVAILABLE_MODELS.cloud.map(model => (
+              {cloudModels.map(model => (
                 <option key={model.id} value={model.id}>{model.name}</option>
               ))}
             </select>
@@ -262,7 +275,9 @@ const BenchmarkPanel: React.FC<BenchmarkPanelProps> = ({
             <Play size={14} /> Ejecutar Cloud
           </button>
         </div>
+        )}
 
+        {isChromeConfigured && (
         <div className="benchmark-card">
           <div className="benchmark-head">
             <span className="benchmark-icon"><Cpu size={18} /></span>
@@ -283,18 +298,20 @@ const BenchmarkPanel: React.FC<BenchmarkPanelProps> = ({
             <Play size={14} /> Ejecutar Chrome AI
           </button>
         </div>
+        )}
 
+        {configuredCount >= 2 && (
         <div className="benchmark-card benchmark-card-strong">
           <div className="benchmark-head">
             <span className="benchmark-icon"><Gauge size={18} /></span>
             <div>
               <h3>Suite Comparativa</h3>
-              <p>Dos infraestructuras y dos modos de entrada.</p>
+              <p>{configuredCount} infraestructuras y dos modos de entrada.</p>
             </div>
           </div>
           <div className="benchmark-metric">
             <span>Banco de modelos</span>
-            <strong>{AVAILABLE_MODELS.local.length} locales · {AVAILABLE_MODELS.cloud.length} cloud · {AVAILABLE_MODELS.chrome.length} Chrome</strong>
+            <strong>{AVAILABLE_MODELS.local.length} locales · {cloudModels.length} cloud · {isChromeConfigured ? 1 : 0} Chrome</strong>
           </div>
           <div className="benchmark-metric">
             <span>Base factual</span>
@@ -303,13 +320,16 @@ const BenchmarkPanel: React.FC<BenchmarkPanelProps> = ({
           <button className="primary w-full" disabled={isRunning} onClick={() => runSuite('both')}>
             <Activity size={14} /> Ejecutar Comparativo
           </button>
+          {configuredCount >= 3 && (
           <button className="secondary w-full" disabled={isRunning} onClick={() => runSuite('all')}>
             <Layers3 size={14} /> Probar todos los LLM
           </button>
+          )}
           <button className="secondary w-full" disabled={isRunning || results.length === 0 || !originalData.length} onClick={buildImprovementRun}>
             <ShieldCheck size={14} /> Simular mejora
           </button>
         </div>
+        )}
       </div>
 
       <div className="live-trace-panel mt-6" aria-label="Log visible del benchmark">

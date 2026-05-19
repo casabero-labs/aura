@@ -21,10 +21,25 @@ interface ExperimentDesignerProps {
 const INPUT_MODES: ExperimentConfig['inputMode'][] = ['smart_sample', 'prompt_libre'];
 
 export const ExperimentDesigner = ({ report, config, onLog }: ExperimentDesignerProps) => {
+  const isCloudConfigured = !!config.apiKey;
+  const availableProviders: ('local' | 'cloud')[] = ['local', ...(isCloudConfigured ? ['cloud'] : [])];
+
+  const cloudModels = config.cloudProvider
+    ? AVAILABLE_MODELS.cloud.filter(m => m.provider.toLowerCase() === config.cloudProvider)
+    : AVAILABLE_MODELS.cloud;
+
+  const getModelsForProvider = (providerType: 'local' | 'cloud') =>
+    providerType === 'local' ? AVAILABLE_MODELS.local : cloudModels;
+
+  const defaultModel = availableProviders[0] === 'local'
+    ? AVAILABLE_MODELS.local[0]?.id
+    : (cloudModels[0]?.id || '');
+  const defaultProvider = availableProviders[0];
+
   const [experiments, setExperiments] = useState<ExperimentConfig[]>([
     {
-      model: config.model || AVAILABLE_MODELS.cloud[0]?.id || '',
-      providerType: config.providerType || 'cloud',
+      model: config.model || defaultModel,
+      providerType: config.providerType === 'cloud' && isCloudConfigured ? 'cloud' : defaultProvider,
       temperature: config.temperature || 0.7,
       inputMode: 'smart_sample'
     }
@@ -36,8 +51,8 @@ export const ExperimentDesigner = ({ report, config, onLog }: ExperimentDesigner
     setExperiments(prev => [
       ...prev,
       {
-        model: AVAILABLE_MODELS.cloud[0]?.id || '',
-        providerType: 'cloud',
+        model: defaultModel,
+        providerType: defaultProvider,
         temperature: 0.7,
         inputMode: 'smart_sample'
       }
@@ -54,7 +69,7 @@ export const ExperimentDesigner = ({ report, config, onLog }: ExperimentDesigner
       if (i !== index) return exp;
       const updated = { ...exp, [field]: value };
       if (field === 'providerType') {
-        const models = value === 'local' ? AVAILABLE_MODELS.local : AVAILABLE_MODELS.cloud;
+        const models = getModelsForProvider(value as 'local' | 'cloud');
         updated.model = models[0]?.id || '';
       }
       return updated;
@@ -76,7 +91,9 @@ export const ExperimentDesigner = ({ report, config, onLog }: ExperimentDesigner
         temperature: exp.temperature,
         autoAnalyze: true,
         providerType: exp.providerType,
-        cloudProvider: AVAILABLE_MODELS[exp.providerType].find(m => m.id === exp.model)?.cloudProvider
+        cloudProvider: exp.providerType === 'cloud'
+          ? (cloudModels.find(m => m.id === exp.model)?.provider?.toLowerCase() as any)
+          : undefined
       };
       
       const result = await runBenchmarkForConfig(report, expConfig, exp.inputMode);
@@ -137,8 +154,9 @@ export const ExperimentDesigner = ({ report, config, onLog }: ExperimentDesigner
                     style={styles.select}
                     disabled={runningIndex !== null}
                   >
-                    <option value="cloud">Cloud</option>
-                    <option value="local">Local</option>
+                    {availableProviders.map(p => (
+                      <option key={p} value={p}>{p === 'local' ? 'Local' : 'Cloud'}</option>
+                    ))}
                   </select>
                 </td>
                 <td style={styles.td}>
@@ -148,16 +166,9 @@ export const ExperimentDesigner = ({ report, config, onLog }: ExperimentDesigner
                     style={styles.select}
                     disabled={runningIndex !== null}
                   >
-                    <optgroup label="Cloud">
-                      {AVAILABLE_MODELS.cloud.map(m => (
-                        <option key={m.id} value={m.id}>{m.name}</option>
-                      ))}
-                    </optgroup>
-                    <optgroup label="Local">
-                      {AVAILABLE_MODELS.local.map(m => (
-                        <option key={m.id} value={m.id}>{m.name}</option>
-                      ))}
-                    </optgroup>
+                    {getModelsForProvider(exp.providerType).map(m => (
+                      <option key={m.id} value={m.id}>{m.name}</option>
+                    ))}
                   </select>
                 </td>
                 <td style={styles.td}>
