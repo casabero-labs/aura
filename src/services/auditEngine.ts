@@ -1,7 +1,7 @@
 import { AuditReport, IssueSeverity, QualityIssue, IssueCategory, ColumnStats, ScoreDeduction } from '../types';
 
 // --- Regex Patterns ---
-const REGEX_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const REGEX_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const REGEX_DATE_ISO = /^\d{4}-\d{2}-\d{2}/;
 const REGEX_DATE_DMY = /^\d{2}[/-]\d{2}[/-]\d{4}/;
 const REGEX_DATETIME = /(?:^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(?::\d{2})?|^\d{2}[/-]\d{2}[/-]\d{4}[ T]\d{2}:\d{2}(?::\d{2})?)/;
@@ -60,14 +60,30 @@ const looksLikeDateTimeColumn = (col: string, values: any[], rowCount: number): 
 
 // --- Semantic Type Detection ---
 
-const detectSemanticType = (strValues: string[], numValues: number[], nonNullCount: number): ColumnStats['semanticType'] => {
+const SEMANTIC_KEYWORDS: Record<string, string[]> = {
+  email: ['mail', 'correo', 'email', 'e-mail'],
+  phone: ['phone', 'tel', 'cel', 'movil', 'telefono', 'teléfono', 'mobile'],
+  url: ['url', 'web', 'link', 'sitio', 'website', 'href'],
+  ip: ['ip', 'ipv4', 'ipv6', 'direccion_ip', 'ip_address'],
+  uuid: ['uuid', 'guid', 'id'],
+  zip: ['zip', 'postal', 'codigo_postal', 'zipcode', 'cp'],
+  currency: ['salary', 'wage', 'price', 'amount', 'precio', 'sueldo', 'salario', 'tarifa'],
+  percentage: ['rate', 'ratio', 'porcentaje', 'pct', 'percent'],
+};
+
+const detectSemanticType = (
+  col: string,
+  strValues: string[],
+  numValues: number[],
+  nonNullCount: number
+): ColumnStats['semanticType'] => {
   if (nonNullCount === 0) return undefined;
-  
+
+  const lower = col.toLowerCase();
   const sample = 100;
   const strSample = strValues.slice(0, sample);
   const total = Math.min(nonNullCount, sample);
 
-  // Count matches per semantic category
   const emailCount = strSample.filter(v => REGEX_EMAIL.test(v)).length;
   const phoneCount = strSample.filter(v => REGEX_PHONE.test(v)).length;
   const ipCount = strSample.filter(v => REGEX_IP.test(v)).length;
@@ -77,20 +93,25 @@ const detectSemanticType = (strValues: string[], numValues: number[], nonNullCou
   const currencyCount = strSample.filter(v => REGEX_CURRENCY.test(v.trim())).length;
   const percentCount = strSample.filter(v => REGEX_PERCENTAGE.test(v.trim())).length;
 
-  const THRESHOLD = 0.7; // 70% match rate to infer semantic type
+  const KEYWORD_BONUS = 0.25;
+  const THRESHOLD = 0.7;
 
-  if (total > 0) {
-    if (emailCount / total > THRESHOLD) return 'email';
-    if (phoneCount / total > THRESHOLD) return 'phone';
-    if (ipCount / total > THRESHOLD) return 'ip';
-    if (urlCount / total > THRESHOLD) return 'url';
-    if (uuidCount / total > THRESHOLD) return 'uuid';
-    if (zipCount / total > THRESHOLD) return 'zip';
-    if (currencyCount / total > THRESHOLD) return 'currency';
-    if (percentCount / total > THRESHOLD) return 'percentage';
-  }
+  const matchesType = (count: number, keywords: string[]): boolean => {
+    const ratio = total > 0 ? count / total : 0;
+    const keywordHit = keywords.some(k => lower.includes(k));
+    return ratio >= THRESHOLD || (ratio >= THRESHOLD * 0.5 && keywordHit);
+  };
 
-  return undefined; // No semantic type detected
+  if (matchesType(emailCount, SEMANTIC_KEYWORDS.email)) return 'email';
+  if (matchesType(phoneCount, SEMANTIC_KEYWORDS.phone)) return 'phone';
+  if (matchesType(ipCount, SEMANTIC_KEYWORDS.ip)) return 'ip';
+  if (matchesType(urlCount, SEMANTIC_KEYWORDS.url)) return 'url';
+  if (matchesType(uuidCount, SEMANTIC_KEYWORDS.uuid)) return 'uuid';
+  if (matchesType(zipCount, SEMANTIC_KEYWORDS.zip)) return 'zip';
+  if (matchesType(currencyCount, SEMANTIC_KEYWORDS.currency)) return 'currency';
+  if (matchesType(percentCount, SEMANTIC_KEYWORDS.percentage)) return 'percentage';
+
+  return undefined;
 };
 
 const looksLikeTimeColumn = (col: string, values: any[], rowCount: number): boolean => {
@@ -156,7 +177,7 @@ const calculateStats = (data: any[], fields: string[]): Record<string, ColumnSta
     stats[field] = {
       name: field,
       inferredType,
-      semanticType: detectSemanticType(strValues, numValues, nonNulls.length),
+      semanticType: detectSemanticType(field, strValues, numValues, nonNulls.length),
       nullCount: values.length - nonNulls.length,
       uniqueCount: freqMap.size,
       topFreq: sortedFreq,
@@ -175,9 +196,17 @@ const calculateStats = (data: any[], fields: string[]): Record<string, ColumnSta
       stats[field].q1 = q1;
       stats[field].q3 = q3;
       stats[field].iqr = iqr;
+
+      // WARNING: 3× IQR (extreme outliers)
       stats[field].lowerFence = q1 - 3 * iqr;
       stats[field].upperFence = q3 + 3 * iqr;
       stats[field].outlierCount = numValues.filter(n => n < stats[field].lowerFence! || n > stats[field].upperFence!).length;
+      stats[field].outlierSeverity = stats[field].outlierCount > 0 ? 'WARNING' : undefined;
+
+      // INFO: 1.5× IQR (Tukey mild outliers)
+      stats[field].lowerFenceTukey = q1 - 1.5 * iqr;
+      stats[field].upperFenceTukey = q3 + 1.5 * iqr;
+      stats[field].outlierCountTukey = numValues.filter(n => n < stats[field].lowerFenceTukey! || n > stats[field].upperFenceTukey!).length;
     }
   });
 
@@ -315,6 +344,7 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
     let futureDateCount = 0;
     let negativeCount = 0;
     let outlierCount = 0;
+    let outlierCountTukey = 0;
     let invalidEmailCount = 0;
     let phoneLengthSums = 0;
     let phoneLengths: number[] = [];
@@ -333,11 +363,14 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
     // IQR Calculation for Logic Rule 15
     const numericValues = values.filter(v => typeof v === 'number') as number[];
     let lowerBound = -Infinity, upperBound = Infinity;
+    let lowerBoundTukey = -Infinity, upperBoundTukey = Infinity;
     if (numericValues.length > 10) {
       const { q1, q3, iqr } = getQuartiles(numericValues);
       if (iqr > 0) {
-        lowerBound = q1 - 3 * iqr; // Extreme outlier (3x IQR per rule description)
+        lowerBound = q1 - 3 * iqr;   // WARNING: extreme outlier
         upperBound = q3 + 3 * iqr;
+        lowerBoundTukey = q1 - 1.5 * iqr; // INFO: mild outlier (Tukey)
+        upperBoundTukey = q3 + 1.5 * iqr;
       }
     }
 
@@ -441,11 +474,14 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
         }
       }
 
-      // 15. Extreme Outliers
+      // 15. Extreme Outliers (3× IQR)
       if (typeof val === 'number' && numericValues.length > 10) {
         if (val < lowerBound || val > upperBound) {
           outlierCount++;
           if (samples.outlier.length < 3) samples.outlier.push(val);
+        } else if (val < lowerBoundTukey || val > upperBoundTukey) {
+          // Mild outlier: outside 1.5× IQR but inside 3× IQR (Tukey)
+          outlierCountTukey++;
         }
       }
 
@@ -574,7 +610,12 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
 
     if (outlierCount > 0) {
       addDeduction(`Outliers en [${col}]`, 5, IssueCategory.LOGIC);
-      issues.push({ id: `logic-outlier-${col}`, column: col, category: IssueCategory.LOGIC, ruleName: 'Outliers Extremos (IQR)', description: 'Valores desviados > 3x del rango intercuartílico.', severity: IssueSeverity.WARNING, count: outlierCount, affectedPercentage: (outlierCount / rowCount) * 100, sampleValues: samples.outlier });
+      issues.push({ id: `logic-outlier-${col}`, column: col, category: IssueCategory.LOGIC, ruleName: 'Outliers Extremos (IQR 3×)', description: 'Valores desviados > 3× del rango intercuartílico.', severity: IssueSeverity.WARNING, count: outlierCount, affectedPercentage: (outlierCount / rowCount) * 100, sampleValues: samples.outlier });
+    }
+
+    if (outlierCountTukey > 0) {
+      addDeduction(`Outliers Leves en [${col}]`, 2, IssueCategory.LOGIC);
+      issues.push({ id: `logic-outlier-tukey-${col}`, column: col, category: IssueCategory.LOGIC, ruleName: 'Outliers Leves (Tukey 1.5×)', description: 'Valores desviados entre 1.5× y 3× del rango intercuartílico (mild Tukey outliers).', severity: IssueSeverity.INFO, count: outlierCountTukey, affectedPercentage: (outlierCountTukey / rowCount) * 100, sampleValues: [] });
     }
 
     if (invalidEmailCount > 0) {

@@ -51,7 +51,11 @@ export interface ColumnStats {
   iqr?: number;
   lowerFence?: number;
   upperFence?: number;
+  lowerFenceTukey?: number;
+  upperFenceTukey?: number;
   outlierCount?: number;
+  outlierSeverity?: 'INFO' | 'WARNING';
+  outlierCountTukey?: number;
   zeros?: number;
   topFreq?: { value: string; count: number }[];
   sampleValues?: any[];
