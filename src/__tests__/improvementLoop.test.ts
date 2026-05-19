@@ -4,6 +4,7 @@ import { detectHallucinations } from '../services/benchmark/hallucinationDetecto
 import { deriveEvidenceStatus, createImprovementRun } from '../services/improvementService';
 import { simulateRemediation, buildDeterministicRemediationActions } from '../services/remediationSimulator';
 import { validateCleaningScript } from '../services/scriptValidationService';
+import { buildDeterministicCleaningScript } from '../services/deterministicScriptBuilder';
 import { AuditReport, BenchmarkResult } from '../types';
 
 const baseData = [
@@ -82,6 +83,18 @@ describe('Evidence-guided improvement loop', () => {
 
     expect(validation.valid).toBe(false);
     expect(validation.invalidColumns).toContain('phantom_score');
+  });
+
+  it('builds a deterministic fallback cleaning script when model output is unusable', () => {
+    const report = runAudit(baseData, fields, ',');
+    const script = buildDeterministicCleaningScript(report);
+    const validation = validateCleaningScript(report, script);
+
+    expect(script).toContain('df_clean = df.copy()');
+    expect(script).toContain('df_clean["name"]');
+    expect(validation.hasScript).toBe(true);
+    expect(validation.coveredIssueIds.length).toBeGreaterThan(0);
+    expect(validation.invalidColumns).toEqual([]);
   });
 
   it('simulates safe actions on a copy without mutating original data', () => {

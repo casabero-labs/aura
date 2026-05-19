@@ -5237,6 +5237,183 @@
   flex-shrink: 0;
 }
 
+.script-metrics-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 1rem;
+  color: var(--ink2);
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+.script-metrics-row span {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  padding: 5px 7px;
+}
+
+.script-validation-panel {
+  margin-top: 1.5rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.script-validation-head {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.script-validation-head strong {
+  display: block;
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.script-validation-head p {
+  margin: 4px 0 0;
+  color: var(--ink2);
+  font-size: 12px;
+}
+
+.script-validation-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.script-validation-card {
+  min-width: 0;
+  padding: 1rem;
+  border-right: 1px solid var(--border);
+}
+
+.script-validation-card:last-child {
+  border-right: 0;
+}
+
+.script-validation-card svg {
+  color: var(--ink2);
+  margin-bottom: 10px;
+}
+
+.script-validation-card span {
+  display: block;
+  color: var(--ink3);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.script-validation-card strong {
+  display: block;
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.script-validation-card--warn svg,
+.script-validation-card--review svg {
+  color: var(--orange);
+}
+
+.script-validation-card--pass svg {
+  color: var(--success);
+}
+
+.script-validation-warnings {
+  margin: 0;
+  padding: 1rem 1rem 1rem 2rem;
+  border-top: 1px solid var(--border);
+  color: var(--ink2);
+  font-size: 12px;
+}
+
+.review-decision-panel {
+  margin-top: 1.5rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.review-decision-head {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.review-decision-head strong {
+  display: block;
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.review-decision-head p {
+  margin: 4px 0 0;
+  color: var(--ink2);
+  font-size: 12px;
+}
+
+.review-check-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.review-check-card {
+  min-width: 0;
+  padding: 1rem;
+  border-right: 1px solid var(--border);
+}
+
+.review-check-card:last-child {
+  border-right: 0;
+}
+
+.review-check-card svg {
+  color: var(--ink2);
+  margin-bottom: 10px;
+}
+
+.review-check-card span {
+  display: block;
+  color: var(--ink3);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.review-check-card strong {
+  display: block;
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.review-check-card--pass svg {
+  color: var(--success);
+}
+
+.review-check-card--warn svg,
+.review-check-card--review svg {
+  color: var(--orange);
+}
+
+.review-warning-list {
+  margin: 0;
+  padding: 1rem 1rem 1rem 2rem;
+  border-top: 1px solid var(--border);
+  color: var(--ink2);
+  font-size: 12px;
+}
+
 /* JSON section styles (evidence viewer) */
 .json-section {
   margin-bottom: 0.5rem;

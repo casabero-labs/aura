@@ -1,0 +1,7 @@
+id,nombre,email,estado,monto
+1," Ana  Perez ","ana@example.com",activo,"1200"
+2,"Luis  Gomez","luis.example.com",N/A,"950"
+3,"MARIA ROJAS","maria@demo.com",null,"1800"
+3,"MARIA ROJAS","maria@demo.com",null,"1800"
+4," Carlos Diaz ","carlos@demo",?,"-25"
+5,"sofia  leon","sofia@demo.com",activo,"2100"

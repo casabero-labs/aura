@@ -1,0 +1,7 @@
+ticket_id,cliente,fecha_inicio,fecha_cierre,prioridad,telefono
+1001,"Cliente A","2026-05-01","2026-05-03",alta,"+57 300 111 2233"
+1002,"Cliente B","2026-05-04","2026-05-02",media,"123"
+1003,"Cliente C","2026-05-05","",N/A,"+57 310 222 3344"
+1004,"Cliente  D","2026/05/07","2026-05-08",BAJA,"+57 320 333 4455"
+1004,"Cliente  D","2026/05/07","2026-05-08",BAJA,"+57 320 333 4455"
+1005,"Cliente E","texto","2026-05-09",?,""

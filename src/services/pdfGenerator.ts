@@ -364,7 +364,7 @@ export const generatePdfReport = (
     doc.text(`• Operaciones Críticas: ${destStatus}`, margin + 5, yPos);
     yPos += 6;
     
-    doc.text(`• Cobertura de Hallazgos: ${scriptValidation.coveredIssueIds.length} anomalías de Capa 1 trazadas y mitigadas por este script.`, margin + 5, yPos);
+    doc.text(`• Cobertura de Hallazgos: ${scriptValidation.coveredIssueIds.length} anomalías del perfil determinista trazadas y mitigadas por este script.`, margin + 5, yPos);
     yPos += 6;
     
     if (scriptValidation.warnings.length > 0) {

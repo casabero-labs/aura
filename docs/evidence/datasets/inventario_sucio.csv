@@ -1,0 +1,7 @@
+sku,producto,categoria,stock,precio,fecha_actualizacion
+A-001," Cable USB  ","accesorios","10","5.99","2026-05-01"
+A-002,"mouse optico","ACCESORIOS","0","12,50","2026-05-02"
+A-003,"Teclado",N/A,"-3","22.00","2026-15-02"
+A-004,"Monitor 24",pantallas,"5","199.99","2026-05-05"
+A-004,"Monitor 24",pantallas,"5","199.99","2026-05-05"
+A-005," Hub  USB  ",null,"2","18.00",""

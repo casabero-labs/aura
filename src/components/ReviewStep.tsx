@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import ScriptReview from './ScriptReview';
 import ImprovementRunPanel from './ImprovementRunPanel';
 import { createImprovementRun } from '../services/improvementService';
-import { ArrowRight, ShieldCheck } from 'lucide-react';
+import { ArrowRight, CheckCircle2, ShieldAlert, ShieldCheck, TriangleAlert } from 'lucide-react';
 import {
   AuditReport,
   AuditExecutionEvidence,
@@ -59,6 +59,36 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
     runSimulation(script);
   };
 
+  const reviewChecks = [
+    {
+      label: 'script disponible',
+      value: cleaningScript ? `${cleaningScript.split('\n').length} líneas` : 'pendiente',
+      state: cleaningScript ? 'pass' : 'warn',
+    },
+    {
+      label: 'columnas',
+      value: scriptValidation
+        ? scriptValidation.invalidColumns.length === 0 ? 'existentes' : `${scriptValidation.invalidColumns.length} inválidas`
+        : 'sin validar',
+      state: scriptValidation && scriptValidation.invalidColumns.length === 0 ? 'pass' : 'warn',
+    },
+    {
+      label: 'cobertura',
+      value: scriptValidation ? `${scriptValidation.coveredIssueIds.length} hallazgos` : 'sin validar',
+      state: scriptValidation && scriptValidation.coveredIssueIds.length > 0 ? 'pass' : 'warn',
+    },
+    {
+      label: 'riesgo',
+      value: scriptValidation?.requiresHumanReview ? 'requiere criterio' : 'sin alertas',
+      state: scriptValidation?.requiresHumanReview ? 'review' : 'pass',
+    },
+    {
+      label: 'simulación',
+      value: stage === 'completed' ? 'registrada' : stage === 'simulating' ? 'en curso' : 'pendiente',
+      state: stage === 'completed' ? 'pass' : 'review',
+    },
+  ];
+
   const runSimulation = async (script: string) => {
     setStage('simulating');
     onLog?.('review.approve', 'Script aprobado · iniciando simulación de remediación');
@@ -111,30 +141,35 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
       </div>
 
       <p className="section-note mt-6">
-        El script de limpieza fue generado automáticamente. Revísalo completo, edítalo si hace falta, y
-        apruébalo para ejecutar una simulación segura de remediación.
+        Esta etapa decide si el script puede pasar a simulación. El usuario revisa el código completo,
+        edita si hace falta y aprueba explícitamente antes de generar evidencia de impacto.
       </p>
 
-      {scriptValidation && (
-        <div className="mt-6 p-4 border border-[var(--border)] rounded-lg bg-[var(--surface)]">
-          <div className="flex items-center gap-2">
-            <ShieldCheck size={14} />
-            <strong>Validación previa del script</strong>
+      <div className="review-decision-panel">
+        <div className="review-decision-head">
+          <ShieldCheck size={14} />
+          <div>
+            <strong>Decisión de revisión</strong>
+            <p>La aprobación no ejecuta cambios sobre el archivo original; solo habilita una simulación sobre copia.</p>
           </div>
-          <p className="section-note mt-2">
-            {scriptValidation.valid
-              ? 'El script referencia columnas existentes y cubre hallazgos detectados por el motor determinista.'
-              : 'El script requiere revisión cuidadosa: AURA detectó advertencias antes de aprobarlo.'}
-          </p>
-          {scriptValidation.warnings.length > 0 && (
-            <ul className="mt-3 text-sm text-[var(--ink-muted)]">
-              {scriptValidation.warnings.map((warning) => (
-                <li key={warning}>{warning}</li>
-              ))}
-            </ul>
-          )}
         </div>
-      )}
+        <div className="review-check-grid">
+          {reviewChecks.map((check) => (
+            <div key={check.label} className={`review-check-card review-check-card--${check.state}`}>
+              {check.state === 'pass' ? <CheckCircle2 size={14} /> : check.state === 'review' ? <ShieldAlert size={14} /> : <TriangleAlert size={14} />}
+              <span>{check.label}</span>
+              <strong>{check.value}</strong>
+            </div>
+          ))}
+        </div>
+        {scriptValidation && scriptValidation.warnings.length > 0 && (
+          <ul className="review-warning-list">
+            {scriptValidation.warnings.map((warning) => (
+              <li key={warning}>{warning}</li>
+            ))}
+          </ul>
+        )}
+      </div>
 
       {/* Script Review */}
       <div className="mt-6">

@@ -380,6 +380,43 @@ Validacion:
 - El usuario sabe por que puede o no aprobar.
 - La etapa de revision no duplica la generacion.
 
+## Progreso aplicado - Script, Revision y evidencia para Capitulo 5
+
+Fecha: 2026-05-19.
+
+Decision tomada: la generacion de script no puede depender exclusivamente de una respuesta JSON perfecta del proveedor. Si el proveedor falla, AURA debe conservar el flujo usando hallazgos deterministas y marcando el resultado para revision humana.
+
+Cambios aplicados:
+
+- Se agrego `src/services/deterministicScriptBuilder.ts` para generar un script Pandas base desde acciones deterministas cuando el proveedor no entrega `python_script` valido.
+- `ScriptGenerationStep.tsx` ahora:
+  - intenta usar el proveedor configurado;
+  - si falla o no entrega script, genera respaldo determinista;
+  - muestra origen del script (`modelo` o `determinista`);
+  - presenta una matriz de validacion: columnas existentes, cobertura de hallazgos, operaciones destructivas, uso de Pandas y revision humana.
+- `ReviewStep.tsx` ahora muestra una decision de revision separada de la generacion, con checks de script disponible, columnas, cobertura, riesgo y simulacion.
+- `scriptValidationService.ts` elimina lenguaje interno de capas y reporta trazabilidad contra hallazgos del perfil determinista.
+- Se agregaron datasets sinteticos en `docs/evidence/datasets/`:
+  - `clientes_sucio.csv`;
+  - `inventario_sucio.csv`;
+  - `operaciones_sucio.csv`.
+- Se generaron capturas en `docs/evidence/screenshots/` para Perfilar, Diagnostico, Script y Revision.
+- Se genero el diagrama `docs/evidence/screenshots/aura-arquitectura-flujo.png`.
+- Se actualizo `docs/memoria/entregas/segunda_entrega/Segunda_Entrega_TFM_Joseph_Gari_Borrador_Estructurado.docx` con:
+  - requisitos funcionales y no funcionales;
+  - arquitectura funcional local-first;
+  - tabla de resultados de los tres datasets;
+  - capturas del funcionamiento;
+  - evaluacion preliminar de aplicabilidad, usabilidad y benchmark.
+
+Validacion:
+
+- `npm test` pasa con 22 tests.
+- `npx tsc --noEmit --pretty false` pasa sin errores.
+- `npm run build` pasa.
+- Se verifico estructuralmente el `.docx`: 46 encabezados, 2 tablas y 8 imagenes embebidas.
+- No se pudo renderizar el Word con `render_docx.py` porque falta `soffice`/LibreOffice en el entorno local.
+
 ### Task 7: Mejorar ScriptReview para experiencia de auditor
 
 **Files:**

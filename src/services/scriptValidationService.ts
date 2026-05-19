@@ -80,7 +80,7 @@ export const validateCleaningScript = (
     ...(!scriptText.includes('import pandas') && !scriptText.includes('pd.') ? ['El script no evidencia uso de Pandas.'] : []),
     ...(destructiveOperations.length > 0 ? ['El script contiene operaciones destructivas o mutaciones directas.'] : []),
     ...(columnValidation.invalidColumns.length > 0 ? ['El script referencia columnas que no existen en el AuditReport.'] : []),
-    ...(coveredIssueIds.length === 0 ? ['No se pudo trazar el script contra issues detectados por Capa 1.'] : []),
+    ...(coveredIssueIds.length === 0 ? ['No se pudo trazar el script contra hallazgos detectados en el perfil determinista.'] : []),
   ];
 
   return {

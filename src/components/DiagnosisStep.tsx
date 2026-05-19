@@ -549,9 +549,9 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
         <span className="guide-icon"><Play size={14} /></span>
         <div>
           <p className="guide-title">Cuando el diagnóstico esté claro, genera acciones</p>
-          <p className="guide-desc">El script se genera en una etapa separada para revisar seguridad, columnas y trazabilidad antes de aprobarlo.</p>
+          <p className="guide-desc">Puedes continuar aunque el proveedor no responda; el script usará los hallazgos deterministas como respaldo.</p>
         </div>
-        <button className="btn-p btn-sm" onClick={onContinue} disabled={!draftAnalysis.trim()}>
+        <button className="btn-p btn-sm" onClick={onContinue}>
           Generar script <Play size={12} />
         </button>
       </div>
