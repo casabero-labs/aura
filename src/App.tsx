@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ClipboardList, Download, FileCode2, FileJson, FileText, FlaskConical, HelpCircle, Settings } from 'lucide-react';
+import { ClipboardList, Download, FileCode2, FileJson, FileText, FlaskConical, HelpCircle, Settings, Layers, Sun, Moon } from 'lucide-react';
 import ErrorBoundary from './components/ErrorBoundary';
 import AuditLogViewer from './components/AuditLogViewer';
 import BenchmarkLab from './components/BenchmarkLab';
@@ -282,35 +282,130 @@ const App: React.FC = () => {
 
       {/* Navigation */}
       <nav className="sys-nav">
-        <span className="nav-logo">
-          <span className="logo-full">AURA</span>
-          <span className="logo-short">AU</span>
-        </span>
-        <div className={`nav-links ${showMobileNav ? 'nav-links-open' : ''}`}>
-          <button className="nav-link" onClick={() => { scrollTo('sistema'); setShowMobileNav(false); }}>Inicio</button>
-          {hasData && pipelineState === 'export' && <button className="nav-link" onClick={() => { scrollTo('export-section'); setShowMobileNav(false); }}>Exportar</button>}
+        {/* Bloque Izquierdo: Branding y Contexto Académico */}
+        <div className="nav-brand" onClick={() => { if (hasData) window.location.reload(); }} style={{ cursor: 'pointer' }}>
+          <span className="nav-logo">
+            AURA
+          </span>
+          <span className="nav-academic-pill">TFM UNIR</span>
+        </div>
+
+        {/* Bloque Central: Navegación de Capas (Escritorio) */}
+        <div className="nav-center-menu">
+          <button 
+            className={`nav-menu-item ${!showLab && !showAuditLog ? 'active' : ''}`} 
+            onClick={() => { setShowLab(false); setShowAuditLog(false); scrollTo('sistema'); }}
+          >
+            <Layers size={13} />
+            <span>Auditoría y Diagnóstico</span>
+          </button>
+
           {hasData && (
-            <button className="nav-link" onClick={() => { setShowLab(true); setShowMobileNav(false); }}>
-              <FlaskConical size={14} /> Laboratorio
+            <button 
+              className={`nav-menu-item ${showLab ? 'active' : ''}`} 
+              onClick={() => { setShowLab(true); setShowAuditLog(false); }}
+            >
+              <FlaskConical size={13} />
+              <span>Laboratorio de Modelos</span>
             </button>
           )}
-          <button className="nav-link" onClick={() => { setShowAuditLog(true); setShowMobileNav(false); }}>
-            <ClipboardList size={14} /> Auditoría
-          </button>
-          <div className="nav-status"><div className="pulse" />{pipelineState === 'upload' ? 'listo' : 'online'}</div>
-          <button className="nav-cta" onClick={() => { if (hasData) window.location.reload(); }}>
-            {hasData ? 'Nuevo análisis' : 'Empezar'}
-          </button>
-          <button className="icon-btn" onClick={() => { setShowHelp(true); setShowMobileNav(false); }} aria-label="Centro de ayuda"><HelpCircle size={14} /></button>
-          <button
-            className={`theme-toggle ${theme === 'light' ? 'on' : ''}`}
-            onClick={() => { setTheme(t => t === 'dark' ? 'light' : 'dark'); setShowMobileNav(false); }}
-            aria-label="Cambiar tema"
-          >
-            <span className="theme-toggle-thumb" />
-          </button>
-          <button className="icon-btn" onClick={() => { setShowSettings(true); setShowMobileNav(false); }} aria-label="Ajustes"><Settings size={14} /></button>
         </div>
+
+        {/* Bloque Derecho: Herramientas y Estado (Escritorio) */}
+        <div className="nav-system-controls">
+          {/* Indicador Dinámico de Privacidad (OE3/Capa 0/Capa 2) */}
+          <div className={`nav-status-pill ${aiConfig.providerType === 'local' ? 'local' : 'cloud'}`}>
+            <span className="pulse-dot" />
+            <span className="status-label">
+              {aiConfig.providerType === 'local' ? 'CAPA 0: LOCAL-FIRST' : 'CAPA 2: NUBE HÍBRIDA'}
+            </span>
+          </div>
+
+          <div className="vertical-divider" />
+
+          {/* Herramientas de Configuración y Utilidades */}
+          <div className="nav-tools-group">
+            {/* Trazabilidad (Capa 3) */}
+            <button 
+              className={`tool-btn ${showAuditLog ? 'active' : ''}`} 
+              onClick={() => { setShowAuditLog(true); setShowLab(false); }}
+              aria-label="Registro de trazabilidad"
+              title="Registro de Trazabilidad (Capa 3)"
+            >
+              <ClipboardList size={15} />
+            </button>
+
+            {/* Ajustes de IA (Capa 2) */}
+            <button 
+              className={`tool-btn ${showSettings ? 'active' : ''}`} 
+              onClick={() => setShowSettings(true)} 
+              aria-label="Ajustes de IA"
+              title="Ajustes de IA (Capa 2)"
+            >
+              <Settings size={15} />
+            </button>
+
+            {/* Centro de Ayuda */}
+            <button 
+              className={`tool-btn ${showHelp ? 'active' : ''}`} 
+              onClick={() => setShowHelp(true)} 
+              aria-label="Centro de ayuda"
+              title="Centro de Ayuda"
+            >
+              <HelpCircle size={15} />
+            </button>
+
+            {/* Alternar Tema */}
+            <button
+              className="tool-btn"
+              onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
+              aria-label="Cambiar tema"
+              title="Alternar Modo Oscuro/Claro"
+            >
+              {theme === 'light' ? <Moon size={15} /> : <Sun size={15} />}
+            </button>
+          </div>
+
+          {hasData && (
+            <>
+              <div className="vertical-divider" />
+              <button className="nav-reset-cta" onClick={() => window.location.reload()}>
+                Nuevo análisis
+              </button>
+            </>
+          )}
+        </div>
+
+        {/* Menú Móvil Fixed (Renderizado condicionalmente cuando está abierto) */}
+        <div className={`nav-links ${showMobileNav ? 'nav-links-open' : ''}`}>
+          <button className="nav-link" onClick={() => { setShowLab(false); setShowAuditLog(false); scrollTo('sistema'); setShowMobileNav(false); }}>
+            Auditoría y Diagnóstico
+          </button>
+          {hasData && (
+            <button className="nav-link" onClick={() => { setShowLab(true); setShowAuditLog(false); setShowMobileNav(false); }}>
+              Laboratorio de Modelos
+            </button>
+          )}
+          <button className="nav-link" onClick={() => { setShowAuditLog(true); setShowLab(false); setShowMobileNav(false); }}>
+            Trazabilidad (Capa 3)
+          </button>
+          <button className="nav-link" onClick={() => { setShowSettings(true); setShowMobileNav(false); }}>
+            Ajustes de IA (Capa 2)
+          </button>
+          <button className="nav-link" onClick={() => { setShowHelp(true); setShowMobileNav(false); }}>
+            Ayuda
+          </button>
+          <button className="nav-link" onClick={() => { setTheme(t => t === 'dark' ? 'light' : 'dark'); setShowMobileNav(false); }}>
+            Tema: {theme === 'light' ? 'Claro' : 'Oscuro'}
+          </button>
+          {hasData && (
+            <button className="nav-cta" onClick={() => { window.location.reload(); setShowMobileNav(false); }}>
+              Nuevo análisis
+            </button>
+          )}
+        </div>
+
+        {/* Botón Hamburguesa Móvil */}
         <button className="mobile-nav-toggle" onClick={() => setShowMobileNav(!showMobileNav)} aria-label="Menú de navegación">
           <span className={`hamburger ${showMobileNav ? 'open' : ''}`}>
             <span /><span /><span />

@@ -27,9 +27,10 @@
     --main-color: var(--ink);
     --secondary-color: var(--ink2);
     --bg-color: var(--bg);
-    --technical-bg: var(--surface);
-    --border-color: var(--border);
-    --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --font-serif: Georgia, Cambria, "Times New Roman", Times, serif;
+    --font-sans: "Noto Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --mono: var(--font-mono);
     --motion-fast: 150ms;
     --motion-base: 220ms;
     --ease-casabero: cubic-bezier(0.25, 0.46, 0.45, 0.94);
@@ -77,9 +78,9 @@
   html {
     background: var(--bg);
     color: var(--ink);
-    font-family: var(--mono);
+    font-family: var(--font-sans);
     font-size: 13px;
-    line-height: 1.25;
+    line-height: 1.5;
     overflow-x: hidden;
     letter-spacing: 0;
   }
@@ -122,81 +123,214 @@
     color: var(--ink);
   }
 
+  /* ═══ Rediseño Premium de Cabecera (sys-nav) ═══ */
   .sys-nav {
     position: sticky;
     top: 0;
-    z-index: 50;
-    height: 52px;
+    z-index: 100;
+    height: 54px;
     padding: 0 2.5rem;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background: color-mix(in srgb, var(--bg) 94%, transparent);
-    backdrop-filter: blur(14px);
+    background: rgba(13, 13, 12, 0.85); /* Glassmorphism oscuro */
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     border-bottom: 1px solid var(--border);
-    border-radius: 0;
+    transition: background var(--motion-base), border-color var(--motion-base);
+  }
+
+  .light .sys-nav {
+    background: rgba(245, 240, 234, 0.85); /* Glassmorphism claro */
+  }
+
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
   }
 
   .nav-logo {
-    position: relative;
-    overflow: hidden;
     color: var(--ink);
-    font-family: var(--mono);
-    font-size: 12px;
+    font-family: var(--font-serif);
+    font-size: 16px;
     font-weight: 700;
-    letter-spacing: 0.2em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
   }
 
-  .logo-full,
-  .logo-short {
-    display: inline-block;
-    transition: opacity 0.3s, transform 0.3s;
+  .nav-academic-pill {
+    font-family: var(--font-mono);
+    font-size: 8px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: var(--ink3);
+    border: 1px solid var(--border-strong);
+    padding: 2px 7px;
+    text-transform: uppercase;
   }
 
-  .logo-short {
-    position: absolute;
-    left: 0;
-    opacity: 0;
-    transform: translateY(8px);
-  }
-
-  .nav-links {
-    display: flex;
-    gap: 18px;
-    align-items: center;
-  }
-
-  .nav-link {
-    background: transparent;
-    color: var(--ink2);
-    cursor: pointer;
-    font-size: 12px;
-    border: 0;
-    padding: 0;
-    transition: color 0.2s;
-    border-radius: 0;
-  }
-
-  .nav-link:hover {
-    color: var(--ink);
-  }
-
-  .nav-status {
+  /* Centro: Menú de Capas */
+  .nav-center-menu {
     display: flex;
     align-items: center;
     gap: 6px;
-    color: var(--ink2);
-    font-family: var(--mono);
-    font-size: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 3px;
   }
 
-  .pulse {
+  .nav-menu-item {
+    background: transparent;
+    color: var(--ink2);
+    border: 0;
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 500;
+    height: 28px;
+    padding: 0 14px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: color 0.2s, background 0.2s;
+  }
+
+  .nav-menu-item svg {
+    opacity: 0.6;
+    transition: opacity 0.2s;
+  }
+
+  .nav-menu-item:hover {
+    color: var(--ink);
+  }
+
+  .nav-menu-item:hover svg {
+    opacity: 1;
+  }
+
+  .nav-menu-item.active {
+    background: var(--surface2);
+    color: var(--ink);
+    border: 1px solid var(--border-strong);
+  }
+
+  .nav-menu-item.active svg {
+    opacity: 1;
+  }
+
+  /* Derecha: Estado de Privacidad e Iconos de Sistema */
+  .nav-system-controls {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .nav-status-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+  }
+
+  .nav-status-pill.local {
+    border-color: rgba(90, 156, 122, 0.3);
+    color: var(--success);
+  }
+
+  .nav-status-pill.cloud {
+    border-color: rgba(236, 230, 218, 0.15);
+    color: var(--ink2);
+  }
+
+  .nav-status-pill .pulse-dot {
     width: 5px;
     height: 5px;
+    border-radius: 50%;
+    animation: pulse-indicator 2s infinite;
+  }
+
+  .nav-status-pill.local .pulse-dot {
+    background: var(--success);
+  }
+
+  .nav-status-pill.cloud .pulse-dot {
     background: var(--ink);
-    opacity: 0.6;
-    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse-indicator {
+    0% { transform: scale(0.9); opacity: 0.6; }
+    50% { transform: scale(1.2); opacity: 1; }
+    100% { transform: scale(0.9); opacity: 0.6; }
+  }
+
+  .vertical-divider {
+    width: 1px;
+    height: 16px;
+    background: var(--border-strong);
+  }
+
+  .nav-tools-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .tool-btn {
+    width: 28px;
+    height: 28px;
+    background: transparent;
+    color: var(--ink2);
+    border: 1px solid transparent;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s, transform 0.1s;
+    padding: 0;
+  }
+
+  .tool-btn:hover {
+    color: var(--ink);
+    background: var(--surface-hover);
+    border-color: var(--border);
+  }
+
+  .tool-btn:active {
+    transform: scale(0.95);
+  }
+
+  .tool-btn.active {
+    color: var(--ink);
+    background: var(--surface2);
+    border-color: var(--border-strong);
+  }
+
+  .nav-reset-cta {
+    background: var(--ink);
+    color: var(--bg);
+    border: 1px solid var(--border-strong);
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 600;
+    height: 28px;
+    padding: 0 12px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+
+  .nav-reset-cta:hover {
+    opacity: 0.85;
+  }
+
+  .nav-links {
+    display: none;
   }
 
   .nav-cta,
@@ -213,7 +347,7 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    font-family: var(--mono);
+    font-family: var(--font-sans);
     font-size: 12px;
     font-weight: 600;
     padding: 0 18px;
@@ -252,7 +386,7 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    font-family: var(--mono);
+    font-family: var(--font-sans);
     font-size: 11px;
     padding: 0 18px;
     transition: border-color 0.2s, color 0.2s, transform var(--motion-fast) var(--ease-casabero);
@@ -383,10 +517,10 @@
   .hero-sub {
     max-width: 520px;
     color: var(--ink2);
-    font-family: var(--mono);
+    font-family: var(--font-sans);
     font-size: 15px;
     font-weight: 400;
-    line-height: 1.5;
+    line-height: 1.6;
     margin: 0 0 2rem;
   }
 
@@ -409,29 +543,29 @@
   .hero-h1 {
     margin: 0 0 1.75rem;
     color: var(--ink);
-    font-family: var(--mono);
+    font-family: var(--font-serif);
     font-size: clamp(44px, 7vw, 60px);
     font-weight: 700;
-    line-height: 0.98;
-    letter-spacing: -0.01em;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
     text-shadow: 0 0 4px rgba(236, 230, 218, 0.15);
   }
 
   .hero-h1 em {
-    font-family: var(--mono);
+    font-family: var(--font-serif);
     font-style: italic;
     font-weight: 700;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.02em;
   }
 
   .hero-body,
   .sec-body {
     max-width: 560px;
     color: var(--ink2);
-    font-family: var(--mono);
-    font-size: 15px;
+    font-family: var(--font-sans);
+    font-size: 14px;
     font-weight: 400;
-    line-height: 1.5;
+    line-height: 1.6;
   }
 
   .hero-body {
@@ -480,7 +614,7 @@
   .file-drop h3 {
     margin: 0 0 0.5rem;
     color: var(--ink);
-    font-family: var(--mono);
+    font-family: var(--font-serif);
     font-size: 28px;
     font-weight: 700;
   }
@@ -488,7 +622,7 @@
   .file-drop p {
     margin: 0;
     color: var(--ink2);
-    font-family: var(--mono);
+    font-family: var(--font-sans);
     font-size: 13px;
     line-height: 1.5;
   }
@@ -649,10 +783,10 @@
   .sec-title {
     margin: 0 0 0.75rem;
     color: var(--ink);
-    font-family: var(--mono);
+    font-family: var(--font-serif);
     font-size: 28px;
     font-weight: 600;
-    line-height: 1.15;
+    line-height: 1.2;
   }
 
   .sec-body {
@@ -693,14 +827,14 @@
   .layer-name {
     flex: 1;
     color: var(--ink);
-    font-family: var(--mono);
+    font-family: var(--font-sans);
     font-size: 13px;
     font-weight: 600;
   }
 
   .layer-desc {
     color: var(--ink2);
-    font-family: var(--mono);
+    font-family: var(--font-sans);
     font-size: 12px;
   }
 
@@ -836,16 +970,17 @@
   .advisor-title {
     margin: 0;
     color: var(--ink);
-    font-family: var(--mono);
+    font-family: var(--font-serif);
+    font-style: italic;
     font-weight: 700;
-    font-size: 0.9rem;
+    font-size: 1rem;
   }
 
   .advisor-subtitle {
     margin: 0.2rem 0 0;
     color: var(--ink2);
-    font-family: var(--mono);
-    font-size: 0.7rem;
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
   }
 
   .advisor-header-right {
@@ -968,7 +1103,7 @@
   .quote-text {
     margin: 0 0 10px;
     color: var(--ink);
-    font-family: var(--mono);
+    font-family: var(--font-serif);
     font-size: 22px;
     font-style: italic;
     font-weight: 700;
@@ -1637,8 +1772,9 @@
     background: transparent;
     color: var(--ink3);
     cursor: pointer;
-    font-family: var(--mono);
+    font-family: var(--font-sans);
     font-size: 12px;
+    font-weight: 500;
     transition: color 0.2s;
   }
 
