@@ -1,0 +1,13 @@
+id,name,status,amount,email,signup_date
+1," Alice  ",N/A,10,alice@example.com,2024-01-10
+1," Alice  ",N/A,10,alice@example.com,2024-01-10
+2,bob,ok,20,bob@example.com,2024-01-11
+3,BOB,null,30,bob@example.com,2099-12-31
+4,Carol,ok,40,carol@example.com,2024-01-12
+5," carol ",?,50,carol.example.com,2024-01-13
+6,Dana,ok,-60,dana@example.com,2024-01-14
+7,Eli,ok,"70",eli@example.com,2024-01-15
+8,Fran,ok,999999,fran@example.com,2024-01-16
+9,Gus,ok,90,gus@example.com,2024-01-17
+10,Hana,ok,100,hana@example.com,2024-01-18
+11,Ian,ok,110,ian@example.com,2024-01-19

@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Brain, ClipboardCheck, Database, Download, FileCode2, FileJson, FileText, HelpCircle, Play, Settings, ShieldCheck, Check, ArrowRight, Upload, Table2, Search } from 'lucide-react';
 import BenchmarkPanel from './components/BenchmarkPanel';
+import EvidenceCyclePanel from './components/EvidenceCyclePanel';
 import ErrorBoundary from './components/ErrorBoundary';
 import DataProfile from './components/DataProfile';
-import { ExperimentDesigner } from './components/ExperimentDesigner';
 import ExecutionEvidencePanel from './components/ExecutionEvidencePanel';
 import FileUpload from './components/FileUpload';
 import GeminiAdvisor from './components/GeminiAdvisor';
@@ -18,7 +18,7 @@ import { runAudit } from './services/auditEngine';
 import { parseCsv } from './services/csvService';
 import { buildAuditEvidence, createTraceRecorder, fingerprintDataset } from './services/executionEvidence';
 import { generatePdfReport } from './services/pdfGenerator';
-import { AIConfig, AuditExecutionEvidence, AuditReport, ExecutiveReportContent, ImprovementRun, IssueSeverity, ProviderMetrics } from './types';
+import { AIConfig, AuditExecutionEvidence, AuditReport, BenchmarkResult, ExecutiveReportContent, ImprovementRun, IssueSeverity, ProviderMetrics } from './types';
 
 const countBySeverity = (report: AuditReport | null, severity: IssueSeverity) =>
   report?.issues.filter((issue) => issue.severity === severity).length ?? 0;
@@ -82,6 +82,7 @@ const App: React.FC = () => {
   const [csvDelimiter, setCsvDelimiter] = useState(',');
   const [auditEvidence, setAuditEvidence] = useState<AuditExecutionEvidence | null>(null);
   const [improvementRun, setImprovementRun] = useState<ImprovementRun | null>(null);
+  const [benchmarkResults, setBenchmarkResults] = useState<BenchmarkResult[]>([]);
   const [aiAnalysis, setAiAnalysis] = useState('');
   const [cleaningScript, setCleaningScript] = useState('');
   const [approvedCleaningScript, setApprovedCleaningScript] = useState('');
@@ -208,6 +209,7 @@ const App: React.FC = () => {
     setCsvDelimiter(',');
     setAuditEvidence(null);
     setImprovementRun(null);
+    setBenchmarkResults([]);
     setHasExported(false);
     setLogs([]);
     addLog(`Cargando ${uploadedFile.name}...`);
@@ -343,12 +345,12 @@ const App: React.FC = () => {
 
   const steps = [
     { num: 1, label: 'Subir CSV', icon: <Upload size={14} />, target: 'ingesta', done: hasData, active: !hasData },
-    { num: 2, label: 'Diagnóstico', icon: <Search size={14} />, target: 'resultados', done: hasData, active: hasData && !hasAiAnalysis && !hasScript && !isAiLoading },
-    { num: 3, label: 'Explorar', icon: <Table2 size={14} />, target: 'explorar', done: hasData, active: false },
-    { num: 4, label: 'Análisis IA', icon: <Brain size={14} />, target: 'ia', done: hasAiAnalysis, active: hasData && (isAiLoading || (hasAiAnalysis && !hasScript)) },
+    { num: 2, label: 'Diagnosticar', icon: <Search size={14} />, target: 'resultados', done: hasData, active: hasData && benchmarkResults.length === 0 },
+    { num: 3, label: 'Benchmark', icon: <Table2 size={14} />, target: 'benchmark', done: benchmarkResults.length > 0, active: hasData && benchmarkResults.length === 0 },
+    { num: 4, label: 'Estrategia', icon: <Brain size={14} />, target: 'ciclo', done: Boolean(improvementRun?.recommendedResult), active: benchmarkResults.length > 0 && !improvementRun },
     { num: 5, label: 'Revisar', icon: <ClipboardCheck size={14} />, target: 'revision', done: hasApprovedScript, active: hasScript && !hasApprovedScript },
-    { num: 6, label: 'Mejorar', icon: <ShieldCheck size={14} />, target: 'benchmark', done: !!improvementRun, active: hasData && !improvementRun },
-    { num: 7, label: 'Exportar', icon: <FileText size={14} />, target: 'evidencia', done: hasExported, active: hasData && (hasApprovedScript || hasAiAnalysis || !!improvementRun) && !hasExported },
+    { num: 6, label: 'Re-auditar', icon: <ShieldCheck size={14} />, target: 'mejora', done: !!improvementRun?.healthDelta, active: !!improvementRun && !hasExported },
+    { num: 7, label: 'Exportar', icon: <FileText size={14} />, target: 'evidencia', done: hasExported, active: hasData && (!!improvementRun || hasApprovedScript || hasAiAnalysis) && !hasExported },
   ];
 
   return (
@@ -371,9 +373,9 @@ const App: React.FC = () => {
                 <ol className="help-steps">
                   <li><strong>Carga un CSV.</strong> El motor determinista analiza al instante.</li>
                   <li><strong>Revisa resultados.</strong> Score, anomalías y perfil de columnas.</li>
-                  <li><strong>Ejecuta la IA.</strong> Interpretación con modelo local o cloud.</li>
-                  <li><strong>Genera script.</strong> Código Python para limpiar los datos.</li>
-                  <li><strong>Exporta.</strong> Descarga el reporte PDF.</li>
+                  <li><strong>Compara estrategias.</strong> Local/cloud quedan marcados como válidos o intentos fallidos.</li>
+                  <li><strong>Revisa script.</strong> Solo los tratamientos auditables pasan a simulación.</li>
+                  <li><strong>Exporta evidencia.</strong> Descarga el ciclo completo y sus trazas.</li>
                 </ol>
               </details>
 
@@ -407,7 +409,7 @@ const App: React.FC = () => {
           <button className="nav-link" onClick={() => { scrollTo('sistema'); setShowMobileNav(false); }}>Inicio</button>
           {hasData && <button className="nav-link" onClick={() => { scrollTo('resultados'); setShowMobileNav(false); }}>Resultados</button>}
           {hasData && <button className="nav-link" onClick={() => { scrollTo('explorar'); setShowMobileNav(false); }}>Explorar</button>}
-          {hasData && <button className="nav-link" onClick={() => { scrollTo('ia'); setShowMobileNav(false); }}>IA</button>}
+          {hasData && <button className="nav-link" onClick={() => { scrollTo('benchmark'); setShowMobileNav(false); }}>Estrategia</button>}
           {hasData && <button className="nav-link" onClick={() => { scrollTo('evidencia'); setShowMobileNav(false); }}>Exportar</button>}
           <div className="nav-status"><div className="pulse" />{isProcessing || isAiLoading ? 'running' : 'online'}</div>
           <button className="nav-cta" onClick={() => { scrollTo('sistema'); setShowMobileNav(false); }}>
@@ -454,7 +456,7 @@ const App: React.FC = () => {
         <section className="hero">
           <h1 className="hero-h1">Audita la calidad de tus datos.</h1>
           <p className="hero-sub">
-            AURA detecta anomalías, interpreta con IA y genera reportes — todo en tu navegador.
+            AURA primero fija evidencia determinista; después compara estrategias y mide si la limpieza mejora el dataset.
           </p>
         </section>
 
@@ -496,10 +498,10 @@ const App: React.FC = () => {
             <div className="layers-compact">
               <div className="layer-c"><span className="layer-cn">01</span><span>Subir CSV</span></div>
               <div className="layer-c"><span className="layer-cn">02</span><span>Diagnóstico rápido</span></div>
-              <div className="layer-c"><span className="layer-cn">03</span><span>Explorar evidencia</span></div>
-              <div className="layer-c"><span className="layer-cn">04</span><span>Consultar IA</span></div>
-              <div className="layer-c"><span className="layer-cn">05</span><span>Aprobar tratamiento</span></div>
-              <div className="layer-c"><span className="layer-cn">06</span><span>Llevar informe</span></div>
+              <div className="layer-c"><span className="layer-cn">03</span><span>Comparar estrategia</span></div>
+              <div className="layer-c"><span className="layer-cn">04</span><span>Validar script</span></div>
+              <div className="layer-c"><span className="layer-cn">05</span><span>Simular mejora</span></div>
+              <div className="layer-c"><span className="layer-cn">06</span><span>Exportar evidencia</span></div>
             </div>
           </section>
         )}
@@ -532,13 +534,51 @@ const App: React.FC = () => {
             <div className="context-guide">
               <span className="guide-icon"><ArrowRight size={14} /></span>
               <div>
-                <p className="guide-title">Siguiente paso: interpreta con IA</p>
-                <p className="guide-desc">El motor detectó {report.issues.length} anomalías. La IA puede explicar el impacto y generar un script de limpieza.</p>
+                <p className="guide-title">Siguiente paso: benchmark local vs cloud</p>
+                <p className="guide-desc">El motor ya cerró la base factual. Ahora compara estrategias con el mismo reporte antes de decidir tratamiento.</p>
               </div>
-              <button className="btn-p btn-sm" onClick={() => scrollTo('ia')}>Ir a IA <ArrowRight size={12} /></button>
+              <button className="btn-p btn-sm" onClick={() => scrollTo('benchmark')}>Ir al benchmark <ArrowRight size={12} /></button>
             </div>
           </section>
         )}
+
+        {report && (
+          <EvidenceCyclePanel
+            report={report}
+            auditEvidence={auditEvidence}
+            benchmarkResults={benchmarkResults}
+            improvementRun={improvementRun}
+            hasApprovedScript={hasApprovedScript}
+            hasGeneratedScript={hasScript}
+            hasExported={hasExported}
+            onGoBenchmark={() => scrollTo('benchmark')}
+            onGoScript={() => scrollTo(hasScript ? 'revision' : 'ia')}
+            onGoExport={() => scrollTo('evidencia')}
+          />
+        )}
+
+        {report && (
+          <section className="section" id="benchmark">
+            <BenchmarkPanel
+              report={report}
+              config={aiConfig}
+              originalData={rawData}
+              fields={csvFields}
+              delimiter={csvDelimiter}
+              fileName={file?.name}
+              auditEvidence={auditEvidence || undefined}
+              cleaningScript={approvedCleaningScript || cleaningScript}
+              onBenchmarkResultsChange={setBenchmarkResults}
+              onImprovementRun={(run) => {
+                setImprovementRun(run);
+                addLog(`Ciclo de mejora: ${run.healthDelta?.scoreDelta ?? 0} puntos simulados`);
+              }}
+              onLog={(stage, msg) => addLog(`${stage} :: ${msg}`)}
+            />
+          </section>
+        )}
+
+        {improvementRun && <ImprovementRunPanel run={improvementRun} />}
 
         {report && (
           <section className="section" id="explorar">
@@ -561,8 +601,12 @@ const App: React.FC = () => {
           <section className="section" id="ia">
             <div className="section-header">
               <div>
-                <p className="sec-eye">consulta IA</p>
-                <h2 className="sec-title">Interpretación LLM de hallazgos.</h2>
+                <p className="sec-eye">salida cognitiva</p>
+                <h2 className="sec-title">Explicación y script revisable.</h2>
+                <p className="section-note">
+                  Esta capa no reemplaza el motor determinista: traduce sus hallazgos en explicación y tratamiento auditable.
+                  Si el proveedor local o cloud falla, la corrida queda como intento inválido.
+                </p>
               </div>
               <div className="section-actions">
                 <button className="btn-p" disabled={isAiLoading} onClick={() => runAiAnalysis(report)}>
@@ -605,40 +649,12 @@ const App: React.FC = () => {
               <div className="context-guide">
                 <span className="guide-icon"><ArrowRight size={14} /></span>
                 <div>
-                  <p className="guide-title">Siguiente paso: exporta evidencia determinista</p>
-                  <p className="guide-desc">El PDF se genera desde reglas reproducibles. La salida LLM queda como interpretación, no como evidencia formal.</p>
+                  <p className="guide-title">Siguiente paso: simula y exporta evidencia</p>
+                  <p className="guide-desc">La interpretación LLM solo aporta valor si termina en script revisable, simulación segura y re-auditoría.</p>
                 </div>
                 <button className="btn-p btn-sm" onClick={() => scrollTo('evidencia')}>Exportar <FileText size={12} /></button>
               </div>
             )}
-          </section>
-        )}
-
-        {report && (
-          <section className="section" id="benchmark">
-            <BenchmarkPanel
-              report={report}
-              config={aiConfig}
-              originalData={rawData}
-              fields={csvFields}
-              delimiter={csvDelimiter}
-              fileName={file?.name}
-              auditEvidence={auditEvidence || undefined}
-              cleaningScript={approvedCleaningScript || cleaningScript}
-              onImprovementRun={(run) => {
-                setImprovementRun(run);
-                addLog(`Ciclo de mejora: ${run.healthDelta?.scoreDelta ?? 0} puntos simulados`);
-              }}
-              onLog={(stage, msg) => addLog(`${stage} :: ${msg}`)}
-            />
-          </section>
-        )}
-
-        {improvementRun && <ImprovementRunPanel run={improvementRun} />}
-
-        {report && (
-          <section className="section" id="experimentos">
-            <ExperimentDesigner report={report} config={aiConfig} onLog={(msg) => addLog(msg)} />
           </section>
         )}
 

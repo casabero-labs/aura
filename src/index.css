@@ -1037,6 +1037,41 @@
     margin-top: 1.5rem;
   }
 
+  .benchmark-protocol {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    border: 1px solid var(--border-strong);
+    background: var(--surface);
+  }
+
+  .benchmark-protocol > div {
+    min-height: 90px;
+    padding: 1rem;
+    border-right: 1px solid var(--border);
+    display: grid;
+    align-content: start;
+    gap: 10px;
+  }
+
+  .benchmark-protocol > div:last-child {
+    border-right: 0;
+  }
+
+  .benchmark-protocol span {
+    color: var(--ink3);
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .benchmark-protocol strong {
+    color: var(--ink);
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
   .benchmark-card {
     padding: 1.25rem;
     display: grid;
@@ -1049,6 +1084,32 @@
   .benchmark-card-strong {
     border-color: var(--border-strong);
     background: var(--surface2);
+  }
+
+  .benchmark-close {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 1rem;
+    align-items: center;
+    padding: 1.25rem;
+    border: 1px solid var(--border-strong);
+    background: var(--surface2);
+  }
+
+  .benchmark-close h3 {
+    margin: 4px 0 8px;
+    color: var(--ink);
+    font-family: var(--mono);
+    font-size: 15px;
+  }
+
+  .benchmark-close p {
+    max-width: 760px;
+    margin: 0;
+    color: var(--ink2);
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.55;
   }
 
   .benchmark-head {
@@ -1538,6 +1599,99 @@
     margin: 0;
   }
 
+  .section-note {
+    max-width: 760px;
+    margin: 0.75rem 0 0;
+    color: var(--ink2);
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.55;
+  }
+
+  .evidence-cycle {
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .cycle-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .cycle-map {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    border: 1px solid var(--border-strong);
+    margin-top: 1.5rem;
+    background: var(--surface);
+  }
+
+  .cycle-step {
+    min-height: 210px;
+    padding: 1rem;
+    border-right: 1px solid var(--border);
+    display: grid;
+    align-content: start;
+    gap: 14px;
+    position: relative;
+  }
+
+  .cycle-step:last-child {
+    border-right: 0;
+  }
+
+  .cycle-step-active {
+    background: var(--surface2);
+  }
+
+  .cycle-step-done .cycle-icon {
+    background: var(--ink);
+    color: var(--bg);
+    border-color: var(--ink);
+  }
+
+  .cycle-step-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .cycle-index,
+  .cycle-state {
+    color: var(--ink3);
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .cycle-icon {
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--border-strong);
+    color: var(--ink2);
+  }
+
+  .cycle-step h3 {
+    margin: 0;
+    color: var(--ink);
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.35;
+  }
+
+  .cycle-step p {
+    margin: 0;
+    color: var(--ink2);
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.55;
+  }
+
   /* Section header */
   .section-header {
     display: flex;
@@ -1919,6 +2073,19 @@
     grid-template-columns: 1fr;
   }
 
+  .benchmark-protocol {
+    grid-template-columns: 1fr;
+  }
+
+  .benchmark-protocol > div {
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .benchmark-protocol > div:last-child {
+    border-bottom: 0;
+  }
+
   .benchmark-charts-grid {
     grid-template-columns: 1fr;
   }
@@ -1964,6 +2131,19 @@
   .context-guide {
     flex-direction: column;
     gap: 12px;
+  }
+
+  .cycle-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .cycle-map {
+    grid-template-columns: 1fr;
+  }
+
+  .benchmark-close {
+    grid-template-columns: 1fr;
   }
 
   .section-header {

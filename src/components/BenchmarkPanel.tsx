@@ -15,6 +15,7 @@ interface BenchmarkPanelProps {
   fileName?: string;
   auditEvidence?: AuditExecutionEvidence;
   cleaningScript?: string;
+  onBenchmarkResultsChange?: (results: BenchmarkResult[]) => void;
   onImprovementRun?: (run: ReturnType<typeof createImprovementRun>) => void;
   onLog?: (bold: string, msg: string) => void;
 }
@@ -32,6 +33,15 @@ const evidenceLabel: Record<BenchmarkResult['evidenceStatus'], string> = {
   attempted_failed: 'Inválida',
   preliminary_valid: 'Preliminar',
   formal_valid: 'Formal'
+};
+
+const resultSummary = (results: BenchmarkResult[]) => {
+  if (results.length === 0) {
+    return 'Aun no hay corridas: el benchmark no ha producido evidencia para decidir.';
+  }
+  const valid = results.filter((result) => result.evidenceStatus !== 'attempted_failed').length;
+  const failed = results.filter((result) => result.evidenceStatus === 'attempted_failed').length;
+  return `${valid} corridas utiles · ${failed} intentos invalidos · ${results.length} registros trazables`;
 };
 
 const elapsedFrom = (startedAt?: string) => {
@@ -64,6 +74,7 @@ const BenchmarkPanel: React.FC<BenchmarkPanelProps> = ({
   fileName,
   auditEvidence,
   cleaningScript,
+  onBenchmarkResultsChange,
   onImprovementRun,
   onLog
 }) => {
@@ -110,6 +121,10 @@ const BenchmarkPanel: React.FC<BenchmarkPanelProps> = ({
     const interval = window.setInterval(() => setClockTick((value) => value + 1), 1000);
     return () => window.clearInterval(interval);
   }, [isRunning]);
+
+  useEffect(() => {
+    onBenchmarkResultsChange?.(results);
+  }, [onBenchmarkResultsChange, results]);
 
   const runConfigs = async (configs: AIConfig[]) => {
     setIsRunning(true);
@@ -208,10 +223,28 @@ const BenchmarkPanel: React.FC<BenchmarkPanelProps> = ({
     <section aria-labelledby="benchmark-title" className="mt-12">
       <div className="section-title">
         <div>
-          <p className="eyebrow">Benchmark Experimental</p>
-          <h2 id="benchmark-title">Local vs Cloud</h2>
+          <p className="eyebrow">Decision de estrategia</p>
+          <h2 id="benchmark-title">Comparar antes de remediar</h2>
         </div>
-        <p>Ejecuta el mismo reporte determinista contra WebLLM local y Gemini cloud, comparando smart sample contra prompt libre para medir señales de alucinación.</p>
+        <p>
+          Todas las corridas usan el mismo reporte determinista. AURA separa intentos fallidos, salidas validas,
+          alucinaciones y scripts revisables antes de recomendar una ruta de limpieza.
+        </p>
+      </div>
+
+      <div className="benchmark-protocol mt-6">
+        <div>
+          <span>base factual</span>
+          <strong>{report.issues.length} hallazgos · score {report.score}/100</strong>
+        </div>
+        <div>
+          <span>criterio</span>
+          <strong>JSON valido · script HITL · cero columnas fantasma</strong>
+        </div>
+        <div>
+          <span>estado</span>
+          <strong>{resultSummary(results)}</strong>
+        </div>
       </div>
 
       <div className="benchmark-grid mt-8">
@@ -219,8 +252,8 @@ const BenchmarkPanel: React.FC<BenchmarkPanelProps> = ({
           <div className="benchmark-head">
             <span className="benchmark-icon"><Cpu size={18} /></span>
             <div>
-              <h3>Capa 0 Local</h3>
-              <p>WebLLM/WebGPU como proveedor principal.</p>
+              <h3>Ruta local</h3>
+              <p>Privacidad primero. Si WebGPU o el modelo no arrancan, queda como intento inválido.</p>
             </div>
           </div>
           <div className="benchmark-metric">
@@ -250,8 +283,8 @@ const BenchmarkPanel: React.FC<BenchmarkPanelProps> = ({
           <div className="benchmark-head">
             <span className="benchmark-icon"><Cloud size={18} /></span>
             <div>
-              <h3>Contraste Cloud</h3>
-              <p>{config.cloudProvider || 'Cloud'} como referencia secundaria.</p>
+              <h3>Ruta cloud</h3>
+              <p>{config.cloudProvider || 'Cloud'} sirve como contraste de disponibilidad, latencia y calidad de salida.</p>
             </div>
           </div>
           <div className="benchmark-metric">
@@ -305,8 +338,8 @@ const BenchmarkPanel: React.FC<BenchmarkPanelProps> = ({
           <div className="benchmark-head">
             <span className="benchmark-icon"><Gauge size={18} /></span>
             <div>
-              <h3>Suite Comparativa</h3>
-              <p>{configuredCount} infraestructuras y dos modos de entrada.</p>
+              <h3>Comparativa controlada</h3>
+              <p>{configuredCount} infraestructuras con smart sample y prompt libre sobre la misma evidencia.</p>
             </div>
           </div>
           <div className="benchmark-metric">
@@ -325,11 +358,22 @@ const BenchmarkPanel: React.FC<BenchmarkPanelProps> = ({
             <Layers3 size={14} /> Probar todos los LLM
           </button>
           )}
-          <button className="secondary w-full" disabled={isRunning || results.length === 0 || !originalData.length} onClick={buildImprovementRun}>
-            <ShieldCheck size={14} /> Simular mejora
-          </button>
         </div>
         )}
+      </div>
+
+      <div className="benchmark-close mt-6">
+        <div>
+          <p className="eyebrow">Cierre del ciclo</p>
+          <h3>Simulacion segura y re-auditoria</h3>
+          <p>
+            Usa el diagnostico determinista, las corridas disponibles y el script aprobado si existe.
+            Si un proveedor falla, queda como intento invalido y aun puedes medir una mejora simulada con acciones deterministas seguras.
+          </p>
+        </div>
+        <button className="primary" disabled={isRunning || !originalData.length} onClick={buildImprovementRun}>
+          <ShieldCheck size={14} /> Simular mejora
+        </button>
       </div>
 
       <div className="live-trace-panel mt-6" aria-label="Log visible del benchmark">

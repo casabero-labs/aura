@@ -139,7 +139,7 @@ export interface ProviderMetrics {
 export interface BenchmarkResult {
   id: string;
   provider: string;
-  providerType: 'local' | 'cloud';
+  providerType: 'local' | 'cloud' | 'chrome';
   cloudProvider?: string;  // Proveedor cloud específico
   inputMode: 'smart_sample' | 'prompt_libre';
   model: string;

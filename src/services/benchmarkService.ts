@@ -84,7 +84,7 @@ export const runBenchmarkForConfig = async (
       completedAt: new Date().toISOString(),
       executionTrace: trace.events,
       error: config.providerType === 'local'
-        ? 'WebGPU no disponible en este navegador.'
+        ? 'Proveedor local no disponible: WebGPU, adapter o modelo no pudo inicializarse.'
         : 'API key cloud no configurada.'
     };
   }
