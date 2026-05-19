@@ -5,7 +5,6 @@ import AuditLogViewer from './components/AuditLogViewer';
 import BenchmarkLab from './components/BenchmarkLab';
 import SettingsPanel from './components/SettingsPanel';
 import MainPipeline, { PipelineData } from './components/MainPipeline';
-import AcademicFooter from './components/AcademicFooter';
 import { loadFromApi, syncToApi } from './services/api';
 import { createAIProvider } from './services/aiProvider';
 import { generatePdfReport } from './services/pdfGenerator';
@@ -470,7 +469,6 @@ const App: React.FC = () => {
             </div>
           </section>
         )}
-        <AcademicFooter />
       </main>
 
       {/* Footer */}
