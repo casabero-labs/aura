@@ -3,8 +3,6 @@ import { ArrowRight, Scissors } from 'lucide-react';
 import FileUpload from './FileUpload';
 import PipelineProgress from './PipelineProgress';
 import ScoreBreakdown from './ScoreBreakdown';
-import IssueList from './IssueList';
-import ExecutionEvidencePanel from './ExecutionEvidencePanel';
 import PipelineChecklist, {
   buildCsvParsingStep,
   buildDeterministicAuditStep,
@@ -23,7 +21,6 @@ import { AIConfig, AIProvider, AuditReport, AuditExecutionEvidence, HealthDelta,
 import DatasetProfile from './DatasetProfile';
 import RuleActivationMatrix from './RuleActivationMatrix';
 import SmartSampleViewer from './SmartSampleViewer';
-import DiagnosticTerminal from './DiagnosticTerminal';
 
 export type PipelineState = 'upload' | 'diagnostic' | 'analysis' | 'review' | 'export';
 
@@ -216,28 +213,13 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, onLog
             datasetFingerprint={auditEvidence.datasetFingerprint}
           />
 
-          {/* 2. Perfil estadístico completo por columna (expandible) */}
-          <section className="section" id="column-profile">
-            <ColumnStatsPanel columnStats={report.columnStats} />
-          </section>
-
-          {/* 3. BoxPlot IQR por columna numérica */}
-          {Object.values(report.columnStats).some(c => c.inferredType === 'number' && c.iqr && c.iqr > 0) && (
-            <section className="section" id="boxplot">
-              <BoxPlot columnStats={report.columnStats} />
-            </section>
-          )}
-
-          {/* 4. Score global con breakdown */}
-          <section className="section" id="diagnostic-results">
+          {/* 2. Score global + breakdown + CTA */}
+          <section className="section" id="score-section">
             <div className="section-header">
               <div>
                 <p className="sec-eye">capa 1 · motor determinista</p>
                 <h2 className="sec-title">Diagnóstico completado.</h2>
               </div>
-              <button className="btn-p btn-sm" onClick={() => setState('analysis')}>
-                Analizar con IA <ArrowRight size={12} />
-              </button>
             </div>
             <div className="score-grid">
               <div>
@@ -255,39 +237,36 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, onLog
                 <ScoreBreakdown deductions={report.scoreBreakdown} />
               </div>
             </div>
+            <div style={{ marginTop: '1rem' }}>
+              <button className="btn-p" onClick={() => setState('analysis')}>
+                Analizar con IA <ArrowRight size={14} />
+              </button>
+            </div>
           </section>
 
-          {/* 5. Matriz de activación de reglas (completa, expandible) */}
+          {/* 3. Perfil estadístico completo por columna (expandible) */}
+          <section className="section" id="column-profile">
+            <ColumnStatsPanel columnStats={report.columnStats} />
+          </section>
+
+          {/* 4. BoxPlot IQR por columna numérica */}
+          {Object.values(report.columnStats).some(c => c.inferredType === 'number' && c.iqr && c.iqr > 0) && (
+            <section className="section" id="boxplot">
+              <BoxPlot columnStats={report.columnStats} />
+            </section>
+          )}
+
+          {/* 5. Matriz de activación de reglas */}
           <section className="section" id="rule-matrix">
             <RuleActivationMatrix issues={report.issues} rowCount={report.rowCount} />
           </section>
 
-          {/* 6. Lista de issues por categoría */}
-          {report.issues.length > 0 && (
-            <section className="section" id="issues-list">
-              <div className="section-header">
-                <p className="sec-eye">hallazgos</p>
-                <h2 className="sec-title">Anomalías detectadas.</h2>
-              </div>
-              <IssueList issues={report.issues} />
-            </section>
-          )}
-
-          {/* 7. Terminal de diagnóstico rule-by-rule */}
-          <DiagnosticTerminal
-            report={report}
-            auditDurationMs={auditEvidence.auditDurationMs}
-          />
-
-          {/* 8. Smart Sample — JSON exacto enviado a Capa 2 */}
+          {/* 6. Smart Sample — JSON enviado al LLM (collapsed por defecto) */}
           <section className="section" id="smart-sample">
             <SmartSampleViewer report={report} />
           </section>
 
-          {/* 9. Bitácora de ejecución en vivo */}
-          <ExecutionEvidencePanel evidence={auditEvidence} />
-
-          {/* 10. Pipeline Checklist — carta abierta */}
+          {/* 7. Pipeline Checklist — carta abierta */}
           {checklistSteps.length > 0 && (
             <PipelineChecklist steps={checklistSteps} />
           )}

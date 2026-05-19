@@ -113,7 +113,7 @@ const SmartSampleViewer: React.FC<SmartSampleViewerProps> = ({ report }) => {
 
       <div className="smart-sample-body">
         {/* ── Context ── */}
-        <JsonSection title={`▸ context — ${Object.keys(ctx).length} campos`} defaultOpen>
+        <JsonSection title={`▸ context — ${Object.keys(ctx).length} campos`} defaultOpen={false}>
           <div className="json-kv">
             <span className="json-line"><JsonKey>total_rows</JsonKey>: <JsonNum>{ctx.total_rows}</JsonNum>,</span>
             <span className="json-line"><JsonKey>total_columns</JsonKey>: <JsonNum>{ctx.total_columns}</JsonNum>,</span>
@@ -123,7 +123,7 @@ const SmartSampleViewer: React.FC<SmartSampleViewerProps> = ({ report }) => {
         </JsonSection>
 
         {/* ── Columns ── */}
-        <JsonSection title={`▸ columns — ${cols.length} columnas (cada una con tipo, nulos, únicos, top_values, sample_values)`} defaultOpen>
+        <JsonSection title={`▸ columns — ${cols.length} columnas (cada una con tipo, nulos, únicos, top_values, sample_values)`} defaultOpen={false}>
           <div className="json-array">
             {cols.map((col, idx) => (
               <div key={idx} className="json-object-entry">
@@ -157,7 +157,7 @@ const SmartSampleViewer: React.FC<SmartSampleViewerProps> = ({ report }) => {
         </JsonSection>
 
         {/* ── Detected Issues ── */}
-        <JsonSection title={`▸ detected_issues — ${issues.length} reglas activadas`} defaultOpen={issues.length <= 20}>
+        <JsonSection title={`▸ detected_issues — ${issues.length} reglas activadas`} defaultOpen={false}>
           {issues.length === 0 ? (
             <div className="json-kv">
               <span className="json-line"><JsonStr>"Sin anomalías detectadas"</JsonStr></span>
