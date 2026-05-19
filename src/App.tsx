@@ -8,7 +8,7 @@ import MainPipeline, { PipelineData } from './components/MainPipeline';
 import { loadFromApi, syncToApi } from './services/api';
 import { createAIProvider } from './services/aiProvider';
 import { generatePdfReport } from './services/pdfGenerator';
-import { AIConfig, AuditReport, ExecutiveReportContent, IssueSeverity } from './types';
+import { AIConfig, AuditReport, BenchmarkResult, ExecutiveReportContent, IssueSeverity } from './types';
 
 const countBySeverity = (report: AuditReport | null, severity: IssueSeverity) =>
   report?.issues.filter((issue) => issue.severity === severity).length ?? 0;
@@ -90,6 +90,7 @@ const App: React.FC = () => {
   const [showLab, setShowLab] = useState(false);
   const [showAuditLog, setShowAuditLog] = useState(false);
   const [showMobileNav, setShowMobileNav] = useState(false);
+  const [labBenchmarkResults, setLabBenchmarkResults] = useState<BenchmarkResult[]>([]);
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     const saved = localStorage.getItem('aura_theme');
     return saved === 'light' ? 'light' : 'dark';
@@ -149,7 +150,9 @@ const App: React.FC = () => {
   const pipelineState = pipelineData.state;
   const aiAnalysis = pipelineData.aiAnalysis;
   const approvedCleaningScript = pipelineData.approvedScript;
-  const benchmarkResults = pipelineData.benchmarkResults;
+  const benchmarkResults = pipelineData.benchmarkResults.length > 0
+    ? pipelineData.benchmarkResults
+    : labBenchmarkResults;
   const improvementRun = pipelineData.improvementRun;
   const scriptValidation = pipelineData.scriptValidation;
 
@@ -243,6 +246,7 @@ const App: React.FC = () => {
           fileName={file?.name}
           aiConfig={aiConfig}
           auditEvidence={auditEvidence || undefined}
+          onResultsChange={setLabBenchmarkResults}
           onBack={() => setShowLab(false)}
         />
       ) : (

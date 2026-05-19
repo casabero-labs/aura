@@ -20,6 +20,7 @@ Rol:
 Leer y usar como base de escritura:
 
 - `BORRADOR_SEGUNDA_ENTREGA_CORREGIDA.md`
+- `ESTRUCTURA_DOCUMENTO_SEGUNDA_ENTREGA.md`
 
 Rol:
 
@@ -27,8 +28,21 @@ Rol:
 - formula los cuatro objetivos especificos en el nuevo orden;
 - deja una estructura de capitulos para transformar la primera entrega en segunda entrega;
 - indica que partes de la primera entrega se conservan y que partes se corrigen.
+- convierte los requisitos de semana 10 en una estructura concreta para el Word.
 
-## 3. Propuesta de mejora del flujo de AURA
+## 3. Matriz de evidencia para anexos y resultados
+
+Leer antes de capturar pantallas o exportar artefactos:
+
+- `MATRIZ_EVIDENCIA_AURA_SEGUNDA_ENTREGA.md`
+
+Rol:
+
+- cruza OE1-OE4 con evidencia documental y evidencia generada por codigo;
+- indica que artefactos debe producir AURA para anexar al documento;
+- separa evidencia valida, evidencia preliminar e intentos fallidos.
+
+## 4. Propuesta de mejora del flujo de AURA
 
 Leer para alinear tesis y producto:
 
@@ -40,7 +54,7 @@ Rol:
 - identifica el enredo entre pipeline, benchmark, scripts y exportacion;
 - propone una estructura tecnica que satisfaga los nuevos objetivos.
 
-## 4. Documentos de soporte ya existentes
+## 5. Documentos de soporte ya existentes
 
 Usar como respaldo, no como linea principal:
 
@@ -55,7 +69,7 @@ Usar como respaldo, no como linea principal:
 - `PLAN_SEGUNDA_ENTREGA_SEMANA_10.md`: plan de trabajo por capitulos.
 - `SITUACIONES_DATASET_PARA_REFORZAR_AURA.md`: ideas para ampliar reglas, benchmarks o casos de prueba.
 
-## 5. Criterio de orden
+## 6. Criterio de orden
 
 La segunda entrega debe contarse en este flujo:
 
@@ -65,4 +79,3 @@ La segunda entrega debe contarse en este flujo:
 4. Comparacion experimental integrada y gobernanza HITL.
 
 No conviene presentar benchmark, scripts y LLM como piezas separadas. El benchmark debe medir el comportamiento de la capa LLM cuando diagnostica y genera scripts sobre la misma evidencia determinista.
-

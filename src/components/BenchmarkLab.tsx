@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Activity, FlaskConical, ArrowLeft, Play, BarChart3 } from 'lucide-react';
 import { AuditReport, AIConfig, BenchmarkResult, AuditExecutionEvidence } from '../types';
 import { AVAILABLE_MODELS } from '../services/aiProvider';
@@ -15,6 +15,7 @@ interface BenchmarkLabProps {
   fileName?: string;
   aiConfig: AIConfig;
   auditEvidence?: AuditExecutionEvidence;
+  onResultsChange?: (results: BenchmarkResult[]) => void;
   onBack: () => void;
 }
 
@@ -41,12 +42,17 @@ const BenchmarkLab: React.FC<BenchmarkLabProps> = ({
   fileName,
   aiConfig,
   auditEvidence,
+  onResultsChange,
   onBack
 }) => {
   const [results, setResults] = useState<BenchmarkResult[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [runningId, setRunningId] = useState<string | null>(null);
   const [showCharts, setShowCharts] = useState(false);
+
+  useEffect(() => {
+    onResultsChange?.(results);
+  }, [onResultsChange, results]);
 
   const cloudModels = aiConfig.cloudProvider
     ? AVAILABLE_MODELS.cloud.filter(m => m.provider.toLowerCase() === aiConfig.cloudProvider)
@@ -178,7 +184,7 @@ const BenchmarkLab: React.FC<BenchmarkLabProps> = ({
 
       {/* Experiment Designer */}
       <section className="lab-section">
-        <ExperimentDesigner report={report} config={aiConfig} />
+        <ExperimentDesigner report={report} config={aiConfig} onResultsChange={onResultsChange} />
       </section>
 
       {/* Quick Run Buttons */}

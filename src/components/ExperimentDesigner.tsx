@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AuditReport, AIConfig, BenchmarkResult } from '../types';
 import { AVAILABLE_MODELS } from '../services/aiProvider';
 import { runBenchmarkForConfig } from '../services/benchmarkService';
@@ -16,9 +16,10 @@ interface ExperimentDesignerProps {
   report: AuditReport;
   config: AIConfig;
   onLog?: (bold: string, msg: string) => void;
+  onResultsChange?: (results: BenchmarkResult[]) => void;
 }
 
-export const ExperimentDesigner = ({ report, config, onLog }: ExperimentDesignerProps) => {
+export const ExperimentDesigner = ({ report, config, onLog, onResultsChange }: ExperimentDesignerProps) => {
   const isCloudConfigured = !!config.apiKey;
   const availableProviders: ('local' | 'cloud')[] = isCloudConfigured ? ['local', 'cloud'] : ['local'];
 
@@ -44,6 +45,10 @@ export const ExperimentDesigner = ({ report, config, onLog }: ExperimentDesigner
   ]);
   const [results, setResults] = useState<BenchmarkResult[]>([]);
   const [runningIndex, setRunningIndex] = useState<number | null>(null);
+
+  useEffect(() => {
+    onResultsChange?.(results);
+  }, [onResultsChange, results]);
 
   const addExperiment = () => {
     setExperiments(prev => [
