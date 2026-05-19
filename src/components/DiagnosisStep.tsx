@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Brain, Database, Play, ShieldCheck, FlaskConical, AlertTriangle, Lock, Globe, ChevronDown, ChevronRight, FileCode2, Package, Trash2, Download, HardDrive } from 'lucide-react';
+import { Brain, Database, Play, ShieldCheck, FlaskConical, AlertTriangle, Lock, Globe, ChevronDown, ChevronRight, FileCode2, Package, Trash2, Download, HardDrive, X } from 'lucide-react';
 import GeminiAdvisor from './GeminiAdvisor';
 import { AIConfig, AIProvider, AuditReport, AuditExecutionEvidence, ProviderMetrics } from '../types';
 import { buildSmartSample, buildAnalysisPrompt } from '../services/providers/prompts';
@@ -296,7 +296,6 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
           </div>
         </header>
 
-        {/* Privacy warning */}
         <div className={`privacy-notice ${isCloud ? 'privacy-notice--cloud' : 'privacy-notice--local'}`}>
           {isCloud ? (
             <>
@@ -318,7 +317,6 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
         </div>
 
         <div className="model-selector-grid mt-6">
-          {/* Provider type toggle */}
           <div className="model-selector-group">
             <label className="model-selector-label">Proveedor</label>
             <div className="model-type-toggle">
@@ -337,7 +335,6 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
             </div>
           </div>
 
-          {/* Model dropdown with download status */}
           <div className="model-selector-group">
             <label className="model-selector-label">Modelo</label>
             <select
@@ -357,7 +354,6 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
               })}
             </select>
 
-            {/* Downloaded models management */}
             {aiConfig.providerType === 'local' && downloadedModels.size > 0 && (
               <div className="downloaded-models-list">
                 <div className="downloaded-models-header">
@@ -387,7 +383,6 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
           </div>
         </div>
 
-        {/* Lab CTA */}
         {onOpenLab && (
           <div className="lab-cta mt-6">
             <FlaskConical size={14} />
@@ -398,32 +393,6 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
           </div>
         )}
       </section>
-
-      {/* ── 2.5 Prompt preview ── */}
-      {showPrompt && (
-        <section className="section">
-          <header className="section-header">
-            <div>
-              <p className="sec-eye">prompt del modelo</p>
-              <h2 className="sec-title">Prompt enviado al LLM — Diagnóstico (OE2).</h2>
-            </div>
-          </header>
-
-          <p className="section-note">
-            Texto completo que se pasa al modelo local o cloud. El JSON del paquete de evidencia
-            se inyecta en la sección "JSON observado". Mismo prompt para ambos proveedores.
-          </p>
-
-          <div className="prompt-viewer">
-            <pre className="prompt-viewer-text">{diagnosisPrompt}</pre>
-          </div>
-
-          <div className="prompt-meta">
-            <span>Longitud: {diagnosisPrompt.length.toLocaleString('es-CO')} caracteres</span>
-            <span>Hash: {computePromptHash(diagnosisPrompt)}</span>
-          </div>
-        </section>
-      )}
 
       {/* ── 3. Ejecutar diagnóstico ── */}
       <section className="section">
@@ -477,7 +446,6 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
               </div>
             )}
 
-            {/* Prompt preview button — visible before running */}
             <button
               className="btn-s"
               onClick={() => setShowPrompt(!showPrompt)}
@@ -515,6 +483,23 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
           Generar script <Play size={12} />
         </button>
       </div>
+
+      {/* ── Prompt modal ── */}
+      {showPrompt && (
+        <div className="prompt-modal" onClick={() => setShowPrompt(false)}>
+          <div className="prompt-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="prompt-modal-header">
+              <h3>Prompt enviado al LLM</h3>
+              <button className="prompt-modal-close" onClick={() => setShowPrompt(false)}><X size={14} /></button>
+            </div>
+            <pre className="prompt-modal-body">{diagnosisPrompt}</pre>
+            <div className="prompt-modal-footer">
+              <span>{diagnosisPrompt.length.toLocaleString('es-CO')} chars</span>
+              <span>{computePromptHash(diagnosisPrompt)}</span>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };
