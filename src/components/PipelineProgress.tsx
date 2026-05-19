@@ -1,6 +1,6 @@
-import { Check, Brain, ClipboardCheck, FileText, Search, Upload } from 'lucide-react';
+import { Check, Brain, ClipboardCheck, FileCode2, FileText, Search, Upload } from 'lucide-react';
 
-export type PipelineState = 'upload' | 'diagnostic' | 'analysis' | 'review' | 'export';
+export type PipelineState = 'upload' | 'profile' | 'diagnosis' | 'script' | 'review' | 'export';
 
 interface PipelineProgressProps {
   currentStep: PipelineState;
@@ -9,13 +9,14 @@ interface PipelineProgressProps {
 
 const steps: { num: number; label: string; icon: React.ReactNode; state: PipelineState }[] = [
   { num: 1, label: 'Subir CSV', icon: <Upload size={14} />, state: 'upload' },
-  { num: 2, label: 'Diagnosticar', icon: <Search size={14} />, state: 'diagnostic' },
-  { num: 3, label: 'Analizar IA', icon: <Brain size={14} />, state: 'analysis' },
-  { num: 4, label: 'Revisar', icon: <ClipboardCheck size={14} />, state: 'review' },
-  { num: 5, label: 'Exportar', icon: <FileText size={14} />, state: 'export' },
+  { num: 2, label: 'Perfilar', icon: <Search size={14} />, state: 'profile' },
+  { num: 3, label: 'Diagnóstico', icon: <Brain size={14} />, state: 'diagnosis' },
+  { num: 4, label: 'Script', icon: <FileCode2 size={14} />, state: 'script' },
+  { num: 5, label: 'Revisar', icon: <ClipboardCheck size={14} />, state: 'review' },
+  { num: 6, label: 'Exportar', icon: <FileText size={14} />, state: 'export' },
 ];
 
-const stepOrder: PipelineState[] = ['upload', 'diagnostic', 'analysis', 'review', 'export'];
+const stepOrder: PipelineState[] = ['upload', 'profile', 'diagnosis', 'script', 'review', 'export'];
 
 const getStepStatus = (stepState: PipelineState, currentStep: PipelineState) => {
   const currentIndex = stepOrder.indexOf(currentStep);

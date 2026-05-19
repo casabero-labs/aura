@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import ScriptReview from './ScriptReview';
 import ImprovementRunPanel from './ImprovementRunPanel';
 import { createImprovementRun } from '../services/improvementService';
-import { ShieldCheck } from 'lucide-react';
+import { ArrowRight, ShieldCheck } from 'lucide-react';
 import {
   AuditReport,
   AuditExecutionEvidence,
   ImprovementRun,
   HealthDelta,
   BenchmarkResult,
+  ScriptValidationResult,
 } from '../types';
 
 interface ReviewStepProps {
@@ -19,10 +20,13 @@ interface ReviewStepProps {
   cleaningScript: string;
   approvedScript: string;
   auditEvidence?: AuditExecutionEvidence;
+  benchmarkResults?: BenchmarkResult[];
+  scriptValidation?: ScriptValidationResult | null;
   onScriptApproved?: (script: string) => void;
   onImprovementRun?: (run: ImprovementRun) => void;
   onHealthDelta?: (delta: HealthDelta) => void;
   onLog?: (stage: string, msg: string) => void;
+  onContinue?: () => void;
 }
 
 type ReviewStage = 'pending' | 'simulating' | 'completed';
@@ -35,10 +39,13 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
   cleaningScript,
   approvedScript,
   auditEvidence,
+  benchmarkResults = [],
+  scriptValidation,
   onScriptApproved,
   onImprovementRun,
   onHealthDelta,
   onLog,
+  onContinue,
 }) => {
   const [stage, setStage] = useState<ReviewStage>('pending');
   const [draftScript, setDraftScript] = useState<string>(cleaningScript);
@@ -57,10 +64,6 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
     onLog?.('review.approve', 'Script aprobado · iniciando simulación de remediación');
 
     try {
-      // Build a minimal benchmark results array to satisfy createImprovementRun
-      // In real usage, benchmarkResults would come from the previous benchmark step
-      const benchmarkResults: BenchmarkResult[] = [];
-
       const run = createImprovementRun({
         originalData: rawData,
         fields: csvFields,
@@ -69,6 +72,7 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
         auditEvidence,
         benchmarkResults,
         generatedScript: script,
+        scriptValidation: scriptValidation || undefined,
       });
 
       setImprovementRun(run);
@@ -95,7 +99,7 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
       {/* Header */}
       <div className="section-header">
         <div>
-          <p className="sec-eye">fase 4</p>
+          <p className="sec-eye">revisión humana</p>
           <h2 className="sec-title">Revisión humana + simulación.</h2>
         </div>
         {stage === 'completed' && improvementRun && (
@@ -110,6 +114,27 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
         El script de limpieza fue generado automáticamente. Revísalo completo, edítalo si hace falta, y
         apruébalo para ejecutar una simulación segura de remediación.
       </p>
+
+      {scriptValidation && (
+        <div className="mt-6 p-4 border border-[var(--border)] rounded-lg bg-[var(--surface)]">
+          <div className="flex items-center gap-2">
+            <ShieldCheck size={14} />
+            <strong>Validación previa del script</strong>
+          </div>
+          <p className="section-note mt-2">
+            {scriptValidation.valid
+              ? 'El script referencia columnas existentes y cubre hallazgos detectados por el motor determinista.'
+              : 'El script requiere revisión cuidadosa: AURA detectó advertencias antes de aprobarlo.'}
+          </p>
+          {scriptValidation.warnings.length > 0 && (
+            <ul className="mt-3 text-sm text-[var(--ink-muted)]">
+              {scriptValidation.warnings.map((warning) => (
+                <li key={warning}>{warning}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       {/* Script Review */}
       <div className="mt-6">
@@ -139,6 +164,17 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
           <ImprovementRunPanel run={improvementRun} />
         </div>
       )}
+
+      <div className="context-guide">
+        <span className="guide-icon"><ArrowRight size={14} /></span>
+        <div>
+          <p className="guide-title">Evidencia lista para exportar</p>
+          <p className="guide-desc">Cuando el script esté aprobado y la simulación quede registrada, prepara el reporte final y los artefactos auditables.</p>
+        </div>
+        <button className="btn-p btn-sm" onClick={onContinue} disabled={!currentApprovedScript || stage !== 'completed'}>
+          Preparar exportación <ArrowRight size={12} />
+        </button>
+      </div>
     </div>
   );
 };

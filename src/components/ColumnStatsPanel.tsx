@@ -10,7 +10,7 @@
  * - Muestra de valores (inicio, medio, fin)
  * - IQR outlier fence bounds
  *
- * Este panel es la base del Smart Sample que se envía al LLM.
+ * Este panel resume la caracterización estadística por columna.
  */
 
 import React, { useState } from 'react';

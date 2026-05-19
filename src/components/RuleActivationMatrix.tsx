@@ -12,7 +12,7 @@
  * - Descripción de la anomalía
  *
  * Esta matriz es el output central del auditEngine.ts y es la base
- * para el Smart Sample que recibe el LLM en la Capa 2 (OE2).
+ * para auditar qué reglas se activaron sobre el dataset.
  */
 
 import React, { useState } from 'react';

@@ -1,17 +1,14 @@
 /**
- * SmartSampleViewer — JSON completo enviado al LLM
- *
- * Muestra el Smart Sample (buildSmartSample) como JSON real
- * que se inyecta en la Capa 2 (OE2).
- *
- * El usuario VE exactamente qué datos recibe el LLM.
- * Esto es transparencia total de la Capa 1 → Capa 2.
+ * SmartSampleViewer — JSON estructurado del perfil del dataset
+ * 
+ * Muestra el resumen estructurado (buildSmartSample) como JSON real
+ * generado desde el perfil, las columnas y las reglas activadas.
  *
  * Incluye:
  * - JSON formateado con syntax highlighting
  * - Secciones colapsables por sección del JSON
  * - Conteo de tokens aproximado
- * - Indicador de qué columnas son "feas" para el LLM
+ * - Indicador de tamaño del paquete JSON
  */
 
 import React, { useState } from 'react';
@@ -91,11 +88,11 @@ const SmartSampleViewer: React.FC<SmartSampleViewerProps> = ({ report }) => {
       <div className="smart-sample-header">
         <div className="smart-sample-title">
           <FileCode2 size={14} />
-          <span>SMART SAMPLE — JSON EXACTO ENVIADO A CAPA 2 (LLM)</span>
+          <span>JSON ESTRUCTURADO DEL PERFIL</span>
         </div>
         <div className="smart-sample-meta">
           <span className="smart-sample-meta-chip">
-            ~{tokenEstimate.toLocaleString('es-CO')} tokens estimados
+            ~{tokenEstimate.toLocaleString('es-CO')} unidades estimadas
           </span>
           <span className="smart-sample-meta-chip">
             {jsonString.length.toLocaleString('es-CO')} caracteres
@@ -106,8 +103,8 @@ const SmartSampleViewer: React.FC<SmartSampleViewerProps> = ({ report }) => {
           </button>
         </div>
         <p className="smart-sample-subtitle">
-          Este es el JSON real que recibe el LLM en la Capa 2. Cada campo es determinado
-          por el motor de la Capa 1. Sin truncamiento, sin interpretaciones externas.
+          Este paquete consolida la caracterización del dataset: dimensiones, columnas,
+          muestras y reglas activadas. No contiene interpretación externa.
         </p>
       </div>
 

@@ -81,19 +81,23 @@ Los objetivos siguientes son una formulacion recomendada para consolidar el Capi
 
 ### OE1
 
-Diseñar e implementar un motor de auditoria determinista basado en reglas explicitas, expresiones regulares, heuristica de tipos y estadistica descriptiva, capaz de generar hallazgos reproducibles sobre anomalias estructurales y servir como base factual para la capa cognitiva posterior.
+Desarrollar una arquitectura local-first que permita cargar, procesar y auditar datasets desde el navegador, reduciendo la exposicion de datos sensibles y habilitando la ejecucion de componentes deterministas y cognitivos en entornos locales o cloud.
 
 ### OE2
 
-Evaluar comparativamente modelos LLM cloud y locales bajo un mismo esquema de entrada estructurada, midiendo latencia, cumplimiento de formato, presencia de alucinaciones y utilidad de las recomendaciones generadas.
+Diseñar e implementar un motor de auditoria determinista basado en reglas explicitas, expresiones regulares, heuristica de tipos y estadistica descriptiva, capaz de generar hallazgos reproducibles sobre anomalias estructurales del dataset.
 
 ### OE3
 
-Desarrollar una arquitectura local-first que procese el dataset crudo en navegador y permita comparar inferencia local frente a inferencia cloud en terminos de privacidad, latencia y calidad diagnostica.
+Implementar una capa cognitiva basada en LLM, local o cloud, que reciba los hallazgos estructurados del motor determinista, diagnostique causas probables de los problemas de calidad y genere scripts Python/Pandas orientados a corregir o asistir el proceso de limpieza del dataset.
 
 ### OE4
 
-Generar scripts de limpieza en Python/Pandas a partir de los hallazgos detectados, manteniendo un flujo human-in-the-loop en el que las transformaciones sean auditables antes de su ejecucion.
+Implementar un modulo de comparacion integrado al flujo de AURA para evaluar modelos LLM locales y cloud bajo el mismo esquema de entrada, midiendo latencia, cumplimiento de formato, presencia de alucinaciones, validez de scripts generados y utilidad para la mejora del dataset.
+
+Nota metodologica:
+
+La expresion "precision total en anomalias de Nivel 1" no debe mantenerse como promesa de resultado. Debe reformularse como evaluacion experimental de precision, recall y falsos positivos del motor determinista. La evidencia actual muestra que el motor es reproducible y sensible, pero produce falsos positivos; esto justifica la capa cognitiva y el flujo HITL.
 
 ## 4. Capas canonicas
 
@@ -101,8 +105,8 @@ Generar scripts de limpieza en Python/Pandas a partir de los hallazgos detectado
 |---|---|---|---|
 | Capa 0. Infraestructura local-first | Ejecutar parsing y auditoria inicial en navegador; habilitar WebLLM | Exposicion de datos y dependencia cloud | `src/services/csvService.ts`, `src/services/providers/webllmProvider.ts`, `src/services/aiProvider.ts` |
 | Capa 1. Motor determinista | Generar hallazgos reproducibles | Diagnostico sin base factual | `src/services/auditEngine.ts`, `docs/tablas/catalogo_reglas_motor_determinista.md` |
-| Capa 2. Estabilidad cognitiva | Interpretar hallazgos bajo restricciones | Alucinacion, recomendaciones no soportadas | `src/services/providers/prompts.ts`, `src/services/providers/geminiProvider.ts`, `src/services/providers/webllmProvider.ts` |
-| Capa 3. Gobernanza HITL | Generar reportes y scripts revisables | Automatizacion opaca o destructiva | `src/services/pdfGenerator.ts`, `src/components/ScriptReview.tsx` |
+| Capa 2. Diagnostico y generacion con LLM | Interpretar hallazgos y producir scripts Pandas bajo restricciones | Alucinacion, recomendaciones no soportadas, acciones sin trazabilidad | `src/services/providers/prompts.ts`, `src/services/providers/geminiProvider.ts`, `src/services/providers/webllmProvider.ts`, `src/services/scriptValidationService.ts` |
+| Capa 3. Comparacion y gobernanza HITL | Comparar modelos, validar scripts y exigir revision humana antes de aplicar acciones | Automatizacion opaca o destructiva | `src/services/benchmarkService.ts`, `src/services/improvementService.ts`, `src/components/ScriptReview.tsx` |
 
 ## 5. Benchmarks necesarios
 
@@ -111,7 +115,7 @@ Generar scripts de limpieza en Python/Pandas a partir de los hallazgos detectado
 | Motor determinista | Que detecta la Capa 1 y donde falla? | Precision, recall, F1, TP, FP, FN por regla |
 | Smart sample vs prompt libre | El anclaje reduce alucinaciones? | Campos inventados, hallazgos sin evidencia, citas correctas |
 | Cloud vs local | Que trade-off existe entre privacidad y rendimiento? | Latencia, first token, tokens/s, disponibilidad, datos enviados |
-| Scripts HITL | Las acciones son auditables y ejecutables? | Ejecutabilidad, cobertura de issues, operaciones destructivas, claridad |
+| Scripts HITL | Las acciones son auditables y utiles para limpiar el dataset? | Validez de script, cobertura de issues, operaciones destructivas, delta de salud simulado |
 
 ## 6. Archivos que deben alinearse con este criterio
 

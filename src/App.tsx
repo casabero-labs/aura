@@ -1,13 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Download, FileCode2, FileJson, FileText, FlaskConical, HelpCircle, Settings } from 'lucide-react';
 import ErrorBoundary from './components/ErrorBoundary';
+import BenchmarkLab from './components/BenchmarkLab';
 import SettingsPanel from './components/SettingsPanel';
 import MainPipeline, { PipelineData } from './components/MainPipeline';
-import BenchmarkLab from './components/BenchmarkLab';
 import { loadFromApi, syncToApi } from './services/api';
 import { createAIProvider } from './services/aiProvider';
 import { generatePdfReport } from './services/pdfGenerator';
-import { AIConfig, AuditReport, BenchmarkResult, ExecutiveReportContent, ImprovementRun, IssueSeverity } from './types';
+import { AIConfig, AuditReport, ExecutiveReportContent, IssueSeverity } from './types';
 
 const countBySeverity = (report: AuditReport | null, severity: IssueSeverity) =>
   report?.issues.filter((issue) => issue.severity === severity).length ?? 0;
@@ -77,6 +77,9 @@ const App: React.FC = () => {
     approvedScript: '',
     healthDelta: null,
     aiAnalysis: '',
+    benchmarkResults: [],
+    improvementRun: null,
+    scriptValidation: null,
     logs: [],
   });
 
@@ -131,16 +134,15 @@ const App: React.FC = () => {
   const file = pipelineData.file;
   const logs = pipelineData.logs;
   const pipelineState = pipelineData.state;
+  const aiAnalysis = pipelineData.aiAnalysis;
+  const approvedCleaningScript = pipelineData.approvedScript;
+  const benchmarkResults = pipelineData.benchmarkResults;
+  const improvementRun = pipelineData.improvementRun;
+  const scriptValidation = pipelineData.scriptValidation;
 
   const criticalCount = countBySeverity(report, IssueSeverity.CRITICAL);
   const warningCount = countBySeverity(report, IssueSeverity.WARNING);
 
-  // ── Placeholder states for future phases ──
-  const [aiAnalysis, setAiAnalysis] = useState('');
-  const [cleaningScript, setCleaningScript] = useState('');
-  const [approvedCleaningScript, setApprovedCleaningScript] = useState('');
-  const [benchmarkResults, setBenchmarkResults] = useState<BenchmarkResult[]>([]);
-  const [improvementRun, setImprovementRun] = useState<ImprovementRun | null>(null);
   const [hasExported, setHasExported] = useState(false);
   const [isPdfGenerating, setIsPdfGenerating] = useState(false);
 
@@ -164,7 +166,16 @@ const App: React.FC = () => {
     if (!report) return;
     downloadTextFile(
       `aura_audit_${Date.now()}.json`,
-      JSON.stringify({ fileName: file?.name, generatedAt: new Date().toISOString(), report, auditEvidence, aiAnalysis, improvementRun }, null, 2),
+      JSON.stringify({
+        fileName: file?.name,
+        generatedAt: new Date().toISOString(),
+        report,
+        auditEvidence,
+        aiAnalysis,
+        scriptValidation,
+        benchmarkResults,
+        improvementRun,
+      }, null, 2),
       'application/json;charset=utf-8'
     );
     setHasExported(true);
@@ -196,7 +207,6 @@ const App: React.FC = () => {
 
   return (
     <ErrorBoundary><div className="aura-system">
-      {/* Benchmark Lab Modal */}
       {showLab && report && (
         <BenchmarkLab
           report={report}
@@ -227,10 +237,10 @@ const App: React.FC = () => {
               <details className="help-section" open>
                 <summary className="help-summary">Cómo usar AURA</summary>
                 <ol className="help-steps">
-                  <li><strong>Carga un CSV.</strong> El motor determinista analiza al instante.</li>
-                  <li><strong>Revisa resultados.</strong> Score, anomalías y perfil de columnas.</li>
-                  <li><strong>Analiza con IA.</strong> Interpretación contextual de hallazgos.</li>
-                  <li><strong>Revisa y aprueba.</strong> Script auditables con simulación segura.</li>
+                  <li><strong>Carga un CSV.</strong> El archivo se procesa localmente en el navegador.</li>
+                  <li><strong>Perfila el dataset.</strong> Revisa estructura, columnas, estadística descriptiva y reglas activadas.</li>
+                  <li><strong>Genera diagnóstico.</strong> Interpreta causas probables a partir de los hallazgos estructurados.</li>
+                  <li><strong>Genera y revisa el script.</strong> Valida columnas, operaciones y trazabilidad antes de aprobar.</li>
                   <li><strong>Exporta evidencia.</strong> Descarga reportes y artefactos trazables.</li>
                 </ol>
               </details>
@@ -261,17 +271,17 @@ const App: React.FC = () => {
         </span>
         <div className={`nav-links ${showMobileNav ? 'nav-links-open' : ''}`}>
           <button className="nav-link" onClick={() => { scrollTo('sistema'); setShowMobileNav(false); }}>Inicio</button>
-          {hasData && <button className="nav-link" onClick={() => { scrollTo('export-section'); setShowMobileNav(false); }}>Exportar</button>}
+          {hasData && pipelineState === 'export' && <button className="nav-link" onClick={() => { scrollTo('export-section'); setShowMobileNav(false); }}>Exportar</button>}
+          {hasData && (
+            <button className="nav-link" onClick={() => { setShowLab(true); setShowMobileNav(false); }}>
+              <FlaskConical size={14} /> Laboratorio
+            </button>
+          )}
           <div className="nav-status"><div className="pulse" />{pipelineState === 'upload' ? 'listo' : 'online'}</div>
           <button className="nav-cta" onClick={() => { if (hasData) window.location.reload(); }}>
             {hasData ? 'Nuevo análisis' : 'Empezar'}
           </button>
           <button className="icon-btn" onClick={() => { setShowHelp(true); setShowMobileNav(false); }} aria-label="Centro de ayuda"><HelpCircle size={14} /></button>
-          {hasData && (
-            <button className="icon-btn" onClick={() => { setShowLab(true); setShowMobileNav(false); }} aria-label="Laboratorio de benchmark" title="Laboratorio 🔬">
-              <FlaskConical size={14} />
-            </button>
-          )}
           <button
             className={`theme-toggle ${theme === 'light' ? 'on' : ''}`}
             onClick={() => { setTheme(t => t === 'dark' ? 'light' : 'dark'); setShowMobileNav(false); }}
@@ -294,7 +304,7 @@ const App: React.FC = () => {
         <section className="hero" id="sistema">
           <h1 className="hero-h1">Audita la calidad de tus datos.</h1>
           <p className="hero-sub">
-            AURA primero fija evidencia determinista; después interpreta con IA y mide si la limpieza mejora el dataset.
+            AURA perfila el dataset con reglas reproducibles; luego separa diagnóstico, script, revisión humana y exportación.
           </p>
         </section>
 
@@ -307,10 +317,10 @@ const App: React.FC = () => {
         />
 
         {/* Export Section */}
-        {report && (
+        {report && pipelineState === 'export' && (
           <section className="quote" id="export-section">
             <p className="quote-text">Informe y evidencia listos para llevar.</p>
-            <p className="quote-attr">Exporta el diagnóstico determinista y los artefactos aprobados.</p>
+            <p className="quote-attr">Exporta el perfil, la evidencia técnica y los artefactos aprobados.</p>
             <div className="export-grid">
               <button className="btn-p" onClick={handleDownloadPdf} disabled={isPdfGenerating}>
                 <FileText size={14} /> {isPdfGenerating ? 'Generando' : 'Exportar reporte'}

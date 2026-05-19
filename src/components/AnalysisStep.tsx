@@ -75,19 +75,21 @@ const AnalysisStep: React.FC<AnalysisStepProps> = ({
     setIsAiLoading(true);
     setError(null);
     setAnalysisText('');
+    let finalAnalysisText = '';
 
     onLog?.('analysis', `Iniciando análisis IA con ${modelName}…`);
     onChecklistLLMStart?.(aiConfig);
 
     try {
       const metrics = await aiProvider.analyzeStream(report, (chunk) => {
-        setAnalysisText((prev) => prev + chunk);
+        finalAnalysisText += chunk;
+        setAnalysisText(finalAnalysisText);
       });
 
       setLastMetrics(metrics);
       onMetrics?.(metrics);
-      onChecklistLLMDone?.(metrics, analysisText + '');
-      onAnalysisComplete?.(analysisText + '');
+      onChecklistLLMDone?.(metrics, finalAnalysisText);
+      onAnalysisComplete?.(finalAnalysisText);
       onLog?.('analysis', `Análisis completado — ${metrics.tokensGenerated} tokens en ${metrics.latencyMs}ms`);
     } catch (err: any) {
       const msg = err?.message ?? 'Error desconocido en análisis IA';
@@ -96,7 +98,7 @@ const AnalysisStep: React.FC<AnalysisStepProps> = ({
     } finally {
       setIsAiLoading(false);
     }
-  }, [aiProvider, report, isAiLoading, modelName, onLog, onMetrics, onAnalysisComplete, analysisText, aiConfig, onChecklistLLMStart, onChecklistLLMDone]);
+  }, [aiProvider, report, isAiLoading, modelName, onLog, onMetrics, onAnalysisComplete, aiConfig, onChecklistLLMStart, onChecklistLLMDone]);
 
   // ── Script generation handler ──
   const handleGenerateScript = useCallback(async () => {
@@ -137,7 +139,7 @@ const AnalysisStep: React.FC<AnalysisStepProps> = ({
       <header className="section-header">
         <div className="sec-eye">
           <Brain size={14} />
-          <span>capa cognitiva · paso 3</span>
+          <span>análisis IA</span>
         </div>
         <h2 className="sec-title">Análisis IA + Script de limpieza</h2>
         <p className="section-note">

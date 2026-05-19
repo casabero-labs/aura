@@ -1,0 +1,1919 @@
+- generic [ref=e3]:
+  - navigation [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]: AURA
+      - generic [ref=e7]: AU
+    - generic [ref=e8]:
+      - button "Inicio" [ref=e9] [cursor=pointer]
+      - button "Exportar" [ref=e92] [cursor=pointer]
+      - generic [ref=e10]: online
+      - button "Nuevo análisis" [ref=e93] [cursor=pointer]
+      - button "Centro de ayuda" [ref=e13] [cursor=pointer]:
+        - img [ref=e14]
+      - button "Laboratorio de benchmark" [ref=e94] [cursor=pointer]:
+        - img [ref=e95]
+      - button "Cambiar tema" [ref=e17] [cursor=pointer]
+      - button "Ajustes" [ref=e19] [cursor=pointer]:
+        - img [ref=e20]
+  - main [ref=e23]:
+    - generic [ref=e24]:
+      - heading "Audita la calidad de tus datos." [level=1] [ref=e25]
+      - paragraph [ref=e26]: AURA primero fija evidencia determinista; después interpreta con IA y mide si la limpieza mejora el dataset.
+    - generic [ref=e27]:
+      - generic [ref=e29]:
+        - button "Subir CSV" [ref=e31] [cursor=pointer]:
+          - img [ref=e97]
+          - generic [ref=e36]: Subir CSV
+        - button "Diagnosticar" [ref=e39] [cursor=pointer]:
+          - img [ref=e41]
+          - generic [ref=e44]: Diagnosticar
+        - button "Analizar IA" [ref=e47] [cursor=pointer]:
+          - img [ref=e49]
+          - generic [ref=e57]: Analizar IA
+        - button "Revisar" [ref=e60] [cursor=pointer]:
+          - img [ref=e62]
+          - generic [ref=e66]: Revisar
+        - button "Exportar" [ref=e69] [cursor=pointer]:
+          - img [ref=e71]
+          - generic [ref=e74]: Exportar
+      - generic [ref=e99]:
+        - generic [ref=e100]:
+          - generic [ref=e101]:
+            - img [ref=e102]
+            - generic [ref=e106]: PERFIL COMPLETO DEL DATASET
+            - code [ref=e107]: adult_income.csv
+          - code [ref=e108]:
+            - img [ref=e109]
+            - text: b39f1cd1
+        - generic [ref=e118]:
+          - generic [ref=e119]:
+            - generic [ref=e120]:
+              - img [ref=e121]
+              - text: DIMENSIONES
+            - generic [ref=e124]:
+              - generic [ref=e125]:
+                - generic [ref=e126]: "5.000"
+                - generic [ref=e127]: filas
+              - generic [ref=e128]:
+                - generic [ref=e129]: "15"
+                - generic [ref=e130]: columnas
+              - generic [ref=e131]:
+                - generic [ref=e132]: "75.000"
+                - generic [ref=e133]: celdas total
+            - generic [ref=e134]:
+              - generic [ref=e135]: "csv: 5.0 MB"
+              - generic [ref=e136]:
+                - text: "delimiter:"
+                - code [ref=e137]: coma (,)
+          - generic [ref=e138]:
+            - generic [ref=e139]:
+              - img [ref=e140]
+              - text: SCORE DE CALIDAD
+            - generic [ref=e142]:
+              - generic [ref=e143]: "70"
+              - generic [ref=e144]: "%"
+            - paragraph [ref=e147]: Requiere limpieza antes de usar.
+          - generic [ref=e148]:
+            - generic [ref=e149]:
+              - img [ref=e150]
+              - text: ISSUES POR SEVERIDAD
+            - generic [ref=e152]:
+              - generic [ref=e153]:
+                - img [ref=e155]
+                - generic [ref=e157]: critical
+                - generic [ref=e158]: "1"
+              - generic [ref=e159]:
+                - img [ref=e161]
+                - generic [ref=e163]: warning
+                - generic [ref=e164]: "7"
+              - generic [ref=e165]:
+                - img [ref=e167]
+                - generic [ref=e169]: info
+                - generic [ref=e170]: "0"
+          - generic [ref=e171]:
+            - generic [ref=e172]:
+              - img [ref=e173]
+              - text: ISSUES POR CATEGORÍA
+            - generic [ref=e176]:
+              - generic [ref=e177]:
+                - generic [ref=e179]: Integridad y Estructura
+                - generic [ref=e180]: "3"
+              - generic [ref=e181]:
+                - generic [ref=e183]: Higiene de Texto
+                - generic [ref=e184]: "3"
+              - generic [ref=e185]:
+                - generic [ref=e187]: Validez y Lógica de Negocio
+                - generic [ref=e188]: "2"
+          - generic [ref=e189]:
+            - generic [ref=e190]:
+              - img [ref=e191]
+              - text: DISTRIBUCIÓN DE TIPOS
+            - generic [ref=e193]:
+              - generic [ref=e194]:
+                - generic [ref=e195]: "6"
+                - generic [ref=e196]: numéricas
+              - generic [ref=e197]:
+                - generic [ref=e198]: "9"
+                - generic [ref=e199]: texto
+            - paragraph [ref=e200]: 4 columnas con IQR calculado
+          - generic [ref=e201]:
+            - generic [ref=e202]:
+              - img [ref=e203]
+              - text: NULOS Y DUPLICADOS
+            - generic [ref=e206]:
+              - generic [ref=e207]:
+                - generic [ref=e208]: Nulos totales
+                - generic [ref=e209]: "759"
+              - generic [ref=e210]:
+                - generic [ref=e211]: "% Nulos"
+                - generic [ref=e212]: 1.01%
+              - generic [ref=e213]:
+                - generic [ref=e214]: Duplicados exactos
+                - generic [ref=e215]: "1"
+              - generic [ref=e216]:
+                - generic [ref=e217]: "% Duplicados"
+                - generic [ref=e218]: 0.02%
+          - generic [ref=e219]:
+            - generic [ref=e220]:
+              - img [ref=e221]
+              - text: RENDIMIENTO
+            - generic [ref=e224]:
+              - generic [ref=e225]:
+                - generic [ref=e226]: CSV parsing
+                - code [ref=e227]: 31ms
+              - generic [ref=e228]:
+                - generic [ref=e229]: Auditoría reglas
+                - code [ref=e230]: 58ms
+              - generic [ref=e231]:
+                - generic [ref=e232]: Total proceso
+                - code [ref=e233]: 89ms
+              - generic [ref=e234]:
+                - generic [ref=e235]: Rendimiento
+                - code [ref=e236]: 56.180 filas/s
+      - generic [ref=e238]:
+        - generic [ref=e239]:
+          - generic [ref=e240]:
+            - img [ref=e241]
+            - generic [ref=e243]: PERFIL ESTADÍSTICO COMPLETO — 15 COLUMNAS
+          - paragraph [ref=e244]: Cada columna expandible muestra todas las estadísticas, distribución de frecuencias, muestra de valores e IQR. Sin truncamiento.
+        - generic [ref=e245]:
+          - button "age number 1.000 datos · 69 únicos · IQR=19.00" [ref=e247] [cursor=pointer]:
+            - img [ref=e249]
+            - 'generic "Columna: age" [ref=e251]': age
+            - generic [ref=e252]: number
+            - generic [ref=e253]:
+              - generic "Valores no nulos" [ref=e254]: 1.000 datos
+              - generic [ref=e255]: ·
+              - generic "Valores únicos" [ref=e256]: 69 únicos
+              - generic [ref=e257]: ·
+              - generic "IQR = 19" [ref=e258]: IQR=19.00
+          - button "workclass string 669 datos · 7 únicos · 331 nulos" [ref=e260] [cursor=pointer]:
+            - img [ref=e262]
+            - 'generic "Columna: workclass" [ref=e264]': workclass
+            - generic [ref=e265]: string
+            - generic [ref=e266]:
+              - generic "Valores no nulos" [ref=e267]: 669 datos
+              - generic [ref=e268]: ·
+              - generic "Valores únicos" [ref=e269]: 7 únicos
+              - generic [ref=e270]: ·
+              - generic "Valores nulos" [ref=e271]: 331 nulos
+          - button "fnlwgt number 1.000 datos · 4.603 únicos · IQR=124052.00 · 22" [ref=e273] [cursor=pointer]:
+            - img [ref=e275]
+            - 'generic "Columna: fnlwgt" [ref=e277]': fnlwgt
+            - generic [ref=e278]: number
+            - generic [ref=e279]:
+              - generic "Valores no nulos" [ref=e280]: 1.000 datos
+              - generic [ref=e281]: ·
+              - generic "Valores únicos" [ref=e282]: 4.603 únicos
+              - generic [ref=e283]: ·
+              - generic "IQR = 124052" [ref=e284]: IQR=124052.00
+              - generic [ref=e285]: ·
+              - generic "Outliers detectados" [ref=e286]:
+                - img [ref=e287]
+                - text: "22"
+          - button "education string 1.000 datos · 16 únicos · OK" [ref=e290] [cursor=pointer]:
+            - img [ref=e292]
+            - 'generic "Columna: education" [ref=e294]': education
+            - generic [ref=e295]: string
+            - generic [ref=e296]:
+              - generic "Valores no nulos" [ref=e297]: 1.000 datos
+              - generic [ref=e298]: ·
+              - generic "Valores únicos" [ref=e299]: 16 únicos
+              - generic [ref=e300]: ·
+              - generic [ref=e301]:
+                - img [ref=e302]
+                - text: OK
+          - button "education-num number 1.000 datos · 16 únicos · IQR=3.00" [ref=e306] [cursor=pointer]:
+            - img [ref=e308]
+            - 'generic "Columna: education-num" [ref=e310]': education-num
+            - generic [ref=e311]: number
+            - generic [ref=e312]:
+              - generic "Valores no nulos" [ref=e313]: 1.000 datos
+              - generic [ref=e314]: ·
+              - generic "Valores únicos" [ref=e315]: 16 únicos
+              - generic [ref=e316]: ·
+              - generic "IQR = 3" [ref=e317]: IQR=3.00
+          - button "marital-status string 1.000 datos · 7 únicos · OK" [ref=e319] [cursor=pointer]:
+            - img [ref=e321]
+            - 'generic "Columna: marital-status" [ref=e323]': marital-status
+            - generic [ref=e324]: string
+            - generic [ref=e325]:
+              - generic "Valores no nulos" [ref=e326]: 1.000 datos
+              - generic [ref=e327]: ·
+              - generic "Valores únicos" [ref=e328]: 7 únicos
+              - generic [ref=e329]: ·
+              - generic [ref=e330]:
+                - img [ref=e331]
+                - text: OK
+          - button "occupation string 669 datos · 14 únicos · 331 nulos" [ref=e335] [cursor=pointer]:
+            - img [ref=e337]
+            - 'generic "Columna: occupation" [ref=e339]': occupation
+            - generic [ref=e340]: string
+            - generic [ref=e341]:
+              - generic "Valores no nulos" [ref=e342]: 669 datos
+              - generic [ref=e343]: ·
+              - generic "Valores únicos" [ref=e344]: 14 únicos
+              - generic [ref=e345]: ·
+              - generic "Valores nulos" [ref=e346]: 331 nulos
+          - button "relationship string 1.000 datos · 6 únicos · OK" [ref=e348] [cursor=pointer]:
+            - img [ref=e350]
+            - 'generic "Columna: relationship" [ref=e352]': relationship
+            - generic [ref=e353]: string
+            - generic [ref=e354]:
+              - generic "Valores no nulos" [ref=e355]: 1.000 datos
+              - generic [ref=e356]: ·
+              - generic "Valores únicos" [ref=e357]: 6 únicos
+              - generic [ref=e358]: ·
+              - generic [ref=e359]:
+                - img [ref=e360]
+                - text: OK
+          - button "race string 1.000 datos · 5 únicos · OK" [ref=e364] [cursor=pointer]:
+            - img [ref=e366]
+            - 'generic "Columna: race" [ref=e368]': race
+            - generic [ref=e369]: string
+            - generic [ref=e370]:
+              - generic "Valores no nulos" [ref=e371]: 1.000 datos
+              - generic [ref=e372]: ·
+              - generic "Valores únicos" [ref=e373]: 5 únicos
+              - generic [ref=e374]: ·
+              - generic [ref=e375]:
+                - img [ref=e376]
+                - text: OK
+          - button "sex string 1.000 datos · 2 únicos · OK" [ref=e380] [cursor=pointer]:
+            - img [ref=e382]
+            - 'generic "Columna: sex" [ref=e384]': sex
+            - generic [ref=e385]: string
+            - generic [ref=e386]:
+              - generic "Valores no nulos" [ref=e387]: 1.000 datos
+              - generic [ref=e388]: ·
+              - generic "Valores únicos" [ref=e389]: 2 únicos
+              - generic [ref=e390]: ·
+              - generic [ref=e391]:
+                - img [ref=e392]
+                - text: OK
+        - button "Mostrar 5 columnas más" [ref=e395] [cursor=pointer]:
+          - img [ref=e396]
+          - text: Mostrar 5 columnas más
+      - generic [ref=e400]:
+        - paragraph [ref=e401]: DISTRIBUCIÓN IQR POR COLUMNA NUMÉRICA
+        - img [ref=e402]:
+          - generic [ref=e403]:
+            - generic [ref=e404]:
+              - generic [ref=e407]: age
+              - generic [ref=e409]: fnlwgt
+              - generic [ref=e411]: education-num
+              - generic [ref=e413]: hours-per-week
+            - generic [ref=e414]:
+              - generic [ref=e417]: −200,000
+              - generic [ref=e419]: "0"
+              - generic [ref=e421]: 200,000
+              - generic [ref=e423]: 400,000
+              - generic [ref=e425]: 600,000
+            - generic [ref=e428]: "IQR: 19.0"
+            - generic [ref=e429]:
+              - generic [ref=e431]: 22 outliers
+              - generic [ref=e432]: "IQR: 124052.0"
+            - generic [ref=e435]: "IQR: 3.0"
+            - generic [ref=e436]:
+              - generic [ref=e438]: 649 outliers
+              - generic [ref=e439]: "IQR: 5.0"
+      - generic [ref=e440]:
+        - generic [ref=e441]:
+          - generic [ref=e442]:
+            - paragraph [ref=e443]: capa 1 · motor determinista
+            - heading "Diagnóstico completado." [level=2] [ref=e444]
+          - button "Analizar con IA" [ref=e445] [cursor=pointer]:
+            - text: Analizar con IA
+            - img [ref=e446]
+        - generic [ref=e448]:
+          - generic [ref=e449]:
+            - heading "70%" [level=2] [ref=e450]:
+              - text: "70"
+              - emphasis [ref=e451]: "%"
+            - paragraph [ref=e452]: Requiere limpieza antes de usar los datos.
+            - generic [ref=e453]:
+              - generic [ref=e454]: 1 críticos
+              - generic [ref=e455]: 7 advertencias
+              - generic [ref=e456]: 0 info
+          - generic [ref=e457]:
+            - generic [ref=e459]:
+              - generic [ref=e460]: Integridad Estructural
+              - generic [ref=e461]: 95%
+            - generic [ref=e465]:
+              - generic [ref=e466]: Higiene Textual
+              - generic [ref=e467]: 85%
+            - generic [ref=e471]:
+              - generic [ref=e472]: Lógica de Negocio
+              - generic [ref=e473]: 90%
+            - generic [ref=e477]:
+              - generic [ref=e478]: Riesgo Semántico
+              - generic [ref=e479]: 100%
+      - generic [ref=e483]:
+        - generic [ref=e484]:
+          - generic [ref=e485]:
+            - img [ref=e486]
+            - generic [ref=e489]: MATRIZ DE ACTIVACIÓN — 8 REGLAS DISPARADAS
+          - generic [ref=e490]:
+            - generic [ref=e491]:
+              - generic [ref=e492]: INTEGRIDAD
+              - generic [ref=e493]: "3"
+              - generic [ref=e494]: 1 CRIT
+            - generic [ref=e495]:
+              - generic [ref=e496]: HIGIENE
+              - generic [ref=e497]: "3"
+            - generic [ref=e498]:
+              - generic [ref=e499]: LÓGICA
+              - generic [ref=e500]: "2"
+          - paragraph [ref=e501]: "Cada rule-issue expandible muestra: ID, nombre, columna, severidad, conteo, muestra de valores problemáticos y descripción completa. Sin truncamiento."
+        - generic [ref=e502]:
+          - generic [ref=e503]:
+            - generic [ref=e504]:
+              - generic [ref=e505]: INTEGRIDAD
+              - generic [ref=e506]: 3 reglas
+            - generic [ref=e507]:
+              - generic [ref=e508]:
+                - button "R01 Filas Duplicadas CRIT INTEGRIDAD 1 regs 0.0%" [ref=e509] [cursor=pointer]:
+                  - img [ref=e511]
+                  - generic [ref=e513]: R01
+                  - generic [ref=e514]: Filas Duplicadas
+                  - 'generic "Severidad: critical" [ref=e515]':
+                    - img [ref=e516]
+                    - text: CRIT
+                  - 'generic "Categoría: Integridad y Estructura" [ref=e518]': INTEGRIDAD
+                  - generic [ref=e519]:
+                    - generic [ref=e520]: "1"
+                    - generic [ref=e521]: regs
+                  - generic [ref=e522]: 0.0%
+                - generic [ref=e523]:
+                  - paragraph [ref=e524]: Se encontraron 1 filas idénticas que afectan la integridad estructural.
+                  - generic [ref=e525]:
+                    - generic [ref=e526]:
+                      - text: "Filas afectadas:"
+                      - strong [ref=e527]: "1"
+                    - generic [ref=e528]:
+                      - text: "Porcentaje:"
+                      - strong [ref=e529]: 0.02%
+                    - generic [ref=e530]:
+                      - text: "Categoría:"
+                      - strong [ref=e531]: INTEGRIDAD
+                    - generic [ref=e532]:
+                      - text: "Severidad:"
+                      - strong [ref=e533]: critical
+              - generic [ref=e534]:
+                - button "R02 Valores Nulos / Vacíos workclass WARN INTEGRIDAD 331 regs 6.6%" [ref=e535] [cursor=pointer]:
+                  - img [ref=e537]
+                  - generic [ref=e539]: R02
+                  - generic [ref=e540]: Valores Nulos / Vacíos
+                  - code [ref=e541]: workclass
+                  - 'generic "Severidad: warning" [ref=e542]':
+                    - img [ref=e543]
+                    - text: WARN
+                  - 'generic "Categoría: Integridad y Estructura" [ref=e545]': INTEGRIDAD
+                  - generic [ref=e546]:
+                    - generic [ref=e547]: "331"
+                    - generic [ref=e548]: regs
+                  - generic [ref=e549]: 6.6%
+                - generic [ref=e550]:
+                  - paragraph [ref=e551]: "Advertencia: Faltan datos."
+                  - generic [ref=e552]:
+                    - generic [ref=e553]:
+                      - text: "Filas afectadas:"
+                      - strong [ref=e554]: "331"
+                    - generic [ref=e555]:
+                      - text: "Porcentaje:"
+                      - strong [ref=e556]: 6.62%
+                    - generic [ref=e557]:
+                      - text: "Categoría:"
+                      - strong [ref=e558]: INTEGRIDAD
+                    - generic [ref=e559]:
+                      - text: "Severidad:"
+                      - strong [ref=e560]: warning
+              - generic [ref=e561]:
+                - button "R02 Valores Nulos / Vacíos occupation WARN INTEGRIDAD 331 regs 6.6%" [ref=e562] [cursor=pointer]:
+                  - img [ref=e564]
+                  - generic [ref=e566]: R02
+                  - generic [ref=e567]: Valores Nulos / Vacíos
+                  - code [ref=e568]: occupation
+                  - 'generic "Severidad: warning" [ref=e569]':
+                    - img [ref=e570]
+                    - text: WARN
+                  - 'generic "Categoría: Integridad y Estructura" [ref=e572]': INTEGRIDAD
+                  - generic [ref=e573]:
+                    - generic [ref=e574]: "331"
+                    - generic [ref=e575]: regs
+                  - generic [ref=e576]: 6.6%
+                - generic [ref=e577]:
+                  - paragraph [ref=e578]: "Advertencia: Faltan datos."
+                  - generic [ref=e579]:
+                    - generic [ref=e580]:
+                      - text: "Filas afectadas:"
+                      - strong [ref=e581]: "331"
+                    - generic [ref=e582]:
+                      - text: "Porcentaje:"
+                      - strong [ref=e583]: 6.62%
+                    - generic [ref=e584]:
+                      - text: "Categoría:"
+                      - strong [ref=e585]: INTEGRIDAD
+                    - generic [ref=e586]:
+                      - text: "Severidad:"
+                      - strong [ref=e587]: warning
+          - generic [ref=e588]:
+            - generic [ref=e589]:
+              - generic [ref=e590]: HIGIENE
+              - generic [ref=e591]: 3 reglas
+            - generic [ref=e592]:
+              - generic [ref=e593]:
+                - button "R08 Placeholders Tóxicos workclass WARN HIGIENE 331 regs 6.6%" [ref=e594] [cursor=pointer]:
+                  - img [ref=e596]
+                  - generic [ref=e598]: R08
+                  - generic [ref=e599]: Placeholders Tóxicos
+                  - code [ref=e600]: workclass
+                  - 'generic "Severidad: warning" [ref=e601]':
+                    - img [ref=e602]
+                    - text: WARN
+                  - 'generic "Categoría: Higiene de Texto" [ref=e604]': HIGIENE
+                  - generic [ref=e605]:
+                    - generic [ref=e606]: "331"
+                    - generic [ref=e607]: regs
+                  - generic [ref=e608]: 6.6%
+                - generic [ref=e609]:
+                  - paragraph [ref=e610]: Valores como "n/a", "null" o "999" detectados.
+                  - generic [ref=e611]:
+                    - paragraph [ref=e612]: "Muestra de valores problemáticos:"
+                    - generic [ref=e613]:
+                      - code [ref=e614]: "\"?\""
+                      - code [ref=e615]: "\"?\""
+                      - code [ref=e616]: "\"?\""
+                  - generic [ref=e617]:
+                    - generic [ref=e618]:
+                      - text: "Filas afectadas:"
+                      - strong [ref=e619]: "331"
+                    - generic [ref=e620]:
+                      - text: "Porcentaje:"
+                      - strong [ref=e621]: 6.62%
+                    - generic [ref=e622]:
+                      - text: "Categoría:"
+                      - strong [ref=e623]: HIGIENE
+                    - generic [ref=e624]:
+                      - text: "Severidad:"
+                      - strong [ref=e625]: warning
+              - generic [ref=e626]:
+                - button "R08 Placeholders Tóxicos occupation WARN HIGIENE 331 regs 6.6%" [ref=e627] [cursor=pointer]:
+                  - img [ref=e629]
+                  - generic [ref=e631]: R08
+                  - generic [ref=e632]: Placeholders Tóxicos
+                  - code [ref=e633]: occupation
+                  - 'generic "Severidad: warning" [ref=e634]':
+                    - img [ref=e635]
+                    - text: WARN
+                  - 'generic "Categoría: Higiene de Texto" [ref=e637]': HIGIENE
+                  - generic [ref=e638]:
+                    - generic [ref=e639]: "331"
+                    - generic [ref=e640]: regs
+                  - generic [ref=e641]: 6.6%
+                - generic [ref=e642]:
+                  - paragraph [ref=e643]: Valores como "n/a", "null" o "999" detectados.
+                  - generic [ref=e644]:
+                    - paragraph [ref=e645]: "Muestra de valores problemáticos:"
+                    - generic [ref=e646]:
+                      - code [ref=e647]: "\"?\""
+                      - code [ref=e648]: "\"?\""
+                      - code [ref=e649]: "\"?\""
+                  - generic [ref=e650]:
+                    - generic [ref=e651]:
+                      - text: "Filas afectadas:"
+                      - strong [ref=e652]: "331"
+                    - generic [ref=e653]:
+                      - text: "Porcentaje:"
+                      - strong [ref=e654]: 6.62%
+                    - generic [ref=e655]:
+                      - text: "Categoría:"
+                      - strong [ref=e656]: HIGIENE
+                    - generic [ref=e657]:
+                      - text: "Severidad:"
+                      - strong [ref=e658]: warning
+              - generic [ref=e659]:
+                - button "R08 Placeholders Tóxicos native-country WARN HIGIENE 97 regs 1.9%" [ref=e660] [cursor=pointer]:
+                  - img [ref=e662]
+                  - generic [ref=e664]: R08
+                  - generic [ref=e665]: Placeholders Tóxicos
+                  - code [ref=e666]: native-country
+                  - 'generic "Severidad: warning" [ref=e667]':
+                    - img [ref=e668]
+                    - text: WARN
+                  - 'generic "Categoría: Higiene de Texto" [ref=e670]': HIGIENE
+                  - generic [ref=e671]:
+                    - generic [ref=e672]: "97"
+                    - generic [ref=e673]: regs
+                  - generic [ref=e674]: 1.9%
+                - generic [ref=e675]:
+                  - paragraph [ref=e676]: Valores como "n/a", "null" o "999" detectados.
+                  - generic [ref=e677]:
+                    - paragraph [ref=e678]: "Muestra de valores problemáticos:"
+                    - generic [ref=e679]:
+                      - code [ref=e680]: "\"?\""
+                      - code [ref=e681]: "\"?\""
+                      - code [ref=e682]: "\"?\""
+                  - generic [ref=e683]:
+                    - generic [ref=e684]:
+                      - text: "Filas afectadas:"
+                      - strong [ref=e685]: "97"
+                    - generic [ref=e686]:
+                      - text: "Porcentaje:"
+                      - strong [ref=e687]: 1.94%
+                    - generic [ref=e688]:
+                      - text: "Categoría:"
+                      - strong [ref=e689]: HIGIENE
+                    - generic [ref=e690]:
+                      - text: "Severidad:"
+                      - strong [ref=e691]: warning
+          - generic [ref=e692]:
+            - generic [ref=e693]:
+              - generic [ref=e694]: LÓGICA
+              - generic [ref=e695]: 2 reglas
+            - generic [ref=e696]:
+              - generic [ref=e697]:
+                - button "R15 Outliers Extremos (IQR) fnlwgt WARN LÓGICA 22 regs 0.4%" [ref=e698] [cursor=pointer]:
+                  - img [ref=e700]
+                  - generic [ref=e702]: R15
+                  - generic [ref=e703]: Outliers Extremos (IQR)
+                  - code [ref=e704]: fnlwgt
+                  - 'generic "Severidad: warning" [ref=e705]':
+                    - img [ref=e706]
+                    - text: WARN
+                  - 'generic "Categoría: Validez y Lógica de Negocio" [ref=e708]': LÓGICA
+                  - generic [ref=e709]:
+                    - generic [ref=e710]: "22"
+                    - generic [ref=e711]: regs
+                  - generic [ref=e712]: 0.4%
+                - generic [ref=e713]:
+                  - paragraph [ref=e714]: Valores desviados > 3x del rango intercuartílico.
+                  - generic [ref=e715]:
+                    - paragraph [ref=e716]: "Muestra de valores problemáticos:"
+                    - generic [ref=e717]:
+                      - code [ref=e718]: "\"633742\""
+                      - code [ref=e719]: "\"635913\""
+                      - code [ref=e720]: "\"860348\""
+                  - generic [ref=e721]:
+                    - generic [ref=e722]:
+                      - text: "Filas afectadas:"
+                      - strong [ref=e723]: "22"
+                    - generic [ref=e724]:
+                      - text: "Porcentaje:"
+                      - strong [ref=e725]: 0.44%
+                    - generic [ref=e726]:
+                      - text: "Categoría:"
+                      - strong [ref=e727]: LÓGICA
+                    - generic [ref=e728]:
+                      - text: "Severidad:"
+                      - strong [ref=e729]: warning
+              - generic [ref=e730]:
+                - button "R15 Outliers Extremos (IQR) hours-per-week WARN LÓGICA 649 regs 13.0%" [ref=e731] [cursor=pointer]:
+                  - img [ref=e733]
+                  - generic [ref=e735]: R15
+                  - generic [ref=e736]: Outliers Extremos (IQR)
+                  - code [ref=e737]: hours-per-week
+                  - 'generic "Severidad: warning" [ref=e738]':
+                    - img [ref=e739]
+                    - text: WARN
+                  - 'generic "Categoría: Validez y Lógica de Negocio" [ref=e741]': LÓGICA
+                  - generic [ref=e742]:
+                    - generic [ref=e743]: "649"
+                    - generic [ref=e744]: regs
+                  - generic [ref=e745]: 13.0%
+                - generic [ref=e746]:
+                  - paragraph [ref=e747]: Valores desviados > 3x del rango intercuartílico.
+                  - generic [ref=e748]:
+                    - paragraph [ref=e749]: "Muestra de valores problemáticos:"
+                    - generic [ref=e750]:
+                      - code [ref=e751]: "\"13\""
+                      - code [ref=e752]: "\"16\""
+                      - code [ref=e753]: "\"80\""
+                  - generic [ref=e754]:
+                    - generic [ref=e755]:
+                      - text: "Filas afectadas:"
+                      - strong [ref=e756]: "649"
+                    - generic [ref=e757]:
+                      - text: "Porcentaje:"
+                      - strong [ref=e758]: 12.98%
+                    - generic [ref=e759]:
+                      - text: "Categoría:"
+                      - strong [ref=e760]: LÓGICA
+                    - generic [ref=e761]:
+                      - text: "Severidad:"
+                      - strong [ref=e762]: warning
+      - generic [ref=e763]:
+        - generic [ref=e764]:
+          - paragraph [ref=e765]: hallazgos
+          - heading "Anomalías detectadas." [level=2] [ref=e766]
+        - generic [ref=e767]:
+          - generic [ref=e768]:
+            - heading "Integridad y Estructura" [level=4] [ref=e769]:
+              - img [ref=e770]
+              - text: Integridad y Estructura
+            - generic [ref=e773]:
+              - generic [ref=e774]:
+                - img [ref=e776]
+                - generic [ref=e778]:
+                  - generic [ref=e779]:
+                    - heading "Filas Duplicadas" [level=4] [ref=e780]
+                    - generic [ref=e781]: 1 registros
+                  - paragraph [ref=e782]: Se encontraron 1 filas idénticas que afectan la integridad estructural.
+              - generic [ref=e783]:
+                - img [ref=e785]
+                - generic [ref=e787]:
+                  - generic [ref=e788]:
+                    - heading "workclass Valores Nulos / Vacíos" [level=4] [ref=e789]:
+                      - generic [ref=e790]: workclass
+                      - text: Valores Nulos / Vacíos
+                    - generic [ref=e791]: 331 registros
+                  - paragraph [ref=e792]: "Advertencia: Faltan datos."
+              - generic [ref=e793]:
+                - img [ref=e795]
+                - generic [ref=e797]:
+                  - generic [ref=e798]:
+                    - heading "occupation Valores Nulos / Vacíos" [level=4] [ref=e799]:
+                      - generic [ref=e800]: occupation
+                      - text: Valores Nulos / Vacíos
+                    - generic [ref=e801]: 331 registros
+                  - paragraph [ref=e802]: "Advertencia: Faltan datos."
+          - generic [ref=e803]:
+            - heading "Higiene de Texto" [level=4] [ref=e804]:
+              - img [ref=e805]
+              - text: Higiene de Texto
+            - generic [ref=e807]:
+              - generic [ref=e808]:
+                - img [ref=e810]
+                - generic [ref=e812]:
+                  - generic [ref=e813]:
+                    - heading "workclass Placeholders Tóxicos" [level=4] [ref=e814]:
+                      - generic [ref=e815]: workclass
+                      - text: Placeholders Tóxicos
+                    - generic [ref=e816]: 331 registros
+                  - paragraph [ref=e817]: Valores como "n/a", "null" o "999" detectados.
+                  - generic [ref=e818]:
+                    - generic [ref=e819]: "\"?\""
+                    - generic [ref=e820]: "\"?\""
+                    - generic [ref=e821]: "\"?\""
+              - generic [ref=e822]:
+                - img [ref=e824]
+                - generic [ref=e826]:
+                  - generic [ref=e827]:
+                    - heading "occupation Placeholders Tóxicos" [level=4] [ref=e828]:
+                      - generic [ref=e829]: occupation
+                      - text: Placeholders Tóxicos
+                    - generic [ref=e830]: 331 registros
+                  - paragraph [ref=e831]: Valores como "n/a", "null" o "999" detectados.
+                  - generic [ref=e832]:
+                    - generic [ref=e833]: "\"?\""
+                    - generic [ref=e834]: "\"?\""
+                    - generic [ref=e835]: "\"?\""
+              - generic [ref=e836]:
+                - img [ref=e838]
+                - generic [ref=e840]:
+                  - generic [ref=e841]:
+                    - heading "native-country Placeholders Tóxicos" [level=4] [ref=e842]:
+                      - generic [ref=e843]: native-country
+                      - text: Placeholders Tóxicos
+                    - generic [ref=e844]: 97 registros
+                  - paragraph [ref=e845]: Valores como "n/a", "null" o "999" detectados.
+                  - generic [ref=e846]:
+                    - generic [ref=e847]: "\"?\""
+                    - generic [ref=e848]: "\"?\""
+                    - generic [ref=e849]: "\"?\""
+          - generic [ref=e850]:
+            - heading "Validez y Lógica de Negocio" [level=4] [ref=e851]:
+              - img [ref=e852]
+              - text: Validez y Lógica de Negocio
+            - generic [ref=e854]:
+              - generic [ref=e855]:
+                - img [ref=e857]
+                - generic [ref=e859]:
+                  - generic [ref=e860]:
+                    - heading "fnlwgt Outliers Extremos (IQR)" [level=4] [ref=e861]:
+                      - generic [ref=e862]: fnlwgt
+                      - text: Outliers Extremos (IQR)
+                    - generic [ref=e863]: 22 registros
+                  - paragraph [ref=e864]: Valores desviados > 3x del rango intercuartílico.
+                  - generic [ref=e865]:
+                    - generic [ref=e866]: "\"633742\""
+                    - generic [ref=e867]: "\"635913\""
+                    - generic [ref=e868]: "\"860348\""
+              - generic [ref=e869]:
+                - img [ref=e871]
+                - generic [ref=e873]:
+                  - generic [ref=e874]:
+                    - heading "hours-per-week Outliers Extremos (IQR)" [level=4] [ref=e875]:
+                      - generic [ref=e876]: hours-per-week
+                      - text: Outliers Extremos (IQR)
+                    - generic [ref=e877]: 649 registros
+                  - paragraph [ref=e878]: Valores desviados > 3x del rango intercuartílico.
+                  - generic [ref=e879]:
+                    - generic [ref=e880]: "\"13\""
+                    - generic [ref=e881]: "\"16\""
+                    - generic [ref=e882]: "\"80\""
+      - generic [ref=e883]:
+        - generic [ref=e884]:
+          - generic [ref=e885]:
+            - img [ref=e886]
+            - generic [ref=e888]: DIAGNÓSTICO RULE-BY-RULE — BITÁCORA COMPLETA
+          - generic [ref=e889]:
+            - generic [ref=e890]:
+              - img [ref=e891]
+              - text: "auditoría: 58ms"
+            - generic [ref=e893]: 8 reglas disparadas
+            - generic [ref=e894]: "score: 30 pts deducidos"
+          - paragraph [ref=e895]: Log completo de cada regla evaluada. Las reglas sin activación no aparecen aquí. Cada línea es una anomalía real detectada por el motor de la Capa 1.
+        - generic [ref=e896]:
+          - generic [ref=e897]:
+            - generic [ref=e898]: tiempo
+            - generic [ref=e899]: regla
+            - generic [ref=e900]: columna
+            - generic [ref=e901]: detalle
+          - generic [ref=e902]:
+            - generic [ref=e903]: DEDUCCIONES DE SCORE
+            - generic [ref=e904]:
+              - generic [ref=e905]: 58ms
+              - generic [ref=e906]:
+                - generic [ref=e907]: 1 pts
+                - text: Filas Duplicadas (1)
+              - generic [ref=e908]: Integridad y Estructura
+              - generic [ref=e909]: Filas Duplicadas (1)
+            - generic [ref=e910]:
+              - generic [ref=e911]: 58ms
+              - generic [ref=e912]:
+                - generic [ref=e913]: 2 pts
+                - text: Valores Nulos en [workclass]
+              - generic [ref=e914]: Integridad y Estructura
+              - generic [ref=e915]: Valores Nulos en [workclass]
+            - generic [ref=e916]:
+              - generic [ref=e917]: 58ms
+              - generic [ref=e918]:
+                - generic [ref=e919]: 5 pts
+                - text: Placeholders Tóxicos en [workclass]
+              - generic [ref=e920]: Higiene de Texto
+              - generic [ref=e921]: Placeholders Tóxicos en [workclass]
+            - generic [ref=e922]:
+              - generic [ref=e923]: 58ms
+              - generic [ref=e924]:
+                - generic [ref=e925]: 5 pts
+                - text: Outliers en [fnlwgt]
+              - generic [ref=e926]: Validez y Lógica de Negocio
+              - generic [ref=e927]: Outliers en [fnlwgt]
+            - generic [ref=e928]:
+              - generic [ref=e929]: 58ms
+              - generic [ref=e930]:
+                - generic [ref=e931]: 2 pts
+                - text: Valores Nulos en [occupation]
+              - generic [ref=e932]: Integridad y Estructura
+              - generic [ref=e933]: Valores Nulos en [occupation]
+            - generic [ref=e934]:
+              - generic [ref=e935]: 58ms
+              - generic [ref=e936]:
+                - generic [ref=e937]: 5 pts
+                - text: Placeholders Tóxicos en [occupation]
+              - generic [ref=e938]: Higiene de Texto
+              - generic [ref=e939]: Placeholders Tóxicos en [occupation]
+            - generic [ref=e940]:
+              - generic [ref=e941]: 58ms
+              - generic [ref=e942]:
+                - generic [ref=e943]: 5 pts
+                - text: Outliers en [hours-per-week]
+              - generic [ref=e944]: Validez y Lógica de Negocio
+              - generic [ref=e945]: Outliers en [hours-per-week]
+            - generic [ref=e946]:
+              - generic [ref=e947]: 58ms
+              - generic [ref=e948]:
+                - generic [ref=e949]: 5 pts
+                - text: Placeholders Tóxicos en [native-country]
+              - generic [ref=e950]: Higiene de Texto
+              - generic [ref=e951]: Placeholders Tóxicos en [native-country]
+          - generic [ref=e952]:
+            - img [ref=e954]
+            - generic [ref=e956]: Filas Duplicadas
+            - generic [ref=e958]: Se encontraron 1 filas idénticas que afectan la integridad estructural.
+          - generic [ref=e959]:
+            - img [ref=e961]
+            - generic [ref=e963]: Valores Nulos / Vacíos
+            - code [ref=e965]: workclass
+            - generic [ref=e967]: "Advertencia: Faltan datos."
+          - generic [ref=e968]:
+            - img [ref=e970]
+            - generic [ref=e972]: Placeholders Tóxicos
+            - code [ref=e974]: workclass
+            - generic [ref=e975]:
+              - generic [ref=e976]: Valores como "n/a", "null" o "999" detectados.
+              - generic [ref=e977]:
+                - code [ref=e978]: "\"?\""
+                - code [ref=e979]: "\"?\""
+                - code [ref=e980]: "\"?\""
+          - generic [ref=e981]:
+            - img [ref=e983]
+            - generic [ref=e985]: Outliers Extremos (IQR)
+            - code [ref=e987]: fnlwgt
+            - generic [ref=e988]:
+              - generic [ref=e989]: Valores desviados > 3x del rango intercuartílico.
+              - generic [ref=e990]:
+                - code [ref=e991]: "\"633742\""
+                - code [ref=e992]: "\"635913\""
+                - code [ref=e993]: "\"860348\""
+          - generic [ref=e994]:
+            - img [ref=e996]
+            - generic [ref=e998]: Valores Nulos / Vacíos
+            - code [ref=e1000]: occupation
+            - generic [ref=e1002]: "Advertencia: Faltan datos."
+          - generic [ref=e1003]:
+            - img [ref=e1005]
+            - generic [ref=e1007]: Placeholders Tóxicos
+            - code [ref=e1009]: occupation
+            - generic [ref=e1010]:
+              - generic [ref=e1011]: Valores como "n/a", "null" o "999" detectados.
+              - generic [ref=e1012]:
+                - code [ref=e1013]: "\"?\""
+                - code [ref=e1014]: "\"?\""
+                - code [ref=e1015]: "\"?\""
+          - generic [ref=e1016]:
+            - img [ref=e1018]
+            - generic [ref=e1020]: Outliers Extremos (IQR)
+            - code [ref=e1022]: hours-per-week
+            - generic [ref=e1023]:
+              - generic [ref=e1024]: Valores desviados > 3x del rango intercuartílico.
+              - generic [ref=e1025]:
+                - code [ref=e1026]: "\"13\""
+                - code [ref=e1027]: "\"16\""
+                - code [ref=e1028]: "\"80\""
+          - generic [ref=e1029]:
+            - img [ref=e1031]
+            - generic [ref=e1033]: Placeholders Tóxicos
+            - code [ref=e1035]: native-country
+            - generic [ref=e1036]:
+              - generic [ref=e1037]: Valores como "n/a", "null" o "999" detectados.
+              - generic [ref=e1038]:
+                - code [ref=e1039]: "\"?\""
+                - code [ref=e1040]: "\"?\""
+                - code [ref=e1041]: "\"?\""
+          - generic [ref=e1043]: 1 críticos ·7 advertencias ·0 info ·58ms total
+      - generic [ref=e1045]:
+        - generic [ref=e1046]:
+          - generic [ref=e1047]:
+            - img [ref=e1048]
+            - generic [ref=e1053]: SMART SAMPLE — JSON EXACTO ENVIADO A CAPA 2 (LLM)
+          - generic [ref=e1054]:
+            - generic [ref=e1055]: ~1.669 tokens estimados
+            - generic [ref=e1056]: 6.673 caracteres
+            - button "copiar" [ref=e1057] [cursor=pointer]:
+              - img [ref=e1058]
+              - text: copiar
+          - paragraph [ref=e1061]: Este es el JSON real que recibe el LLM en la Capa 2. Cada campo es determinado por el motor de la Capa 1. Sin truncamiento, sin interpretaciones externas.
+        - generic [ref=e1062]:
+          - generic [ref=e1063]:
+            - button "▸ context — 4 campos" [ref=e1064] [cursor=pointer]:
+              - img [ref=e1065]
+              - generic [ref=e1067]: ▸ context — 4 campos
+            - generic [ref=e1069]:
+              - generic [ref=e1070]: "total_rows: 5000,"
+              - generic [ref=e1071]: "total_columns: 15,"
+              - generic [ref=e1072]:
+                - text: "detected_delimiter:"
+                - generic [ref=e1073]: "\",\""
+                - text: ","
+              - generic [ref=e1074]: "quality_score: 70"
+          - generic [ref=e1075]:
+            - button "▸ columns — 15 columnas (cada una con tipo, nulos, únicos, top_values, sample_values)" [ref=e1076] [cursor=pointer]:
+              - img [ref=e1077]
+              - generic [ref=e1079]: ▸ columns — 15 columnas (cada una con tipo, nulos, únicos, top_values, sample_values)
+            - generic [ref=e1081]:
+              - generic [ref=e1082]:
+                - generic [ref=e1083]: "{"
+                - generic [ref=e1084]:
+                  - generic [ref=e1085]:
+                    - text: "name:"
+                    - generic [ref=e1086]: "\"age\""
+                    - text: ","
+                  - generic [ref=e1087]:
+                    - text: "type:"
+                    - generic [ref=e1088]: "\"number\""
+                    - text: ","
+                  - generic [ref=e1089]: "nulls: 0,"
+                  - generic [ref=e1090]: "unique: 69,"
+                  - generic [ref=e1091]:
+                    - text: "top_values: ["
+                    - generic [ref=e1092]:
+                      - generic [ref=e1093]: "\"31\""
+                      - text: ","
+                    - generic [ref=e1094]:
+                      - generic [ref=e1095]: "\"34\""
+                      - text: ","
+                    - generic [ref=e1096]:
+                      - generic [ref=e1097]: "\"25\""
+                      - text: ","
+                    - generic [ref=e1098]:
+                      - generic [ref=e1099]: "\"35\""
+                      - text: ","
+                    - generic [ref=e1101]: "\"30\""
+                    - text: "],"
+                  - generic [ref=e1102]:
+                    - text: "sample_values: ["
+                    - generic [ref=e1103]:
+                      - generic [ref=e1104]: "\"39\""
+                      - text: ","
+                    - generic [ref=e1105]:
+                      - generic [ref=e1106]: "\"27\""
+                      - text: ","
+                    - generic [ref=e1108]: "\"58\""
+                    - text: "]"
+                - generic [ref=e1109]: "},"
+              - generic [ref=e1110]:
+                - generic [ref=e1111]: "{"
+                - generic [ref=e1112]:
+                  - generic [ref=e1113]:
+                    - text: "name:"
+                    - generic [ref=e1114]: "\"workclass\""
+                    - text: ","
+                  - generic [ref=e1115]:
+                    - text: "type:"
+                    - generic [ref=e1116]: "\"string\""
+                    - text: ","
+                  - generic [ref=e1117]: "nulls: 331,"
+                  - generic [ref=e1118]: "unique: 7,"
+                  - generic [ref=e1119]:
+                    - text: "top_values: ["
+                    - generic [ref=e1120]:
+                      - generic [ref=e1121]: "\"Private\""
+                      - text: ","
+                    - generic [ref=e1122]:
+                      - generic [ref=e1123]: "\"Self-emp-not-inc\""
+                      - text: ","
+                    - generic [ref=e1124]:
+                      - generic [ref=e1125]: "\"Local-gov\""
+                      - text: ","
+                    - generic [ref=e1126]:
+                      - generic [ref=e1127]: "\"State-gov\""
+                      - text: ","
+                    - generic [ref=e1129]: "\"Self-emp-inc\""
+                    - text: "],"
+                  - generic [ref=e1130]:
+                    - text: "sample_values: ["
+                    - generic [ref=e1131]:
+                      - generic [ref=e1132]: "\"State-gov\""
+                      - text: ","
+                    - generic [ref=e1133]:
+                      - generic [ref=e1134]: "\"Private\""
+                      - text: ","
+                    - generic [ref=e1136]: "\"Local-gov\""
+                    - text: "]"
+                - generic [ref=e1137]: "},"
+              - generic [ref=e1138]:
+                - generic [ref=e1139]: "{"
+                - generic [ref=e1140]:
+                  - generic [ref=e1141]:
+                    - text: "name:"
+                    - generic [ref=e1142]: "\"fnlwgt\""
+                    - text: ","
+                  - generic [ref=e1143]:
+                    - text: "type:"
+                    - generic [ref=e1144]: "\"number\""
+                    - text: ","
+                  - generic [ref=e1145]: "nulls: 0,"
+                  - generic [ref=e1146]: "unique: 4603,"
+                  - generic [ref=e1147]:
+                    - text: "top_values: ["
+                    - generic [ref=e1148]:
+                      - generic [ref=e1149]: "\"123983\""
+                      - text: ","
+                    - generic [ref=e1150]:
+                      - generic [ref=e1151]: "\"163003\""
+                      - text: ","
+                    - generic [ref=e1152]:
+                      - generic [ref=e1153]: "\"94235\""
+                      - text: ","
+                    - generic [ref=e1154]:
+                      - generic [ref=e1155]: "\"117963\""
+                      - text: ","
+                    - generic [ref=e1157]: "\"111567\""
+                    - text: "],"
+                  - generic [ref=e1158]:
+                    - text: "sample_values: ["
+                    - generic [ref=e1159]:
+                      - generic [ref=e1160]: "\"77516\""
+                      - text: ","
+                    - generic [ref=e1161]:
+                      - generic [ref=e1162]: "\"253814\""
+                      - text: ","
+                    - generic [ref=e1164]: "\"54947\""
+                    - text: "]"
+                - generic [ref=e1165]: "},"
+              - generic [ref=e1166]:
+                - generic [ref=e1167]: "{"
+                - generic [ref=e1168]:
+                  - generic [ref=e1169]:
+                    - text: "name:"
+                    - generic [ref=e1170]: "\"education\""
+                    - text: ","
+                  - generic [ref=e1171]:
+                    - text: "type:"
+                    - generic [ref=e1172]: "\"string\""
+                    - text: ","
+                  - generic [ref=e1173]: "nulls: 0,"
+                  - generic [ref=e1174]: "unique: 16,"
+                  - generic [ref=e1175]:
+                    - text: "top_values: ["
+                    - generic [ref=e1176]:
+                      - generic [ref=e1177]: "\"HS-grad\""
+                      - text: ","
+                    - generic [ref=e1178]:
+                      - generic [ref=e1179]: "\"Some-college\""
+                      - text: ","
+                    - generic [ref=e1180]:
+                      - generic [ref=e1181]: "\"Bachelors\""
+                      - text: ","
+                    - generic [ref=e1182]:
+                      - generic [ref=e1183]: "\"Masters\""
+                      - text: ","
+                    - generic [ref=e1185]: "\"Assoc-voc\""
+                    - text: "],"
+                  - generic [ref=e1186]:
+                    - text: "sample_values: ["
+                    - generic [ref=e1187]:
+                      - generic [ref=e1188]: "\"Bachelors\""
+                      - text: ","
+                    - generic [ref=e1189]:
+                      - generic [ref=e1190]: "\"Some-college\""
+                      - text: ","
+                    - generic [ref=e1192]: "\"Some-college\""
+                    - text: "]"
+                - generic [ref=e1193]: "},"
+              - generic [ref=e1194]:
+                - generic [ref=e1195]: "{"
+                - generic [ref=e1196]:
+                  - generic [ref=e1197]:
+                    - text: "name:"
+                    - generic [ref=e1198]: "\"education-num\""
+                    - text: ","
+                  - generic [ref=e1199]:
+                    - text: "type:"
+                    - generic [ref=e1200]: "\"number\""
+                    - text: ","
+                  - generic [ref=e1201]: "nulls: 0,"
+                  - generic [ref=e1202]: "unique: 16,"
+                  - generic [ref=e1203]:
+                    - text: "top_values: ["
+                    - generic [ref=e1204]:
+                      - generic [ref=e1205]: "\"9\""
+                      - text: ","
+                    - generic [ref=e1206]:
+                      - generic [ref=e1207]: "\"10\""
+                      - text: ","
+                    - generic [ref=e1208]:
+                      - generic [ref=e1209]: "\"13\""
+                      - text: ","
+                    - generic [ref=e1210]:
+                      - generic [ref=e1211]: "\"14\""
+                      - text: ","
+                    - generic [ref=e1213]: "\"11\""
+                    - text: "],"
+                  - generic [ref=e1214]:
+                    - text: "sample_values: ["
+                    - generic [ref=e1215]:
+                      - generic [ref=e1216]: "\"13\""
+                      - text: ","
+                    - generic [ref=e1217]:
+                      - generic [ref=e1218]: "\"10\""
+                      - text: ","
+                    - generic [ref=e1220]: "\"10\""
+                    - text: "]"
+                - generic [ref=e1221]: "},"
+              - generic [ref=e1222]:
+                - generic [ref=e1223]: "{"
+                - generic [ref=e1224]:
+                  - generic [ref=e1225]:
+                    - text: "name:"
+                    - generic [ref=e1226]: "\"marital-status\""
+                    - text: ","
+                  - generic [ref=e1227]:
+                    - text: "type:"
+                    - generic [ref=e1228]: "\"string\""
+                    - text: ","
+                  - generic [ref=e1229]: "nulls: 0,"
+                  - generic [ref=e1230]: "unique: 7,"
+                  - generic [ref=e1231]:
+                    - text: "top_values: ["
+                    - generic [ref=e1232]:
+                      - generic [ref=e1233]: "\"Married-civ-spouse\""
+                      - text: ","
+                    - generic [ref=e1234]:
+                      - generic [ref=e1235]: "\"Never-married\""
+                      - text: ","
+                    - generic [ref=e1236]:
+                      - generic [ref=e1237]: "\"Divorced\""
+                      - text: ","
+                    - generic [ref=e1238]:
+                      - generic [ref=e1239]: "\"Widowed\""
+                      - text: ","
+                    - generic [ref=e1241]: "\"Separated\""
+                    - text: "],"
+                  - generic [ref=e1242]:
+                    - text: "sample_values: ["
+                    - generic [ref=e1243]:
+                      - generic [ref=e1244]: "\"Never-married\""
+                      - text: ","
+                    - generic [ref=e1245]:
+                      - generic [ref=e1246]: "\"Never-married\""
+                      - text: ","
+                    - generic [ref=e1248]: "\"Never-married\""
+                    - text: "]"
+                - generic [ref=e1249]: "},"
+              - generic [ref=e1250]:
+                - generic [ref=e1251]: "{"
+                - generic [ref=e1252]:
+                  - generic [ref=e1253]:
+                    - text: "name:"
+                    - generic [ref=e1254]: "\"occupation\""
+                    - text: ","
+                  - generic [ref=e1255]:
+                    - text: "type:"
+                    - generic [ref=e1256]: "\"string\""
+                    - text: ","
+                  - generic [ref=e1257]: "nulls: 331,"
+                  - generic [ref=e1258]: "unique: 14,"
+                  - generic [ref=e1259]:
+                    - text: "top_values: ["
+                    - generic [ref=e1260]:
+                      - generic [ref=e1261]: "\"Prof-specialty\""
+                      - text: ","
+                    - generic [ref=e1262]:
+                      - generic [ref=e1263]: "\"Craft-repair\""
+                      - text: ","
+                    - generic [ref=e1264]:
+                      - generic [ref=e1265]: "\"Exec-managerial\""
+                      - text: ","
+                    - generic [ref=e1266]:
+                      - generic [ref=e1267]: "\"Sales\""
+                      - text: ","
+                    - generic [ref=e1269]: "\"Adm-clerical\""
+                    - text: "],"
+                  - generic [ref=e1270]:
+                    - text: "sample_values: ["
+                    - generic [ref=e1271]:
+                      - generic [ref=e1272]: "\"Adm-clerical\""
+                      - text: ","
+                    - generic [ref=e1273]:
+                      - generic [ref=e1274]: "\"Adm-clerical\""
+                      - text: ","
+                    - generic [ref=e1276]: "\"Prof-specialty\""
+                    - text: "]"
+                - generic [ref=e1277]: "},"
+              - generic [ref=e1278]:
+                - generic [ref=e1279]: "{"
+                - generic [ref=e1280]:
+                  - generic [ref=e1281]:
+                    - text: "name:"
+                    - generic [ref=e1282]: "\"relationship\""
+                    - text: ","
+                  - generic [ref=e1283]:
+                    - text: "type:"
+                    - generic [ref=e1284]: "\"string\""
+                    - text: ","
+                  - generic [ref=e1285]: "nulls: 0,"
+                  - generic [ref=e1286]: "unique: 6,"
+                  - generic [ref=e1287]:
+                    - text: "top_values: ["
+                    - generic [ref=e1288]:
+                      - generic [ref=e1289]: "\"Husband\""
+                      - text: ","
+                    - generic [ref=e1290]:
+                      - generic [ref=e1291]: "\"Not-in-family\""
+                      - text: ","
+                    - generic [ref=e1292]:
+                      - generic [ref=e1293]: "\"Own-child\""
+                      - text: ","
+                    - generic [ref=e1294]:
+                      - generic [ref=e1295]: "\"Unmarried\""
+                      - text: ","
+                    - generic [ref=e1297]: "\"Wife\""
+                    - text: "],"
+                  - generic [ref=e1298]:
+                    - text: "sample_values: ["
+                    - generic [ref=e1299]:
+                      - generic [ref=e1300]: "\"Not-in-family\""
+                      - text: ","
+                    - generic [ref=e1301]:
+                      - generic [ref=e1302]: "\"Not-in-family\""
+                      - text: ","
+                    - generic [ref=e1304]: "\"Not-in-family\""
+                    - text: "]"
+                - generic [ref=e1305]: "},"
+              - generic [ref=e1306]:
+                - generic [ref=e1307]: "{"
+                - generic [ref=e1308]:
+                  - generic [ref=e1309]:
+                    - text: "name:"
+                    - generic [ref=e1310]: "\"race\""
+                    - text: ","
+                  - generic [ref=e1311]:
+                    - text: "type:"
+                    - generic [ref=e1312]: "\"string\""
+                    - text: ","
+                  - generic [ref=e1313]: "nulls: 0,"
+                  - generic [ref=e1314]: "unique: 5,"
+                  - generic [ref=e1315]:
+                    - text: "top_values: ["
+                    - generic [ref=e1316]:
+                      - generic [ref=e1317]: "\"White\""
+                      - text: ","
+                    - generic [ref=e1318]:
+                      - generic [ref=e1319]: "\"Black\""
+                      - text: ","
+                    - generic [ref=e1320]:
+                      - generic [ref=e1321]: "\"Asian-Pac-Islander\""
+                      - text: ","
+                    - generic [ref=e1322]:
+                      - generic [ref=e1323]: "\"Amer-Indian-Eskimo\""
+                      - text: ","
+                    - generic [ref=e1325]: "\"Other\""
+                    - text: "],"
+                  - generic [ref=e1326]:
+                    - text: "sample_values: ["
+                    - generic [ref=e1327]:
+                      - generic [ref=e1328]: "\"White\""
+                      - text: ","
+                    - generic [ref=e1329]:
+                      - generic [ref=e1330]: "\"White\""
+                      - text: ","
+                    - generic [ref=e1332]: "\"White\""
+                    - text: "]"
+                - generic [ref=e1333]: "},"
+              - generic [ref=e1334]:
+                - generic [ref=e1335]: "{"
+                - generic [ref=e1336]:
+                  - generic [ref=e1337]:
+                    - text: "name:"
+                    - generic [ref=e1338]: "\"sex\""
+                    - text: ","
+                  - generic [ref=e1339]:
+                    - text: "type:"
+                    - generic [ref=e1340]: "\"string\""
+                    - text: ","
+                  - generic [ref=e1341]: "nulls: 0,"
+                  - generic [ref=e1342]: "unique: 2,"
+                  - generic [ref=e1343]:
+                    - text: "top_values: ["
+                    - generic [ref=e1344]:
+                      - generic [ref=e1345]: "\"Male\""
+                      - text: ","
+                    - generic [ref=e1347]: "\"Female\""
+                    - text: "],"
+                  - generic [ref=e1348]:
+                    - text: "sample_values: ["
+                    - generic [ref=e1349]:
+                      - generic [ref=e1350]: "\"Male\""
+                      - text: ","
+                    - generic [ref=e1351]:
+                      - generic [ref=e1352]: "\"Female\""
+                      - text: ","
+                    - generic [ref=e1354]: "\"Female\""
+                    - text: "]"
+                - generic [ref=e1355]: "},"
+              - generic [ref=e1356]:
+                - generic [ref=e1357]: "{"
+                - generic [ref=e1358]:
+                  - generic [ref=e1359]:
+                    - text: "name:"
+                    - generic [ref=e1360]: "\"capital-gain\""
+                    - text: ","
+                  - generic [ref=e1361]:
+                    - text: "type:"
+                    - generic [ref=e1362]: "\"number\""
+                    - text: ","
+                  - generic [ref=e1363]: "nulls: 0,"
+                  - generic [ref=e1364]: "unique: 83,"
+                  - generic [ref=e1365]:
+                    - text: "top_values: ["
+                    - generic [ref=e1366]:
+                      - generic [ref=e1367]: "\"0\""
+                      - text: ","
+                    - generic [ref=e1368]:
+                      - generic [ref=e1369]: "\"15024\""
+                      - text: ","
+                    - generic [ref=e1370]:
+                      - generic [ref=e1371]: "\"7688\""
+                      - text: ","
+                    - generic [ref=e1372]:
+                      - generic [ref=e1373]: "\"7298\""
+                      - text: ","
+                    - generic [ref=e1375]: "\"99999\""
+                    - text: "],"
+                  - generic [ref=e1376]:
+                    - text: "sample_values: ["
+                    - generic [ref=e1377]:
+                      - generic [ref=e1378]: "\"2174\""
+                      - text: ","
+                    - generic [ref=e1379]:
+                      - generic [ref=e1380]: "\"0\""
+                      - text: ","
+                    - generic [ref=e1382]: "\"0\""
+                    - text: "]"
+                - generic [ref=e1383]: "},"
+              - generic [ref=e1384]:
+                - generic [ref=e1385]: "{"
+                - generic [ref=e1386]:
+                  - generic [ref=e1387]:
+                    - text: "name:"
+                    - generic [ref=e1388]: "\"capital-loss\""
+                    - text: ","
+                  - generic [ref=e1389]:
+                    - text: "type:"
+                    - generic [ref=e1390]: "\"number\""
+                    - text: ","
+                  - generic [ref=e1391]: "nulls: 0,"
+                  - generic [ref=e1392]: "unique: 55,"
+                  - generic [ref=e1393]:
+                    - text: "top_values: ["
+                    - generic [ref=e1394]:
+                      - generic [ref=e1395]: "\"0\""
+                      - text: ","
+                    - generic [ref=e1396]:
+                      - generic [ref=e1397]: "\"1902\""
+                      - text: ","
+                    - generic [ref=e1398]:
+                      - generic [ref=e1399]: "\"1977\""
+                      - text: ","
+                    - generic [ref=e1400]:
+                      - generic [ref=e1401]: "\"1887\""
+                      - text: ","
+                    - generic [ref=e1403]: "\"2415\""
+                    - text: "],"
+                  - generic [ref=e1404]:
+                    - text: "sample_values: ["
+                    - generic [ref=e1405]:
+                      - generic [ref=e1406]: "\"0\""
+                      - text: ","
+                    - generic [ref=e1407]:
+                      - generic [ref=e1408]: "\"0\""
+                      - text: ","
+                    - generic [ref=e1410]: "\"0\""
+                    - text: "]"
+                - generic [ref=e1411]: "},"
+              - generic [ref=e1412]:
+                - generic [ref=e1413]: "{"
+                - generic [ref=e1414]:
+                  - generic [ref=e1415]:
+                    - text: "name:"
+                    - generic [ref=e1416]: "\"hours-per-week\""
+                    - text: ","
+                  - generic [ref=e1417]:
+                    - text: "type:"
+                    - generic [ref=e1418]: "\"number\""
+                    - text: ","
+                  - generic [ref=e1419]: "nulls: 0,"
+                  - generic [ref=e1420]: "unique: 74,"
+                  - generic [ref=e1421]:
+                    - text: "top_values: ["
+                    - generic [ref=e1422]:
+                      - generic [ref=e1423]: "\"40\""
+                      - text: ","
+                    - generic [ref=e1424]:
+                      - generic [ref=e1425]: "\"50\""
+                      - text: ","
+                    - generic [ref=e1426]:
+                      - generic [ref=e1427]: "\"45\""
+                      - text: ","
+                    - generic [ref=e1428]:
+                      - generic [ref=e1429]: "\"60\""
+                      - text: ","
+                    - generic [ref=e1431]: "\"35\""
+                    - text: "],"
+                  - generic [ref=e1432]:
+                    - text: "sample_values: ["
+                    - generic [ref=e1433]:
+                      - generic [ref=e1434]: "\"40\""
+                      - text: ","
+                    - generic [ref=e1435]:
+                      - generic [ref=e1436]: "\"40\""
+                      - text: ","
+                    - generic [ref=e1438]: "\"55\""
+                    - text: "]"
+                - generic [ref=e1439]: "},"
+              - generic [ref=e1440]:
+                - generic [ref=e1441]: "{"
+                - generic [ref=e1442]:
+                  - generic [ref=e1443]:
+                    - text: "name:"
+                    - generic [ref=e1444]: "\"native-country\""
+                    - text: ","
+                  - generic [ref=e1445]:
+                    - text: "type:"
+                    - generic [ref=e1446]: "\"string\""
+                    - text: ","
+                  - generic [ref=e1447]: "nulls: 97,"
+                  - generic [ref=e1448]: "unique: 39,"
+                  - generic [ref=e1449]:
+                    - text: "top_values: ["
+                    - generic [ref=e1450]:
+                      - generic [ref=e1451]: "\"United-States\""
+                      - text: ","
+                    - generic [ref=e1452]:
+                      - generic [ref=e1453]: "\"Mexico\""
+                      - text: ","
+                    - generic [ref=e1454]:
+                      - generic [ref=e1455]: "\"Canada\""
+                      - text: ","
+                    - generic [ref=e1456]:
+                      - generic [ref=e1457]: "\"Germany\""
+                      - text: ","
+                    - generic [ref=e1459]: "\"Philippines\""
+                    - text: "],"
+                  - generic [ref=e1460]:
+                    - text: "sample_values: ["
+                    - generic [ref=e1461]:
+                      - generic [ref=e1462]: "\"United-States\""
+                      - text: ","
+                    - generic [ref=e1463]:
+                      - generic [ref=e1464]: "\"United-States\""
+                      - text: ","
+                    - generic [ref=e1466]: "\"United-States\""
+                    - text: "]"
+                - generic [ref=e1467]: "},"
+              - generic [ref=e1468]:
+                - generic [ref=e1469]: "{"
+                - generic [ref=e1470]:
+                  - generic [ref=e1471]:
+                    - text: "name:"
+                    - generic [ref=e1472]: "\"income\""
+                    - text: ","
+                  - generic [ref=e1473]:
+                    - text: "type:"
+                    - generic [ref=e1474]: "\"string\""
+                    - text: ","
+                  - generic [ref=e1475]: "nulls: 0,"
+                  - generic [ref=e1476]: "unique: 2,"
+                  - generic [ref=e1477]:
+                    - text: "top_values: ["
+                    - generic [ref=e1478]:
+                      - generic [ref=e1479]: "\"<=50K\""
+                      - text: ","
+                    - generic [ref=e1481]: "\">50K\""
+                    - text: "],"
+                  - generic [ref=e1482]:
+                    - text: "sample_values: ["
+                    - generic [ref=e1483]:
+                      - generic [ref=e1484]: "\"<=50K\""
+                      - text: ","
+                    - generic [ref=e1485]:
+                      - generic [ref=e1486]: "\"<=50K\""
+                      - text: ","
+                    - generic [ref=e1488]: "\"<=50K\""
+                    - text: "]"
+                - generic [ref=e1489]: "}"
+          - generic [ref=e1490]:
+            - button "▸ detected_issues — 8 reglas activadas" [ref=e1491] [cursor=pointer]:
+              - img [ref=e1492]
+              - generic [ref=e1494]: ▸ detected_issues — 8 reglas activadas
+            - generic [ref=e1496]:
+              - generic [ref=e1497]:
+                - generic [ref=e1498]: "{"
+                - generic [ref=e1499]:
+                  - generic [ref=e1500]:
+                    - text: "rule:"
+                    - generic [ref=e1501]: "\"Filas Duplicadas\""
+                    - text: ","
+                  - generic [ref=e1502]:
+                    - text: "category:"
+                    - generic [ref=e1503]: "\"Integridad y Estructura\""
+                    - text: ","
+                  - generic [ref=e1504]:
+                    - text: "details:"
+                    - generic [ref=e1505]: "\"Se encontraron 1 filas idénticas que afectan la integridad estructural.\""
+                    - text: ","
+                  - generic [ref=e1506]: "bad_samples: [\"\"]"
+                - generic [ref=e1507]: "},"
+              - generic [ref=e1508]:
+                - generic [ref=e1509]: "{"
+                - generic [ref=e1510]:
+                  - generic [ref=e1511]:
+                    - text: "rule:"
+                    - generic [ref=e1512]: "\"Valores Nulos / Vacíos\""
+                    - text: ","
+                  - generic [ref=e1513]:
+                    - text: "category:"
+                    - generic [ref=e1514]: "\"Integridad y Estructura\""
+                    - text: ","
+                  - generic [ref=e1515]:
+                    - text: "column:"
+                    - generic [ref=e1516]: "\"workclass\""
+                    - text: ","
+                  - generic [ref=e1517]:
+                    - text: "details:"
+                    - generic [ref=e1518]: "\"Advertencia: Faltan datos.\""
+                    - text: ","
+                  - generic [ref=e1519]: "bad_samples: [\"\"]"
+                - generic [ref=e1520]: "},"
+              - generic [ref=e1521]:
+                - generic [ref=e1522]: "{"
+                - generic [ref=e1523]:
+                  - generic [ref=e1524]:
+                    - text: "rule:"
+                    - generic [ref=e1525]: "\"Placeholders Tóxicos\""
+                    - text: ","
+                  - generic [ref=e1526]:
+                    - text: "category:"
+                    - generic [ref=e1527]: "\"Higiene de Texto\""
+                    - text: ","
+                  - generic [ref=e1528]:
+                    - text: "column:"
+                    - generic [ref=e1529]: "\"workclass\""
+                    - text: ","
+                  - generic [ref=e1530]:
+                    - text: "details:"
+                    - generic [ref=e1531]: "\"Valores como \"n/a\", \"null\" o \"999\" detectados.\""
+                    - text: ","
+                  - generic [ref=e1532]:
+                    - text: "bad_samples: ["
+                    - generic [ref=e1533]:
+                      - generic [ref=e1534]: "\"?\""
+                      - text: ","
+                    - generic [ref=e1535]:
+                      - generic [ref=e1536]: "\"?\""
+                      - text: ","
+                    - generic [ref=e1538]: "\"?\""
+                    - text: "]"
+                - generic [ref=e1539]: "},"
+              - generic [ref=e1540]:
+                - generic [ref=e1541]: "{"
+                - generic [ref=e1542]:
+                  - generic [ref=e1543]:
+                    - text: "rule:"
+                    - generic [ref=e1544]: "\"Outliers Extremos (IQR)\""
+                    - text: ","
+                  - generic [ref=e1545]:
+                    - text: "category:"
+                    - generic [ref=e1546]: "\"Validez y Lógica de Negocio\""
+                    - text: ","
+                  - generic [ref=e1547]:
+                    - text: "column:"
+                    - generic [ref=e1548]: "\"fnlwgt\""
+                    - text: ","
+                  - generic [ref=e1549]:
+                    - text: "details:"
+                    - generic [ref=e1550]: "\"Valores desviados > 3x del rango intercuartílico.\""
+                    - text: ","
+                  - generic [ref=e1551]:
+                    - text: "bad_samples: ["
+                    - generic [ref=e1552]:
+                      - generic [ref=e1553]: "\"633742\""
+                      - text: ","
+                    - generic [ref=e1554]:
+                      - generic [ref=e1555]: "\"635913\""
+                      - text: ","
+                    - generic [ref=e1557]: "\"860348\""
+                    - text: "]"
+                - generic [ref=e1558]: "},"
+              - generic [ref=e1559]:
+                - generic [ref=e1560]: "{"
+                - generic [ref=e1561]:
+                  - generic [ref=e1562]:
+                    - text: "rule:"
+                    - generic [ref=e1563]: "\"Valores Nulos / Vacíos\""
+                    - text: ","
+                  - generic [ref=e1564]:
+                    - text: "category:"
+                    - generic [ref=e1565]: "\"Integridad y Estructura\""
+                    - text: ","
+                  - generic [ref=e1566]:
+                    - text: "column:"
+                    - generic [ref=e1567]: "\"occupation\""
+                    - text: ","
+                  - generic [ref=e1568]:
+                    - text: "details:"
+                    - generic [ref=e1569]: "\"Advertencia: Faltan datos.\""
+                    - text: ","
+                  - generic [ref=e1570]: "bad_samples: [\"\"]"
+                - generic [ref=e1571]: "},"
+              - generic [ref=e1572]:
+                - generic [ref=e1573]: "{"
+                - generic [ref=e1574]:
+                  - generic [ref=e1575]:
+                    - text: "rule:"
+                    - generic [ref=e1576]: "\"Placeholders Tóxicos\""
+                    - text: ","
+                  - generic [ref=e1577]:
+                    - text: "category:"
+                    - generic [ref=e1578]: "\"Higiene de Texto\""
+                    - text: ","
+                  - generic [ref=e1579]:
+                    - text: "column:"
+                    - generic [ref=e1580]: "\"occupation\""
+                    - text: ","
+                  - generic [ref=e1581]:
+                    - text: "details:"
+                    - generic [ref=e1582]: "\"Valores como \"n/a\", \"null\" o \"999\" detectados.\""
+                    - text: ","
+                  - generic [ref=e1583]:
+                    - text: "bad_samples: ["
+                    - generic [ref=e1584]:
+                      - generic [ref=e1585]: "\"?\""
+                      - text: ","
+                    - generic [ref=e1586]:
+                      - generic [ref=e1587]: "\"?\""
+                      - text: ","
+                    - generic [ref=e1589]: "\"?\""
+                    - text: "]"
+                - generic [ref=e1590]: "},"
+              - generic [ref=e1591]:
+                - generic [ref=e1592]: "{"
+                - generic [ref=e1593]:
+                  - generic [ref=e1594]:
+                    - text: "rule:"
+                    - generic [ref=e1595]: "\"Outliers Extremos (IQR)\""
+                    - text: ","
+                  - generic [ref=e1596]:
+                    - text: "category:"
+                    - generic [ref=e1597]: "\"Validez y Lógica de Negocio\""
+                    - text: ","
+                  - generic [ref=e1598]:
+                    - text: "column:"
+                    - generic [ref=e1599]: "\"hours-per-week\""
+                    - text: ","
+                  - generic [ref=e1600]:
+                    - text: "details:"
+                    - generic [ref=e1601]: "\"Valores desviados > 3x del rango intercuartílico.\""
+                    - text: ","
+                  - generic [ref=e1602]:
+                    - text: "bad_samples: ["
+                    - generic [ref=e1603]:
+                      - generic [ref=e1604]: "\"13\""
+                      - text: ","
+                    - generic [ref=e1605]:
+                      - generic [ref=e1606]: "\"16\""
+                      - text: ","
+                    - generic [ref=e1608]: "\"80\""
+                    - text: "]"
+                - generic [ref=e1609]: "},"
+              - generic [ref=e1610]:
+                - generic [ref=e1611]: "{"
+                - generic [ref=e1612]:
+                  - generic [ref=e1613]:
+                    - text: "rule:"
+                    - generic [ref=e1614]: "\"Placeholders Tóxicos\""
+                    - text: ","
+                  - generic [ref=e1615]:
+                    - text: "category:"
+                    - generic [ref=e1616]: "\"Higiene de Texto\""
+                    - text: ","
+                  - generic [ref=e1617]:
+                    - text: "column:"
+                    - generic [ref=e1618]: "\"native-country\""
+                    - text: ","
+                  - generic [ref=e1619]:
+                    - text: "details:"
+                    - generic [ref=e1620]: "\"Valores como \"n/a\", \"null\" o \"999\" detectados.\""
+                    - text: ","
+                  - generic [ref=e1621]:
+                    - text: "bad_samples: ["
+                    - generic [ref=e1622]:
+                      - generic [ref=e1623]: "\"?\""
+                      - text: ","
+                    - generic [ref=e1624]:
+                      - generic [ref=e1625]: "\"?\""
+                      - text: ","
+                    - generic [ref=e1627]: "\"?\""
+                    - text: "]"
+                - generic [ref=e1628]: "}"
+          - button "▸ JSON completo — raw (para debugging)" [ref=e1630] [cursor=pointer]:
+            - img [ref=e1631]
+            - generic [ref=e1633]: ▸ JSON completo — raw (para debugging)
+      - region "Ejecucion en vivo del motor determinista" [ref=e1634]:
+        - generic [ref=e1635]:
+          - generic [ref=e1636]:
+            - paragraph [ref=e1637]: ejecucion en vivo
+            - heading "Proceso determinista observado de inicio a fin." [level=3] [ref=e1638]
+          - code [ref=e1639]: b39f1cd1
+        - generic [ref=e1640]:
+          - generic [ref=e1641]:
+            - img [ref=e1642]
+            - generic [ref=e1645]: parse
+            - strong [ref=e1646]: 31ms
+          - generic [ref=e1647]:
+            - img [ref=e1648]
+            - generic [ref=e1650]: audit
+            - strong [ref=e1651]: 58ms
+          - generic [ref=e1652]:
+            - img [ref=e1653]
+            - generic [ref=e1657]: filas
+            - strong [ref=e1658]: "5000"
+          - generic [ref=e1659]:
+            - img [ref=e1660]
+            - generic [ref=e1669]: issues
+            - strong [ref=e1670]: "8"
+        - generic "Log visible del motor determinista" [ref=e1671]:
+          - generic [ref=e1672]:
+            - generic [ref=e1673]: tail -f aura.audit.log
+            - code [ref=e1674]: closed
+          - log [ref=e1675]:
+            - generic [ref=e1676]:
+              - generic [ref=e1677]: 09:48:24
+              - strong [ref=e1678]: csv.parse.start
+              - generic [ref=e1679]: 0ms
+              - code [ref=e1680]: fileName=adult_income.csv · fileSize=5277521
+            - generic [ref=e1681]:
+              - generic [ref=e1682]: 09:48:24
+              - strong [ref=e1683]: csv.parse.end
+              - generic [ref=e1684]: 31ms
+              - code [ref=e1685]: rows=5000 · columns=15 · delimiter=, · truncated=true · durationMs=31
+            - generic [ref=e1686]:
+              - generic [ref=e1687]: 09:48:24
+              - strong [ref=e1688]: audit.run.start
+              - generic [ref=e1689]: 32ms
+              - code [ref=e1690]: datasetFingerprint=b39f1cd1
+            - generic [ref=e1691]:
+              - generic [ref=e1692]: 09:48:24
+              - strong [ref=e1693]: audit.run.end
+              - generic [ref=e1694]: 90ms
+              - code [ref=e1695]: durationMs=58 · score=70 · issues=8 · duplicateRows=1
+      - region "Transparencia del pipeline — todas las operaciones visibles" [ref=e1696]:
+        - generic [ref=e1697]:
+          - generic [ref=e1698]:
+            - paragraph [ref=e1699]: carta abierta
+            - heading "Transparencia total del proceso." [level=2] [ref=e1700]
+          - generic [ref=e1701]:
+            - generic [ref=e1702]: 1 etapas completadas
+            - generic [ref=e1703]: /2 total
+        - paragraph [ref=e1704]: Cada etapa del pipeline AURA opera en modo transparente. Abajo se muestra exactamente qué recibe cada capa, qué produce, y qué métricas genera. Nada ocurre en segundo plano. Este registro es reproducible y auditável.
+        - generic [ref=e1705]:
+          - generic [ref=e1706]:
+            - button "Lectura y parsing del archivo CSV capa 0 31ms" [expanded] [ref=e1707] [cursor=pointer]:
+              - img [ref=e1709]
+              - generic [ref=e1712]: Lectura y parsing del archivo CSV
+              - generic [ref=e1713]: capa 0
+              - generic [ref=e1714]:
+                - img [ref=e1715]
+                - text: 31ms
+              - img [ref=e1719]
+            - generic [ref=e1721]:
+              - generic [ref=e1722]:
+                - paragraph [ref=e1723]: ▸ Datos recibidos por esta etapa
+                - table [ref=e1724]:
+                  - rowgroup [ref=e1725]:
+                    - row "archivo adult_income.csv" [ref=e1726]:
+                      - cell "archivo" [ref=e1727]
+                      - cell "adult_income.csv" [ref=e1728]:
+                        - code [ref=e1729]: adult_income.csv
+                    - row "tamaño 5153.8 KB" [ref=e1730]:
+                      - cell "tamaño" [ref=e1731]
+                      - cell "5153.8 KB" [ref=e1732]:
+                        - code [ref=e1733]: 5153.8 KB
+                    - row "delimiter detectado coma (,)" [ref=e1734]:
+                      - cell "delimiter detectado" [ref=e1735]
+                      - cell "coma (,)" [ref=e1736]:
+                        - code [ref=e1737]: coma (,)
+              - generic [ref=e1738]:
+                - paragraph [ref=e1739]: ▸ Datos producidos por esta etapa
+                - table [ref=e1740]:
+                  - rowgroup [ref=e1741]:
+                    - row "filas leídas 5000" [ref=e1742]:
+                      - cell "filas leídas" [ref=e1743]
+                      - cell "5000" [ref=e1744]:
+                        - code [ref=e1745]: "5000"
+                    - row "columnas detectadas 15" [ref=e1746]:
+                      - cell "columnas detectadas" [ref=e1747]
+                      - cell "15" [ref=e1748]:
+                        - code [ref=e1749]: "15"
+                    - row "truncado sí (límite 50 000 filas)" [ref=e1750]:
+                      - cell "truncado" [ref=e1751]
+                      - cell "sí (límite 50 000 filas)" [ref=e1752]:
+                        - code [ref=e1753]: sí (límite 50 000 filas)
+              - generic [ref=e1754]:
+                - paragraph [ref=e1755]: ▸ Métricas
+                - generic [ref=e1756]:
+                  - generic [ref=e1757]:
+                    - generic [ref=e1758]: "5000"
+                    - generic [ref=e1759]: filas
+                  - generic [ref=e1760]:
+                    - generic [ref=e1761]: "15"
+                    - generic [ref=e1762]: columnas
+                  - generic [ref=e1763]:
+                    - generic [ref=e1764]: 31ms
+                    - generic [ref=e1765]: parse
+          - generic [ref=e1766]:
+            - button "Motor determinista — auditoría basada en reglas capa 1 58ms" [expanded] [ref=e1767] [cursor=pointer]:
+              - img [ref=e1769]
+              - generic [ref=e1771]: Motor determinista — auditoría basada en reglas
+              - generic [ref=e1772]: capa 1
+              - generic [ref=e1773]:
+                - img [ref=e1774]
+                - text: 58ms
+              - img [ref=e1778]
+            - generic [ref=e1780]:
+              - generic [ref=e1781]:
+                - img [ref=e1782]
+                - text: 1 issues críticos detectados
+              - generic [ref=e1784]:
+                - paragraph [ref=e1785]: ▸ Datos recibidos por esta etapa
+                - table [ref=e1786]:
+                  - rowgroup [ref=e1787]:
+                    - row "filas procesadas 5000" [ref=e1788]:
+                      - cell "filas procesadas" [ref=e1789]
+                      - cell "5000" [ref=e1790]:
+                        - code [ref=e1791]: "5000"
+                    - row "columnas analizadas 15" [ref=e1792]:
+                      - cell "columnas analizadas" [ref=e1793]
+                      - cell "15" [ref=e1794]:
+                        - code [ref=e1795]: "15"
+                    - row "delimiter ," [ref=e1796]:
+                      - cell "delimiter" [ref=e1797]
+                      - cell "," [ref=e1798]:
+                        - code [ref=e1799]: ","
+              - generic [ref=e1800]:
+                - paragraph [ref=e1801]: ▸ Datos producidos por esta etapa
+                - table [ref=e1802]:
+                  - rowgroup [ref=e1803]:
+                    - row "score de calidad 70/100" [ref=e1804]:
+                      - cell "score de calidad" [ref=e1805]
+                      - cell "70/100" [ref=e1806]:
+                        - code [ref=e1807]: 70/100
+                    - row "total issues 8" [ref=e1808]:
+                      - cell "total issues" [ref=e1809]
+                      - cell "8" [ref=e1810]:
+                        - code [ref=e1811]: "8"
+                    - row "críticos / warn / info 1 / 7 / 0" [ref=e1812]:
+                      - cell "críticos / warn / info" [ref=e1813]
+                      - cell "1 / 7 / 0" [ref=e1814]:
+                        - code [ref=e1815]: 1 / 7 / 0
+                    - row "columnas con IQR 4" [ref=e1816]:
+                      - cell "columnas con IQR" [ref=e1817]
+                      - cell "4" [ref=e1818]:
+                        - code [ref=e1819]: "4"
+                    - row "tipos semánticos detectados ninguno" [ref=e1820]:
+                      - cell "tipos semánticos detectados" [ref=e1821]
+                      - cell "ninguno" [ref=e1822]:
+                        - code [ref=e1823]: ninguno
+                    - row "filas duplicadas 1" [ref=e1824]:
+                      - cell "filas duplicadas" [ref=e1825]
+                      - cell "1" [ref=e1826]:
+                        - code [ref=e1827]: "1"
+              - generic [ref=e1828]:
+                - paragraph [ref=e1829]: ▸ Métricas
+                - generic [ref=e1830]:
+                  - generic [ref=e1831]:
+                    - generic [ref=e1832]: 70%
+                    - generic [ref=e1833]: score
+                  - generic [ref=e1834]:
+                    - generic [ref=e1835]: "8"
+                    - generic [ref=e1836]: issues
+                  - generic [ref=e1837]:
+                    - generic [ref=e1838]: "1"
+                    - generic [ref=e1839]: duplicados
+                  - generic [ref=e1840]:
+                    - generic [ref=e1841]: 58ms
+                    - generic [ref=e1842]: audit
+              - generic [ref=e1843]:
+                - paragraph [ref=e1844]: ▸ Detalle técnico
+                - group [ref=e1845]:
+                  - generic "▶ Reglas activadas en esta ejecución" [ref=e1846] [cursor=pointer]
+                - group [ref=e1847]:
+                  - generic "▶ Estadísticas por columna" [ref=e1848] [cursor=pointer]
+                - group [ref=e1849]:
+                  - generic "▶ JSON enviado a la Capa 2 (Smart Sample)" [ref=e1850] [cursor=pointer]
+    - generic [ref=e1851]:
+      - paragraph [ref=e1852]: Informe y evidencia listos para llevar.
+      - paragraph [ref=e1853]: Exporta el diagnóstico determinista y los artefactos aprobados.
+      - generic [ref=e1854]:
+        - button "Exportar reporte" [ref=e1855] [cursor=pointer]:
+          - img [ref=e1856]
+          - text: Exportar reporte
+        - button "JSON audit" [ref=e1859] [cursor=pointer]:
+          - img [ref=e1860]
+          - text: JSON audit
+        - button "CSV issues" [ref=e1865] [cursor=pointer]:
+          - img [ref=e1866]
+          - text: CSV issues
+        - button "Script aprobado" [disabled] [ref=e1869]:
+          - img [ref=e1870]
+          - text: Script aprobado
+      - generic [ref=e1875]:
+        - generic [ref=e1876]: críticos 1
+        - generic [ref=e1877]: advertencias 7
+        - generic [ref=e1878]: script pendiente de aprobación
+  - contentinfo [ref=e89]:
+    - generic [ref=e90]: AURA
+    - generic [ref=e91]: casabero · tfm · 2026

@@ -2,8 +2,7 @@
  * DatasetProfile — Estadísticas completas del dataset en Step 1
  *
  * Muestra TODAS las métricas del dataset sin truncamiento.
- * Este panel es la primera sección visible del diagnóstico y alimenta
- * directamente el Smart Sample que se envía al LLM (OE2).
+ * Este panel es la primera sección visible del perfil del dataset.
  *
  * Incluye:
  * - Dimensiones (filas, columnas)
