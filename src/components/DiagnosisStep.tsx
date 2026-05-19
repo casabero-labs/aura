@@ -58,6 +58,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
   const [lastMetrics, setLastMetrics] = useState<ProviderMetrics | null>(null);
   const [providerAvailable, setProviderAvailable] = useState<boolean | null>(null);
   const [showEvidence, setShowEvidence] = useState(false);
+  const [showPrompt, setShowPrompt] = useState(false);
   const [downloadedModels, setDownloadedModels] = useState<Set<string>>(new Set());
   const [deletingModel, setDeletingModel] = useState<string | null>(null);
 
@@ -98,6 +99,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
   }, [analysisText]);
 
   const smartSample = React.useMemo(() => buildSmartSample(report), [report]);
+  const diagnosisPrompt = React.useMemo(() => buildAnalysisPrompt(report), [report]);
 
   const handleProviderTypeChange = (type: 'local' | 'cloud') => {
     const models = type === 'local' ? AVAILABLE_MODELS.local : AVAILABLE_MODELS.cloud;
@@ -242,7 +244,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
           </div>
         </div>
 
-        <div className="mt-6">
+        <div className="mt-6" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           <button
             className="btn-s"
             onClick={() => setShowEvidence(!showEvidence)}
@@ -251,7 +253,37 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
             {showEvidence ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
             {showEvidence ? 'Ocultar paquete' : 'Ver paquete enviado al modelo'}
           </button>
+          <button
+            className="btn-s"
+            onClick={() => setShowPrompt(!showPrompt)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+          >
+            {showPrompt ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+            {showPrompt ? 'Ocultar prompt' : 'Ver prompt enviado al LLM'}
+          </button>
         </div>
+
+        {showPrompt && (
+          <div className="prompt-preview mt-6">
+            <div className="prompt-preview-header">
+              <div className="prompt-preview-title">
+                <FileCode2 size={14} />
+                <span>PROMPT ENVIADO AL LLM — DIAGNÓSTICO (OE2)</span>
+              </div>
+              <p className="prompt-preview-subtitle">
+                Texto completo que se pasa al modelo local o cloud. El JSON del paquete de evidencia
+                se inyecta en la sección "JSON observado". Mismo prompt para ambos proveedores.
+              </p>
+            </div>
+            <div className="prompt-preview-body">
+              <pre className="prompt-text">{diagnosisPrompt}</pre>
+            </div>
+            <div className="prompt-preview-footer">
+              <span>Longitud: {diagnosisPrompt.length.toLocaleString('es-CO')} caracteres</span>
+              <span>Hash: {computePromptHash(diagnosisPrompt)}</span>
+            </div>
+          </div>
+        )}
 
         {showEvidence && (
           <div className="smart-sample-viewer mt-6">
