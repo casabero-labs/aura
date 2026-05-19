@@ -2846,43 +2846,17 @@
   margin: 0;
 }
 
-/* Prompt preview in DiagnosisStep */
-.prompt-preview {
+.prompt-viewer {
   background: var(--bg-soft);
   border: 1px solid var(--border);
   border-radius: 8px;
-  overflow: hidden;
-}
-
-.prompt-preview-header {
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border);
-}
-
-.prompt-preview-title {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--ink);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.prompt-preview-subtitle {
-  font-size: 0.75rem;
-  color: var(--ink-muted);
-  margin-top: 0.25rem;
-}
-
-.prompt-preview-body {
   padding: 16px;
-  max-height: 600px;
+  max-height: 500px;
   overflow-y: auto;
+  margin-top: 12px;
 }
 
-.prompt-text {
+.prompt-viewer-text {
   font-family: var(--mono);
   font-size: 12px;
   line-height: 1.6;
@@ -2895,11 +2869,10 @@
   padding: 0;
 }
 
-.prompt-preview-footer {
-  padding: 8px 16px;
-  border-top: 1px solid var(--border);
+.prompt-meta {
   display: flex;
   justify-content: space-between;
+  padding: 8px 0;
   font-size: 0.7rem;
   color: var(--ink-muted);
   font-family: var(--mono);
