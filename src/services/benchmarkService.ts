@@ -37,7 +37,7 @@ export const runBenchmarkForConfig = async (
   };
   const startedAt = new Date().toISOString();
   const datasetFingerprint = fingerprintReport(report);
-  const webGpuAvailable = typeof navigator !== 'undefined' && Boolean(navigator.gpu);
+  const webGpuAvailable = typeof navigator !== 'undefined' && Boolean((navigator as any).gpu);
   mark('benchmark.created', {
     providerType: config.providerType,
     model: config.model,

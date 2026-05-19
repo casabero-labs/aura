@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { AuditReport, ExecutiveReportContent, IssueSeverity, IssueCategory } from '../types';
+import { AuditReport, ExecutiveReportContent, IssueSeverity, IssueCategory, ScriptValidationResult } from '../types';
 
 // Extend jsPDF type definition for autotable
 declare module 'jspdf' {
@@ -11,7 +11,12 @@ declare module 'jspdf' {
   }
 }
 
-export const generatePdfReport = (auditReport: AuditReport, executiveContent: ExecutiveReportContent, llmDiagnosis?: string) => {
+export const generatePdfReport = (
+  auditReport: AuditReport,
+  executiveContent: ExecutiveReportContent,
+  llmDiagnosis?: string,
+  scriptValidation?: ScriptValidationResult
+) => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.width;
   const pageHeight = doc.internal.pageSize.height;
@@ -192,7 +197,8 @@ export const generatePdfReport = (auditReport: AuditReport, executiveContent: Ex
 
   // --- PAGE 4: DATA PROFILE (The Deterministic Facts) ---
 
-  drawSectionHeader(llmDiagnosis ? "7. Perfil Detallado de Columnas" : "6. Perfil Detallado de Columnas");
+  let sectionIndex = llmDiagnosis ? 7 : 6;
+  drawSectionHeader(`${sectionIndex}. Perfil Detallado de Columnas`);
   doc.setFont('times', 'italic');
   doc.setFontSize(10);
   doc.setTextColor(colors.lightText);
@@ -235,7 +241,8 @@ export const generatePdfReport = (auditReport: AuditReport, executiveContent: Ex
     yPos = margin;
   }
 
-  drawSectionHeader(llmDiagnosis ? "8. Reporte de Anomalías (Motor de 22+ Reglas)" : "7. Reporte de Anomalías (Motor de 22+ Reglas)");
+  sectionIndex++;
+  drawSectionHeader(`${sectionIndex}. Reporte de Anomalías (Motor de 22+ Reglas)`);
 
   // Group issues by category for better readability
   const categories = [
@@ -295,12 +302,118 @@ export const generatePdfReport = (auditReport: AuditReport, executiveContent: Ex
     yPos = doc.lastAutoTable.finalY + 10;
   });
 
+  // --- PAGE Y: GOVERNANCE & TRACEABILITY SUMMARY ---
+  if (scriptValidation) {
+    doc.addPage();
+    yPos = margin;
+    
+    sectionIndex++;
+    drawSectionHeader(`${sectionIndex}. Reporte de Gobernanza y Validación HITL`);
+    
+    doc.setFont('times', 'italic');
+    doc.setFontSize(10);
+    doc.setTextColor(colors.lightText);
+    doc.text("Auditoría de código estática y trazabilidad de control humano (Human-in-the-Loop).", margin, yPos - 3);
+    yPos += 5;
+    
+    const statusText = scriptValidation.valid 
+      ? "APROBADO PARA USO EXPERIMENTAL" 
+      : "REQUIERE REVISIÓN HUMANA O RE-PROCESAMIENTO";
+    const statusColor = scriptValidation.valid ? colors.green : colors.orange;
+    
+    doc.setFillColor(248, 250, 248);
+    doc.setDrawColor(statusColor);
+    doc.setLineWidth(1);
+    doc.rect(margin, yPos, pageWidth - margin * 2, 20, 'FD');
+    
+    doc.setFont('times', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(statusColor);
+    doc.text(statusText, margin + 5, yPos + 8);
+    
+    doc.setFont('times', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(colors.text);
+    doc.text(
+      scriptValidation.requiresHumanReview 
+        ? "Advertencia: El script contiene operaciones críticas o posibles desviaciones que requieren validación."
+        : "El script cumple con los requisitos del esquema y no presenta operaciones destructivas directas.",
+      margin + 5,
+      yPos + 14
+    );
+    yPos += 28;
+    
+    doc.setFont('times', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(colors.primary);
+    doc.text("DETALLES DE LA VERIFICACIÓN:", margin, yPos);
+    yPos += 6;
+    
+    doc.setFont('times', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(colors.text);
+    const colStatus = scriptValidation.invalidColumns.length > 0
+      ? `Columnas fantasma detectadas: ${scriptValidation.invalidColumns.join(', ')} (¡Alucinación!)`
+      : "Todas las columnas referenciadas existen en el dataset original (Anclaje exitoso).";
+    doc.text(`• Estado de Columnas: ${colStatus}`, margin + 5, yPos);
+    yPos += 6;
+    
+    const destStatus = scriptValidation.destructiveOperations.length > 0
+      ? `Operaciones destructivas detectadas: ${scriptValidation.destructiveOperations.join(', ')}`
+      : "No se detectaron mutaciones en caliente destructivas (ej: .drop, dropna sin reasignar).";
+    doc.text(`• Operaciones Críticas: ${destStatus}`, margin + 5, yPos);
+    yPos += 6;
+    
+    doc.text(`• Cobertura de Hallazgos: ${scriptValidation.coveredIssueIds.length} anomalías de Capa 1 trazadas y mitigadas por este script.`, margin + 5, yPos);
+    yPos += 6;
+    
+    if (scriptValidation.warnings.length > 0) {
+      yPos += 4;
+      doc.setFont('times', 'bold');
+      doc.text("ADVERTENCIAS DE SEGURIDAD:", margin, yPos);
+      yPos += 6;
+      doc.setFont('times', 'normal');
+      doc.setTextColor(colors.red);
+      scriptValidation.warnings.forEach(warn => {
+        if (yPos > pageHeight - 15) { doc.addPage(); yPos = margin; }
+        doc.text(`- ${warn}`, margin + 5, yPos);
+        yPos += 5;
+      });
+    }
+    
+    yPos += 15;
+    if (yPos > pageHeight - 50) {
+      doc.addPage();
+      yPos = margin;
+    }
+    
+    doc.setDrawColor(colors.border);
+    doc.setLineWidth(0.5);
+    const sigX = margin + 10;
+    const sigY = yPos + 20;
+    doc.line(sigX, sigY, sigX + 60, sigY);
+    
+    doc.setFont('times', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(colors.secondary);
+    doc.text("Firma del Auditor Humano (HITL)", sigX + 5, sigY + 5);
+    doc.text("Gobernanza de Calidad del Dato", sigX + 5, sigY + 10);
+    
+    const dirX = pageWidth - margin - 70;
+    doc.line(dirX, sigY, dirX + 60, sigY);
+    doc.text("Director de Tesis / Evaluador", dirX + 5, sigY + 5);
+    doc.text("Validación del Prototipo AURA", dirX + 5, sigY + 10);
+    
+    yPos = sigY + 25;
+  }
+
   // --- PAGE Y: GOVERNANCE & TRACEABILITY (PYTHON SCRIPT) ---
   if (executiveContent.python_script) {
     doc.addPage();
     yPos = margin;
     
-    drawSectionHeader(llmDiagnosis ? "9. Gobernanza y Trazabilidad (Script de Limpieza)" : "8. Gobernanza y Trazabilidad (Script de Limpieza)");
+    sectionIndex++;
+    drawSectionHeader(`${sectionIndex}. Gobernanza y Trazabilidad (Script de Limpieza)`);
     
     doc.setFont('times', 'italic');
     doc.setFontSize(10);
@@ -312,9 +425,6 @@ export const generatePdfReport = (auditReport: AuditReport, executiveContent: Ex
     const scriptLines = doc.splitTextToSize(executiveContent.python_script, pageWidth - margin * 2 - 10);
     const boxHeight = scriptLines.length * 5 + 10;
     
-    // If the box is too big for the page, we'll just let it overflow normally or we can draw multiple pages.
-    // For simplicity, we draw the background for whatever fits or just don't draw the gray box if it's too complex.
-    // We'll draw a simple border and use courier font.
     doc.setFillColor(248, 250, 252); // Very light gray/blue
     doc.setDrawColor(203, 213, 225);
     doc.rect(margin, yPos, pageWidth - margin * 2, Math.min(boxHeight, pageHeight - margin - yPos), 'FD');

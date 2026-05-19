@@ -291,4 +291,7 @@ export interface AIProvider {
 
   /** Precarga el modelo en caché (solo local) */
   preloadModel?(onProgress?: (progress: number, message: string) => void): Promise<void>;
+
+  /** Libera memoria (solo local) de WebGPU/VRAM */
+  unloadModel?(): Promise<void>;
 }

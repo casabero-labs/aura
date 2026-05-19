@@ -41,7 +41,7 @@ const BenchmarkLab: React.FC<BenchmarkLabProps> = ({
   fileName,
   aiConfig,
   auditEvidence,
-  onClose
+  onBack
 }) => {
   const [results, setResults] = useState<BenchmarkResult[]>([]);
   const [isRunning, setIsRunning] = useState(false);

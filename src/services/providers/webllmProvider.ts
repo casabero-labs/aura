@@ -30,8 +30,8 @@ export class WebLLMProvider implements AIProvider {
 
   async isAvailable(): Promise<boolean> {
     try {
-      if (!navigator.gpu) return false;
-      const adapter = await navigator.gpu.requestAdapter();
+      if (!(navigator as any).gpu) return false;
+      const adapter = await (navigator as any).gpu.requestAdapter();
       return adapter !== null;
     } catch {
       return false;
@@ -300,6 +300,22 @@ export class WebLLMProvider implements AIProvider {
     );
 
     this.isLoaded = true;
+  }
+
+  /**
+   * Descarga el modelo de la VRAM y destruye la instancia del motor de MLC.
+   */
+  async unloadModel(): Promise<void> {
+    if (this.engine) {
+      try {
+        await this.engine.unload();
+      } catch (error) {
+        console.error('Error al descargar el modelo de WebGPU VRAM:', error);
+      } finally {
+        this.engine = null;
+        this.isLoaded = false;
+      }
+    }
   }
 
   private emptyMetrics(): ProviderMetrics {

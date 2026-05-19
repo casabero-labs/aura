@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_URL || '';
+const API_BASE = (import.meta as any).env?.VITE_API_URL || '';
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   if (!API_BASE) throw new Error('API not configured');

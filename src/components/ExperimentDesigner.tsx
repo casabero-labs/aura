@@ -18,11 +18,9 @@ interface ExperimentDesignerProps {
   onLog?: (bold: string, msg: string) => void;
 }
 
-const INPUT_MODES: ExperimentConfig['inputMode'][] = ['smart_sample', 'prompt_libre'];
-
 export const ExperimentDesigner = ({ report, config, onLog }: ExperimentDesignerProps) => {
   const isCloudConfigured = !!config.apiKey;
-  const availableProviders: ('local' | 'cloud')[] = ['local', ...(isCloudConfigured ? ['cloud'] : [])];
+  const availableProviders: ('local' | 'cloud')[] = isCloudConfigured ? ['local', 'cloud'] : ['local'];
 
   const cloudModels = config.cloudProvider
     ? AVAILABLE_MODELS.cloud.filter(m => m.provider.toLowerCase() === config.cloudProvider)

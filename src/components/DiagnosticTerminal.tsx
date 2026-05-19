@@ -36,24 +36,7 @@ const DiagnosticTerminal: React.FC<DiagnosticTerminalProps> = ({ report, auditDu
   const { issues, scoreBreakdown } = report;
   const rowCount = report.rowCount;
 
-  const entries = [
-    ...scoreBreakdown.map(d => ({
-      time: 'audit.run',
-      rule: d.ruleName,
-      category: d.category,
-      detail: `${d.points} pts · ${d.reason}`,
-      severity: 'deduction' as const,
-    })),
-    ...issues.map(i => ({
-      time: i.category.split(' ')[0].substring(0, 3).toLowerCase(),
-      rule: i.ruleName,
-      column: i.column,
-      category: i.category,
-      detail: `${i.count} registros (${i.affectedPercentage.toFixed(1)}%) · "${i.description}"`,
-      severity: i.severity,
-      samples: i.sampleValues,
-    })),
-  ];
+
 
   return (
     <div className="diag-terminal">

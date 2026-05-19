@@ -5,6 +5,7 @@ import AuditLogViewer from './components/AuditLogViewer';
 import BenchmarkLab from './components/BenchmarkLab';
 import SettingsPanel from './components/SettingsPanel';
 import MainPipeline, { PipelineData } from './components/MainPipeline';
+import AcademicFooter from './components/AcademicFooter';
 import { loadFromApi, syncToApi } from './services/api';
 import { createAIProvider } from './services/aiProvider';
 import { generatePdfReport } from './services/pdfGenerator';
@@ -127,6 +128,17 @@ const App: React.FC = () => {
 
   const aiProvider = useMemo(() => createAIProvider(aiConfig), [aiConfig]);
 
+  // Liberar memoria VRAM del WebLLM anterior al cambiar de proveedor o desmontar
+  useEffect(() => {
+    return () => {
+      if (aiProvider && aiProvider.unloadModel) {
+        aiProvider.unloadModel().catch((err) => {
+          console.error('Error al descargar el modelo local al cambiar de proveedor:', err);
+        });
+      }
+    };
+  }, [aiProvider]);
+
   // ── Derived pipeline state ──
   const report = pipelineData.report;
   const auditEvidence = pipelineData.auditEvidence;
@@ -155,7 +167,7 @@ const App: React.FC = () => {
     if (!report) return;
     setIsPdfGenerating(true);
     try {
-      generatePdfReport(report, buildDeterministicPdfContent(report, approvedCleaningScript), aiAnalysis);
+      generatePdfReport(report, buildDeterministicPdfContent(report, approvedCleaningScript), aiAnalysis, scriptValidation);
       setHasExported(true);
     } catch (error: any) {
       // silently fail
@@ -458,6 +470,7 @@ const App: React.FC = () => {
             </div>
           </section>
         )}
+        <AcademicFooter />
       </main>
 
       {/* Footer */}

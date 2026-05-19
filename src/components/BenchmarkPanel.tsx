@@ -139,6 +139,7 @@ const BenchmarkPanel: React.FC<BenchmarkPanelProps> = ({
           providerType: runConfig.providerType,
           inputMode,
           model: runConfig.model,
+          temperature: runConfig.temperature || 0.7,
           status: 'running',
           latencyMs: 0,
           firstTokenMs: 0,

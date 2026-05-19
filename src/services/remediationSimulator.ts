@@ -2,7 +2,13 @@ import { AuditReport, IssueCategory, RemediationAction, RemediationActionType } 
 
 const PLACEHOLDERS = new Set(['', 'n/a', 'na', 'null', 'none', 'sin dato', 'sindato', '?', '-', '--', 'nan']);
 
-const cloneRows = (data: Record<string, any>[]) => data.map((row) => ({ ...row }));
+const cloneRows = (data: Record<string, any>[]): Record<string, any>[] => {
+  try {
+    return structuredClone(data);
+  } catch {
+    return data.map((row) => JSON.parse(JSON.stringify(row)));
+  }
+};
 
 const safeId = (prefix: string, value: string, index: number) =>
   `${prefix}-${value || 'dataset'}-${index}`.replace(/[^a-zA-Z0-9_-]+/g, '-');

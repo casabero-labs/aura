@@ -63,7 +63,7 @@ const ProfileExecutiveSummary: React.FC<ProfileExecutiveSummaryProps> = ({ repor
           <strong style={{ color: healthColor }}>{report.score}/100</strong> ({healthLabel}).
           {criticalIssues.length > 0 && (
             <> Se encontraron <strong style={{ color: 'var(--error)' }}>{criticalIssues.length} problemas críticos</strong>
-              {topCriticalColumns.length > 0 && <> en las columnas {topCriticalColumns.map(c => <code key={c}>{c}</code>).reduce((prev, curr) => [prev, ', ', curr])}</>}.</>
+              {topCriticalColumns.length > 0 && <> en las columnas {topCriticalColumns.map((c, i) => <React.Fragment key={c}>{i > 0 && ', '}<code>{c}</code></React.Fragment>)}</>}.</>
           )}
           {warningIssues.length > 0 && (
             <> Además, hay {warningIssues.length} advertencias que requieren revisión.</>

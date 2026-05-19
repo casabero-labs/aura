@@ -138,4 +138,64 @@ describe('Evidence-guided improvement loop', () => {
     expect(run.benchmarkResults[0].executionTrace?.map((event) => event.stage)).toContain('provider.generateExecutiveReport.end');
     expect(run.benchmarkResults[0].datasetFingerprint).toBe('abc123');
   });
+
+  it('does not false-positive match short column names like id with unrelated words like void', () => {
+    const report = runAudit(baseData, fields, ',');
+    // Supongamos que hay un issue en la columna 'id'
+    const reportWithIdIssue = {
+      ...report,
+      issues: [
+        {
+          id: 'issue-id-test',
+          severity: 'warning',
+          category: 'Integridad y Estructura',
+          ruleName: 'Valores Nulos',
+          column: 'id',
+          description: 'Valores nulos en columna id',
+          count: 5,
+          affectedPercentage: 5,
+          sampleValues: []
+        }
+      ]
+    } as any;
+    
+    // Script sin referencias reales a 'id' pero conteniendo palabras como 'void', 'valid' o 'import'
+    const scriptWithVoid = "import pandas as pd\n# This function returns void\ndef clean(df):\n    df['name'] = df['name'].str.strip()";
+    
+    const validation = validateCleaningScript(reportWithIdIssue, scriptWithVoid);
+    // No debería trazarse ya que no se refiere a la columna 'id' como variable o string
+    expect(validation.coveredIssueIds).not.toContain('issue-id-test');
+    
+    // Script con referencia real a la columna 'id'
+    const scriptWithRealId = "import pandas as pd\ndf['id'] = df['id'].fillna(0)";
+    const validationReal = validateCleaningScript(reportWithIdIssue, scriptWithRealId);
+    expect(validationReal.coveredIssueIds).toContain('issue-id-test');
+  });
+
+  it('filters out conversational numbers from unsupported hallucination claims while detecting actual inventory anomalies', () => {
+    const report = runAudit(baseData, fields, ',');
+    // Supongamos que el reporte tiene score 90, 11 filas
+    
+    // Texto con números conversacionales y un número de inventado fuera de contexto
+    const responseText = JSON.stringify({
+      title: 'Auditoría',
+      domain_inferred: 'Ventas',
+      dataset_technical_description: "Este es el paso 1 de la versión 2.0 que toma 3 segundos en cargarse.",
+      executive_summary: "El dataset tiene un score de 90 y cuenta con 11 filas.",
+      business_impact: "Se detectó una cifra inventada de 20 nulos en la columna status.",
+      key_findings: ["Se encontraron anomalías en el dataset."],
+      recommendations: []
+    });
+    
+    const detection = detectHallucinations(report, responseText);
+    
+    // Los números conversacionales (1, 2.0, 3) y el score real (90), filas (11) no deben reportarse como claims no soportados
+    const unsupportedClaimsTexts = detection.unsupportedClaims.map(c => c.claim);
+    expect(unsupportedClaimsTexts).not.toContain('1');
+    expect(unsupportedClaimsTexts).not.toContain('2');
+    expect(unsupportedClaimsTexts).not.toContain('3');
+    
+    // La cifra inventada de '20' nulos (en contexto de 'nulos') sí debe detectarse
+    expect(unsupportedClaimsTexts).toContain('20');
+  });
 });

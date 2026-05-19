@@ -50,12 +50,21 @@ class LazyWebLLMProvider implements AIProvider {
   }
 
   async isAvailable() {
-    if (typeof navigator === 'undefined' || !navigator.gpu) return false;
+    if (typeof navigator === 'undefined' || !(navigator as any).gpu) return false;
     return (await this.provider()).isAvailable();
   }
 
   async preloadModel(...args: Parameters<NonNullable<AIProvider['preloadModel']>>) {
     return (await this.provider()).preloadModel?.(...args);
+  }
+
+  async unloadModel() {
+    if (this.providerPromise) {
+      const providerInstance = await this.providerPromise;
+      if (providerInstance.unloadModel) {
+        await providerInstance.unloadModel();
+      }
+    }
   }
 }
 
@@ -177,8 +186,8 @@ export const createAIProvider = (config: AIConfig): AIProvider => {
 
 export const checkWebGPUSupport = async (): Promise<boolean> => {
   try {
-    if (!navigator.gpu) return false;
-    const adapter = await navigator.gpu.requestAdapter();
+    if (!(navigator as any).gpu) return false;
+    const adapter = await (navigator as any).gpu.requestAdapter();
     return adapter !== null;
   } catch {
     return false;

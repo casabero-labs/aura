@@ -57,7 +57,7 @@ export interface ExperimentEntry {
   id: string;
   config: {
     provider: string;
-    providerType: 'local' | 'cloud';
+    providerType: 'local' | 'cloud' | 'chrome';
     model: string;
     inputMode: 'smart_sample' | 'prompt_libre';
   };

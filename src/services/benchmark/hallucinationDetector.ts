@@ -94,6 +94,29 @@ const detectPhantomColumns = (report: AuditReport, text: string): string[] => {
 };
 
 /**
+ * Verifica si un número se encuentra rodeado de contexto estadístico o de dataset,
+ * reduciendo falsos positivos de números conversacionales o de control (ej. "Paso 3", "en 5 segundos").
+ */
+const isStatisticalContext = (text: string, index: number, matchLength: number): boolean => {
+  const start = Math.max(0, index - 35);
+  const end = Math.min(text.length, index + matchLength + 35);
+  const surroundingText = text.substring(start, end).toLowerCase();
+
+  const keywords = [
+    'nulo', 'nulos', 'vacío', 'vacíos', 'missing', 'nan', 'null',
+    'único', 'únicos', 'unique',
+    'score', 'puntuación', 'calidad',
+    'fila', 'filas', 'row', 'rows', 'registro', 'registros', 'record', 'records',
+    'columna', 'columnas', 'column', 'columns',
+    'duplicado', 'duplicados', 'duplicate', 'duplicates',
+    'anomalía', 'anomalías', 'error', 'errores', 'hallazgo', 'hallazgos', 'issue', 'issues',
+    'desviación', 'media', 'mediana', 'std', 'mean', 'median', 'mínimo', 'máximo', 'min', 'max'
+  ];
+
+  return keywords.some(keyword => surroundingText.includes(keyword));
+};
+
+/**
  * Detecta cifras inventadas comparando números mencionados con los valores
  * reales del AuditReport (nullCount, uniqueCount, score, issue counts, etc.)
  */
@@ -130,11 +153,37 @@ const detectUnsupportedClaims = (report: AuditReport, text: string): ClaimIssue[
 
   // Buscar todos los números en el texto (excluyendo años, versiones, etc.)
   const numberMatches = text.matchAll(/(\d+(?:\.\d+)?)/g);
-  const mentionedNumbers = Array.from(numberMatches, m => parseFloat(m[1]));
+  
+  for (const m of numberMatches) {
+    if (m.index === undefined) continue;
+    const reported = parseFloat(m[1]);
 
-  mentionedNumbers.forEach(reported => {
+    // Ignorar años comunes
+    if (reported >= 2020 && reported <= 2030) continue;
+
+    // Ignorar pasos de instrucciones comunes o control
+    if (reported === 1 || reported === 2 || reported === 3 || reported === 4 || reported === 5) {
+      const start = Math.max(0, m.index - 15);
+      const prevContext = text.substring(start, m.index).toLowerCase();
+      if (
+        prevContext.includes('paso') || 
+        prevContext.includes('step') || 
+        prevContext.includes('opción') || 
+        prevContext.includes('option') ||
+        prevContext.includes('versión') ||
+        prevContext.includes('version')
+      ) {
+        continue;
+      }
+    }
+
+    // Verificar si el número se presenta rodeado de contexto de dataset/estadístico
+    if (!isStatisticalContext(text, m.index, m[1].length)) {
+      continue;
+    }
+
     // Solo verificar números entre 1 y el máximo rowCount * 2 (para porcentajes)
-    if (reported < 1 || reported > report.rowCount * 2) return;
+    if (reported < 1 || reported > report.rowCount * 2) continue;
 
     // Buscar si algún valor verificable coincide aproximadamente
     const match = verifiableValues.find(v => matchesApproximately(reported, v.value));
@@ -154,7 +203,7 @@ const detectUnsupportedClaims = (report: AuditReport, text: string): ClaimIssue[
         });
       }
     }
-  });
+  }
 
   return claims;
 };
