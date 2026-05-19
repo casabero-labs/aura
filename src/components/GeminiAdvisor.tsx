@@ -1,5 +1,5 @@
-import React from 'react';
-import { Bot, Cpu } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Bot, Cpu, Square } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import ScriptReview from './ScriptReview';
 
@@ -8,42 +8,70 @@ interface GeminiAdvisorProps {
   isLoading: boolean;
   providerType: 'local' | 'cloud';
   model: string;
+  onStop?: () => void;
 }
 
-const GeminiAdvisor: React.FC<GeminiAdvisorProps> = ({ analysis, isLoading, providerType, model }) => {
+const GeminiAdvisor: React.FC<GeminiAdvisorProps> = ({ analysis, isLoading, providerType, model, onStop }) => {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [charCount, setCharCount] = useState(0);
+
+  useEffect(() => {
+    setCharCount(analysis.length);
+  }, [analysis]);
+
+  useEffect(() => {
+    if (scrollRef.current && isLoading) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [analysis, isLoading]);
+
   if (!analysis && !isLoading) return null;
 
   return (
-    <div className="h-full flex flex-col bg-[var(--bg)]">
-      <div className="px-6 py-5 border-b border-[var(--border)] flex items-center justify-between bg-[var(--surface)]">
-        <div className="flex items-center gap-4">
-          <div className={`w-10 h-10 border border-[var(--border-strong)] bg-[var(--surface-raised)] flex items-center justify-center rounded-sm transition-all ${isLoading ? 'animate-pulse' : ''}`}>
-            <Cpu size={20} className="text-[var(--ink)]" />
+    <div className="advisor-shell">
+      <div className="advisor-header">
+        <div className="advisor-header-left">
+          <div className={`advisor-avatar ${isLoading ? 'advisor-avatar--pulse' : ''}`}>
+            <Cpu size={20} />
           </div>
           <div>
-            <h2 className="heading-md text-[var(--ink)] tracking-tight">Análisis LLM observado</h2>
-            <p className="eyebrow text-[var(--ink2)] mt-1">
+            <h2 className="advisor-title">Análisis LLM observado</h2>
+            <p className="advisor-subtitle">
               {providerType === 'local' ? 'WebGPU local' : 'Proveedor cloud'} · {model}
             </p>
           </div>
         </div>
-        {isLoading && <span className="text-[10px] text-[var(--ink-soft)] font-sans font-medium uppercase tracking-wider flex items-center gap-2"><div className="w-1.5 h-1.5 bg-[var(--accent)] rounded-full animate-pulse" /> Ejecutando inferencia</span>}
+        <div className="advisor-header-right">
+          {isLoading && (
+            <>
+              <span className="advisor-status-badge">
+                <div className="advisor-status-dot" />
+                Ejecutando inferencia
+              </span>
+              {onStop && (
+                <button className="advisor-stop-btn" onClick={onStop} title="Detener generación">
+                  <Square size={10} /> Detener
+                </button>
+              )}
+            </>
+          )}
+        </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-8 custom-markdown select-text font-sans" aria-live="polite">
+      <div className="advisor-content" ref={scrollRef}>
         {analysis ? (
-          <div className="prose prose-sm max-w-none prose-p:text-[var(--ink2)] prose-p:leading-relaxed prose-headings:font-serif prose-headings:font-bold prose-headings:text-[var(--ink)] prose-strong:text-[var(--ink)] prose-code:bg-[var(--surface-raised)] prose-code:text-[var(--ink)] prose-code:font-mono prose-code:border prose-code:border-[var(--border)] prose-pre:p-0 prose-pre:bg-transparent">
+          <div className="advisor-markdown custom-markdown">
             <ReactMarkdown
               components={{
                 code({ node, inline, className, children, ...props }: any) {
                   const match = /language-(\w+)/.exec(className || '');
                   const language = match ? match[1] : '';
                   const codeString = String(children).replace(/\n$/, '');
-                  
+
                   if (!inline && language) {
                     return <ScriptReview code={codeString} language={language} />;
                   }
-                  
+
                   return (
                     <code className={`${className} px-1.5 py-0.5 rounded-sm`} {...props}>
                       {children}
@@ -56,16 +84,20 @@ const GeminiAdvisor: React.FC<GeminiAdvisorProps> = ({ analysis, isLoading, prov
             </ReactMarkdown>
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center h-full text-[var(--ink-muted)] gap-6 opacity-60 m-4">
+          <div className="advisor-placeholder">
             <Bot size={48} strokeWidth={1} />
-            <p className="font-serif text-[15px] italic text-center px-12 leading-relaxed">Esperando inicio del análisis LLM sobre los hallazgos deterministas.</p>
+            <p>Esperando inicio del análisis LLM sobre los hallazgos deterministas.</p>
           </div>
         )}
       </div>
 
-      <div className="px-6 py-4 border-t border-[var(--border)] bg-[var(--surface)] text-[11px] text-[var(--ink2)] font-sans flex justify-between items-center group cursor-default">
-        <span className="flex items-center gap-2 group-hover:text-[var(--ink)] transition-colors"><Bot size={14} className="text-[var(--ink)]" /> Salida LLM no equivalente a evidencia formal</span>
-        <span className="italic opacity-80 font-serif text-[11px]">Impulsado por Casabero AI</span>
+      <div className="advisor-footer">
+        <span className="advisor-footer-left">
+          <Bot size={14} /> Salida LLM no equivalente a evidencia formal
+        </span>
+        <span className="advisor-footer-right">
+          {charCount.toLocaleString('es-CO')} caracteres
+        </span>
       </div>
     </div>
   );
