@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Brain, Database, Play, ShieldCheck, FlaskConical, AlertTriangle, Lock, Globe, ChevronDown, ChevronRight, FileCode2, Package, Trash2, Download, HardDrive, X } from 'lucide-react';
+import { Brain, Database, Play, ShieldCheck, FlaskConical, Lock, Globe, ChevronDown, ChevronRight, FileCode2, Package, Trash2, HardDrive, X } from 'lucide-react';
 import GeminiAdvisor from './GeminiAdvisor';
 import { AIConfig, AIProvider, AuditReport, AuditExecutionEvidence, ProviderMetrics } from '../types';
 import { buildSmartSample, buildAnalysisPrompt } from '../services/providers/prompts';
@@ -102,7 +102,13 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
   const diagnosisPrompt = React.useMemo(() => buildAnalysisPrompt(report), [report]);
 
   const handleProviderTypeChange = (type: 'local' | 'cloud') => {
-    const models = type === 'local' ? AVAILABLE_MODELS.local : AVAILABLE_MODELS.cloud;
+    const models = type === 'local'
+      ? AVAILABLE_MODELS.local.filter(m => downloadedModels.has(m.id))
+      : AVAILABLE_MODELS.cloud.filter(m => {
+          if (!aiConfig.apiKey) return false;
+          if (m.provider === 'Google') return aiConfig.cloudProvider === 'google';
+          return true;
+        });
     const firstModel = models[0];
     onAiConfigChange({
       ...aiConfig,
@@ -126,7 +132,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
   };
 
   const availableModels = aiConfig.providerType === 'local'
-    ? AVAILABLE_MODELS.local
+    ? AVAILABLE_MODELS.local.filter(m => downloadedModels.has(m.id))
     : AVAILABLE_MODELS.cloud.filter(m => {
         if (!aiConfig.apiKey) return false;
         if (m.provider === 'Google') return aiConfig.cloudProvider === 'google';
@@ -211,19 +217,124 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
 
   return (
     <>
-      {/* ── 1. Qué se recibe del perfil ── */}
+      {/* ── 1. Configuración del modelo ── */}
       <section className="section">
         <header className="section-header">
           <div>
-            <p className="sec-eye">entrada recibida</p>
-            <h2 className="sec-title">Paquete de evidencia del perfil.</h2>
+            <p className="sec-eye">configuración del modelo</p>
+            <h2 className="sec-title">Elegir modelo para diagnóstico.</h2>
           </div>
         </header>
 
-        <p className="section-note">
-          Este es el paquete estructurado que generó el motor determinista en la etapa anterior.
-          El modelo de IA solo recibe esta información; no tiene acceso al dataset completo.
-        </p>
+        <div className={`privacy-notice ${isCloud ? 'privacy-notice--cloud' : 'privacy-notice--local'}`}>
+          {isCloud ? (
+            <>
+              <Globe size={14} />
+              <div>
+                <strong>Modo cloud</strong>
+                <p>Los datos del paquete de evidencia viajan al proveedor {aiConfig.cloudProvider || 'cloud'}. El modelo es más capaz pero los datos salen de tu dispositivo.</p>
+              </div>
+            </>
+          ) : (
+            <>
+              <Lock size={14} />
+              <div>
+                <strong>Modo local (WebGPU)</strong>
+                <p>El modelo se ejecuta en tu navegador. Ningún dato sale de tu dispositivo. Capacidad limitada según el modelo disponible.</p>
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="model-selector-grid mt-6">
+          <div className="model-selector-group">
+            <label className="model-selector-label">Proveedor</label>
+            <div className="model-type-toggle">
+              <button
+                className={`model-type-btn ${aiConfig.providerType === 'local' ? 'active' : ''}`}
+                onClick={() => handleProviderTypeChange('local')}
+              >
+                <Database size={12} /> Local
+              </button>
+              <button
+                className={`model-type-btn ${aiConfig.providerType === 'cloud' ? 'active' : ''}`}
+                onClick={() => handleProviderTypeChange('cloud')}
+              >
+                <Globe size={12} /> Cloud
+              </button>
+            </div>
+          </div>
+
+          <div className="model-selector-group">
+            <label className="model-selector-label">Modelo</label>
+            <select
+              className="model-select"
+              value={aiConfig.model}
+              onChange={(e) => handleModelChange(e.target.value)}
+            >
+              {availableModels.length === 0 && (
+                <option disabled>Sin modelos disponibles</option>
+              )}
+              {availableModels.map(model => {
+                const localModel = LOCAL_MODELS.find(m => m.id === model.id);
+                const isDownloaded = downloadedModels.has(model.id);
+                return (
+                  <option key={model.id} value={model.id}>
+                    {model.name}
+                    {isDownloaded ? ' ✓' : ''}
+                  </option>
+                );
+              })}
+            </select>
+
+            {aiConfig.providerType === 'local' && downloadedModels.size > 0 && (
+              <div className="downloaded-models-list">
+                <div className="downloaded-models-header">
+                  <HardDrive size={10} />
+                  <span>Modelos descargados ({downloadedModels.size})</span>
+                </div>
+                {Array.from(downloadedModels).map(modelId => {
+                  const modelInfo = LOCAL_MODELS.find(m => m.id === modelId);
+                  if (!modelInfo) return null;
+                  return (
+                    <div key={modelId} className="downloaded-model-item">
+                      <span className="downloaded-model-name">{modelInfo.name}</span>
+                      <span className="downloaded-model-size">{modelInfo.sizeGB} GB</span>
+                      <button
+                        className="delete-model-btn"
+                        onClick={() => handleDeleteModel(modelId)}
+                        disabled={deletingModel === modelId || modelId === aiConfig.model}
+                        title={modelId === aiConfig.model ? 'No se puede eliminar el modelo activo' : 'Eliminar modelo'}
+                      >
+                        {deletingModel === modelId ? '...' : <Trash2 size={10} />}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {onOpenLab && (
+          <div className="lab-cta mt-6">
+            <FlaskConical size={14} />
+            <span>¿Querés comparar cómo se comporta otro modelo con la misma evidencia?</span>
+            <button className="btn-s btn-sm" onClick={onOpenLab}>
+              Abrir laboratorio experimental
+            </button>
+          </div>
+        )}
+      </section>
+
+      {/* ── 2. Paquete de evidencia ── */}
+      <section className="section">
+        <header className="section-header">
+          <div>
+            <p className="sec-eye">paquete de evidencia</p>
+            <h2 className="sec-title">Datos que recibe el modelo.</h2>
+          </div>
+        </header>
 
         <div className="benchmark-protocol mt-6">
           <div>
@@ -283,113 +394,6 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
                 <pre className="json-raw">{JSON.stringify(smartSample.detected_issues, null, 2)}</pre>
               </JsonSection>
             </div>
-          </div>
-        )}
-      </section>
-
-      {/* ── 2. Selector de modelo ── */}
-      <section className="section">
-        <header className="section-header">
-          <div>
-            <p className="sec-eye">configuración del modelo</p>
-            <h2 className="sec-title">Elegir modelo para diagnóstico.</h2>
-          </div>
-        </header>
-
-        <div className={`privacy-notice ${isCloud ? 'privacy-notice--cloud' : 'privacy-notice--local'}`}>
-          {isCloud ? (
-            <>
-              <Globe size={14} />
-              <div>
-                <strong>Modo cloud</strong>
-                <p>Los datos del paquete de evidencia viajan al proveedor {aiConfig.cloudProvider || 'cloud'}. El modelo es más capaz pero los datos salen de tu dispositivo.</p>
-              </div>
-            </>
-          ) : (
-            <>
-              <Lock size={14} />
-              <div>
-                <strong>Modo local (WebGPU)</strong>
-                <p>El modelo se ejecuta en tu navegador. Ningún dato sale de tu dispositivo. Capacidad limitada según el modelo disponible.</p>
-              </div>
-            </>
-          )}
-        </div>
-
-        <div className="model-selector-grid mt-6">
-          <div className="model-selector-group">
-            <label className="model-selector-label">Proveedor</label>
-            <div className="model-type-toggle">
-              <button
-                className={`model-type-btn ${aiConfig.providerType === 'local' ? 'active' : ''}`}
-                onClick={() => handleProviderTypeChange('local')}
-              >
-                <Database size={12} /> Local
-              </button>
-              <button
-                className={`model-type-btn ${aiConfig.providerType === 'cloud' ? 'active' : ''}`}
-                onClick={() => handleProviderTypeChange('cloud')}
-              >
-                <Globe size={12} /> Cloud
-              </button>
-            </div>
-          </div>
-
-          <div className="model-selector-group">
-            <label className="model-selector-label">Modelo</label>
-            <select
-              className="model-select"
-              value={aiConfig.model}
-              onChange={(e) => handleModelChange(e.target.value)}
-            >
-              {availableModels.map(model => {
-                const localModel = LOCAL_MODELS.find(m => m.id === model.id);
-                const isDownloaded = downloadedModels.has(model.id);
-                return (
-                  <option key={model.id} value={model.id}>
-                    {model.name}
-                    {isDownloaded ? ' ✓' : ''}
-                  </option>
-                );
-              })}
-            </select>
-
-            {aiConfig.providerType === 'local' && downloadedModels.size > 0 && (
-              <div className="downloaded-models-list">
-                <div className="downloaded-models-header">
-                  <HardDrive size={10} />
-                  <span>Modelos descargados ({downloadedModels.size})</span>
-                </div>
-                {Array.from(downloadedModels).map(modelId => {
-                  const modelInfo = LOCAL_MODELS.find(m => m.id === modelId);
-                  if (!modelInfo) return null;
-                  return (
-                    <div key={modelId} className="downloaded-model-item">
-                      <span className="downloaded-model-name">{modelInfo.name}</span>
-                      <span className="downloaded-model-size">{modelInfo.sizeGB} GB</span>
-                      <button
-                        className="delete-model-btn"
-                        onClick={() => handleDeleteModel(modelId)}
-                        disabled={deletingModel === modelId || modelId === aiConfig.model}
-                        title={modelId === aiConfig.model ? 'No se puede eliminar el modelo activo' : 'Eliminar modelo'}
-                      >
-                        {deletingModel === modelId ? '...' : <Trash2 size={10} />}
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {onOpenLab && (
-          <div className="lab-cta mt-6">
-            <FlaskConical size={14} />
-            <span>¿Querés comparar cómo se comporta otro modelo con la misma evidencia?</span>
-            <button className="btn-s btn-sm" onClick={onOpenLab}>
-              Abrir laboratorio experimental
-            </button>
           </div>
         )}
       </section>
