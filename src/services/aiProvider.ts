@@ -11,6 +11,10 @@ import { AIConfig, AIProvider, CloudProvider } from '../types';
 import type { ChromePromptProvider } from './providers/chromeProvider';
 import type { GeminiProvider } from './providers/geminiProvider';
 import type { OpenAIProvider } from './providers/openaiProvider';
+import { CLOUD_MODELS } from './modelRegistry';
+
+export { AVAILABLE_MODELS, LOCAL_MODELS, CLOUD_MODELS, CHROME_MODELS } from './modelRegistry';
+export { checkModelDownloaded, deleteDownloadedModel, getDownloadedModels } from './modelManager';
 
 class LazyWebLLMProvider implements AIProvider {
   readonly name = 'WebLLM';
@@ -142,7 +146,7 @@ export const createAIProvider = (config: AIConfig): AIProvider => {
       return new LazyChromeProvider(config.temperature);
 
     case 'cloud': {
-      const modelEntry = AVAILABLE_MODELS.cloud.find(m => m.id === config.model);
+      const modelEntry = CLOUD_MODELS.find(m => m.id === config.model);
       const baseURL = modelEntry?.baseURL || 'https://api.openai.com/v1';
       return new LazyCloudProvider(
         config.cloudProvider,
@@ -167,31 +171,4 @@ export const checkWebGPUSupport = async (): Promise<boolean> => {
   } catch {
     return false;
   }
-};
-
-export const AVAILABLE_MODELS = {
-  local: [
-    { id: 'Qwen2.5-3B-Instruct-q4f16_1-MLC', name: 'Qwen 2.5 3B (4-bit)', provider: 'WebLLM', sizeGB: 1.7 },
-    { id: 'Llama-3.2-3B-Instruct-q4f16_1-MLC', name: 'Llama 3.2 3B (4-bit)', provider: 'WebLLM', sizeGB: 1.8 },
-    { id: 'Llama-3.2-1B-Instruct-q4f16_1-MLC', name: 'Llama 3.2 1B (4-bit)', provider: 'WebLLM', sizeGB: 0.7 },
-    { id: 'Qwen2.5-1.5B-Instruct-q4f16_1-MLC', name: 'Qwen 2.5 1.5B (4-bit)', provider: 'WebLLM', sizeGB: 0.9 },
-    { id: 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC', name: 'Qwen 2.5 0.5B (4-bit)', provider: 'WebLLM', sizeGB: 0.4 },
-    { id: 'Phi-3.5-mini-instruct-q4f16_1-MLC', name: 'Phi-3.5 Mini (4-bit)', provider: 'WebLLM', sizeGB: 2.1 },
-    { id: 'Gemma-2-2B-it-q4f16_1-MLC', name: 'Gemma 2 2B (4-bit)', provider: 'WebLLM', sizeGB: 1.2 },
-  ],
-  chrome: [
-    { id: 'gemini-nano', name: 'Gemini Nano (Chrome Built-in)', provider: 'Chrome AI' },
-  ],
-  cloud: [
-    { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', provider: 'Google', baseURL: '' },
-    { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', provider: 'Google', baseURL: '' },
-    { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', provider: 'Google', baseURL: '' },
-    { id: 'deepseek-chat', name: 'DeepSeek V3', provider: 'DeepSeek', baseURL: 'https://api.deepseek.com/v1' },
-    { id: 'deepseek-reasoner', name: 'DeepSeek R1', provider: 'DeepSeek', baseURL: 'https://api.deepseek.com/v1' },
-    { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B', provider: 'Groq', baseURL: 'https://api.groq.com/openai/v1' },
-    { id: 'mixtral-8x7b-32768', name: 'Mixtral 8x7B', provider: 'Groq', baseURL: 'https://api.groq.com/openai/v1' },
-    { id: 'minimax-m2.7', name: 'MiniMax M2.7', provider: 'MiniMax', baseURL: 'https://api.minimax.io/v1' },
-    { id: 'openrouter/auto', name: 'OpenRouter Auto', provider: 'OpenRouter', baseURL: 'https://openrouter.ai/api/v1' },
-    { id: 'nvidia/llama-3.1-nemotron-70b-instruct', name: 'Llama 3.1 Nemotron 70B', provider: 'Nvidia', baseURL: 'https://integrate.api.nvidia.com/v1' },
-  ],
 };

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, X, Save, HardDrive, AlertTriangle, CheckCircle, Download, Loader2, Cloud, Globe, Cpu } from 'lucide-react';
+import { Settings, X, Save, HardDrive, AlertTriangle, CheckCircle, Download, Loader2, Cloud, Globe, Cpu, Trash2 } from 'lucide-react';
 import { AIConfig, ModelDownloadState, CloudProvider } from '../types';
-import { AVAILABLE_MODELS, checkWebGPUSupport, createAIProvider } from '../services/aiProvider';
+import { AVAILABLE_MODELS, LOCAL_MODELS, checkWebGPUSupport, createAIProvider, checkModelDownloaded, deleteDownloadedModel } from '../services/aiProvider';
 
 interface SettingsPanelProps {
     config: AIConfig;
@@ -220,16 +220,16 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                             </div>
 
                             <div className="space-y-3">
-                                <label className="block text-[11px] font-sans font-medium uppercase tracking-wider text-[var(--ink2)]">Modelo Local</label>
+                                <label className="block text-[11px] font-sans font-medium uppercase tracking-wider text-[var(--ink2)]">Modelo Local ({LOCAL_MODELS.length} disponibles)</label>
                                 <div className="relative">
                                     <select
                                         value={localConfig.model}
                                         onChange={(e) => setLocalConfig({ ...localConfig, model: e.target.value })}
                                         className="w-full bg-[var(--surface-raised)] border border-[var(--border-strong)] px-4 py-3 outline-none text-[var(--ink)] appearance-none cursor-pointer font-sans text-[13px] focus:border-[var(--ink-soft)] transition-colors rounded-sm"
                                     >
-                                        {AVAILABLE_MODELS.local.map(m => (
+                                        {LOCAL_MODELS.map(m => (
                                             <option key={m.id} value={m.id}>
-                                                {m.name} (~{m.sizeGB}GB)
+                                                {m.name} (~{m.sizeGB}GB){m.recommended ? ' ★' : ''}
                                             </option>
                                         ))}
                                     </select>
@@ -244,6 +244,17 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                                             <div className="flex items-center gap-2 p-3 bg-[var(--surface)] border border-[var(--border-strong)] text-[12px] font-sans rounded-sm">
                                                 <CheckCircle size={14} className="text-[var(--ink)] shrink-0" />
                                                 <span className="text-[var(--ink)]">Modelo descargado y listo para usar.</span>
+                                                <button
+                                                    onClick={async () => {
+                                                        await deleteDownloadedModel(localConfig.model);
+                                                        const updatedStates = { ...(localConfig.modelDownloadState || {}) };
+                                                        delete updatedStates[localConfig.model];
+                                                        setLocalConfig({ ...localConfig, modelDownloadState: updatedStates });
+                                                    }}
+                                                    className="ml-auto flex items-center gap-1 text-[11px] text-[var(--error)] hover:underline"
+                                                >
+                                                    <Trash2 size={12} /> Eliminar
+                                                </button>
                                             </div>
                                         ) : downloadingModel === localConfig.model ? (
                                             <div className="space-y-2 p-3 bg-[var(--surface)] border border-[var(--border-strong)] rounded-sm">
@@ -273,7 +284,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                                             <p className="text-[11px] font-sans text-red-400">{currentModelState.message}</p>
                                         )}
                                         <p className="text-[10px] font-sans text-[var(--ink2)] leading-relaxed">
-                                            El modelo se almacena en caché del navegador.
+                                            El modelo se almacena en caché del navegador. Los modelos ★ son recomendados para análisis de datos.
                                         </p>
                                     </div>
                                 )}

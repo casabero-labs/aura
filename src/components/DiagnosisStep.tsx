@@ -1,9 +1,9 @@
-import React, { useCallback, useState } from 'react';
-import { Brain, Database, Play, ShieldCheck, FlaskConical, AlertTriangle, Lock, Globe, ChevronDown, ChevronRight, FileCode2, Package } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Brain, Database, Play, ShieldCheck, FlaskConical, AlertTriangle, Lock, Globe, ChevronDown, ChevronRight, FileCode2, Package, Trash2, Download, HardDrive } from 'lucide-react';
 import GeminiAdvisor from './GeminiAdvisor';
 import { AIConfig, AIProvider, AuditReport, AuditExecutionEvidence, ProviderMetrics } from '../types';
 import { buildSmartSample, buildAnalysisPrompt } from '../services/providers/prompts';
-import { AVAILABLE_MODELS } from '../services/aiProvider';
+import { AVAILABLE_MODELS, LOCAL_MODELS, checkModelDownloaded, deleteDownloadedModel } from '../services/aiProvider';
 import { recordLlmCall, computePromptHash, computeInputHash } from '../services/llmAuditLog';
 
 interface DiagnosisStepProps {
@@ -58,6 +58,36 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
   const [lastMetrics, setLastMetrics] = useState<ProviderMetrics | null>(null);
   const [providerAvailable, setProviderAvailable] = useState<boolean | null>(null);
   const [showEvidence, setShowEvidence] = useState(false);
+  const [downloadedModels, setDownloadedModels] = useState<Set<string>>(new Set());
+  const [deletingModel, setDeletingModel] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (aiConfig.providerType === 'local') {
+      const checkDownloads = async () => {
+        const downloaded = new Set<string>();
+        for (const model of LOCAL_MODELS) {
+          if (await checkModelDownloaded(model.id)) {
+            downloaded.add(model.id);
+          }
+        }
+        setDownloadedModels(downloaded);
+      };
+      checkDownloads();
+    }
+  }, [aiConfig.providerType]);
+
+  const handleDeleteModel = async (modelId: string) => {
+    setDeletingModel(modelId);
+    const success = await deleteDownloadedModel(modelId);
+    if (success) {
+      setDownloadedModels(prev => {
+        const next = new Set(prev);
+        next.delete(modelId);
+        return next;
+      });
+    }
+    setDeletingModel(null);
+  };
 
   React.useEffect(() => {
     aiProvider.isAvailable().then(setProviderAvailable).catch(() => setProviderAvailable(false));
@@ -299,7 +329,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
             </div>
           </div>
 
-          {/* Model dropdown */}
+          {/* Model dropdown with download status */}
           <div className="model-selector-group">
             <label className="model-selector-label">Modelo</label>
             <select
@@ -307,12 +337,45 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
               value={aiConfig.model}
               onChange={(e) => handleModelChange(e.target.value)}
             >
-              {availableModels.map(model => (
-                <option key={model.id} value={model.id}>
-                  {model.name || model.id}
-                </option>
-              ))}
+              {availableModels.map(model => {
+                const localModel = LOCAL_MODELS.find(m => m.id === model.id);
+                const isDownloaded = downloadedModels.has(model.id);
+                return (
+                  <option key={model.id} value={model.id}>
+                    {model.name}
+                    {isDownloaded ? ' ✓' : ''}
+                  </option>
+                );
+              })}
             </select>
+
+            {/* Downloaded models management */}
+            {aiConfig.providerType === 'local' && downloadedModels.size > 0 && (
+              <div className="downloaded-models-list">
+                <div className="downloaded-models-header">
+                  <HardDrive size={10} />
+                  <span>Modelos descargados ({downloadedModels.size})</span>
+                </div>
+                {Array.from(downloadedModels).map(modelId => {
+                  const modelInfo = LOCAL_MODELS.find(m => m.id === modelId);
+                  if (!modelInfo) return null;
+                  return (
+                    <div key={modelId} className="downloaded-model-item">
+                      <span className="downloaded-model-name">{modelInfo.name}</span>
+                      <span className="downloaded-model-size">{modelInfo.sizeGB} GB</span>
+                      <button
+                        className="delete-model-btn"
+                        onClick={() => handleDeleteModel(modelId)}
+                        disabled={deletingModel === modelId || modelId === aiConfig.model}
+                        title={modelId === aiConfig.model ? 'No se puede eliminar el modelo activo' : 'Eliminar modelo'}
+                      >
+                        {deletingModel === modelId ? '...' : <Trash2 size={10} />}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
 
