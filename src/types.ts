@@ -277,6 +277,12 @@ export interface AIProvider {
     report: AuditReport
   ): Promise<{ content: ExecutiveReportContent; metrics: ProviderMetrics }>;
 
+  /** Reporte ejecutivo streaming con razonamiento visible */
+  generateExecutiveReportStream(
+    report: AuditReport,
+    onChunk: (text: string) => void
+  ): Promise<{ content: ExecutiveReportContent; metrics: ProviderMetrics }>;
+
   /** Respuesta libre para benchmarks de prompt no controlado */
   generateText(prompt: string): Promise<{ text: string; metrics: ProviderMetrics }>;
 

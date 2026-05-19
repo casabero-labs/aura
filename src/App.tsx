@@ -155,7 +155,7 @@ const App: React.FC = () => {
     if (!report) return;
     setIsPdfGenerating(true);
     try {
-      generatePdfReport(report, buildDeterministicPdfContent(report, approvedCleaningScript));
+      generatePdfReport(report, buildDeterministicPdfContent(report, approvedCleaningScript), aiAnalysis);
       setHasExported(true);
     } catch (error: any) {
       // silently fail

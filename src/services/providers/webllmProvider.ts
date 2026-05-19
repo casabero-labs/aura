@@ -159,7 +159,73 @@ export class WebLLMProvider implements AIProvider {
 
     if (!text) throw new Error('No response from WebLLM');
 
-    // Parser JSON robusto: directo → markdown → braces → error descriptivo
+    const content = this.parseExecutiveJson(text);
+    const metrics: ProviderMetrics = {
+      provider: this.name,
+      model: this.model,
+      latencyMs: Math.round(totalTime),
+      firstTokenMs: Math.round(totalTime),
+      tokensGenerated: response.usage?.completion_tokens || Math.round(text.length / 4),
+      isLocal: true,
+      timestamp: new Date().toISOString()
+    };
+
+    return { content, metrics };
+  }
+
+  /**
+   * Reporte ejecutivo streaming con razonamiento visible.
+   * Streamea texto crudo (incluyendo razonamiento) y parsea JSON al final.
+   */
+  async generateExecutiveReportStream(
+    report: AuditReport,
+    onChunk: (text: string) => void
+  ): Promise<{ content: ExecutiveReportContent; metrics: ProviderMetrics }> {
+    if (!await this.isAvailable()) {
+      throw new Error('WebGPU no soportado para análisis local.');
+    }
+
+    const engine = await this.ensureEngineLoaded();
+    const prompt = buildExecutivePrompt(report);
+    const startTime = performance.now();
+    let firstTokenTime = 0;
+    let tokensGenerated = 0;
+    let fullText = '';
+
+    const chunks = await engine.chat.completions.create({
+      messages: [{ role: 'user', content: prompt }],
+      temperature: this.temperature,
+      stream: true,
+    });
+
+    for await (const chunk of chunks) {
+      const delta = chunk.choices[0]?.delta?.content || '';
+      if (delta) {
+        if (firstTokenTime === 0) firstTokenTime = performance.now() - startTime;
+        tokensGenerated += Math.round(delta.length / 4);
+        fullText += delta;
+        onChunk(delta);
+      }
+    }
+
+    const totalTime = performance.now() - startTime;
+    const content = this.parseExecutiveJson(fullText);
+
+    return {
+      content,
+      metrics: {
+        provider: this.name,
+        model: this.model,
+        latencyMs: Math.round(totalTime),
+        firstTokenMs: Math.round(firstTokenTime),
+        tokensGenerated,
+        isLocal: true,
+        timestamp: new Date().toISOString()
+      }
+    };
+  }
+
+  private parseExecutiveJson(text: string): ExecutiveReportContent {
     let cleanJson = text;
     try {
       JSON.parse(cleanJson);
@@ -176,19 +242,7 @@ export class WebLLMProvider implements AIProvider {
       }
       JSON.parse(cleanJson);
     }
-
-    const content = JSON.parse(cleanJson) as ExecutiveReportContent;
-    const metrics: ProviderMetrics = {
-      provider: this.name,
-      model: this.model,
-      latencyMs: Math.round(totalTime),
-      firstTokenMs: Math.round(totalTime),
-      tokensGenerated: response.usage?.completion_tokens || Math.round(text.length / 4),
-      isLocal: true,
-      timestamp: new Date().toISOString()
-    };
-
-    return { content, metrics };
+    return JSON.parse(cleanJson) as ExecutiveReportContent;
   }
 
   async generateText(prompt: string): Promise<{ text: string; metrics: ProviderMetrics }> {

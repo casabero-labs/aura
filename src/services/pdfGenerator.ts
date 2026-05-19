@@ -11,7 +11,7 @@ declare module 'jspdf' {
   }
 }
 
-export const generatePdfReport = (auditReport: AuditReport, executiveContent: ExecutiveReportContent) => {
+export const generatePdfReport = (auditReport: AuditReport, executiveContent: ExecutiveReportContent, llmDiagnosis?: string) => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.width;
   const pageHeight = doc.internal.pageSize.height;
@@ -164,9 +164,35 @@ export const generatePdfReport = (auditReport: AuditReport, executiveContent: Ex
   doc.addPage();
   yPos = margin;
 
-  // --- PAGE 3: DATA PROFILE (The Deterministic Facts) ---
+  // --- PAGE 3: LLM DIAGNOSIS (if available) ---
 
-  drawSectionHeader("6. Perfil Detallado de Columnas");
+  if (llmDiagnosis) {
+    drawSectionHeader("6. Diagnóstico LLM (OE3)");
+    doc.setFont('times', 'italic');
+    doc.setFontSize(10);
+    doc.setTextColor(colors.lightText);
+    doc.text("Interpretación generada por modelo de lenguaje a partir de los hallazgos deterministas. No verificable estadísticamente.", margin, yPos - 3);
+    yPos += 5;
+
+    const diagLines = doc.splitTextToSize(llmDiagnosis, pageWidth - margin * 2);
+    let diagYPos = yPos;
+    diagLines.forEach((line: string) => {
+      if (diagYPos > pageHeight - margin) {
+        doc.addPage();
+        diagYPos = margin;
+      }
+      doc.setFont('times', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(colors.text);
+      doc.text(line, margin, diagYPos);
+      diagYPos += 5.5;
+    });
+    yPos = diagYPos + 10;
+  }
+
+  // --- PAGE 4: DATA PROFILE (The Deterministic Facts) ---
+
+  drawSectionHeader(llmDiagnosis ? "7. Perfil Detallado de Columnas" : "6. Perfil Detallado de Columnas");
   doc.setFont('times', 'italic');
   doc.setFontSize(10);
   doc.setTextColor(colors.lightText);
@@ -209,7 +235,7 @@ export const generatePdfReport = (auditReport: AuditReport, executiveContent: Ex
     yPos = margin;
   }
 
-  drawSectionHeader("7. Reporte de Anomalías (Motor de 22+ Reglas)");
+  drawSectionHeader(llmDiagnosis ? "8. Reporte de Anomalías (Motor de 22+ Reglas)" : "7. Reporte de Anomalías (Motor de 22+ Reglas)");
 
   // Group issues by category for better readability
   const categories = [
@@ -274,7 +300,7 @@ export const generatePdfReport = (auditReport: AuditReport, executiveContent: Ex
     doc.addPage();
     yPos = margin;
     
-    drawSectionHeader("8. Gobernanza y Trazabilidad (Script de Limpieza)");
+    drawSectionHeader(llmDiagnosis ? "9. Gobernanza y Trazabilidad (Script de Limpieza)" : "8. Gobernanza y Trazabilidad (Script de Limpieza)");
     
     doc.setFont('times', 'italic');
     doc.setFontSize(10);

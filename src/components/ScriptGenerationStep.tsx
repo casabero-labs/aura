@@ -23,21 +23,30 @@ const ScriptGenerationStep: React.FC<ScriptGenerationStepProps> = ({
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [streamingText, setStreamingText] = useState('');
+  const [streamingMetrics, setStreamingMetrics] = useState<ProviderMetrics | null>(null);
 
   const generateScript = useCallback(async () => {
     if (isLoading) return;
     setIsLoading(true);
     setError(null);
-    onLog?.('script', 'Generando script de limpieza');
+    setStreamingText('');
+    setStreamingMetrics(null);
+    onLog?.('script', 'Generando script de limpieza (streaming)');
 
     try {
-      const { content, metrics } = await aiProvider.generateExecutiveReport(report);
+      const { content, metrics } = await aiProvider.generateExecutiveReportStream(report, (chunk) => {
+        setStreamingText((prev) => prev + chunk);
+      });
+
       if (!content.python_script) {
         setError('El modelo no generó un script Python/Pandas.');
         onLog?.('script', 'Sin python_script en la respuesta');
         return;
       }
+
       onScriptGenerated(content.python_script, metrics);
+      setStreamingMetrics(metrics);
       onLog?.('script', `Script generado · ${content.python_script.split('\n').length} líneas · ${metrics.latencyMs}ms`);
     } catch (err: any) {
       const msg = err?.message ?? 'Error desconocido generando script';
@@ -83,6 +92,26 @@ const ScriptGenerationStep: React.FC<ScriptGenerationStepProps> = ({
             {isLoading ? 'Generando' : cleaningScript ? 'Regenerar script' : 'Generar script'}
           </button>
         </div>
+
+        {isLoading && streamingText && (
+          <div className="mt-6 p-4 border border-[var(--border)] rounded-lg bg-[var(--surface)]">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="animate-pulse w-2 h-2 rounded-full bg-[var(--accent)]" />
+              <strong className="text-sm">Generando (razonamiento visible)</strong>
+            </div>
+            <div className="text-xs text-[var(--ink-muted)] font-mono max-h-64 overflow-y-auto whitespace-pre-wrap custom-scrollbar">
+              {streamingText}
+            </div>
+          </div>
+        )}
+
+        {streamingMetrics && !isLoading && (
+          <div className="mt-4 flex gap-4 text-xs text-[var(--ink-muted)]">
+            <span>⏱ {streamingMetrics.latencyMs}ms</span>
+            <span>🔤 {streamingMetrics.tokensGenerated} tokens</span>
+            <span>🖥 {streamingMetrics.isLocal ? 'Local' : 'Cloud'}</span>
+          </div>
+        )}
 
         {error && (
           <p className="section-note mt-4" style={{ color: 'var(--accent)' }}>{error}</p>

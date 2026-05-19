@@ -248,6 +248,90 @@ export class OpenAIProvider implements AIProvider {
   }
 
   /**
+   * Reporte ejecutivo streaming con razonamiento visible.
+   */
+  async generateExecutiveReportStream(
+    report: AuditReport,
+    onChunk: (text: string) => void
+  ): Promise<{ content: ExecutiveReportContent; metrics: ProviderMetrics }> {
+    if (!await this.isAvailable()) {
+      throw new Error('Configuración incompleta: baseURL o API key no proporcionadas');
+    }
+
+    const prompt = buildExecutivePrompt(report);
+    const startTime = performance.now();
+    let firstTokenTime = 0;
+    let tokensGenerated = 0;
+    let fullText = '';
+
+    const response = await this.chatCompletion(
+      [{ role: 'user', content: prompt }],
+      { temperature: this.temperature, stream: true }
+    );
+
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error('No stream body available');
+
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed === 'data: [DONE]') continue;
+        if (!trimmed.startsWith('data: ')) continue;
+
+        try {
+          const parsed = JSON.parse(trimmed.slice(6));
+          const delta = parsed.choices?.[0]?.delta?.content || '';
+          if (delta) {
+            if (firstTokenTime === 0) firstTokenTime = performance.now() - startTime;
+            tokensGenerated += Math.round(delta.length / 4);
+            fullText += delta;
+            onChunk(delta);
+          }
+        } catch {
+          // Skip malformed SSE lines
+        }
+      }
+    }
+
+    const totalTime = performance.now() - startTime;
+
+    let content: ExecutiveReportContent;
+    try {
+      content = JSON.parse(fullText);
+    } catch {
+      const jsonMatch = fullText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        content = JSON.parse(jsonMatch[0]);
+      } else {
+        throw new Error('No se pudo parsear la respuesta como JSON');
+      }
+    }
+
+    return {
+      content,
+      metrics: {
+        provider: this.name,
+        model: this.model,
+        latencyMs: Math.round(totalTime),
+        firstTokenMs: Math.round(firstTokenTime),
+        tokensGenerated,
+        isLocal: false,
+        timestamp: new Date().toISOString()
+      }
+    };
+  }
+
+  /**
    * Respuesta libre para benchmarks de prompt no controlado.
    */
   async generateText(prompt: string): Promise<{ text: string; metrics: ProviderMetrics }> {
