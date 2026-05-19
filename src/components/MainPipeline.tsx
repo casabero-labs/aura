@@ -1,10 +1,16 @@
 import React, { useState } from 'react';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Scissors } from 'lucide-react';
 import FileUpload from './FileUpload';
 import PipelineProgress from './PipelineProgress';
 import ScoreBreakdown from './ScoreBreakdown';
 import IssueList from './IssueList';
 import ExecutionEvidencePanel from './ExecutionEvidencePanel';
+import PipelineChecklist, {
+  buildCsvParsingStep,
+  buildDeterministicAuditStep,
+  buildLLMAnalysisStep,
+  ChecklistStep,
+} from './PipelineChecklist';
 import BoxPlot from './BoxPlot';
 import ColumnStatsPanel from './ColumnStatsPanel';
 import AnalysisStep from './AnalysisStep';
@@ -12,7 +18,8 @@ import ReviewStep from './ReviewStep';
 import { runAudit } from '../services/auditEngine';
 import { parseCsv } from '../services/csvService';
 import { buildAuditEvidence, createTraceRecorder, fingerprintDataset } from '../services/executionEvidence';
-import { AIConfig, AIProvider, AuditReport, AuditExecutionEvidence, HealthDelta } from '../types';
+import { buildSmartSample } from '../services/providers/prompts';
+import { AIConfig, AIProvider, AuditReport, AuditExecutionEvidence, HealthDelta, ProviderMetrics, ScriptValidationResult } from '../types';
 
 export type PipelineState = 'upload' | 'diagnostic' | 'analysis' | 'review' | 'export';
 
@@ -56,6 +63,30 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, onLog
   const [logs, setLogs] = useState<{ time: string; msg: string }[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // ── Pipeline checklist state (transparency panel) ──
+  const [checklistSteps, setChecklistSteps] = useState<ChecklistStep[]>([]);
+  const [llmMetrics, setLlmMetrics] = useState<ProviderMetrics | null>(null);
+  const [scriptValidation, setScriptValidation] = useState<ScriptValidationResult | null>(null);
+
+  const updateChecklistStep = (id: string, updates: Partial<ChecklistStep>) => {
+    setChecklistSteps(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
+  };
+
+  // Simple heuristic: flag column names mentioned in analysis that don't exist in dataset
+  const detectHallucinatedColumns = (analysisText: string, report: AuditReport): string[] => {
+    const knownCols = new Set(Object.keys(report.columnStats));
+    const wordPattern = /\b([A-Z_a-z][A-Z_a-z0-9_]{2,})\b/g;
+    const mentioned = new Set<string>();
+    let m;
+    while ((m = wordPattern.exec(analysisText)) !== null) {
+      const col = m[1];
+      if (!knownCols.has(col) && !['column', 'row', 'dataset', 'null', 'value', 'string', 'number', 'count', 'mean', 'median'].includes(col.toLowerCase())) {
+        mentioned.add(col);
+      }
+    }
+    return [...mentioned].slice(0, 5); // cap at 5 to avoid noise
+  };
+
   // Sync pipeline data upward to parent
   React.useEffect(() => {
     onPipelineChange?.({
@@ -80,6 +111,8 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, onLog
     setReport(null); setRawData([]); setCsvFields([]); setCsvDelimiter(',');
     setAuditEvidence(null); setCleaningScript(''); setApprovedScript('');
     setHealthDelta(null); setAiAnalysis(''); setLogs([]);
+    setChecklistSteps([]); // reset checklist on new file
+    setLlmMetrics(null); setScriptValidation(null);
     addLog(`Cargando ${uploadedFile.name}...`);
 
     try {
@@ -94,6 +127,12 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, onLog
       trace.mark('csv.parse.end', { rows: data.length, columns: meta.fields?.length ?? 0, delimiter: meta.delimiter, truncated: meta.truncated, durationMs: parseDurationMs });
       setRawData(data); setCsvFields(meta.fields); setCsvDelimiter(meta.delimiter);
       addLog(`csv.parse.end :: ${data.length} registros · ${meta.fields?.length ?? 0} columnas · ${parseDurationMs}ms`);
+
+      // ── Pipeline Checklist: CSV parsing ──
+      setChecklistSteps(prev => [...prev, buildCsvParsingStep(
+        uploadedFile.name, uploadedFile.size, data.length,
+        meta.fields?.length ?? 0, meta.delimiter, parseDurationMs, meta.truncated
+      )]);
 
       const datasetFingerprint = fingerprintDataset(data, meta.fields);
       trace.mark('audit.run.start', { datasetFingerprint });
@@ -114,6 +153,10 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, onLog
 
       setAuditEvidence(evidence); setReport(auditResult);
       addLog(`audit.run.end :: score=${auditResult.score}/100 · issues=${auditResult.issues.length} · ${auditDurationMs}ms`);
+
+      // ── Pipeline Checklist: Deterministic audit ──
+      setChecklistSteps(prev => [...prev, buildDeterministicAuditStep(auditResult, evidence, auditDurationMs)]);
+
       setState('diagnostic');
     } catch (err: any) {
       addLog(`Error: ${err.message}`);
@@ -213,6 +256,10 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, onLog
 
           {auditEvidence && <ExecutionEvidencePanel evidence={auditEvidence} />}
 
+          {checklistSteps.length > 0 && (
+            <PipelineChecklist steps={checklistSteps} />
+          )}
+
           {/* ── Column Profile: tipado semántico + IQR ── */}
           <section className="section" id="column-profile">
             <ColumnStatsPanel columnStats={report.columnStats} />
@@ -250,6 +297,66 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, onLog
               addLog(`Script generado: ${script.split('\n').length} líneas`);
             }}
             onLog={(stage, msg) => addLog(`${stage} :: ${msg}`)}
+            onChecklistLLMStart={(config) => {
+              const step = buildLLMAnalysisStep(config, null, 'smart_sample', [], 0, false, 'running');
+              setChecklistSteps(prev => [...prev, step]);
+              updateChecklistStep('llm-analysis', { status: 'running', input: [
+                { label: 'modo', detail: 'Smart Sample — JSON anclado a datos reales' },
+                { label: 'proveedor', detail: config.cloudProvider ?? config.providerType },
+                { label: 'modelo', detail: config.model },
+                { label: 'temperatura', detail: String(config.temperature) },
+              ]});
+            }}
+            onChecklistLLMDone={(metrics, analysisText) => {
+              const hallucinated = detectHallucinatedColumns(analysisText, report);
+              setLlmMetrics(metrics);
+              updateChecklistStep('llm-analysis', {
+                status: hallucinated.length > 0 ? 'warning' : 'done',
+                durationMs: metrics.latencyMs,
+                metrics: [
+                  { label: 'latencia', value: `${metrics.latencyMs}ms` },
+                  { label: 'tokens', value: String(metrics.tokensGenerated) },
+                  { label: 'tokens/s', value: `${(metrics.tokensGenerated / (metrics.latencyMs / 1000)).toFixed(1)}` },
+                ],
+                output: [
+                  { label: 'tokens generados', detail: String(metrics.tokensGenerated) },
+                  ...(hallucinated.length > 0 ? [{ label: '⚠ columnas alucinadas', detail: hallucinated.join(', ') }] : []),
+                ],
+                technicalDetail: [{
+                  title: '📄 Smart Sample — JSON exacto enviado al LLM (muestra)',
+                  content: JSON.stringify(buildSmartSample(report), null, 2).slice(0, 2000) + '\n…',
+                }],
+              });
+            }}
+            onChecklistScriptStart={() => {
+              const step: ChecklistStep = {
+                id: 'script-generation',
+                layer: 'capa 2',
+                label: 'Generación de script Python/Pandas',
+                status: 'running',
+                icon: <Scissors size={14} />,
+              };
+              setChecklistSteps(prev => [...prev, step]);
+            }}
+            onChecklistScriptDone={(script, metrics) => {
+              setScriptValidation(null); // TODO: call scriptValidationService
+              setLlmMetrics(metrics);
+              updateChecklistStep('script-generation', {
+                status: 'done',
+                durationMs: metrics.latencyMs,
+                metrics: [
+                  { label: 'líneas', value: String(script.split('\n').length) },
+                  { label: 'tokens', value: String(metrics.tokensGenerated) },
+                ],
+                output: [
+                  { label: 'script Pandas', detail: `${script.split('\n').length} líneas` },
+                ],
+                technicalDetail: [{
+                  title: '🐍 Script Python generado (muestra)',
+                  content: script.length > 1500 ? script.slice(0, 1500) + '\n…' : script,
+                }],
+              });
+            }}
           />
           {cleaningScript && (
             <div className="context-guide">

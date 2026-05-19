@@ -2438,3 +2438,315 @@
     grid-template-columns: 1.5fr 2fr 0.6fr;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   PIPELINE CHECKLIST — Transparencia total del flujo AURA
+   Inspirado en: AutoDCWorkflow EMNLP 2025, Long ICLR 2026
+   ══════════════════════════════════════════════════════════════ */
+
+.pipeline-checklist {
+  margin-top: 2rem;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  padding: 1.25rem;
+}
+
+.checklist-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.checklist-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.checklist-progress-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--mono);
+  font-size: 12px;
+  padding-top: 1.2rem;
+}
+
+.checklist-progress-done { color: var(--green); }
+.checklist-progress-running { color: var(--blue); }
+.checklist-progress-total { color: var(--ink2); }
+
+.checklist-intro {
+  font-size: 13px;
+  color: var(--ink2);
+  margin: 0 0 1rem;
+  line-height: 1.6;
+}
+
+.checklist-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ── checklist item ─────────────────────────────────────── */
+
+.checklist-item {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--surface2);
+  transition: border-color 0.15s;
+}
+
+.checklist-item--done    { border-left: 3px solid var(--green); }
+.checklist-item--running { border-left: 3px solid var(--blue); }
+.checklist-item--warning { border-left: 3px solid var(--orange); }
+.checklist-item--error   { border-left: 3px solid var(--red); }
+.checklist-item--pending { border-left: 3px solid var(--border); }
+
+.checklist-item-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--ink);
+  transition: background 0.1s;
+}
+
+.checklist-item-header:hover {
+  background: var(--surface3);
+}
+
+.checklist-item-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.checklist-item-label {
+  flex: 1;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.checklist-layer-badge {
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--surface3);
+  color: var(--ink2);
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.checklist-item-duration {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink2);
+  flex-shrink: 0;
+}
+
+.checklist-item-chevron {
+  color: var(--ink2);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+/* ── checklist body (expanded) ────────────────────────── */
+
+.checklist-item-body {
+  padding: 0.75rem 1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.checklist-warning {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 12px;
+  color: var(--orange);
+  font-family: var(--mono);
+  padding: 0.4rem 0.6rem;
+  background: color-mix(in srgb, var(--orange) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--orange) 25%, transparent);
+  border-radius: 4px;
+}
+
+.checklist-error {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 12px;
+  color: var(--red);
+  font-family: var(--mono);
+  padding: 0.4rem 0.6rem;
+  background: color-mix(in srgb, var(--red) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--red) 25%, transparent);
+  border-radius: 4px;
+}
+
+.checklist-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.checklist-section-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink2);
+  margin: 0;
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+}
+
+.checklist-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.checklist-table td {
+  padding: 3px 8px 3px 0;
+  vertical-align: top;
+  border-bottom: 1px solid var(--border);
+}
+
+.checklist-table-key {
+  color: var(--ink2);
+  font-family: var(--mono);
+  white-space: nowrap;
+  min-width: 140px;
+}
+
+.checklist-table-val {
+  color: var(--ink);
+}
+
+.checklist-table-val code {
+  font-size: 11px;
+  word-break: break-all;
+  color: var(--ink);
+}
+
+/* ── metrics ────────────────────────────────────────────── */
+
+.checklist-metrics-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.checklist-metric-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface2);
+  min-width: 60px;
+}
+
+.checklist-metric-val {
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.checklist-metric-lbl {
+  font-size: 10px;
+  color: var(--ink2);
+  text-transform: lowercase;
+}
+
+/* ── technical details (expandible) ────────────────────── */
+
+.checklist-technical-details {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  font-size: 12px;
+}
+
+.checklist-technical-details summary {
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink2);
+  user-select: none;
+  list-style: none;
+}
+
+.checklist-technical-details summary::before {
+  content: '▶ ';
+  font-size: 9px;
+}
+
+.checklist-technical-details[open] summary::before {
+  content: '▼ ';
+  font-size: 9px;
+}
+
+.checklist-technical-details summary:hover {
+  background: var(--surface3);
+  color: var(--ink);
+}
+
+.checklist-technical-content {
+  margin: 0;
+  padding: 0.75rem;
+  font-size: 11px;
+  font-family: var(--mono);
+  color: var(--ink);
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  overflow-x: auto;
+  white-space: pre;
+  line-height: 1.6;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+/* ── spin animation for loading ────────────────────────── */
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+/* ── responsive ────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .checklist-table-key { min-width: 100px; }
+  .checklist-metric-chip { min-width: 50px; padding: 4px 8px; }
+  .checklist-item-duration { display: none; }
+}

@@ -30,6 +30,11 @@ interface AnalysisStepProps {
   onMetrics?: (metrics: ProviderMetrics) => void;
   /** Log a message to the pipeline log */
   onLog?: (stage: string, msg: string) => void;
+  /** Pipeline checklist callbacks — carta abierta para cada etapa */
+  onChecklistLLMStart?: (config: AIConfig) => void;
+  onChecklistLLMDone?: (metrics: ProviderMetrics, analysisText: string) => void;
+  onChecklistScriptStart?: () => void;
+  onChecklistScriptDone?: (script: string, metrics: ProviderMetrics) => void;
 }
 
 const AnalysisStep: React.FC<AnalysisStepProps> = ({
@@ -40,6 +45,10 @@ const AnalysisStep: React.FC<AnalysisStepProps> = ({
   onAnalysisComplete,
   onMetrics,
   onLog,
+  onChecklistLLMStart,
+  onChecklistLLMDone,
+  onChecklistScriptStart,
+  onChecklistScriptDone,
 }) => {
   // ── Local state ──
   const [analysisText, setAnalysisText] = useState('');
@@ -68,6 +77,7 @@ const AnalysisStep: React.FC<AnalysisStepProps> = ({
     setAnalysisText('');
 
     onLog?.('analysis', `Iniciando análisis IA con ${modelName}…`);
+    onChecklistLLMStart?.(aiConfig);
 
     try {
       const metrics = await aiProvider.analyzeStream(report, (chunk) => {
@@ -76,6 +86,7 @@ const AnalysisStep: React.FC<AnalysisStepProps> = ({
 
       setLastMetrics(metrics);
       onMetrics?.(metrics);
+      onChecklistLLMDone?.(metrics, analysisText + '');
       onAnalysisComplete?.(analysisText + '');
       onLog?.('analysis', `Análisis completado — ${metrics.tokensGenerated} tokens en ${metrics.latencyMs}ms`);
     } catch (err: any) {
@@ -85,7 +96,7 @@ const AnalysisStep: React.FC<AnalysisStepProps> = ({
     } finally {
       setIsAiLoading(false);
     }
-  }, [aiProvider, report, isAiLoading, modelName, onLog, onMetrics, onAnalysisComplete, analysisText]);
+  }, [aiProvider, report, isAiLoading, modelName, onLog, onMetrics, onAnalysisComplete, analysisText, aiConfig, onChecklistLLMStart, onChecklistLLMDone]);
 
   // ── Script generation handler ──
   const handleGenerateScript = useCallback(async () => {
@@ -94,6 +105,7 @@ const AnalysisStep: React.FC<AnalysisStepProps> = ({
     setError(null);
 
     onLog?.('script', 'Generando script de limpieza con IA…');
+    onChecklistScriptStart?.();
 
     try {
       const { content, metrics } = await aiProvider.generateExecutiveReport(report);
@@ -104,6 +116,7 @@ const AnalysisStep: React.FC<AnalysisStepProps> = ({
       const script = content.python_script;
       if (script) {
         onScriptGenerated?.(script);
+        onChecklistScriptDone?.(script, metrics);
         onLog?.('script', `Script generado — ${script.split('\n').length} líneas`);
       } else {
         setError('El modelo no generó contenido de script. Intenta con otro prompt o modelo.');
@@ -116,7 +129,7 @@ const AnalysisStep: React.FC<AnalysisStepProps> = ({
     } finally {
       setIsScriptLoading(false);
     }
-  }, [aiProvider, report, isScriptLoading, onLog, onScriptGenerated, onMetrics]);
+  }, [aiProvider, report, isScriptLoading, onLog, onScriptGenerated, onMetrics, onChecklistScriptStart, onChecklistScriptDone]);
 
   return (
     <section className="section">
