@@ -125,7 +125,11 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
 
   const availableModels = aiConfig.providerType === 'local'
     ? AVAILABLE_MODELS.local
-    : AVAILABLE_MODELS.cloud;
+    : AVAILABLE_MODELS.cloud.filter(m => {
+        if (!aiConfig.apiKey) return false;
+        if (m.provider === 'Google') return aiConfig.cloudProvider === 'google';
+        return true;
+      });
 
   const runDiagnosis = useCallback(async () => {
     if (isLoading) return;
@@ -157,6 +161,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
         model: aiConfig.model,
         temperature: aiConfig.temperature,
         promptHash,
+        promptText: prompt,
         inputJsonHash: inputHash,
         promptLength: prompt.length,
         inputColumnCount: report.colCount,
@@ -181,6 +186,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
         model: aiConfig.model,
         temperature: aiConfig.temperature,
         promptHash,
+        promptText: prompt,
         inputJsonHash: inputHash,
         promptLength: prompt.length,
         inputColumnCount: report.colCount,

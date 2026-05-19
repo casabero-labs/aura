@@ -159,6 +159,10 @@ const AuditLogViewer: React.FC<AuditLogViewerProps> = ({ onClose }) => {
                       <span>Input JSON hash</span>
                       <code>{entry.inputJsonHash}</code>
                     </div>
+                    <div className="audit-detail-row audit-detail-row--prompt">
+                      <span>Prompt enviado al modelo</span>
+                      <pre className="audit-prompt-text">{entry.promptText}</pre>
+                    </div>
                     <div className="audit-detail-row">
                       <span>Prompt length</span>
                       <code>{entry.promptLength.toLocaleString('es-CO')} chars</code>

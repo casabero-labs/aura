@@ -9,6 +9,7 @@ export interface LlmAuditEntry {
   model: string;
   temperature: number;
   promptHash: string;
+  promptText: string;
   inputJsonHash: string;
   promptLength: number;
   inputColumnCount: number;

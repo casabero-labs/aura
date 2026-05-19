@@ -41,6 +41,10 @@ class LazyWebLLMProvider implements AIProvider {
     return (await this.provider()).generateExecutiveReport(...args);
   }
 
+  async generateExecutiveReportStream(...args: Parameters<AIProvider['generateExecutiveReportStream']>) {
+    return (await this.provider()).generateExecutiveReportStream(...args);
+  }
+
   async generateText(...args: Parameters<AIProvider['generateText']>) {
     return (await this.provider()).generateText(...args);
   }
@@ -78,6 +82,10 @@ class LazyChromeProvider implements AIProvider {
 
   async generateExecutiveReport(...args: Parameters<AIProvider['generateExecutiveReport']>) {
     return (await this.provider()).generateExecutiveReport(...args);
+  }
+
+  async generateExecutiveReportStream(...args: Parameters<AIProvider['generateExecutiveReportStream']>) {
+    return (await this.provider()).generateExecutiveReportStream(...args);
   }
 
   async generateText(...args: Parameters<AIProvider['generateText']>) {
@@ -129,6 +137,10 @@ class LazyCloudProvider implements AIProvider {
 
   async generateExecutiveReport(...args: Parameters<AIProvider['generateExecutiveReport']>) {
     return (await this.provider()).generateExecutiveReport(...args);
+  }
+
+  async generateExecutiveReportStream(...args: Parameters<AIProvider['generateExecutiveReportStream']>) {
+    return (await this.provider()).generateExecutiveReportStream(...args);
   }
 
   async generateText(...args: Parameters<AIProvider['generateText']>) {

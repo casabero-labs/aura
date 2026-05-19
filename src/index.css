@@ -2688,6 +2688,28 @@
   color: var(--error);
 }
 
+.audit-detail-row--prompt {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.4rem;
+}
+
+.audit-prompt-text {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--ink-muted);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 400px;
+  overflow-y: auto;
+  margin: 0;
+}
+
 @media (max-width: 768px) {
   .audit-log-backdrop {
     padding: 0.5rem;

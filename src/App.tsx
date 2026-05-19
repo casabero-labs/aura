@@ -322,7 +322,6 @@ const App: React.FC = () => {
       <main className="sys-main">
         {/* Hero */}
         <section className="hero" id="sistema">
-          <h1 className="hero-h1">Audita la calidad de tus datos.</h1>
           <p className="hero-sub">
             AURA perfila el dataset con reglas reproducibles; luego separa diagnóstico, script, revisión humana y exportación.
           </p>
