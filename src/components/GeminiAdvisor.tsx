@@ -35,7 +35,7 @@ const GeminiAdvisor: React.FC<GeminiAdvisorProps> = ({ analysis, isLoading, prov
             <Cpu size={20} />
           </div>
           <div>
-            <h2 className="advisor-title">Análisis LLM observado</h2>
+            <h2 className="advisor-title">Diagnóstico generado</h2>
             <p className="advisor-subtitle">
               {providerType === 'local' ? 'WebGPU local' : 'Proveedor cloud'} · {model}
             </p>
@@ -86,14 +86,14 @@ const GeminiAdvisor: React.FC<GeminiAdvisorProps> = ({ analysis, isLoading, prov
         ) : (
           <div className="advisor-placeholder">
             <Bot size={48} strokeWidth={1} />
-            <p>Esperando inicio del análisis LLM sobre los hallazgos deterministas.</p>
+            <p>Esperando el diagnóstico sobre los hallazgos deterministas.</p>
           </div>
         )}
       </div>
 
       <div className="advisor-footer">
         <span className="advisor-footer-left">
-          <Bot size={14} /> Salida LLM no equivalente a evidencia formal
+          <Bot size={14} /> Interpretación asistida, no evidencia primaria
         </span>
         <span className="advisor-footer-right">
           {charCount.toLocaleString('es-CO')} caracteres

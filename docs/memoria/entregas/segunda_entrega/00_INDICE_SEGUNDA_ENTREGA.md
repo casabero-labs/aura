@@ -35,12 +35,15 @@ Rol:
 Leer antes de capturar pantallas o exportar artefactos:
 
 - `MATRIZ_EVIDENCIA_AURA_SEGUNDA_ENTREGA.md`
+- `ANALISIS_TITULO_BENCHMARK_Y_BRECHAS_SOFTWARE.md`
 
 Rol:
 
 - cruza OE1-OE4 con evidencia documental y evidencia generada por codigo;
 - indica que artefactos debe producir AURA para anexar al documento;
 - separa evidencia valida, evidencia preliminar e intentos fallidos.
+- evalua si el titulo con "benchmarking de LLMs" esta sostenido por el software actual;
+- lista brechas tecnicas para cerrar despues de organizar el documento.
 
 ## 4. Propuesta de mejora del flujo de AURA
 

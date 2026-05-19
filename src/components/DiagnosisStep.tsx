@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Brain, Database, Play, ShieldCheck, FlaskConical, Lock, Globe, ChevronDown, ChevronRight, FileCode2, Package, Trash2, HardDrive, X } from 'lucide-react';
+import { Brain, Database, Play, ShieldCheck, FlaskConical, Lock, Globe, ChevronDown, ChevronRight, FileCode2, Trash2, HardDrive, X, AlertTriangle, ListChecks } from 'lucide-react';
 import GeminiAdvisor from './GeminiAdvisor';
 import { AIConfig, AIProvider, AuditReport, AuditExecutionEvidence, ProviderMetrics } from '../types';
 import { buildSmartSample, buildAnalysisPrompt } from '../services/providers/prompts';
@@ -24,6 +24,26 @@ type JsonSectionProps = {
   title: string;
   children: React.ReactNode;
   defaultOpen?: boolean;
+};
+
+export const buildDiagnosisInputSummary = (report: AuditReport) => {
+  const critical = report.issues.filter((issue) => issue.severity === 'critical').length;
+  const warning = report.issues.filter((issue) => issue.severity === 'warning').length;
+  const affectedColumns = new Set(report.issues.map((issue) => issue.column).filter(Boolean)).size;
+  const mainIssue = report.issues
+    .slice()
+    .sort((a, b) => b.affectedPercentage - a.affectedPercentage)[0];
+
+  return {
+    stage: 'Diagnóstico asistido',
+    input: `${report.issues.length} hallazgos estructurados del perfil determinista`,
+    rawDatasetAccess: false,
+    problem: mainIssue
+      ? `${mainIssue.ruleName} en ${mainIssue.column || 'dataset'} afecta ${mainIssue.affectedPercentage.toFixed(2)}% de registros.`
+      : 'No hay hallazgos críticos; el diagnóstico puede documentar estabilidad y riesgos residuales.',
+    risk: `${critical} críticos, ${warning} advertencias, ${affectedColumns} columnas afectadas`,
+    output: 'causas probables, prioridades de limpieza y criterios para generar script',
+  };
 };
 
 const JsonSection: React.FC<JsonSectionProps> = ({ title, children, defaultOpen = false }) => {
@@ -100,6 +120,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
 
   const smartSample = React.useMemo(() => buildSmartSample(report), [report]);
   const diagnosisPrompt = React.useMemo(() => buildAnalysisPrompt(report), [report]);
+  const diagnosisSummary = React.useMemo(() => buildDiagnosisInputSummary(report), [report]);
 
   const handleProviderTypeChange = (type: 'local' | 'cloud') => {
     const models = type === 'local'
@@ -217,12 +238,63 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
 
   return (
     <>
-      {/* ── 1. Configuración del modelo ── */}
+      <section className="diagnosis-stage">
+        <div className="diagnosis-stage-main">
+          <p className="sec-eye">diagnóstico asistido</p>
+          <h2 className="sec-title">Interpretar los problemas de calidad.</h2>
+          <p className="section-note">
+            Esta etapa no vuelve a perfilar el dataset. Recibe los hallazgos estructurados de Perfilar
+            y produce una lectura operativa: causas probables, prioridad de limpieza y criterios para el script.
+          </p>
+        </div>
+        <div className="diagnosis-contract">
+          <div>
+            <span>entrada</span>
+            <strong>{diagnosisSummary.input}</strong>
+          </div>
+          <div>
+            <span>acceso al archivo crudo</span>
+            <strong>No</strong>
+          </div>
+          <div>
+            <span>salida esperada</span>
+            <strong>{diagnosisSummary.output}</strong>
+          </div>
+        </div>
+      </section>
+
       <section className="section">
         <header className="section-header">
           <div>
-            <p className="sec-eye">configuración del modelo</p>
-            <h2 className="sec-title">Elegir modelo para diagnóstico.</h2>
+            <p className="sec-eye">problema observado</p>
+            <h2 className="sec-title">Resumen antes de interpretar.</h2>
+          </div>
+        </header>
+
+        <div className="diagnosis-problem-grid">
+          <article className="diagnosis-problem-card diagnosis-problem-card--primary">
+            <AlertTriangle size={16} />
+            <span>principal señal de calidad</span>
+            <strong>{diagnosisSummary.problem}</strong>
+          </article>
+          <article className="diagnosis-problem-card">
+            <ListChecks size={16} />
+            <span>riesgo agregado</span>
+            <strong>{diagnosisSummary.risk}</strong>
+          </article>
+          <article className="diagnosis-problem-card">
+            <Database size={16} />
+            <span>paquete usado</span>
+            <strong>{report.colCount} columnas, {report.rowCount.toLocaleString('es-CO')} filas, {report.score}/100 score</strong>
+          </article>
+        </div>
+      </section>
+
+      <section className="section">
+        <header className="section-header">
+          <div>
+            <p className="sec-eye">ejecución</p>
+            <h2 className="sec-title">Seleccionar modo de diagnóstico.</h2>
           </div>
         </header>
 
@@ -231,16 +303,16 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
             <>
               <Globe size={14} />
               <div>
-                <strong>Modo cloud</strong>
-                <p>Los datos del paquete de evidencia viajan al proveedor {aiConfig.cloudProvider || 'cloud'}. El modelo es más capaz pero los datos salen de tu dispositivo.</p>
+                <strong>Cloud</strong>
+                <p>Se envía el paquete estructurado, no el archivo completo. Conviene usarlo cuando priorizas capacidad de razonamiento sobre soberanía local.</p>
               </div>
             </>
           ) : (
             <>
               <Lock size={14} />
               <div>
-                <strong>Modo local (WebGPU)</strong>
-                <p>El modelo se ejecuta en tu navegador. Ningún dato sale de tu dispositivo. Capacidad limitada según el modelo disponible.</p>
+                <strong>Local</strong>
+                <p>El diagnóstico se ejecuta en el navegador. Es el modo coherente con privacidad local-first, con límites según el modelo descargado.</p>
               </div>
             </>
           )}
@@ -319,20 +391,19 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
         {onOpenLab && (
           <div className="lab-cta mt-6">
             <FlaskConical size={14} />
-            <span>¿Querés comparar cómo se comporta otro modelo con la misma evidencia?</span>
+            <span>La comparación experimental usa este mismo paquete de entrada para medir latencia, formato y utilidad.</span>
             <button className="btn-s btn-sm" onClick={onOpenLab}>
-              Abrir laboratorio experimental
+              Comparar modelos
             </button>
           </div>
         )}
       </section>
 
-      {/* ── 2. Paquete de evidencia ── */}
       <section className="section">
         <header className="section-header">
           <div>
-            <p className="sec-eye">paquete de evidencia</p>
-            <h2 className="sec-title">Datos que recibe el modelo.</h2>
+            <p className="sec-eye">entrada controlada</p>
+            <h2 className="sec-title">Qué se interpreta.</h2>
           </div>
         </header>
 
@@ -362,7 +433,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
             style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
           >
             {showEvidence ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-            {showEvidence ? 'Ocultar paquete' : 'Ver paquete enviado al modelo'}
+            {showEvidence ? 'Ocultar estructura técnica' : 'Ver estructura técnica'}
           </button>
         </div>
 
@@ -370,12 +441,11 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
           <div className="smart-sample-viewer mt-6">
             <div className="smart-sample-header">
               <div className="smart-sample-title">
-                <Package size={14} />
-                <span>PAQUETE ESTRUCTURADO → MODELO</span>
+                <FileCode2 size={14} />
+                <span>PAQUETE ESTRUCTURADO</span>
               </div>
               <p className="smart-sample-subtitle">
-                JSON que se inyecta en el prompt del LLM. Contiene contexto, columnas observadas
-                y hallazgos con muestras de evidencia.
+                Estructura usada para la interpretación: contexto, columnas observadas y hallazgos con muestras de evidencia.
               </p>
             </div>
             <div className="smart-sample-body">
@@ -398,18 +468,16 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
         )}
       </section>
 
-      {/* ── 3. Ejecutar diagnóstico ── */}
       <section className="section">
         <header className="section-header">
           <div>
-            <p className="sec-eye">diagnóstico asistido</p>
-            <h2 className="sec-title">Explicar los problemas de calidad.</h2>
+            <p className="sec-eye">resultado</p>
+            <h2 className="sec-title">Diagnóstico de causas probables.</h2>
           </div>
         </header>
 
         <p className="section-note">
-          El modelo interpreta los hallazgos estructurados del perfil. No recibe el dataset completo
-          ni puede inventar columnas, valores o relaciones que no estén en el paquete de evidencia.
+          El resultado debe explicar problemas de calidad sin inventar columnas, valores o relaciones fuera del paquete estructurado.
         </p>
 
         <div className="cognitive-grid">
@@ -456,7 +524,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', width: '100%', marginTop: '4px' }}
             >
               <FileCode2 size={12} />
-              {showPrompt ? 'Ocultar prompt' : 'Ver prompt enviado al LLM'}
+              {showPrompt ? 'Ocultar contrato técnico' : 'Ver contrato técnico'}
             </button>
 
             <button
@@ -493,7 +561,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
         <div className="prompt-modal" onClick={() => setShowPrompt(false)}>
           <div className="prompt-modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="prompt-modal-header">
-              <h3>Prompt enviado al LLM</h3>
+              <h3>Contrato técnico de interpretación</h3>
               <button className="prompt-modal-close" onClick={() => setShowPrompt(false)}><X size={14} /></button>
             </div>
             <pre className="prompt-modal-body">{diagnosisPrompt}</pre>

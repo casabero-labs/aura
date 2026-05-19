@@ -11,9 +11,10 @@ La prioridad editorial es:
 
 1. Cerrar el Capitulo 2.
 2. Cerrar el Capitulo 3.
-3. Reemplazar los placeholders del Capitulo 5 por desarrollo real de AURA.
-4. Incluir resultados preliminares defendibles.
-5. Refinar introduccion y dejar conclusiones preliminares.
+3. Integrar Capitulo 4 con marco normativo aplicado a AURA.
+4. Reemplazar los placeholders del Capitulo 5 por desarrollo real de software Tipo 2.
+5. Incluir resultados preliminares defendibles.
+6. Refinar introduccion y dejar conclusiones preliminares.
 
 ## 2. Estructura recomendada del Word
 
@@ -85,33 +86,77 @@ Metodologia:
 
 ### Capitulo 4. Marco normativo
 
-Estado esperado: puede mantenerse con ajustes menores.
+Estado esperado: avance integrado para el borrador intermedio.
 
-Usar este capitulo para justificar privacidad, tratamiento local, gobernanza del dato y uso responsable de IA. Evitar repetir el estado del arte.
+Este capitulo no debe ser un texto generico de plantilla. Debe justificar por que AURA adopta una arquitectura local-first y un flujo human-in-the-loop bajo RGPD, LOPD-GDD, privacidad desde el diseno y gobernanza de IA.
+
+Estructura recomendada:
+
+#### 4.1 Proteccion de datos de caracter personal
+
+Explicar:
+
+- RGPD y LOPD-GDD como marco principal;
+- riesgo de tratar PII en auditorias tecnicas de datos;
+- friccion con plataformas cloud cuando se envian datos crudos;
+- AURA como mitigacion mediante procesamiento local y minimizacion de envio.
+
+Cita sugerida:
+
+- Reglamento (UE) 2016/679;
+- Ley Organica 3/2018;
+- ISO/IEC 25012;
+- IBM Institute for Business Value.
+
+#### 4.2 Minimizacion y procesamiento local
+
+Punto juridico importante:
+
+> No conviene afirmar que AURA queda excluida automaticamente de toda obligacion normativa. Es mas defendible decir que el diseno local-first reduce exposicion, transferencia y dependencia de encargados externos, pero no elimina la necesidad de evaluar el tipo de datos y el contexto de uso.
+
+Incluir:
+
+- minimizacion de datos;
+- procesamiento en navegador;
+- WebAssembly/WebGPU cuando aplique;
+- envio opcional y reducido de paquetes estructurados si se usa cloud;
+- advertencia de que modo cloud requiere cautela adicional.
+
+#### 4.3 Etica en IA y gobernanza
+
+Explicar:
+
+- transparencia;
+- trazabilidad;
+- scripts revisables;
+- revision humana antes de limpieza;
+- prevencion de decisiones opacas o transformaciones no auditadas.
+
+Referencias sugeridas:
+
+- Ruan et al. sobre WebLLM;
+- Trane Technologies sobre estabilidad y alucinaciones;
+- ISO/IEC 25012 para calidad de datos;
+- RGPD y LOPD-GDD para privacidad y responsabilidad.
 
 ### Capitulo 5. Desarrollo especifico de la contribucion
 
 Estado esperado: avance significativo y verificable.
 
-Este capitulo es el centro de la segunda entrega. Debe reemplazar los placeholders actuales del Word.
+Este capitulo es el nucleo de la segunda entrega y debe obedecer la estructura de un TFM Tipo 2: Desarrollo software. El orden correcto no es simplemente "flujo tecnico"; debe partir de requisitos, despues describir la herramienta y finalmente evaluar usabilidad/aplicabilidad.
 
 Estructura recomendada:
 
-#### 5.1 Vision general de AURA
+#### 5.1 Identificacion de requisitos
 
-Explicar el flujo completo:
+Debe incluir el trabajo previo que guia el desarrollo:
 
-1. Carga local del CSV.
-2. Perfilamiento del dataset.
-3. Motor determinista.
-4. Paquete estructurado de hallazgos.
-5. Diagnostico con LLM.
-6. Generacion de script.
-7. Revision humana y simulacion.
-8. Exportacion de evidencia.
-9. Laboratorio experimental local/cloud.
+- problema a tratar: data downtime, datasets estructuralmente degradados, errores silenciosos y deuda de calidad;
+- contexto habitual de uso: auditoria tecnica de CSV antes de analisis, reporting, entrenamiento de modelos o migracion;
+- usuarios objetivo: analistas, data engineers, auditores tecnicos y equipos de datos;
+- restricciones: privacidad, reproducibilidad, interpretabilidad, validacion humana y bajo coste de entrada.
 
-#### 5.2 Requisitos funcionales y no funcionales
+##### 5.1.1 Requisitos funcionales
 
 Requisitos funcionales:
 
@@ -127,6 +172,8 @@ Requisitos funcionales:
 - exportar evidencia;
 - comparar modelos.
 
+##### 5.1.2 Requisitos no funcionales
+
 Requisitos no funcionales:
 
 - local-first;
@@ -136,9 +183,31 @@ Requisitos no funcionales:
 - separacion entre evidencia e interpretacion;
 - control humano antes de acciones destructivas.
 
-#### 5.3 Arquitectura local-first
+#### 5.2 Descripcion de la herramienta software desarrollada
 
-Relacionar con OE1.
+Debe aportar detalles del proceso de desarrollo, fases, hitos, diagramas y capturas.
+
+##### 5.2.1 Proceso de desarrollo, fases e hitos
+
+Organizar como avance incremental:
+
+1. Parser local y perfilamiento del dataset.
+2. Motor determinista reproducible.
+3. Paquete estructurado de hallazgos.
+4. Diagnostico LLM local/cloud.
+5. Generacion y validacion de scripts.
+6. Revision humana y simulacion.
+7. Exportacion de evidencia.
+8. Laboratorio experimental local/cloud.
+
+##### 5.2.2 Arquitectura de 4 capas
+
+Relacionar con OE1-OE4:
+
+- Capa 0: arquitectura local-first y privacidad.
+- Capa 1: motor determinista.
+- Capa 2: diagnostico y generacion de scripts con LLM.
+- Capa 3: gobernanza, revision humana, exportacion y comparacion experimental.
 
 Incluir:
 
@@ -162,7 +231,78 @@ flowchart LR
   D --> I["Laboratorio comparativo"]
 ```
 
-#### 5.4 Motor determinista de auditoria
+##### 5.2.3 Funcionamiento inicial de AURA
+
+Esta subseccion debe incluir capturas de pantalla:
+
+- carga de CSV;
+- etapa Perfilar;
+- familias de reglas deterministas;
+- tabla de hallazgos;
+- paquete estructurado de hallazgos;
+- diagnostico;
+- generacion de script;
+- revision humana;
+- laboratorio experimental.
+
+##### 5.2.4 Componentes tecnicos principales
+
+Describir sin mezclar responsabilidades:
+
+- `csvService.ts`: parsing local;
+- `auditEngine.ts`: motor determinista;
+- `executionEvidence.ts`: trazabilidad;
+- `prompts.ts`: construccion del paquete estructurado;
+- `DiagnosisStep.tsx`: diagnostico asistido;
+- `ScriptGenerationStep.tsx`: generacion de script;
+- `scriptValidationService.ts`: validacion;
+- `ReviewStep.tsx`: HITL y simulacion;
+- `BenchmarkLab.tsx`: comparacion experimental.
+
+#### 5.3 Evaluacion
+
+Debe cubrir al menos usabilidad y aplicabilidad.
+
+##### 5.3.1 Evaluacion de aplicabilidad tecnica
+
+Relacionar con OE2 y resultados preliminares:
+
+- precision, recall y F1 del motor determinista;
+- cantidad de hallazgos;
+- capacidad de exportar evidencia;
+- limitacion: falsos positivos y necesidad de interpretacion asistida.
+
+##### 5.3.2 Evaluacion de usabilidad
+
+Para la segunda entrega puede presentarse como protocolo inicial:
+
+- tarea 1: cargar CSV;
+- tarea 2: interpretar perfil del dataset;
+- tarea 3: localizar hallazgos criticos;
+- tarea 4: generar diagnostico;
+- tarea 5: revisar script;
+- tarea 6: exportar evidencia.
+
+Metricas sugeridas:
+
+- tiempo por tarea;
+- tasa de finalizacion;
+- errores de navegacion;
+- claridad percibida;
+- confianza antes/despues de revisar el script.
+
+##### 5.3.3 Evaluacion del benchmark LLM
+
+Debe tratarse con cuidado:
+
+- el modulo existe en software;
+- mide latencia, formato, alucinaciones, validez de script y score compuesto;
+- aun requiere corridas reales exportadas para que el titulo con "benchmarking de LLMs" sea plenamente defendible;
+- los fallos por API key se reportan como intento fallido, no como resultado.
+
+## 3. Detalle tecnico que debe alimentar el Capitulo 5
+
+### Motor determinista de auditoria
 
 Relacionar con OE2.
 
@@ -185,7 +325,7 @@ Evidencia:
 - `aura_issues_*.csv`;
 - `aura_audit_*.json`.
 
-#### 5.5 Diagnostico y generacion de scripts con LLM
+### Diagnostico y generacion de scripts con LLM
 
 Relacionar con OE3.
 
@@ -211,7 +351,7 @@ Evidencia:
 - validacion del script;
 - simulacion de mejora.
 
-#### 5.6 Modulo de comparacion experimental
+### Modulo de comparacion experimental
 
 Relacionar con OE4.
 
@@ -237,7 +377,7 @@ Evidencia:
 - graficas de score, radar y latencia;
 - `experiments/results/benchmark_multimodelo.json` solo como intento fallido si la API key no es valida.
 
-#### 5.7 Exportacion y trazabilidad
+### Exportacion y trazabilidad
 
 Explicar los artefactos exportables:
 
@@ -281,7 +421,7 @@ Organizar por objetivo:
 - OE3: flujo de diagnostico, script y revision humana integrado.
 - OE4: laboratorio experimental disponible, pendiente de corridas formales completas.
 
-## 3. Evidencia minima que debe anexarse
+## 4. Evidencia minima que debe anexarse
 
 Para que la segunda entrega quede defendible, anexar al documento:
 
@@ -298,7 +438,7 @@ Para que la segunda entrega quede defendible, anexar al documento:
 11. Script aprobado exportado.
 12. JSON de benchmark si se ejecutan modelos.
 
-## 4. Orden recomendado de trabajo
+## 5. Orden recomendado de trabajo
 
 1. Duplicar el Word de primera entrega como documento de segunda entrega.
 2. Actualizar Capitulo 3 con objetivos reordenados y correccion de "precision total".

@@ -328,11 +328,11 @@ const App: React.FC = () => {
 
         {/* Bloque Derecho: Herramientas y Estado (Escritorio) */}
         <div className="nav-system-controls">
-          {/* Indicador Dinámico de Privacidad (OE3/Capa 0/Capa 2) */}
+          {/* Indicador dinámico de privacidad */}
           <div className={`nav-status-pill ${aiConfig.providerType === 'local' ? 'local' : 'cloud'}`}>
             <span className="pulse-dot" />
             <span className="status-label">
-              {aiConfig.providerType === 'local' ? 'CAPA 0: LOCAL-FIRST' : 'CAPA 2: NUBE HÍBRIDA'}
+              {aiConfig.providerType === 'local' ? 'LOCAL-FIRST ACTIVO' : 'MODO CLOUD ACTIVO'}
             </span>
           </div>
 
@@ -340,22 +340,22 @@ const App: React.FC = () => {
 
           {/* Herramientas de Configuración y Utilidades */}
           <div className="nav-tools-group">
-            {/* Trazabilidad (Capa 3) */}
+            {/* Trazabilidad */}
             <button 
               className={`tool-btn ${showAuditLog ? 'active' : ''}`} 
               onClick={() => { setShowAuditLog(true); setShowLab(false); }}
               aria-label="Registro de trazabilidad"
-              title="Registro de Trazabilidad (Capa 3)"
+              title="Registro de trazabilidad"
             >
               <ClipboardList size={15} />
             </button>
 
-            {/* Ajustes de IA (Capa 2) */}
+            {/* Modelos */}
             <button 
               className={`tool-btn ${showSettings ? 'active' : ''}`} 
               onClick={() => setShowSettings(true)} 
-              aria-label="Ajustes de IA"
-              title="Ajustes de IA (Capa 2)"
+              aria-label="Modelos"
+              title="Modelos"
             >
               <Settings size={15} />
             </button>
@@ -402,10 +402,10 @@ const App: React.FC = () => {
             </button>
           )}
           <button className="nav-link" onClick={() => { setShowAuditLog(true); setShowLab(false); setShowMobileNav(false); }}>
-            Trazabilidad (Capa 3)
+            Trazabilidad
           </button>
           <button className="nav-link" onClick={() => { setShowSettings(true); setShowMobileNav(false); }}>
-            Ajustes de IA (Capa 2)
+            Modelos
           </button>
           <button className="nav-link" onClick={() => { setShowHelp(true); setShowMobileNav(false); }}>
             Ayuda
@@ -450,20 +450,20 @@ const App: React.FC = () => {
         {/* Export Section */}
         {report && pipelineState === 'export' && (
           <section className="quote" id="export-section">
-            <p className="quote-text">Informe y evidencia listos para llevar.</p>
-            <p className="quote-attr">Exporta el perfil, la evidencia técnica y los artefactos aprobados.</p>
+            <p className="quote-text">Exportación final de la auditoría.</p>
+            <p className="quote-attr">Descarga el reporte principal y, si lo necesitas, los anexos técnicos para trazabilidad.</p>
             <div className="export-grid">
               <button className="btn-p" onClick={handleDownloadPdf} disabled={isPdfGenerating}>
-                <FileText size={14} /> {isPdfGenerating ? 'Generando' : 'Exportar reporte'}
+                <FileText size={14} /> {isPdfGenerating ? 'Generando reporte' : 'Reporte PDF'}
               </button>
               <button className="btn-s" onClick={handleExportJson}>
-                <FileJson size={14} /> JSON audit
+                <FileJson size={14} /> Anexo JSON
               </button>
               <button className="btn-s" onClick={handleExportIssuesCsv}>
-                <Download size={14} /> CSV issues
+                <Download size={14} /> Hallazgos CSV
               </button>
               <button className="btn-s" onClick={handleExportApprovedScript} disabled={!approvedCleaningScript}>
-                <FileCode2 size={14} /> Script aprobado
+                <FileCode2 size={14} /> Script final
               </button>
             </div>
             <div className="export-summary">
