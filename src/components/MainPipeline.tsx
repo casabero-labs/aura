@@ -20,6 +20,10 @@ import { parseCsv } from '../services/csvService';
 import { buildAuditEvidence, createTraceRecorder, fingerprintDataset } from '../services/executionEvidence';
 import { buildSmartSample } from '../services/providers/prompts';
 import { AIConfig, AIProvider, AuditReport, AuditExecutionEvidence, HealthDelta, ProviderMetrics, ScriptValidationResult } from '../types';
+import DatasetProfile from './DatasetProfile';
+import RuleActivationMatrix from './RuleActivationMatrix';
+import SmartSampleViewer from './SmartSampleViewer';
+import DiagnosticTerminal from './DiagnosticTerminal';
 
 export type PipelineState = 'upload' | 'diagnostic' | 'analysis' | 'review' | 'export';
 
@@ -199,33 +203,32 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, onLog
         </section>
       )}
 
-      {/* ── Step 2: Diagnostic ── */}
-      {state === 'diagnostic' && report && (
+      {/* ── Step 2: Diagnostic — TRANSPARENCIA TOTAL ── */}
+      {state === 'diagnostic' && report && auditEvidence && (
         <>
-          <section className="stats">
-            <div className="stat"><p className="stat-lbl">registros</p><p className="stat-num">{report.rowCount}</p><p className="stat-sub">dataset activo</p></div>
-            <div className="stat"><p className="stat-lbl">anomalías</p><p className="stat-num">{report.issues.length}</p><p className="stat-sub">detectadas</p></div>
-            <div className="stat"><p className="stat-lbl">score</p><p className="stat-num">{report.score}%</p><p className="stat-sub">motor determinista</p></div>
+          {/* 1. Perfil completo del dataset */}
+          <DatasetProfile
+            report={report}
+            fileName={file?.name}
+            fileSize={file?.size}
+            parseDurationMs={auditEvidence.parseDurationMs}
+            auditDurationMs={auditEvidence.auditDurationMs}
+            datasetFingerprint={auditEvidence.datasetFingerprint}
+          />
+
+          {/* 2. Perfil estadístico completo por columna (expandible) */}
+          <section className="section" id="column-profile">
+            <ColumnStatsPanel columnStats={report.columnStats} />
           </section>
 
-          <section className="term" aria-label="Bitácora de ejecución">
-            <div className="term-bar">
-              <div className="term-dot" /><div className="term-dot" /><div className="term-dot" />
-              <span className="term-label">tail -f aura.pipeline.log</span>
-              <code>{auditEvidence?.datasetFingerprint || 'trace.ready()'}</code>
-            </div>
-            <div className="term-body">
-              {terminalRows.map((row, index) => (
-                <span className="tl" key={`${row.time}-${index}`}>
-                  <span className="ts">{row.time}</span>
-                  <span className="pr">→</span>
-                  <span className="ok">{row.msg}</span>
-                  {index === terminalRows.length - 1 && isProcessing && <span className="cursor" />}
-                </span>
-              ))}
-            </div>
-          </section>
+          {/* 3. BoxPlot IQR por columna numérica */}
+          {Object.values(report.columnStats).some(c => c.inferredType === 'number' && c.iqr && c.iqr > 0) && (
+            <section className="section" id="boxplot">
+              <BoxPlot columnStats={report.columnStats} />
+            </section>
+          )}
 
+          {/* 4. Score global con breakdown */}
           <section className="section" id="diagnostic-results">
             <div className="section-header">
               <div>
@@ -254,24 +257,12 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, onLog
             </div>
           </section>
 
-          {auditEvidence && <ExecutionEvidencePanel evidence={auditEvidence} />}
-
-          {checklistSteps.length > 0 && (
-            <PipelineChecklist steps={checklistSteps} />
-          )}
-
-          {/* ── Column Profile: tipado semántico + IQR ── */}
-          <section className="section" id="column-profile">
-            <ColumnStatsPanel columnStats={report.columnStats} />
+          {/* 5. Matriz de activación de reglas (completa, expandible) */}
+          <section className="section" id="rule-matrix">
+            <RuleActivationMatrix issues={report.issues} rowCount={report.rowCount} />
           </section>
 
-          {/* ── Box Plot: distribución IQR ── */}
-          {Object.values(report.columnStats).some(c => c.inferredType === 'number' && c.iqr && c.iqr > 0) && (
-            <section className="section" id="boxplot">
-              <BoxPlot columnStats={report.columnStats} />
-            </section>
-          )}
-
+          {/* 6. Lista de issues por categoría */}
           {report.issues.length > 0 && (
             <section className="section" id="issues-list">
               <div className="section-header">
@@ -280,6 +271,25 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, onLog
               </div>
               <IssueList issues={report.issues} />
             </section>
+          )}
+
+          {/* 7. Terminal de diagnóstico rule-by-rule */}
+          <DiagnosticTerminal
+            report={report}
+            auditDurationMs={auditEvidence.auditDurationMs}
+          />
+
+          {/* 8. Smart Sample — JSON exacto enviado a Capa 2 */}
+          <section className="section" id="smart-sample">
+            <SmartSampleViewer report={report} />
+          </section>
+
+          {/* 9. Bitácora de ejecución en vivo */}
+          <ExecutionEvidencePanel evidence={auditEvidence} />
+
+          {/* 10. Pipeline Checklist — carta abierta */}
+          {checklistSteps.length > 0 && (
+            <PipelineChecklist steps={checklistSteps} />
           )}
         </>
       )}
