@@ -3,10 +3,12 @@ import { ArrowRight, CheckCircle2, FileCode2, ShieldAlert, ShieldCheck, Triangle
 import { AIProvider, AuditReport, ProviderMetrics, ScriptValidationResult } from '../types';
 import { highlightPython } from '../services/highlightPython';
 import { buildDeterministicCleaningScript, buildFallbackScriptMetrics } from '../services/deterministicScriptBuilder';
+import { buildScriptPrompt, extractPythonScript } from '../services/providers/prompts';
 
 interface ScriptGenerationStepProps {
   report: AuditReport;
   aiProvider: AIProvider;
+  diagnosisText: string;
   cleaningScript: string;
   scriptValidation: ScriptValidationResult | null;
   onScriptGenerated: (script: string, metrics: ProviderMetrics) => void;
@@ -17,6 +19,7 @@ interface ScriptGenerationStepProps {
 const ScriptGenerationStep: React.FC<ScriptGenerationStepProps> = ({
   report,
   aiProvider,
+  diagnosisText,
   cleaningScript,
   scriptValidation,
   onScriptGenerated,
@@ -45,14 +48,23 @@ const ScriptGenerationStep: React.FC<ScriptGenerationStepProps> = ({
     setStreamingText('');
     setStreamingMetrics(null);
     setScriptOrigin(null);
-    onLog?.('script', 'Generando script de limpieza (streaming)');
+    onLog?.('script', 'Generando script desde diagnostico previo y paquete estructurado');
+
+    if (!diagnosisText.trim()) {
+      const msg = 'Primero genera el diagnóstico. El script usa ese análisis como anclaje semántico y no debe crear un análisis nuevo.';
+      setError(msg);
+      setIsLoading(false);
+      onLog?.('script', msg);
+      return;
+    }
 
     try {
-      const { content, metrics } = await aiProvider.generateExecutiveReportStream(report, (chunk) => {
-        setStreamingText((prev) => prev + chunk);
-      });
+      const prompt = buildScriptPrompt(report, diagnosisText);
+      const { text, metrics } = await aiProvider.generateText(prompt);
+      setStreamingText(text);
+      const pythonScript = extractPythonScript(text);
 
-      if (!content.python_script) {
+      if (!pythonScript || !pythonScript.includes('clean_dataset')) {
         const msg = 'El modelo no entregó un script Python/Pandas estructurado; AURA generó un script base determinista para revisión.';
         setError(msg);
         useFallbackScript('sin python_script');
@@ -60,9 +72,9 @@ const ScriptGenerationStep: React.FC<ScriptGenerationStepProps> = ({
       }
 
       setScriptOrigin('model');
-      onScriptGenerated(content.python_script, metrics);
+      onScriptGenerated(pythonScript, metrics);
       setStreamingMetrics(metrics);
-      onLog?.('script', `Script generado · ${content.python_script.split('\n').length} líneas · ${metrics.latencyMs}ms`);
+      onLog?.('script', `Script generado desde diagnóstico · ${pythonScript.split('\n').length} líneas · ${metrics.latencyMs}ms`);
     } catch (err: any) {
       const msg = err?.message ?? 'Error desconocido generando script';
       setError(`No se pudo usar la salida del modelo. AURA generó un script base determinista para no bloquear el flujo. Detalle: ${msg}`);
@@ -70,7 +82,9 @@ const ScriptGenerationStep: React.FC<ScriptGenerationStepProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [aiProvider, isLoading, onLog, onScriptGenerated, report, useFallbackScript]);
+  }, [aiProvider, diagnosisText, isLoading, onLog, onScriptGenerated, report, useFallbackScript]);
+
+  const scriptPromptPreview = React.useMemo(() => buildScriptPrompt(report, diagnosisText), [report, diagnosisText]);
 
   const validationItems = scriptValidation ? [
     {
@@ -110,14 +124,18 @@ const ScriptGenerationStep: React.FC<ScriptGenerationStepProps> = ({
           </div>
         </header>
         <p className="section-note">
-          El script no corrige el dataset automáticamente. AURA propone transformaciones Pandas sobre una copia,
-          valida su trazabilidad y obliga a revisión humana antes de simular impacto.
+          El script no nace de un análisis nuevo. Usa el diagnóstico previo, el paquete estructurado y el anclaje semántico
+          de la Capa 2 para producir transformaciones Pandas revisables bajo paradigma copy-paste.
         </p>
 
         <div className="benchmark-protocol mt-6">
           <div>
             <span>hallazgos base</span>
             <strong>{report.issues.length}</strong>
+          </div>
+          <div>
+            <span>diagnóstico previo</span>
+            <strong>{diagnosisText.trim() ? 'disponible' : 'requerido'}</strong>
           </div>
           <div>
             <span>origen</span>
@@ -130,7 +148,14 @@ const ScriptGenerationStep: React.FC<ScriptGenerationStepProps> = ({
         </div>
 
         <div className="mt-6">
-          <button className="btn-p" onClick={generateScript} disabled={isLoading}>
+          <details className="script-contract-details">
+            <summary>Ver contrato usado para generar script</summary>
+            <pre>{scriptPromptPreview}</pre>
+          </details>
+        </div>
+
+        <div className="mt-6">
+          <button className="btn-p" onClick={generateScript} disabled={isLoading || !diagnosisText.trim()}>
             <FileCode2 size={14} />
             {isLoading ? 'Generando' : cleaningScript ? 'Regenerar script' : 'Generar script'}
           </button>

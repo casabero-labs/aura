@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Brain, Database, Play, ShieldCheck, FlaskConical, Lock, Globe, ChevronDown, ChevronRight, FileCode2, Trash2, HardDrive, X, AlertTriangle, ListChecks } from 'lucide-react';
+import { Brain, Database, Play, ShieldCheck, FlaskConical, Lock, Globe, ChevronDown, ChevronRight, FileCode2, Trash2, HardDrive, X, AlertTriangle, ListChecks, FileJson, FileText } from 'lucide-react';
 import GeminiAdvisor from './GeminiAdvisor';
 import { AIConfig, AIProvider, AuditReport, AuditExecutionEvidence, ProviderMetrics } from '../types';
 import { buildSmartSample, buildAnalysisPrompt } from '../services/providers/prompts';
@@ -123,8 +123,77 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
   }, [analysisText]);
 
   const smartSample = React.useMemo(() => buildSmartSample(report), [report]);
-  const diagnosisPrompt = React.useMemo(() => buildAnalysisPrompt(report), [report]);
+  const diagnosisPrompt = React.useMemo(() => buildAnalysisPrompt(report, aiConfig.promptContract), [report, aiConfig.promptContract]);
   const diagnosisSummary = React.useMemo(() => buildDiagnosisInputSummary(report), [report]);
+
+  const downloadTextFile = (filename: string, content: string, type: string) => {
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const exportDiagnosisJson = () => {
+    if (!draftAnalysis.trim()) return;
+    downloadTextFile(
+      `aura_diagnostico_llm_${Date.now()}.json`,
+      JSON.stringify({
+        provider: aiConfig.providerType,
+        model: aiConfig.model,
+        temperature: aiConfig.temperature,
+        promptHash: computePromptHash(diagnosisPrompt),
+        datasetFingerprint: auditEvidence?.datasetFingerprint,
+        inputSummary: diagnosisSummary,
+        smartSample,
+        diagnosis: draftAnalysis,
+        metrics: lastMetrics,
+      }, null, 2),
+      'application/json;charset=utf-8',
+    );
+  };
+
+  const exportDiagnosisPdf = async () => {
+    if (!draftAnalysis.trim()) return;
+    const { jsPDF } = await import('jspdf');
+    const doc = new jsPDF();
+    const margin = 16;
+    const width = doc.internal.pageSize.getWidth() - margin * 2;
+    let y = 18;
+    const draw = (text: string, size = 10, gap = 6) => {
+      doc.setFontSize(size);
+      const lines = doc.splitTextToSize(text, width);
+      lines.forEach((line: string) => {
+        if (y > 280) {
+          doc.addPage();
+          y = 18;
+        }
+        doc.text(line, margin, y);
+        y += gap;
+      });
+    };
+
+    doc.setFont('helvetica', 'bold');
+    draw('AURA - Reporte de diagnostico LLM', 15, 8);
+    doc.setFont('helvetica', 'normal');
+    draw(`Modelo: ${aiConfig.model} · Proveedor: ${aiConfig.providerType} · Score: ${report.score}/100`, 9, 5);
+    draw(`Prompt hash: ${computePromptHash(diagnosisPrompt)}`, 8, 5);
+    y += 4;
+    doc.setFont('helvetica', 'bold');
+    draw('Problema observado', 11, 6);
+    doc.setFont('helvetica', 'normal');
+    draw(diagnosisSummary.problem, 9, 5);
+    y += 3;
+    doc.setFont('helvetica', 'bold');
+    draw('Diagnostico generado', 11, 6);
+    doc.setFont('helvetica', 'normal');
+    draw(draftAnalysis.replace(/[#*_`]/g, ''), 9, 5);
+    doc.save(`aura_diagnostico_llm_${Date.now()}.pdf`);
+  };
 
   const handleProviderTypeChange = (type: 'local' | 'cloud') => {
     const models = type === 'local'
@@ -173,17 +242,16 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
     setDraftAnalysis('');
     let finalText = '';
 
-    const prompt = buildAnalysisPrompt(report);
+    const prompt = diagnosisPrompt;
     const promptHash = computePromptHash(prompt);
     const inputHash = computeInputHash(report);
 
     onLog?.('diagnosis', `Iniciando diagnóstico con ${aiConfig.model} (${aiConfig.providerType})`);
 
     try {
-      const metrics = await aiProvider.analyzeStream(report, (chunk) => {
-        finalText += chunk;
-        setDraftAnalysis(finalText);
-      });
+      const { text, metrics } = await aiProvider.generateText(prompt);
+      finalText = text;
+      setDraftAnalysis(text);
       setLastMetrics(metrics);
       onMetrics?.(metrics);
       onAnalysisComplete(finalText);
@@ -238,7 +306,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [aiConfig.model, aiConfig.providerType, aiConfig.cloudProvider, aiConfig.temperature, aiProvider, isLoading, onAnalysisComplete, onLog, onMetrics, report, auditEvidence]);
+  }, [aiConfig.model, aiConfig.providerType, aiConfig.cloudProvider, aiConfig.temperature, aiProvider, isLoading, onAnalysisComplete, onLog, onMetrics, report, auditEvidence, diagnosisPrompt]);
 
   const isCloud = aiConfig.providerType === 'cloud';
 
@@ -299,8 +367,77 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
       <section className="section">
         <header className="section-header">
           <div>
-            <p className="sec-eye">ejecución</p>
-            <h2 className="sec-title">Seleccionar modo de diagnóstico.</h2>
+            <p className="sec-eye">entrada controlada</p>
+            <h2 className="sec-title">Qué se interpreta.</h2>
+          </div>
+        </header>
+
+        <div className="benchmark-protocol mt-6">
+          <div>
+            <span>filas del dataset</span>
+            <strong>{report.rowCount.toLocaleString('es-CO')}</strong>
+          </div>
+          <div>
+            <span>columnas observadas</span>
+            <strong>{report.colCount}</strong>
+          </div>
+          <div>
+            <span>score de calidad</span>
+            <strong>{report.score}/100</strong>
+          </div>
+          <div>
+            <span>reglas activadas</span>
+            <strong>{report.issues.length}</strong>
+          </div>
+        </div>
+
+        <div className="mt-6">
+          <button
+            className="btn-s"
+            onClick={() => setShowEvidence(!showEvidence)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+          >
+            {showEvidence ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+            {showEvidence ? 'Ocultar estructura técnica' : 'Ver estructura técnica'}
+          </button>
+        </div>
+
+        {showEvidence && (
+          <div className="smart-sample-viewer mt-6">
+            <div className="smart-sample-header">
+              <div className="smart-sample-title">
+                <FileCode2 size={14} />
+                <span>PAQUETE ESTRUCTURADO</span>
+              </div>
+              <p className="smart-sample-subtitle">
+                Estructura usada para la interpretación: contexto, columnas observadas y hallazgos con muestras de evidencia.
+              </p>
+            </div>
+            <div className="smart-sample-body">
+              <JsonSection title={`context — ${Object.keys(smartSample.context).length} campos`} defaultOpen>
+                <div className="json-kv">
+                  <span className="json-line"><span className="json-key">"total_rows"</span>: <span className="json-number">{smartSample.context.total_rows}</span>,</span>
+                  <span className="json-line"><span className="json-key">"total_columns"</span>: <span className="json-number">{smartSample.context.total_columns}</span>,</span>
+                  <span className="json-line"><span className="json-key">"detected_delimiter"</span>: <span className="json-string">"{smartSample.context.detected_delimiter}"</span>,</span>
+                  <span className="json-line"><span className="json-key">"quality_score"</span>: <span className="json-number">{smartSample.context.quality_score}</span></span>
+                </div>
+              </JsonSection>
+              <JsonSection title={`columns — ${smartSample.columns.length} columnas`}>
+                <pre className="json-raw">{JSON.stringify(smartSample.columns, null, 2)}</pre>
+              </JsonSection>
+              <JsonSection title={`detected_issues — ${smartSample.detected_issues.length} reglas activadas`}>
+                <pre className="json-raw">{JSON.stringify(smartSample.detected_issues, null, 2)}</pre>
+              </JsonSection>
+            </div>
+          </div>
+        )}
+      </section>
+
+      <section className="section">
+        <header className="section-header">
+          <div>
+            <p className="sec-eye">modelo e interpretación</p>
+            <h2 className="sec-title">Diagnóstico de causas probables.</h2>
           </div>
         </header>
 
@@ -408,84 +545,6 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
             </button>
           </div>
         )}
-      </section>
-
-      <section className="section">
-        <header className="section-header">
-          <div>
-            <p className="sec-eye">entrada controlada</p>
-            <h2 className="sec-title">Qué se interpreta.</h2>
-          </div>
-        </header>
-
-        <div className="benchmark-protocol mt-6">
-          <div>
-            <span>filas del dataset</span>
-            <strong>{report.rowCount.toLocaleString('es-CO')}</strong>
-          </div>
-          <div>
-            <span>columnas observadas</span>
-            <strong>{report.colCount}</strong>
-          </div>
-          <div>
-            <span>score de calidad</span>
-            <strong>{report.score}/100</strong>
-          </div>
-          <div>
-            <span>reglas activadas</span>
-            <strong>{report.issues.length}</strong>
-          </div>
-        </div>
-
-        <div className="mt-6">
-          <button
-            className="btn-s"
-            onClick={() => setShowEvidence(!showEvidence)}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
-          >
-            {showEvidence ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-            {showEvidence ? 'Ocultar estructura técnica' : 'Ver estructura técnica'}
-          </button>
-        </div>
-
-        {showEvidence && (
-          <div className="smart-sample-viewer mt-6">
-            <div className="smart-sample-header">
-              <div className="smart-sample-title">
-                <FileCode2 size={14} />
-                <span>PAQUETE ESTRUCTURADO</span>
-              </div>
-              <p className="smart-sample-subtitle">
-                Estructura usada para la interpretación: contexto, columnas observadas y hallazgos con muestras de evidencia.
-              </p>
-            </div>
-            <div className="smart-sample-body">
-              <JsonSection title={`context — ${Object.keys(smartSample.context).length} campos`} defaultOpen>
-                <div className="json-kv">
-                  <span className="json-line"><span className="json-key">"total_rows"</span>: <span className="json-number">{smartSample.context.total_rows}</span>,</span>
-                  <span className="json-line"><span className="json-key">"total_columns"</span>: <span className="json-number">{smartSample.context.total_columns}</span>,</span>
-                  <span className="json-line"><span className="json-key">"detected_delimiter"</span>: <span className="json-string">"{smartSample.context.detected_delimiter}"</span>,</span>
-                  <span className="json-line"><span className="json-key">"quality_score"</span>: <span className="json-number">{smartSample.context.quality_score}</span></span>
-                </div>
-              </JsonSection>
-              <JsonSection title={`columns — ${smartSample.columns.length} columnas`}>
-                <pre className="json-raw">{JSON.stringify(smartSample.columns, null, 2)}</pre>
-              </JsonSection>
-              <JsonSection title={`detected_issues — ${smartSample.detected_issues.length} reglas activadas`}>
-                <pre className="json-raw">{JSON.stringify(smartSample.detected_issues, null, 2)}</pre>
-              </JsonSection>
-            </div>
-          </div>
-        )}
-      </section>
-
-      <section className="section">
-        <header className="section-header">
-          <div>
-            <p className="sec-eye">resultado</p>
-            <h2 className="sec-title">Diagnóstico de causas probables.</h2>
-          </div>
-        </header>
 
         <p className="section-note">
           El resultado debe explicar problemas de calidad sin inventar columnas, valores o relaciones fuera del paquete estructurado.
@@ -552,6 +611,15 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
                 Proveedor no disponible. Revisa la configuración.
               </p>
             )}
+
+            <div className="diagnosis-export-actions">
+              <button className="btn-s" onClick={exportDiagnosisPdf} disabled={!draftAnalysis.trim()}>
+                <FileText size={12} /> PDF
+              </button>
+              <button className="btn-s" onClick={exportDiagnosisJson} disabled={!draftAnalysis.trim()}>
+                <FileJson size={12} /> JSON
+              </button>
+            </div>
           </aside>
         </div>
       </section>

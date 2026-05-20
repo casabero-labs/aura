@@ -8,7 +8,7 @@
  * Mecanismos: M2 (Anclaje Semántico), M3 (Copy-Paste), M4 (Cadena Forzada)
  */
 
-import { AuditReport } from '../../types';
+import { AuditReport, PromptContractConfig } from '../../types';
 
 /**
  * Construye el "Smart Sample" — el registro de datos mejorado
@@ -43,18 +43,63 @@ export const buildSmartSample = (report: AuditReport) => ({
   }))
 });
 
+export const DEFAULT_PROMPT_CONTRACT: PromptContractConfig = {
+  objective: 'Diagnosticar causas probables y producir una salida lista para generar un script Python/Pandas de limpieza asistida.',
+  evidencePolicy: 'strict',
+  requireScriptReadiness: true,
+  includeHumanReviewLabels: true,
+  includeCopyPasteEvidence: true,
+  extraInstructions: '',
+};
+
+export const normalizePromptContract = (contract?: PromptContractConfig): PromptContractConfig => ({
+  ...DEFAULT_PROMPT_CONTRACT,
+  ...(contract || {}),
+  objective: contract?.objective?.trim() || DEFAULT_PROMPT_CONTRACT.objective,
+});
+
 /**
  * Prompt de analisis streaming.
  * Contrato de evidencia: el LLM explica hallazgos deterministas sin inventar.
  */
-export const buildAnalysisPrompt = (report: AuditReport): string => {
+export const buildAnalysisPrompt = (report: AuditReport, contract?: PromptContractConfig): string => {
+  const promptContract = normalizePromptContract(contract);
   const jsonSummary = buildSmartSample(report);
   const json_data = JSON.stringify(jsonSummary, null, 2);
+  const evidenceMode = promptContract.evidencePolicy === 'strict'
+    ? 'Politica estricta: solo puedes razonar sobre columnas, reglas, muestras y estadisticas presentes en el JSON observado.'
+    : 'Politica balanceada: puedes proponer hipotesis, pero deben quedar separadas como no validadas y nunca sustituir la evidencia determinista.';
+  const copyPasteRule = promptContract.includeCopyPasteEvidence
+    ? '- M4 Copy-Paste: cuando exista evidencia en bad_samples o sample_values, cita valores textuales del paquete para anclar la interpretacion.\n'
+    : '';
+  const hitlRule = promptContract.includeHumanReviewLabels
+    ? '- Etiqueta como "requiere revision humana" toda accion ambigua, destructiva, sensible o dependiente del dominio.\n'
+    : '';
+  const scriptReadiness = promptContract.requireScriptReadiness
+    ? `
+## Criterios para generar script
+Entrega una lista operativa que pueda ser usada por el siguiente paso para generar Python/Pandas:
+- Accion Pandas sugerida:
+- Columna exacta:
+- Regla que justifica la accion:
+- Riesgo de aplicar automaticamente:
+- Condicion HITL:
+No escribas codigo aqui; deja la decision preparada para el modulo de script.
+`
+    : '';
+  const extraInstructions = promptContract.extraInstructions?.trim()
+    ? `\nInstrucciones guiadas adicionales:\n${promptContract.extraInstructions.trim()}\n`
+    : '';
 
   return `
 Actua como revisor tecnico de calidad de datos para un trabajo academico. Tu tarea NO es impresionar ni descubrir defectos imaginarios: tu tarea es explicar la evidencia disponible de forma reproducible.
 
+Objetivo del contrato:
+${promptContract.objective}
+
 Recibiras un resumen JSON generado por el motor determinista de AURA. El JSON contiene solo columnas observadas, tipos inferidos, estadisticas basicas y reglas activadas. No tienes acceso al CSV completo.
+
+${evidenceMode}
 
 JSON observado:
 ${json_data}
@@ -66,6 +111,7 @@ Reglas obligatorias de honestidad:
 - Si una recomendacion requiere criterio humano o conocimiento de dominio, etiquetala como "requiere revision humana".
 - Cita siempre la regla determinista, la columna y la evidencia disponible cuando exista.
 - No generes script Python en esta respuesta. El script se genera en otro paso con validacion HITL.
+${copyPasteRule}${hitlRule}${extraInstructions}
 
 Formato obligatorio:
 
@@ -89,11 +135,60 @@ Separa en:
 - Requieren revision humana.
 - No recomendadas por falta de evidencia.
 
+${scriptReadiness}
+
 ## Limites de la respuesta
 Explica en 2-3 bullets que este LLM no sustituye el motor determinista, que no vio el dataset completo y que sus inferencias no cuentan como evidencia experimental formal.
 
 Responde en español, con tono sobrio, academico y verificable.
   `;
+};
+
+export const buildScriptPrompt = (
+  report: AuditReport,
+  diagnosisText: string,
+  contract?: PromptContractConfig,
+): string => {
+  const promptContract = normalizePromptContract(contract);
+  const jsonSummary = buildSmartSample(report);
+
+  return `
+Actua como ingeniero de datos senior. Debes generar un script Python/Pandas de limpieza asistida para AURA usando SOLO:
+1. El paquete estructurado del motor determinista.
+2. El diagnostico previo del LLM.
+
+No hagas un nuevo diagnostico. No inventes columnas. No agregues librerias innecesarias. No elimines columnas automaticamente. Todo cambio ambiguo debe quedar comentado como HITL.
+
+Contrato cognitivo:
+- Capa 2 con anclaje semantico: el script debe estar anclado a reglas, columnas y muestras observadas.
+- M4 Copy-Paste: copia nombres de columnas exactamente como aparecen en el paquete.
+- Paradigma copy-paste: cada bloque del script debe incluir comentario con regla fuente y columna fuente.
+- Privacidad local-first: el script trabaja sobre un dataframe df ya cargado; no lee rutas externas ni envia datos a red.
+- Objetivo del diagnostico usado: ${promptContract.objective}
+
+Paquete estructurado:
+${JSON.stringify(jsonSummary, null, 2)}
+
+Diagnostico previo:
+${diagnosisText || 'No hay diagnostico previo disponible.'}
+
+Formato obligatorio de salida:
+Devuelve solo un bloque de codigo Python. El script debe:
+- importar pandas y numpy;
+- definir una funcion clean_dataset(df: pd.DataFrame) -> pd.DataFrame;
+- crear df_clean = df.copy();
+- aplicar solo operaciones trazables a columnas existentes;
+- conservar comentarios # AURA: regla=... columna=...;
+- no ejecutar archivos, no leer CSV, no escribir disco;
+- terminar con return df_clean.
+`;
+};
+
+export const extractPythonScript = (text: string): string => {
+  const fenced = text.match(/```(?:python|py)?\s*([\s\S]*?)```/i);
+  const candidate = fenced ? fenced[1] : text;
+  const start = candidate.indexOf('import ');
+  return (start >= 0 ? candidate.slice(start) : candidate).trim();
 };
 
 /**

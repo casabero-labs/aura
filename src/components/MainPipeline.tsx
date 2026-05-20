@@ -192,6 +192,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, onLog
         <ScriptGenerationStep
           report={report}
           aiProvider={aiProvider}
+          diagnosisText={aiAnalysis}
           cleaningScript={cleaningScript}
           scriptValidation={scriptValidation}
           onScriptGenerated={(script, metrics: ProviderMetrics) => {

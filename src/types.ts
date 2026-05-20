@@ -113,6 +113,15 @@ export interface ModelDownloadState {
   message: string;
 }
 
+export interface PromptContractConfig {
+  objective: string;
+  evidencePolicy: 'strict' | 'balanced';
+  requireScriptReadiness: boolean;
+  includeHumanReviewLabels: boolean;
+  includeCopyPasteEvidence: boolean;
+  extraInstructions?: string;
+}
+
 export interface AIConfig {
   model: string;
   temperature: number;
@@ -121,6 +130,7 @@ export interface AIConfig {
   cloudProvider?: CloudProvider;
   apiKey?: string;
   modelDownloadState?: Record<string, ModelDownloadState>;
+  promptContract?: PromptContractConfig;
 }
 
 export type CloudProvider = 'google' | 'groq' | 'deepseek' | 'openrouter' | 'minimax' | 'nvidia';

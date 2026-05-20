@@ -3,6 +3,7 @@ import { createAIProvider } from './aiProvider';
 import { detectHallucinations } from './benchmark/hallucinationDetector';
 import { createTraceRecorder, fingerprintReport } from './executionEvidence';
 import { deriveEvidenceStatus } from './improvementService';
+import { buildAnalysisPrompt, buildScriptPrompt, extractPythonScript } from './providers/prompts';
 import { validateCleaningScript } from './scriptValidationService';
 
 const buildLoosePrompt = (report: AuditReport): string => {
@@ -134,35 +135,47 @@ export const runBenchmarkForConfig = async (
       };
     }
 
-    mark('provider.generateExecutiveReport.start');
-    const { content, metrics } = await provider.generateExecutiveReport(report);
-    mark('provider.generateExecutiveReport.end', {
-      latencyMs: metrics.latencyMs,
-      firstTokenMs: metrics.firstTokenMs,
-      tokensGenerated: metrics.tokensGenerated,
-      hasPythonScript: Boolean(content.python_script),
-      remediationActions: content.remediation_actions?.length || 0,
+    mark('provider.diagnosisContract.start');
+    const diagnosisPrompt = buildAnalysisPrompt(report, config.promptContract);
+    const { text: diagnosisText, metrics: diagnosisMetrics } = await provider.generateText(diagnosisPrompt);
+    mark('provider.diagnosisContract.end', {
+      latencyMs: diagnosisMetrics.latencyMs,
+      firstTokenMs: diagnosisMetrics.firstTokenMs,
+      tokensGenerated: diagnosisMetrics.tokensGenerated,
+      outputChars: diagnosisText.length,
     });
-    const script = content.python_script || '';
-    const serializedContent = JSON.stringify(content);
-    const tokensPerSecond = metrics.latencyMs > 0
-      ? Number((metrics.tokensGenerated / (metrics.latencyMs / 1000)).toFixed(2))
+
+    mark('provider.scriptContract.start');
+    const scriptPrompt = buildScriptPrompt(report, diagnosisText, config.promptContract);
+    const { text: scriptText, metrics: scriptMetrics } = await provider.generateText(scriptPrompt);
+    mark('provider.scriptContract.end', {
+      latencyMs: scriptMetrics.latencyMs,
+      firstTokenMs: scriptMetrics.firstTokenMs,
+      tokensGenerated: scriptMetrics.tokensGenerated,
+      outputChars: scriptText.length,
+    });
+
+    const script = extractPythonScript(scriptText);
+    const serializedContent = JSON.stringify({ diagnosisText, script });
+    const totalLatencyMs = diagnosisMetrics.latencyMs + scriptMetrics.latencyMs;
+    const totalTokens = diagnosisMetrics.tokensGenerated + scriptMetrics.tokensGenerated;
+    const firstTokenMs = diagnosisMetrics.firstTokenMs || scriptMetrics.firstTokenMs;
+    const tokensPerSecond = totalLatencyMs > 0
+      ? Number((totalTokens / (totalLatencyMs / 1000)).toFixed(2))
       : 0;
     const hallucinationReport = detectHallucinations(report, serializedContent, script);
     const scriptValidation = validateCleaningScript(report, script);
     const result: BenchmarkResult = {
       ...baseResult,
       status: 'completed',
-      latencyMs: metrics.latencyMs,
-      firstTokenMs: metrics.firstTokenMs,
-      tokensGenerated: metrics.tokensGenerated,
+      latencyMs: totalLatencyMs,
+      firstTokenMs,
+      tokensGenerated: totalTokens,
       tokensPerSecond,
       formatCompliance: Boolean(
-        content.title &&
-        content.domain_inferred &&
-        content.executive_summary &&
-        Array.isArray(content.key_findings) &&
-        Array.isArray(content.recommendations)
+        diagnosisText.includes('## Estado de ejecucion') ||
+        diagnosisText.includes('## Hallazgos respaldados') ||
+        diagnosisText.includes('## Criterios para generar script')
       ),
       pythonScriptIncluded: script.includes('import pandas') || script.includes('pd.'),
       hallucinatedColumns: hallucinationReport.hallucinatedColumns,
@@ -177,7 +190,7 @@ export const runBenchmarkForConfig = async (
       scriptValidation,
       completedAt: new Date().toISOString(),
       executionTrace: trace.events,
-      timestamp: metrics.timestamp
+      timestamp: scriptMetrics.timestamp
     };
 
     return {

@@ -5827,3 +5827,146 @@
   opacity: 0.3;
   cursor: not-allowed;
 }
+
+.prompt-contract-editor {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.prompt-contract-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.prompt-contract-head strong {
+  display: block;
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.prompt-contract-head p,
+.prompt-contract-hint {
+  margin: 0.25rem 0 0;
+  color: var(--ink2);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.prompt-contract-textarea {
+  width: 100%;
+  resize: vertical;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-raised);
+  color: var(--ink);
+  padding: 0.75rem;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 1.5;
+  outline: none;
+}
+
+.prompt-contract-textarea:focus {
+  border-color: var(--ink-soft);
+}
+
+.prompt-contract-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.prompt-contract-card {
+  text-align: left;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--ink2);
+  padding: 0.75rem;
+  cursor: pointer;
+}
+
+.prompt-contract-card.active {
+  border-color: var(--ink);
+  background: var(--surface-raised);
+  color: var(--ink);
+}
+
+.prompt-contract-card span {
+  display: block;
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.4rem;
+}
+
+.prompt-contract-card small {
+  display: block;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.prompt-contract-checks {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.prompt-contract-checks label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--ink2);
+  font-size: 12px;
+}
+
+.diagnosis-export-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.diagnosis-export-actions .btn-s {
+  justify-content: center;
+}
+
+.script-contract-details {
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.script-contract-details summary {
+  cursor: pointer;
+  padding: 0.75rem 1rem;
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.script-contract-details pre {
+  margin: 0;
+  max-height: 360px;
+  overflow: auto;
+  padding: 1rem;
+  border-top: 1px solid var(--border);
+  color: var(--ink2);
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+@media (max-width: 560px) {
+  .prompt-contract-grid,
+  .diagnosis-export-actions {
+    grid-template-columns: 1fr;
+  }
+}

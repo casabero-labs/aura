@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, X, Save, HardDrive, AlertTriangle, CheckCircle, Download, Loader2, Cloud, Globe, Cpu, Trash2 } from 'lucide-react';
+import { Settings, X, Save, HardDrive, AlertTriangle, CheckCircle, Download, Loader2, Cloud, Globe, Cpu, Trash2, FileCode2 } from 'lucide-react';
 import { AIConfig, ModelDownloadState, CloudProvider } from '../types';
 import { AVAILABLE_MODELS, LOCAL_MODELS, checkWebGPUSupport, createAIProvider, checkModelDownloaded, deleteDownloadedModel } from '../services/aiProvider';
+import { normalizePromptContract } from '../services/providers/prompts';
 
 interface SettingsPanelProps {
     config: AIConfig;
@@ -120,6 +121,17 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
     };
 
     const currentModelState = getModelState(localConfig.model);
+    const promptContract = normalizePromptContract(localConfig.promptContract);
+
+    const updatePromptContract = (patch: Partial<typeof promptContract>) => {
+        setLocalConfig({
+            ...localConfig,
+            promptContract: {
+                ...promptContract,
+                ...patch,
+            },
+        });
+    };
 
     const setProviderType = (type: 'cloud' | 'local' | 'chrome') => {
         const defaults: Record<string, string> = {
@@ -395,6 +407,87 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                             />
                             <div className="w-10 h-5 bg-[var(--border-strong)] rounded-full peer peer-checked:bg-[var(--ink)] transition-colors after:content-[\'\'] after:absolute after:top-1 after:left-1 after:bg-[var(--bg)] after:h-3 after:w-3 after:rounded-full after:transition-all peer-checked:after:translate-x-5"></div>
                         </label>
+                    </div>
+
+                    <div className="prompt-contract-editor">
+                        <div className="prompt-contract-head">
+                            <FileCode2 size={14} />
+                            <div>
+                                <strong>Contrato técnico del diagnóstico</strong>
+                                <p>Edita la estructura del prompt con controles guiados. AURA conserva reglas anti-alucinación para que el benchmark siga siendo comparable.</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-3">
+                            <label className="block text-[11px] font-sans font-medium uppercase tracking-wider text-[var(--ink2)]">Objetivo operativo</label>
+                            <textarea
+                                value={promptContract.objective}
+                                onChange={(event) => updatePromptContract({ objective: event.target.value })}
+                                rows={3}
+                                maxLength={260}
+                                className="prompt-contract-textarea"
+                            />
+                            <p className="prompt-contract-hint">{promptContract.objective.length}/260 · debe preparar una salida útil para diagnóstico, benchmark y script.</p>
+                        </div>
+
+                        <div className="prompt-contract-grid">
+                            <button
+                                type="button"
+                                className={`prompt-contract-card ${promptContract.evidencePolicy === 'strict' ? 'active' : ''}`}
+                                onClick={() => updatePromptContract({ evidencePolicy: 'strict' })}
+                            >
+                                <span>evidencia estricta</span>
+                                <small>Solo JSON observado; mejor para reducir alucinaciones.</small>
+                            </button>
+                            <button
+                                type="button"
+                                className={`prompt-contract-card ${promptContract.evidencePolicy === 'balanced' ? 'active' : ''}`}
+                                onClick={() => updatePromptContract({ evidencePolicy: 'balanced' })}
+                            >
+                                <span>hipótesis separadas</span>
+                                <small>Permite hipótesis, siempre marcadas como no validadas.</small>
+                            </button>
+                        </div>
+
+                        <div className="prompt-contract-checks">
+                            <label>
+                                <input
+                                    type="checkbox"
+                                    checked={promptContract.requireScriptReadiness}
+                                    onChange={(event) => updatePromptContract({ requireScriptReadiness: event.target.checked })}
+                                />
+                                <span>Preparar criterios para script Pandas</span>
+                            </label>
+                            <label>
+                                <input
+                                    type="checkbox"
+                                    checked={promptContract.includeCopyPasteEvidence}
+                                    onChange={(event) => updatePromptContract({ includeCopyPasteEvidence: event.target.checked })}
+                                />
+                                <span>Forzar evidencia copy-paste</span>
+                            </label>
+                            <label>
+                                <input
+                                    type="checkbox"
+                                    checked={promptContract.includeHumanReviewLabels}
+                                    onChange={(event) => updatePromptContract({ includeHumanReviewLabels: event.target.checked })}
+                                />
+                                <span>Etiquetar decisiones HITL</span>
+                            </label>
+                        </div>
+
+                        <div className="space-y-3">
+                            <label className="block text-[11px] font-sans font-medium uppercase tracking-wider text-[var(--ink2)]">Instrucción adicional guiada</label>
+                            <textarea
+                                value={promptContract.extraInstructions || ''}
+                                onChange={(event) => updatePromptContract({ extraInstructions: event.target.value })}
+                                rows={4}
+                                maxLength={420}
+                                placeholder="Ejemplo: priorizar acciones reversibles, no convertir fechas ambiguas sin revisión humana..."
+                                className="prompt-contract-textarea"
+                            />
+                            <p className="prompt-contract-hint">No reemplaza el contrato base; solo agrega restricciones experimentales controladas.</p>
+                        </div>
                     </div>
 
                 </div>

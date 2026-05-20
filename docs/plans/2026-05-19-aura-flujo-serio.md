@@ -558,3 +558,34 @@ Empezar por Fase 1 y Fase 2. No tocar benchmark todavia hasta que Perfilar quede
 - Verificar visualmente en navegador con dataset real.
 - Validar descarga local WebLLM en navegador compatible con WebGPU.
 - Si la descarga falla, registrar el error exacto del navegador para separar problema de UI, soporte WebGPU o disponibilidad del modelo en WebLLM.
+
+## Progreso adicional - contrato cognitivo y script - 2026-05-19
+
+### Reordenamiento de Diagnostico
+
+- `Entrada controlada / Que se interpreta` queda inmediatamente despues de `Problema observado`.
+- `Seleccionar modo de diagnostico` y `Diagnostico de causas probables` quedan unificados en un solo bloque: primero se elige proveedor/modelo y luego se genera/exporta el resultado.
+- El diagnostico puede exportarse como JSON o PDF sin obligar al usuario a continuar hacia script.
+
+### Contrato tecnico editable
+
+- `SettingsPanel` incorpora un editor guiado del contrato tecnico del diagnostico.
+- El usuario no edita un prompt libre sin control: puede ajustar objetivo operativo, politica de evidencia, preparacion para script, copy-paste evidence, etiquetas HITL e instrucciones adicionales.
+- El prompt final sigue protegido por reglas anti-alucinacion y por el paquete estructurado del motor determinista.
+
+### Script anclado al diagnostico
+
+- `ScriptGenerationStep` ya no solicita un reporte ejecutivo nuevo para generar script.
+- El script usa `buildScriptPrompt(report, diagnosisText)`, combinando:
+  - paquete estructurado del motor determinista;
+  - diagnostico previo;
+  - contrato de Capa 2 con anclaje semantico;
+  - M4 copy-paste;
+  - comentarios de trazabilidad por regla y columna.
+- Si no existe diagnostico previo, la generacion del script queda bloqueada con mensaje claro.
+- Se agrega visualizacion del contrato usado para generar el script.
+
+### Benchmark y contrato
+
+- En modo `smart_sample`, el benchmark empieza a evaluar el contrato editable: primero genera diagnostico con `buildAnalysisPrompt(report, config.promptContract)` y luego genera script con `buildScriptPrompt`.
+- Esto permite estudiar si mejorar la estructura del prompt mejora latencia, cumplimiento de formato, alucinaciones y validez del script.
