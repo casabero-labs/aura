@@ -1,16 +1,31 @@
 ---
-version: "1.0"
+version: "1.1"
 name: AURA
-description: Interfaz dark-terminal editorial para auditoria reproducible de calidad del dato con arquitectura local-first, motor determinista y benchmark LLM.
+description: Interfaz Warm Core con variante Terminal + Archive para auditoria reproducible de calidad del dato, diagnostico asistido por LLM y benchmark experimental.
+source_of_truth:
+  standards_repo: "/Users/casabero/Documents/GitHub/estandar-casabero"
+  primary_reference: "/Users/casabero/Documents/GitHub/estandar-casabero/examples/frontend/showcase.html"
+  required_frontend_docs:
+    - "standards/frontend/UX_UI_MANIFESTO.md"
+    - "standards/frontend/VARIANTS.md"
+    - "standards/frontend/DESIGN_SYSTEM.md"
+    - "standards/frontend/ACCESSIBILITY.md"
+    - "standards/frontend/STATE.md"
+variant: "Terminal + Archive"
 colors:
-  bg: "#0D0D0C"
-  surface: "#141413"
-  surface2: "#1C1C1A"
-  ink: "#F0EDE8"
-  ink2: "#7A7771"
-  ink3: "#3D3C39"
-  border: "rgba(240,237,232,0.08)"
-  border-strong: "rgba(240,237,232,0.15)"
+  ink: "#1E1E1C"
+  ink2: "#4A4540"
+  ink3: "#9A9490"
+  ink-soft: "#3A3632"
+  ink-muted: "#8A857E"
+  ink-faint: "#B5B0A8"
+  bg: "#FAF8F4"
+  surface: "#F5F1E8"
+  surface-raised: "#F0ECE2"
+  surface-hover: "#EBE6DB"
+  border: "rgba(30,30,28,0.1)"
+  border-strong: "rgba(30,30,28,0.18)"
+  border-faint: "rgba(30,30,28,0.05)"
 typography:
   font-heading: "Playfair Display"
   font-body: Inter
@@ -29,62 +44,64 @@ rounded:
   sm: 6px
   md: 8px
   lg: 12px
+  xl: 16px
 components:
-  shell: "Nav superior sticky + main centrado max-width 900px"
-  terminal: "Bloque de bitacora inspirado en aura-system.html"
-  layers: "Filas compactas con numero, descripcion y tag"
-  buttons: "6px radius, ink para accion primaria"
-  feedback: "Terminal log, stats y barras horizontales para procesos >800ms"
+  shell: "Header sticky, main centrado, secciones de trabajo sin landing comercial"
+  upload: "Dropzone tecnico con alternativa de seleccion y estado visible"
+  profile: "Bloques Archive para caracterizacion, reglas y evidencia"
+  diagnosis: "Panel cognitivo amplio con tablas legibles y contrato visible"
+  lab: "Banco experimental con protocolo, runner, log, matriz y graficas"
+  drawer: "Sheet lateral sin modal flotante para configuracion"
+  feedback: "Logs, barras, etiquetas y texto; nunca solo color"
 ---
 
 # Overview
 
-AURA debe seguir `casabero-standards/examples/frontend/aura-system.html`: dark terminal, editorial, tecnico y centrado. La interfaz existe para operar el flujo del TFM: cargar dataset, ejecutar Capa 1, interpretar con Capa 2, comparar modelos y exportar evidencia.
+AURA usa como fuente de verdad el repositorio `estandar-casabero` y, para esta interfaz, el archivo `examples/frontend/showcase.html`. La aplicacion debe sentirse como un instrumento tecnico de auditoria: clara, trazable y sobria. La variante elegida es **Terminal + Archive** porque el producto combina evidencia reproducible, logs, contratos, matrices y resultados experimentales.
 
 # Colors
 
-Usa exclusivamente la escala dark terminal AURA: `#0D0D0C`, `#141413`, `#1C1C1A`, `#F0EDE8`, `#7A7771`, `#3D3C39`. El color no se usa como decoracion; los estados se expresan con texto, peso, bordes y movimiento sutil.
+La identidad visual usa Warm Core: parchment, linen y off-black. El color frio solo aparece como utilidad tecnica en codigo, logs o graficas, no como identidad ni decoracion. Los estados se expresan con texto, borde, icono, peso visual y movimiento sutil; nunca solo por color.
 
 # Typography
 
-Headings editoriales con `Playfair Display`. UI, labels y controles con `Inter`. Metadatos, tokens y bitacoras con `JetBrains Mono`.
+Titulos editoriales con `Playfair Display`. Inter para UI, labels y lectura continua. `JetBrains Mono` para fingerprints, logs, contratos, JSON, metricas y evidencia reproducible.
 
 # Spacing
 
-Sistema compacto. El `main` se centra en 900px, con secciones de `2.5rem`, terminal y filas densas.
+El contenido operativo se centra en un ancho legible. Las secciones se agrupan por responsabilidad: carga, perfil, reglas, hallazgos, diagnostico, script, revision y laboratorio. Se evita repetir informacion en bloques dispersos.
 
 # Elevation
 
-La profundidad viene de `surface + border`. La nav puede usar blur sutil porque la referencia canonica `aura-system.html` lo usa.
+La profundidad se resuelve con `surface + border`. No usar glassmorphism, blur, gradientes decorativos ni sombras pesadas. Los paneles deben parecer documentos tecnicos, no tarjetas de marketing.
 
 # Shapes
 
-Botones `6px`, terminal/cards `10px`, capas `8px`. No usar pills salvo switches nativos de formulario.
+Botones 6px, inputs 8px, cards/paneles 10-12px y drawers 16px. No usar botones tipo pill salvo toggles o controles nativos donde aplique.
 
 # Components
 
-- `sys-nav`: nav superior sticky.
-- `sys-main`: contenedor centrado de 900px.
-- `hero`: encabezado editorial tecnico del sistema.
-- `term`: bitacora de ejecucion.
-- `stats`: resumen numerico.
-- `layers`: arquitectura por capas.
-- `file-drop`: ingreso de dataset.
-- `benchmark-grid`: comparacion de modelos.
+- `sys-nav`: header sticky sobrio, sin blur.
+- `file-drop`: entrada local-first con estado y alternativa de teclado.
+- `profile-block`: agrupacion Archive del perfil determinista.
+- `advisor-shell`: lectura amplia del diagnostico LLM.
+- `settings-sheet`: drawer lateral para modelos y contrato tecnico.
+- `benchmark-lab-page`: banco experimental con protocolo, logs, tabla y metricas.
 
 # Dos and Donts
 
 Do:
 
-- Mostrar el estado de cada proceso importante.
-- Mantener el benchmark como instrumento experimental.
-- Separar secciones por responsabilidad.
-- Usar labels claros en espanol.
+- Usar `estandar-casabero/examples/frontend/showcase.html` como referencia visual primaria.
+- Mantener Warm Core y Lucide con `stroke-width: 1.5px`.
+- Separar determinismo, cognicion, script, HITL y benchmark.
+- Mostrar progreso/logs cuando una operacion tarda.
+- Preferir tablas anchas con scroll horizontal antes que columnas truncadas.
 
 Dont:
 
-- No usar hero comercial; el hero debe ser tecnico y operativo como `aura-system.html`.
-- No usar sidebar dashboard si rompe la referencia AURA.
-- No usar gradientes ni paletas fuera del sistema.
-- No ocultar benchmark ni evidencia bajo scroll narrativo.
-- No mezclar prototipos antiguos con el flujo operativo actual.
+- No usar el path antiguo `casabero-standards` como referencia si el usuario no lo pide.
+- No usar glass, blur, gradientes decorativos, orbes ni paletas moradas/azules dominantes.
+- No mezclar narrativas repetidas con evidencia operativa.
+- No esconder explicaciones de metricas experimentales.
+- No presentar benchmark como adorno si el titulo del TFM lo usa como parte central.

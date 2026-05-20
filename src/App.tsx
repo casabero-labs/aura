@@ -92,13 +92,15 @@ const App: React.FC = () => {
   const [showMobileNav, setShowMobileNav] = useState(false);
   const [labBenchmarkResults, setLabBenchmarkResults] = useState<BenchmarkResult[]>([]);
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
-    const saved = localStorage.getItem('aura_theme');
-    return saved === 'light' ? 'light' : 'dark';
+    const saved = localStorage.getItem('aura_theme') || localStorage.getItem('casabero-theme');
+    return saved === 'dark' ? 'dark' : 'light';
   });
 
   useEffect(() => {
     document.documentElement.classList.toggle('light', theme === 'light');
+    document.documentElement.dataset.theme = theme;
     localStorage.setItem('aura_theme', theme);
+    localStorage.setItem('casabero-theme', theme);
   }, [theme]);
 
   // ── AI Config (para settings panel) ──

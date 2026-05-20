@@ -81,7 +81,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect }) => {
         </div>
         {error && <p className="file-drop-error">{error}</p>}
       </div>
-      <input ref={inputRef} type="file" accept=".csv" className="hidden" onChange={handleChange} />
+      <input ref={inputRef} type="file" accept=".csv" className="hidden" tabIndex={-1} aria-hidden="true" onChange={handleChange} />
     </div>
   );
 };
