@@ -3,7 +3,7 @@ import { ArrowRight, CheckCircle2, FileCode2, ShieldAlert, ShieldCheck, Triangle
 import { AIProvider, AuditReport, ProviderMetrics, ScriptValidationResult } from '../types';
 import { highlightPython } from '../services/highlightPython';
 import { buildDeterministicCleaningScript, buildFallbackScriptMetrics } from '../services/deterministicScriptBuilder';
-import { buildScriptPrompt, extractPythonScript } from '../services/providers/prompts';
+import { buildDiagnosisScriptBrief, buildDiagnosisSummaryPrompt, buildScriptPrompt, extractPythonScript } from '../services/providers/prompts';
 
 interface ScriptGenerationStepProps {
   report: AuditReport;
@@ -31,6 +31,7 @@ const ScriptGenerationStep: React.FC<ScriptGenerationStepProps> = ({
   const [streamingText, setStreamingText] = useState('');
   const [streamingMetrics, setStreamingMetrics] = useState<ProviderMetrics | null>(null);
   const [scriptOrigin, setScriptOrigin] = useState<'model' | 'deterministic' | null>(cleaningScript ? 'model' : null);
+  const [diagnosisBrief, setDiagnosisBrief] = useState(() => buildDiagnosisScriptBrief(diagnosisText));
 
   const useFallbackScript = useCallback((reason: string) => {
     const fallbackScript = buildDeterministicCleaningScript(report);
@@ -59,7 +60,19 @@ const ScriptGenerationStep: React.FC<ScriptGenerationStepProps> = ({
     }
 
     try {
-      const prompt = buildScriptPrompt(report, diagnosisText);
+      let operativeBrief = buildDiagnosisScriptBrief(diagnosisText);
+      try {
+        const summary = await aiProvider.generateText(buildDiagnosisSummaryPrompt(diagnosisText));
+        if (summary.text.trim()) {
+          operativeBrief = summary.text.trim();
+          setDiagnosisBrief(operativeBrief);
+        }
+      } catch (summaryError: any) {
+        onLog?.('script', `Resumen LLM no disponible; usando resumen local :: ${summaryError?.message || 'sin detalle'}`);
+        setDiagnosisBrief(operativeBrief);
+      }
+
+      const prompt = buildScriptPrompt(report, diagnosisText, operativeBrief);
       const { text, metrics } = await aiProvider.generateText(prompt);
       setStreamingText(text);
       const pythonScript = extractPythonScript(text);
@@ -84,7 +97,7 @@ const ScriptGenerationStep: React.FC<ScriptGenerationStepProps> = ({
     }
   }, [aiProvider, diagnosisText, isLoading, onLog, onScriptGenerated, report, useFallbackScript]);
 
-  const scriptPromptPreview = React.useMemo(() => buildScriptPrompt(report, diagnosisText), [report, diagnosisText]);
+  const scriptPromptPreview = React.useMemo(() => buildScriptPrompt(report, diagnosisText, diagnosisBrief), [report, diagnosisText, diagnosisBrief]);
 
   const validationItems = scriptValidation ? [
     {

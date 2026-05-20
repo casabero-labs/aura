@@ -146,7 +146,7 @@ export const runBenchmarkForConfig = async (
     });
 
     mark('provider.scriptContract.start');
-    const scriptPrompt = buildScriptPrompt(report, diagnosisText, config.promptContract);
+    const scriptPrompt = buildScriptPrompt(report, diagnosisText, undefined, config.promptContract);
     const { text: scriptText, metrics: scriptMetrics } = await provider.generateText(scriptPrompt);
     mark('provider.scriptContract.end', {
       latencyMs: scriptMetrics.latencyMs,

@@ -140,14 +140,29 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
 
   const exportDiagnosisJson = () => {
     if (!draftAnalysis.trim()) return;
+    const profile = {
+      dataset: {
+        rows: report.rowCount,
+        columns: report.colCount,
+        delimiter: report.delimiterDetected,
+        score: report.score,
+        duplicateRows: report.duplicateRows,
+        datasetFingerprint: auditEvidence?.datasetFingerprint,
+      },
+      columnStats: report.columnStats,
+      issues: report.issues,
+      auditEvidence,
+    };
     downloadTextFile(
-      `aura_diagnostico_llm_${Date.now()}.json`,
+      `aura_reporte_perfil_diagnostico_${Date.now()}.json`,
       JSON.stringify({
+        reportType: 'perfil_determinista_y_diagnostico_llm',
+        generatedAt: new Date().toISOString(),
+        profile,
         provider: aiConfig.providerType,
         model: aiConfig.model,
         temperature: aiConfig.temperature,
         promptHash: computePromptHash(diagnosisPrompt),
-        datasetFingerprint: auditEvidence?.datasetFingerprint,
         inputSummary: diagnosisSummary,
         smartSample,
         diagnosis: draftAnalysis,
@@ -178,21 +193,35 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
     };
 
     doc.setFont('helvetica', 'bold');
-    draw('AURA - Reporte de diagnostico LLM', 15, 8);
+    draw('AURA - Reporte consolidado: perfil del dataset y diagnostico LLM', 15, 8);
     doc.setFont('helvetica', 'normal');
-    draw(`Modelo: ${aiConfig.model} · Proveedor: ${aiConfig.providerType} · Score: ${report.score}/100`, 9, 5);
+    draw(`Dataset: ${report.rowCount.toLocaleString('es-CO')} filas · ${report.colCount} columnas · delimitador "${report.delimiterDetected}" · score ${report.score}/100`, 9, 5);
+    draw(`Modelo: ${aiConfig.model} · Proveedor: ${aiConfig.providerType} · Temperatura: ${aiConfig.temperature}`, 9, 5);
     draw(`Prompt hash: ${computePromptHash(diagnosisPrompt)}`, 8, 5);
     y += 4;
     doc.setFont('helvetica', 'bold');
-    draw('Problema observado', 11, 6);
+    draw('1. Perfil determinista del dataset', 11, 6);
+    doc.setFont('helvetica', 'normal');
+    draw(`Duplicados exactos: ${report.duplicateRows}. Reglas activadas: ${report.issues.length}. Evidencia: ${auditEvidence?.datasetFingerprint || 'sin fingerprint'}.`, 9, 5);
+    draw(`Columnas observadas: ${Object.keys(report.columnStats).join(', ')}`, 8, 4);
+    y += 3;
+    doc.setFont('helvetica', 'bold');
+    draw('2. Hallazgos deterministas principales', 11, 6);
+    doc.setFont('helvetica', 'normal');
+    report.issues.slice(0, 10).forEach((issue, index) => {
+      draw(`${index + 1}. ${issue.severity.toUpperCase()} · ${issue.ruleName}${issue.column ? ` · ${issue.column}` : ''}: ${issue.description}`, 8, 4);
+    });
+    y += 3;
+    doc.setFont('helvetica', 'bold');
+    draw('3. Problema observado', 11, 6);
     doc.setFont('helvetica', 'normal');
     draw(diagnosisSummary.problem, 9, 5);
     y += 3;
     doc.setFont('helvetica', 'bold');
-    draw('Diagnostico generado', 11, 6);
+    draw('4. Diagnostico LLM generado', 11, 6);
     doc.setFont('helvetica', 'normal');
     draw(draftAnalysis.replace(/[#*_`]/g, ''), 9, 5);
-    doc.save(`aura_diagnostico_llm_${Date.now()}.pdf`);
+    doc.save(`aura_reporte_perfil_diagnostico_${Date.now()}.pdf`);
   };
 
   const handleProviderTypeChange = (type: 'local' | 'cloud') => {
@@ -550,15 +579,13 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
           El resultado debe explicar problemas de calidad sin inventar columnas, valores o relaciones fuera del paquete estructurado.
         </p>
 
-        <div className="cognitive-grid">
-          <div className="advisor-shell">
+        <div className="cognitive-grid cognitive-grid--diagnosis">
             <GeminiAdvisor
               analysis={draftAnalysis}
               isLoading={isLoading}
               providerType={aiConfig.providerType as 'local' | 'cloud'}
               model={aiConfig.model}
             />
-          </div>
 
           <aside className="mini-panel">
             <div className="layer">
@@ -612,17 +639,26 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
               </p>
             )}
 
-            <div className="diagnosis-export-actions">
-              <button className="btn-s" onClick={exportDiagnosisPdf} disabled={!draftAnalysis.trim()}>
-                <FileText size={12} /> PDF
-              </button>
-              <button className="btn-s" onClick={exportDiagnosisJson} disabled={!draftAnalysis.trim()}>
-                <FileJson size={12} /> JSON
-              </button>
-            </div>
           </aside>
         </div>
       </section>
+
+      <div className="diagnosis-report-next">
+        <div>
+          <p className="guide-title">Próximo paso consolidado: reporte perfil + diagnóstico</p>
+          <p className="guide-desc">
+            Exporta un artefacto completo con perfil determinista, hallazgos reproducibles, paquete inyectado y diagnóstico LLM.
+          </p>
+        </div>
+        <div className="diagnosis-export-actions">
+          <button className="btn-s" onClick={exportDiagnosisPdf} disabled={!draftAnalysis.trim()}>
+            <FileText size={12} /> PDF consolidado
+          </button>
+          <button className="btn-s" onClick={exportDiagnosisJson} disabled={!draftAnalysis.trim()}>
+            <FileJson size={12} /> JSON consolidado
+          </button>
+        </div>
+      </div>
 
       <div className="context-guide">
         <span className="guide-icon"><Play size={14} /></span>

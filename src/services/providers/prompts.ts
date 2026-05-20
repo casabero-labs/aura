@@ -147,6 +147,7 @@ Responde en español, con tono sobrio, academico y verificable.
 export const buildScriptPrompt = (
   report: AuditReport,
   diagnosisText: string,
+  diagnosisBrief?: string,
   contract?: PromptContractConfig,
 ): string => {
   const promptContract = normalizePromptContract(contract);
@@ -169,6 +170,9 @@ Contrato cognitivo:
 Paquete estructurado:
 ${JSON.stringify(jsonSummary, null, 2)}
 
+Resumen operativo del diagnostico para script:
+${diagnosisBrief || buildDiagnosisScriptBrief(diagnosisText)}
+
 Diagnostico previo:
 ${diagnosisText || 'No hay diagnostico previo disponible.'}
 
@@ -182,6 +186,41 @@ Devuelve solo un bloque de codigo Python. El script debe:
 - no ejecutar archivos, no leer CSV, no escribir disco;
 - terminar con return df_clean.
 `;
+};
+
+export const buildDiagnosisSummaryPrompt = (diagnosisText: string): string => `
+Resume el siguiente diagnostico de calidad de datos para alimentar un generador de script Python/Pandas.
+
+No agregues problemas nuevos. No inventes columnas. Extrae solo decisiones operativas utiles para script.
+
+Formato obligatorio:
+## Resumen operativo para script
+- Problemas priorizados:
+- Acciones automatizables:
+- Acciones que requieren HITL:
+- Columnas que NO deben modificarse automaticamente:
+- Riesgos del script:
+
+Diagnostico:
+${diagnosisText}
+`;
+
+export const buildDiagnosisScriptBrief = (diagnosisText: string): string => {
+  const cleaned = diagnosisText
+    .replace(/```[\s\S]*?```/g, '')
+    .replace(/[#*_`>-]/g, ' ')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const priorityLines = cleaned.filter((line) =>
+    /accion|automatizable|revision humana|requiere|columna|riesgo|regla|script/i.test(line)
+  ).slice(0, 10);
+
+  const source = priorityLines.length > 0 ? priorityLines : cleaned.slice(0, 8);
+  return source.length > 0
+    ? source.map((line) => `- ${line}`).join('\n')
+    : '- No hay diagnostico operativo disponible.';
 };
 
 export const extractPythonScript = (text: string): string => {

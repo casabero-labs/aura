@@ -589,3 +589,26 @@ Empezar por Fase 1 y Fase 2. No tocar benchmark todavia hasta que Perfilar quede
 
 - En modo `smart_sample`, el benchmark empieza a evaluar el contrato editable: primero genera diagnostico con `buildAnalysisPrompt(report, config.promptContract)` y luego genera script con `buildScriptPrompt`.
 - Esto permite estudiar si mejorar la estructura del prompt mejora latencia, cumplimiento de formato, alucinaciones y validez del script.
+
+## Progreso adicional - reporte consolidado y gobernanza - 2026-05-19
+
+### Reporte de diagnostico reubicado
+
+- Se retiraron los botones PDF/JSON del panel lateral del diagnostico.
+- Se agrego un bloque posterior llamado reporte consolidado, dejando claro que el artefacto incluye perfil determinista, hallazgos, paquete estructurado y diagnostico LLM.
+- El JSON exportado contiene `profile`, `columnStats`, `issues`, `auditEvidence`, `smartSample`, contrato/modelo y diagnostico.
+- El PDF exportado inicia con perfil del dataset, hallazgos deterministas y luego diagnostico LLM.
+
+### Lectura del diagnostico
+
+- Se elimino el doble contenedor `advisor-shell` que reducia el espacio real del diagnostico generado.
+- El panel de diagnostico ahora usa una grilla especifica con mayor altura de lectura.
+
+### Contrato de script con diagnostico visible
+
+- El contrato de script ahora incluye un `Resumen operativo del diagnostico para script` y el diagnostico completo.
+- Antes de generar script, AURA intenta pedir al mismo LLM un resumen operativo del diagnostico. Si falla, usa un resumen local determinista para no bloquear el flujo.
+
+### Etiquetas de gobernanza en reporte final
+
+- El PDF final de AURA ahora etiqueta lineas de script como `destructiva`, `transformacion` o `lectura`, usando la misma logica visual de gobernanza del revisor HITL.

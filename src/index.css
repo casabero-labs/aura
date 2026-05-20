@@ -4948,6 +4948,16 @@
   grid-template-columns: minmax(0, 1fr) minmax(260px, 300px);
 }
 
+.cognitive-grid--diagnosis {
+  grid-template-columns: minmax(0, 1fr) minmax(250px, 280px);
+  align-items: stretch;
+}
+
+.cognitive-grid--diagnosis > .advisor-shell {
+  min-height: 680px;
+  max-height: none;
+}
+
 .advisor-shell {
   min-width: 0;
 }
@@ -5935,6 +5945,29 @@
   justify-content: center;
 }
 
+.diagnosis-report-next {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: center;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  padding: 1rem;
+  margin: 1.5rem 0;
+}
+
+.diagnosis-report-next .guide-title {
+  margin: 0;
+  color: var(--ink);
+}
+
+.diagnosis-report-next .guide-desc {
+  margin: 0.3rem 0 0;
+  color: var(--ink2);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .script-contract-details {
   border: 1px solid var(--border);
   background: var(--surface);
@@ -5966,7 +5999,8 @@
 
 @media (max-width: 560px) {
   .prompt-contract-grid,
-  .diagnosis-export-actions {
+  .diagnosis-export-actions,
+  .diagnosis-report-next {
     grid-template-columns: 1fr;
   }
 }

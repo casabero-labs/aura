@@ -11,6 +11,24 @@ declare module 'jspdf' {
   }
 }
 
+const classifyScriptLine = (line: string): 'destructiva' | 'transformacion' | 'lectura' | null => {
+  const normalized = line.toLowerCase();
+  if (/\b(drop|delete|del |remove|pop|truncate|overwrite|to_csv|to_excel)\b/.test(normalized)) return 'destructiva';
+  if (/\b(fillna|replace|astype|rename|assign|map|apply|clip|str\.|where|loc\[|iloc\[)\b/.test(normalized)) return 'transformacion';
+  if (/\b(value_counts|describe|isna|isnull|info|head|tail|shape|columns|dtypes|unique|nunique)\b/.test(normalized)) return 'lectura';
+  return null;
+};
+
+const scriptLabelColor = (
+  kind: ReturnType<typeof classifyScriptLine>,
+  colors: { red: string; orange: string; green: string; lightText: string }
+) => {
+  if (kind === 'destructiva') return colors.red;
+  if (kind === 'transformacion') return colors.orange;
+  if (kind === 'lectura') return colors.green;
+  return colors.lightText;
+};
+
 export const generatePdfReport = (
   auditReport: AuditReport,
   executiveContent: ExecutiveReportContent,
@@ -422,7 +440,7 @@ export const generatePdfReport = (
     yPos += 5;
 
     // Simulate code block background
-    const scriptLines = doc.splitTextToSize(executiveContent.python_script, pageWidth - margin * 2 - 10);
+    const scriptLines = executiveContent.python_script.split('\n');
     const boxHeight = scriptLines.length * 5 + 10;
     
     doc.setFillColor(248, 250, 252); // Very light gray/blue
@@ -435,7 +453,7 @@ export const generatePdfReport = (
     
     // Handle multi-page script if it's very long
     let codeYPos = yPos + 6;
-    scriptLines.forEach((line: string) => {
+    scriptLines.forEach((line: string, index: number) => {
       if (codeYPos > pageHeight - margin) {
         doc.addPage();
         codeYPos = margin;
@@ -443,7 +461,21 @@ export const generatePdfReport = (
         doc.rect(margin, codeYPos, pageWidth - margin * 2, pageHeight - margin * 2, 'FD');
         codeYPos += 6;
       }
-      doc.text(line, margin + 5, codeYPos);
+      const kind = classifyScriptLine(line);
+      doc.setFont('courier', 'normal');
+      doc.setFontSize(7);
+      doc.setTextColor(colors.lightText);
+      doc.text(String(index + 1).padStart(2, '0'), margin + 4, codeYPos);
+      if (kind) {
+        doc.setTextColor(scriptLabelColor(kind, colors));
+        doc.text(`[${kind}]`, margin + 14, codeYPos);
+      }
+      doc.setTextColor(51, 65, 85);
+      const wrappedLine = doc.splitTextToSize(line, pageWidth - margin * 2 - 46);
+      wrappedLine.forEach((part: string, partIndex: number) => {
+        if (partIndex > 0) codeYPos += 4;
+        doc.text(part, margin + 44, codeYPos);
+      });
       codeYPos += 5;
     });
 
