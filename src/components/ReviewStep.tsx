@@ -133,9 +133,9 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
           <h2 className="sec-title">Revisión humana + simulación.</h2>
         </div>
         {stage === 'completed' && improvementRun && (
-          <div className="flex items-center gap-2 text-[var(--success)]">
+          <div className="flex items-center gap-2" style={{color:'var(--success)'}}>
             <ShieldCheck size={16} />
-            <span className="text-sm">Remediación simulada</span>
+            <span>Remediación simulada</span>
           </div>
         )}
       </div>
@@ -185,9 +185,9 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
 
       {/* Simulation Progress */}
       {stage === 'simulating' && (
-        <div className="mt-6 p-4 border border-[var(--border)] rounded-lg bg-[var(--surface)]">
+        <div className="sim-progress-box">
           <div className="flex items-center gap-3">
-            <div className="w-4 h-4 border-2 border-[var(--ink)] border-t-transparent rounded-full animate-spin" />
+            <span className="sim-spinner" />
             <span>Ejecutando simulación de remediación...</span>
           </div>
         </div>

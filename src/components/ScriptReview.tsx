@@ -107,15 +107,15 @@ const ScriptReview: React.FC<ScriptReviewProps> = ({
     <div className="script-review">
       <div className="script-review-header">
         <div className="flex items-center gap-2">
-          <Terminal size={14} className="text-[var(--ink)]" />
-          <span className="eyebrow text-[var(--ink)]">
+          <Terminal size={14} style={{color:'var(--ink)'}} />
+          <span className="eyebrow">
             {language} - Gobernanza (HITL)
           </span>
         </div>
         <div className="script-actions">
           <button
             onClick={() => setIsEditing((value) => !value)}
-            className="cs-button flex items-center gap-1.5 !min-h-8 !px-3 !py-1.5 !text-[10px]"
+            className="cs-button cs-button-sm"
             title="Editar script antes de aprobar"
           >
             <Edit3 size={12} />
@@ -123,15 +123,15 @@ const ScriptReview: React.FC<ScriptReviewProps> = ({
           </button>
           <button
             onClick={handleCopy}
-            className="cs-button flex items-center gap-1.5 !min-h-8 !px-3 !py-1.5 !text-[10px]"
+            className="cs-button cs-button-sm"
             title="Copiar al portapapeles"
           >
-            {copied ? <Check size={12} className="text-[var(--success)]" /> : <Copy size={12} />}
+            {copied ? <Check size={12} style={{color:'var(--success)'}} /> : <Copy size={12} />}
             {copied ? 'Copiado' : 'Copiar'}
           </button>
           <button
             onClick={handleDownload}
-            className="cs-button cs-button-primary flex items-center gap-1.5 !min-h-8 !px-3 !py-1.5 !text-[10px]"
+            className="cs-button cs-button-sm cs-button-primary"
             title="Descargar script .py"
           >
             <Download size={12} />
@@ -184,9 +184,9 @@ const ScriptReview: React.FC<ScriptReviewProps> = ({
             </pre>
           </div>
         )}
-        <div className="absolute bottom-2 right-4 opacity-[0.03] pointer-events-none flex items-center gap-2">
-          <FileCode2 size={24} className="text-[var(--ink)]" />
-          <span className="font-serif font-black text-[var(--ink)] uppercase tracking-widest text-xl">AURA GOVERNANCE</span>
+        <div className="script-watermark">
+          <FileCode2 size={24} />
+          <span>AURA GOVERNANCE</span>
         </div>
       </div>
 

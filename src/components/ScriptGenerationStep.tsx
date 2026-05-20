@@ -175,12 +175,12 @@ const ScriptGenerationStep: React.FC<ScriptGenerationStepProps> = ({
         </div>
 
         {isLoading && streamingText && (
-          <div className="mt-6 p-4 border border-[var(--border)] rounded-lg bg-[var(--surface)]">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="animate-pulse w-2 h-2 rounded-full bg-[var(--accent)]" />
-              <strong className="text-sm">Generando respuesta del proveedor</strong>
+          <div className="script-stream-box">
+            <div className="script-stream-head">
+              <span className="script-stream-dot" />
+              <strong>Generando respuesta del proveedor</strong>
             </div>
-            <div className="text-xs text-[var(--ink-muted)] font-mono max-h-64 overflow-y-auto whitespace-pre-wrap custom-scrollbar">
+            <div className="script-stream-content">
               {streamingText}
             </div>
           </div>
@@ -232,8 +232,8 @@ const ScriptGenerationStep: React.FC<ScriptGenerationStepProps> = ({
             <div className="script-review">
               <div className="script-review-header">
                 <div className="flex items-center gap-2">
-                  <FileCode2 size={14} className="text-[var(--ink)]" />
-                  <span className="eyebrow text-[var(--ink)]">Vista previa del script generado</span>
+                  <FileCode2 size={14} style={{color:'var(--ink)'}} />
+                  <span className="eyebrow">Vista previa del script generado</span>
                 </div>
               </div>
               <div className="script-governance-note">

@@ -73,7 +73,7 @@ const GeminiAdvisor: React.FC<GeminiAdvisorProps> = ({ analysis, isLoading, prov
                   }
 
                   return (
-                    <code className={`${className} px-1.5 py-0.5 rounded-sm`} {...props}>
+                    <code className={`${className}`} style={{padding:'6px 6px', borderRadius:'var(--radius-xs)'}} {...props}>
                       {children}
                     </code>
                   );

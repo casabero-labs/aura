@@ -322,7 +322,7 @@ const BenchmarkPanel: React.FC<BenchmarkPanelProps> = ({
           </div>
           <div className="benchmark-metric">
             <span>Modelo</span>
-            <strong className="text-[var(--ink)]">Gemini Nano</strong>
+            <strong>Gemini Nano</strong>
           </div>
           <div className="benchmark-metric">
             <span>Ultima latencia</span>
