@@ -205,6 +205,7 @@ a:hover {
   background: none;
   border: none;
   cursor: pointer;
+  border-radius: var(--radius-sm);
   transition: color var(--transition-fast), background var(--transition-fast);
   white-space: nowrap;
 }
@@ -236,6 +237,7 @@ a:hover {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   border: 1px solid var(--border);
+  border-radius: 9999px;
 }
 
 .pulse-dot {
@@ -279,6 +281,7 @@ a:hover {
   background: none;
   border: none;
   cursor: pointer;
+  border-radius: var(--radius-xs);
   transition: color var(--transition-fast), background var(--transition-fast);
 }
 
@@ -329,6 +332,7 @@ a:hover {
   font-weight: 500;
   border: none;
   cursor: pointer;
+  border-radius: var(--radius-sm);
   transition: background var(--transition-fast), color var(--transition-fast);
   line-height: 1;
   white-space: nowrap;
@@ -371,6 +375,7 @@ a:hover {
   background: none;
   border: 1px solid var(--border);
   cursor: pointer;
+  border-radius: var(--radius-sm);
   transition: background var(--transition-fast), color var(--transition-fast);
 }
 
@@ -383,6 +388,7 @@ a:hover {
   color: var(--bg);
   background: var(--ink);
   border: 1px solid var(--ink);
+  border-radius: var(--radius-sm);
 }
 
 .cs-button-primary:hover {
@@ -401,6 +407,7 @@ a:hover {
   background: none;
   border: none;
   cursor: pointer;
+  border-radius: var(--radius-xs);
   transition: color var(--transition-fast);
   line-height: 1;
 }
@@ -419,6 +426,7 @@ input, select, textarea {
   border: 1px solid var(--border-strong);
   padding: 10px var(--space-md);
   outline: none;
+  border-radius: var(--radius-sm);
   transition: border-color var(--transition-fast);
 }
 
@@ -462,6 +470,7 @@ label {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
 }
 
 .settings-header {
@@ -487,6 +496,7 @@ label {
   justify-content: center;
   border: 1px solid var(--border);
   background: var(--bg);
+  border-radius: var(--radius-sm);
 }
 
 .settings-header-title {
@@ -563,6 +573,7 @@ label {
   outline: none;
   appearance: none;
   cursor: pointer;
+  border-radius: var(--radius-sm);
   transition: border-color var(--transition-fast);
 }
 
@@ -589,6 +600,7 @@ label {
   font-family: var(--font-sans);
   color: var(--ink);
   outline: none;
+  border-radius: var(--radius-sm);
   transition: border-color var(--transition-fast);
 }
 
@@ -609,6 +621,7 @@ label {
   font-family: var(--font-sans);
   border: 1px solid var(--border-strong);
   background: var(--surface);
+  border-radius: var(--radius-sm);
 }
 
 .settings-status-card--warn {
@@ -641,6 +654,7 @@ label {
   font-family: var(--font-sans);
   border: 1px solid var(--border-strong);
   background: var(--surface);
+  border-radius: var(--radius-sm);
 }
 
 .settings-model-ready-icon {
@@ -674,6 +688,7 @@ label {
   font-family: var(--font-sans);
   border: 1px solid var(--border-strong);
   background: var(--surface);
+  border-radius: var(--radius-sm);
 }
 
 .settings-download-row {
@@ -700,6 +715,7 @@ label {
   width: 100%;
   height: 6px;
   background: var(--border-strong);
+  border-radius: 9999px;
   overflow: hidden;
 }
 
@@ -723,6 +739,7 @@ label {
   background: var(--surface);
   color: var(--ink);
   cursor: pointer;
+  border-radius: var(--radius-sm);
   transition: background var(--transition-fast);
 }
 
@@ -830,6 +847,7 @@ label {
   padding: var(--space-md);
   background: var(--surface);
   border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
   transition: border-color var(--transition-fast);
 }
 
@@ -934,6 +952,7 @@ label {
   font-family: var(--font-mono);
   color: var(--ink);
   outline: none;
+  border-radius: var(--radius-sm);
   resize: vertical;
   transition: border-color var(--transition-fast);
 }
@@ -1032,6 +1051,7 @@ label {
   overflow-y: auto;
   background: var(--bg);
   border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
 }
 
 .panel-line {
@@ -1146,6 +1166,7 @@ label {
   padding: var(--space-xl);
   text-align: center;
   cursor: pointer;
+  border-radius: var(--radius-sm);
   transition: border-color var(--transition-fast), background var(--transition-fast);
 }
 
@@ -1440,6 +1461,7 @@ tr:hover td {
   max-width: 90vw;
   max-height: 80vh;
   overflow-y: auto;
+  border-radius: var(--radius-sm);
 }
 
 /* ─── Findings Table ─── */
@@ -1459,6 +1481,7 @@ tr:hover td {
   background: var(--surface);
   border: 1px solid var(--border);
   padding: var(--space-lg);
+  border-radius: var(--radius-sm);
 }
 
 .card-header {
