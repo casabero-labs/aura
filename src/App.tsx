@@ -284,10 +284,8 @@ const App: React.FC = () => {
       {/* Navigation */}
       <nav className="sys-nav">
         {/* Bloque Izquierdo: Branding y Contexto Académico */}
-        <div className="nav-brand" onClick={() => { if (hasData) window.location.reload(); }} style={{ cursor: 'pointer' }}>
-          <span className="nav-logo">
-            AURA
-          </span>
+        <div className="nav-brand" onClick={() => { if (hasData) window.location.reload(); }}>
+          <span className="nav-logo">AURA</span>
           <span className="nav-academic-pill">TFM UNIR</span>
         </div>
 
@@ -314,54 +312,44 @@ const App: React.FC = () => {
 
         {/* Bloque Derecho: Herramientas y Estado (Escritorio) */}
         <div className="nav-system-controls">
-          {/* Indicador dinámico de privacidad */}
           <div className={`nav-status-pill ${aiConfig.providerType === 'local' ? 'local' : 'cloud'}`}>
             <span className="pulse-dot" />
             <span className="status-label">
-              {aiConfig.providerType === 'local' ? 'LOCAL-FIRST ACTIVO' : 'MODO CLOUD ACTIVO'}
+              {aiConfig.providerType === 'local' ? 'LOCAL-FIRST' : 'MODO CLOUD'}
             </span>
           </div>
 
           <div className="vertical-divider" />
 
-          {/* Herramientas de Configuración y Utilidades */}
           <div className="nav-tools-group">
-            {/* Trazabilidad */}
             <button 
               className={`tool-btn ${showAuditLog ? 'active' : ''}`} 
               onClick={() => { setShowAuditLog(true); setShowLab(false); }}
-              aria-label="Registro de trazabilidad"
               title="Registro de trazabilidad"
             >
               <ClipboardList size={15} />
             </button>
 
-            {/* Modelos */}
             <button 
               className={`tool-btn ${showSettings ? 'active' : ''}`} 
               onClick={() => setShowSettings(true)} 
-              aria-label="Modelos"
               title="Modelos"
             >
               <Settings size={15} />
             </button>
 
-            {/* Centro de Ayuda */}
             <button 
               className={`tool-btn ${showHelp ? 'active' : ''}`} 
               onClick={() => setShowHelp(true)} 
-              aria-label="Centro de ayuda"
-              title="Centro de Ayuda"
+              title="Ayuda"
             >
               <HelpCircle size={15} />
             </button>
 
-            {/* Alternar Tema */}
             <button
               className="tool-btn"
               onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
-              aria-label="Cambiar tema"
-              title="Alternar Modo Oscuro/Claro"
+              title="Alternar Tema"
             >
               {theme === 'light' ? <Moon size={15} /> : <Sun size={15} />}
             </button>
@@ -377,40 +365,11 @@ const App: React.FC = () => {
           )}
         </div>
 
-        {/* Menú Móvil Fixed (Renderizado condicionalmente cuando está abierto) */}
-        <div className={`nav-links ${showMobileNav ? 'nav-links-open' : ''}`}>
-          <button className="nav-link" onClick={() => { setShowLab(false); setShowAuditLog(false); scrollTo('sistema'); setShowMobileNav(false); }}>
-            Auditoría y Diagnóstico
-          </button>
-          {hasData && (
-            <button className="nav-link" onClick={() => { setShowLab(true); setShowAuditLog(false); setShowMobileNav(false); }}>
-              Laboratorio de Modelos
-            </button>
-          )}
-          <button className="nav-link" onClick={() => { setShowAuditLog(true); setShowLab(false); setShowMobileNav(false); }}>
-            Trazabilidad
-          </button>
-          <button className="nav-link" onClick={() => { setShowSettings(true); setShowMobileNav(false); }}>
-            Modelos
-          </button>
-          <button className="nav-link" onClick={() => { setShowHelp(true); setShowMobileNav(false); }}>
-            Ayuda
-          </button>
-          <button className="nav-link" onClick={() => { setTheme(t => t === 'dark' ? 'light' : 'dark'); setShowMobileNav(false); }}>
-            Tema: {theme === 'light' ? 'Claro' : 'Oscuro'}
-          </button>
-          {hasData && (
-            <button className="nav-cta" onClick={() => { window.location.reload(); setShowMobileNav(false); }}>
-              Nuevo análisis
-            </button>
-          )}
-        </div>
-
         {/* Botón Hamburguesa Móvil */}
-        <button className="mobile-nav-toggle" onClick={() => setShowMobileNav(!showMobileNav)} aria-label="Menú de navegación">
-          <span className={`hamburger ${showMobileNav ? 'open' : ''}`}>
+        <button className="mobile-nav-toggle" onClick={() => setShowMobileNav(!showMobileNav)}>
+          <div className={`hamburger ${showMobileNav ? 'open' : ''}`}>
             <span /><span /><span />
-          </span>
+          </div>
         </button>
       </nav>
 
@@ -432,10 +391,14 @@ const App: React.FC = () => {
       <main className="sys-main" style={{ display: showLab ? 'none' : undefined }}>
         {/* Hero */}
         <section className="hero" id="sistema">
-          <p className="hero-sub">
-            AURA perfila el dataset con reglas reproducibles; luego separa diagnóstico, script, revisión humana y exportación.
+          <h1 className="hero-sub">
+            La calidad del dato merece un diagnóstico cognitivo.
+          </h1>
+          <p className="hero-desc">
+            AURA perfila el dataset con reglas reproducibles; luego separa diagnóstico, script de limpieza, revisión humana y exportación técnica.
           </p>
         </section>
+
 
         {/* Main Pipeline — Phase 1: Upload + Diagnostic */}
         <MainPipeline
