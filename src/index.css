@@ -4826,6 +4826,107 @@
   margin-bottom: 2rem;
 }
 
+.lab-protocol-card,
+.lab-runner,
+.lab-log-panel,
+.lab-glossary,
+.lab-stats-grid {
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.lab-protocol-card {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(320px, 1.05fr);
+  gap: 1.25rem;
+  padding: 1.25rem;
+}
+
+.lab-protocol-card h2 {
+  margin: 0.2rem 0 0.7rem;
+  color: var(--ink);
+  font-family: var(--font-serif);
+  font-size: 26px;
+}
+
+.lab-protocol-card p {
+  margin: 0;
+  color: var(--ink2);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.lab-protocol-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.lab-protocol-grid > div {
+  min-width: 0;
+  padding: 0.9rem;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.lab-protocol-grid > div:nth-child(2n) {
+  border-right: 0;
+}
+
+.lab-protocol-grid > div:nth-last-child(-n + 2) {
+  border-bottom: 0;
+}
+
+.lab-protocol-grid span,
+.lab-runner-controls label > span,
+.lab-stats-grid span {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: var(--ink3);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.lab-protocol-grid strong,
+.lab-stats-grid strong {
+  display: block;
+  min-width: 0;
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.lab-runner {
+  padding: 1rem;
+}
+
+.lab-runner-controls {
+  display: grid;
+  grid-template-columns: 180px minmax(260px, 1fr) 180px;
+  gap: 0.75rem;
+}
+
+.lab-runner-controls select {
+  width: 100%;
+  border: 1px solid var(--border-strong);
+  background: var(--bg);
+  color: var(--ink);
+  padding: 0.65rem 0.75rem;
+  font-size: 12px;
+  outline: none;
+}
+
+.lab-runner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
 .lab-controls {
   display: flex;
   flex-wrap: wrap;
@@ -4891,6 +4992,63 @@
 
 .lab-table td small.lab-error {
   color: var(--error);
+}
+
+.lab-log-panel .terminal-log {
+  max-height: 260px;
+}
+
+.lab-glossary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.lab-glossary > div {
+  min-width: 0;
+  padding: 1rem;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.lab-glossary > div:nth-child(3n) {
+  border-right: 0;
+}
+
+.lab-glossary > div:nth-last-child(-n + 3) {
+  border-bottom: 0;
+}
+
+.lab-glossary svg {
+  color: var(--ink2);
+  margin-bottom: 0.65rem;
+}
+
+.lab-glossary strong {
+  display: block;
+  color: var(--ink);
+  margin-bottom: 0.4rem;
+  font-size: 13px;
+}
+
+.lab-glossary p {
+  margin: 0;
+  color: var(--ink2);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.lab-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.lab-stats-grid > div {
+  padding: 1rem;
+  border-right: 1px solid var(--border);
+}
+
+.lab-stats-grid > div:last-child {
+  border-right: 0;
 }
 
 /* ── AURA flow fixes: settings drawer, grouped profile stats, wide diagnosis ── */
@@ -5113,6 +5271,34 @@
 
   .lab-title-block h1 {
     font-size: 1.25rem;
+  }
+
+  .lab-protocol-card,
+  .lab-runner-controls,
+  .lab-glossary,
+  .lab-stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .lab-protocol-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .lab-protocol-grid > div,
+  .lab-protocol-grid > div:nth-child(2n),
+  .lab-protocol-grid > div:nth-last-child(-n + 2),
+  .lab-glossary > div,
+  .lab-glossary > div:nth-child(3n),
+  .lab-glossary > div:nth-last-child(-n + 3),
+  .lab-stats-grid > div {
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .lab-protocol-grid > div:last-child,
+  .lab-glossary > div:last-child,
+  .lab-stats-grid > div:last-child {
+    border-bottom: 0;
   }
 
   .lab-controls {

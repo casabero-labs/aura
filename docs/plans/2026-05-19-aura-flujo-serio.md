@@ -612,3 +612,31 @@ Empezar por Fase 1 y Fase 2. No tocar benchmark todavia hasta que Perfilar quede
 ### Etiquetas de gobernanza en reporte final
 
 - El PDF final de AURA ahora etiqueta lineas de script como `destructiva`, `transformacion` o `lectura`, usando la misma logica visual de gobernanza del revisor HITL.
+
+## Progreso adicional - laboratorio experimental - 2026-05-19
+
+### Limpieza del modulo de experimentos
+
+- Se elimino del flujo visible el `ExperimentDesigner` duplicado que introducia un boton `RUN ALL` ambiguo.
+- `BenchmarkLab` queda como unico laboratorio experimental con protocolo explicito.
+- El laboratorio aclara que usa el mismo dataset ya perfilado en el flujo principal, no un dataset nuevo.
+
+### Protocolo y ejecucion
+
+- Se agrego una tarjeta de protocolo con dataset, fingerprint, filas, columnas, reglas activadas y score del perfil determinista.
+- Se reemplazaron botones ambiguos por acciones concretas:
+  - `Ejecutar corrida`;
+  - `Comparar contrato vs libre`;
+  - `Local vs cloud`;
+  - `Exportar evidencia`.
+- Se agrego seleccion clara de proveedor, modelo e input.
+
+### Logs y explicacion de metricas
+
+- Se agrego un log visible `aura.experiment.log` con eventos del benchmark.
+- La matriz de resultados ahora muestra JSON, Script, Alucinacion y Score junto a glosario explicativo.
+- Se documenta en interfaz que:
+  - tokens/s = tokens generados / segundos de latencia;
+  - alucinacion = columnas mencionadas que no existen en el perfil determinista;
+  - score compuesto = formato, cero alucinaciones, latencia, tokens/s, script y claims soportados;
+  - media, desviacion estandar y CV se calculan sobre el score compuesto de corridas completadas.
