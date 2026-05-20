@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ClipboardList, Download, FileCode2, FileJson, FileText, FlaskConical, HelpCircle, Settings, Layers, Sun, Moon } from 'lucide-react';
+import { ClipboardList, Download, FileCode2, FileJson, FileText, FlaskConical, HelpCircle, Settings, Layers, History } from 'lucide-react';
+import ChangelogModal from './components/ChangelogModal';
 import ErrorBoundary from './components/ErrorBoundary';
 import AuditLogViewer from './components/AuditLogViewer';
 import BenchmarkLab from './components/BenchmarkLab';
@@ -89,6 +90,7 @@ const App: React.FC = () => {
   const [showHelp, setShowHelp] = useState(false);
   const [showLab, setShowLab] = useState(false);
   const [showAuditLog, setShowAuditLog] = useState(false);
+  const [showChangelog, setShowChangelog] = useState(false);
   const [showMobileNav, setShowMobileNav] = useState(false);
   const [labBenchmarkResults, setLabBenchmarkResults] = useState<BenchmarkResult[]>([]);
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
@@ -347,12 +349,20 @@ const App: React.FC = () => {
             </button>
 
             <button
-              className="tool-btn"
-              onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
-              title="Alternar Tema"
+              className={`tool-btn ${showChangelog ? 'active' : ''}`}
+              onClick={() => setShowChangelog(true)}
+              title="Historial de cambios"
             >
-              {theme === 'light' ? <Moon size={15} /> : <Sun size={15} />}
+              <History size={15} />
             </button>
+
+            <label className="theme-toggle" aria-label="Cambiar tema">
+              <input
+                type="checkbox"
+                checked={theme === 'dark'}
+                onChange={(e) => setTheme(e.target.checked ? 'dark' : 'light')}
+              />
+            </label>
           </div>
 
           {hasData && (
@@ -372,6 +382,8 @@ const App: React.FC = () => {
           </div>
         </button>
       </nav>
+
+      {showChangelog && <ChangelogModal onClose={() => setShowChangelog(false)} />}
 
       {showLab && report && (
         <BenchmarkLab
