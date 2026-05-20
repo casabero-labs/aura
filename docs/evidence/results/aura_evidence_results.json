@@ -1,0 +1,158 @@
+{
+  "generatedAt": "2026-05-20T01:32:36.977Z",
+  "rows": [
+    {
+      "dataset": "clientes_sucio.csv",
+      "purpose": "valores nulos, placeholders y errores de higiene textual",
+      "rows": 6,
+      "columns": 5,
+      "score": 18,
+      "duplicateRows": 1,
+      "issues": 7,
+      "severity": {
+        "critical": 4,
+        "warning": 1,
+        "info": 2
+      },
+      "topIssues": [
+        {
+          "severity": "critical",
+          "ruleName": "Filas Duplicadas",
+          "column": "",
+          "count": 1,
+          "affectedPercentage": 16.67
+        },
+        {
+          "severity": "info",
+          "ruleName": "Espacios Fantasma (Trim)",
+          "column": "nombre",
+          "count": 2,
+          "affectedPercentage": 33.33
+        },
+        {
+          "severity": "info",
+          "ruleName": "Espacios Múltiples",
+          "column": "nombre",
+          "count": 3,
+          "affectedPercentage": 50
+        },
+        {
+          "severity": "critical",
+          "ruleName": "Formato Email Inválido",
+          "column": "email",
+          "count": 2,
+          "affectedPercentage": 33.33
+        },
+        {
+          "severity": "critical",
+          "ruleName": "Valores Nulos / Vacíos",
+          "column": "estado",
+          "count": 4,
+          "affectedPercentage": 66.67
+        }
+      ]
+    },
+    {
+      "dataset": "inventario_sucio.csv",
+      "purpose": "tipos mixtos, negativos y consistencia de inventario",
+      "rows": 6,
+      "columns": 6,
+      "score": 15,
+      "duplicateRows": 1,
+      "issues": 8,
+      "severity": {
+        "critical": 4,
+        "warning": 2,
+        "info": 2
+      },
+      "topIssues": [
+        {
+          "severity": "critical",
+          "ruleName": "Filas Duplicadas",
+          "column": "",
+          "count": 1,
+          "affectedPercentage": 16.67
+        },
+        {
+          "severity": "info",
+          "ruleName": "Espacios Fantasma (Trim)",
+          "column": "producto",
+          "count": 2,
+          "affectedPercentage": 33.33
+        },
+        {
+          "severity": "info",
+          "ruleName": "Espacios Múltiples",
+          "column": "producto",
+          "count": 2,
+          "affectedPercentage": 33.33
+        },
+        {
+          "severity": "critical",
+          "ruleName": "Valores Nulos / Vacíos",
+          "column": "categoria",
+          "count": 2,
+          "affectedPercentage": 33.33
+        },
+        {
+          "severity": "warning",
+          "ruleName": "Placeholders Tóxicos",
+          "column": "categoria",
+          "count": 2,
+          "affectedPercentage": 33.33
+        }
+      ]
+    },
+    {
+      "dataset": "operaciones_sucio.csv",
+      "purpose": "duplicados, formatos temporales y coherencia operacional",
+      "rows": 6,
+      "columns": 6,
+      "score": 24,
+      "duplicateRows": 1,
+      "issues": 8,
+      "severity": {
+        "critical": 3,
+        "warning": 4,
+        "info": 1
+      },
+      "topIssues": [
+        {
+          "severity": "critical",
+          "ruleName": "Filas Duplicadas",
+          "column": "",
+          "count": 1,
+          "affectedPercentage": 16.67
+        },
+        {
+          "severity": "info",
+          "ruleName": "Espacios Múltiples",
+          "column": "cliente",
+          "count": 2,
+          "affectedPercentage": 33.33
+        },
+        {
+          "severity": "warning",
+          "ruleName": "Valores Nulos / Vacíos",
+          "column": "fecha_cierre",
+          "count": 1,
+          "affectedPercentage": 16.67
+        },
+        {
+          "severity": "critical",
+          "ruleName": "Valores Nulos / Vacíos",
+          "column": "prioridad",
+          "count": 2,
+          "affectedPercentage": 33.33
+        },
+        {
+          "severity": "warning",
+          "ruleName": "Placeholders Tóxicos",
+          "column": "prioridad",
+          "count": 2,
+          "affectedPercentage": 33.33
+        }
+      ]
+    }
+  ]
+}
