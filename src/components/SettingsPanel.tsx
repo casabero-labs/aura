@@ -158,36 +158,32 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
         <div className="settings-sheet-backdrop" role="dialog" aria-modal="true" aria-labelledby="settings-sheet-title" onClick={onClose}>
             <aside className="settings-sheet" onClick={(event) => event.stopPropagation()}>
 
-                <div className="px-6 py-5 border-b border-[var(--border)] flex justify-between items-center bg-[var(--surface)]">
-                    <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 border border-[var(--border)] bg-[var(--bg)] flex items-center justify-center rounded-sm">
-                            <Settings size={16} className="text-[var(--ink)]" />
+                <div className="settings-header">
+                    <div className="settings-header-left">
+                        <div className="settings-header-icon">
+                            <Settings size={16} />
                         </div>
                         <div>
-                            <h2 id="settings-sheet-title" className="heading-md text-[var(--ink)]">Configuración de modelos</h2>
-                            <p className="text-[11px] font-sans text-[var(--ink2)] mt-1">Proveedor de IA</p>
+                            <h2 id="settings-sheet-title" className="settings-header-title">Configuración de modelos</h2>
+                            <p className="settings-header-sub">Proveedor de IA</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="text-[var(--ink2)] hover:text-[var(--ink)] transition-colors p-2">
+                    <button onClick={onClose} className="settings-close-btn">
                         <X size={18} />
                     </button>
                 </div>
 
-                <div className="p-6 space-y-6 overflow-y-auto max-h-[75vh]">
+                <div className="settings-body">
 
                     {/* Provider Type Tabs */}
-                    <div className="flex gap-1 p-1 bg-[var(--surface)] border border-[var(--border)] rounded-sm">
+                    <div className="settings-tabs">
                         {PROVIDER_TABS.map(tab => {
                             const Icon = tab.icon;
                             return (
                                 <button
                                     key={tab.id}
                                     onClick={() => setProviderType(tab.id)}
-                                    className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 text-[12px] font-sans font-medium transition-all rounded-sm ${
-                                        localConfig.providerType === tab.id
-                                            ? 'bg-[var(--bg)] text-[var(--ink)] border border-[var(--border-strong)]'
-                                            : 'text-[var(--ink2)] hover:text-[var(--ink)]'
-                                    }`}
+                                    className={`settings-tab ${localConfig.providerType === tab.id ? 'active' : ''}`}
                                 >
                                     <Icon size={14} />
                                     {tab.label}
@@ -199,9 +195,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                     {/* Cloud Provider */}
                     {localConfig.providerType === 'cloud' && (
                         <>
-                            <div className="space-y-3">
-                                <label className="block text-[11px] font-sans font-medium uppercase tracking-wider text-[var(--ink2)]">Proveedor Cloud</label>
-                                <div className="relative">
+                            <div className="settings-section">
+                                <label className="settings-label">Proveedor Cloud</label>
+                                <div className="settings-select-wrap">
                                     <select
                                         value={localConfig.cloudProvider || 'google'}
                                         onChange={(e) => {
@@ -213,7 +209,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                                                 model: models[0]?.id || localConfig.model,
                                             });
                                         }}
-                                        className="w-full bg-[var(--surface-raised)] border border-[var(--border-strong)] px-4 py-3 outline-none text-[var(--ink)] appearance-none cursor-pointer font-sans text-[13px] focus:border-[var(--ink-soft)] transition-colors rounded-sm"
+                                        className="settings-select"
                                     >
                                         {CLOUD_PROVIDERS.map(p => (
                                             <option key={p.value} value={p.value}>{p.label}</option>
@@ -223,25 +219,25 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                             </div>
 
                             {localConfig.cloudProvider !== 'openrouter' && (
-                                <div className="space-y-3">
-                                    <label className="block text-[11px] font-sans font-medium uppercase tracking-wider text-[var(--ink2)]">API Key</label>
+                                <div className="settings-section">
+                                    <label className="settings-label">API Key</label>
                                     <input
                                         type="password"
                                         value={localConfig.apiKey || ''}
                                         onChange={(e) => setLocalConfig({ ...localConfig, apiKey: e.target.value })}
                                         placeholder="sk-..."
-                                        className="w-full bg-[var(--surface-raised)] border border-[var(--border-strong)] px-4 py-3 outline-none text-[var(--ink)] font-sans text-[13px] focus:border-[var(--ink-soft)] transition-colors rounded-sm"
+                                        className="settings-input"
                                     />
                                 </div>
                             )}
 
-                            <div className="space-y-3">
-                                <label className="block text-[11px] font-sans font-medium uppercase tracking-wider text-[var(--ink2)]">Modelo</label>
-                                <div className="relative">
+                            <div className="settings-section">
+                                <label className="settings-label">Modelo</label>
+                                <div className="settings-select-wrap">
                                     <select
                                         value={localConfig.model}
                                         onChange={(e) => setLocalConfig({ ...localConfig, model: e.target.value })}
-                                        className="w-full bg-[var(--surface-raised)] border border-[var(--border-strong)] px-4 py-3 outline-none text-[var(--ink)] appearance-none cursor-pointer font-sans text-[13px] focus:border-[var(--ink-soft)] transition-colors rounded-sm"
+                                        className="settings-select"
                                     >
                                         {(localConfig.cloudProvider ? cloudsForProvider(localConfig.cloudProvider) : AVAILABLE_MODELS.cloud).map(m => (
                                             <option key={m.id} value={m.id}>{m.name}</option>
@@ -255,29 +251,29 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                     {/* Local Provider */}
                     {localConfig.providerType === 'local' && (
                         <>
-                            <div className="space-y-3">
-                                <label className="block text-[11px] font-sans font-medium uppercase tracking-wider text-[var(--ink2)]">Infraestructura</label>
+                            <div className="settings-section">
+                                <label className="settings-label">Infraestructura</label>
                                 {webGpuSupported === false && (
-                                    <div className="flex items-start gap-2 p-3 bg-[var(--surface)] border-2 border-[var(--ink-soft)] text-[var(--ink)] text-[12px] font-sans rounded-sm">
-                                        <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+                                    <div className="settings-status-card settings-status-card--warn">
+                                        <AlertTriangle size={14} className="settings-status-icon" />
                                         <p>WebGPU no soportado. Usa Chrome/Edge 113+.</p>
                                     </div>
                                 )}
                                 {webGpuSupported === true && (
-                                    <div className="flex items-start gap-2 p-3 bg-[var(--surface)] border border-[var(--border-strong)] text-[var(--ink2)] text-[12px] font-sans leading-relaxed rounded-sm">
-                                        <CheckCircle size={14} className="shrink-0 mt-0.5" />
+                                    <div className="settings-status-card settings-status-card--ok">
+                                        <CheckCircle size={14} className="settings-status-icon" />
                                         <p>WebGPU disponible. El modelo se ejecuta en tu dispositivo sin enviar datos a servidores.</p>
                                     </div>
                                 )}
                             </div>
 
-                            <div className="space-y-3">
-                                <label className="block text-[11px] font-sans font-medium uppercase tracking-wider text-[var(--ink2)]">Modelo Local ({LOCAL_MODELS.length} disponibles)</label>
-                                <div className="relative">
+                            <div className="settings-section">
+                                <label className="settings-label">Modelo Local ({LOCAL_MODELS.length} disponibles)</label>
+                                <div className="settings-select-wrap">
                                     <select
                                         value={localConfig.model}
                                         onChange={(e) => setLocalConfig({ ...localConfig, model: e.target.value })}
-                                        className="w-full bg-[var(--surface-raised)] border border-[var(--border-strong)] px-4 py-3 outline-none text-[var(--ink)] appearance-none cursor-pointer font-sans text-[13px] focus:border-[var(--ink-soft)] transition-colors rounded-sm"
+                                        className="settings-select"
                                     >
                                         {LOCAL_MODELS.map(m => (
                                             <option key={m.id} value={m.id}>
@@ -285,17 +281,17 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                                             </option>
                                         ))}
                                     </select>
-                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-50">
-                                        <HardDrive size={14} className="text-[var(--ink)]" />
+                                    <div className="settings-select-icon">
+                                        <HardDrive size={14} />
                                     </div>
                                 </div>
 
                                 {webGpuSupported && (
-                                    <div className="space-y-2">
+                                    <div style={{display:'flex',flexDirection:'column',gap:'var(--space-xs)'}}>
                                         {currentModelState?.status === 'ready' ? (
-                                            <div className="flex items-center gap-2 p-3 bg-[var(--surface)] border border-[var(--border-strong)] text-[12px] font-sans rounded-sm">
-                                                <CheckCircle size={14} className="text-[var(--ink)] shrink-0" />
-                                                <span className="text-[var(--ink)]">Modelo descargado y listo para usar.</span>
+                                            <div className="settings-model-ready">
+                                                <CheckCircle size={14} className="settings-model-ready-icon" />
+                                                <span className="settings-model-ready-text">Modelo descargado y listo para usar.</span>
                                                 <button
                                                     onClick={async () => {
                                                         await deleteDownloadedModel(localConfig.model);
@@ -303,21 +299,21 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                                                         delete updatedStates[localConfig.model];
                                                         setLocalConfig({ ...localConfig, modelDownloadState: updatedStates });
                                                     }}
-                                                    className="ml-auto flex items-center gap-1 text-[11px] text-[var(--error)] hover:underline"
+                                                    className="settings-model-delete"
                                                 >
                                                     <Trash2 size={12} /> Eliminar
                                                 </button>
                                             </div>
                                         ) : downloadingModel === localConfig.model ? (
-                                            <div className="space-y-2 p-3 bg-[var(--surface)] border border-[var(--border-strong)] rounded-sm">
-                                                <div className="flex items-center gap-2 text-[12px] font-sans">
-                                                    <Loader2 size={14} className="animate-spin text-[var(--ink)] shrink-0" />
-                                                    <span className="text-[var(--ink)]">{downloadProgress.message}</span>
-                                                    <span className="text-[var(--ink2)] ml-auto">{downloadProgress.progress}%</span>
+                                            <div className="settings-download-card">
+                                                <div className="settings-download-row">
+                                                    <Loader2 size={14} className="settings-download-spinner" />
+                                                    <span className="settings-download-message">{downloadProgress.message}</span>
+                                                    <span className="settings-download-pct">{downloadProgress.progress}%</span>
                                                 </div>
-                                                <div className="w-full h-1.5 bg-[var(--border-strong)] rounded-full overflow-hidden">
+                                                <div className="settings-progress-track">
                                                     <div
-                                                        className="h-full bg-[var(--ink)] transition-all duration-300"
+                                                        className="settings-progress-fill"
                                                         style={{ width: `${downloadProgress.progress}%` }}
                                                     />
                                                 </div>
@@ -326,16 +322,16 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                                             <button
                                                 onClick={() => handleDownloadModel(localConfig.model)}
                                                 disabled={downloadProgress.status === 'downloading'}
-                                                className="w-full flex items-center justify-center gap-2 p-3 text-[12px] font-sans font-medium transition-all rounded-sm border border-[var(--border-strong)] bg-[var(--surface)] text-[var(--ink)] hover:bg-[var(--surface-raised)]"
+                                                className="settings-download-btn"
                                             >
                                                 <Download size={14} />
                                                 {currentModelState?.status === 'error' ? 'Reintentar descarga' : 'Descargar modelo para uso offline'}
                                             </button>
                                         )}
                                         {currentModelState?.status === 'error' && (
-                                            <p className="text-[11px] font-sans text-red-400">{currentModelState.message}</p>
+                                            <p className="settings-error-msg">{currentModelState.message}</p>
                                         )}
-                                        <p className="text-[10px] font-sans text-[var(--ink2)] leading-relaxed">
+                                        <p className="settings-hint">
                                             El modelo se almacena en caché del navegador. Los modelos ★ son recomendados para análisis de datos.
                                         </p>
                                     </div>
@@ -346,37 +342,37 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
 
                     {/* Chrome AI Provider */}
                     {localConfig.providerType === 'chrome' && (
-                        <div className="space-y-3">
-                            <label className="block text-[11px] font-sans font-medium uppercase tracking-wider text-[var(--ink2)]">Chrome AI</label>
+                        <div className="settings-section">
+                            <label className="settings-label">Chrome AI</label>
                             {chromeAiSupported === false && (
-                                <div className="flex items-start gap-2 p-3 bg-[var(--surface)] border-2 border-[var(--ink-soft)] text-[var(--ink)] text-[12px] font-sans rounded-sm">
-                                    <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+                                <div className="settings-status-card settings-status-card--warn">
+                                    <AlertTriangle size={14} className="settings-status-icon" />
                                     <p>Chrome AI no disponible. Habilita chrome://flags/#prompt-api-for-gemini-nano.</p>
                                 </div>
                             )}
                             {chromeAiSupported === true && (
-                                <div className="flex items-start gap-2 p-3 bg-[var(--surface)] border border-[var(--border-strong)] text-[var(--ink2)] text-[12px] font-sans leading-relaxed rounded-sm">
-                                    <CheckCircle size={14} className="shrink-0 mt-0.5" />
+                                <div className="settings-status-card settings-status-card--ok">
+                                    <CheckCircle size={14} className="settings-status-icon" />
                                     <p>Chrome AI (Gemini Nano) está disponible.</p>
                                 </div>
                             )}
                             {chromeAiSupported === null && (
-                                <div className="flex items-start gap-2 p-3 bg-[var(--surface)] border border-[var(--border-strong)] text-[var(--ink2)] text-[12px] font-sans leading-relaxed rounded-sm">
-                                    <Loader2 size={14} className="animate-spin shrink-0" />
+                                <div className="settings-status-card settings-status-card--loading">
+                                    <Loader2 size={14} className="settings-status-icon animate-spin" />
                                     <p>Verificando disponibilidad...</p>
                                 </div>
                             )}
-                            <p className="text-[10px] font-sans text-[var(--ink2)] leading-relaxed">
+                            <p className="settings-hint">
                                 Gemini Nano está integrado en Chrome. No requiere descarga de modelos ni API keys.
                             </p>
                         </div>
                     )}
 
                     {/* Temperatura */}
-                    <div className="space-y-3">
-                        <label className="block text-[11px] font-sans font-medium uppercase tracking-wider text-[var(--ink2)]">Temperatura <span className="text-[var(--ink)]">{(localConfig.temperature ?? 0.1).toFixed(1)}</span></label>
-                        <div className="flex items-center gap-4">
-                            <span className="text-[10px] font-sans text-[var(--ink-muted)]">0.0</span>
+                    <div className="settings-section">
+                        <label className="settings-label">Temperatura <span>{(localConfig.temperature ?? 0.1).toFixed(1)}</span></label>
+                        <div className="settings-slider-row">
+                            <span className="settings-slider-label">0.0</span>
                             <input
                                 type="range"
                                 min="0"
@@ -384,28 +380,28 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                                 step="0.1"
                                 value={localConfig.temperature ?? 0.1}
                                 onChange={(e) => setLocalConfig({ ...localConfig, temperature: parseFloat(e.target.value) })}
-                                className="flex-1 h-1.5 appearance-none bg-[var(--border-strong)] rounded-full outline-none cursor-pointer
-                                    [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[var(--ink)] [&::-webkit-slider-thumb]:cursor-pointer
-                                    [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[var(--ink)] [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:cursor-pointer"
+                                className="settings-slider"
                             />
-                            <span className="text-[10px] font-sans text-[var(--ink-muted)]">1.0</span>
+                            <span className="settings-slider-label">1.0</span>
                         </div>
                     </div>
 
                     {/* Auto-Análisis */}
-                    <div className="flex items-center justify-between p-4 bg-[var(--surface)] border border-[var(--border)] hover:border-[var(--border-strong)] transition-colors rounded-sm">
+                    <div className="settings-toggle-card">
                         <div>
-                            <p className="text-[13px] font-sans font-medium text-[var(--ink)] tracking-tight">Auto-Análisis</p>
-                            <p className="text-[11px] text-[var(--ink2)] font-sans mt-0.5">Ejecutar motor al cargar dataset</p>
+                            <p className="settings-toggle-card-label">Auto-Análisis</p>
+                            <p className="settings-toggle-card-desc">Ejecutar motor al cargar dataset</p>
                         </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
+                        <label className="toggle">
                             <input
                                 type="checkbox"
                                 checked={localConfig.autoAnalyze}
                                 onChange={(e) => setLocalConfig({ ...localConfig, autoAnalyze: e.target.checked })}
-                                className="sr-only peer"
+                                className="toggle-input"
                             />
-                            <div className="w-10 h-5 bg-[var(--border-strong)] rounded-full peer peer-checked:bg-[var(--ink)] transition-colors after:content-[\'\'] after:absolute after:top-1 after:left-1 after:bg-[var(--bg)] after:h-3 after:w-3 after:rounded-full after:transition-all peer-checked:after:translate-x-5"></div>
+                            <div className="toggle-track">
+                                <div className="toggle-thumb" />
+                            </div>
                         </label>
                     </div>
 
@@ -418,8 +414,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                             </div>
                         </div>
 
-                        <div className="space-y-3">
-                            <label className="block text-[11px] font-sans font-medium uppercase tracking-wider text-[var(--ink2)]">Objetivo operativo</label>
+                        <div className="settings-section">
+                            <label className="settings-label">Objetivo operativo</label>
                             <textarea
                                 value={promptContract.objective}
                                 onChange={(event) => updatePromptContract({ objective: event.target.value })}
@@ -476,8 +472,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                             </label>
                         </div>
 
-                        <div className="space-y-3">
-                            <label className="block text-[11px] font-sans font-medium uppercase tracking-wider text-[var(--ink2)]">Instrucción adicional guiada</label>
+                        <div className="settings-section">
+                            <label className="settings-label">Instrucción adicional guiada</label>
                             <textarea
                                 value={promptContract.extraInstructions || ''}
                                 onChange={(event) => updatePromptContract({ extraInstructions: event.target.value })}
@@ -492,13 +488,13 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
 
                 </div>
 
-                <div className="px-6 py-5 bg-[var(--surface)] border-t border-[var(--border)] flex justify-end gap-3">
+                <div className="settings-footer">
                     <button onClick={onClose} className="cs-button">
                         Cancelar
                     </button>
                     <button
                         onClick={handleSave}
-                        className="cs-button cs-button-primary flex items-center gap-2"
+                        className="cs-button-primary"
                     >
                         <Save size={14} /> Guardar
                     </button>

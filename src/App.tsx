@@ -97,7 +97,6 @@ const App: React.FC = () => {
   });
 
   useEffect(() => {
-    document.documentElement.classList.toggle('light', theme === 'light');
     document.documentElement.dataset.theme = theme;
     localStorage.setItem('aura_theme', theme);
     localStorage.setItem('casabero-theme', theme);
