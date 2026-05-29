@@ -13,8 +13,8 @@
 | Parámetro | Valor |
 |---|---|
 | Archivo fuente | `src/services/auditEngine.ts` |
-| Líneas de código | 527 |
-| Total de reglas | 22+ |
+| Líneas de código | Ver `src/services/auditEngine.ts` |
+| Total de reglas | 28+ |
 | Categorías | 5 (Integridad, Higiene, Tipos, Lógica, Semántica) |
 | Propiedad principal | Reproducibilidad determinista |
 | Métricas empíricas | Ver `docs/tablas/resultados_motor_determinista.md` |
@@ -245,6 +245,51 @@
 | **Umbral** | Coincidencia >=95% en más de 10 filas comparables |
 | **Justificación** | Identifica posible redundancia derivable sin eliminar automáticamente la columna; requiere interpretación de dominio por Capa 2 y validación HITL |
 
+### R24 — Cabecera como Pregunta / Metadato Verbal
+| Campo | Detalle |
+|---|---|
+| **ID** | `semantic-header-{col}` |
+| **Severidad** | INFO |
+| **Algoritmo** | Detecta nombres de columna con signos de pregunta, longitud >60 caracteres o más de 8 palabras |
+| **Penalización** | 2 pts |
+| **Justificación** | Evita acoplar preguntas de encuesta o etiquetas narrativas al esquema físico; recomienda identificador técnico + diccionario de datos |
+
+### R25 — Consistencia Categórica Semántica
+| Campo | Detalle |
+|---|---|
+| **ID** | `semantic-category-variants-{col}-{grupo}` |
+| **Severidad** | WARNING |
+| **Algoritmo** | Normaliza texto y compara contra vocabularios controlados conocidos, por ejemplo `Hombre/Masculino`, `Mujer/Femenino`, `Assault/Battery/Adw` |
+| **Penalización** | 4 pts |
+| **Justificación** | Detecta fragmentación de categorías que falsea agregaciones; la unificación queda sujeta a interpretación de dominio |
+
+### R26 — Cola Larga Categórica
+| Campo | Detalle |
+|---|---|
+| **ID** | `semantic-long-tail-{col}` |
+| **Severidad** | INFO |
+| **Algoritmo** | En dimensiones textuales, detecta alta cardinalidad, ratio de únicos >=35% y baja cobertura de los cinco valores principales |
+| **Penalización** | 0 pts |
+| **Justificación** | Señala variables que pueden requerir macro-categorías antes del análisis estadístico |
+
+### R27 — Rangos Demográficos Quemados
+| Campo | Detalle |
+|---|---|
+| **ID** | `semantic-burned-range-{col}` |
+| **Severidad** | WARNING |
+| **Algoritmo** | RegExp sobre rangos textuales como `De 41 a 65 años`, `Menos de 18`, `18-30` o `65+` cuando dominan la columna |
+| **Penalización** | 4 pts |
+| **Justificación** | Detecta pérdida de granularidad que impide medias, desviaciones y segmentaciones posteriores |
+
+### R28 — Duplicidad Semántica de Columnas
+| Campo | Detalle |
+|---|---|
+| **ID** | `semantic-duplicate-columns-{left}-{right}` |
+| **Severidad** | INFO |
+| **Algoritmo** | Normaliza valores textuales y compara pares de columnas; reporta coincidencia >=95% en más de 10 filas comparables |
+| **Penalización** | 0 pts |
+| **Justificación** | Aporta evidencia para poda o coalescencia sin eliminar automáticamente atributos que podrían tener sentido de negocio |
+
 ---
 
 ## Tabla Resumen de Penalizaciones
@@ -274,6 +319,11 @@
 | R21 URLs | Lógica | 5 pts | WARNING |
 | R22 Símbolos | Higiene | 5 pts | WARNING |
 | R23 Redundancia temporal derivable | Semántica | 0 pts | INFO |
+| R24 Cabecera pregunta/metadato | Semántica | 2 pts | INFO |
+| R25 Consistencia categórica | Semántica | 4 pts | WARNING |
+| R26 Cola larga categórica | Semántica | 0 pts | INFO |
+| R27 Rangos quemados | Semántica | 4 pts | WARNING |
+| R28 Duplicidad semántica columnas | Semántica | 0 pts | INFO |
 
 **Penalización máxima teórica por columna**: Variable (depende del tipo de columna y problemas detectados).  
 **Score mínimo posible**: 0 (capped a `max(0, 100 - total)`).

@@ -29,6 +29,75 @@ function scoreRule(label: string, tp: number, fp: number, fn: number): RuleResul
 }
 
 describe('AuditEngine - Deterministic Rules', () => {
+  describe('Dataset situations from UNIR cleaning activity', () => {
+    it('detects survey-question headers as metadata/schema friction', () => {
+      const field = '8_¿Cuál es su grupo de edad?';
+      const data = Array.from({ length: 12 }, (_, i) => ({
+        [field]: i % 2 === 0 ? 'De 41 a 65 años' : 'Menos de 18 años',
+      }));
+
+      const result = runAudit(data, [field], ',');
+      const issue = result.issues.find(i => i.id === `semantic-header-${field}`);
+
+      expect(issue).toBeDefined();
+      expect(issue!.ruleName).toBe('Cabecera como Pregunta / Metadato Verbal');
+      expect(issue!.severity).toBe(IssueSeverity.INFO);
+    });
+
+    it('detects burned demographic ranges that block dynamic segmentation', () => {
+      const data = Array.from({ length: 20 }, (_, i) => ({
+        rango_edad: i % 3 === 0 ? 'De 41 a 65 años' : i % 3 === 1 ? 'Menos de 18 años' : '18-30',
+      }));
+
+      const result = runAudit(data, ['rango_edad'], ',');
+      const issue = result.issues.find(i => i.id === 'semantic-burned-range-rango_edad');
+
+      expect(issue).toBeDefined();
+      expect(issue!.ruleName).toBe('Rangos Demográficos Quemados');
+      expect(issue!.severity).toBe(IssueSeverity.WARNING);
+    });
+
+    it('detects controlled-vocabulary variants in categorical columns', () => {
+      const data = Array.from({ length: 20 }, (_, i) => ({
+        sexo: i % 4 === 0 ? 'Hombre' : i % 4 === 1 ? 'Masculino' : i % 4 === 2 ? 'Mujer' : 'Femenino',
+      }));
+
+      const result = runAudit(data, ['sexo'], ',');
+      const masculineIssue = result.issues.find(i => i.id === 'semantic-category-variants-sexo-masculino');
+      const feminineIssue = result.issues.find(i => i.id === 'semantic-category-variants-sexo-femenino');
+
+      expect(masculineIssue).toBeDefined();
+      expect(feminineIssue).toBeDefined();
+      expect(masculineIssue!.ruleName).toBe('Consistencia Categórica Semántica');
+    });
+
+    it('detects semantically duplicated columns with different labels', () => {
+      const data = Array.from({ length: 20 }, (_, i) => ({
+        TIPO: i % 2 === 0 ? 'MAYORES' : 'INFANTIL',
+        DESC_CLASIFICACION: i % 2 === 0 ? 'Área de mayores' : 'Área infantil',
+      }));
+
+      const result = runAudit(data, ['TIPO', 'DESC_CLASIFICACION'], ',');
+      const issue = result.issues.find(i => i.id === 'semantic-duplicate-columns-TIPO-DESC_CLASIFICACION');
+
+      expect(issue).toBeDefined();
+      expect(issue!.ruleName).toBe('Duplicidad Semántica de Columnas');
+      expect(issue!.severity).toBe(IssueSeverity.INFO);
+    });
+
+    it('detects categorical long tails that need macro-category review', () => {
+      const data = Array.from({ length: 60 }, (_, i) => ({
+        OriginalCrimeTypeName: i % 2 === 0 ? `Crime variant ${i}` : `Administrative code ${i}`,
+      }));
+
+      const result = runAudit(data, ['OriginalCrimeTypeName'], ',');
+      const issue = result.issues.find(i => i.id === 'semantic-long-tail-OriginalCrimeTypeName');
+
+      expect(issue).toBeDefined();
+      expect(issue!.ruleName).toBe('Cola Larga Categórica');
+    });
+  });
+
   describe('R4 Fix: Mixed Types Skip for Code Columns', () => {
     it('should NOT report integrity-mixed-Ticket on Titanic dataset', () => {
       const { data, fields } = loadTitanic();

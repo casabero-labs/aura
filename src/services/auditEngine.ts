@@ -20,6 +20,15 @@ const REGEX_CURRENCY = /^[\$\€\£\¥]?\s?\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?\s
 const REGEX_PERCENTAGE = /^\d+(?:\.\d+)?\s?%$/;
 const REGEX_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const REGEX_ZIP = /^\d{4,10}(?:-\d{3,6})?$/;
+const REGEX_BURNED_RANGE = /(?:\bde\s+\d{1,3}\s+a\s+\d{1,3}\b|\bmen(?:os|or)\s+de\s+\d{1,3}\b|\bmas\s+de\s+\d{1,3}\b|\b\d{1,3}\s*[-–]\s*\d{1,3}\b|\b\d{1,3}\s*\+)/i;
+const REGEX_HEADER_QUESTION = /[¿?]/;
+
+const CONTROLLED_VOCABULARIES: Record<string, string[]> = {
+  masculino: ['hombre', 'masculino', 'male', 'm'],
+  femenino: ['mujer', 'femenino', 'female', 'f'],
+  violencia: ['assault', 'battery', 'adw', 'strongarm', 'weapon in progress', 'aggr assault', 'agg assault'],
+  robo: ['robbery', 'theft', 'steal', 'burglary', 'larceny', 'robo', 'hurto'],
+};
 
 // Simple hash to avoid massive memory usage for duplicate check
 const getFastHash = (obj: any): number => {
@@ -56,6 +65,61 @@ const looksLikeDateTimeColumn = (col: string, values: any[], rowCount: number): 
   const nameHint = lower.includes('datetime') || lower.includes('timestamp') || lower.includes('fecha_hora') || lower.includes('date_time');
   const matches = values.filter(v => typeof v === 'string' && REGEX_DATETIME.test(v.trim())).length;
   return nameHint || (rowCount > 0 && matches / rowCount > 0.8);
+};
+
+const normalizeText = (value: any): string => String(value ?? '')
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .toLowerCase()
+  .trim()
+  .replace(/\s+/g, ' ');
+
+const normalizeCategoryValue = (value: any): string => normalizeText(value)
+  .replace(/[^\w\s]/g, ' ')
+  .replace(/\s+/g, ' ')
+  .trim();
+
+const normalizeComparableCell = (value: any): string => normalizeCategoryValue(value)
+  .replace(/\b(area|areas|de|del|la|las|el|los|tipo|clasificacion|desc|descripcion)\b/g, ' ')
+  .replace(/\s+/g, ' ')
+  .trim();
+
+const isLikelyTextDimension = (col: string, stats: ColumnStats, rowCount: number): boolean => {
+  const lower = col.toLowerCase();
+  const excludedHints = ['id', 'uuid', 'guid', 'email', 'mail', 'phone', 'tel', 'url', 'link', 'observacion', 'notes'];
+  return stats.inferredType === 'string'
+    && rowCount > 0
+    && stats.uniqueCount > 1
+    && stats.uniqueCount <= rowCount
+    && !excludedHints.some(hint => lower.includes(hint));
+};
+
+const detectControlledVocabularyVariants = (values: any[]): { group: string; variants: string[]; count: number }[] => {
+  const normalizedValues = values
+    .filter(v => v !== null && v !== undefined && v !== '')
+    .map(normalizeCategoryValue);
+
+  return Object.entries(CONTROLLED_VOCABULARIES)
+    .map(([group, aliases]) => {
+      const aliasSet = new Set(aliases);
+      const variantSet = new Set<string>();
+      let count = 0;
+
+      normalizedValues.forEach(value => {
+        const matched = aliases.find(alias => {
+          if (value === alias) return true;
+          if (alias.length <= 3) return false;
+          return new RegExp(`\\b${alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(value);
+        });
+        if (matched && aliasSet.has(matched)) {
+          variantSet.add(matched);
+          count++;
+        }
+      });
+
+      return { group, variants: Array.from(variantSet), count };
+    })
+    .filter(result => result.variants.length > 1);
 };
 
 // --- Semantic Type Detection ---
@@ -351,6 +415,23 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
       });
     }
 
+    // 4b. Headers as survey questions or overly verbose metadata
+    const headerWordCount = normalizeText(col).split(' ').filter(Boolean).length;
+    if (col.length > 60 || REGEX_HEADER_QUESTION.test(col) || headerWordCount > 8) {
+      addDeduction(`Cabecera no técnica [${col}]`, 2, IssueCategory.SEMANTIC);
+      issues.push({
+        id: `semantic-header-${col}`,
+        column: col,
+        ruleName: 'Cabecera como Pregunta / Metadato Verbal',
+        category: IssueCategory.SEMANTIC,
+        description: 'El nombre de columna parece una pregunta o etiqueta larga. Conviene desacoplar el dato de su metadato mediante un identificador técnico y un diccionario externo.',
+        severity: IssueSeverity.INFO,
+        count: 1,
+        affectedPercentage: 100,
+        sampleValues: [col]
+      });
+    }
+
     // Prepare for row iteration
     let ghostSpaceCount = 0;
     let mojibakeCount = 0;
@@ -374,10 +455,11 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
     let symbolChaosCount = 0;
     let isoDateCount = 0;
     let dmyDateCount = 0;
+    let burnedRangeCount = 0;
 
     const samples: Record<string, any[]> = {
       ghost: [], mojibake: [], toxic: [], overflow: [], negative: [], outlier: [], email: [], pii: [], disguised: [],
-      doubleSpace: [], url: [], symbol: [], futureDate: [], mixedDate: []
+      doubleSpace: [], url: [], symbol: [], futureDate: [], mixedDate: [], burnedRange: []
     };
 
     // IQR Calculation for Logic Rule 15
@@ -550,6 +632,12 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
           if (samples.symbol.length < 3) samples.symbol.push(val);
         }
       }
+
+      // 24. Burned demographic ranges
+      if (typeof val === 'string' && REGEX_BURNED_RANGE.test(normalizeText(val))) {
+        burnedRangeCount++;
+        if (samples.burnedRange.length < 3) samples.burnedRange.push(val);
+      }
     });
 
     // --- Consolidate & Push Issues ---
@@ -581,6 +669,40 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
       if (stats.uniqueCount > distinctLower && stats.uniqueCount < rowCount * 0.8) {
         addDeduction(`Caos de Mayúsculas en [${col}]`, 3, IssueCategory.HYGIENE);
         issues.push({ id: `hygiene-case-${col}`, column: col, category: IssueCategory.HYGIENE, ruleName: 'Caos de Capitalización', description: 'Mismos valores escritos con distintas mayúsculas.', severity: IssueSeverity.INFO, count: stats.uniqueCount - distinctLower, affectedPercentage: 0, sampleValues: [] });
+      }
+    }
+
+    if (isLikelyTextDimension(col, stats, rowCount)) {
+      const vocabularyVariants = detectControlledVocabularyVariants(values);
+      vocabularyVariants.forEach(variant => {
+        addDeduction(`Variantes categóricas [${col}:${variant.group}]`, 4, IssueCategory.SEMANTIC);
+        issues.push({
+          id: `semantic-category-variants-${col}-${variant.group}`,
+          column: col,
+          category: IssueCategory.SEMANTIC,
+          ruleName: 'Consistencia Categórica Semántica',
+          description: `Se detectaron variantes compatibles con el mismo concepto (${variant.variants.join(', ')}). Requiere vocabulario controlado o revisión de dominio antes de consolidar.`,
+          severity: IssueSeverity.WARNING,
+          count: variant.count,
+          affectedPercentage: (variant.count / rowCount) * 100,
+          sampleValues: variant.variants
+        });
+      });
+
+      const topFreqCoverage = (stats.topFreq || []).reduce((sum, item) => sum + item.count, 0) / rowCount;
+      const cardinalityRatio = stats.uniqueCount / rowCount;
+      if (rowCount >= 30 && stats.uniqueCount >= 20 && cardinalityRatio >= 0.35 && topFreqCoverage < 0.6) {
+        issues.push({
+          id: `semantic-long-tail-${col}`,
+          column: col,
+          category: IssueCategory.SEMANTIC,
+          ruleName: 'Cola Larga Categórica',
+          description: 'La columna tiene alta dispersión de categorías y baja concentración en los valores principales. Puede necesitar agrupación o macro-categorías antes del análisis.',
+          severity: IssueSeverity.INFO,
+          count: stats.uniqueCount,
+          affectedPercentage: cardinalityRatio * 100,
+          sampleValues: stats.topFreq?.map(item => item.value) || []
+        });
       }
     }
 
@@ -620,6 +742,21 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
 
     if (redundantTimeCount > rowCount * 0.9) {
       issues.push({ id: `type-time-${col}`, column: col, category: IssueCategory.TYPES, ruleName: 'Hora Redundante', description: 'Sufijo 00:00:00 sin valor real.', severity: IssueSeverity.INFO, count: redundantTimeCount, affectedPercentage: 100, sampleValues: [] });
+    }
+
+    if (burnedRangeCount > rowCount * 0.6 && stats.uniqueCount <= 20) {
+      addDeduction(`Rangos quemados [${col}]`, 4, IssueCategory.SEMANTIC);
+      issues.push({
+        id: `semantic-burned-range-${col}`,
+        column: col,
+        category: IssueCategory.SEMANTIC,
+        ruleName: 'Rangos Demográficos Quemados',
+        description: 'La columna almacena rangos de texto en lugar de un valor granular. Esto limita medias, desviaciones y nuevas segmentaciones posteriores.',
+        severity: IssueSeverity.WARNING,
+        count: burnedRangeCount,
+        affectedPercentage: (burnedRangeCount / rowCount) * 100,
+        sampleValues: samples.burnedRange
+      });
     }
 
     // Group 4 Checks
@@ -756,6 +893,52 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
       }
     });
   });
+
+  // 25. Semantic duplicate columns - Cross Column
+  for (let leftIndex = 0; leftIndex < fields.length; leftIndex++) {
+    for (let rightIndex = leftIndex + 1; rightIndex < fields.length; rightIndex++) {
+      const left = fields[leftIndex];
+      const right = fields[rightIndex];
+      const leftStats = colStats[left];
+      const rightStats = colStats[right];
+
+      if (!isLikelyTextDimension(left, leftStats, rowCount) || !isLikelyTextDimension(right, rightStats, rowCount)) continue;
+      if (leftStats.uniqueCount === 1 && rightStats.uniqueCount === 1) continue;
+
+      let comparable = 0;
+      let matches = 0;
+      const samples: any[] = [];
+
+      for (let i = 0; i < rowCount; i++) {
+        const leftValue = normalizeComparableCell(data[i][left]);
+        const rightValue = normalizeComparableCell(data[i][right]);
+        if (!leftValue || !rightValue) continue;
+
+        comparable++;
+        if (leftValue === rightValue) {
+          matches++;
+          if (samples.length < 3) samples.push(`${left}=${data[i][left]} | ${right}=${data[i][right]}`);
+        }
+      }
+
+      if (comparable > 10) {
+        const matchPct = (matches / comparable) * 100;
+        if (matchPct >= 95) {
+          issues.push({
+            id: `semantic-duplicate-columns-${left}-${right}`,
+            column: right,
+            ruleName: 'Duplicidad Semántica de Columnas',
+            category: IssueCategory.SEMANTIC,
+            description: `Las columnas '${left}' y '${right}' contienen valores equivalentes en ${matchPct.toFixed(1)}% de filas comparables. Es evidencia para poda o coalescencia, no una eliminación automática.`,
+            severity: IssueSeverity.INFO,
+            count: matches,
+            affectedPercentage: matchPct,
+            sampleValues: samples
+          });
+        }
+      }
+    }
+  }
 
   let normalizedPenalty = penaltyPoints;
   if (rowCount < 100) {

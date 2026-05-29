@@ -18,6 +18,8 @@ El motor actual aplica las 24 reglas ciegas. Un paso previo de profiling podría
 
 Que detecte valores como "Hombre"/"Masculino" o "Assault"/"Battery"/"Adw" y sugiera unificación. Currently no hay nada que agrupe variaciones semánticas — solo se valida formato.
 
+**Estado:** Implementada como evidencia determinista `Consistencia Categórica Semántica`. La regla detecta vocabularios controlados conocidos y deja la consolidación como decisión de Capa 2/HITL.
+
 ---
 
 ## 3. Scoring compuesto de calidad
@@ -29,3 +31,5 @@ La metodología define 4 fases de limpieza. Podemos usarlo para generar un "Data
 ## 4. Detección de columnas "quemadas"
 
 La mejora 4.1 del documento UNIR habla de rangos de edad como "De 41 a 65 años" que imposibilitan segmentación dinámica. Podemos agregar una regla que detecte columnas categóricas de baja granularidad que limiten el análisis.
+
+**Estado:** Implementada como `Rangos Demográficos Quemados`. También se agregó detección de cabeceras de encuesta largas/pregunta literal, cola larga categórica y duplicidad semántica de columnas a partir del PDF `GARI_BUSTOS_JOSEPH_actividad_1.pdf`.
