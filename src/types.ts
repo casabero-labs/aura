@@ -68,7 +68,10 @@ export interface ColumnStats {
 export interface ScoreDeduction {
   reason: string;
   points: number;
+  weight: number;
   category: IssueCategory;
+  severity: IssueSeverity;
+  ruleId: string;
 }
 
 export interface AuditReport {
@@ -80,6 +83,7 @@ export interface AuditReport {
   columnStats: Record<string, ColumnStats>;
   scoreBreakdown: ScoreDeduction[];
   delimiterDetected: string;
+  datasetProfile?: import('./services/columnProfiler').DatasetProfile;
 }
 
 export interface ExecutionTraceEvent {

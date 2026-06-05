@@ -1,4 +1,29 @@
 import { AuditReport, IssueSeverity, QualityIssue, IssueCategory, ColumnStats, ScoreDeduction } from '../types';
+import { profileColumns, type DatasetProfile } from './columnProfiler';
+
+// --- Weighted scoring (composite quality score, pending #3) ---
+const SEVERITY_WEIGHTS: Record<IssueSeverity, number> = {
+  [IssueSeverity.CRITICAL]: 1.5,
+  [IssueSeverity.WARNING]: 1.0,
+  [IssueSeverity.INFO]: 0.5,
+  [IssueSeverity.GOOD]: 0.0,
+};
+
+const CATEGORY_WEIGHTS: Record<IssueCategory, number> = {
+  [IssueCategory.INTEGRITY]: 1.2,
+  [IssueCategory.LOGIC]: 1.2,
+  [IssueCategory.TYPES]: 1.0,
+  [IssueCategory.HYGIENE]: 0.8,
+  [IssueCategory.SEMANTIC]: 0.7,
+};
+
+export function computeWeightedDeduction(
+  basePenalty: number,
+  severity: IssueSeverity,
+  category: IssueCategory
+): number {
+  return basePenalty * SEVERITY_WEIGHTS[severity] * CATEGORY_WEIGHTS[category];
+}
 
 // --- Regex Patterns ---
 const REGEX_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -305,9 +330,16 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
   const rowCount = data.length;
   let penaltyPoints = 0;
 
-  const addDeduction = (reason: string, points: number, category: IssueCategory) => {
-    penaltyPoints += points;
-    scoreBreakdown.push({ reason, points, category });
+  const addDeduction = (
+    reason: string,
+    points: number,
+    category: IssueCategory,
+    severity: IssueSeverity = IssueSeverity.WARNING,
+    ruleId: string = 'unknown'
+  ) => {
+    const weighted = computeWeightedDeduction(points, severity, category);
+    penaltyPoints += weighted;
+    scoreBreakdown.push({ reason, points: weighted, weight: SEVERITY_WEIGHTS[severity] * CATEGORY_WEIGHTS[category], category, severity, ruleId });
   };
 
   // 0. Calculate Basic Stats (Deterministic Layer)
@@ -948,6 +980,8 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
   }
   const totalScore = Math.max(0, Math.min(100, Math.round(100 - normalizedPenalty)));
 
+  const datasetProfile: DatasetProfile = profileColumns(data, fields, colStats);
+
   return {
     score: totalScore,
     rowCount,
@@ -956,6 +990,7 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
     issues,
     columnStats: colStats,
     scoreBreakdown,
-    delimiterDetected: delimiter
+    delimiterDetected: delimiter,
+    datasetProfile
   };
 };

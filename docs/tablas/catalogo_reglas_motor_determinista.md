@@ -20,6 +20,8 @@
 | Métricas empíricas | Ver `docs/tablas/resultados_motor_determinista.md` |
 | Dependencias externas | Ninguna (TypeScript puro) |
 | Límite de filas | 5.000 (PapaParse preview) |
+| Perfilado de columnas | `src/services/columnProfiler.ts` (Mejora #1) |
+| Scoring compuesto | Tabla de pesos severidad × categoría (Mejora #3) |
 
 ---
 
@@ -323,7 +325,42 @@
 | R25 Consistencia categórica | Semántica | 4 pts | WARNING |
 | R26 Cola larga categórica | Semántica | 0 pts | INFO |
 | R27 Rangos quemados | Semántica | 4 pts | WARNING |
-| R28 Duplicidad semántica columnas | Semántica | 0 pts | INFO |
+|R28 Duplicidad semántica columnas | Semántica | 0 pts | INFO |
+
+---
+
+## Scoring Compuesto Ponderado (Mejora #3)
+
+A partir de la versión con `auditEngine.ts` post-`feat/dataset-profiler`, cada deducción pasa por un factor de severidad y un factor de categoría antes de sumarse al score.
+
+| Severidad | Peso |
+|---|---|
+| CRITICAL | 1.5 |
+| WARNING  | 1.0 |
+| INFO     | 0.5 |
+| GOOD     | 0.0 |
+
+| Categoría | Peso |
+|---|---|
+| Integridad y Estructura | 1.2 |
+| Validez y Lógica de Negocio | 1.2 |
+| Tipos de Datos e Inferencia | 1.0 |
+| Higiene de Texto | 0.8 |
+| Semántica y Seguridad | 0.7 |
+
+**Fórmula:**
+
+```
+points_descuento = basePenalty × peso_severidad × peso_categoría
+total            = Σ(points_descuento)
+score            = max(0, 100 − total)
+```
+
+`basePenalty` es el valor entero documentado arriba para cada regla. La normalización por tamaño de dataset (×1.5 si < 100 filas, ÷2 si > 10 000) se aplica después.
+
+**Trazabilidad.** Cada `ScoreDeduction` ahora expone `severity`, `weight` y `ruleId`, de modo que el desglose del score es reproducible y auditable a partir del reporte.
+
+**Calibración.** La tabla de pesos se calibró para mantener el score de `titanic.csv` dentro de `[60, 90]`. Las pruebas `compositeScoring.test.ts` validan la fórmula, los multiplicadores y el rango de regresión.
 
 **Penalización máxima teórica por columna**: Variable (depende del tipo de columna y problemas detectados).  
 **Score mínimo posible**: 0 (capped a `max(0, 100 - total)`).
