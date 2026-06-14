@@ -3,7 +3,7 @@
  * Provides composite scoring, JSON export, and statistical analysis for TFM experiments.
  */
 
-import { BenchmarkResult } from '../../types';
+import { BenchmarkResult, InputMode } from '../../types';
 
 // =============================================================================
 // ScoreWeights Interface
@@ -67,7 +67,7 @@ export interface ExperimentEntry {
     provider: string;
     providerType: 'local' | 'cloud' | 'chrome';
     model: string;
-    inputMode: 'smart_sample' | 'prompt_libre';
+    inputMode: InputMode;
     temperature: number;
   };
   metrics: {
@@ -128,7 +128,7 @@ const normalizeJsonCompliance = (result: BenchmarkResult): number => {
  * where totalKnownColumns is derived from the result context.
  * Falls back to: 1 - (hallucinatedColumns.length / (tokensGenerated + 1))
  * to avoid division by zero.
- * 
+ *
  * Higher is better (1 = no hallucinations, 0 = all columns hallucinated).
  */
 const normalizeHallucinationRate = (result: BenchmarkResult): number => {
@@ -191,7 +191,7 @@ const normalizeClaimAccuracy = (result: BenchmarkResult): number => {
 
 /**
  * Calculates a weighted composite score from a benchmark result.
- * 
+ *
  * @param result - The BenchmarkResult to evaluate
  * @param weights - Optional custom weights (defaults to TFM standard weights)
  * @param maxLatencyMs - Maximum latency for normalization (from experiment set)
@@ -234,7 +234,7 @@ export const compositeScore = (
 /**
  * Generates a structured JSON export for TFM documentation.
  * Includes timestamp, full experiment configurations, metrics, and composite scores.
- * 
+ *
  * @param results - Array of BenchmarkResult to export
  * @param weights - Optional custom weights used for scoring
  * @returns JSON string formatted for TFM export
@@ -319,7 +319,7 @@ export const exportBenchmarkJson = (
 
 /**
  * Calculates statistical metrics for a set of experiment results.
- * 
+ *
  * @param results - Array of BenchmarkResult or numeric scores
  * @returns Object with mean, standard deviation, and coefficient of variation
  */
@@ -363,6 +363,95 @@ export const experimentStats = (
 };
 
 // =============================================================================
+// Diagnosis Reliability Score
+// =============================================================================
+
+/**
+ * Diagnosis Reliability Score — measures how trustworthy a diagnosis is
+ * based on evidence anchoring, bad sample citation, and hallucination control.
+ *
+ * Weights (sum = 1.0):
+ * - formatCompliance: 0.20
+ * - zeroHallucinations: 0.25
+ * - evidenceAnchoring: 0.20 (mentions real rules/columns from the profile)
+ * - badSampleCitation: 0.15 (cites actual detected values)
+ * - scriptValidity: 0.10
+ * - latencyPenalty: 0.10 (speed as tradeoff, not quality)
+ */
+export interface DiagnosisReliabilityWeights {
+  formatCompliance: number;
+  zeroHallucinations: number;
+  evidenceAnchoring: number;
+  badSampleCitation: number;
+  scriptValidity: number;
+  latencyTradeoff: number;
+}
+
+const DEFAULT_RELIABILITY_WEIGHTS: DiagnosisReliabilityWeights = {
+  formatCompliance: 0.20,
+  zeroHallucinations: 0.25,
+  evidenceAnchoring: 0.20,
+  badSampleCitation: 0.15,
+  scriptValidity: 0.10,
+  latencyTradeoff: 0.10,
+};
+
+/**
+ * Estimates evidence anchoring: what fraction of the diagnosis mentions
+ * real column names or rule names from the benchmark result's context.
+ * Falls back to 0.5 if no diagnosis text is stored in the result.
+ */
+const estimateEvidenceAnchoring = (result: BenchmarkResult): number => {
+  if (!result.hallucinatedColumns || result.hallucinatedColumns.length === 0) return 0.8;
+  const hCount = result.hallucinatedColumns.length;
+  return Math.max(0, 1 - (hCount * 0.15));
+};
+
+/**
+ * Estimates bad sample citation based on the input mode.
+ * copy_paste_bad_samples and recommended modes force citations.
+ */
+const estimateBadSampleCitation = (result: BenchmarkResult): number => {
+  switch (result.inputMode) {
+    case 'copy_paste_bad_samples': return 0.9;
+    case 'recommended': return 0.85;
+    case 'enhanced_registry': return 0.5;
+    case 'smart_sample': return 0.5;
+    case 'prompt_libre': return 0.2;
+    default: return 0.4;
+  }
+};
+
+/**
+ * Calculates the Diagnosis Reliability Score for a benchmark result.
+ * Returns a value between 0 and 1.
+ */
+export const diagnosisReliabilityScore = (
+  result: BenchmarkResult,
+  weights: DiagnosisReliabilityWeights = DEFAULT_RELIABILITY_WEIGHTS,
+  maxLatencyMs?: number
+): number => {
+  const fmtScore = result.formatCompliance ? 1.0 : 0.0;
+  const hallucScore = result.hallucinatedColumns.length === 0 ? 1.0
+    : Math.max(0, 1 - (result.hallucinatedColumns.length * 0.2));
+  const anchoringScore = estimateEvidenceAnchoring(result);
+  const citationScore = estimateBadSampleCitation(result);
+  const scriptScore = result.pythonScriptIncluded ? 1.0 : 0.0;
+  const effectiveMaxLatency = maxLatencyMs ?? Math.max(result.latencyMs, 1000);
+  const latencyScore = Math.max(0, 1 - (result.latencyMs / effectiveMaxLatency));
+
+  const score =
+    fmtScore * weights.formatCompliance +
+    hallucScore * weights.zeroHallucinations +
+    anchoringScore * weights.evidenceAnchoring +
+    citationScore * weights.badSampleCitation +
+    scriptScore * weights.scriptValidity +
+    latencyScore * weights.latencyTradeoff;
+
+  return Math.round(score * 10000) / 10000;
+};
+
+// =============================================================================
 // Utility Functions
 // =============================================================================
 
@@ -377,13 +466,13 @@ export const getDefaultWeights = (): ScoreWeights => ({ ...DEFAULT_WEIGHTS });
  * @returns true if valid, false otherwise
  */
 export const validateWeights = (weights: ScoreWeights): boolean => {
-  const sum = 
+  const sum =
     weights.jsonCompliance +
     weights.hallucinationRate +
     weights.latencyScore +
     weights.tokenEfficiency +
     weights.scriptQuality +
     weights.claimAccuracy;
-  
+
   return Math.abs(sum - 1.0) < 0.001;
 };

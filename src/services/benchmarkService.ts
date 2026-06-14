@@ -1,4 +1,4 @@
-import { AIConfig, AuditReport, BenchmarkResult, ExecutionTraceEvent } from '../types';
+import { AIConfig, AuditReport, BenchmarkResult, ExecutionTraceEvent, InputMode } from '../types';
 import { createAIProvider } from './aiProvider';
 import { detectHallucinations } from './benchmark/hallucinationDetector';
 import { createTraceRecorder, fingerprintReport } from './executionEvidence';
@@ -6,28 +6,10 @@ import { deriveEvidenceStatus } from './improvementService';
 import { buildAnalysisPrompt, buildScriptPrompt, extractPythonScript } from './providers/prompts';
 import { validateCleaningScript } from './scriptValidationService';
 
-const buildLoosePrompt = (report: AuditReport): string => {
-  const columnNames = Object.keys(report.columnStats).join(', ');
-  return `
-Analiza este dataset y entrega un diagnostico de calidad de datos con recomendaciones y, si aplica, codigo Python/Pandas.
-
-Columnas disponibles:
-${columnNames}
-
-Contexto minimo:
-- Filas: ${report.rowCount}
-- Columnas: ${report.colCount}
-- Score actual: ${report.score}/100
-
-No recibiras reglas activadas ni muestras problematicas. Debes inferir los problemas probables a partir del esquema.
-Responde en español.
-  `;
-};
-
 export const runBenchmarkForConfig = async (
   report: AuditReport,
   config: AIConfig,
-  inputMode: BenchmarkResult['inputMode'] = 'smart_sample',
+  inputMode: InputMode = 'smart_sample',
   onTrace?: (event: ExecutionTraceEvent) => void,
   hasGroundTruthMatch?: boolean
 ): Promise<BenchmarkResult> => {
@@ -92,9 +74,10 @@ export const runBenchmarkForConfig = async (
   }
 
   try {
-    if (inputMode === 'prompt_libre') {
+    if (inputMode === 'prompt_libre' || inputMode === 'copy_paste_bad_samples') {
       mark('provider.generateText.start');
-      const { text, metrics } = await provider.generateText(buildLoosePrompt(report));
+      const prompt = buildAnalysisPrompt(report, config.promptContract, inputMode);
+      const { text, metrics } = await provider.generateText(prompt);
       mark('provider.generateText.end', {
         latencyMs: metrics.latencyMs,
         firstTokenMs: metrics.firstTokenMs,
@@ -137,7 +120,7 @@ export const runBenchmarkForConfig = async (
     }
 
     mark('provider.diagnosisContract.start');
-    const diagnosisPrompt = buildAnalysisPrompt(report, config.promptContract);
+    const diagnosisPrompt = buildAnalysisPrompt(report, config.promptContract, inputMode);
     const { text: diagnosisText, metrics: diagnosisMetrics } = await provider.generateText(diagnosisPrompt);
     mark('provider.diagnosisContract.end', {
       latencyMs: diagnosisMetrics.latencyMs,

@@ -1,19 +1,19 @@
 /**
  * Prompt compartido para todos los proveedores de IA.
- * 
+ *
  * Centralizar el prompt garantiza que el benchmark (OE2) compare
  * modelos bajo condiciones idénticas — mismo input, mismo criterio.
- * 
+ *
  * Referencia: §3.3.3 Capa 2 — Estabilidad Cognitiva
  * Mecanismos: M2 (Anclaje Semántico), M3 (Copy-Paste), M4 (Cadena Forzada)
  */
 
-import { AuditReport, PromptContractConfig } from '../../types';
+import { AuditReport, InputMode, PromptContractConfig } from '../../types';
 
 /**
  * Construye el "Smart Sample" — el registro de datos mejorado
  * que se inyecta en el prompt del LLM.
- * 
+ *
  * Mecanismo M2 (Anclaje Semántico): El modelo SOLO puede razonar
  * sobre datos presentes en este JSON. No tiene acceso al dataset crudo.
  */
@@ -62,86 +62,204 @@ export const normalizePromptContract = (contract?: PromptContractConfig): Prompt
  * Prompt de analisis streaming.
  * Contrato de evidencia: el LLM explica hallazgos deterministas sin inventar.
  */
-export const buildAnalysisPrompt = (report: AuditReport, contract?: PromptContractConfig): string => {
+// ── Enhanced Registry Builder ──
+
+const buildEnhancedRegistry = (report: AuditReport): Record<string, any> => ({
+  physical_context: {
+    total_rows: report.rowCount,
+    total_columns: report.colCount,
+    detected_delimiter: report.delimiterDetected,
+    quality_score: report.score,
+    duplicate_rows: report.duplicateRows,
+  },
+  column_registry: Object.values(report.columnStats).map(c => ({
+    name: c.name,
+    inferred_type: c.inferredType,
+    semantic_type: c.semanticType || undefined,
+    nulls: c.nullCount,
+    unique_count: c.uniqueCount,
+    top_frequencies: c.topFreq?.slice(0, 5).map(t => ({ value: String(t.value).substring(0, 40), count: t.count })),
+    sample_values: c.sampleValues?.slice(0, 3),
+    iqr: c.iqr,
+    zeros: c.zeros,
+    cardinality_pct: ((c.uniqueCount / report.rowCount) * 100).toFixed(1) + '%',
+  })),
+  rule_activations: report.issues.map(i => ({
+    rule_id: i.ruleName,
+    category: i.category,
+    severity: i.severity,
+    column: i.column,
+    affected_count: i.count,
+    affected_pct: i.affectedPercentage.toFixed(2) + '%',
+    description: i.description,
+    bad_samples: i.sampleValues.slice(0, 5),
+  })),
+});
+
+// ── Copy-Paste Bad Samples Builder ──
+
+const buildCopyPasteBlock = (report: AuditReport): string => {
+  const issuesWithSamples = report.issues.filter(i => i.sampleValues.length > 0);
+  if (issuesWithSamples.length === 0) {
+    return 'No hay bad samples disponibles en este dataset. Usa las reglas activadas y estadisticas observadas.';
+  }
+  return issuesWithSamples.slice(0, 10).map(i =>
+    `- Regla "${i.ruleName}" en columna "${i.column || 'dataset'}" detecto: ${i.sampleValues.slice(0, 5).map(v => `"${String(v).substring(0, 50)}"`).join(', ')}`
+  ).join('\n');
+};
+
+// ── Input Mode Prompt Builders ──
+
+const buildPromptLibrePrompt = (report: AuditReport): string => {
+  const columnNames = Object.keys(report.columnStats).join(', ');
+  return `Analiza este dataset y entrega un diagnostico de calidad de datos con recomendaciones y, si aplica, codigo Python/Pandas.
+
+Columnas disponibles:
+${columnNames}
+
+Contexto minimo:
+- Filas: ${report.rowCount}
+- Columnas: ${report.colCount}
+- Score actual: ${report.score}/100
+
+No recibiras reglas activadas ni muestras problematicas. Debes inferir los problemas probables a partir del esquema.
+Responde en espanol.`;
+};
+
+const buildSmartSamplePrompt = (report: AuditReport, contract?: PromptContractConfig): string => {
   const promptContract = normalizePromptContract(contract);
   const jsonSummary = buildSmartSample(report);
   const json_data = JSON.stringify(jsonSummary, null, 2);
-  const evidenceMode = promptContract.evidencePolicy === 'strict'
-    ? 'Politica estricta: solo puedes razonar sobre columnas, reglas, muestras y estadisticas presentes en el JSON observado.'
-    : 'Politica balanceada: puedes proponer hipotesis, pero deben quedar separadas como no validadas y nunca sustituir la evidencia determinista.';
-  const copyPasteRule = promptContract.includeCopyPasteEvidence
-    ? '- M4 Copy-Paste: cuando exista evidencia en bad_samples o sample_values, cita valores textuales del paquete para anclar la interpretacion.\n'
-    : '';
-  const hitlRule = promptContract.includeHumanReviewLabels
-    ? '- Etiqueta como "requiere revision humana" toda accion ambigua, destructiva, sensible o dependiente del dominio.\n'
-    : '';
-  const scriptReadiness = promptContract.requireScriptReadiness
-    ? `
-## Criterios para generar script
-Entrega una lista operativa que pueda ser usada por el siguiente paso para generar Python/Pandas:
-- Accion Pandas sugerida:
-- Columna exacta:
-- Regla que justifica la accion:
-- Riesgo de aplicar automaticamente:
-- Condicion HITL:
-No escribas codigo aqui; deja la decision preparada para el modulo de script.
-`
-    : '';
-  const extraInstructions = promptContract.extraInstructions?.trim()
-    ? `\nInstrucciones guiadas adicionales:\n${promptContract.extraInstructions.trim()}\n`
-    : '';
 
-  return `
-Actua como revisor tecnico de calidad de datos para un trabajo academico. Tu tarea NO es impresionar ni descubrir defectos imaginarios: tu tarea es explicar la evidencia disponible de forma reproducible.
+  return `Actua como revisor tecnico de calidad de datos. Explica la evidencia disponible de forma reproducible.
 
-Objetivo del contrato:
-${promptContract.objective}
+Objetivo: ${promptContract.objective}
 
-Recibiras un resumen JSON generado por el motor determinista de AURA. El JSON contiene solo columnas observadas, tipos inferidos, estadisticas basicas y reglas activadas. No tienes acceso al CSV completo.
-
-${evidenceMode}
+Recibiras un resumen JSON del motor determinista de AURA con columnas observadas, tipos inferidos y reglas activadas. No tienes acceso al CSV completo.
 
 JSON observado:
 ${json_data}
 
-Reglas obligatorias de honestidad:
-- No inventes columnas, valores, relaciones, tablas dimension, PII, dominios ni causas.
-- No afirmes que una columna es constante, derivable, sensible o eliminable si eso no aparece en "detected_issues" o en las estadisticas entregadas.
-- Si haces una inferencia de dominio, etiquetala como "Hipotesis no validada" y explica que se basa solo en nombres de columnas.
-- Si una recomendacion requiere criterio humano o conocimiento de dominio, etiquetala como "requiere revision humana".
-- Cita siempre la regla determinista, la columna y la evidencia disponible cuando exista.
-- No generes script Python en esta respuesta. El script se genera en otro paso con validacion HITL.
-${copyPasteRule}${hitlRule}${extraInstructions}
+Reglas de honestidad:
+- No inventes columnas, valores, relaciones ni causas.
+- Cita la regla determinista, la columna y la evidencia disponible.
+- Si haces una inferencia de dominio, etiquetala como "Hipotesis no validada".
+- No generes script Python en esta respuesta.
 
-Formato obligatorio:
-
+Formato:
 ## Estado de ejecucion
-Indica que el analisis parte del motor determinista de AURA, con filas, columnas, score y numero de reglas activadas.
-
 ## Hallazgos respaldados por evidencia
-Lista solo problemas presentes en "detected_issues". Para cada hallazgo:
-- Regla:
-- Columna:
-- Evidencia observada:
-- Riesgo tecnico:
-- Accion segura:
-
 ## Hipotesis no validadas
-Incluye aqui cualquier interpretacion de dominio o decision que no pueda probarse con el JSON. Si no hay base suficiente, escribe "Sin hipotesis defendible con la evidencia actual".
-
 ## Acciones recomendadas
-Separa en:
-- Automatizables de bajo riesgo.
-- Requieren revision humana.
-- No recomendadas por falta de evidencia.
-
-${scriptReadiness}
-
 ## Limites de la respuesta
-Explica en 2-3 bullets que este LLM no sustituye el motor determinista, que no vio el dataset completo y que sus inferencias no cuentan como evidencia experimental formal.
 
-Responde en español, con tono sobrio, academico y verificable.
-  `;
+Responde en espanol, tono sobrio y verificable.`;
+};
+
+const buildEnhancedRegistryPrompt = (report: AuditReport): string => {
+  const registry = buildEnhancedRegistry(report);
+  const json_data = JSON.stringify(registry, null, 2);
+
+  return `Actua como ingeniero de calidad de datos. Recibiras un registro tecnico completo del dataset con columnas, tipos semanticos, reglas activadas y evidencias.
+
+Registro tecnico:
+${json_data}
+
+Reglas:
+- Razona SOLO sobre columnas, reglas y muestras del registro.
+- Para cada hallazgo, cita la regla y bad_samples textuales si existen.
+- Las hipotesis no comprobables deben etiquetarse "Hipotesis no validada".
+- No generes script Python aqui.
+
+Formato:
+## Estado de ejecucion
+## Hallazgos respaldados (cita regla + bad samples)
+## Hipotesis no validadas
+## Acciones recomendadas
+## Columnas con mayor riesgo
+
+Responde en espanol.`;
+};
+
+const buildCopyPasteBadSamplesPrompt = (report: AuditReport): string => {
+  const cpBlock = buildCopyPasteBlock(report);
+
+  return `Actua como auditor de calidad de datos. Tu tarea es CITAR TEXTUALMENTE los bad samples detectados por el motor determinista y explicar por que representan un problema de calidad.
+
+Contexto: ${report.rowCount} filas, ${report.colCount} columnas, score ${report.score}/100.
+
+Bad samples detectados:
+${cpBlock}
+
+Reglas OBLIGATORIAS:
+- M4 Copy-Paste: CITA TEXTUALMENTE al menos 3 bad samples del listado anterior en tu diagnostico.
+- Para cada bad sample citado, explica la regla que lo detecto y el riesgo tecnico.
+- No inventes columnas ni valores adicionales.
+- Si no encuentras bad samples suficientes, explica que el motor no detecto mas.
+
+Formato:
+## Bad samples observados
+Copia aqui los valores textuales del listado anterior con el formato "valor" (regla, columna).
+
+## Riesgo por bad sample
+Para cada valor citado, explica el riesgo.
+
+## Recomendaciones
+Acciones seguras basadas en los bad samples observados.
+
+Responde en espanol, citando valores textuales.`;
+};
+
+const buildRecommendedPrompt = (report: AuditReport): string => {
+  const registry = buildEnhancedRegistry(report);
+  const cpBlock = buildCopyPasteBlock(report);
+  const json_data = JSON.stringify(registry, null, 2);
+
+  return `Actua como revisor tecnico de calidad de datos con maxima evidencia disponible. Recibes el registro tecnico completo del dataset Y los bad samples detectados.
+
+Registro tecnico:
+${json_data}
+
+Bad samples detectados:
+${cpBlock}
+
+Reglas OBLIGATORIAS:
+- Anclaje semantico (M2): razona solo sobre columnas y reglas del registro.
+- Copy-Paste (M4): CITA TEXTUALMENTE los bad samples del listado.
+- Para cada hallazgo: regla → columna → bad sample citado → riesgo → accion.
+- Las hipotesis no comprobables deben etiquetarse "Hipotesis no validada".
+- No generes script Python aqui.
+
+Formato:
+## Estado de ejecucion
+## Hallazgos respaldados (regla + columna + bad sample textual)
+## Hipotesis no validadas
+## Acciones recomendadas
+## Limites de la respuesta
+
+Responde en espanol, sobrio, academico, con citas textuales de bad samples.`;
+};
+
+// ── Main Builder (mode-aware) ──
+
+export const buildAnalysisPrompt = (
+  report: AuditReport,
+  contract?: PromptContractConfig,
+  inputMode?: InputMode
+): string => {
+  switch (inputMode) {
+    case 'prompt_libre':
+      return buildPromptLibrePrompt(report);
+    case 'enhanced_registry':
+      return buildEnhancedRegistryPrompt(report);
+    case 'copy_paste_bad_samples':
+      return buildCopyPasteBadSamplesPrompt(report);
+    case 'recommended':
+      return buildRecommendedPrompt(report);
+    case 'smart_sample':
+    default:
+      return buildSmartSamplePrompt(report, contract);
+  }
 };
 
 export const buildScriptPrompt = (
@@ -263,24 +381,24 @@ export const buildExecutivePrompt = (report: AuditReport): string => {
 
   return `
     Actua como un revisor tecnico de calidad de datos preparando un informe profesional y verificable.
-    
+
     Analiza este resumen de calidad de datos y estructura:
     ${JSON.stringify(summaryContext)}
 
-    Genera un informe ejecutivo en JSON estricto. 
+    Genera un informe ejecutivo en JSON estricto.
 
     Reglas de honestidad:
     - No inventes columnas, cifras, dominios, PII, relaciones derivables ni causas.
     - Solo puedes reportar problemas contenidos en "top_issues" o estadisticas presentes en "dataset_structure".
     - Si el dominio no es demostrable, usa "Dominio no inferible con evidencia suficiente".
     - Las acciones destructivas deben ir como requires_human_review y safeToSimulate=false.
-    
+
     1. "dataset_technical_description": Redacta un parrafo tecnico describiendo filas, columnas, tipos y score. NO inventes cifras.
     2. "executive_summary": Resume la salud de datos segun score y reglas activadas.
     3. "business_impact": Describe riesgos tecnicos verificables, no riesgos de negocio especulativos.
     4. "python_script": Genera solo operaciones Pandas de bajo riesgo sobre columnas existentes. No elimines columnas salvo que haya una regla determinista clara y aun asi comenta que requiere revision humana.
     5. "remediation_actions": Genera acciones estructuradas para simulacion segura. Usa solo estos tipos: trim_whitespace, normalize_placeholders, drop_exact_duplicates, normalize_casing, convert_disguised_numbers, requires_human_review. Marca safeToSimulate=false cuando sea ambiguo, destructivo o requiera criterio de dominio.
-    
+
     La estructura JSON requerida es:
     {
       "title": "Un título formal y descriptivo (ej. Informe de Auditoría Técnica: [Dominio Inferido])",

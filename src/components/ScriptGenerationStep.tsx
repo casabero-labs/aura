@@ -52,10 +52,9 @@ const ScriptGenerationStep: React.FC<ScriptGenerationStepProps> = ({
     onLog?.('script', 'Generando script desde diagnostico previo y paquete estructurado');
 
     if (!diagnosisText.trim()) {
-      const msg = 'Primero genera el diagnóstico. El script usa ese análisis como anclaje semántico y no debe crear un análisis nuevo.';
-      setError(msg);
+      onLog?.('script', 'Sin diagnóstico LLM; usando script base determinista');
+      useFallbackScript('diagnóstico no disponible');
       setIsLoading(false);
-      onLog?.('script', msg);
       return;
     }
 
@@ -178,7 +177,7 @@ const ScriptGenerationStep: React.FC<ScriptGenerationStepProps> = ({
         </div>
 
         <div className="mt-6">
-          <button className="btn-p" onClick={generateScript} disabled={isLoading || !diagnosisText.trim()}>
+          <button className="btn-p" onClick={generateScript} disabled={isLoading}>
             <FileCode2 size={14} />
             {isLoading ? 'Generando' : cleaningScript ? 'Regenerar script' : 'Generar script'}
           </button>
@@ -211,15 +210,7 @@ const ScriptGenerationStep: React.FC<ScriptGenerationStepProps> = ({
 
         {scriptValidation && (
           <div className="script-validation-panel">
-            <div className="script-validation-head">
-              <ShieldCheck size={14} />
-              <div>
-                <strong>Matriz de validación automática</strong>
-                <p>Evalúa si el script puede pasar a revisión humana con trazabilidad mínima.</p>
-              </div>
-            </div>
-
-            {/* ── Safety Score Bar ── */}
+            {/* ── Safety Score Bar (always visible) ── */}
             {scriptValidation.hasScript && (
               <div className="safety-score-bar-wrap">
                 <div className="safety-score-header">
@@ -244,16 +235,10 @@ const ScriptGenerationStep: React.FC<ScriptGenerationStepProps> = ({
                     }}
                   />
                 </div>
-                <div className="safety-score-breakdown">
-                  <span>Columnas {scriptValidation.invalidColumns.length === 0 ? '30' : Math.max(0, 30 - scriptValidation.invalidColumns.length * 10)}</span>
-                  <span>+ Cobertura {Math.round(scriptValidation.coveragePercentage * 0.3)}</span>
-                  <span>+ No-destructivas {scriptValidation.destructiveOperations.length === 0 ? '25' : Math.max(0, 25 - scriptValidation.destructiveOperations.length * 10)}</span>
-                  <span>+ Pandas {scriptValidation.hasPandasImport ? '15' : '0'}</span>
-                </div>
               </div>
             )}
 
-            {/* ── Coverage Bar ── */}
+            {/* ── Coverage Bar (always visible) ── */}
             {scriptValidation.hasScript && (
               <div className="coverage-bar-wrap">
                 <div className="coverage-bar-label">
@@ -277,22 +262,54 @@ const ScriptGenerationStep: React.FC<ScriptGenerationStepProps> = ({
               </div>
             )}
 
-            <div className="script-validation-grid">
-              {validationItems.map((item) => (
-                <div key={item.label} className={`script-validation-card script-validation-card--${item.state}`}>
-                  {item.state === 'pass' ? <CheckCircle2 size={14} /> : item.state === 'review' ? <ShieldAlert size={14} /> : <TriangleAlert size={14} />}
-                  <span>{item.label}</span>
-                  <strong>{item.value}</strong>
-                </div>
-              ))}
+            {/* ── Key risk indicators (always visible) ── */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-sm)', marginBottom: 'var(--space-sm)' }}>
+              {scriptValidation.invalidColumns.length > 0 && (
+                <span style={{ fontSize: '11px', color: 'var(--error)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <TriangleAlert size={12} /> {scriptValidation.invalidColumns.length} columna(s) inválida(s)
+                </span>
+              )}
+              {scriptValidation.destructiveOperations.length > 0 && (
+                <span style={{ fontSize: '11px', color: 'var(--orange)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <ShieldAlert size={12} /> {scriptValidation.destructiveOperations.length} operación(es) destructiva(s)
+                </span>
+              )}
+              {scriptValidation.requiresHumanReview && (
+                <span style={{ fontSize: '11px', color: 'var(--orange)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <ShieldAlert size={12} /> Requiere revisión humana
+                </span>
+              )}
+              {!scriptValidation.requiresHumanReview && !scriptValidation.invalidColumns.length && !scriptValidation.destructiveOperations.length && (
+                <span style={{ fontSize: '11px', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <CheckCircle2 size={12} /> Sin alertas
+                </span>
+              )}
             </div>
-            {scriptValidation.warnings.length > 0 && (
-              <ul className="script-validation-warnings">
-                {scriptValidation.warnings.map((warning) => (
-                  <li key={warning}>{warning}</li>
-                ))}
-              </ul>
-            )}
+
+            {/* ── Full validation matrix (collapsed) ── */}
+            <details style={{ marginTop: 'var(--space-xs)' }}>
+              <summary style={{ cursor: 'pointer', fontSize: '12px', color: 'var(--ink2)', fontWeight: 500, userSelect: 'none' }}>
+                Matriz de validación completa
+              </summary>
+              <div style={{ marginTop: 'var(--space-sm)' }}>
+                <div className="script-validation-grid">
+                  {validationItems.map((item) => (
+                    <div key={item.label} className={`script-validation-card script-validation-card--${item.state}`}>
+                      {item.state === 'pass' ? <CheckCircle2 size={14} /> : item.state === 'review' ? <ShieldAlert size={14} /> : <TriangleAlert size={14} />}
+                      <span>{item.label}</span>
+                      <strong>{item.value}</strong>
+                    </div>
+                  ))}
+                </div>
+                {scriptValidation.warnings.length > 0 && (
+                  <ul className="script-validation-warnings">
+                    {scriptValidation.warnings.map((warning) => (
+                      <li key={warning}>{warning}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </details>
           </div>
         )}
 
@@ -329,11 +346,11 @@ const ScriptGenerationStep: React.FC<ScriptGenerationStepProps> = ({
       <div className="context-guide">
         <span className="guide-icon"><ArrowRight size={14} /></span>
         <div>
-          <p className="guide-title">Siguiente paso: revisión final</p>
-          <p className="guide-desc">Con el script generado y aprobado, puedes simular el impacto y preparar la exportación.</p>
+          <p className="guide-title">Revisión final</p>
+          <p className="guide-desc">Revisa el script, aprueba las transformaciones y prepara la exportación.</p>
         </div>
-        <button className="btn-p btn-sm" onClick={onContinue} disabled={!cleaningScript}>
-          Ir a revisión <ArrowRight size={12} />
+        <button className="btn-p btn-sm" onClick={onContinue}>
+          Revisar script <ArrowRight size={12} />
         </button>
       </div>
     </>

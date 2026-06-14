@@ -129,6 +129,8 @@ export interface PromptContractConfig {
   extraInstructions?: string;
 }
 
+export type InputMode = 'prompt_libre' | 'smart_sample' | 'enhanced_registry' | 'copy_paste_bad_samples' | 'recommended';
+
 export interface AIConfig {
   model: string;
   temperature: number;
@@ -138,6 +140,7 @@ export interface AIConfig {
   apiKey?: string;
   modelDownloadState?: Record<string, ModelDownloadState>;
   promptContract?: PromptContractConfig;
+  inputMode?: InputMode;
 }
 
 export type CloudProvider = 'google' | 'groq' | 'deepseek' | 'openrouter' | 'minimax' | 'nvidia';
@@ -175,7 +178,7 @@ export interface BenchmarkResult {
   provider: string;
   providerType: 'local' | 'cloud' | 'chrome';
   cloudProvider?: string;  // Proveedor cloud específico
-  inputMode: 'smart_sample' | 'prompt_libre';
+  inputMode: InputMode;
   model: string;
   temperature: number;  // Temperatura usada en el experimento
   status: 'pending' | 'running' | 'completed' | 'error' | 'unavailable';
@@ -398,7 +401,7 @@ export interface EvidenceManifest {
  * Interfaz abstracta para proveedores de IA.
  * Permite intercambiar Gemini Cloud ↔ WebLLM Local
  * sin modificar la lógica de la aplicación.
- * 
+ *
  * Referencia: §3.3.3 Capa 2 — Estabilidad Cognitiva
  */
 export interface AIProvider {

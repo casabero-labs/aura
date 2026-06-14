@@ -1,10 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ClipboardList, Download, FileCode2, FileJson, FileText, FlaskConical, HelpCircle, Settings, Layers, History, CheckCircle2, AlertTriangle, XCircle } from 'lucide-react';
+import { ChevronDown, ClipboardList, Download, FileCode2, FileJson, FileText, FlaskConical, HelpCircle, Settings, Layers, History, CheckCircle2, AlertTriangle, XCircle } from 'lucide-react';
 import ChangelogModal from './components/ChangelogModal';
 import ErrorBoundary from './components/ErrorBoundary';
 import AuditLogViewer from './components/AuditLogViewer';
 import BenchmarkLab from './components/BenchmarkLab';
-import DevelopmentLoopsPanel from './components/DevelopmentLoopsPanel';
 import SettingsPanel from './components/SettingsPanel';
 import MainPipeline, { PipelineData } from './components/MainPipeline';
 import { loadFromApi, syncToApi } from './services/api';
@@ -312,23 +311,29 @@ const App: React.FC = () => {
 
         {/* Bloque Central: Navegación de Capas (Escritorio) */}
         <div className="nav-center-menu">
-          <button 
-            className={`nav-menu-item ${!showLab && !showAuditLog ? 'active' : ''}`} 
-            onClick={() => { setShowLab(false); setShowAuditLog(false); scrollTo('sistema'); }}
+          <button
+            className={`nav-menu-item ${!showLab && !showAuditLog && !showSettings ? 'active' : ''}`}
+            onClick={() => { setShowLab(false); setShowAuditLog(false); setShowSettings(false); scrollTo('sistema'); }}
           >
             <Layers size={13} />
-            <span>Auditoría y Diagnóstico</span>
+            <span>Auditoría</span>
           </button>
 
-          {hasData && (
-            <button 
-              className={`nav-menu-item ${showLab ? 'active' : ''}`} 
-              onClick={() => { setShowLab(true); setShowAuditLog(false); }}
-            >
-              <FlaskConical size={13} />
-              <span>Laboratorio de Modelos</span>
-            </button>
-          )}
+          <button
+            className={`nav-menu-item ${showLab ? 'active' : ''}`}
+            onClick={() => { setShowLab(true); setShowAuditLog(false); setShowSettings(false); }}
+          >
+            <FlaskConical size={13} />
+            <span>Laboratorio</span>
+          </button>
+
+          <button
+            className={`nav-menu-item ${showSettings ? 'active' : ''}`}
+            onClick={() => { setShowSettings(true); setShowLab(false); setShowAuditLog(false); }}
+          >
+            <Settings size={13} />
+            <span>Configuración</span>
+          </button>
         </div>
 
         {/* Bloque Derecho: Herramientas y Estado (Escritorio) */}
@@ -343,25 +348,25 @@ const App: React.FC = () => {
           <div className="vertical-divider" />
 
           <div className="nav-tools-group">
-            <button 
-              className={`tool-btn ${showAuditLog ? 'active' : ''}`} 
+            <button
+              className={`tool-btn ${showAuditLog ? 'active' : ''}`}
               onClick={() => { setShowAuditLog(true); setShowLab(false); }}
               title="Registro de trazabilidad"
             >
               <ClipboardList size={15} />
             </button>
 
-            <button 
-              className={`tool-btn ${showSettings ? 'active' : ''}`} 
-              onClick={() => setShowSettings(true)} 
-              title="Modelos"
+            <button
+              className={`tool-btn ${showSettings ? 'active' : ''}`}
+              onClick={() => setShowSettings(true)}
+              title="Configuración"
             >
               <Settings size={15} />
             </button>
 
-            <button 
-              className={`tool-btn ${showHelp ? 'active' : ''}`} 
-              onClick={() => setShowHelp(true)} 
+            <button
+              className={`tool-btn ${showHelp ? 'active' : ''}`}
+              onClick={() => setShowHelp(true)}
               title="Ayuda"
             >
               <HelpCircle size={15} />
@@ -402,9 +407,34 @@ const App: React.FC = () => {
         </button>
       </nav>
 
+      {/* Mobile Navigation Menu */}
+      <div className={`nav-links ${showMobileNav ? 'nav-links-open' : ''}`}>
+        <button className="nav-link" onClick={() => { setShowLab(false); setShowAuditLog(false); setShowSettings(false); setShowMobileNav(false); scrollTo('sistema'); }}>
+          <Layers size={13} /> Auditoría
+        </button>
+        <button className="nav-link" onClick={() => { setShowLab(true); setShowAuditLog(false); setShowSettings(false); setShowMobileNav(false); }}>
+          <FlaskConical size={13} /> Laboratorio
+        </button>
+        <button className="nav-link" onClick={() => { setShowSettings(true); setShowLab(false); setShowAuditLog(false); setShowMobileNav(false); }}>
+          <Settings size={13} /> Configuración
+        </button>
+        <button className="nav-link" onClick={() => { setShowAuditLog(true); setShowLab(false); setShowMobileNav(false); }}>
+          <ClipboardList size={13} /> Trazabilidad
+        </button>
+        <label className="nav-link" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 'var(--space-xs)' }}>
+          <input
+            type="checkbox"
+            checked={theme === 'dark'}
+            onChange={(e) => setTheme(e.target.checked ? 'dark' : 'light')}
+            style={{ width: 'auto', margin: 0 }}
+          />
+          Modo oscuro
+        </label>
+      </div>
+
       {showChangelog && <ChangelogModal onClose={() => setShowChangelog(false)} />}
 
-      {showLab && report && (
+      {showLab && (report ? (
         <BenchmarkLab
           report={report}
           rawData={rawData}
@@ -416,8 +446,26 @@ const App: React.FC = () => {
           deterministicValidation={deterministicValidation}
           onResultsChange={setLabBenchmarkResults}
           onBack={() => setShowLab(false)}
+          onApplyConfig={setAiConfig}
         />
-      )}
+      ) : (
+        <main className="sys-main" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+          <div style={{ textAlign: 'center', maxWidth: 400 }}>
+            <div style={{ color: 'var(--ink-faint)', marginBottom: 'var(--space-lg)' }}>
+              <FlaskConical size={48} strokeWidth={1} />
+            </div>
+            <p style={{ fontFamily: 'var(--font-serif)', fontSize: 20, fontWeight: 700, color: 'var(--ink)', marginBottom: 'var(--space-sm)' }}>
+              Laboratorio de Modelos
+            </p>
+            <p style={{ fontSize: 14, color: 'var(--ink2)', lineHeight: 1.6 }}>
+              Carga y perfila un dataset en Auditoría para acceder al banco de pruebas y calibración de modelos.
+            </p>
+            <button className="btn-s" style={{ marginTop: 'var(--space-lg)' }} onClick={() => setShowLab(false)}>
+              Volver a Auditoría
+            </button>
+          </div>
+        </main>
+      ))}
 
       {/* Main Content */}
       <main className="sys-main" style={{ display: showLab ? 'none' : undefined }}>
@@ -431,8 +479,6 @@ const App: React.FC = () => {
           </p>
         </section>
 
-        <DevelopmentLoopsPanel pipelineData={pipelineData} />
-
         {/* Main Pipeline — Phase 1: Upload + Diagnostic */}
         <MainPipeline
           aiConfig={aiConfig}
@@ -445,11 +491,15 @@ const App: React.FC = () => {
 
         {/* Export Section */}
         {report && pipelineState === 'export' && (
-          <section className="quote" id="export-section">
-            <p className="quote-text">Exportación final de la auditoría.</p>
-            <p className="quote-attr">Descarga el reporte principal y, si lo necesitas, los anexos técnicos para trazabilidad.</p>
+          <section className="export-closure" id="export-section">
+            <div className="export-closure-header">
+              <p className="sec-eye">cierre de auditoría</p>
+              <h2 className="sec-title">Exportar evidencia.</h2>
+            </div>
+            <p className="section-note">
+              Descarga el reporte ejecutivo y los anexos técnicos. El archivo original no fue modificado.
+            </p>
 
-            {/* ── Objectives Coverage Checklist ── */}
             {(() => {
               const manifest = buildEvidenceManifest({
                 auditEvidence,
@@ -459,46 +509,117 @@ const App: React.FC = () => {
                 hitlDecision: improvementRun?.hitlDecision ?? null,
                 healthDeltaPoints: improvementRun?.healthDelta?.scoreDelta,
               });
+              const completedObjectives = manifest.objectivesCoverage.filter(o => o.status === 'completed').length;
+              const statusLabel = completedObjectives >= 4 ? 'Completo' : completedObjectives >= 2 ? 'Parcial' : 'Incompleto';
+              const statusColor = completedObjectives >= 4 ? 'var(--success)' : completedObjectives >= 2 ? 'var(--orange)' : 'var(--error)';
+
               return (
-                <div className="objectives-checklist">
-                  <span className="objectives-checklist-title">Cobertura de objetivos TFM</span>
-                  {manifest.objectivesCoverage.map((obj) => (
-                    <div key={obj.id} className={`obj-row obj-row--${obj.status}`}>
-                      {obj.status === 'completed' ? <CheckCircle2 size={14} /> : obj.status === 'partial' ? <AlertTriangle size={14} /> : <XCircle size={14} />}
-                      <div>
-                        <strong>{obj.id}: {obj.label}</strong>
-                        <p>{obj.evidence}</p>
-                        {obj.limitations.length > 0 && (
-                          <ul className="obj-limitations">
-                            {obj.limitations.map((lim) => <li key={lim}>{lim}</li>)}
-                          </ul>
-                        )}
+                <>
+                  {/* Status */}
+                  <div className="export-status-strip">
+                    <div className="export-status-item">
+                      <span>Paquete</span>
+                      <strong style={{ color: statusColor }}>{statusLabel}</strong>
+                    </div>
+                    <div className="export-status-item">
+                      <span>Objetivos</span>
+                      <strong>{completedObjectives}/{manifest.objectivesCoverage.length}</strong>
+                    </div>
+                    <div className="export-status-item">
+                      <span>Artefactos</span>
+                      <strong>{manifest.artifacts.length}</strong>
+                    </div>
+                    <div className="export-status-item">
+                      <span>Script</span>
+                      <strong style={{ color: approvedCleaningScript ? 'var(--success)' : 'var(--ink3)' }}>
+                        {approvedCleaningScript ? 'Aprobado' : 'Pendiente'}
+                      </strong>
+                    </div>
+                  </div>
+
+                  {/* Claims brief */}
+                  <div className="export-claims">
+                    <span className="export-claims-title">Evidencia generada</span>
+                    <div className="export-claims-grid">
+                      <div className={`export-claim export-claim--${manifest.allowedClaims.deterministicEngine}`}>
+                        <span>Motor determinista</span>
+                        <strong>{manifest.allowedClaims.deterministicEngine === 'formal' ? 'Formal' : 'Preliminar'}</strong>
+                      </div>
+                      <div className={`export-claim export-claim--${manifest.allowedClaims.scriptSafety}`}>
+                        <span>Script seguro</span>
+                        <strong>{manifest.allowedClaims.scriptSafety === 'formal' ? 'Formal' : manifest.allowedClaims.scriptSafety === 'preliminary' ? 'Preliminar' : 'Pendiente'}</strong>
+                      </div>
+                      <div className={`export-claim export-claim--${manifest.allowedClaims.hitlDecision}`}>
+                        <span>HITL</span>
+                        <strong>{manifest.allowedClaims.hitlDecision === 'formal' ? 'Formal' : 'Pendiente'}</strong>
+                      </div>
+                      <div className={`export-claim export-claim--${manifest.allowedClaims.healthDelta}`}>
+                        <span>Delta de salud</span>
+                        <strong>{manifest.allowedClaims.healthDelta === 'formal' ? 'Formal' : manifest.allowedClaims.healthDelta === 'preliminary' ? 'Preliminar' : 'Pendiente'}</strong>
+                      </div>
+                      <div className={`export-claim export-claim--${manifest.allowedClaims.benchmarkLLM}`}>
+                        <span>Benchmark LLM</span>
+                        <strong>{manifest.allowedClaims.benchmarkLLM === 'formal' ? 'Formal' : manifest.allowedClaims.benchmarkLLM === 'preliminary' ? 'Preliminar' : 'Pendiente'}</strong>
                       </div>
                     </div>
-                  ))}
-                </div>
+                  </div>
+
+                  {/* Limitations */}
+                  <div className="export-limitations">
+                    <span className="export-limitations-title">Limitaciones</span>
+                    <ul>
+                      {manifest.limitations.slice(0, 5).map((lim) => (
+                        <li key={lim}>{lim}</li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Download buttons */}
+                  <div className="export-grid">
+                    <button className="btn-p" onClick={handleDownloadPdf} disabled={isPdfGenerating}>
+                      <FileText size={14} /> {isPdfGenerating ? 'Generando reporte' : 'Reporte PDF ejecutivo'}
+                    </button>
+                    <button className="btn-s" onClick={handleExportJson}>
+                      <FileJson size={14} /> Descargar JSON técnico
+                    </button>
+                    <button className="btn-s" onClick={handleExportIssuesCsv}>
+                      <Download size={14} /> Hallazgos CSV
+                    </button>
+                    <button className="btn-s" onClick={handleExportApprovedScript} disabled={!approvedCleaningScript}>
+                      <FileCode2 size={14} /> Script aprobado
+                    </button>
+                  </div>
+
+                  {/* Technical details: OE objectives + manifest */}
+                  <details className="technical-details" style={{ marginTop: 'var(--space-lg)' }}>
+                    <summary className="technical-details-summary">
+                      <ChevronDown size={14} className="technical-details-chevron" />
+                      <span>Detalles técnicos</span>
+                      <span className="technical-details-hint">cobertura de objetivos TFM, validationSummary</span>
+                    </summary>
+                    <div className="technical-details-body">
+                      <div className="objectives-checklist">
+                        <span className="objectives-checklist-title">Cobertura de objetivos TFM</span>
+                        {manifest.objectivesCoverage.map((obj) => (
+                          <div key={obj.id} className={`obj-row obj-row--${obj.status}`}>
+                            {obj.status === 'completed' ? <CheckCircle2 size={14} /> : obj.status === 'partial' ? <AlertTriangle size={14} /> : <XCircle size={14} />}
+                            <div>
+                              <strong>{obj.id}: {obj.label}</strong>
+                              <p>{obj.evidence}</p>
+                              {obj.limitations.length > 0 && (
+                                <ul className="obj-limitations">
+                                  {obj.limitations.map((lim) => <li key={lim}>{lim}</li>)}
+                                </ul>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </details>
+                </>
               );
             })()}
-
-            <div className="export-grid">
-              <button className="btn-p" onClick={handleDownloadPdf} disabled={isPdfGenerating}>
-                <FileText size={14} /> {isPdfGenerating ? 'Generando reporte' : 'Reporte PDF'}
-              </button>
-              <button className="btn-s" onClick={handleExportJson}>
-                <FileJson size={14} /> Anexo JSON
-              </button>
-              <button className="btn-s" onClick={handleExportIssuesCsv}>
-                <Download size={14} /> Hallazgos CSV
-              </button>
-              <button className="btn-s" onClick={handleExportApprovedScript} disabled={!approvedCleaningScript}>
-                <FileCode2 size={14} /> Script final
-              </button>
-            </div>
-            <div className="export-summary">
-              <span>críticos {criticalCount}</span>
-              <span>advertencias {warningCount}</span>
-              <span>{approvedCleaningScript ? 'script HITL aprobado' : 'script pendiente de aprobación'}</span>
-            </div>
           </section>
         )}
       </main>
