@@ -47,8 +47,8 @@ interface AuditData {
  * y las usadas en acceso a df (df['col'] o df["col"])
  */
 const extractMentionedColumns = (text: string): string[] => {
-  // Columnas en código: df['col'] o df["col"]
-  const scriptMatches = text.matchAll(/df\[[']([^'"]+)['"]\]|df\[["]([^"]+)["]\]]/g);
+  // Columnas en código: df['col'], df["col"], df_clean['col'], etc.
+  const scriptMatches = text.matchAll(/(?:df\w*)\[[']([^'"]+)['"]\]|(?:df\w*)\[["]([^"]+)["]\]/g);
   const scriptCols = Array.from(scriptMatches, m => m[1] || m[2]);
 
   // Columnas entre comillas/backticks en texto. Se separan delimitadores
@@ -284,8 +284,8 @@ const validatePythonScriptColumns = (
 
   const knownColumns = new Set(Object.keys(report.columnStats));
 
-  // Extraer df['col'] o df["col"] del script
-  const columnMatches = pythonScript.matchAll(/df\[[']([^'"]+)['"]\]|df\[["]([^"]+)["]\]]/g);
+  // Extraer df['col'], df["col"], df_clean['col'], etc. del script
+  const columnMatches = pythonScript.matchAll(/(?:df\w*)\[[']([^'"]+)['"]\]|(?:df\w*)\[["]([^"]+)["]\]/g);
   const scriptColumns = Array.from(columnMatches, m => m[1] || m[2]);
 
   const invalidColumns = scriptColumns.filter(col => !knownColumns.has(col));

@@ -3,6 +3,7 @@ import {
   BenchmarkResult,
   EvidenceStatus,
   HealthDelta,
+  HitlDecision,
   ImprovementRun,
   RemediationAction,
   ScriptValidationResult,
@@ -17,13 +18,25 @@ const countCritical = (report: AuditReport) =>
 
 const ruleNames = (report: AuditReport) => new Set(report.issues.map((issue) => issue.ruleName));
 
-export const deriveEvidenceStatus = (result: Pick<BenchmarkResult, 'status' | 'inputMode' | 'formatCompliance' | 'hallucinatedColumns' | 'scriptValidation'>): EvidenceStatus => {
+export const deriveEvidenceStatus = (
+  result: Pick<BenchmarkResult, 'status' | 'inputMode' | 'formatCompliance' | 'hallucinatedColumns' | 'scriptValidation'>,
+  hasGroundTruthMatch?: boolean
+): EvidenceStatus => {
   if (result.status === 'error' || result.status === 'unavailable') return 'attempted_failed';
   if (result.status !== 'completed') return 'planned';
-  if (result.inputMode === 'prompt_libre') return 'preliminary_valid';
+  if (result.inputMode === 'prompt_libre') {
+    // Prompt libre is inherently less controlled → preliminary at best
+    if (result.formatCompliance && result.hallucinatedColumns.length === 0) {
+      return 'preliminary_valid';
+    }
+    return 'attempted_failed';
+  }
+  // Smart sample: stricter grading
   if (!result.formatCompliance || result.hallucinatedColumns.length > 0 || result.scriptValidation?.valid === false) {
     return 'attempted_failed';
   }
+  // Formal valid: smart sample completed, all checks pass, AND ground truth exists
+  if (hasGroundTruthMatch) return 'formal_valid';
   return 'preliminary_valid';
 };
 
@@ -84,6 +97,7 @@ export const createImprovementRun = (params: {
   generatedScript?: string;
   remediationActions?: RemediationAction[];
   scriptValidation?: ScriptValidationResult;
+  hitlDecision?: HitlDecision;
 }): ImprovementRun => {
   const recommendedResult = recommendBenchmarkResult(params.benchmarkResults);
   const generatedScript = params.generatedScript || '';
@@ -105,6 +119,7 @@ export const createImprovementRun = (params: {
     fileName: params.fileName,
     evidenceStatus,
     auditEvidence: params.auditEvidence,
+    hitlDecision: params.hitlDecision,
     initialReport: params.initialReport,
     benchmarkResults: params.benchmarkResults.map((result) => ({
       ...result,

@@ -46,22 +46,52 @@ export const createTraceRecorder = () => {
   return { mark, events, startedAtMs };
 };
 
-export const buildAuditEvidence = (params: {
+export interface IngestionEvidenceParams {
   fileName?: string;
+  fileSize?: number;
   datasetFingerprint: string;
   startedAt: string;
   completedAt: string;
   parseDurationMs: number;
-  auditDurationMs: number;
   rowsProcessed: number;
   columnsProcessed: number;
   delimiter: string;
   truncated: boolean;
+  ingestionStatus: 'success' | 'error';
+  ingestionError?: string;
+}
+
+export interface BuildAuditEvidenceParams extends IngestionEvidenceParams {
+  auditDurationMs: number;
   report: AuditReport;
   trace: ExecutionTraceEvent[];
-}): AuditExecutionEvidence => ({
+}
+
+export const buildIngestionEvidence = (params: IngestionEvidenceParams): Omit<AuditExecutionEvidence, 'id' | 'auditDurationMs' | 'totalDurationMs' | 'issueCount' | 'score' | 'trace'> & { id: string } => ({
+  id: `ingest-${Date.now()}`,
+  fileName: params.fileName,
+  fileSize: params.fileSize,
+  datasetFingerprint: params.datasetFingerprint,
+  startedAt: params.startedAt,
+  completedAt: params.completedAt,
+  parseDurationMs: params.parseDurationMs,
+  auditDurationMs: 0,
+  totalDurationMs: params.parseDurationMs,
+  rowsProcessed: params.rowsProcessed,
+  columnsProcessed: params.columnsProcessed,
+  delimiter: params.delimiter,
+  truncated: params.truncated,
+  ingestionStatus: params.ingestionStatus,
+  ingestionError: params.ingestionError,
+  issueCount: 0,
+  score: 0,
+  trace: [],
+});
+
+export const buildAuditEvidence = (params: BuildAuditEvidenceParams): AuditExecutionEvidence => ({
   id: `audit-${Date.now()}`,
   fileName: params.fileName,
+  fileSize: params.fileSize,
   datasetFingerprint: params.datasetFingerprint,
   startedAt: params.startedAt,
   completedAt: params.completedAt,
@@ -72,6 +102,8 @@ export const buildAuditEvidence = (params: {
   columnsProcessed: params.columnsProcessed,
   delimiter: params.delimiter,
   truncated: params.truncated,
+  ingestionStatus: params.ingestionStatus,
+  ingestionError: params.ingestionError,
   issueCount: params.report.issues.length,
   score: params.report.score,
   trace: params.trace,

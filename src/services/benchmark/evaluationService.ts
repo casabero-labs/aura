@@ -42,7 +42,15 @@ const DEFAULT_WEIGHTS: ScoreWeights = {
 export interface ExperimentExport {
   exportTimestamp: string;
   experimentCount: number;
+  formalValidCount: number;
+  failedCount: number;
   experiments: ExperimentEntry[];
+  bestByMetric: {
+    lowestLatencyMs: number;
+    highestTokensPerSecond: number;
+    highestCompositeScore: number;
+    fewestHallucinations: number;
+  };
   summary: {
     meanCompositeScore: number;
     stdDevCompositeScore: number;
@@ -60,6 +68,7 @@ export interface ExperimentEntry {
     providerType: 'local' | 'cloud' | 'chrome';
     model: string;
     inputMode: 'smart_sample' | 'prompt_libre';
+    temperature: number;
   };
   metrics: {
     latencyMs: number;
@@ -72,6 +81,7 @@ export interface ExperimentEntry {
     unsupportedClaims: number;
   };
   compositeScore: number;
+  evidenceStatus: BenchmarkResult['evidenceStatus'];
   status: BenchmarkResult['status'];
   timestamp: string;
 }
@@ -243,7 +253,8 @@ export const exportBenchmarkJson = (
       provider: result.provider,
       providerType: result.providerType,
       model: result.model,
-      inputMode: result.inputMode
+      inputMode: result.inputMode,
+      temperature: result.temperature
     },
     metrics: {
       latencyMs: result.latencyMs,
@@ -256,6 +267,7 @@ export const exportBenchmarkJson = (
       unsupportedClaims: result.unsupportedClaims
     },
     compositeScore: compositeScore(result, weights, maxLatencyMs),
+    evidenceStatus: result.evidenceStatus,
     status: result.status,
     timestamp: result.timestamp
   }));
@@ -264,10 +276,24 @@ export const exportBenchmarkJson = (
   const scores = experiments.map(e => e.compositeScore);
   const stats = experimentStats(scores);
 
+  const formalValidCount = experiments.filter(e => e.evidenceStatus === 'formal_valid').length;
+  const failedCount = experiments.filter(e => e.evidenceStatus === 'attempted_failed' || e.status === 'error').length;
+
+  const completedExps = experiments.filter(e => e.status === 'completed');
+  const bestByMetric = {
+    lowestLatencyMs: completedExps.length > 0 ? Math.min(...completedExps.map(e => e.metrics.latencyMs)) : 0,
+    highestTokensPerSecond: completedExps.length > 0 ? Math.max(...completedExps.map(e => e.metrics.tokensPerSecond)) : 0,
+    highestCompositeScore: completedExps.length > 0 ? Math.max(...completedExps.map(e => e.compositeScore)) : 0,
+    fewestHallucinations: completedExps.length > 0 ? Math.min(...completedExps.map(e => e.metrics.hallucinatedColumns.length)) : 0,
+  };
+
   const exportData: ExperimentExport = {
     exportTimestamp: new Date().toISOString(),
     experimentCount: experiments.length,
+    formalValidCount,
+    failedCount,
     experiments,
+    bestByMetric,
     summary: {
       meanCompositeScore: Math.round(stats.mean * 10000) / 10000,
       stdDevCompositeScore: Math.round(stats.stdDev * 10000) / 10000,

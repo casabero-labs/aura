@@ -6,8 +6,10 @@
 
 1. `RETROALIMENTACION_Y_DIRECTRICES.md`
 2. `MATRIZ_EVIDENCIA_RESULTADOS.md`
-3. `PLAN_DESARROLLO_RESULTADOS_PUBLICACION.md`
-4. `../../../plans/2026-06-06-aura-tercera-entrega-resultados.md`
+3. `MATRIZ_PIPELINE_DESARROLLO_AURA.md`
+4. `PLAN_DESARROLLO_RESULTADOS_PUBLICACION.md`
+5. `../../../plans/2026-06-06-aura-tercera-entrega-resultados.md`
+6. `../../../plans/2026-06-12-aura-pipeline-matriz-loops.md`
 
 ## Objetivo de esta carpeta
 

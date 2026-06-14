@@ -142,7 +142,7 @@ const DatasetProfile: React.FC<DatasetProfileProps> = ({
             </div>
           </div>
           <div className="profile-meta-row">
-            {fileSize && <span>csv: {formatBytes(fileSize)}</span>}
+            <span>csv: {fileSize ? formatBytes(fileSize) : '—'}</span>
             <span>delimiter: <code>{report.delimiterDetected === ',' ? 'coma (,)' : `"${report.delimiterDetected}"`}</code></span>
           </div>
         </div>

@@ -5,7 +5,23 @@ import { deriveEvidenceStatus, createImprovementRun } from '../services/improvem
 import { simulateRemediation, buildDeterministicRemediationActions } from '../services/remediationSimulator';
 import { validateCleaningScript } from '../services/scriptValidationService';
 import { buildDeterministicCleaningScript } from '../services/deterministicScriptBuilder';
-import { AuditReport, BenchmarkResult } from '../types';
+import { AuditReport, BenchmarkResult, ScriptValidationResult } from '../types';
+
+const makeScriptValidation = (overrides: Partial<ScriptValidationResult> = {}): ScriptValidationResult => ({
+  valid: true,
+  hasScript: true,
+  invalidColumns: [],
+  destructiveOperations: [],
+  coveredIssueIds: ['a'],
+  uncoveredIssueIds: [],
+  coveragePercentage: 100,
+  safetyScore: 85,
+  scriptOrigin: 'model',
+  hasPandasImport: true,
+  requiresHumanReview: false,
+  warnings: [],
+  ...overrides,
+});
 
 const baseData = [
   { id: 1, name: ' Alice  ', status: 'N/A', amount: '10' },
@@ -55,6 +71,63 @@ describe('Evidence-guided improvement loop', () => {
       hallucinatedColumns: [],
       scriptValidation: undefined,
     });
+
+    expect(status).toBe('attempted_failed');
+  });
+
+  it('marks prompt_libre runs as preliminary_valid at best', () => {
+    const status = deriveEvidenceStatus({
+      status: 'completed',
+      inputMode: 'prompt_libre',
+      formatCompliance: true,
+      hallucinatedColumns: [],
+      scriptValidation: undefined,
+    });
+
+    expect(status).toBe('preliminary_valid');
+  });
+
+  it('marks smart_sample runs with ground truth as formal_valid when all checks pass', () => {
+    const status = deriveEvidenceStatus(
+      {
+        status: 'completed',
+        inputMode: 'smart_sample',
+        formatCompliance: true,
+        hallucinatedColumns: [],
+        scriptValidation: makeScriptValidation({ coveredIssueIds: ['a'] }),
+      },
+      true // hasGroundTruthMatch
+    );
+
+    expect(status).toBe('formal_valid');
+  });
+
+  it('marks smart_sample runs without ground truth as preliminary_valid when checks pass', () => {
+    const status = deriveEvidenceStatus(
+      {
+        status: 'completed',
+        inputMode: 'smart_sample',
+        formatCompliance: true,
+        hallucinatedColumns: [],
+        scriptValidation: makeScriptValidation({ coveredIssueIds: ['a'] }),
+      },
+      false // no ground truth
+    );
+
+    expect(status).toBe('preliminary_valid');
+  });
+
+  it('marks smart_sample with hallucinations as attempted_failed even with ground truth', () => {
+    const status = deriveEvidenceStatus(
+      {
+        status: 'completed',
+        inputMode: 'smart_sample',
+        formatCompliance: true,
+        hallucinatedColumns: ['phantom_col'],
+        scriptValidation: makeScriptValidation({ coveredIssueIds: ['a'] }),
+      },
+      true
+    );
 
     expect(status).toBe('attempted_failed');
   });

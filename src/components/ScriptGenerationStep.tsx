@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { ArrowRight, CheckCircle2, FileCode2, ShieldAlert, ShieldCheck, TriangleAlert } from 'lucide-react';
+import { ArrowRight, CheckCircle2, FileCode2, ShieldAlert, ShieldCheck, TriangleAlert, Gauge } from 'lucide-react';
 import { AIProvider, AuditReport, ProviderMetrics, ScriptValidationResult } from '../types';
 import { highlightPython } from '../services/highlightPython';
 import { buildDeterministicCleaningScript, buildFallbackScriptMetrics } from '../services/deterministicScriptBuilder';
@@ -101,14 +101,19 @@ const ScriptGenerationStep: React.FC<ScriptGenerationStepProps> = ({
 
   const validationItems = scriptValidation ? [
     {
+      label: 'Safety Score',
+      value: `${scriptValidation.safetyScore}/100`,
+      state: scriptValidation.safetyScore >= 80 ? 'pass' : scriptValidation.safetyScore >= 50 ? 'review' : 'warn',
+    },
+    {
       label: 'Columnas existentes',
-      value: scriptValidation.invalidColumns.length === 0 ? 'Sin columnas fantasma' : `${scriptValidation.invalidColumns.length} inválidas`,
+      value: scriptValidation.invalidColumns.length === 0 ? 'Sin columnas fantasma' : `${scriptValidation.invalidColumns.length} inválidas: ${scriptValidation.invalidColumns.join(', ')}`,
       state: scriptValidation.invalidColumns.length === 0 ? 'pass' : 'warn',
     },
     {
       label: 'Cobertura de hallazgos',
-      value: `${scriptValidation.coveredIssueIds.length} / ${report.issues.length}`,
-      state: scriptValidation.coveredIssueIds.length > 0 ? 'pass' : 'warn',
+      value: `${scriptValidation.coveredIssueIds.length} / ${report.issues.length} (${scriptValidation.coveragePercentage}%)`,
+      state: scriptValidation.coveragePercentage >= 50 ? 'pass' : 'warn',
     },
     {
       label: 'Operaciones destructivas',
@@ -117,8 +122,13 @@ const ScriptGenerationStep: React.FC<ScriptGenerationStepProps> = ({
     },
     {
       label: 'Uso de Pandas',
-      value: scriptValidation.warnings.some((warning) => warning.includes('Pandas')) ? 'No evidente' : 'Detectado',
-      state: scriptValidation.warnings.some((warning) => warning.includes('Pandas')) ? 'warn' : 'pass',
+      value: scriptValidation.hasPandasImport ? 'Detectado' : 'No evidente',
+      state: scriptValidation.hasPandasImport ? 'pass' : 'warn',
+    },
+    {
+      label: 'Origen',
+      value: scriptValidation.scriptOrigin === 'deterministic' ? 'Respaldo determinista' : scriptValidation.scriptOrigin === 'model' ? 'Modelo LLM' : 'Pendiente',
+      state: scriptValidation.scriptOrigin === 'deterministic' ? 'review' : 'pass',
     },
     {
       label: 'Revisión humana',
@@ -208,6 +218,65 @@ const ScriptGenerationStep: React.FC<ScriptGenerationStepProps> = ({
                 <p>Evalúa si el script puede pasar a revisión humana con trazabilidad mínima.</p>
               </div>
             </div>
+
+            {/* ── Safety Score Bar ── */}
+            {scriptValidation.hasScript && (
+              <div className="safety-score-bar-wrap">
+                <div className="safety-score-header">
+                  <Gauge size={14} />
+                  <span>Safety Score</span>
+                  <strong style={{
+                    color: scriptValidation.safetyScore >= 80 ? 'var(--success)'
+                      : scriptValidation.safetyScore >= 50 ? 'var(--orange)'
+                      : 'var(--error)'
+                  }}>
+                    {scriptValidation.safetyScore}/100
+                  </strong>
+                </div>
+                <div className="safety-score-track">
+                  <div
+                    className="safety-score-fill"
+                    style={{
+                      width: `${scriptValidation.safetyScore}%`,
+                      background: scriptValidation.safetyScore >= 80 ? 'var(--success)'
+                        : scriptValidation.safetyScore >= 50 ? 'var(--orange)'
+                        : 'var(--error)'
+                    }}
+                  />
+                </div>
+                <div className="safety-score-breakdown">
+                  <span>Columnas {scriptValidation.invalidColumns.length === 0 ? '30' : Math.max(0, 30 - scriptValidation.invalidColumns.length * 10)}</span>
+                  <span>+ Cobertura {Math.round(scriptValidation.coveragePercentage * 0.3)}</span>
+                  <span>+ No-destructivas {scriptValidation.destructiveOperations.length === 0 ? '25' : Math.max(0, 25 - scriptValidation.destructiveOperations.length * 10)}</span>
+                  <span>+ Pandas {scriptValidation.hasPandasImport ? '15' : '0'}</span>
+                </div>
+              </div>
+            )}
+
+            {/* ── Coverage Bar ── */}
+            {scriptValidation.hasScript && (
+              <div className="coverage-bar-wrap">
+                <div className="coverage-bar-label">
+                  <span>Cobertura de hallazgos</span>
+                  <strong>{scriptValidation.coveragePercentage}%</strong>
+                </div>
+                <div className="coverage-bar-track">
+                  <div
+                    className="coverage-bar-fill"
+                    style={{
+                      width: `${scriptValidation.coveragePercentage}%`,
+                      background: scriptValidation.coveragePercentage >= 50 ? 'var(--success)' : 'var(--orange)'
+                    }}
+                  />
+                </div>
+                {scriptValidation.uncoveredIssueIds.length > 0 && (
+                  <p className="coverage-uncovered">
+                    Sin cobertura: {scriptValidation.uncoveredIssueIds.length} hallazgo(s) sin traza en el script
+                  </p>
+                )}
+              </div>
+            )}
+
             <div className="script-validation-grid">
               {validationItems.map((item) => (
                 <div key={item.label} className={`script-validation-card script-validation-card--${item.state}`}>

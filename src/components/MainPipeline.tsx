@@ -7,9 +7,10 @@ import ReviewStep from './ReviewStep';
 import ScriptGenerationStep from './ScriptGenerationStep';
 import { runAudit } from '../services/auditEngine';
 import { parseCsv } from '../services/csvService';
-import { buildAuditEvidence, createTraceRecorder, fingerprintDataset } from '../services/executionEvidence';
+import { buildAuditEvidence, buildIngestionEvidence, createTraceRecorder, fingerprintDataset } from '../services/executionEvidence';
+import { matchGroundTruth, buildDeterministicValidationReport } from '../services/deterministicValidation';
 import { validateCleaningScript } from '../services/scriptValidationService';
-import { AIConfig, AIProvider, AuditReport, AuditExecutionEvidence, BenchmarkResult, HealthDelta, ImprovementRun, ProviderMetrics, ScriptValidationResult } from '../types';
+import { AIConfig, AIProvider, AuditReport, AuditExecutionEvidence, BenchmarkResult, DeterministicValidationReport, HealthDelta, ImprovementRun, ProviderMetrics, ScriptValidationResult } from '../types';
 
 export type PipelineState = 'upload' | 'profile' | 'diagnosis' | 'script' | 'review' | 'export';
 
@@ -28,6 +29,7 @@ export interface PipelineData {
   benchmarkResults: BenchmarkResult[];
   improvementRun: ImprovementRun | null;
   scriptValidation: ScriptValidationResult | null;
+  deterministicValidation: DeterministicValidationReport | null;
   logs: { time: string; msg: string }[];
 }
 
@@ -58,17 +60,18 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, onLog
   const [isProcessing, setIsProcessing] = useState(false);
 
   const [scriptValidation, setScriptValidation] = useState<ScriptValidationResult | null>(null);
+  const [deterministicValidation, setDeterministicValidation] = useState<DeterministicValidationReport | null>(null);
 
   // Sync pipeline data upward to parent
   React.useEffect(() => {
     onPipelineChange?.({
       state, file, report, auditEvidence, rawData, csvFields, csvDelimiter,
       cleaningScript, approvedScript, healthDelta, aiAnalysis,
-      benchmarkResults, improvementRun, scriptValidation, logs,
+      benchmarkResults, improvementRun, scriptValidation, deterministicValidation, logs,
     });
   }, [state, file, report, auditEvidence, rawData, csvFields, csvDelimiter,
       cleaningScript, approvedScript, healthDelta, aiAnalysis,
-      benchmarkResults, improvementRun, scriptValidation, logs]);
+      benchmarkResults, improvementRun, scriptValidation, deterministicValidation, logs]);
 
   const addLog = (msg: string) => {
     const time = new Date().toLocaleTimeString('es-CO', {
@@ -113,17 +116,37 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, onLog
 
       const completedAt = new Date().toISOString();
       const evidence = buildAuditEvidence({
-        fileName: uploadedFile.name, datasetFingerprint, startedAt, completedAt,
+        fileName: uploadedFile.name, fileSize: uploadedFile.size,
+        datasetFingerprint, startedAt, completedAt,
         parseDurationMs, auditDurationMs, rowsProcessed: data.length,
         columnsProcessed: meta.fields.length, delimiter: meta.delimiter,
-        truncated: meta.truncated, report: auditResult, trace: trace.events,
+        truncated: meta.truncated, ingestionStatus: 'success',
+        report: auditResult, trace: trace.events,
       });
 
       setAuditEvidence(evidence); setReport(auditResult);
       addLog(`audit.run.end :: score=${auditResult.score}/100 · issues=${auditResult.issues.length} · ${auditDurationMs}ms`);
 
+      const groundTruth = matchGroundTruth(meta.fields);
+      const validationReport = buildDeterministicValidationReport(auditResult, groundTruth);
+      setDeterministicValidation(validationReport);
+      if (groundTruth) {
+        addLog(`deterministic.validation :: ground truth "${groundTruth.datasetName}" · macro F1=${(validationReport.summary.macroF1 * 100).toFixed(1)}%`);
+      }
+
       setState('profile');
     } catch (err: any) {
+      const completedAt = new Date().toISOString();
+      const errorEvidence = buildIngestionEvidence({
+        fileName: uploadedFile.name, fileSize: uploadedFile.size,
+        datasetFingerprint: 'error',
+        startedAt: new Date().toISOString(), completedAt,
+        parseDurationMs: 0, rowsProcessed: 0, columnsProcessed: 0,
+        delimiter: ',', truncated: false,
+        ingestionStatus: 'error', ingestionError: err.message,
+      });
+      setAuditEvidence(errorEvidence as any);
+      setState('profile');
       addLog(`Error: ${err.message}`);
     } finally {
       setIsProcessing(false);
@@ -162,10 +185,11 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, onLog
       )}
 
       {/* ── Step 2: Dataset profile ── */}
-      {state === 'profile' && report && auditEvidence && (
+      {state === 'profile' && auditEvidence && (
         <ProfileStep
           report={report}
           auditEvidence={auditEvidence}
+          deterministicValidation={deterministicValidation}
           file={file}
           onContinue={() => setState('diagnosis')}
         />
@@ -195,11 +219,12 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, onLog
           diagnosisText={aiAnalysis}
           cleaningScript={cleaningScript}
           scriptValidation={scriptValidation}
-          onScriptGenerated={(script, metrics: ProviderMetrics) => {
+            onScriptGenerated={(script, metrics: ProviderMetrics) => {
             setCleaningScript(script);
-            const validation = validateCleaningScript(report, script);
+            const origin = metrics.provider === 'AURA' ? 'deterministic' : 'model';
+            const validation = validateCleaningScript(report, script, origin);
             setScriptValidation(validation);
-            addLog(`script.generado :: ${script.split('\n').length} líneas · ${metrics.latencyMs}ms`);
+            addLog(`script.generado :: ${script.split('\n').length} líneas · ${metrics.latencyMs}ms · origen=${origin}`);
           }}
           onLog={(stage, msg) => addLog(`${stage} :: ${msg}`)}
           onContinue={() => setState('review')}

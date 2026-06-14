@@ -47,9 +47,12 @@ const hasRuleTrace = (script: string, ruleName: string): boolean => {
 
 export const validateCleaningScript = (
   report: AuditReport,
-  script?: string
+  script?: string,
+  origin?: ScriptValidationResult['scriptOrigin']
 ): ScriptValidationResult => {
   const hasScript = Boolean(script?.trim());
+  const effectiveOrigin = origin || (hasScript ? 'model' : 'pending');
+
   if (!hasScript) {
     return {
       valid: false,
@@ -57,6 +60,11 @@ export const validateCleaningScript = (
       invalidColumns: [],
       destructiveOperations: [],
       coveredIssueIds: [],
+      uncoveredIssueIds: report.issues.map((i) => i.id),
+      coveragePercentage: 0,
+      safetyScore: 0,
+      scriptOrigin: effectiveOrigin,
+      hasPandasImport: false,
       requiresHumanReview: true,
       warnings: ['No se genero script Python/Pandas.'],
     };
@@ -68,6 +76,8 @@ export const validateCleaningScript = (
     .filter(({ pattern }) => pattern.test(scriptText))
     .map(({ label }) => label);
 
+  const hasPandasImport = scriptText.includes('import pandas') || scriptText.includes('pd.');
+
   const coveredIssueIds = report.issues
     .filter((issue) => {
       const columnMatch = issue.column ? hasColumnTrace(scriptText, issue.column) : false;
@@ -76,20 +86,49 @@ export const validateCleaningScript = (
     })
     .map((issue) => issue.id);
 
+  const uncoveredIssueIds = report.issues
+    .filter((issue) => !coveredIssueIds.includes(issue.id))
+    .map((issue) => issue.id);
+
+  const coveragePercentage = report.issues.length > 0
+    ? Math.round((coveredIssueIds.length / report.issues.length) * 100)
+    : 100;
+
+  // ── Safety Score (0-100) ──
+  // Columns valid: 30 pts
+  const columnScore = columnValidation.valid ? 30 : Math.max(0, 30 - columnValidation.invalidColumns.length * 10);
+  // Coverage: 30 pts (proportional to covered issues)
+  const coverageScore = report.issues.length > 0
+    ? Math.round((coveredIssueIds.length / report.issues.length) * 30)
+    : 30;
+  // No destructive ops: 25 pts
+  const destructiveScore = destructiveOperations.length === 0 ? 25 : Math.max(0, 25 - destructiveOperations.length * 10);
+  // Pandas import: 15 pts
+  const pandasScore = hasPandasImport ? 15 : 0;
+
+  const safetyScore = Math.max(0, Math.min(100, columnScore + coverageScore + destructiveScore + pandasScore));
+
   const warnings = [
-    ...(!scriptText.includes('import pandas') && !scriptText.includes('pd.') ? ['El script no evidencia uso de Pandas.'] : []),
+    ...(!hasPandasImport ? ['El script no evidencia uso de Pandas.'] : []),
     ...(destructiveOperations.length > 0 ? ['El script contiene operaciones destructivas o mutaciones directas.'] : []),
     ...(columnValidation.invalidColumns.length > 0 ? ['El script referencia columnas que no existen en el AuditReport.'] : []),
     ...(coveredIssueIds.length === 0 ? ['No se pudo trazar el script contra hallazgos detectados en el perfil determinista.'] : []),
+    ...(coveragePercentage < 50 ? [`Cobertura baja: solo ${coveragePercentage}% de los hallazgos tienen traza en el script.`] : []),
+    ...(effectiveOrigin === 'deterministic' ? ['Script generado por respaldo determinista, no por LLM.'] : []),
   ];
 
   return {
-    valid: columnValidation.valid && coveredIssueIds.length > 0,
+    valid: columnValidation.valid && coveredIssueIds.length > 0 && destructiveOperations.length === 0,
     hasScript: true,
     invalidColumns: columnValidation.invalidColumns,
     destructiveOperations,
     coveredIssueIds,
-    requiresHumanReview: destructiveOperations.length > 0 || warnings.length > 0,
+    uncoveredIssueIds,
+    coveragePercentage,
+    safetyScore,
+    scriptOrigin: effectiveOrigin,
+    hasPandasImport,
+    requiresHumanReview: destructiveOperations.length > 0 || warnings.length > 0 || safetyScore < 60,
     warnings,
   };
 };

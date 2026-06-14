@@ -1,15 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ClipboardList, Download, FileCode2, FileJson, FileText, FlaskConical, HelpCircle, Settings, Layers, History } from 'lucide-react';
+import { ClipboardList, Download, FileCode2, FileJson, FileText, FlaskConical, HelpCircle, Settings, Layers, History, CheckCircle2, AlertTriangle, XCircle } from 'lucide-react';
 import ChangelogModal from './components/ChangelogModal';
 import ErrorBoundary from './components/ErrorBoundary';
 import AuditLogViewer from './components/AuditLogViewer';
 import BenchmarkLab from './components/BenchmarkLab';
+import DevelopmentLoopsPanel from './components/DevelopmentLoopsPanel';
 import SettingsPanel from './components/SettingsPanel';
 import MainPipeline, { PipelineData } from './components/MainPipeline';
 import { loadFromApi, syncToApi } from './services/api';
 import { createAIProvider } from './services/aiProvider';
 import { generatePdfReport } from './services/pdfGenerator';
-import { AIConfig, AuditReport, BenchmarkResult, ExecutiveReportContent, IssueSeverity } from './types';
+import { buildEvidenceManifest } from './services/evidenceManifest';
+import { AIConfig, AuditReport, BenchmarkResult, DeterministicValidationReport, EvidenceManifest, ExecutiveReportContent, IssueSeverity } from './types';
 
 const countBySeverity = (report: AuditReport | null, severity: IssueSeverity) =>
   report?.issues.filter((issue) => issue.severity === severity).length ?? 0;
@@ -82,6 +84,7 @@ const App: React.FC = () => {
     benchmarkResults: [],
     improvementRun: null,
     scriptValidation: null,
+    deterministicValidation: null,
     logs: [],
   });
 
@@ -156,6 +159,7 @@ const App: React.FC = () => {
   const benchmarkResults = pipelineData.benchmarkResults.length > 0
     ? pipelineData.benchmarkResults
     : labBenchmarkResults;
+  const deterministicValidation = pipelineData.deterministicValidation;
   const improvementRun = pipelineData.improvementRun;
   const scriptValidation = pipelineData.scriptValidation;
 
@@ -183,13 +187,28 @@ const App: React.FC = () => {
 
   const handleExportJson = () => {
     if (!report) return;
+    const manifest = buildEvidenceManifest({
+      auditEvidence,
+      deterministicValidation,
+      benchmarkResults,
+      scriptValidation,
+      hitlDecision: improvementRun?.hitlDecision ?? null,
+      healthDeltaPoints: improvementRun?.healthDelta?.scoreDelta,
+    });
     downloadTextFile(
       `aura_audit_${Date.now()}.json`,
       JSON.stringify({
+        manifest,
         profile: {
           report,
           auditEvidence,
         },
+        ...(deterministicValidation?.groundTruthMatched && {
+          deterministicValidation,
+        }),
+        ...(improvementRun?.hitlDecision && {
+          hitlDecision: improvementRun.hitlDecision,
+        }),
         diagnosis: {
           model: aiConfig.model,
           providerType: aiConfig.providerType,
@@ -394,6 +413,7 @@ const App: React.FC = () => {
           fileName={file?.name}
           aiConfig={aiConfig}
           auditEvidence={auditEvidence || undefined}
+          deterministicValidation={deterministicValidation}
           onResultsChange={setLabBenchmarkResults}
           onBack={() => setShowLab(false)}
         />
@@ -411,6 +431,7 @@ const App: React.FC = () => {
           </p>
         </section>
 
+        <DevelopmentLoopsPanel pipelineData={pipelineData} />
 
         {/* Main Pipeline — Phase 1: Upload + Diagnostic */}
         <MainPipeline
@@ -427,6 +448,38 @@ const App: React.FC = () => {
           <section className="quote" id="export-section">
             <p className="quote-text">Exportación final de la auditoría.</p>
             <p className="quote-attr">Descarga el reporte principal y, si lo necesitas, los anexos técnicos para trazabilidad.</p>
+
+            {/* ── Objectives Coverage Checklist ── */}
+            {(() => {
+              const manifest = buildEvidenceManifest({
+                auditEvidence,
+                deterministicValidation,
+                benchmarkResults,
+                scriptValidation,
+                hitlDecision: improvementRun?.hitlDecision ?? null,
+                healthDeltaPoints: improvementRun?.healthDelta?.scoreDelta,
+              });
+              return (
+                <div className="objectives-checklist">
+                  <span className="objectives-checklist-title">Cobertura de objetivos TFM</span>
+                  {manifest.objectivesCoverage.map((obj) => (
+                    <div key={obj.id} className={`obj-row obj-row--${obj.status}`}>
+                      {obj.status === 'completed' ? <CheckCircle2 size={14} /> : obj.status === 'partial' ? <AlertTriangle size={14} /> : <XCircle size={14} />}
+                      <div>
+                        <strong>{obj.id}: {obj.label}</strong>
+                        <p>{obj.evidence}</p>
+                        {obj.limitations.length > 0 && (
+                          <ul className="obj-limitations">
+                            {obj.limitations.map((lim) => <li key={lim}>{lim}</li>)}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+
             <div className="export-grid">
               <button className="btn-p" onClick={handleDownloadPdf} disabled={isPdfGenerating}>
                 <FileText size={14} /> {isPdfGenerating ? 'Generando reporte' : 'Reporte PDF'}

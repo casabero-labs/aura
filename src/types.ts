@@ -96,6 +96,7 @@ export interface ExecutionTraceEvent {
 export interface AuditExecutionEvidence {
   id: string;
   fileName?: string;
+  fileSize?: number;
   datasetFingerprint: string;
   startedAt: string;
   completedAt: string;
@@ -106,6 +107,8 @@ export interface AuditExecutionEvidence {
   columnsProcessed: number;
   delimiter: string;
   truncated: boolean;
+  ingestionStatus: 'success' | 'error';
+  ingestionError?: string;
   issueCount: number;
   score: number;
   trace: ExecutionTraceEvent[];
@@ -225,8 +228,65 @@ export interface ScriptValidationResult {
   invalidColumns: string[];
   destructiveOperations: string[];
   coveredIssueIds: string[];
+  uncoveredIssueIds: string[];
+  coveragePercentage: number;
+  safetyScore: number;
+  scriptOrigin: 'model' | 'deterministic' | 'pending';
+  hasPandasImport: boolean;
   requiresHumanReview: boolean;
   warnings: string[];
+}
+
+// --- Capa 2.5: Validación Determinista Formal por Regla ---
+
+export interface RuleGroundTruth {
+  ruleIdPrefix: string;
+  ruleName: string;
+  category: IssueCategory;
+  expectedTP: number;
+  expectedFP: number;
+  column?: string;
+  description: string;
+}
+
+export interface DeterministicGroundTruth {
+  datasetName: string;
+  totalRows: number;
+  matchFieldSet: string[];
+  rulesExpected: RuleGroundTruth[];
+}
+
+export interface PerRuleMetrics {
+  ruleId: string;
+  ruleName: string;
+  category: IssueCategory;
+  tp: number;
+  fp: number;
+  fn: number;
+  precision: number;
+  recall: number;
+  f1: number;
+  expectedTP: number;
+  actualDetected: number;
+  status: 'match' | 'partial' | 'missed' | 'expected_fp' | 'unexpected_fp';
+}
+
+export interface DeterministicValidationReport {
+  datasetName: string;
+  groundTruthMatched: boolean;
+  perRuleMetrics: PerRuleMetrics[];
+  summary: {
+    totalTP: number;
+    totalFP: number;
+    totalFN: number;
+    macroPrecision: number;
+    macroRecall: number;
+    macroF1: number;
+    rulesMatched: number;
+    rulesPartial: number;
+    rulesMissed: number;
+    rulesUnexpectedFP: number;
+  };
 }
 
 export interface HallucinationReportSummary {
@@ -257,6 +317,7 @@ export interface ImprovementRun {
   fileName?: string;
   evidenceStatus: EvidenceStatus;
   auditEvidence?: AuditExecutionEvidence;
+  hitlDecision?: HitlDecision;
   initialReport: AuditReport;
   benchmarkResults: BenchmarkResult[];
   recommendedResult?: BenchmarkResult;
@@ -267,6 +328,70 @@ export interface ImprovementRun {
   simulatedReport?: AuditReport;
   healthDelta?: HealthDelta;
   createdAt: string;
+}
+
+export interface HitlDecision {
+  approved: boolean;
+  timestamp: string;
+  safetyScoreAtApproval: number;
+  coverageAtApproval: number;
+  checklist: HitlChecklistItem[];
+  reviewerNotes?: string;
+}
+
+export interface HitlChecklistItem {
+  criterion: string;
+  passed: boolean;
+  detail: string;
+}
+
+// --- Capa 5: Paquete Final de Evidencia ---
+
+export type ObjectiveStatus = 'completed' | 'partial' | 'blocked';
+
+export interface ObjectiveCoverage {
+  id: string;
+  label: string;
+  status: ObjectiveStatus;
+  evidence: string;
+  limitations: string[];
+}
+
+export type AllowedClaimLevel = 'formal' | 'preliminary' | 'none';
+
+export interface AllowedClaims {
+  deterministicEngine: AllowedClaimLevel;
+  benchmarkLLM: AllowedClaimLevel;
+  scriptSafety: AllowedClaimLevel;
+  hitlDecision: AllowedClaimLevel;
+  healthDelta: AllowedClaimLevel;
+}
+
+export interface EvidenceManifest {
+  generatedAt: string;
+  dataset: {
+    name?: string;
+    fingerprint?: string;
+    rows: number;
+    columns: number;
+  };
+  app: {
+    name: string;
+    version: string;
+  };
+  objectivesCoverage: ObjectiveCoverage[];
+  artifacts: string[];
+  allowedClaims: AllowedClaims;
+  validationSummary: {
+    deterministicF1?: number;
+    benchmarkFormalCount: number;
+    benchmarkFailedCount: number;
+    bestBenchmarkScore?: number;
+    scriptSafetyScore?: number;
+    hitlApproved: boolean;
+    healthDeltaPoints?: number;
+  };
+  limitations: string[];
 }
 
 /**

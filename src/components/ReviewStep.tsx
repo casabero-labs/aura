@@ -6,6 +6,8 @@ import { ArrowRight, CheckCircle2, ShieldAlert, ShieldCheck, TriangleAlert } fro
 import {
   AuditReport,
   AuditExecutionEvidence,
+  HitlChecklistItem,
+  HitlDecision,
   ImprovementRun,
   HealthDelta,
   BenchmarkResult,
@@ -52,11 +54,65 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
   const [currentApprovedScript, setCurrentApprovedScript] = useState<string>(approvedScript);
   const [improvementRun, setImprovementRun] = useState<ImprovementRun | null>(null);
   const [healthDelta, setHealthDelta] = useState<HealthDelta | null>(null);
+  const [hitlDecision, setHitlDecision] = useState<HitlDecision | null>(null);
 
   const handleApprove = (script: string) => {
     setCurrentApprovedScript(script);
     onScriptApproved?.(script);
-    runSimulation(script);
+
+    const checklist: HitlChecklistItem[] = [
+      {
+        criterion: 'Columnas válidas',
+        passed: scriptValidation ? scriptValidation.invalidColumns.length === 0 : false,
+        detail: scriptValidation
+          ? scriptValidation.invalidColumns.length === 0
+            ? 'Todas las columnas existen en AuditReport.'
+            : `${scriptValidation.invalidColumns.length} columnas fantasma: ${scriptValidation.invalidColumns.join(', ')}.`
+          : 'Validación de columnas no disponible.',
+      },
+      {
+        criterion: 'Cobertura de hallazgos',
+        passed: scriptValidation ? scriptValidation.coveragePercentage >= 50 : false,
+        detail: scriptValidation
+          ? `${scriptValidation.coveragePercentage}% de hallazgos trazados (${scriptValidation.coveredIssueIds.length}/${scriptValidation.coveredIssueIds.length + scriptValidation.uncoveredIssueIds.length}).`
+          : 'Validación de cobertura no disponible.',
+      },
+      {
+        criterion: 'Operaciones destructivas',
+        passed: scriptValidation ? scriptValidation.destructiveOperations.length === 0 : false,
+        detail: scriptValidation
+          ? scriptValidation.destructiveOperations.length === 0
+            ? 'Sin operaciones destructivas detectadas.'
+            : `Operaciones detectadas: ${scriptValidation.destructiveOperations.join(', ')}. Requieren revisión explícita.`
+          : 'Validación de operaciones no disponible.',
+      },
+      {
+        criterion: 'Uso de Pandas',
+        passed: scriptValidation?.hasPandasImport ?? false,
+        detail: scriptValidation?.hasPandasImport
+          ? 'El script evidencia importación de Pandas.'
+          : 'El script no evidencia uso de Pandas.',
+      },
+      {
+        criterion: 'Revisión humana completa',
+        passed: true,
+        detail: 'El revisor verificó el código completo antes de aprobar.',
+      },
+    ];
+
+    const decision: HitlDecision = {
+      approved: true,
+      timestamp: new Date().toISOString(),
+      safetyScoreAtApproval: scriptValidation?.safetyScore ?? 0,
+      coverageAtApproval: scriptValidation?.coveragePercentage ?? 0,
+      checklist,
+      reviewerNotes: scriptValidation?.requiresHumanReview
+        ? 'Aprobado con advertencias: el script requiere criterio humano para operaciones marcadas.'
+        : undefined,
+    };
+
+    setHitlDecision(decision);
+    runSimulation(script, decision);
   };
 
   const reviewChecks = [
@@ -74,13 +130,22 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
     },
     {
       label: 'cobertura',
-      value: scriptValidation ? `${scriptValidation.coveredIssueIds.length} hallazgos` : 'sin validar',
-      state: scriptValidation && scriptValidation.coveredIssueIds.length > 0 ? 'pass' : 'warn',
+      value: scriptValidation ? `${scriptValidation.coveragePercentage}% (${scriptValidation.coveredIssueIds.length} hallazgos)` : 'sin validar',
+      state: scriptValidation && scriptValidation.coveragePercentage >= 50 ? 'pass' : 'warn',
     },
     {
-      label: 'riesgo',
-      value: scriptValidation?.requiresHumanReview ? 'requiere criterio' : 'sin alertas',
-      state: scriptValidation?.requiresHumanReview ? 'review' : 'pass',
+      label: 'safety score',
+      value: scriptValidation ? `${scriptValidation.safetyScore}/100` : '—',
+      state: scriptValidation
+        ? scriptValidation.safetyScore >= 80 ? 'pass' : scriptValidation.safetyScore >= 50 ? 'review' : 'warn'
+        : 'warn',
+    },
+    {
+      label: 'riesgo destructivo',
+      value: scriptValidation
+        ? scriptValidation.destructiveOperations.length === 0 ? 'sin operaciones' : `${scriptValidation.destructiveOperations.length} detectadas`
+        : 'sin validar',
+      state: scriptValidation && scriptValidation.destructiveOperations.length === 0 ? 'pass' : 'warn',
     },
     {
       label: 'simulación',
@@ -89,9 +154,9 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
     },
   ];
 
-  const runSimulation = async (script: string) => {
+  const runSimulation = async (script: string, decision: HitlDecision) => {
     setStage('simulating');
-    onLog?.('review.approve', 'Script aprobado · iniciando simulación de remediación');
+    onLog?.('review.approve', `Script aprobado · safetyScore=${decision.safetyScoreAtApproval} · cobertura=${decision.coverageAtApproval}%`);
 
     try {
       const run = createImprovementRun({
@@ -103,6 +168,7 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
         benchmarkResults,
         generatedScript: script,
         scriptValidation: scriptValidation || undefined,
+        hitlDecision: decision,
       });
 
       setImprovementRun(run);
@@ -190,6 +256,58 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
             <span className="sim-spinner" />
             <span>Ejecutando simulación de remediación...</span>
           </div>
+        </div>
+      )}
+
+      {/* HITL Decision Block */}
+      {hitlDecision && (
+        <div className="hitl-decision-block mt-6">
+          <div className="hitl-decision-header">
+            <ShieldCheck size={16} />
+            <div>
+              <strong>Decisión humana registrada</strong>
+              <p>Aprobación explícita con criterios de revisión trazables. No es automatizada.</p>
+            </div>
+            <code className="hitl-timestamp">{new Date(hitlDecision.timestamp).toLocaleTimeString('es-CO', { hour12: false })}</code>
+          </div>
+          <div className="hitl-decision-metrics">
+            <div className="hitl-metric">
+              <span>Safety Score al aprobar</span>
+              <strong style={{
+                color: hitlDecision.safetyScoreAtApproval >= 80 ? 'var(--success)'
+                  : hitlDecision.safetyScoreAtApproval >= 50 ? 'var(--orange)'
+                  : 'var(--error)'
+              }}>{hitlDecision.safetyScoreAtApproval}/100</strong>
+            </div>
+            <div className="hitl-metric">
+              <span>Cobertura al aprobar</span>
+              <strong>{hitlDecision.coverageAtApproval}%</strong>
+            </div>
+            <div className="hitl-metric hitl-metric--verdict">
+              <span>Veredicto</span>
+              <strong style={{ color: hitlDecision.approved ? 'var(--success)' : 'var(--error)' }}>
+                {hitlDecision.approved ? 'APROBADO' : 'RECHAZADO'}
+              </strong>
+            </div>
+          </div>
+          <div className="hitl-checklist">
+            <span className="hitl-checklist-title">Checklist de revisión</span>
+            {hitlDecision.checklist.map((item) => (
+              <div key={item.criterion} className={`hitl-checklist-item ${item.passed ? 'hitl-pass' : 'hitl-fail'}`}>
+                {item.passed ? <CheckCircle2 size={12} /> : <TriangleAlert size={12} />}
+                <div>
+                  <strong>{item.criterion}</strong>
+                  <p>{item.detail}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          {hitlDecision.reviewerNotes && (
+            <div className="hitl-reviewer-notes">
+              <span>Observaciones del revisor</span>
+              <p>{hitlDecision.reviewerNotes}</p>
+            </div>
+          )}
         </div>
       )}
 

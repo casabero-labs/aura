@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Activity, FlaskConical, ArrowLeft, Play, BarChart3, Database, FileJson, Gauge, ShieldAlert } from 'lucide-react';
-import { AuditReport, AIConfig, BenchmarkResult, AuditExecutionEvidence, ExecutionTraceEvent } from '../types';
+import { AuditReport, AIConfig, BenchmarkResult, AuditExecutionEvidence, DeterministicValidationReport, ExecutionTraceEvent } from '../types';
 import { AVAILABLE_MODELS } from '../services/aiProvider';
 import { runBenchmarkForConfig } from '../services/benchmarkService';
 import { compositeScore, experimentStats, exportBenchmarkJson } from '../services/benchmark/evaluationService';
@@ -14,6 +14,7 @@ interface BenchmarkLabProps {
   fileName?: string;
   aiConfig: AIConfig;
   auditEvidence?: AuditExecutionEvidence;
+  deterministicValidation?: DeterministicValidationReport | null;
   onResultsChange?: (results: BenchmarkResult[]) => void;
   onBack: () => void;
 }
@@ -65,6 +66,7 @@ const BenchmarkLab: React.FC<BenchmarkLabProps> = ({
   fileName,
   aiConfig,
   auditEvidence,
+  deterministicValidation,
   onResultsChange,
   onBack
 }) => {
@@ -155,7 +157,7 @@ const BenchmarkLab: React.FC<BenchmarkLabProps> = ({
           ? { ...item, executionTrace: [...(item.executionTrace || []), event] }
           : item
         ));
-      });
+      }, deterministicValidation?.groundTruthMatched);
       const maxLat = Math.max(...results.map(r => r.latencyMs), result.latencyMs, 1000);
       result.compositeScore = compositeScore(result, undefined, maxLat);
       setResults(prev => prev.map(r => r.id === pendingId ? result : r));
@@ -339,6 +341,37 @@ const BenchmarkLab: React.FC<BenchmarkLabProps> = ({
           <h3>Resultados de Benchmark</h3>
           <span className="lab-count">{completedResults.length} corridas completadas</span>
         </div>
+
+        {results.length > 0 && (
+          <div className="benchmark-summary-strip">
+            <div className="bss-item bss-item--experiments">
+              <span className="bss-value">{results.length}</span>
+              <span className="bss-label">corridas totales</span>
+            </div>
+            <div className="bss-item bss-item--formal">
+              <span className="bss-value">{results.filter(r => r.evidenceStatus === 'formal_valid').length}</span>
+              <span className="bss-label">evidencia formal</span>
+            </div>
+            <div className="bss-item bss-item--failed">
+              <span className="bss-value">{results.filter(r => r.evidenceStatus === 'attempted_failed' || r.status === 'error').length}</span>
+              <span className="bss-label">fallidas/error</span>
+            </div>
+            <div className="bss-item bss-item--best">
+              <span className="bss-value">
+                {completedResults.length > 0
+                  ? Math.max(...completedResults.map(r => r.compositeScore ?? 0)).toFixed(2)
+                  : '—'
+                }
+              </span>
+              <span className="bss-label">mejor score</span>
+            </div>
+            <div className="bss-item bss-item--ground-truth">
+              <span className="bss-value">{deterministicValidation?.groundTruthMatched ? 'Sí' : 'No'}</span>
+              <span className="bss-label">ground truth</span>
+            </div>
+          </div>
+        )}
+
         <div className="lab-table-wrap">
           <table className="lab-table">
             <thead>

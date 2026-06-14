@@ -28,7 +28,8 @@ export const runBenchmarkForConfig = async (
   report: AuditReport,
   config: AIConfig,
   inputMode: BenchmarkResult['inputMode'] = 'smart_sample',
-  onTrace?: (event: ExecutionTraceEvent) => void
+  onTrace?: (event: ExecutionTraceEvent) => void,
+  hasGroundTruthMatch?: boolean
 ): Promise<BenchmarkResult> => {
   const provider = createAIProvider(config);
   const trace = createTraceRecorder();
@@ -131,7 +132,7 @@ export const runBenchmarkForConfig = async (
 
       return {
         ...result,
-        evidenceStatus: deriveEvidenceStatus(result)
+        evidenceStatus: deriveEvidenceStatus(result, hasGroundTruthMatch)
       };
     }
 
@@ -195,7 +196,7 @@ export const runBenchmarkForConfig = async (
 
     return {
       ...result,
-      evidenceStatus: deriveEvidenceStatus(result)
+      evidenceStatus: deriveEvidenceStatus(result, hasGroundTruthMatch)
     };
   } catch (error: any) {
     mark('benchmark.error', { message: error?.message || 'Error desconocido durante benchmark.' });
