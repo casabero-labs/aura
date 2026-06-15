@@ -7,7 +7,7 @@ import { ScoreBarChart, RadarChart, ScatterPlot, HallucinationChart, LatencyChar
 
 interface ExperimentConfig {
   model: string;
-  providerType: 'local' | 'cloud';
+  providerType: 'local' | 'cloud' | 'chrome' | 'ollama';
   temperature: number;
   inputMode: 'smart_sample' | 'prompt_libre';
 }
@@ -21,19 +21,23 @@ interface ExperimentDesignerProps {
 
 export const ExperimentDesigner = ({ report, config, onLog, onResultsChange }: ExperimentDesignerProps) => {
   const isCloudConfigured = !!config.apiKey;
-  const availableProviders: ('local' | 'cloud')[] = isCloudConfigured ? ['local', 'cloud'] : ['local'];
+  const availableProviders: ExperimentConfig['providerType'][] = ['chrome', 'ollama'];
+  if (isCloudConfigured) availableProviders.push('cloud');
+  if (import.meta.env.VITE_ENABLE_WEBLLM_EXPERIMENTAL === 'true') availableProviders.push('local');
 
   const cloudModels = config.cloudProvider
     ? AVAILABLE_MODELS.cloud.filter(m => m.provider.toLowerCase() === config.cloudProvider)
     : AVAILABLE_MODELS.cloud;
 
-  const getModelsForProvider = (providerType: 'local' | 'cloud') =>
-    providerType === 'local' ? AVAILABLE_MODELS.local : cloudModels;
+  const getModelsForProvider = (providerType: ExperimentConfig['providerType']) => {
+    if (providerType === 'local') return AVAILABLE_MODELS.local;
+    if (providerType === 'chrome') return [{ id: 'gemini-nano', name: 'Gemini Nano' }];
+    if (providerType === 'ollama') return [{ id: 'qwen2.5:3b', name: 'Qwen 2.5 3B' }, { id: 'llama3.2:3b', name: 'Llama 3.2 3B' }];
+    return cloudModels;
+  };
 
-  const defaultModel = availableProviders[0] === 'local'
-    ? AVAILABLE_MODELS.local[0]?.id
-    : (cloudModels[0]?.id || '');
-  const defaultProvider = availableProviders[0];
+  const defaultModel = AVAILABLE_MODELS.chrome[0]?.id || cloudModels[0]?.id || '';
+  const defaultProvider: ExperimentConfig['providerType'] = 'chrome';
 
   const [experiments, setExperiments] = useState<ExperimentConfig[]>([
     {
@@ -72,7 +76,7 @@ export const ExperimentDesigner = ({ report, config, onLog, onResultsChange }: E
       if (i !== index) return exp;
       const updated = { ...exp, [field]: value };
       if (field === 'providerType') {
-        const models = getModelsForProvider(value as 'local' | 'cloud');
+        const models = getModelsForProvider(value as ExperimentConfig['providerType']);
         updated.model = models[0]?.id || '';
       }
       return updated;
@@ -158,7 +162,7 @@ export const ExperimentDesigner = ({ report, config, onLog, onResultsChange }: E
                     disabled={runningIndex !== null}
                   >
                     {availableProviders.map(p => (
-                      <option key={p} value={p}>{p === 'local' ? 'Local' : 'Cloud'}</option>
+                      <option key={p} value={p}>{p === 'local' ? 'WebLLM (exp)' : p === 'chrome' ? 'Chrome AI' : p === 'ollama' ? 'Ollama' : 'Cloud'}</option>
                     ))}
                   </select>
                 </td>

@@ -6,7 +6,7 @@ import ScriptReview from './ScriptReview';
 interface GeminiAdvisorProps {
   analysis: string;
   isLoading: boolean;
-  providerType: 'local' | 'cloud';
+  providerType: 'local' | 'cloud' | 'chrome' | 'ollama';
   model: string;
   onStop?: () => void;
 }
@@ -37,7 +37,7 @@ const GeminiAdvisor: React.FC<GeminiAdvisorProps> = ({ analysis, isLoading, prov
           <div>
             <h2 className="advisor-title">Diagnóstico generado</h2>
             <p className="advisor-subtitle">
-              {providerType === 'local' ? 'WebGPU local' : 'Proveedor cloud'} · {model}
+              {providerType === 'chrome' ? 'Chrome AI / Gemini Nano' : providerType === 'ollama' ? 'Ollama local' : providerType === 'local' ? 'WebGPU local' : 'Proveedor cloud'} · {model}
             </p>
           </div>
         </div>

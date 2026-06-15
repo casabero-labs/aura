@@ -37,3 +37,34 @@
 - Generate diagnosis button visible: PASS
 - "Comparar modelos" hidden: PASS
 - Prompt modal hidden: PASS
+- Primary CTA (Continuar a propuesta) visible after diagnosis: PASS
+- Horizontal overflow on diagnosis: PASS
+
+## Stage 3: Script
+
+- Script stage visible: PASS
+- Script title visible: PASS
+- CTA Generar propuesta visible: PASS
+- Script preview section visible: PASS
+- CTA Revisar propuesta visible: PASS
+- Horizontal overflow on script: PASS
+
+## Stage 4: Review
+
+- Review stage visible: PASS
+- Review title "Tú decides antes de aplicar": PASS
+- Script review component visible: PASS
+- CTA Aprobar script visible: PASS
+- Delta summary visible after simulation: PASS
+- "simulación sobre copia" warning visible: PASS
+- CTA Preparar exportación visible: PASS
+- Horizontal overflow on review: PASS
+
+## Stage 5: Export
+
+- Export stage visible: FAIL
+- Export title "Tu evidencia está lista": FAIL
+- Export downloads section visible: FAIL
+- PDF button visible: FAIL
+- JSON button visible: FAIL
+- Horizontal overflow on export: PASS

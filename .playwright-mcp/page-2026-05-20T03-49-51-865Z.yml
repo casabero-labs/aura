@@ -1,0 +1,72 @@
+- generic [ref=e3]:
+  - navigation [ref=e4]:
+    - generic [ref=e5] [cursor=pointer]:
+      - generic [ref=e6]: AURA
+      - generic [ref=e7]: TFM UNIR
+    - button "Auditoría y Diagnóstico" [ref=e9] [cursor=pointer]:
+      - img [ref=e10]
+      - generic [ref=e14]: Auditoría y Diagnóstico
+    - generic [ref=e15]:
+      - generic [ref=e18]: LOCAL-FIRST ACTIVO
+      - generic [ref=e20]:
+        - button "Registro de trazabilidad" [ref=e21] [cursor=pointer]:
+          - img [ref=e22]
+        - button "Modelos" [ref=e25] [cursor=pointer]:
+          - img [ref=e26]
+        - button "Centro de ayuda" [ref=e29] [cursor=pointer]:
+          - img [ref=e30]
+        - button "Cambiar tema" [ref=e33] [cursor=pointer]:
+          - img [ref=e34]
+  - main [ref=e36]:
+    - paragraph [ref=e38]: AURA perfila el dataset con reglas reproducibles; luego separa diagnóstico, script, revisión humana y exportación.
+    - generic [ref=e39]:
+      - generic [ref=e41]:
+        - button "Subir CSV" [ref=e43]:
+          - img [ref=e45]
+          - text: Subir CSV
+        - button "Perfilar" [ref=e49]:
+          - img [ref=e51]
+          - text: Perfilar
+        - button "Diagnóstico" [ref=e55]:
+          - img [ref=e57]
+          - text: Diagnóstico
+        - button "Script" [ref=e66]:
+          - img [ref=e68]
+          - text: Script
+        - button "Revisar" [ref=e74]:
+          - img [ref=e76]
+          - text: Revisar
+        - button "Exportar" [ref=e81]:
+          - img [ref=e83]
+          - text: Exportar
+      - generic [ref=e86]:
+        - generic [ref=e88]:
+          - paragraph [ref=e89]: entrada local
+          - heading "Cargar dataset." [level=2] [ref=e90]
+        - button "entrada local-first Cargar CSV local El archivo se lee en el navegador antes de cualquier diagnostico. El siguiente paso genera un perfil determinista del dataset. CSV tabular Preview hasta 5.000 filas Sin envio del archivo crudo Reglas reproducibles Seleccionar archivo Arrastra un CSV o haz clic" [ref=e91] [cursor=pointer]:
+          - img [ref=e93]
+          - generic [ref=e97]:
+            - paragraph [ref=e98]: entrada local-first
+            - heading "Cargar CSV local" [level=3] [ref=e99]
+            - paragraph [ref=e100]: El archivo se lee en el navegador antes de cualquier diagnostico. El siguiente paso genera un perfil determinista del dataset.
+            - generic [ref=e101]:
+              - generic [ref=e102]:
+                - img [ref=e103]
+                - text: CSV tabular
+              - generic [ref=e106]:
+                - img [ref=e107]
+                - text: Preview hasta 5.000 filas
+              - generic [ref=e110]:
+                - img [ref=e111]
+                - text: Sin envio del archivo crudo
+              - generic [ref=e114]:
+                - img [ref=e115]
+                - text: Reglas reproducibles
+            - generic [ref=e118]:
+              - button "Seleccionar archivo" [ref=e119]:
+                - img [ref=e120]
+                - text: Seleccionar archivo
+              - generic [ref=e123]: Arrastra un CSV o haz clic
+  - contentinfo [ref=e124]:
+    - generic [ref=e125]: AURA
+    - generic [ref=e126]: casabero · tfm · 2026

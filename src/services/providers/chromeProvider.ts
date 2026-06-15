@@ -1,14 +1,14 @@
 /**
- * ChromePromptProvider — Gemini Nano via Chrome Built-in AI (Prompt API).
+ * ChromePromptProvider — Gemini Nano via Chrome Built-in AI API.
  * 
  * Referencia TFM: §3.3.3 Capa 2 — Estabilidad Cognitiva
- * Usa el modelo Gemini Nano integrado en Chrome (chrome://flags/#prompt-api-for-gemini-nano).
+ * Usa la API moderna de Chrome (LanguageModel / window.ai).
  * No requiere API key, no envía datos fuera del dispositivo.
  * 
  * Requisitos:
  * - Chrome 127+ con "Built-in AI" habilitado
  * - chrome://flags/#prompt-api-for-gemini-nano = Enabled
- * - chrome://flags/#optimization-guide-debug-mode = Enabled (dev)
+ * - chrome://flags/#optimization-guide-on-device-model = Enabled
  * 
  * Mecanismos anti-alucinación aplicados:
  * - M1: Temperatura 0.1 (baja varianza estocástica)
@@ -18,19 +18,27 @@
  * - M5: Structured JSON output
  */
 
-import { AuditReport, AIProvider, ProviderMetrics, ExecutiveReportContent } from '../../types';
+import { AuditReport, AIProvider, ProviderMetrics, ExecutiveReportContent, ProviderProgressEvent } from '../../types';
 import { buildAnalysisPrompt, buildExecutivePrompt } from './prompts';
 
-// Chrome AI Prompt API types (experimental)
-interface ChromeSession {
+// Chrome AI types (modern LanguageModel API)
+interface LanguageModelAvailability {
+  available: 'readily' | 'after-download' | 'no';
+}
+
+interface LanguageModel {
   prompt(input: string): Promise<string>;
   promptStreaming(input: string): ReadableStream;
   destroy(): void;
 }
 
 interface ChromeAI {
-  assistant(): Promise<{
-    create(options?: { systemPrompt?: string; temperature?: number }): Promise<ChromeSession>;
+  languageModel?: {
+    availability(options?: { expectedInputLanguages?: string[] }): Promise<LanguageModelAvailability>;
+    create(options?: { systemPrompt?: string; temperature?: number; topK?: number }): Promise<LanguageModel>;
+  };
+  assistant?: () => Promise<{
+    create(options?: { systemPrompt?: string; temperature?: number }): Promise<unknown>;
     capabilities(): Promise<{ available: boolean; defaultTemperature: number }>;
   }>;
 }
@@ -42,47 +50,79 @@ declare global {
 }
 
 export class ChromePromptProvider implements AIProvider {
-  readonly name = 'Chrome AI';
-  readonly type = 'local' as const;
+  readonly name = 'Chrome AI / Gemini Nano';
+  readonly type = 'chrome' as const;
 
   private model = 'gemini-nano';
   private temperature: number;
-  private session: ChromeSession | null = null;
-  private sessionPromise: Promise<ChromeSession> | null = null;
+  private session: LanguageModel | null = null;
+  private sessionPromise: Promise<LanguageModel> | null = null;
 
   constructor(temperature: number = 0.1) {
     this.temperature = temperature;
   }
 
-  private async getCapabilities(): Promise<{ available: boolean; defaultTemperature: number }> {
+  async getAvailabilityDetails(): Promise<{ available: boolean; downloading: boolean; reason: string }> {
     if (typeof window === 'undefined' || !window.ai) {
-      return { available: false, defaultTemperature: 0 };
+      return { available: false, downloading: false, reason: 'Chrome AI API no presente en este navegador.' };
     }
+
     try {
-      const ai = await window.ai.assistant();
-      return await ai.capabilities();
+      if (window.ai.languageModel) {
+        const result = await window.ai.languageModel.availability();
+        if (result.available === 'readily') {
+          return { available: true, downloading: false, reason: 'Gemini Nano disponible.' };
+        }
+        if (result.available === 'after-download') {
+          return { available: false, downloading: true, reason: 'Chrome necesita descargar Gemini Nano. No cierres esta pestaña.' };
+        }
+        return { available: false, downloading: false, reason: 'Gemini Nano no disponible en este dispositivo.' };
+      }
+
+      // Fallback to old assistant() API
+      if (window.ai.assistant) {
+        const ai = await window.ai.assistant();
+        const caps = await ai.capabilities();
+        return { available: caps.available, downloading: false, reason: caps.available ? 'Disponible via API legacy.' : 'No disponible via API legacy.' };
+      }
+
+      return { available: false, downloading: false, reason: 'API de Chrome AI no detectada.' };
     } catch {
-      return { available: false, defaultTemperature: 0 };
+      return { available: false, downloading: false, reason: 'Error al verificar disponibilidad de Chrome AI.' };
     }
   }
 
   async isAvailable(): Promise<boolean> {
-    const caps = await this.getCapabilities();
-    return caps.available;
+    const details = await this.getAvailabilityDetails();
+    return details.available;
   }
 
-  private async getSession(): Promise<ChromeSession> {
+  private async getSession(): Promise<LanguageModel> {
     if (!this.sessionPromise) {
       this.sessionPromise = (async () => {
         if (typeof window === 'undefined' || !window.ai) {
           throw new Error('Chrome AI API no disponible');
         }
-        const ai = await window.ai.assistant();
-        const session = await ai.create({
-          temperature: this.temperature,
-        });
-        this.session = session;
-        return session;
+
+        // Try modern LanguageModel API first
+        if (window.ai.languageModel) {
+          const session = await window.ai.languageModel.create({
+            temperature: this.temperature,
+            topK: 40,
+          });
+          this.session = session;
+          return session;
+        }
+
+        // Fallback to legacy assistant() API
+        if (window.ai.assistant) {
+          const ai = await window.ai.assistant();
+          const legacySession = await ai.create({ temperature: this.temperature });
+          this.session = legacySession as unknown as LanguageModel;
+          return this.session;
+        }
+
+        throw new Error('Chrome AI API no disponible');
       })();
     }
     return this.sessionPromise;
@@ -280,15 +320,120 @@ export class ChromePromptProvider implements AIProvider {
     };
   }
 
-  async preloadModel(onProgress?: (progress: number, message: string) => void): Promise<void> {
-    // Chrome Nano se descarga y gestiona automáticamente por el navegador
-    // Solo verificamos disponibilidad
-    const available = await this.isAvailable();
-    if (!available) {
-      onProgress?.(0, 'Chrome AI no disponible. Revisá chrome://flags');
-      throw new Error('Chrome AI no disponible');
+  async generateTextWithProgress(
+    prompt: string,
+    onProgress: (event: ProviderProgressEvent) => void,
+  ): Promise<{ text: string; metrics: ProviderMetrics }> {
+    onProgress({ stage: 'checking', message: 'Verificando disponibilidad de Chrome AI' });
+
+    const availability = await this.getAvailabilityDetails();
+
+    if (availability.downloading) {
+      onProgress({
+        stage: 'downloading',
+        message: 'Chrome está descargando Gemini Nano. No cierres esta pestaña.',
+      });
+
+      // Wait and retry — Chrome downloads automatically in background
+      for (let i = 0; i < 30; i++) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        const retry = await this.getAvailabilityDetails();
+        if (retry.available) break;
+        if (!retry.downloading) {
+          onProgress({ stage: 'error', message: 'Descarga de Gemini Nano falló. Revisa chrome://flags.' });
+          throw new Error('Chrome AI descarga fallida');
+        }
+      }
+
+      const finalCheck = await this.getAvailabilityDetails();
+      if (!finalCheck.available) {
+        onProgress({ stage: 'error', message: 'Gemini Nano no se completó. Intenta en chrome://flags.' });
+        throw new Error('Chrome AI no disponible tras esperar descarga');
+      }
     }
-    onProgress?.(100, 'Gemini Nano listo');
+
+    if (!availability.available && !availability.downloading) {
+      onProgress({ stage: 'error', message: availability.reason });
+      throw new Error(availability.reason);
+    }
+
+    onProgress({ stage: 'loading', message: 'Creando sesión de Gemini Nano' });
+
+    const startTime = performance.now();
+    let firstTokenTime = 0;
+    let tokensGenerated = 0;
+    let fullText = '';
+
+    try {
+      const session = await this.getSession();
+      onProgress({ stage: 'generating', message: 'Generando diagnóstico con Gemini Nano' });
+
+      const stream = session.promptStreaming(prompt);
+      const reader = stream.getReader();
+      const decoder = new TextDecoder();
+      let previousText = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const text = decoder.decode(value);
+        if (firstTokenTime === 0) firstTokenTime = performance.now() - startTime;
+
+        const delta = text.slice(previousText.length);
+        if (delta) {
+          tokensGenerated += Math.round(delta.length / 4);
+          fullText += delta;
+        }
+        previousText = text;
+      }
+
+      const totalTime = performance.now() - startTime;
+      onProgress({ stage: 'completed', progress: 100, message: 'Diagnóstico completado con Chrome AI' });
+
+      return {
+        text: fullText,
+        metrics: {
+          provider: this.name,
+          model: this.model,
+          latencyMs: Math.round(totalTime),
+          firstTokenMs: Math.round(firstTokenTime),
+          tokensGenerated,
+          isLocal: true,
+          timestamp: new Date().toISOString(),
+        },
+      };
+    } catch (error) {
+      onProgress({ stage: 'error', message: (error as Error).message });
+      throw error;
+    }
+  }
+
+  async preloadModel(onProgress?: (progress: number, message: string) => void): Promise<void> {
+    const availability = await this.getAvailabilityDetails();
+
+    if (availability.available) {
+      onProgress?.(100, 'Gemini Nano ya está disponible.');
+      return;
+    }
+
+    if (availability.downloading) {
+      onProgress?.(50, 'Chrome está descargando Gemini Nano. No cierres esta pestaña.');
+
+      for (let i = 0; i < 30; i++) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        const retry = await this.getAvailabilityDetails();
+        if (retry.available) {
+          onProgress?.(100, 'Gemini Nano listo.');
+          return;
+        }
+        if (!retry.downloading) break;
+        onProgress?.(50 + Math.min(i * 2, 40), 'Descargando Gemini Nano...');
+      }
+    }
+
+    onProgress?.(0, 'Chrome AI no disponible. Revisa chrome://flags/#prompt-api-for-gemini-nano');
+    throw new Error('Chrome AI no disponible');
   }
 
   private fallbackContent(report: AuditReport, rawText: string): ExecutiveReportContent {

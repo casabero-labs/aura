@@ -71,7 +71,7 @@ const rankBenchmarkResult = (result: BenchmarkResult) => {
   if (result.evidenceStatus === 'attempted_failed' || result.status !== 'completed') return -1000;
   const scriptScore = result.scriptValidation?.valid ? 40 : 0;
   const hallucinationScore = result.hallucinatedColumns.length === 0 ? 25 : -20 * result.hallucinatedColumns.length;
-  const privacyScore = result.providerType === 'local' ? 15 : 5;
+  const privacyScore = (result.providerType === 'webllm_experimental' || result.providerType === 'local' || result.providerType === 'chrome' || result.providerType === 'ollama') ? 15 : 5;
   const inputScore = result.inputMode === 'smart_sample' ? 10 : -10;
   const latencyScore = result.latencyMs > 0 ? Math.max(0, 10 - result.latencyMs / 3000) : 0;
   return scriptScore + hallucinationScore + privacyScore + inputScore + latencyScore;

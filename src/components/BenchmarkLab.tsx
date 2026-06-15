@@ -139,7 +139,7 @@ const BenchmarkLab: React.FC<BenchmarkLabProps> = ({
   };
 
   const runSingleBenchmark = async (
-    providerType: 'local' | 'cloud',
+    providerType: 'local' | 'cloud' | 'chrome' | 'ollama',
     modelId: string,
     inputMode: InputMode,
     temperature: number,
@@ -152,13 +152,15 @@ const BenchmarkLab: React.FC<BenchmarkLabProps> = ({
       inputMode,
       cloudProvider: providerType === 'cloud'
         ? (cloudModels.find(m => m.id === modelId)?.provider?.toLowerCase() as any)
-        : undefined
+        : undefined,
+      ollamaBaseUrl: providerType === 'ollama' ? (aiConfig.ollamaBaseUrl || 'http://localhost:11434') : undefined,
     };
 
     const pendingId = `lab-${providerType}-${modelId}-${inputMode}-${Date.now()}`;
+    const providerLabel = providerType === 'local' ? 'WebLLM' : providerType === 'chrome' ? 'Chrome AI' : providerType === 'ollama' ? 'Ollama' : 'Gemini';
     const pending: BenchmarkResult = {
       id: pendingId,
-      provider: providerType === 'local' ? 'WebLLM' : 'Gemini',
+      provider: providerLabel,
       providerType,
       inputMode,
       model: modelId,

@@ -4,7 +4,7 @@ export interface LlmAuditEntry {
   id: string;
   timestamp: string;
   callType: 'diagnosis' | 'script_generation' | 'benchmark';
-  providerType: 'local' | 'cloud' | 'chrome';
+  providerType: 'local' | 'cloud' | 'chrome' | 'ollama' | 'webllm_experimental';
   provider: string;
   model: string;
   temperature: number;

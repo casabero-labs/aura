@@ -34,29 +34,41 @@ test.describe('AURA QA — Human-first screenshots', () => {
     await page.waitForTimeout(300);
     await page.screenshot({ path: path.join(screenshotDir, '03-aura-diagnosis-desktop.png'), fullPage: false });
 
-    // Generate diagnosis (may fail if no AI provider - that's ok)
+    // Generate diagnosis (may be disabled if no AI provider in headless Playwright)
     const diagnosisStage = page.locator('[data-testid="diagnosis-stage"]');
-    await diagnosisStage.getByRole('button', { name: /Generar diagnóstico/i }).click();
-    await page.waitForTimeout(5000);
+    await page.waitForTimeout(500);
+    const diagnosisGenBtn = diagnosisStage.getByRole('button', { name: /(Generar|Regenerar) diagnóstico/i });
+    const diagnosisBtnEnabled = await diagnosisGenBtn.isEnabled().catch(() => false);
 
-    // Wait for either "Continuar a propuesta" (success) or "Continuar sin diagnóstico" (fallback)
     const continueBtn = page.locator('[data-testid="primary-stage-action"]').getByRole('button', { name: /Continuar a propuesta/i });
-    const skipBtn = page.locator('.provider-error-notice').getByRole('button', { name: /Continuar sin diagnóstico/i });
+    const skipBtn = page.locator('.provider-error-notice, .provider-unavailable-notice').getByRole('button', { name: /Continuar sin diagnóstico/i });
 
-    const hasContinue = await continueBtn.isVisible({ timeout: 5000 }).catch(() => false);
-    const hasSkip = await skipBtn.isVisible({ timeout: 5000 }).catch(() => false);
+    if (diagnosisBtnEnabled) {
+      await diagnosisGenBtn.click();
+      await page.waitForTimeout(5000);
 
-    if (hasContinue) {
-      await continueBtn.click();
-    } else if (hasSkip) {
-      await skipBtn.click();
-    } else {
-      await page.waitForTimeout(2000);
-      const hasSkipNow = await skipBtn.isVisible({ timeout: 3000 }).catch(() => false);
-      if (hasSkipNow) {
+      const hasContinue = await continueBtn.isVisible({ timeout: 5000 }).catch(() => false);
+      const hasSkip = await skipBtn.isVisible({ timeout: 5000 }).catch(() => false);
+
+      if (hasContinue) {
+        await continueBtn.click();
+      } else if (hasSkip) {
         await skipBtn.click();
       } else {
-        throw new Error('Neither "Continuar a propuesta" nor "Continuar sin diagnóstico" appeared');
+        await page.waitForTimeout(2000);
+        const hasSkipNow = await skipBtn.isVisible({ timeout: 3000 }).catch(() => false);
+        if (hasSkipNow) {
+          await skipBtn.click();
+        } else {
+          throw new Error('Neither "Continuar a propuesta" nor "Continuar sin diagnóstico" appeared');
+        }
+      }
+    } else {
+      const hasSkip = await skipBtn.isVisible({ timeout: 3000 }).catch(() => false);
+      if (hasSkip) {
+        await skipBtn.click();
+      } else {
+        throw new Error('Diagnosis button disabled and "Continuar sin diagnóstico" not available');
       }
     }
     await page.waitForTimeout(300);
@@ -161,27 +173,39 @@ test.describe('AURA QA — Human-first screenshots', () => {
 
     // 04 — Script (generate script, handle diagnosis fallback)
     const diagnosisStage = page.locator('[data-testid="diagnosis-stage"]');
-    await diagnosisStage.getByRole('button', { name: /Generar diagnóstico/i }).click();
-    await page.waitForTimeout(5000);
+    await page.waitForTimeout(500);
+    const diagnosisGenBtn4 = diagnosisStage.getByRole('button', { name: /(Generar|Regenerar) diagnóstico/i });
+    const diagnosisBtnEnabled4 = await diagnosisGenBtn4.isEnabled().catch(() => false);
 
-    // Wait for either "Continuar a propuesta" (success) or "Continuar sin diagnóstico" (fallback)
     const continueBtn4 = page.locator('[data-testid="primary-stage-action"]').getByRole('button', { name: /Continuar a propuesta/i });
-    const skipBtn4 = page.locator('.provider-error-notice').getByRole('button', { name: /Continuar sin diagnóstico/i });
+    const skipBtn4 = page.locator('.provider-error-notice, .provider-unavailable-notice').getByRole('button', { name: /Continuar sin diagnóstico/i });
 
-    const hasContinue4 = await continueBtn4.isVisible({ timeout: 5000 }).catch(() => false);
-    const hasSkip4 = await skipBtn4.isVisible({ timeout: 5000 }).catch(() => false);
+    if (diagnosisBtnEnabled4) {
+      await diagnosisGenBtn4.click();
+      await page.waitForTimeout(5000);
 
-    if (hasContinue4) {
-      await continueBtn4.click();
-    } else if (hasSkip4) {
-      await skipBtn4.click();
-    } else {
-      await page.waitForTimeout(2000);
-      const hasSkipNow4 = await skipBtn4.isVisible({ timeout: 3000 }).catch(() => false);
-      if (hasSkipNow4) {
+      const hasContinue4 = await continueBtn4.isVisible({ timeout: 5000 }).catch(() => false);
+      const hasSkip4 = await skipBtn4.isVisible({ timeout: 5000 }).catch(() => false);
+
+      if (hasContinue4) {
+        await continueBtn4.click();
+      } else if (hasSkip4) {
         await skipBtn4.click();
       } else {
-        throw new Error('Neither "Continuar a propuesta" nor "Continuar sin diagnóstico" appeared');
+        await page.waitForTimeout(2000);
+        const hasSkipNow4 = await skipBtn4.isVisible({ timeout: 3000 }).catch(() => false);
+        if (hasSkipNow4) {
+          await skipBtn4.click();
+        } else {
+          throw new Error('Neither "Continuar a propuesta" nor "Continuar sin diagnóstico" appeared');
+        }
+      }
+    } else {
+      const hasSkip4 = await skipBtn4.isVisible({ timeout: 3000 }).catch(() => false);
+      if (hasSkip4) {
+        await skipBtn4.click();
+      } else {
+        throw new Error('Diagnosis button disabled and "Continuar sin diagnóstico" not available');
       }
     }
     await page.waitForTimeout(300);

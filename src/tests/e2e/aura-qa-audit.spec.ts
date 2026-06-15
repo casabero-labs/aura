@@ -130,30 +130,42 @@ test.describe('AURA QA — Human-first audit (LOOP 07C)', () => {
     const promptPre = await page.locator('.prompt-modal-body').isVisible().catch(() => true);
     log(`- Prompt modal hidden: ${promptPre ? 'FAIL' : 'PASS'}`);
 
-    // Generate diagnosis first
-    if (diagBtn) {
-      await page.locator('[data-testid="diagnosis-stage"]').getByRole('button', { name: /Generar diagnóstico/i }).click();
-      await page.waitForTimeout(5000);
-    }
+    // Generate diagnosis (may be disabled if no AI provider in headless Playwright)
+    await page.waitForTimeout(500);
+    const diagGenBtnEnabled = await page.locator('[data-testid="diagnosis-stage"]')
+      .getByRole('button', { name: /(Generar|Regenerar) diagnóstico/i })
+      .isEnabled()
+      .catch(() => false);
 
-    // Wait for either "Continuar a propuesta" (success) or "Continuar sin diagnóstico" (fallback)
     const continueBtn = page.locator('[data-testid="primary-stage-action"]').getByRole('button', { name: /Continuar a propuesta/i });
-    const skipBtn = page.locator('.provider-error-notice').getByRole('button', { name: /Continuar sin diagnóstico/i });
-
-    const hasContinue = await continueBtn.isVisible({ timeout: 5000 }).catch(() => false);
-    const hasSkip = await skipBtn.isVisible({ timeout: 5000 }).catch(() => false);
+    const skipBtn = page.locator('.provider-error-notice, .provider-unavailable-notice').getByRole('button', { name: /Continuar sin diagnóstico/i });
 
     let primaryCta = false;
-    if (hasContinue) {
-      primaryCta = true;
-      await continueBtn.click();
-    } else if (hasSkip) {
-      primaryCta = true;
-      await skipBtn.click();
+
+    if (diagGenBtnEnabled) {
+      await page.locator('[data-testid="diagnosis-stage"]').getByRole('button', { name: /(Generar|Regenerar) diagnóstico/i }).click();
+      await page.waitForTimeout(5000);
+
+      const hasContinue = await continueBtn.isVisible({ timeout: 5000 }).catch(() => false);
+      const hasSkip = await skipBtn.isVisible({ timeout: 5000 }).catch(() => false);
+
+      if (hasContinue) {
+        primaryCta = true;
+        await continueBtn.click();
+      } else if (hasSkip) {
+        primaryCta = true;
+        await skipBtn.click();
+      } else {
+        await page.waitForTimeout(2000);
+        const hasSkipNow = await skipBtn.isVisible({ timeout: 3000 }).catch(() => false);
+        if (hasSkipNow) {
+          primaryCta = true;
+          await skipBtn.click();
+        }
+      }
     } else {
-      await page.waitForTimeout(2000);
-      const hasSkipNow = await skipBtn.isVisible({ timeout: 3000 }).catch(() => false);
-      if (hasSkipNow) {
+      const hasSkip = await skipBtn.isVisible({ timeout: 3000 }).catch(() => false);
+      if (hasSkip) {
         primaryCta = true;
         await skipBtn.click();
       }

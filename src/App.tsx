@@ -111,12 +111,12 @@ const App: React.FC = () => {
   // ── AI Config (para settings panel) ──
   const [aiConfig, setAiConfig] = useState<AIConfig>(() => {
     const local = localStorage.getItem('aura_ai_config');
-    if (local) return { providerType: 'local', temperature: 0.1, autoAnalyze: false, ...JSON.parse(local) };
+    if (local) return { providerType: 'chrome', temperature: 0.1, autoAnalyze: false, ...JSON.parse(local) };
     return {
-      model: 'Qwen2.5-3B-Instruct-q4f16_1-MLC',
+      model: 'gemini-nano',
       temperature: 0.1,
       autoAnalyze: false,
-      providerType: 'local',
+      providerType: 'chrome',
       apiKey: '',
       cloudProvider: undefined,
     };

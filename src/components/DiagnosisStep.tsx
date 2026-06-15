@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Brain, Database, Play, FlaskConical, Lock, Globe, ChevronDown, ChevronRight, FileCode2, Trash2, HardDrive, X, AlertTriangle, ShieldAlert, ListChecks, FileJson, FileText, Settings, Activity, CheckCircle, Circle, Clock, AlertCircle } from 'lucide-react';
+import { Brain, Database, Play, FlaskConical, Lock, Globe, ChevronDown, ChevronRight, FileCode2, Trash2, HardDrive, X, AlertTriangle, ShieldAlert, ListChecks, FileJson, FileText, Settings, Activity, CheckCircle, Circle, Clock, AlertCircle, Server } from 'lucide-react';
 import GeminiAdvisor from './GeminiAdvisor';
 import ProgressDisclosure from './ProgressDisclosure';
 import { AIConfig, AIProvider, AuditReport, AuditExecutionEvidence, ProviderMetrics, LocalModelStatus, DiagnosisEvent, ProviderProgressEvent, ProgressDisclosureStatus } from '../types';
@@ -98,7 +98,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
   }, []);
 
   const checkCurrentModelStatus = useCallback(async (modelId: string) => {
-    if (aiConfig.providerType !== 'local') {
+    if (aiConfig.providerType !== 'webllm_experimental') {
       setCurrentModelStatus(null);
       return;
     }
@@ -238,24 +238,19 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
     doc.save(`aura_reporte_perfil_diagnostico_${Date.now()}.pdf`);
   };
 
-  const handleProviderTypeChange = (type: 'local' | 'cloud') => {
-    const models = type === 'local'
-      ? AVAILABLE_MODELS.local
-      : AVAILABLE_MODELS.cloud.filter(m => {
-          if (!aiConfig.apiKey) return false;
-          if (m.provider === 'Google') return aiConfig.cloudProvider === 'google';
-          return true;
-        });
-    const firstModel = type === 'local'
-      ? models.find((model) => model.id === aiConfig.model) || models[0]
-      : models[0];
+  const handleProviderTypeChange = (type: 'chrome' | 'ollama' | 'cloud') => {
+    const defaults: Record<string, string> = {
+      chrome: 'gemini-nano',
+      ollama: 'qwen2.5:3b',
+      cloud: aiConfig.cloudProvider === 'google'
+        ? 'gemini-2.5-flash'
+        : (AVAILABLE_MODELS.cloud[0]?.id || 'gemini-2.5-flash'),
+    };
     onAiConfigChange({
       ...aiConfig,
       providerType: type,
-      model: firstModel?.id || aiConfig.model,
-      cloudProvider: type === 'cloud'
-        ? (firstModel?.provider?.toLowerCase() as AIConfig['cloudProvider'])
-        : undefined,
+      model: defaults[type] || aiConfig.model,
+      cloudProvider: type === 'cloud' ? (aiConfig.cloudProvider || 'google') : undefined,
     });
   };
 
@@ -270,8 +265,10 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
     });
   };
 
-  const availableModels = aiConfig.providerType === 'local'
-    ? AVAILABLE_MODELS.local
+  const availableModels = aiConfig.providerType === 'chrome'
+    ? [{ id: 'gemini-nano', name: 'Gemini Nano (Chrome Built-in)', provider: 'Chrome AI' }]
+    : aiConfig.providerType === 'ollama'
+    ? [{ id: aiConfig.model, name: aiConfig.model, family: 'Ollama' }]
     : AVAILABLE_MODELS.cloud.filter(m => {
         if (!aiConfig.apiKey) return false;
         if (m.provider === 'Google') return aiConfig.cloudProvider === 'google';
@@ -299,9 +296,15 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
     onLog?.('diagnosis', `Iniciando diagnóstico con ${aiConfig.model} (${aiConfig.providerType})`);
 
     try {
-      if (aiConfig.providerType === 'local') {
+      if (aiConfig.providerType === 'webllm_experimental') {
         pushEvent('info', 'Verificando proveedor local (WebGPU)...');
         setProgressStep('Descargando o cargando modelo local');
+      } else if (aiConfig.providerType === 'ollama') {
+        pushEvent('info', 'Verificando conexión con Ollama...');
+        setProgressStep('Conectando con Ollama local');
+      } else if (aiConfig.providerType === 'chrome') {
+        pushEvent('info', 'Verificando disponibilidad de Chrome AI...');
+        setProgressStep('Preparando Chrome AI / Gemini Nano');
       } else {
         pushEvent('info', `Verificando conexión con proveedor cloud (${aiConfig.cloudProvider || 'API'})...`);
         setProgressStep('Verificando proveedor cloud');
@@ -347,7 +350,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
       setProgressStatus('success');
       onLog?.('diagnosis', `Diagnóstico completado · ${metrics.tokensGenerated} tokens · ${metrics.latencyMs}ms`);
 
-      if (aiConfig.providerType === 'local') {
+      if (aiConfig.providerType === 'webllm_experimental') {
         markPreloadVerified(aiConfig.model);
         setCurrentModelStatus({
           status: 'ready',
@@ -359,8 +362,8 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
 
       recordLlmCall({
         callType: 'diagnosis',
-        providerType: aiConfig.providerType as 'local' | 'cloud',
-        provider: aiConfig.providerType === 'local' ? 'WebLLM' : (aiConfig.cloudProvider || 'Cloud'),
+        providerType: aiConfig.providerType as 'local' | 'cloud' | 'chrome' | 'ollama',
+        provider: aiConfig.providerType === 'webllm_experimental' ? 'WebLLM' : aiConfig.providerType === 'ollama' ? 'Ollama' : aiConfig.providerType === 'chrome' ? 'Chrome AI' : (aiConfig.cloudProvider || 'Cloud'),
         model: aiConfig.model,
         temperature: aiConfig.temperature,
         promptHash,
@@ -390,8 +393,8 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
 
       recordLlmCall({
         callType: 'diagnosis',
-        providerType: aiConfig.providerType as 'local' | 'cloud',
-        provider: aiConfig.providerType === 'local' ? 'WebLLM' : (aiConfig.cloudProvider || 'Cloud'),
+        providerType: aiConfig.providerType as 'local' | 'cloud' | 'chrome' | 'ollama',
+        provider: aiConfig.providerType === 'webllm_experimental' ? 'WebLLM' : aiConfig.providerType === 'ollama' ? 'Ollama' : aiConfig.providerType === 'chrome' ? 'Chrome AI' : (aiConfig.cloudProvider || 'Cloud'),
         model: aiConfig.model,
         temperature: aiConfig.temperature,
         promptHash,
@@ -415,6 +418,8 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
   }, [aiConfig.model, aiConfig.providerType, aiConfig.cloudProvider, aiConfig.temperature, aiProvider, isLoading, onAnalysisComplete, onLog, onMetrics, report, auditEvidence, diagnosisPrompt, pushEvent]);
 
   const isCloud = aiConfig.providerType === 'cloud';
+  const isOllama = aiConfig.providerType === 'ollama';
+  const isChrome = aiConfig.providerType === 'chrome';
   const hasDiagnosis = draftAnalysis.trim().length > 0;
 
   return (
@@ -457,11 +462,19 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
                 <p>Se envía el paquete estructurado, no el archivo completo.</p>
               </div>
             </>
+          ) : isOllama ? (
+            <>
+              <Server size={14} />
+              <div>
+                <strong>Ollama local</strong>
+                <p>Inferencia en tu máquina. Sin envío externo de datos.</p>
+              </div>
+            </>
           ) : (
             <>
               <Lock size={14} />
               <div>
-                <strong>Local-first</strong>
+                <strong>{isChrome ? 'Chrome AI' : 'Local'}</strong>
                 <p>Diagnóstico en el navegador. Sin envío de datos.</p>
               </div>
             </>
@@ -471,10 +484,18 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
         <div className="diagnosis-model-bar">
           <div className="model-type-toggle" style={{ flex: 'none' }}>
             <button
-              className={`model-type-btn ${aiConfig.providerType === 'local' ? 'active' : ''}`}
-              onClick={() => handleProviderTypeChange('local')}
+              className={`model-type-btn ${aiConfig.providerType === 'chrome' ? 'active' : ''}`}
+              onClick={() => handleProviderTypeChange('chrome')}
+              title="Chrome AI / Gemini Nano"
             >
-              Local
+              Chrome AI
+            </button>
+            <button
+              className={`model-type-btn ${aiConfig.providerType === 'ollama' ? 'active' : ''}`}
+              onClick={() => handleProviderTypeChange('ollama')}
+              title="Ollama local"
+            >
+              Ollama
             </button>
             <button
               className={`model-type-btn ${aiConfig.providerType === 'cloud' ? 'active' : ''}`}
@@ -483,22 +504,29 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
               Cloud
             </button>
           </div>
-          <select
-            className="model-select"
-            value={aiConfig.model}
-            onChange={(e) => handleModelChange(e.target.value)}
-          >
-            {availableModels.length === 0 && (
-              <option disabled>Sin modelos disponibles</option>
-            )}
-            {availableModels.map(model => {
-              return (
-                <option key={model.id} value={model.id}>
-                  {model.name}
-                </option>
-              );
-            })}
-          </select>
+          {aiConfig.providerType === 'ollama' ? (
+            <input
+              type="text"
+              className="settings-input"
+              value={aiConfig.model}
+              onChange={(e) => handleModelChange(e.target.value)}
+              placeholder="qwen2.5:3b"
+              style={{ flex: 1, minWidth: 120 }}
+            />
+          ) : (
+            <select
+              className="model-select"
+              value={aiConfig.model}
+              onChange={(e) => handleModelChange(e.target.value)}
+            >
+              {availableModels.length === 0 && (
+                <option disabled>Sin modelos disponibles</option>
+              )}
+              {availableModels.map(model => (
+                <option key={model.id} value={model.id}>{model.name}</option>
+              ))}
+            </select>
+          )}
           <button
             className="btn-p"
             onClick={runDiagnosis}
@@ -510,7 +538,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
           </button>
         </div>
 
-        {aiConfig.providerType === 'local' && currentModelStatus && (
+        {aiConfig.providerType === 'webllm_experimental' && currentModelStatus && (
           <div className="local-model-status" data-testid="local-model-status">
             <div className={`local-model-status-badge local-model-status-badge--${currentModelStatus.status}`}>
               {currentModelStatus.status === 'ready' && <CheckCircle size={12} />}
@@ -548,14 +576,14 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
           </div>
         )}
 
-        {aiConfig.providerType === 'local' && !currentModelStatus && !isCheckingModel && (
+        {aiConfig.providerType === 'webllm_experimental' && !currentModelStatus && !isCheckingModel && (
           <p className="local-model-status-placeholder">Verifica el estado del modelo local antes de diagnosticar.</p>
         )}
 
         {progressStatus !== 'idle' && (
           <ProgressDisclosure
             title={progressStatus === 'running' ? 'AURA está trabajando' : progressStatus === 'success' ? 'Diagnóstico completado' : 'Diagnóstico fallido'}
-            description={aiConfig.providerType === 'local' ? 'El modelo local puede tardar la primera vez. No cierres esta pestaña.' : undefined}
+            description={aiConfig.providerType === 'chrome' ? 'Chrome puede descargar Gemini Nano la primera vez. No cierres esta pestaña.' : undefined}
             value={progressValue}
             indeterminate={progressIndeterminate}
             status={progressStatus}
@@ -613,12 +641,21 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
               {aiConfig.providerType === 'cloud' && aiConfig.apiKey && (
                 <li>El proveedor cloud no responde. Verifica la API key.</li>
               )}
-              {aiConfig.providerType === 'local' && (
+              {aiConfig.providerType === 'chrome' && (
+                <li>Chrome AI no disponible. Requiere Chrome 127+ con flags habilitados.</li>
+              )}
+              {aiConfig.providerType === 'ollama' && (
+                <li>Ollama no responde en {aiConfig.ollamaBaseUrl || 'http://localhost:11434'}. Verifica que Ollama esté abierto y que CORS esté configurado.</li>
+              )}
+              {aiConfig.providerType === 'webllm_experimental' && (
                 <li>WebGPU o modelo local no disponible. Requiere Chrome/Edge con soporte WebGPU.</li>
               )}
             </ul>
             <div className="provider-unavailable-actions">
               <p><strong>Puedes continuar con script determinista.</strong> El motor de reglas no depende del LLM.</p>
+              <button className="btn-s btn-sm" onClick={onContinue} style={{ marginTop: 'var(--space-sm)' }}>
+                <Play size={12} /> Continuar sin diagnóstico
+              </button>
             </div>
           </div>
         )}
@@ -634,7 +671,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
               <button className="btn-s btn-sm" onClick={() => onOpenSettings?.()}>
                 <Settings size={12} /> Abrir Configuración
               </button>
-              {aiConfig.providerType === 'local' && (
+              {aiConfig.providerType === 'webllm_experimental' && (
                 <button
                   className="btn-s btn-sm"
                   onClick={async () => {
@@ -664,7 +701,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
             <GeminiAdvisor
               analysis={draftAnalysis}
               isLoading={isLoading}
-              providerType={aiConfig.providerType as 'local' | 'cloud'}
+              providerType={aiConfig.providerType as 'local' | 'cloud' | 'chrome' | 'ollama'}
               model={aiConfig.model}
             />
             {lastMetrics && (
@@ -699,7 +736,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
         </summary>
         <div className="technical-details-body">
 
-          {aiConfig.providerType === 'local' && Object.keys(modelStatuses).length > 0 && (
+          {aiConfig.providerType === 'webllm_experimental' && Object.keys(modelStatuses).length > 0 && (
             <div className="downloaded-models-list">
               <div className="downloaded-models-header">
                 <HardDrive size={10} />

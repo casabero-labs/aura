@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Save, HardDrive, AlertTriangle, CheckCircle, Download, Loader2, Cloud, Globe, Cpu, Trash2, FileCode2, ArrowLeft, Shield, HelpCircle, Wifi, Activity, Circle, Zap, Lock, Info } from 'lucide-react';
-import { AIConfig, ModelDownloadState, CloudProvider, LocalModelStatus } from '../types';
-import { AVAILABLE_MODELS, LOCAL_MODELS, checkWebGPUSupport, createAIProvider, deleteDownloadedModel, getLocalModelStatus, markPreloadVerified, clearPreloadVerification } from '../services/aiProvider';
+import { Settings, Save, HardDrive, AlertTriangle, CheckCircle, Download, Loader2, Cloud, Globe, Cpu, Trash2, FileCode2, ArrowLeft, Shield, HelpCircle, Wifi, Activity, Circle, Zap, Lock, Info, Server, RefreshCw } from 'lucide-react';
+import { AIConfig, ModelDownloadState, CloudProvider, LocalModelStatus, ProviderProgressEvent } from '../types';
+import { AVAILABLE_MODELS, LOCAL_MODELS, OLLAMA_MODELS, checkWebGPUSupport, createAIProvider, deleteDownloadedModel, getLocalModelStatus, markPreloadVerified, clearPreloadVerification, hasShownMigrationNotice, markMigrationNoticeShown } from '../services/aiProvider';
+import { OLLAMA_SUGGESTED_MODELS } from '../services/providers/ollamaProvider';
+import type { OllamaModel } from '../services/providers/ollamaProvider';
 import { normalizePromptContract } from '../services/providers/prompts';
 import { normalizeAiProviderError } from '../services/providers/errors';
 
@@ -21,34 +23,107 @@ const CLOUD_PROVIDERS: { value: CloudProvider; label: string }[] = [
 ];
 
 const PROVIDER_TABS = [
-    { id: 'cloud' as const, label: 'Cloud', icon: Cloud, desc: 'Más potente. Requiere API key y envía datos al proveedor.' },
-    { id: 'local' as const, label: 'Local', icon: Cpu, desc: 'Privacidad total. Descarga pesada. Requiere WebGPU.' },
-    { id: 'chrome' as const, label: 'Chrome AI', icon: Globe, desc: 'Experimental. Integrado en Chrome. Depende del navegador.' },
+    { id: 'chrome' as const, label: 'Chrome AI', icon: Globe, desc: 'Gemini Nano en navegador. Sin envío de datos a terceros.' },
+    { id: 'ollama' as const, label: 'Ollama local', icon: Server, desc: 'Modelos locales vía Ollama. Requiere servidor abierto.' },
+    { id: 'cloud' as const, label: 'Cloud', icon: Cloud, desc: 'Mayor capacidad. API key requerida. Paquete estructurado.' },
 ];
+
+const isWebLLMExperimentalEnabled = (): boolean => {
+    try {
+        return import.meta.env.VITE_ENABLE_WEBLLM_EXPERIMENTAL === 'true';
+    } catch {
+        return false;
+    }
+};
 
 const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }) => {
     const [localConfig, setLocalConfig] = useState<AIConfig>(config);
     const [webGpuSupported, setWebGpuSupported] = useState<boolean | null>(null);
-    const [chromeAiSupported, setChromeAiSupported] = useState<boolean | null>(null);
+    const [chromeAvailability, setChromeAvailability] = useState<'idle' | 'available' | 'downloading' | 'unavailable' | 'incompatible'>('idle');
+    const [ollamaConnected, setOllamaConnected] = useState<boolean | null>(null);
+    const [ollamaModels, setOllamaModels] = useState<OllamaModel[]>([]);
+    const [ollamaLoading, setOllamaLoading] = useState(false);
+    const [ollamaPullProgress, setOllamaPullProgress] = useState<ProviderProgressEvent | null>(null);
+    const [ollamaPullModel, setOllamaPullModel] = useState('');
+    const [showMigrationNotice, setShowMigrationNotice] = useState(false);
     const [downloadingModel, setDownloadingModel] = useState<string | null>(null);
     const [downloadProgress, setDownloadProgress] = useState<ModelDownloadState>({
-        status: 'idle',
-        progress: 0,
-        message: '',
+        status: 'idle', progress: 0, message: '',
     });
     const [modelStatuses, setModelStatuses] = useState<Record<string, LocalModelStatus>>({});
     const [checkingModels, setCheckingModels] = useState<string[]>([]);
 
     useEffect(() => {
         checkWebGPUSupport().then(setWebGpuSupported);
-        checkChromeAiSupport().then(setChromeAiSupported);
+        checkChromeAvailabilityStatus();
+        checkOllamaConnection();
+
+        // Show migration notice once
+        if (!hasShownMigrationNotice() && config.providerType === 'local') {
+            setShowMigrationNotice(true);
+        }
     }, []);
 
     useEffect(() => {
-        if (localConfig.providerType === 'local') {
+        if (isWebLLMExperimentalEnabled() && localConfig.providerType === 'webllm_experimental') {
             refreshAllModelStatuses();
         }
     }, [localConfig.providerType]);
+
+    const checkChromeAvailabilityStatus = async () => {
+        try {
+            const { ChromePromptProvider } = await import('../services/providers/chromeProvider');
+            const provider = new ChromePromptProvider(0.1);
+            const details = await provider.getAvailabilityDetails();
+            if (details.downloading) setChromeAvailability('downloading');
+            else if (details.available) setChromeAvailability('available');
+            else setChromeAvailability('unavailable');
+        } catch {
+            setChromeAvailability('incompatible');
+        }
+    };
+
+    const checkOllamaConnection = async () => {
+        setOllamaConnected(null);
+        try {
+            const baseUrl = localConfig.ollamaBaseUrl || 'http://localhost:11434';
+            const response = await fetch(`${baseUrl}/api/tags`, { signal: AbortSignal.timeout(5000) });
+            if (response.ok) {
+                setOllamaConnected(true);
+                const data = await response.json();
+                setOllamaModels(data.models || []);
+            } else {
+                setOllamaConnected(false);
+            }
+        } catch {
+            setOllamaConnected(false);
+        }
+    };
+
+    const handleFetchOllamaModels = async () => {
+        setOllamaLoading(true);
+        await checkOllamaConnection();
+        setOllamaLoading(false);
+    };
+
+    const handleOllamaPull = async () => {
+        const model = ollamaPullModel || localConfig.model || 'qwen2.5:3b';
+        if (!model) return;
+        setOllamaPullProgress({ stage: 'downloading', message: 'Iniciando descarga...', progress: 0 });
+        try {
+            const baseUrl = localConfig.ollamaBaseUrl || 'http://localhost:11434';
+            const provider = new (await import('../services/providers/ollamaProvider')).OllamaProvider(
+                model, localConfig.temperature, baseUrl
+            );
+            await provider.pullModel(model, (progress, message) => {
+                setOllamaPullProgress({ stage: 'downloading', progress, message });
+            });
+            setOllamaPullProgress({ stage: 'completed', progress: 100, message: `Modelo ${model} listo.` });
+            await handleFetchOllamaModels();
+        } catch (err: any) {
+            setOllamaPullProgress({ stage: 'error', message: err.message, progress: 0 });
+        }
+    };
 
     const refreshAllModelStatuses = async () => {
         const statuses: Record<string, LocalModelStatus> = {};
@@ -58,25 +133,21 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
         setModelStatuses(statuses);
     };
 
-    const checkChromeAiSupport = async (): Promise<boolean> => {
-        try {
-            const { ChromePromptProvider } = await import('../services/providers/chromeProvider');
-            const provider = new ChromePromptProvider(0.1);
-            return provider.isAvailable();
-        } catch {
-            return false;
-        }
-    };
-
     const handleSave = () => {
         onSave(localConfig);
         onClose();
     };
 
+    const handleDismissMigration = () => {
+        markMigrationNoticeShown();
+        setShowMigrationNotice(false);
+        // Auto-migrate to a safe default
+        setLocalConfig(prev => ({ ...prev, providerType: 'chrome', model: 'gemini-nano' }));
+    };
+
     const handleDownloadModel = async (modelId: string) => {
         setDownloadingModel(modelId);
         setDownloadProgress({ status: 'downloading', progress: 0, message: 'Iniciando descarga...' });
-
         try {
             const provider = createAIProvider({ ...localConfig, model: modelId });
             await provider.preloadModel?.((progress, message) => {
@@ -84,10 +155,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
             });
             setDownloadProgress({ status: 'ready', progress: 100, message: 'Modelo listo para usar.' });
             markPreloadVerified(modelId);
-
             const updatedConfig = {
                 ...localConfig,
-                providerType: 'local' as const,
+                providerType: 'webllm_experimental' as const,
                 model: modelId,
                 modelDownloadState: {
                     ...(localConfig.modelDownloadState || {}),
@@ -96,7 +166,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
             };
             setLocalConfig(updatedConfig);
             onSave(updatedConfig);
-
             setModelStatuses(prev => ({ ...prev, [modelId]: { status: 'ready', confidence: 'high', source: 'preload_verified', message: 'Descargado y verificado.' } }));
         } catch (err: any) {
             const normalized = normalizeAiProviderError(err, localConfig);
@@ -133,20 +202,22 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
     const updatePromptContract = (patch: Partial<typeof promptContract>) => {
         setLocalConfig({
             ...localConfig,
-            promptContract: {
-                ...promptContract,
-                ...patch,
-            },
+            promptContract: { ...promptContract, ...patch },
         });
     };
 
-    const setProviderType = (type: 'cloud' | 'local' | 'chrome') => {
+    const setProviderType = (type: 'chrome' | 'ollama' | 'cloud') => {
         const defaults: Record<string, string> = {
-            cloud: 'deepseek-chat',
-            local: 'Qwen2.5-3B-Instruct-q4f16_1-MLC',
             chrome: 'gemini-nano',
+            ollama: 'qwen2.5:3b',
+            cloud: 'gemini-2.5-flash',
         };
-        setLocalConfig({ ...localConfig, providerType: type, model: defaults[type] || localConfig.model });
+        setLocalConfig({
+            ...localConfig,
+            providerType: type,
+            model: defaults[type] || localConfig.model,
+            cloudProvider: type === 'cloud' ? (localConfig.cloudProvider || 'google') : undefined,
+        });
     };
 
     const cloudsForProvider = (provider: CloudProvider) => {
@@ -161,7 +232,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
         });
     };
 
-    const recommendedProvider = webGpuSupported ? 'local' : 'cloud';
+    const recommendedProvider = ollamaConnected ? 'ollama' : chromeAvailability === 'available' ? 'chrome' : 'cloud';
+
+    const ollamaBaseUrl = localConfig.ollamaBaseUrl || 'http://localhost:11434';
 
     return (
         <main className="settings-workspace" data-testid="settings-workspace">
@@ -173,7 +246,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                     <p className="sec-eye">configuración</p>
                     <h1 className="sec-title">Configurar AURA</h1>
                     <p className="settings-workspace-subtitle">
-                        Elige cómo quieres que AURA interprete los hallazgos: local, cloud o navegador.
+                        Elige Chrome AI, Ollama local o Cloud para interpretar los hallazgos.
                     </p>
                 </div>
                 <button onClick={handleSave} className="btn-p">
@@ -183,19 +256,43 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
 
             <div className="settings-workspace-body">
 
+                {/* Migration Notice */}
+                {showMigrationNotice && (
+                    <section className="settings-workspace-section">
+                        <div className="settings-status-card settings-status-card--warn" style={{ padding: 'var(--space-md)' }}>
+                            <AlertTriangle size={14} className="settings-status-icon" />
+                            <div style={{ flex: 1 }}>
+                                <strong>WebLLM quedó como modo experimental</strong>
+                                <p>AURA ahora recomienda Chrome AI, Ollama o Cloud para mayor estabilidad. WebLLM presentaba fallos de Cache API/IndexedDB en navegador.</p>
+                                <button className="btn-p btn-sm" onClick={handleDismissMigration} style={{ marginTop: 'var(--space-sm)' }}>
+                                    Entendido, usar Chrome AI
+                                </button>
+                            </div>
+                        </div>
+                    </section>
+                )}
+
                 {/* A. Quick Recommendation */}
                 <section className="settings-workspace-section">
                     <h2 className="settings-section-title">Recomendación rápida</h2>
                     <div className="settings-recommendation-card">
                         <div className="settings-recommendation-icon">
-                            {recommendedProvider === 'local' ? <Shield size={20} /> : <Zap size={20} />}
+                            {recommendedProvider === 'ollama' ? <Server size={20} /> :
+                             recommendedProvider === 'chrome' ? <Shield size={20} /> :
+                             <Zap size={20} />}
                         </div>
                         <div>
-                            <strong>{recommendedProvider === 'local' ? 'Local (recomendado)' : 'Cloud (recomendado)'}</strong>
+                            <strong>
+                                {recommendedProvider === 'ollama' ? 'Ollama local (recomendado)' :
+                                 recommendedProvider === 'chrome' ? 'Chrome AI (recomendado)' :
+                                 'Cloud (recomendado)'}
+                            </strong>
                             <p>
-                                {recommendedProvider === 'local'
-                                    ? 'Tu navegador soporta WebGPU. Usa Local para máxima privacidad: el modelo se ejecuta en tu dispositivo sin enviar datos a ningún servidor.'
-                                    : 'Tu navegador no soporta WebGPU o no se detectó. Usa Cloud para mayor velocidad y capacidad. Requiere una API key del proveedor que elijas.'}
+                                {recommendedProvider === 'ollama'
+                                    ? 'Ollama responde en localhost. Máxima privacidad con modelos locales sin depender del navegador.'
+                                    : recommendedProvider === 'chrome'
+                                    ? 'Chrome AI está disponible en este navegador. Procesa localmente sin enviar datos a terceros.'
+                                    : 'Usa Cloud para mayor velocidad y capacidad. Requiere una API key del proveedor que elijas.'}
                             </p>
                         </div>
                     </div>
@@ -203,9 +300,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
 
                 {/* B. Provider Selection */}
                 <section className="settings-workspace-section">
-                    <h2 className="settings-section-title">Proveedor de IA</h2>
+                    <h2 className="settings-section-title">Proveedor de diagnóstico</h2>
                     <p className="settings-section-desc">
-                        Local es más privado pero requiere descarga pesada y WebGPU. Cloud es más potente pero envía el paquete estructurado al proveedor. Chrome AI es experimental y depende del navegador.
+                        Chrome AI y Ollama son locales. Cloud envía el paquete estructurado al proveedor externo.
                     </p>
 
                     <div className="settings-provider-cards">
@@ -219,9 +316,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                                     className={`settings-provider-card ${isActive ? 'settings-provider-card--active' : ''}`}
                                     data-testid={`provider-mode-${tab.id}`}
                                 >
-                                    <div className="settings-provider-card-icon">
-                                        <Icon size={18} />
-                                    </div>
+                                    <div className="settings-provider-card-icon"><Icon size={18} /></div>
                                     <div className="settings-provider-card-body">
                                         <strong>{tab.label}</strong>
                                         <small>{tab.desc}</small>
@@ -232,7 +327,181 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                         })}
                     </div>
 
-                    {/* Cloud Provider Details */}
+                    {/* Chrome AI Details */}
+                    {localConfig.providerType === 'chrome' && (
+                        <div className="settings-provider-details">
+                            <div className="settings-field">
+                                <label className="settings-label">Chrome AI / Gemini Nano</label>
+                                {chromeAvailability === 'downloading' && (
+                                    <div className="settings-status-card settings-status-card--warn">
+                                        <Loader2 size={14} className="settings-status-icon animate-spin" />
+                                        <p>Chrome está descargando Gemini Nano. No cierres esta pestaña.</p>
+                                    </div>
+                                )}
+                                {chromeAvailability === 'available' && (
+                                    <div className="settings-status-card settings-status-card--ok">
+                                        <CheckCircle size={14} className="settings-status-icon" />
+                                        <p>Gemini Nano disponible en este navegador. Sin envío de datos externos.</p>
+                                    </div>
+                                )}
+                                {chromeAvailability === 'unavailable' && (
+                                    <div className="settings-status-card settings-status-card--warn">
+                                        <AlertTriangle size={14} className="settings-status-icon" />
+                                        <p>Gemini Nano no disponible. Habilita chrome://flags/#prompt-api-for-gemini-nano y chrome://flags/#optimization-guide-on-device-model.</p>
+                                    </div>
+                                )}
+                                {chromeAvailability === 'incompatible' && (
+                                    <div className="settings-status-card settings-status-card--warn">
+                                        <AlertTriangle size={14} className="settings-status-icon" />
+                                        <p>Tu navegador no soporta Chrome AI. Requiere Chrome 127+ compatible con Built-in AI.</p>
+                                    </div>
+                                )}
+                                {chromeAvailability === 'idle' && (
+                                    <div className="settings-info-box">
+                                        <Loader2 size={14} className="animate-spin" />
+                                        <p>Verificando disponibilidad de Chrome AI...</p>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="settings-info-box">
+                                <Info size={14} />
+                                <p>Gemini Nano está integrado en Chrome. No requiere descarga externa ni API key. No se envían datos a terceros cuando el modelo local está disponible. Puede no estar disponible en todos los equipos ni en Chrome móvil.</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Ollama Details */}
+                    {localConfig.providerType === 'ollama' && (
+                        <div className="settings-provider-details">
+                            <div className="settings-field">
+                                <label className="settings-label">Endpoint de Ollama</label>
+                                <div style={{ display: 'flex', gap: 'var(--space-sm)', alignItems: 'center' }}>
+                                    <input
+                                        type="text"
+                                        value={ollamaBaseUrl}
+                                        onChange={(e) => setLocalConfig({ ...localConfig, ollamaBaseUrl: e.target.value })}
+                                        placeholder="http://localhost:11434"
+                                        className="settings-input"
+                                        style={{ flex: 1 }}
+                                        data-testid="ollama-endpoint-input"
+                                    />
+                                    <button className="btn-s btn-sm" onClick={handleFetchOllamaModels} disabled={ollamaLoading} data-testid="ollama-test-connection">
+                                        <RefreshCw size={10} className={ollamaLoading ? 'animate-spin' : ''} /> Probar
+                                    </button>
+                                </div>
+                                {!ollamaBaseUrl.includes('localhost') && !ollamaBaseUrl.includes('127.0.0.1') && (
+                                    <div className="settings-status-card settings-status-card--warn" style={{ marginTop: 'var(--space-sm)' }}>
+                                        <AlertTriangle size={12} />
+                                        <p>No expongas Ollama en red pública sin autenticación.</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="settings-field">
+                                <label className="settings-label">Conexión</label>
+                                {ollamaConnected === null && (
+                                    <div className="settings-info-box">
+                                        <Loader2 size={14} className="animate-spin" />
+                                        <p>Verificando conexión con Ollama...</p>
+                                    </div>
+                                )}
+                                {ollamaConnected === false && (
+                                    <div className="settings-status-card settings-status-card--warn">
+                                        <AlertTriangle size={14} className="settings-status-icon" />
+                                        <div>
+                                            <p>Ollama no responde en {ollamaBaseUrl}. Verifica que Ollama esté abierto.</p>
+                                            <p style={{ fontSize: '12px', marginTop: '4px' }}>
+                                                Si el navegador bloquea la conexión, configura OLLAMA_ORIGINS para permitir el origen de AURA.
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+                                {ollamaConnected === true && (
+                                    <div className="settings-status-card settings-status-card--ok">
+                                        <CheckCircle size={14} className="settings-status-icon" />
+                                        <p>Ollama conectado en {ollamaBaseUrl}. {ollamaModels.length} modelos encontrados.</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="settings-field">
+                                <label className="settings-label">Modelo Ollama</label>
+                                <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
+                                    <select
+                                        value={localConfig.model}
+                                        onChange={(e) => setLocalConfig({ ...localConfig, model: e.target.value, ollamaModel: e.target.value })}
+                                        className="settings-select"
+                                        style={{ flex: 1 }}
+                                        data-testid="ollama-model-select"
+                                    >
+                                        {OLLAMA_MODELS.map(m => (
+                                            <option key={m.id} value={m.id}>{m.name}{m.recommended ? ' ★' : ''}</option>
+                                        ))}
+                                        {!OLLAMA_MODELS.find(m => m.id === localConfig.model) && (
+                                            <option value={localConfig.model}>{localConfig.model} (personalizado)</option>
+                                        )}
+                                    </select>
+                                </div>
+                            </div>
+
+                            {ollamaConnected && ollamaModels.length > 0 && (
+                                <div className="settings-field">
+                                    <label className="settings-label">Modelos instalados ({ollamaModels.length})</label>
+                                    <div className="settings-model-cards">
+                                        {ollamaModels.slice(0, 10).map(m => (
+                                            <div key={m.name} className="settings-model-card settings-model-card--compact">
+                                                <strong>{m.name}</strong>
+                                                <span className="settings-model-card-meta">{(m.size / 1e9).toFixed(1)} GB</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="settings-field">
+                                <label className="settings-label">Descargar modelo</label>
+                                <div style={{ display: 'flex', gap: 'var(--space-sm)', alignItems: 'center' }}>
+                                    <input
+                                        type="text"
+                                        value={ollamaPullModel}
+                                        onChange={(e) => setOllamaPullModel(e.target.value)}
+                                        placeholder="qwen2.5:3b"
+                                        className="settings-input"
+                                        style={{ flex: 1 }}
+                                    />
+                                    <button className="btn-p btn-sm" onClick={handleOllamaPull} disabled={!!ollamaPullProgress && ollamaPullProgress.stage === 'downloading'}>
+                                        <Download size={10} /> Descargar
+                                    </button>
+                                </div>
+                                {ollamaPullProgress && ollamaPullProgress.stage !== 'idle' && (
+                                    <div className="settings-download-card" style={{ marginTop: 'var(--space-sm)' }}>
+                                        <div className="settings-download-row">
+                                            {ollamaPullProgress.stage === 'downloading' && <Loader2 size={14} className="settings-download-spinner" />}
+                                            <span className="settings-download-message">{ollamaPullProgress.message}</span>
+                                            {ollamaPullProgress.progress !== undefined && (
+                                                <span className="settings-download-pct">{ollamaPullProgress.progress}%</span>
+                                            )}
+                                        </div>
+                                        {ollamaPullProgress.progress !== undefined && (
+                                            <div className="settings-progress-track">
+                                                <div className="settings-progress-fill" style={{ width: `${ollamaPullProgress.progress}%` }} />
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                                <p style={{ fontSize: '11px', color: 'var(--ink3)', marginTop: '4px' }}>
+                                    Sugeridos: {OLLAMA_SUGGESTED_MODELS.join(', ')}
+                                </p>
+                            </div>
+
+                            <div className="settings-info-box">
+                                <Info size={14} />
+                                <p>Ollama ejecuta modelos locales en tu máquina. Requiere tener Ollama instalado y abierto. Modelos sugeridos: qwen2.5:3b, llama3.2:3b. No se descarga ningún modelo automáticamente.</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Cloud Details */}
                     {localConfig.providerType === 'cloud' && (
                         <div className="settings-provider-details">
                             <div className="settings-field">
@@ -289,200 +558,127 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                         </div>
                     )}
 
-                    {/* Local Provider Details */}
-                    {localConfig.providerType === 'local' && (
-                        <div className="settings-provider-details">
-                            <div className="settings-field">
-                                <label className="settings-label">Infraestructura WebGPU</label>
-                                {webGpuSupported === false && (
-                                    <div className="settings-status-card settings-status-card--warn">
-                                        <AlertTriangle size={14} className="settings-status-icon" />
-                                        <p>WebGPU no soportado. Necesitas Chrome/Edge 113+ con aceleración de hardware activada.</p>
-                                    </div>
-                                )}
-                                {webGpuSupported === true && (
-                                    <div className="settings-status-card settings-status-card--ok">
-                                        <CheckCircle size={14} className="settings-status-icon" />
-                                        <p>WebGPU disponible. Los modelos se ejecutan en tu GPU sin enviar datos externamente.</p>
-                                    </div>
-                                )}
-                                {webGpuSupported === null && (
-                                    <div className="settings-info-box">
-                                        <Loader2 size={14} className="animate-spin" />
-                                        <p>Verificando soporte WebGPU...</p>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Local Model Selector */}
-                            <div className="settings-field">
-                                <label className="settings-label">Modelo local activo</label>
-                                <select
-                                    value={localConfig.model}
-                                    onChange={(e) => setLocalConfig({ ...localConfig, model: e.target.value })}
-                                    className="settings-select"
-                                >
-                                    {LOCAL_MODELS.map(m => (
-                                        <option key={m.id} value={m.id}>
-                                            {m.name} (~{m.sizeGB}GB){m.recommended ? ' ★' : ''}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            {/* C. Model Cards */}
-                            <div className="settings-field">
-                                <div className="settings-model-cards-header">
-                                    <label className="settings-label">Modelos locales</label>
-                                    <button className="btn-s btn-sm" onClick={refreshAllModelStatuses} disabled={checkingModels.length > 0}>
-                                        <Activity size={10} /> Verificar todos
-                                    </button>
+                    {/* WebLLM Experimental (hidden by default) */}
+                    {isWebLLMExperimentalEnabled() && (
+                        <details className="settings-collapsible-section" style={{ marginTop: 'var(--space-md)' }}>
+                            <summary className="settings-collapsible-summary">
+                                <Cpu size={14} />
+                                <span>WebLLM experimental (solo desarrollo)</span>
+                                <span className="settings-collapsible-hint">Oculto en producción. Activar con VITE_ENABLE_WEBLLM_EXPERIMENTAL=true</span>
+                            </summary>
+                            <div className="settings-collapsible-body">
+                                <div className="settings-status-card settings-status-card--warn">
+                                    <AlertTriangle size={14} className="settings-status-icon" />
+                                    <p>WebLLM es experimental. Puede fallar con Cache API/IndexedDB. Se recomienda Chrome AI, Ollama o Cloud para producción.</p>
                                 </div>
 
-                                <div className="settings-model-cards" data-testid="settings-model-cards">
-                                    {LOCAL_MODELS.map(model => {
-                                        const status = modelStatuses[model.id];
-                                        const isDownloading = downloadingModel === model.id;
-                                        const isChecking = checkingModels.includes(model.id);
-                                        const isActive = localConfig.model === model.id;
+                                <div className="settings-field" style={{ marginTop: 'var(--space-sm)' }}>
+                                    <label className="settings-label">Infraestructura WebGPU</label>
+                                    {webGpuSupported === false && (
+                                        <div className="settings-status-card settings-status-card--warn">
+                                            <AlertTriangle size={14} />
+                                            <p>WebGPU no soportado.</p>
+                                        </div>
+                                    )}
+                                    {webGpuSupported === true && (
+                                        <div className="settings-status-card settings-status-card--ok">
+                                            <CheckCircle size={14} />
+                                            <p>WebGPU disponible.</p>
+                                        </div>
+                                    )}
+                                </div>
 
-                                        return (
-                                            <div key={model.id} className={`settings-model-card ${isActive ? 'settings-model-card--active' : ''}`}>
-                                                <div className="settings-model-card-main">
-                                                    <strong className="settings-model-card-name">
-                                                        {model.name}
-                                                        {model.recommended && <span className="settings-model-recommended">★ Recomendado</span>}
-                                                    </strong>
-                                                    <div className="settings-model-card-meta">
-                                                        <span>{model.sizeGB} GB</span>
-                                                        <span className="settings-model-card-family">{model.family}</span>
+                                <div className="settings-field">
+                                    <label className="settings-label">Modelo WebLLM activo</label>
+                                    <select
+                                        value={localConfig.model}
+                                        onChange={(e) => setLocalConfig({ ...localConfig, model: e.target.value, providerType: 'webllm_experimental' })}
+                                        className="settings-select"
+                                    >
+                                        {LOCAL_MODELS.map(m => (
+                                            <option key={m.id} value={m.id}>{m.name} (~{m.sizeGB}GB){m.recommended ? ' ★' : ''}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="settings-field">
+                                    <div className="settings-model-cards-header">
+                                        <label className="settings-label">Modelos WebLLM</label>
+                                        <button className="btn-s btn-sm" onClick={refreshAllModelStatuses} disabled={checkingModels.length > 0}>
+                                            <Activity size={10} /> Verificar todos
+                                        </button>
+                                    </div>
+                                    <div className="settings-model-cards" data-testid="settings-model-cards">
+                                        {LOCAL_MODELS.map(model => {
+                                            const status = modelStatuses[model.id];
+                                            const isDownloading = downloadingModel === model.id;
+                                            const isChecking = checkingModels.includes(model.id);
+                                            return (
+                                                <div key={model.id} className="settings-model-card">
+                                                    <div className="settings-model-card-main">
+                                                        <strong>{model.name}{model.recommended && <span className="settings-model-recommended">★</span>}</strong>
+                                                        <div className="settings-model-card-meta">
+                                                            <span>{model.sizeGB} GB</span>
+                                                            <span>{model.family}</span>
+                                                        </div>
+                                                        {status && (
+                                                            <div className={`settings-model-card-status settings-model-card-status--${status.status}`}>
+                                                                {status.status === 'ready' && <><CheckCircle size={10} /><span>Listo</span></>}
+                                                                {status.status === 'partial' && <><AlertTriangle size={10} /><span>Parcial</span></>}
+                                                                {status.status === 'not_downloaded' && <><Circle size={10} /><span>No descargado</span></>}
+                                                                {status.status === 'error' && <><AlertTriangle size={10} /><span>Error</span></>}
+                                                            </div>
+                                                        )}
+                                                        {isDownloading && (
+                                                            <div className="settings-download-card">
+                                                                <div className="settings-download-row">
+                                                                    <Loader2 size={14} className="settings-download-spinner" />
+                                                                    <span>{downloadProgress.message}</span>
+                                                                    <span>{downloadProgress.progress}%</span>
+                                                                </div>
+                                                                <div className="settings-progress-track">
+                                                                    <div className="settings-progress-fill" style={{ width: `${downloadProgress.progress}%` }} />
+                                                                </div>
+                                                            </div>
+                                                        )}
                                                     </div>
-
-                                                    {status && (
-                                                        <div className={`settings-model-card-status settings-model-card-status--${status.status}`}>
-                                                            {status.status === 'ready' && <CheckCircle size={10} />}
-                                                            {status.status === 'partial' && <AlertTriangle size={10} />}
-                                                            {status.status === 'not_downloaded' && <Circle size={10} />}
-                                                            {status.status === 'error' && <AlertTriangle size={10} />}
-                                                            {status.status === 'checking' && <Loader2 size={10} className="animate-spin" />}
-                                                            <span>
-                                                                {status.status === 'ready' && 'Verificado y listo'}
-                                                                {status.status === 'partial' && 'Parcial / No verificado'}
-                                                                {status.status === 'not_downloaded' && 'No descargado'}
-                                                                {status.status === 'error' && 'Error'}
-                                                                {status.status === 'checking' && 'Verificando...'}
-                                                            </span>
-                                                        </div>
-                                                    )}
-                                                    {status?.message && status.status !== 'checking' && (
-                                                        <p className="settings-model-card-msg">{status.message}</p>
-                                                    )}
-
-                                                    {isDownloading && (
-                                                        <div className="settings-download-card" style={{ marginTop: 'var(--space-sm)' }}>
-                                                            <div className="settings-download-row">
-                                                                <Loader2 size={14} className="settings-download-spinner" />
-                                                                <span className="settings-download-message">{downloadProgress.message}</span>
-                                                                <span className="settings-download-pct">{downloadProgress.progress}%</span>
-                                                            </div>
-                                                            <div className="settings-progress-track">
-                                                                <div className="settings-progress-fill" style={{ width: `${downloadProgress.progress}%` }} />
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                <div className="settings-model-card-actions" data-testid="model-download-action">
-                                                    <button
-                                                        className="btn-s btn-sm"
-                                                        onClick={() => handleVerifyModel(model.id)}
-                                                        disabled={isChecking || isDownloading}
-                                                    >
-                                                        <Activity size={10} /> {isChecking ? 'Verificando...' : 'Verificar'}
-                                                    </button>
-
-                                                    {(status?.status === 'not_downloaded' || status?.status === 'partial' || status?.status === 'error') && (
-                                                        <button
-                                                            className="btn-p btn-sm"
-                                                            onClick={() => handleDownloadModel(model.id)}
-                                                            disabled={isDownloading || !webGpuSupported}
-                                                        >
-                                                            <Download size={10} />
-                                                            {status?.status === 'error' ? 'Reintentar' : 'Descargar'}
+                                                    <div className="settings-model-card-actions">
+                                                        <button className="btn-s btn-sm" onClick={() => handleVerifyModel(model.id)} disabled={isChecking || isDownloading}>
+                                                            <Activity size={10} /> {isChecking ? 'Verificando' : 'Verificar'}
                                                         </button>
-                                                    )}
-
-                                                    {(status?.status === 'ready' || status?.status === 'partial' || status?.status === 'error') && (
-                                                        <button
-                                                            className="btn-s btn-sm settings-model-delete-btn"
-                                                            onClick={() => handleDeleteModel(model.id)}
-                                                            disabled={isDownloading || isChecking}
-                                                        >
-                                                            <Trash2 size={10} /> Eliminar
-                                                        </button>
-                                                    )}
+                                                        {(status?.status === 'not_downloaded' || status?.status === 'partial' || status?.status === 'error') && (
+                                                            <button className="btn-p btn-sm" onClick={() => handleDownloadModel(model.id)} disabled={isDownloading || !webGpuSupported}>
+                                                                <Download size={10} /> {status?.status === 'error' ? 'Reintentar' : 'Descargar'}
+                                                            </button>
+                                                        )}
+                                                        {(status?.status === 'ready' || status?.status === 'partial' || status?.status === 'error') && (
+                                                            <button className="btn-s btn-sm" onClick={() => handleDeleteModel(model.id)} disabled={isDownloading || isChecking}>
+                                                                <Trash2 size={10} /> Eliminar
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </div>
-
-                                                <p className="settings-model-card-note">
-                                                    {model.recommended
-                                                        ? `La primera descarga puede tardar varios minutos y consumir ~${model.sizeGB}GB de espacio. Los modelos ★ son recomendados para análisis de datos.`
-                                                        : `La primera descarga puede tardar y consumir ~${model.sizeGB}GB de espacio.`}
-                                                </p>
-                                            </div>
-                                        );
-                                    })}
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    )}
-
-                    {/* Chrome AI Provider Details */}
-                    {localConfig.providerType === 'chrome' && (
-                        <div className="settings-provider-details">
-                            <div className="settings-field">
-                                <label className="settings-label">Estado de Chrome AI</label>
-                                {chromeAiSupported === false && (
-                                    <div className="settings-status-card settings-status-card--warn">
-                                        <AlertTriangle size={14} className="settings-status-icon" />
-                                        <p>Chrome AI no disponible. Habilita chrome://flags/#prompt-api-for-gemini-nano y chrome://flags/#optimization-guide-on-device-model.</p>
-                                    </div>
-                                )}
-                                {chromeAiSupported === true && (
-                                    <div className="settings-status-card settings-status-card--ok">
-                                        <CheckCircle size={14} className="settings-status-icon" />
-                                        <p>Chrome AI (Gemini Nano) está disponible en este navegador.</p>
-                                    </div>
-                                )}
-                                {chromeAiSupported === null && (
-                                    <div className="settings-status-card settings-status-card--loading">
-                                        <Loader2 size={14} className="settings-status-icon animate-spin" />
-                                        <p>Verificando disponibilidad de Chrome AI...</p>
-                                    </div>
-                                )}
-                            </div>
-                            <div className="settings-info-box">
-                                <Info size={14} />
-                                <p>Gemini Nano está integrado en Chrome. No requiere descarga externa ni API key. Es experimental y su disponibilidad varía según la versión del navegador.</p>
-                            </div>
-                        </div>
+                        </details>
                     )}
                 </section>
 
-                {/* E. Temperature */}
+                {/* Temperature */}
                 <section className="settings-workspace-section">
                     <h2 className="settings-section-title">Temperatura del modelo</h2>
                     <p className="settings-section-desc">
-                        Controla la estabilidad de las respuestas del modelo. 0.0 = respuestas más deterministas y predecibles. 0.7 = respuestas más creativas y variables. Para auditoría de datos se recomienda 0.1 o 0.2.
+                        Controla la estabilidad de las respuestas. 0.0 = más determinista. 0.7 = más creativo. Para auditoría se recomienda 0.1.
                     </p>
                     <div className="settings-field">
                         <label className="settings-label">Temperatura: {(localConfig.temperature ?? 0.1).toFixed(1)}</label>
                         <div className="settings-slider-row">
                             <span className="settings-slider-label">0.0 — Estable</span>
                             <input
-                                type="range"
-                                min="0"
-                                max="1"
-                                step="0.1"
+                                type="range" min="0" max="1" step="0.1"
                                 value={localConfig.temperature ?? 0.1}
                                 onChange={(e) => setLocalConfig({ ...localConfig, temperature: parseFloat(e.target.value) })}
                                 className="settings-slider"
@@ -497,23 +693,16 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                     <div className="settings-toggle-card">
                         <div>
                             <p className="settings-toggle-card-label">Ejecución automática</p>
-                            <p className="settings-toggle-card-desc">Ejecuta el motor determinista automáticamente al cargar un dataset. Desactívalo si prefieres revisar la configuración antes de cada análisis.</p>
+                            <p className="settings-toggle-card-desc">Ejecuta el motor determinista automáticamente al cargar un dataset.</p>
                         </div>
                         <label className="toggle">
-                            <input
-                                type="checkbox"
-                                checked={localConfig.autoAnalyze}
-                                onChange={(e) => setLocalConfig({ ...localConfig, autoAnalyze: e.target.checked })}
-                                className="toggle-input"
-                            />
-                            <div className="toggle-track">
-                                <div className="toggle-thumb" />
-                            </div>
+                            <input type="checkbox" checked={localConfig.autoAnalyze} onChange={(e) => setLocalConfig({ ...localConfig, autoAnalyze: e.target.checked })} className="toggle-input" />
+                            <div className="toggle-track"><div className="toggle-thumb" /></div>
                         </label>
                     </div>
                 </section>
 
-                {/* F. Prompt Contract (Collapsible) */}
+                {/* Prompt Contract */}
                 <section className="settings-workspace-section">
                     <details className="settings-collapsible-section">
                         <summary className="settings-collapsible-summary">
@@ -522,85 +711,35 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                             <span className="settings-collapsible-hint">Controla cómo AURA le pide al modelo que responda</span>
                         </summary>
                         <div className="settings-collapsible-body">
-                            <p className="settings-section-desc">
-                                Esto controla cómo AURA le pide al modelo que responda. Si no sabes qué es, deja los valores por defecto. AURA conserva reglas anti-alucinación para que el benchmark sea comparable.
-                            </p>
-
+                            <p className="settings-section-desc">Esto controla cómo AURA le pide al modelo que responda. Si no sabes qué es, deja los valores por defecto.</p>
                             <div className="settings-field">
                                 <label className="settings-label">Objetivo operativo</label>
-                                <textarea
-                                    value={promptContract.objective}
-                                    onChange={(event) => updatePromptContract({ objective: event.target.value })}
-                                    rows={3}
-                                    maxLength={260}
-                                    className="prompt-contract-textarea"
-                                />
+                                <textarea value={promptContract.objective} onChange={(e) => updatePromptContract({ objective: e.target.value })} rows={3} maxLength={260} className="prompt-contract-textarea" />
                                 <p className="prompt-contract-hint">{promptContract.objective.length}/260 · Debe preparar una salida útil para diagnóstico, benchmark y script.</p>
                             </div>
-
                             <div className="prompt-contract-grid">
-                                <button
-                                    type="button"
-                                    className={`prompt-contract-card ${promptContract.evidencePolicy === 'strict' ? 'active' : ''}`}
-                                    onClick={() => updatePromptContract({ evidencePolicy: 'strict' })}
-                                >
-                                    <span>evidencia estricta</span>
-                                    <small>Solo JSON observado; reduce alucinaciones.</small>
+                                <button type="button" className={`prompt-contract-card ${promptContract.evidencePolicy === 'strict' ? 'active' : ''}`} onClick={() => updatePromptContract({ evidencePolicy: 'strict' })}>
+                                    <span>evidencia estricta</span><small>Solo JSON observado; reduce alucinaciones.</small>
                                 </button>
-                                <button
-                                    type="button"
-                                    className={`prompt-contract-card ${promptContract.evidencePolicy === 'balanced' ? 'active' : ''}`}
-                                    onClick={() => updatePromptContract({ evidencePolicy: 'balanced' })}
-                                >
-                                    <span>hipótesis separadas</span>
-                                    <small>Permite hipótesis marcadas como no validadas.</small>
+                                <button type="button" className={`prompt-contract-card ${promptContract.evidencePolicy === 'balanced' ? 'active' : ''}`} onClick={() => updatePromptContract({ evidencePolicy: 'balanced' })}>
+                                    <span>hipótesis separadas</span><small>Permite hipótesis marcadas como no validadas.</small>
                                 </button>
                             </div>
-
                             <div className="prompt-contract-checks">
-                                <label>
-                                    <input
-                                        type="checkbox"
-                                        checked={promptContract.requireScriptReadiness}
-                                        onChange={(event) => updatePromptContract({ requireScriptReadiness: event.target.checked })}
-                                    />
-                                    <span>Preparar criterios para script Pandas</span>
-                                </label>
-                                <label>
-                                    <input
-                                        type="checkbox"
-                                        checked={promptContract.includeCopyPasteEvidence}
-                                        onChange={(event) => updatePromptContract({ includeCopyPasteEvidence: event.target.checked })}
-                                    />
-                                    <span>Forzar evidencia copy-paste</span>
-                                </label>
-                                <label>
-                                    <input
-                                        type="checkbox"
-                                        checked={promptContract.includeHumanReviewLabels}
-                                        onChange={(event) => updatePromptContract({ includeHumanReviewLabels: event.target.checked })}
-                                    />
-                                    <span>Etiquetar decisiones HITL</span>
-                                </label>
+                                <label><input type="checkbox" checked={promptContract.requireScriptReadiness} onChange={(e) => updatePromptContract({ requireScriptReadiness: e.target.checked })} /><span>Preparar criterios para script Pandas</span></label>
+                                <label><input type="checkbox" checked={promptContract.includeCopyPasteEvidence} onChange={(e) => updatePromptContract({ includeCopyPasteEvidence: e.target.checked })} /><span>Forzar evidencia copy-paste</span></label>
+                                <label><input type="checkbox" checked={promptContract.includeHumanReviewLabels} onChange={(e) => updatePromptContract({ includeHumanReviewLabels: e.target.checked })} /><span>Etiquetar decisiones HITL</span></label>
                             </div>
-
                             <div className="settings-field" style={{ marginTop: 'var(--space-md)' }}>
                                 <label className="settings-label">Instrucción adicional guiada</label>
-                                <textarea
-                                    value={promptContract.extraInstructions || ''}
-                                    onChange={(event) => updatePromptContract({ extraInstructions: event.target.value })}
-                                    rows={4}
-                                    maxLength={420}
-                                    placeholder="Ejemplo: priorizar acciones reversibles, no convertir fechas ambiguas sin revisión humana..."
-                                    className="prompt-contract-textarea"
-                                />
+                                <textarea value={promptContract.extraInstructions || ''} onChange={(e) => updatePromptContract({ extraInstructions: e.target.value })} rows={4} maxLength={420} placeholder="Ej: priorizar acciones reversibles..." className="prompt-contract-textarea" />
                                 <p className="prompt-contract-hint">No reemplaza el contrato base; solo agrega restricciones experimentales controladas.</p>
                             </div>
                         </div>
                     </details>
                 </section>
 
-                {/* G. Privacy & Data */}
+                {/* Privacy & Data */}
                 <section className="settings-workspace-section">
                     <details className="settings-collapsible-section">
                         <summary className="settings-collapsible-summary">
@@ -610,18 +749,17 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                         </summary>
                         <div className="settings-collapsible-body">
                             <ul className="settings-privacy-list">
-                                <li><strong>Local (WebGPU):</strong> El modelo se descarga y ejecuta completamente en tu navegador. Ningún dato sale de tu dispositivo. Los hallazgos, estadísticas y diagnóstico se procesan localmente.</li>
-                                <li><strong>Cloud (API):</strong> Se envía un paquete estructurado al proveedor: columnas, estadísticas, hallazgos detectados y reglas activadas. <strong>No se envía el archivo CSV completo ni datos crudos de filas.</strong></li>
-                                <li><strong>Chrome AI:</strong> Gemini Nano se ejecuta en el navegador. Similar a Local en privacidad.</li>
-                                <li><strong>localStorage:</strong> AURA guarda tu configuración (proveedor, modelo, API key, temperatura) en localStorage del navegador. La API key se almacena localmente y solo se usa para llamadas a la API del proveedor.</li>
-                                <li><strong>Exportación:</strong> Tú decides qué exportar (JSON, PDF, CSV, script). Nada se exporta sin tu acción explícita.</li>
-                                <li><strong>Nunca subas:</strong> Datasets con información personal, sensible o protegida si no tienes permiso explícito para procesarlos.</li>
+                                <li><strong>Chrome AI:</strong> Gemini Nano se ejecuta en el navegador. Ningún dato sale de tu dispositivo. Privacidad total.</li>
+                                <li><strong>Ollama local:</strong> La inferencia ocurre en tu máquina vía servidor local. Los datos no salen de tu red local.</li>
+                                <li><strong>Cloud (API):</strong> Se envía un paquete estructurado al proveedor: columnas, estadísticas, hallazgos detectados. <strong>No se envía el archivo CSV completo.</strong></li>
+                                <li><strong>localStorage:</strong> AURA guarda tu configuración en localStorage. La API key se almacena localmente.</li>
+                                <li><strong>Exportación:</strong> Tú decides qué exportar. Nada se exporta sin tu acción explícita.</li>
                             </ul>
                         </div>
                     </details>
                 </section>
 
-                {/* H. Troubleshooting */}
+                {/* Troubleshooting */}
                 <section className="settings-workspace-section">
                     <details className="settings-collapsible-section">
                         <summary className="settings-collapsible-summary">
@@ -631,26 +769,19 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                         </summary>
                         <div className="settings-collapsible-body">
                             <ul className="settings-privacy-list">
-                                <li><strong>Cache.add / network error:</strong> Ocurre al descargar modelos locales grandes. Intenta con un modelo más pequeño, verifica tu conexión, o limpia el caché del modelo y reintenta.</li>
-                                <li><strong>WebGPU no soportado:</strong> Usa Chrome o Edge 113+. Activa la aceleración de hardware en chrome://settings. En Linux puede requerir flags adicionales. Como alternativa usa modo Cloud.</li>
-                                <li><strong>Modelo parcial o corrupto:</strong> Usa "Eliminar" en la tarjeta del modelo y vuelve a descargar. Los restos de descargas incompletas pueden causar falsos positivos.</li>
-                                <li><strong>API key inválida:</strong> Verifica que la key sea correcta y tenga créditos/saldo disponible. Algunos proveedores requieren configuración adicional de billing.</li>
-                                <li><strong>Descarga lenta:</strong> Los modelos locales pueden pesar varios GB. La primera descarga es la más lenta. Usa WiFi en lugar de datos móviles.</li>
-                                <li><strong>Diagnóstico vacío:</strong> Si el modelo no responde, AURA te permite continuar con el script determinista. El motor de reglas no depende del LLM.</li>
-                                <li><strong>Cómo limpiar todos los modelos:</strong> Ve a Configuración, usa "Eliminar" en cada tarjeta de modelo, o limpia los datos del sitio desde la configuración del navegador.</li>
+                                <li><strong>Ollama no responde:</strong> Verifica que Ollama esté abierto. Configura OLLAMA_ORIGINS si el navegador bloquea CORS.</li>
+                                <li><strong>Chrome AI no disponible:</strong> Habilita chrome://flags/#prompt-api-for-gemini-nano. Requiere Chrome 127+.</li>
+                                <li><strong>API key inválida:</strong> Verifica que la key sea correcta y tenga créditos disponible.</li>
+                                <li><strong>Diagnóstico vacío:</strong> Puedes continuar con el script determinista. El motor de reglas no depende del LLM.</li>
+                                <li><strong>WebLLM (experimental):</strong> Presenta fallos de Cache API/IndexedDB. Se recomienda Chrome AI u Ollama.</li>
                             </ul>
                         </div>
                     </details>
                 </section>
 
-                {/* Save button at bottom */}
                 <div className="settings-workspace-save-bar">
-                    <button onClick={onClose} className="btn-s">
-                        Cancelar
-                    </button>
-                    <button onClick={handleSave} className="btn-p">
-                        <Save size={14} /> Guardar configuración
-                    </button>
+                    <button onClick={onClose} className="btn-s">Cancelar</button>
+                    <button onClick={handleSave} className="btn-p"><Save size={14} /> Guardar configuración</button>
                 </div>
             </div>
         </main>

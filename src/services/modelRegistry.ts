@@ -2,8 +2,9 @@
  * Model registry — Centralized, extensible model definitions.
  * Not hardcoded in the provider factory.
  * 
- * Local models use WebLLM/MLC format.
+ * Local models use WebLLM/MLC format (experimental).
  * Cloud models use OpenAI-compatible or native SDK endpoints.
+ * Ollama models run locally via Ollama server.
  */
 
 export interface LocalModelDef {
@@ -30,9 +31,16 @@ export interface ChromeModelDef {
   provider: 'Chrome AI';
 }
 
+export interface OllamaModelDef {
+  id: string;
+  name: string;
+  family: string;
+  recommended?: boolean;
+}
+
 /**
- * Local models available via WebLLM (WebGPU).
- * All are MLC-compiled 4-bit quantized models.
+ * WebLLM local models (EXPERIMENTAL — moved out of production).
+ * Only available when VITE_ENABLE_WEBLLM_EXPERIMENTAL=true.
  * Source: https://github.com/mlc-ai/web-llm
  */
 export const LOCAL_MODELS: LocalModelDef[] = [
@@ -82,12 +90,24 @@ export const CHROME_MODELS: ChromeModelDef[] = [
 ];
 
 /**
+ * Ollama local models (suggested, user can type custom).
+ */
+export const OLLAMA_MODELS: OllamaModelDef[] = [
+  { id: 'qwen2.5:3b', name: 'Qwen 2.5 3B', family: 'Qwen', recommended: true },
+  { id: 'llama3.2:3b', name: 'Llama 3.2 3B', family: 'Llama', recommended: true },
+  { id: 'mistral:7b', name: 'Mistral 7B', family: 'Mistral' },
+  { id: 'gemma2:2b', name: 'Gemma 2 2B', family: 'Gemma' },
+  { id: 'phi3:mini', name: 'Phi-3 Mini', family: 'Phi' },
+];
+
+/**
  * Legacy compatibility — maps to the old AVAILABLE_MODELS shape.
  */
 export const AVAILABLE_MODELS = {
   local: LOCAL_MODELS.map(m => ({ id: m.id, name: m.name, provider: m.provider, sizeGB: m.sizeGB })),
   chrome: CHROME_MODELS,
   cloud: CLOUD_MODELS.map(m => ({ id: m.id, name: m.name, provider: m.provider, baseURL: m.baseURL })),
+  ollama: OLLAMA_MODELS.map(m => ({ id: m.id, name: m.name, family: m.family })),
 };
 
 /**

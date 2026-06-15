@@ -30,7 +30,7 @@ export const runBenchmarkForConfig = async (
     columns: report.colCount,
     reportFingerprint: datasetFingerprint,
   });
-  if (config.providerType === 'local') {
+  if (config.providerType === 'webllm_experimental' || config.providerType === 'local') {
     mark('webgpu.preflight', { navigatorGpu: webGpuAvailable });
   }
   const baseResult: Omit<BenchmarkResult, 'status'> = {
@@ -53,7 +53,7 @@ export const runBenchmarkForConfig = async (
     evidenceStatus: 'planned',
     startedAt,
     datasetFingerprint,
-    webGpuAvailable: config.providerType === 'local' ? webGpuAvailable : undefined,
+    webGpuAvailable: config.providerType === 'webllm_experimental' || config.providerType === 'local' ? webGpuAvailable : undefined,
     executionTrace: trace.events,
     timestamp: new Date().toISOString()
   };
@@ -68,8 +68,12 @@ export const runBenchmarkForConfig = async (
       evidenceStatus: 'attempted_failed',
       completedAt: new Date().toISOString(),
       executionTrace: trace.events,
-      error: config.providerType === 'local'
+      error: config.providerType === 'webllm_experimental' || config.providerType === 'local'
         ? 'Proveedor local no disponible: WebGPU, adapter o modelo no pudo inicializarse.'
+        : config.providerType === 'chrome'
+        ? 'Chrome AI no disponible. Requiere Chrome 127+ con flags habilitados.'
+        : config.providerType === 'ollama'
+        ? 'Ollama no disponible. Verifica que el servidor esté abierto.'
         : 'API key cloud no configurada.'
     };
   }

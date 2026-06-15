@@ -68,7 +68,7 @@ export interface ExperimentEntry {
   id: string;
   config: {
     provider: string;
-    providerType: 'local' | 'cloud' | 'chrome';
+    providerType: 'local' | 'cloud' | 'chrome' | 'ollama' | 'webllm_experimental';
     model: string;
     inputMode: InputMode;
     temperature: number;

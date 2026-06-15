@@ -137,9 +137,9 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
       content: (
         <div className="help-section-body">
           <dl className="help-glossary">
-            <dt>Proveedor local</dt><dd>El modelo de IA se descarga y ejecuta en tu navegador mediante WebGPU. Máxima privacidad: ningún dato sale de tu dispositivo. Requiere Chrome/Edge 113+ y varios GB de espacio.</dd>
+            <dt>Chrome AI / Gemini Nano</dt><dd>Modelo integrado en Chrome. Se ejecuta en el navegador sin enviar datos a terceros. Requiere Chrome 127+ con flags habilitados. No funciona en Chrome móvil (iOS/Android).</dd>
+            <dt>Ollama local</dt><dd>Servidor local de modelos LLM. Ejecuta la inferencia en tu máquina. Requiere instalar Ollama por separado. Conexión a http://localhost:11434. Ofrece máxima privacidad y variedad de modelos.</dd>
             <dt>Proveedor cloud</dt><dd>El modelo se ejecuta en servidores externos (Google, DeepSeek, Groq, etc.). Mayor velocidad y capacidad, pero envía un paquete estructurado al proveedor (no el archivo completo).</dd>
-            <dt>Chrome AI</dt><dd>Usa Gemini Nano integrado en Chrome. Experimental y dependiente de la versión del navegador. No requiere descargas externas ni API keys.</dd>
             <dt>WebGPU</dt><dd>Tecnología que permite ejecutar modelos de IA en la GPU del navegador. Necesaria para el modo Local. Disponible en Chrome/Edge 113+.</dd>
             <dt>Modelo</dt><dd>El modelo de lenguaje (LLM) que AURA usa para generar diagnósticos. En modo local son modelos cuantizados (4-bit) optimizados para navegador.</dd>
             <dt>API key</dt><dd>Clave de acceso para usar APIs cloud. Se almacena en localStorage del navegador y solo se envía al proveedor que elijas.</dd>
@@ -157,7 +157,8 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
       content: (
         <div className="help-section-body">
           <ul>
-            <li><strong>Modo Local:</strong> Todo se procesa en tu navegador. El modelo se descarga una vez y las inferencias son locales. Ningún dato sale de tu dispositivo.</li>
+            <li><strong>Chrome AI / Gemini Nano:</strong> Se ejecuta completamente en el navegador. Ningún dato sale del dispositivo. Privacidad total.</li>
+            <li><strong>Ollama local:</strong> La inferencia ocurre en tu máquina vía servidor local (localhost:11434). Los datos no salen de tu red local.</li>
             <li><strong>Modo Cloud:</strong> Se envía un paquete estructurado al proveedor (Google, DeepSeek, etc.) que contiene: nombres de columnas, estadísticas agregadas, hallazgos detectados y reglas activadas. <strong>No se envían filas de datos crudos ni el archivo CSV completo.</strong></li>
             <li><strong>Qué nunca debes subir:</strong> Datasets con información personal identificable, datos médicos, financieros o cualquier información protegida sin el permiso explícito correspondiente.</li>
             <li><strong>API keys:</strong> Se guardan en localStorage de tu navegador. No se comparten con terceros más allá del proveedor que elijas.</li>
@@ -172,8 +173,11 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
       content: (
         <div className="help-section-body">
           <dl className="help-glossary">
-            <dt>Cache.add / network error</dt><dd>Error al descargar el modelo. Suele ocurrir con modelos grandes o conexiones inestables. Solución: intenta con un modelo más pequeño, cambia a WiFi, o limpia el caché y reintenta.</dd>
-            <dt>WebGPU no disponible</dt><dd>Tu navegador no soporta WebGPU. Solución: usa Chrome/Edge 113+, activa aceleración de hardware, o cambia a modo Cloud.</dd>
+            <dt>Ollama no responde</dt><dd>Ollama no está accesible en localhost:11434. Solución: abre Ollama, verifica que esté corriendo, configura OLLAMA_ORIGINS si hay errores de CORS.</dd>
+            <dt>Chrome AI no disponible</dt><dd>Gemini Nano no está habilitado en tu navegador. Solución: habilita chrome://flags/#prompt-api-for-gemini-nano y chrome://flags/#optimization-guide-on-device-model. Requiere Chrome 127+.</dd>
+            <dt>WebLLM (experimental)</dt><dd>WebLLM fue movido a experimental por problemas de estabilidad con caché del navegador. Se recomienda usar Chrome AI u Ollama como alternativa local.</dd>
+            <dt>Cache.add / network error</dt><dd>Error al descargar el modelo WebLLM. Solución: usa Chrome AI u Ollama en su lugar. WebLLM es experimental.</dd>
+            <dt>WebGPU no disponible</dt><dd>Tu navegador no soporta WebGPU (necesario solo para WebLLM experimental). Usa Chrome AI u Ollama como alternativa local.</dd>
             <dt>API key inválida</dt><dd>La clave de API no es válida o no tiene saldo. Solución: verifica la key en el panel del proveedor. Algunos proveedores requieren configuración de billing.</dd>
             <dt>Modelo parcial</dt><dd>Una descarga anterior quedó incompleta. Solución: elimina el modelo desde Configuración y vuelve a descargarlo.</dd>
             <dt>Descarga lenta</dt><dd>Los modelos locales pueden pesar 0.1-5 GB. La primera descarga es la más lenta. Usa WiFi en lugar de datos móviles.</dd>
@@ -203,6 +207,10 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
             <dd>Depende de tu caso de uso. El PDF ejecutivo es bueno para compartir con stakeholders. El JSON técnico contiene toda la evidencia para auditoría. El CSV de hallazgos es útil para análisis posteriores. El script Python es lo que necesitas para limpiar los datos.</dd>
             <dt>¿Qué hago si no entiendo una métrica?</dt>
             <dd>Revisa la sección de Conceptos básicos en este mismo centro de ayuda. Si sigues con dudas, el glosario al final cubre la mayoría de términos.</dd>
+            <dt>¿Cómo instalo y uso Ollama?</dt>
+            <dd>Descarga Ollama desde <code>ollama.com</code>. Una vez instalado y abierto, escucha en <code>http://localhost:11434</code>. En AURA, selecciona "Ollama local" en el diagnóstico o en Configuración. Si el navegador bloquea la conexión por CORS, configura <code>OLLAMA_ORIGINS</code> para permitir el origen de AURA.</dd>
+            <dt>¿Qué proveedor me conviene?</dt>
+            <dd>Si tienes Chrome 127+ con Gemini Nano habilitado, usa Chrome AI (privacidad total). Si tienes Ollama instalado, es la opción local más robusta. Cloud es ideal si necesitas máxima capacidad y tienes API key.</dd>
           </dl>
         </div>
       ),

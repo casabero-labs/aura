@@ -168,9 +168,11 @@ export interface AIConfig {
   model: string;
   temperature: number;
   autoAnalyze: boolean;
-  providerType: 'cloud' | 'local' | 'chrome';
+  providerType: 'cloud' | 'chrome' | 'ollama' | 'webllm_experimental' | 'local';
   cloudProvider?: CloudProvider;
   apiKey?: string;
+  ollamaBaseUrl?: string;
+  ollamaModel?: string;
   modelDownloadState?: Record<string, ModelDownloadState>;
   promptContract?: PromptContractConfig;
   inputMode?: InputMode;
@@ -209,7 +211,7 @@ export interface ProviderMetrics {
 export interface BenchmarkResult {
   id: string;
   provider: string;
-  providerType: 'local' | 'cloud' | 'chrome';
+  providerType: 'local' | 'cloud' | 'chrome' | 'ollama' | 'webllm_experimental';
   cloudProvider?: string;  // Proveedor cloud específico
   inputMode: InputMode;
   model: string;
@@ -452,7 +454,7 @@ export interface EvidenceManifest {
  */
 export interface AIProvider {
   readonly name: string;
-  readonly type: 'cloud' | 'local' | 'chrome';
+  readonly type: 'cloud' | 'local' | 'chrome' | 'ollama';
 
   /** Análisis streaming (Tab IA del Dashboard) — Mecanismos M1-M4 */
   analyzeStream(

@@ -3,10 +3,10 @@ import { normalizeAiProviderError } from '../services/providers/errors';
 import { AIConfig } from '../types';
 
 const baseConfig: AIConfig = {
-  model: 'Llama-3.2-3B-Instruct-q4f16_1-MLC',
+  model: 'qwen2.5:3b',
   temperature: 0.1,
   autoAnalyze: false,
-  providerType: 'local',
+  providerType: 'ollama',
 };
 
 describe('normalizeAiProviderError', () => {

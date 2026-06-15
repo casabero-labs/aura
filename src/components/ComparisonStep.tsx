@@ -104,7 +104,7 @@ const ComparisonStep: React.FC<ComparisonStepProps> = ({
     setIsRunning(true);
     try {
       const nextResults: BenchmarkResult[] = [];
-      const localConfig: AIConfig = { ...config, providerType: 'local', model: localModel, cloudProvider: undefined };
+      const localConfig: AIConfig = { ...config, providerType: 'webllm_experimental', model: localModel, cloudProvider: undefined };
       nextResults.push(await runBenchmarkForConfig(report, localConfig, 'smart_sample'));
 
       if (config.apiKey) {

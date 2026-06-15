@@ -1,0 +1,732 @@
+- generic [ref=e3]:
+  - navigation [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]: AURA
+      - generic [ref=e7]: AU
+    - generic [ref=e8]:
+      - button "Inicio" [ref=e9] [cursor=pointer]
+      - button "Resultados" [ref=e141] [cursor=pointer]
+      - button "Explorar" [ref=e142] [cursor=pointer]
+      - button "IA" [ref=e143] [cursor=pointer]
+      - button "Exportar" [ref=e144] [cursor=pointer]
+      - generic [ref=e10]: online
+      - button "Nuevo análisis" [ref=e145] [cursor=pointer]
+      - button "Centro de ayuda" [ref=e13] [cursor=pointer]:
+        - img [ref=e14]
+      - button "Cambiar tema" [ref=e17] [cursor=pointer]
+      - button "Ajustes" [ref=e19] [cursor=pointer]:
+        - img [ref=e20]
+  - main [ref=e23]:
+    - generic [ref=e25]:
+      - button "Subir CSV" [ref=e26] [cursor=pointer]:
+        - img [ref=e146]
+        - generic [ref=e31]: Subir CSV
+      - button "Diagnóstico" [ref=e33] [cursor=pointer]:
+        - img [ref=e148]
+        - generic [ref=e38]: Diagnóstico
+      - button "Explorar" [ref=e40] [cursor=pointer]:
+        - img [ref=e150]
+        - generic [ref=e44]: Explorar
+      - button "Análisis IA" [ref=e46] [cursor=pointer]:
+        - img [ref=e48]
+        - generic [ref=e56]: Análisis IA
+      - button "Revisar" [ref=e58] [cursor=pointer]:
+        - img [ref=e60]
+        - generic [ref=e64]: Revisar
+      - button "Mejorar" [ref=e66] [cursor=pointer]:
+        - img [ref=e68]
+        - generic [ref=e71]: Mejorar
+      - button "Exportar" [ref=e73] [cursor=pointer]:
+        - img [ref=e75]
+        - generic [ref=e78]: Exportar
+    - generic [ref=e79]:
+      - heading "Audita la calidad de tus datos." [level=1] [ref=e80]
+      - paragraph [ref=e81]: AURA detecta anomalías, interpreta con IA y genera reportes — todo en tu navegador.
+    - button "Seleccionar CSV Arrastra el archivo o haz clic para cargarlo. AURA procesa la fase determinista en el navegador." [active] [ref=e83] [cursor=pointer]:
+      - img [ref=e85]
+      - generic [ref=e89]:
+        - heading "Seleccionar CSV" [level=3] [ref=e90]
+        - paragraph [ref=e91]: Arrastra el archivo o haz clic para cargarlo. AURA procesa la fase determinista en el navegador.
+    - region "Bitacora de ejecucion" [ref=e92]:
+      - generic [ref=e93]:
+        - generic [ref=e97]: tail -f aura.pipeline.log
+        - code [ref=e98]: a4d4af3b
+      - generic [ref=e99]:
+        - generic [ref=e152]:
+          - generic [ref=e153]: 16:01:45
+          - generic [ref=e154]: →
+          - generic [ref=e155]: Cargando titanic.csv...
+        - generic [ref=e156]:
+          - generic [ref=e157]: 16:01:45
+          - generic [ref=e158]: →
+          - generic [ref=e159]: "csv.parse.start :: leyendo archivo en navegador"
+        - generic [ref=e160]:
+          - generic [ref=e161]: 16:01:45
+          - generic [ref=e162]: →
+          - generic [ref=e163]: "csv.parse.end :: 891 registros · 12 columnas · 10ms"
+        - generic [ref=e164]:
+          - generic [ref=e165]: 16:01:45
+          - generic [ref=e166]: →
+          - generic [ref=e167]: "audit.run.start :: fingerprint=a4d4af3b"
+        - generic [ref=e168]:
+          - generic [ref=e169]: 16:01:45
+          - generic [ref=e170]: →
+          - generic [ref=e171]: "audit.run.end :: score=70/100 · issues=6 · 9ms"
+    - generic [ref=e104]:
+      - generic [ref=e105]:
+        - paragraph [ref=e106]: registros
+        - paragraph [ref=e107]: "891"
+        - paragraph [ref=e108]: dataset activo
+      - generic [ref=e109]:
+        - paragraph [ref=e110]: anomalías
+        - paragraph [ref=e111]: "6"
+        - paragraph [ref=e112]: detectadas
+      - generic [ref=e113]:
+        - paragraph [ref=e114]: score
+        - paragraph [ref=e115]: 70%
+        - paragraph [ref=e116]: motor determinista
+    - generic [ref=e172]:
+      - generic [ref=e174]:
+        - paragraph [ref=e175]: resultados
+        - heading "Análisis completado." [level=2] [ref=e176]
+      - generic [ref=e177]:
+        - generic [ref=e178]:
+          - heading "70%" [level=2] [ref=e179]:
+            - text: "70"
+            - emphasis [ref=e180]: "%"
+          - paragraph [ref=e181]: Requiere limpieza antes de usar los datos.
+        - generic [ref=e182]:
+          - generic [ref=e184]:
+            - generic [ref=e185]: Integridad Estructural
+            - generic [ref=e186]: 88%
+          - generic [ref=e190]:
+            - generic [ref=e191]: Higiene Textual
+            - generic [ref=e192]: 97%
+          - generic [ref=e196]:
+            - generic [ref=e197]: Lógica de Negocio
+            - generic [ref=e198]: 85%
+          - generic [ref=e202]:
+            - generic [ref=e203]: Riesgo Semántico
+            - generic [ref=e204]: 100%
+      - region "Ejecucion en vivo del motor determinista" [ref=e207]:
+        - generic [ref=e208]:
+          - generic [ref=e209]:
+            - paragraph [ref=e210]: ejecucion en vivo
+            - heading "Proceso determinista observado de inicio a fin." [level=3] [ref=e211]
+          - code [ref=e212]: a4d4af3b
+        - generic [ref=e213]:
+          - generic [ref=e214]:
+            - img [ref=e215]
+            - generic [ref=e218]: parse
+            - strong [ref=e219]: 10ms
+          - generic [ref=e220]:
+            - img [ref=e221]
+            - generic [ref=e223]: audit
+            - strong [ref=e224]: 9ms
+          - generic [ref=e225]:
+            - img [ref=e226]
+            - generic [ref=e230]: filas
+            - strong [ref=e231]: "891"
+          - generic [ref=e232]:
+            - img [ref=e233]
+            - generic [ref=e242]: issues
+            - strong [ref=e243]: "6"
+        - generic "Log visible del motor determinista" [ref=e244]:
+          - generic [ref=e245]:
+            - generic [ref=e246]: tail -f aura.audit.log
+            - code [ref=e247]: closed
+          - log [ref=e248]:
+            - generic [ref=e249]:
+              - generic [ref=e250]: 16:01:45
+              - strong [ref=e251]: csv.parse.start
+              - generic [ref=e252]: 1ms
+              - code [ref=e253]: fileName=titanic.csv · fileSize=60302
+            - generic [ref=e254]:
+              - generic [ref=e255]: 16:01:45
+              - strong [ref=e256]: csv.parse.end
+              - generic [ref=e257]: 11ms
+              - code [ref=e258]: rows=891 · columns=12 · delimiter=, · truncated=false · durationMs=10
+            - generic [ref=e259]:
+              - generic [ref=e260]: 16:01:45
+              - strong [ref=e261]: audit.run.start
+              - generic [ref=e262]: 11ms
+              - code [ref=e263]: datasetFingerprint=a4d4af3b
+            - generic [ref=e264]:
+              - generic [ref=e265]: 16:01:45
+              - strong [ref=e266]: audit.run.end
+              - generic [ref=e267]: 20ms
+              - code [ref=e268]: durationMs=9 · score=70 · issues=6 · duplicateRows=0
+      - generic [ref=e269]:
+        - img [ref=e271]
+        - generic [ref=e273]:
+          - paragraph [ref=e274]: "Siguiente paso: interpreta con IA"
+          - paragraph [ref=e275]: El motor detectó 6 anomalías. La IA puede explicar el impacto y generar un script de limpieza.
+        - button "Ir a IA" [ref=e276] [cursor=pointer]:
+          - text: Ir a IA
+          - img [ref=e277]
+    - generic [ref=e279]:
+      - paragraph [ref=e280]: hallazgos
+      - heading "Anomalías detectadas." [level=2] [ref=e281]
+      - generic [ref=e282]:
+        - generic [ref=e283]:
+          - heading "Integridad y Estructura" [level=4] [ref=e284]:
+            - img [ref=e285]
+            - text: Integridad y Estructura
+          - generic [ref=e288]:
+            - generic [ref=e289]:
+              - img [ref=e291]
+              - generic [ref=e293]:
+                - generic [ref=e294]:
+                  - heading "Age Valores Nulos / Vacíos" [level=4] [ref=e295]:
+                    - generic [ref=e296]: Age
+                    - text: Valores Nulos / Vacíos
+                  - generic [ref=e297]: 177 registros
+                - paragraph [ref=e298]: "Advertencia: Faltan datos."
+            - generic [ref=e299]:
+              - img [ref=e301]
+              - generic [ref=e303]:
+                - generic [ref=e304]:
+                  - heading "Cabin Valores Nulos / Vacíos" [level=4] [ref=e305]:
+                    - generic [ref=e306]: Cabin
+                    - text: Valores Nulos / Vacíos
+                  - generic [ref=e307]: 687 registros
+                - paragraph [ref=e308]: "Crítico: 77.1% de datos faltantes."
+        - generic [ref=e309]:
+          - heading "Higiene de Texto" [level=4] [ref=e310]:
+            - img [ref=e311]
+            - text: Higiene de Texto
+          - generic [ref=e314]:
+            - img [ref=e316]
+            - generic [ref=e318]:
+              - generic [ref=e319]:
+                - heading "Name Espacios Fantasma (Trim)" [level=4] [ref=e320]:
+                  - generic [ref=e321]: Name
+                  - text: Espacios Fantasma (Trim)
+                - generic [ref=e322]: 2 registros
+              - paragraph [ref=e323]: Textos con espacios invisibles al inicio/final.
+              - generic [ref=e324]:
+                - generic [ref=e325]: "\"Hewlett, Mrs. (Mary D Kingcome\""
+                - generic [ref=e326]: "\"Daly, Mr. Peter Denis \""
+        - generic [ref=e327]:
+          - heading "Validez y Lógica de Negocio" [level=4] [ref=e328]:
+            - img [ref=e329]
+            - text: Validez y Lógica de Negocio
+          - generic [ref=e331]:
+            - generic [ref=e332]:
+              - img [ref=e334]
+              - generic [ref=e336]:
+                - generic [ref=e337]:
+                  - heading "SibSp Outliers Extremos (IQR)" [level=4] [ref=e338]:
+                    - generic [ref=e339]: SibSp
+                    - text: Outliers Extremos (IQR)
+                  - generic [ref=e340]: 12 registros
+                - paragraph [ref=e341]: Valores desviados > 3x del rango intercuartílico.
+                - generic [ref=e342]:
+                  - generic [ref=e343]: "\"5\""
+                  - generic [ref=e344]: "\"5\""
+                  - generic [ref=e345]: "\"8\""
+            - generic [ref=e346]:
+              - img [ref=e348]
+              - generic [ref=e350]:
+                - generic [ref=e351]:
+                  - heading "Ticket Outliers Extremos (IQR)" [level=4] [ref=e352]:
+                    - generic [ref=e353]: Ticket
+                    - text: Outliers Extremos (IQR)
+                  - generic [ref=e354]: 16 registros
+                - paragraph [ref=e355]: Valores desviados > 3x del rango intercuartílico.
+                - generic [ref=e356]:
+                  - generic [ref=e357]: "\"3101295\""
+                  - generic [ref=e358]: "\"3101281\""
+                  - generic [ref=e359]: "\"3101278\""
+            - generic [ref=e360]:
+              - img [ref=e362]
+              - generic [ref=e364]:
+                - generic [ref=e365]:
+                  - heading "Fare Outliers Extremos (IQR)" [level=4] [ref=e366]:
+                    - generic [ref=e367]: Fare
+                    - text: Outliers Extremos (IQR)
+                  - generic [ref=e368]: 53 registros
+                - paragraph [ref=e369]: Valores desviados > 3x del rango intercuartílico.
+                - generic [ref=e370]:
+                  - generic [ref=e371]: "\"263\""
+                  - generic [ref=e372]: "\"146.5208\""
+                  - generic [ref=e373]: "\"263\""
+    - generic [ref=e374]:
+      - paragraph [ref=e375]: perfil de columnas
+      - heading "Estructura observada." [level=2] [ref=e376]
+      - table [ref=e379]:
+        - rowgroup [ref=e380]:
+          - row "Columna Tipo de Dato Salud (Nulos/Únicos) Muestra Diagnóstico" [ref=e381]:
+            - columnheader "Columna" [ref=e382]
+            - columnheader "Tipo de Dato" [ref=e383]
+            - columnheader "Salud (Nulos/Únicos)" [ref=e384]
+            - columnheader "Muestra" [ref=e385]
+            - columnheader "Diagnóstico" [ref=e386]
+        - rowgroup [ref=e387]:
+          - row "PassengerId Numérico 0 Nulos 891 Únicos \"1\" \"2\" \"3\" Íntegro" [ref=e388]:
+            - cell "PassengerId" [ref=e389]:
+              - generic [ref=e391]: PassengerId
+            - cell "Numérico" [ref=e392]:
+              - generic [ref=e393]:
+                - img [ref=e394]
+                - generic [ref=e397]: Numérico
+            - cell "0 Nulos 891 Únicos" [ref=e398]:
+              - generic [ref=e400]:
+                - generic [ref=e401]: 0 Nulos
+                - generic [ref=e402]: 891 Únicos
+            - cell "\"1\" \"2\" \"3\"" [ref=e405]:
+              - generic [ref=e406]:
+                - 'generic "Frec: 1" [ref=e407]': "\"1\""
+                - 'generic "Frec: 1" [ref=e408]': "\"2\""
+                - 'generic "Frec: 1" [ref=e409]': "\"3\""
+            - cell "Íntegro" [ref=e410]:
+              - generic [ref=e412]:
+                - img [ref=e413]
+                - text: Íntegro
+          - row "Survived Numérico 0 Nulos 2 Únicos \"0\" \"1\" Íntegro" [ref=e416]:
+            - cell "Survived" [ref=e417]:
+              - generic [ref=e419]: Survived
+            - cell "Numérico" [ref=e420]:
+              - generic [ref=e421]:
+                - img [ref=e422]
+                - generic [ref=e425]: Numérico
+            - cell "0 Nulos 2 Únicos" [ref=e426]:
+              - generic [ref=e428]:
+                - generic [ref=e429]: 0 Nulos
+                - generic [ref=e430]: 2 Únicos
+            - cell "\"0\" \"1\"" [ref=e433]:
+              - generic [ref=e434]:
+                - 'generic "Frec: 549" [ref=e435]': "\"0\""
+                - 'generic "Frec: 342" [ref=e436]': "\"1\""
+            - cell "Íntegro" [ref=e437]:
+              - generic [ref=e439]:
+                - img [ref=e440]
+                - text: Íntegro
+          - row "Pclass Numérico 0 Nulos 3 Únicos \"3\" \"1\" \"2\" Íntegro" [ref=e443]:
+            - cell "Pclass" [ref=e444]:
+              - generic [ref=e446]: Pclass
+            - cell "Numérico" [ref=e447]:
+              - generic [ref=e448]:
+                - img [ref=e449]
+                - generic [ref=e452]: Numérico
+            - cell "0 Nulos 3 Únicos" [ref=e453]:
+              - generic [ref=e455]:
+                - generic [ref=e456]: 0 Nulos
+                - generic [ref=e457]: 3 Únicos
+            - cell "\"3\" \"1\" \"2\"" [ref=e460]:
+              - generic [ref=e461]:
+                - 'generic "Frec: 491" [ref=e462]': "\"3\""
+                - 'generic "Frec: 216" [ref=e463]': "\"1\""
+                - 'generic "Frec: 184" [ref=e464]': "\"2\""
+            - cell "Íntegro" [ref=e465]:
+              - generic [ref=e467]:
+                - img [ref=e468]
+                - text: Íntegro
+          - row "Name Requiere atención Texto 0 Nulos 891 Únicos \"Braund, Mr. Owen Harris\" \"Cumings, Mrs. John Bradley (Florence Briggs Thayer)\" \"Heikkinen, Miss. Laina\" Espacios Fantasma (Trim)" [ref=e471]:
+            - cell "Name Requiere atención" [ref=e472]:
+              - generic [ref=e473]:
+                - generic [ref=e474]: Name
+                - generic [ref=e475]:
+                  - img [ref=e476]
+                  - text: Requiere atención
+            - cell "Texto" [ref=e478]:
+              - generic [ref=e479]:
+                - img [ref=e480]
+                - generic [ref=e484]: Texto
+            - cell "0 Nulos 891 Únicos" [ref=e485]:
+              - generic [ref=e487]:
+                - generic [ref=e488]: 0 Nulos
+                - generic [ref=e489]: 891 Únicos
+            - cell "\"Braund, Mr. Owen Harris\" \"Cumings, Mrs. John Bradley (Florence Briggs Thayer)\" \"Heikkinen, Miss. Laina\"" [ref=e492]:
+              - generic [ref=e493]:
+                - 'generic "Frec: 1" [ref=e494]': "\"Braund, Mr. Owen Harris\""
+                - 'generic "Frec: 1" [ref=e495]': "\"Cumings, Mrs. John Bradley (Florence Briggs Thayer)\""
+                - 'generic "Frec: 1" [ref=e496]': "\"Heikkinen, Miss. Laina\""
+            - cell "Espacios Fantasma (Trim)" [ref=e497]:
+              - generic "Textos con espacios invisibles al inicio/final." [ref=e499]: Espacios Fantasma (Trim)
+          - row "Sex Texto 0 Nulos 2 Únicos \"male\" \"female\" Íntegro" [ref=e500]:
+            - cell "Sex" [ref=e501]:
+              - generic [ref=e503]: Sex
+            - cell "Texto" [ref=e504]:
+              - generic [ref=e505]:
+                - img [ref=e506]
+                - generic [ref=e510]: Texto
+            - cell "0 Nulos 2 Únicos" [ref=e511]:
+              - generic [ref=e513]:
+                - generic [ref=e514]: 0 Nulos
+                - generic [ref=e515]: 2 Únicos
+            - cell "\"male\" \"female\"" [ref=e518]:
+              - generic [ref=e519]:
+                - 'generic "Frec: 577" [ref=e520]': "\"male\""
+                - 'generic "Frec: 314" [ref=e521]': "\"female\""
+            - cell "Íntegro" [ref=e522]:
+              - generic [ref=e524]:
+                - img [ref=e525]
+                - text: Íntegro
+          - row "Age Requiere atención Numérico 177 Nulos 88 Únicos \"24\" \"22\" \"18\" Valores Nulos / Vacíos" [ref=e528]:
+            - cell "Age Requiere atención" [ref=e529]:
+              - generic [ref=e530]:
+                - generic [ref=e531]: Age
+                - generic [ref=e532]:
+                  - img [ref=e533]
+                  - text: Requiere atención
+            - cell "Numérico" [ref=e535]:
+              - generic [ref=e536]:
+                - img [ref=e537]
+                - generic [ref=e540]: Numérico
+            - cell "177 Nulos 88 Únicos" [ref=e541]:
+              - generic [ref=e543]:
+                - generic [ref=e544]: 177 Nulos
+                - generic [ref=e545]: 88 Únicos
+            - cell "\"24\" \"22\" \"18\"" [ref=e548]:
+              - generic [ref=e549]:
+                - 'generic "Frec: 30" [ref=e550]': "\"24\""
+                - 'generic "Frec: 27" [ref=e551]': "\"22\""
+                - 'generic "Frec: 26" [ref=e552]': "\"18\""
+            - cell "Valores Nulos / Vacíos" [ref=e553]:
+              - 'generic "Advertencia: Faltan datos." [ref=e555]': Valores Nulos / Vacíos
+          - row "SibSp Requiere atención Numérico 0 Nulos 7 Únicos \"0\" \"1\" \"2\" Outliers Extremos (IQR)" [ref=e556]:
+            - cell "SibSp Requiere atención" [ref=e557]:
+              - generic [ref=e558]:
+                - generic [ref=e559]: SibSp
+                - generic [ref=e560]:
+                  - img [ref=e561]
+                  - text: Requiere atención
+            - cell "Numérico" [ref=e563]:
+              - generic [ref=e564]:
+                - img [ref=e565]
+                - generic [ref=e568]: Numérico
+            - cell "0 Nulos 7 Únicos" [ref=e569]:
+              - generic [ref=e571]:
+                - generic [ref=e572]: 0 Nulos
+                - generic [ref=e573]: 7 Únicos
+            - cell "\"0\" \"1\" \"2\"" [ref=e576]:
+              - generic [ref=e577]:
+                - 'generic "Frec: 608" [ref=e578]': "\"0\""
+                - 'generic "Frec: 209" [ref=e579]': "\"1\""
+                - 'generic "Frec: 28" [ref=e580]': "\"2\""
+            - cell "Outliers Extremos (IQR)" [ref=e581]:
+              - generic "Valores desviados > 3x del rango intercuartílico." [ref=e583]: Outliers Extremos (IQR)
+          - row "Parch Numérico 0 Nulos 7 Únicos \"0\" \"1\" \"2\" Íntegro" [ref=e584]:
+            - cell "Parch" [ref=e585]:
+              - generic [ref=e587]: Parch
+            - cell "Numérico" [ref=e588]:
+              - generic [ref=e589]:
+                - img [ref=e590]
+                - generic [ref=e593]: Numérico
+            - cell "0 Nulos 7 Únicos" [ref=e594]:
+              - generic [ref=e596]:
+                - generic [ref=e597]: 0 Nulos
+                - generic [ref=e598]: 7 Únicos
+            - cell "\"0\" \"1\" \"2\"" [ref=e601]:
+              - generic [ref=e602]:
+                - 'generic "Frec: 678" [ref=e603]': "\"0\""
+                - 'generic "Frec: 118" [ref=e604]': "\"1\""
+                - 'generic "Frec: 80" [ref=e605]': "\"2\""
+            - cell "Íntegro" [ref=e606]:
+              - generic [ref=e608]:
+                - img [ref=e609]
+                - text: Íntegro
+          - row "Ticket Requiere atención Mixto 0 Nulos 681 Únicos \"347082\" \"1601\" \"CA. 2343\" Outliers Extremos (IQR)" [ref=e612]:
+            - cell "Ticket Requiere atención" [ref=e613]:
+              - generic [ref=e614]:
+                - generic [ref=e615]: Ticket
+                - generic [ref=e616]:
+                  - img [ref=e617]
+                  - text: Requiere atención
+            - cell "Mixto" [ref=e619]:
+              - generic [ref=e620]:
+                - img [ref=e621]
+                - generic [ref=e625]: Mixto
+            - cell "0 Nulos 681 Únicos" [ref=e626]:
+              - generic [ref=e628]:
+                - generic [ref=e629]: 0 Nulos
+                - generic [ref=e630]: 681 Únicos
+            - cell "\"347082\" \"1601\" \"CA. 2343\"" [ref=e633]:
+              - generic [ref=e634]:
+                - 'generic "Frec: 7" [ref=e635]': "\"347082\""
+                - 'generic "Frec: 7" [ref=e636]': "\"1601\""
+                - 'generic "Frec: 7" [ref=e637]': "\"CA. 2343\""
+            - cell "Outliers Extremos (IQR)" [ref=e638]:
+              - generic "Valores desviados > 3x del rango intercuartílico." [ref=e640]: Outliers Extremos (IQR)
+          - row "Fare Requiere atención Numérico 0 Nulos 248 Únicos \"8.05\" \"13\" \"7.8958\" Outliers Extremos (IQR)" [ref=e641]:
+            - cell "Fare Requiere atención" [ref=e642]:
+              - generic [ref=e643]:
+                - generic [ref=e644]: Fare
+                - generic [ref=e645]:
+                  - img [ref=e646]
+                  - text: Requiere atención
+            - cell "Numérico" [ref=e648]:
+              - generic [ref=e649]:
+                - img [ref=e650]
+                - generic [ref=e653]: Numérico
+            - cell "0 Nulos 248 Únicos" [ref=e654]:
+              - generic [ref=e656]:
+                - generic [ref=e657]: 0 Nulos
+                - generic [ref=e658]: 248 Únicos
+            - cell "\"8.05\" \"13\" \"7.8958\"" [ref=e661]:
+              - generic [ref=e662]:
+                - 'generic "Frec: 43" [ref=e663]': "\"8.05\""
+                - 'generic "Frec: 42" [ref=e664]': "\"13\""
+                - 'generic "Frec: 38" [ref=e665]': "\"7.8958\""
+            - cell "Outliers Extremos (IQR)" [ref=e666]:
+              - generic "Valores desviados > 3x del rango intercuartílico." [ref=e668]: Outliers Extremos (IQR)
+          - row "Cabin Requiere atención Texto 687 Nulos 147 Únicos \"G6\" \"C23 C25 C27\" \"B96 B98\" Valores Nulos / Vacíos" [ref=e669]:
+            - cell "Cabin Requiere atención" [ref=e670]:
+              - generic [ref=e671]:
+                - generic [ref=e672]: Cabin
+                - generic [ref=e673]:
+                  - img [ref=e674]
+                  - text: Requiere atención
+            - cell "Texto" [ref=e676]:
+              - generic [ref=e677]:
+                - img [ref=e678]
+                - generic [ref=e682]: Texto
+            - cell "687 Nulos 147 Únicos" [ref=e683]:
+              - generic [ref=e685]:
+                - generic [ref=e686]: 687 Nulos
+                - generic [ref=e687]: 147 Únicos
+            - cell "\"G6\" \"C23 C25 C27\" \"B96 B98\"" [ref=e690]:
+              - generic [ref=e691]:
+                - 'generic "Frec: 4" [ref=e692]': "\"G6\""
+                - 'generic "Frec: 4" [ref=e693]': "\"C23 C25 C27\""
+                - 'generic "Frec: 4" [ref=e694]': "\"B96 B98\""
+            - cell "Valores Nulos / Vacíos" [ref=e695]:
+              - 'generic "Crítico: 77.1% de datos faltantes." [ref=e697]':
+                - img [ref=e698]
+                - text: Valores Nulos / Vacíos
+          - row "Embarked Texto 2 Nulos 3 Únicos \"S\" \"C\" \"Q\" Íntegro" [ref=e700]:
+            - cell "Embarked" [ref=e701]:
+              - generic [ref=e703]: Embarked
+            - cell "Texto" [ref=e704]:
+              - generic [ref=e705]:
+                - img [ref=e706]
+                - generic [ref=e710]: Texto
+            - cell "2 Nulos 3 Únicos" [ref=e711]:
+              - generic [ref=e713]:
+                - generic [ref=e714]: 2 Nulos
+                - generic [ref=e715]: 3 Únicos
+            - cell "\"S\" \"C\" \"Q\"" [ref=e718]:
+              - generic [ref=e719]:
+                - 'generic "Frec: 644" [ref=e720]': "\"S\""
+                - 'generic "Frec: 168" [ref=e721]': "\"C\""
+                - 'generic "Frec: 77" [ref=e722]': "\"Q\""
+            - cell "Íntegro" [ref=e723]:
+              - generic [ref=e725]:
+                - img [ref=e726]
+                - text: Íntegro
+    - generic [ref=e729]:
+      - generic [ref=e730]:
+        - generic [ref=e731]:
+          - paragraph [ref=e732]: consulta IA
+          - heading "Interpretación LLM de hallazgos." [level=2] [ref=e733]
+        - generic [ref=e734]:
+          - button "Analizar con LLM local" [ref=e735] [cursor=pointer]:
+            - img [ref=e736]
+            - text: Analizar con LLM local
+          - button "Generar script" [ref=e738] [cursor=pointer]:
+            - img [ref=e739]
+            - text: Generar script
+      - complementary [ref=e746]:
+        - generic [ref=e747]:
+          - img [ref=e749]
+          - generic [ref=e753]: Evidencia enviada
+          - generic [ref=e754]: 6 issues
+        - generic [ref=e755]:
+          - img [ref=e757]
+          - generic [ref=e765]: Llama-3.2-3B-Instruct-q4f16_1-MLC
+          - generic [ref=e766]: local
+        - generic [ref=e767]:
+          - img [ref=e769]
+          - generic [ref=e772]: Última latencia
+          - generic [ref=e773]: "-"
+        - generic [ref=e774]:
+          - img [ref=e776]
+          - generic [ref=e779]: Salida
+          - generic [ref=e780]: interpretativa
+    - region "Local vs Cloud" [ref=e782]:
+      - generic [ref=e783]:
+        - generic [ref=e784]:
+          - paragraph [ref=e785]: Benchmark Experimental
+          - heading "Local vs Cloud" [level=2] [ref=e786]
+        - paragraph [ref=e787]: Ejecuta el mismo reporte determinista contra WebLLM local y Gemini cloud, comparando smart sample contra prompt libre para medir señales de alucinación.
+      - generic [ref=e788]:
+        - generic [ref=e789]:
+          - generic [ref=e790]:
+            - img [ref=e792]
+            - generic [ref=e795]:
+              - heading "Capa 0 Local" [level=3] [ref=e796]
+              - paragraph [ref=e797]: WebLLM/WebGPU como proveedor principal.
+          - generic [ref=e798]:
+            - generic [ref=e799]: Modelo
+            - combobox [ref=e800]:
+              - option "Llama 3.2 3B (4-bit)" [selected]
+              - option "Llama 3.2 1B (4-bit)"
+              - option "Qwen 2.5 3B (4-bit)"
+              - option "Qwen 2.5 1.5B (4-bit)"
+              - option "Qwen 2.5 0.5B (4-bit)"
+              - option "Phi-3.5 Mini (4-bit)"
+              - option "Gemma 2 2B (4-bit)"
+          - generic [ref=e801]:
+            - generic [ref=e802]: Ultima latencia
+            - strong [ref=e803]: "-"
+          - button "Ejecutar Local" [ref=e804] [cursor=pointer]:
+            - img [ref=e805]
+            - text: Ejecutar Local
+        - generic [ref=e807]:
+          - generic [ref=e808]:
+            - img [ref=e810]
+            - generic [ref=e812]:
+              - heading "Contraste Cloud" [level=3] [ref=e813]
+              - paragraph [ref=e814]: Gemini se usa como referencia secundaria.
+          - generic [ref=e815]:
+            - generic [ref=e816]: Modelo
+            - combobox [ref=e817]:
+              - option "Gemini 2.0 Flash" [selected]
+              - option "Gemini 1.5 Pro"
+              - option "Gemini 1.5 Flash"
+              - option "Llama 3.3 70B"
+              - option "Mixtral 8x7B"
+              - option "DeepSeek V3"
+              - option "DeepSeek R1"
+              - option "OpenRouter Auto"
+              - option "MiniMax M2.7"
+          - generic [ref=e818]:
+            - generic [ref=e819]: Ultima latencia
+            - strong [ref=e820]: "-"
+          - button "Ejecutar Cloud" [ref=e821] [cursor=pointer]:
+            - img [ref=e822]
+            - text: Ejecutar Cloud
+        - generic [ref=e824]:
+          - generic [ref=e825]:
+            - img [ref=e827]
+            - generic [ref=e830]:
+              - heading "Chrome AI" [level=3] [ref=e831]
+              - paragraph [ref=e832]: Gemini Nano integrado en el navegador.
+          - generic [ref=e833]:
+            - generic [ref=e834]: Modelo
+            - strong [ref=e835]: Gemini Nano
+          - generic [ref=e836]:
+            - generic [ref=e837]: Ultima latencia
+            - strong [ref=e838]: "-"
+          - button "Ejecutar Chrome AI" [ref=e839] [cursor=pointer]:
+            - img [ref=e840]
+            - text: Ejecutar Chrome AI
+        - generic [ref=e842]:
+          - generic [ref=e843]:
+            - img [ref=e845]
+            - generic [ref=e848]:
+              - heading "Suite Comparativa" [level=3] [ref=e849]
+              - paragraph [ref=e850]: Dos infraestructuras y dos modos de entrada.
+          - generic [ref=e851]:
+            - generic [ref=e852]: Banco de modelos
+            - strong [ref=e853]: 7 locales · 9 cloud · 1 Chrome
+          - generic [ref=e854]:
+            - generic [ref=e855]: Base factual
+            - strong [ref=e856]: 6 hallazgos · 70/100
+          - button "Ejecutar Comparativo" [ref=e857] [cursor=pointer]:
+            - img [ref=e858]
+            - text: Ejecutar Comparativo
+          - button "Probar todos los LLM" [ref=e860] [cursor=pointer]:
+            - img [ref=e861]
+            - text: Probar todos los LLM
+          - button "Simular mejora" [disabled] [ref=e865]:
+            - img [ref=e866]
+            - text: Simular mejora
+      - generic "Log visible del benchmark" [ref=e869]:
+        - generic [ref=e870]:
+          - generic [ref=e871]: tail -f aura.benchmark.log
+          - code [ref=e872]: a4d4af3b
+        - log [ref=e873]:
+          - generic [ref=e874]:
+            - generic [ref=e875]: "--:--:--"
+            - strong [ref=e876]: benchmark.idle
+            - generic [ref=e877]: 0ms
+            - code [ref=e878]: Esperando ejecucion local, cloud o comparativa.
+      - table [ref=e880]:
+        - rowgroup [ref=e881]:
+          - row "Proveedor Entrada Estado Latencia Activo Tokens/s JSON Script HITL Evidencia Alucinación columnas" [ref=e882]:
+            - columnheader "Proveedor" [ref=e883]
+            - columnheader "Entrada" [ref=e884]
+            - columnheader "Estado" [ref=e885]
+            - columnheader "Latencia" [ref=e886]
+            - columnheader "Activo" [ref=e887]
+            - columnheader "Tokens/s" [ref=e888]
+            - columnheader "JSON" [ref=e889]
+            - columnheader "Script HITL" [ref=e890]
+            - columnheader "Evidencia" [ref=e891]
+            - columnheader "Alucinación columnas" [ref=e892]
+        - rowgroup [ref=e893]:
+          - row "Sin ejecuciones. Corre primero el benchmark local, cloud o comparativo." [ref=e894]:
+            - cell "Sin ejecuciones. Corre primero el benchmark local, cloud o comparativo." [ref=e895]
+    - generic [ref=e897]:
+      - heading "Diseñador de Experimentos" [level=2] [ref=e899]
+      - generic [ref=e900]:
+        - heading "Configuraciones" [level=3] [ref=e901]
+        - table [ref=e902]:
+          - rowgroup [ref=e903]:
+            - row "Proveedor Modelo Temperatura Input Mode Acción" [ref=e904]:
+              - columnheader "Proveedor" [ref=e905]
+              - columnheader "Modelo" [ref=e906]
+              - columnheader "Temperatura" [ref=e907]
+              - columnheader "Input Mode" [ref=e908]
+              - columnheader "Acción" [ref=e909]
+          - rowgroup [ref=e910]:
+            - row "Local Llama 3.2 3B (4-bit) 0.1 0.1 smart_sample ✕" [ref=e911]:
+              - cell "Local" [ref=e912]:
+                - combobox [ref=e913] [cursor=pointer]:
+                  - option "Cloud"
+                  - option "Local" [selected]
+              - cell "Llama 3.2 3B (4-bit)" [ref=e914]:
+                - combobox [ref=e915] [cursor=pointer]:
+                  - option "Gemini 2.0 Flash"
+                  - option "Gemini 1.5 Pro"
+                  - option "Gemini 1.5 Flash"
+                  - option "Llama 3.3 70B"
+                  - option "Mixtral 8x7B"
+                  - option "DeepSeek V3"
+                  - option "DeepSeek R1"
+                  - option "OpenRouter Auto"
+                  - option "MiniMax M2.7"
+                  - option "Llama 3.2 3B (4-bit)" [selected]
+                  - option "Llama 3.2 1B (4-bit)"
+                  - option "Qwen 2.5 3B (4-bit)"
+                  - option "Qwen 2.5 1.5B (4-bit)"
+                  - option "Qwen 2.5 0.5B (4-bit)"
+                  - option "Phi-3.5 Mini (4-bit)"
+                  - option "Gemma 2 2B (4-bit)"
+              - cell "0.1 0.1" [ref=e916]:
+                - generic [ref=e917]:
+                  - slider [ref=e918] [cursor=pointer]: "0.1"
+                  - generic [ref=e919]: "0.1"
+              - cell "smart_sample" [ref=e920]:
+                - combobox [ref=e921] [cursor=pointer]:
+                  - option "smart_sample" [selected]
+                  - option "prompt_libre"
+              - cell "✕" [ref=e922]:
+                - button "✕" [disabled] [ref=e923]
+        - button "+ Agregar fila" [ref=e924] [cursor=pointer]
+      - button "▶ RUN ALL" [ref=e926] [cursor=pointer]
+    - generic [ref=e927]:
+      - paragraph [ref=e928]: Informe y evidencia listos para llevar.
+      - paragraph [ref=e929]: Exporta el diagnóstico determinista, la interpretación y los artefactos aprobados.
+      - generic [ref=e930]:
+        - button "Exportar reporte" [ref=e931] [cursor=pointer]:
+          - img [ref=e932]
+          - text: Exportar reporte
+        - button "JSON audit" [ref=e935] [cursor=pointer]:
+          - img [ref=e936]
+          - text: JSON audit
+        - button "CSV issues" [ref=e941] [cursor=pointer]:
+          - img [ref=e942]
+          - text: CSV issues
+        - button "Script aprobado" [disabled] [ref=e945]:
+          - img [ref=e946]
+          - text: Script aprobado
+      - generic [ref=e951]:
+        - generic [ref=e952]: críticos 1
+        - generic [ref=e953]: advertencias 4
+        - generic [ref=e954]: script pendiente de aprobación
+  - contentinfo [ref=e138]:
+    - generic [ref=e139]: AURA
+    - generic [ref=e140]: casabero · tfm · 2026
