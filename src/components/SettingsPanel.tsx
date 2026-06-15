@@ -229,7 +229,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
         });
     };
 
-    const recommendedProvider = ollamaConnected ? 'ollama' : chromeAvailability === 'available' ? 'chrome' : 'cloud';
+    const recommendedProvider = ollamaConnected ? 'ollama' : chromeDiagnostic?.status === 'available' ? 'chrome' : 'cloud';
 
     const ollamaBaseUrl = localConfig.ollamaBaseUrl || 'http://localhost:11434';
 
