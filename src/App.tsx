@@ -5,6 +5,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import AuditLogViewer from './components/AuditLogViewer';
 import BenchmarkLab from './components/BenchmarkLab';
 import SettingsPanel from './components/SettingsPanel';
+import HelpCenter from './components/HelpCenter';
 import MainPipeline, { PipelineData } from './components/MainPipeline';
 import { loadFromApi, syncToApi } from './services/api';
 import { createAIProvider } from './services/aiProvider';
@@ -258,47 +259,14 @@ const App: React.FC = () => {
     <ErrorBoundary><div className="aura-system">
       {showAuditLog && <AuditLogViewer onClose={() => setShowAuditLog(false)} />}
 
-      {/* Settings Modal */}
+      {/* Settings — full workspace when active */}
       {showSettings && (
         <SettingsPanel config={aiConfig} onSave={setAiConfig} onClose={() => setShowSettings(false)} />
       )}
 
-      {/* Help Modal */}
+      {/* Help — full workspace when active */}
       {showHelp && (
-        <div className="help-backdrop" role="dialog" aria-modal="true" aria-labelledby="help-title" onClick={() => setShowHelp(false)}>
-          <section className="help-panel" onClick={(e) => e.stopPropagation()}>
-            <div className="panel-line">
-              <p className="sec-eye">centro de ayuda</p>
-              <button className="icon-btn" onClick={() => setShowHelp(false)} aria-label="Cerrar ayuda">×</button>
-            </div>
-            <div className="help-sections">
-              <details className="help-section" open>
-                <summary className="help-summary">Cómo usar AURA</summary>
-                <ol className="help-steps">
-                  <li><strong>Carga un CSV.</strong> El archivo se procesa localmente en el navegador.</li>
-                  <li><strong>Perfila el dataset.</strong> Revisa estructura, columnas, estadística descriptiva y reglas activadas.</li>
-                  <li><strong>Genera diagnóstico.</strong> Interpreta causas probables a partir de los hallazgos estructurados.</li>
-                  <li><strong>Genera y revisa el script.</strong> Valida columnas, operaciones y trazabilidad antes de aprobar.</li>
-                  <li><strong>Exporta evidencia.</strong> Descarga reportes y artefactos trazables.</li>
-                </ol>
-              </details>
-              <details className="help-section">
-                <summary className="help-summary">Modelos locales vs cloud</summary>
-                <div className="help-text">
-                  <p><strong>Local (WebGPU):</strong> El modelo se descarga en tu navegador. Sin datos salen de tu dispositivo.</p>
-                  <p><strong>Cloud:</strong> Usa APIs de Google, Groq, DeepSeek u otros. Mayor capacidad pero los datos viajan al proveedor.</p>
-                </div>
-              </details>
-              <details className="help-section">
-                <summary className="help-summary">Scores y anomalías</summary>
-                <div className="help-text">
-                  <p><strong>Score (0-100):</strong> &gt;80 = dataset confiable, &lt;80 = requiere limpieza.</p>
-                  <p><strong>CRITICAL:</strong> bloqueante. <strong>WARNING:</strong> requiere revisión. <strong>INFO:</strong> sugerencia.</p>
-                </div>
-              </details>
-            </div>
-          </section>
-        </div>
+        <HelpCenter onClose={() => setShowHelp(false)} />
       )}
 
       {/* Navigation */}
@@ -412,8 +380,8 @@ const App: React.FC = () => {
         </main>
       ))}
 
-      {/* Main Content */}
-      <main className="sys-main" style={{ display: showLab ? 'none' : undefined }}>
+      {/* Main Content — only show when not in settings, help, or lab */}
+      <main className="sys-main" style={{ display: showLab || showSettings || showHelp ? 'none' : undefined }}>
         {/* Hero */}
         <section className="hero" id="sistema">
           <h1 className="hero-sub">
@@ -612,7 +580,7 @@ const App: React.FC = () => {
       </main>
 
       {/* Footer */}
-      <footer className="sys-footer" style={{ display: showLab ? 'none' : undefined }}>
+      <footer className="sys-footer" style={{ display: showLab || showSettings || showHelp ? 'none' : undefined }}>
         <span className="footer-brand">AURA</span>
         <div className="footer-links">
           <button className="footer-link" onClick={() => setShowAuditLog(true)}>Trazabilidad</button>

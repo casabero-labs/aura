@@ -14,7 +14,7 @@ import type { OpenAIProvider } from './providers/openaiProvider';
 import { CLOUD_MODELS } from './modelRegistry';
 
 export { AVAILABLE_MODELS, LOCAL_MODELS, CLOUD_MODELS, CHROME_MODELS } from './modelRegistry';
-export { checkModelDownloaded, deleteDownloadedModel, getDownloadedModels } from './modelManager';
+export { checkModelDownloaded, deleteDownloadedModel, getDownloadedModels, getLocalModelStatus, markPreloadVerified, clearPreloadVerification } from './modelManager';
 
 class LazyWebLLMProvider implements AIProvider {
   readonly name = 'WebLLM';

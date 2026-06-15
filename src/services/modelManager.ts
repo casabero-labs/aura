@@ -3,6 +3,7 @@
  * WebLLM stores models in IndexedDB (model weights) and Cache API (compiled artifacts).
  */
 
+import { LocalModelStatus } from '../types';
 import { LOCAL_MODELS } from './modelRegistry';
 
 export interface DownloadedModelInfo {
@@ -48,6 +49,94 @@ export const checkModelDownloaded = async (modelId: string): Promise<boolean> =>
   }
 
   return false;
+};
+
+/**
+ * Robust local model status check.
+ * Only preloadModel() completion marks ready with high confidence.
+ * Cache API alone can only mark partial, not ready.
+ * localStorage state is not treated as authoritative.
+ */
+export const getLocalModelStatus = async (modelId: string): Promise<LocalModelStatus> => {
+  const preloadKey = `aura_preload_verified_${modelId}`;
+  const preloadVerified = localStorage.getItem(preloadKey) === 'true';
+
+  if (preloadVerified) {
+    const dbOk = await hasIndexedDBModel(modelId);
+    if (dbOk) {
+      return {
+        status: 'ready',
+        confidence: 'high',
+        source: 'preload_verified',
+        message: 'Modelo verificado y listo para usar.',
+      };
+    }
+    localStorage.removeItem(preloadKey);
+  }
+
+  try {
+    const indexedDbHit = typeof indexedDB !== 'undefined' && await hasIndexedDBModel(modelId);
+    if (indexedDbHit) {
+      return {
+        status: 'partial',
+        confidence: 'medium',
+        source: 'indexeddb',
+        message: 'Detectado en caché pero no verificado. Haz clic en Verificar o Descargar.',
+      };
+    }
+  } catch {
+    // Fall through
+  }
+
+  try {
+    const cacheHit = typeof caches !== 'undefined' && await hasCacheModel(modelId);
+    if (cacheHit) {
+      return {
+        status: 'partial',
+        confidence: 'low',
+        source: 'cache_api',
+        message: 'Restos detectados en Cache API. Estado no fiable. Descarga nuevamente.',
+      };
+    }
+  } catch {
+    // Fall through
+  }
+
+  return {
+    status: 'not_downloaded',
+    confidence: 'high',
+    source: 'unknown',
+    message: 'Modelo no descargado.',
+  };
+};
+
+const hasIndexedDBModel = async (modelId: string): Promise<boolean> => {
+  const db = await openModelDB();
+  const tx = db.transaction('models', 'readonly');
+  const store = tx.objectStore('models');
+  return new Promise((resolve) => {
+    const request = store.getKey(modelId);
+    request.onsuccess = () => resolve(request.result !== undefined);
+    request.onerror = () => resolve(false);
+  });
+};
+
+const hasCacheModel = async (modelId: string): Promise<boolean> => {
+  const cacheNames = await caches.keys();
+  for (const cacheName of cacheNames) {
+    const cache = await caches.open(cacheName);
+    const keys = await cache.keys();
+    if (keys.some((request) => request.url.includes(modelId))) return true;
+  }
+  return false;
+};
+
+export const markPreloadVerified = (modelId: string) => {
+  localStorage.setItem(`aura_preload_verified_${modelId}`, 'true');
+};
+
+export const clearPreloadVerification = (modelId: string) => {
+  localStorage.removeItem(`aura_preload_verified_${modelId}`);
 };
 
 /**

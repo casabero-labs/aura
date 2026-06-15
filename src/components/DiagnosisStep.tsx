@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Brain, Database, Play, FlaskConical, Lock, Globe, ChevronDown, ChevronRight, FileCode2, Trash2, HardDrive, X, AlertTriangle, ShieldAlert, ListChecks, FileJson, FileText, Settings } from 'lucide-react';
+import { Brain, Database, Play, FlaskConical, Lock, Globe, ChevronDown, ChevronRight, FileCode2, Trash2, HardDrive, X, AlertTriangle, ShieldAlert, ListChecks, FileJson, FileText, Settings, Activity, CheckCircle, Circle, Clock, AlertCircle } from 'lucide-react';
 import GeminiAdvisor from './GeminiAdvisor';
-import { AIConfig, AIProvider, AuditReport, AuditExecutionEvidence, ProviderMetrics } from '../types';
+import { AIConfig, AIProvider, AuditReport, AuditExecutionEvidence, ProviderMetrics, LocalModelStatus, DiagnosisEvent } from '../types';
 import { buildSmartSample, buildAnalysisPrompt } from '../services/providers/prompts';
-import { AVAILABLE_MODELS, LOCAL_MODELS, checkModelDownloaded, deleteDownloadedModel } from '../services/aiProvider';
+import { AVAILABLE_MODELS, LOCAL_MODELS, getLocalModelStatus, markPreloadVerified, clearPreloadVerification, deleteDownloadedModel } from '../services/aiProvider';
 import { recordLlmCall, computePromptHash, computeInputHash } from '../services/llmAuditLog';
 import { normalizeAiProviderError, NormalizedProviderError } from '../services/providers/errors';
 
@@ -76,35 +76,52 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
   const [providerAvailable, setProviderAvailable] = useState<boolean | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
   const [showEvidence, setShowEvidence] = useState(false);
-  const [downloadedModels, setDownloadedModels] = useState<Set<string>>(new Set());
   const [deletingModel, setDeletingModel] = useState<string | null>(null);
+  const [currentModelStatus, setCurrentModelStatus] = useState<LocalModelStatus | null>(null);
+  const [isCheckingModel, setIsCheckingModel] = useState(false);
+  const [modelStatuses, setModelStatuses] = useState<Record<string, LocalModelStatus>>({});
+  const [diagnosisEvents, setDiagnosisEvents] = useState<DiagnosisEvent[]>([]);
+  const [showActivityConsole, setShowActivityConsole] = useState(false);
+
+  const pushEvent = useCallback((level: DiagnosisEvent['level'], message: string) => {
+    const event: DiagnosisEvent = {
+      timestamp: new Date().toISOString(),
+      level,
+      message,
+    };
+    setDiagnosisEvents(prev => [...prev, event]);
+  }, []);
+
+  const checkCurrentModelStatus = useCallback(async (modelId: string) => {
+    if (aiConfig.providerType !== 'local') {
+      setCurrentModelStatus(null);
+      return;
+    }
+    setIsCheckingModel(true);
+    const status = await getLocalModelStatus(modelId);
+    setCurrentModelStatus(status);
+    setModelStatuses(prev => ({ ...prev, [modelId]: status }));
+    setIsCheckingModel(false);
+  }, [aiConfig.providerType]);
 
   useEffect(() => {
-    if (aiConfig.providerType === 'local') {
-      const checkDownloads = async () => {
-        const downloaded = new Set<string>(
-          Object.entries(aiConfig.modelDownloadState || {})
-            .filter(([, state]) => state.status === 'ready')
-            .map(([modelId]) => modelId),
-        );
-        for (const model of LOCAL_MODELS) {
-          if (await checkModelDownloaded(model.id)) {
-            downloaded.add(model.id);
-          }
-        }
-        setDownloadedModels(downloaded);
-      };
-      checkDownloads();
-    }
-  }, [aiConfig.providerType, aiConfig.modelDownloadState]);
+    checkCurrentModelStatus(aiConfig.model);
+  }, [aiConfig.model, aiConfig.providerType, checkCurrentModelStatus]);
 
   const handleDeleteModel = async (modelId: string) => {
     setDeletingModel(modelId);
     const success = await deleteDownloadedModel(modelId);
     if (success) {
-      setDownloadedModels(prev => {
-        const next = new Set(prev);
-        next.delete(modelId);
+      clearPreloadVerification(modelId);
+      setCurrentModelStatus({
+        status: 'not_downloaded',
+        confidence: 'high',
+        source: 'unknown',
+        message: 'Modelo eliminado.',
+      });
+      setModelStatuses(prev => {
+        const next = { ...prev };
+        delete next[modelId];
         return next;
       });
     }
@@ -225,7 +242,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
           return true;
         });
     const firstModel = type === 'local'
-      ? models.find((model) => model.id === aiConfig.model) || models.find((model) => downloadedModels.has(model.id)) || models[0]
+      ? models.find((model) => model.id === aiConfig.model) || models[0]
       : models[0];
     onAiConfigChange({
       ...aiConfig,
@@ -261,22 +278,46 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
     setIsLoading(true);
     setError(null);
     setDraftAnalysis('');
+    setDiagnosisEvents([]);
+    setShowActivityConsole(true);
     let finalText = '';
 
     const prompt = diagnosisPrompt;
     const promptHash = computePromptHash(prompt);
     const inputHash = computeInputHash(report);
 
+    pushEvent('info', 'AURA está preparando la evidencia estructurada.');
     onLog?.('diagnosis', `Iniciando diagnóstico con ${aiConfig.model} (${aiConfig.providerType})`);
 
     try {
+      if (aiConfig.providerType === 'local') {
+        pushEvent('info', 'Verificando proveedor local (WebGPU)...');
+      } else {
+        pushEvent('info', `Verificando conexión con proveedor cloud (${aiConfig.cloudProvider || 'API'})...`);
+      }
+
+      pushEvent('info', 'Enviando paquete estructurado al modelo.');
+      pushEvent('info', 'Esperando respuesta...');
+
       const { text, metrics } = await aiProvider.generateText(prompt);
       finalText = text;
       setDraftAnalysis(text);
       setLastMetrics(metrics);
       onMetrics?.(metrics);
       onAnalysisComplete(finalText);
+
+      pushEvent('success', `Diagnóstico completado · ${metrics.tokensGenerated} tokens · ${(metrics.latencyMs / 1000).toFixed(1)}s`);
       onLog?.('diagnosis', `Diagnóstico completado · ${metrics.tokensGenerated} tokens · ${metrics.latencyMs}ms`);
+
+      if (aiConfig.providerType === 'local') {
+        markPreloadVerified(aiConfig.model);
+        setCurrentModelStatus({
+          status: 'ready',
+          confidence: 'high',
+          source: 'preload_verified',
+          message: 'Modelo local verificado tras ejecución exitosa.',
+        });
+      }
 
       recordLlmCall({
         callType: 'diagnosis',
@@ -302,6 +343,8 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
       const normalized = normalizeAiProviderError(err, aiConfig);
       setError(normalized.message);
       setNormalizedError(normalized);
+      pushEvent('error', `Diagnóstico fallido: ${normalized.title}`);
+      pushEvent('warning', 'Puedes continuar con respaldo determinista si el flujo falla.');
       onLog?.('diagnosis', `Error: ${normalized.title} - ${normalized.message}`);
 
       recordLlmCall({
@@ -328,7 +371,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [aiConfig.model, aiConfig.providerType, aiConfig.cloudProvider, aiConfig.temperature, aiProvider, isLoading, onAnalysisComplete, onLog, onMetrics, report, auditEvidence, diagnosisPrompt]);
+  }, [aiConfig.model, aiConfig.providerType, aiConfig.cloudProvider, aiConfig.temperature, aiProvider, isLoading, onAnalysisComplete, onLog, onMetrics, report, auditEvidence, diagnosisPrompt, pushEvent]);
 
   const isCloud = aiConfig.providerType === 'cloud';
   const hasDiagnosis = draftAnalysis.trim().length > 0;
@@ -408,10 +451,9 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
               <option disabled>Sin modelos disponibles</option>
             )}
             {availableModels.map(model => {
-              const isDownloaded = downloadedModels.has(model.id);
               return (
                 <option key={model.id} value={model.id}>
-                  {model.name}{isDownloaded ? ' · descargado' : ''}
+                  {model.name}
                 </option>
               );
             })}
@@ -427,10 +469,81 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
           </button>
         </div>
 
+        {aiConfig.providerType === 'local' && currentModelStatus && (
+          <div className="local-model-status" data-testid="local-model-status">
+            <div className={`local-model-status-badge local-model-status-badge--${currentModelStatus.status}`}>
+              {currentModelStatus.status === 'ready' && <CheckCircle size={12} />}
+              {currentModelStatus.status === 'partial' && <AlertTriangle size={12} />}
+              {currentModelStatus.status === 'not_downloaded' && <Circle size={12} />}
+              {currentModelStatus.status === 'error' && <AlertCircle size={12} />}
+              {currentModelStatus.status === 'checking' && <Clock size={12} />}
+              <span className="local-model-status-label">
+                {currentModelStatus.status === 'ready' && 'Verificado y listo'}
+                {currentModelStatus.status === 'partial' && 'No verificado'}
+                {currentModelStatus.status === 'not_downloaded' && 'No descargado'}
+                {currentModelStatus.status === 'error' && 'Error de descarga'}
+                {currentModelStatus.status === 'checking' && 'Verificando...'}
+              </span>
+              <span className="local-model-status-confidence">
+                {currentModelStatus.confidence === 'high' ? 'Alta confianza' : currentModelStatus.confidence === 'medium' ? 'Confianza media' : 'Baja confianza'}
+              </span>
+            </div>
+            <p className="local-model-status-message">{currentModelStatus.message}</p>
+            <div className="local-model-status-actions">
+              <button className="btn-s btn-sm" onClick={() => checkCurrentModelStatus(aiConfig.model)} disabled={isCheckingModel}>
+                <Activity size={10} /> {isCheckingModel ? 'Verificando' : 'Verificar estado'}
+              </button>
+              {currentModelStatus.status !== 'ready' && (
+                <button className="btn-p btn-sm" onClick={() => runDiagnosis()} disabled={isLoading}>
+                  <Play size={10} /> Descargar y diagnosticar
+                </button>
+              )}
+              {(currentModelStatus.status === 'partial' || currentModelStatus.status === 'error') && (
+                <button className="btn-s btn-sm" onClick={() => handleDeleteModel(aiConfig.model)} disabled={deletingModel === aiConfig.model}>
+                  <Trash2 size={10} /> {deletingModel === aiConfig.model ? 'Eliminando...' : 'Limpiar y reintentar'}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {aiConfig.providerType === 'local' && !currentModelStatus && !isCheckingModel && (
+          <p className="local-model-status-placeholder">Verifica el estado del modelo local antes de diagnosticar.</p>
+        )}
+
         {isLoading && (
           <div className="diagnosis-loading">
             <span className="pulse-dot" />
             Generando diagnóstico con {aiConfig.model}...
+          </div>
+        )}
+
+        {diagnosisEvents.length > 0 && (
+          <div className={`diagnosis-activity-console ${showActivityConsole ? 'diagnosis-activity-console--expanded' : 'diagnosis-activity-console--collapsed'}`} data-testid="diagnosis-activity-console">
+            <button
+              className="diagnosis-activity-toggle"
+              onClick={() => setShowActivityConsole(!showActivityConsole)}
+            >
+              <Activity size={12} />
+              <span>Actividad de AURA ({diagnosisEvents.length} eventos)</span>
+              <ChevronDown size={12} className={`activity-console-chevron ${showActivityConsole ? 'activity-console-chevron--open' : ''}`} />
+            </button>
+            {showActivityConsole && (
+              <div className="diagnosis-activity-events">
+                {diagnosisEvents.map((event, i) => (
+                  <div key={i} className={`activity-event activity-event--${event.level}`}>
+                    <span className="activity-event-time">{new Date(event.timestamp).toLocaleTimeString()}</span>
+                    <span className="activity-event-icon">
+                      {event.level === 'info' && <Circle size={8} />}
+                      {event.level === 'success' && <CheckCircle size={8} />}
+                      {event.level === 'warning' && <AlertTriangle size={8} />}
+                      {event.level === 'error' && <AlertCircle size={8} />}
+                    </span>
+                    <span className="activity-event-message">{event.message}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -472,14 +585,14 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
                 <button
                   className="btn-s btn-sm"
                   onClick={async () => {
-                    const success = await deleteDownloadedModel(aiConfig.model);
-                    if (success) {
-                      setDownloadedModels(prev => {
-                        const next = new Set(prev);
-                        next.delete(aiConfig.model);
-                        return next;
-                      });
-                    }
+                    await deleteDownloadedModel(aiConfig.model);
+                    clearPreloadVerification(aiConfig.model);
+                    setCurrentModelStatus({
+                      status: 'not_downloaded',
+                      confidence: 'high',
+                      source: 'unknown',
+                      message: 'Modelo eliminado del caché.',
+                    });
                   }}
                 >
                   <Trash2 size={12} /> Limpiar modelo cacheado
@@ -533,19 +646,23 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
         </summary>
         <div className="technical-details-body">
 
-          {aiConfig.providerType === 'local' && downloadedModels.size > 0 && (
+          {aiConfig.providerType === 'local' && Object.keys(modelStatuses).length > 0 && (
             <div className="downloaded-models-list">
               <div className="downloaded-models-header">
                 <HardDrive size={10} />
-                <span>Modelos descargados ({downloadedModels.size})</span>
+                <span>Modelos locales ({Object.keys(modelStatuses).length} evaluados)</span>
               </div>
-              {Array.from(downloadedModels).map(modelId => {
+              {Object.entries(modelStatuses).map(([modelId]) => {
                 const modelInfo = LOCAL_MODELS.find(m => m.id === modelId);
                 if (!modelInfo) return null;
+                const status = modelStatuses[modelId];
                 return (
                   <div key={modelId} className="downloaded-model-item">
                     <span className="downloaded-model-name">{modelInfo.name}</span>
                     <span className="downloaded-model-size">{modelInfo.sizeGB} GB</span>
+                    <span className={`downloaded-model-badge downloaded-model-badge--${status?.status || 'unknown'}`}>
+                      {status?.status === 'ready' ? 'Verificado' : status?.status === 'partial' ? 'Parcial' : status?.status === 'not_downloaded' ? 'Sin descargar' : 'Error'}
+                    </span>
                     <button
                       className="delete-model-btn"
                       onClick={() => handleDeleteModel(modelId)}

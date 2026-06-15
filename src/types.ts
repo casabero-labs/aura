@@ -120,6 +120,19 @@ export interface ModelDownloadState {
   message: string;
 }
 
+export interface LocalModelStatus {
+  status: 'not_downloaded' | 'checking' | 'partial' | 'ready' | 'error';
+  confidence: 'low' | 'medium' | 'high';
+  source: 'config' | 'indexeddb' | 'cache_api' | 'preload_verified' | 'unknown';
+  message: string;
+}
+
+export interface DiagnosisEvent {
+  timestamp: string;
+  level: 'info' | 'success' | 'warning' | 'error';
+  message: string;
+}
+
 export interface PromptContractConfig {
   objective: string;
   evidencePolicy: 'strict' | 'balanced';
