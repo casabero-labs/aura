@@ -149,4 +149,48 @@ describe('normalizeAiProviderError', () => {
       expect(Array.isArray(result.recommendedActions)).toBe(true);
     });
   });
+
+  describe('Pre-normalized errors', () => {
+    it('preserves already normalized errors from WebLLMProvider', () => {
+      const preNormalized = {
+        title: 'Error de red al cachear modelo',
+        message: 'No se pudo guardar el modelo en la caché del navegador.',
+        cause: 'Cache.add() encountered a network error',
+        recommendedActions: ['Verifica tu conexión a internet'],
+        technicalMessage: 'Cache.add() encountered a network error',
+        evidenceStatus: 'attempted_failed' as const,
+        category: 'cache_network' as const,
+      };
+
+      const error = new Error('No se pudo guardar el modelo...');
+      (error as any).normalized = preNormalized;
+
+      const result = normalizeAiProviderError(error, baseConfig);
+
+      expect(result).toBe(preNormalized);
+      expect(result.category).toBe('cache_network');
+      expect(result.message).toContain('caché del navegador');
+    });
+
+    it('preserves normalized errors even if message differs', () => {
+      const preNormalized = {
+        title: 'Error personalizado',
+        message: 'Mensaje personalizado',
+        cause: 'Causa personalizada',
+        recommendedActions: ['Acción personalizada'],
+        technicalMessage: 'Detalle técnico',
+        evidenceStatus: 'attempted_failed' as const,
+        category: 'api_key' as const,
+      };
+
+      const error = new Error('Mensaje genérico que sería normalizado diferente');
+      (error as any).normalized = preNormalized;
+
+      const result = normalizeAiProviderError(error, baseConfig);
+
+      expect(result).toBe(preNormalized);
+      expect(result.category).toBe('api_key');
+      expect(result.title).toBe('Error personalizado');
+    });
+  });
 });

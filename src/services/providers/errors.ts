@@ -25,6 +25,11 @@ export function normalizeAiProviderError(
   error: unknown,
   aiConfig: AIConfig
 ): NormalizedProviderError {
+  // Preservar errores ya normalizados (ej: de WebLLMProvider)
+  if (typeof error === 'object' && error !== null && 'normalized' in error) {
+    return (error as any).normalized as NormalizedProviderError;
+  }
+
   const rawMessage = error instanceof Error ? error.message : String(error);
   const rawStack = error instanceof Error ? error.stack : '';
   const technicalMessage = rawStack ? `${rawMessage}\n${rawStack}` : rawMessage;

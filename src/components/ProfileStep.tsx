@@ -8,7 +8,6 @@ import DeterministicValidationPanel from './DeterministicValidationPanel';
 import FindingsTable from './FindingsTable';
 import IngestionEvidenceCard from './IngestionEvidenceCard';
 import ProfileEvidencePackage from './ProfileEvidencePackage';
-import ProfileStageHeader from './ProfileStageHeader';
 import RuleActivationMatrix from './RuleActivationMatrix';
 import { AuditExecutionEvidence, AuditReport, DeterministicValidationReport, IssueSeverity } from '../types';
 

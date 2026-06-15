@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CheckCircle2, AlertTriangle, XCircle, Info, Target, Activity } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, XCircle, Info, Target } from 'lucide-react';
 import { DeterministicValidationReport, IssueCategory, PerRuleMetrics } from '../types';
 
 interface DeterministicValidationPanelProps {
@@ -59,7 +59,6 @@ const DeterministicValidationPanel: React.FC<DeterministicValidationPanelProps> 
   }
 
   const { summary, perRuleMetrics } = validationReport;
-  const macroF1Color = summary.macroF1 >= 0.8 ? 'var(--success)' : summary.macroF1 >= 0.6 ? 'var(--orange)' : 'var(--error)';
 
   const expectedRules = perRuleMetrics.filter((m) => m.status !== 'unexpected_fp');
   const unexpectedFPs = perRuleMetrics.filter((m) => m.status === 'unexpected_fp');
