@@ -12,8 +12,8 @@ import {
 } from '../services/deterministicValidation';
 import { AuditReport, IssueCategory, IssueSeverity } from '../types';
 
-const SYNTHETIC_PATH = path.resolve(process.cwd(), '..', 'experiments/datasets/synthetic_ground_truth.csv');
-const TITANIC_PATH = path.resolve(process.cwd(), '..', 'experiments/datasets/titanic.csv');
+const SYNTHETIC_PATH = path.resolve(__dirname, '../../experiments/datasets/synthetic_ground_truth.csv');
+const TITANIC_PATH = path.resolve(__dirname, '../../experiments/datasets/titanic.csv');
 
 function parseCsv(filePath: string) {
   const content = fs.readFileSync(filePath, 'utf-8');

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Brain, Database, Play, FlaskConical, Lock, Globe, ChevronDown, ChevronRight, FileCode2, Trash2, HardDrive, X, AlertTriangle, ListChecks, FileJson, FileText } from 'lucide-react';
+import { Brain, Database, Play, FlaskConical, Lock, Globe, ChevronDown, ChevronRight, FileCode2, Trash2, HardDrive, X, AlertTriangle, ShieldAlert, ListChecks, FileJson, FileText } from 'lucide-react';
 import GeminiAdvisor from './GeminiAdvisor';
 import { AIConfig, AIProvider, AuditReport, AuditExecutionEvidence, ProviderMetrics } from '../types';
 import { buildSmartSample, buildAnalysisPrompt } from '../services/providers/prompts';
@@ -441,9 +441,34 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
         )}
 
         {providerAvailable === false && (
-          <p style={{ fontSize: '11px', color: 'var(--ink-muted)', textAlign: 'center', marginTop: 'var(--space-xs)' }}>
-            Proveedor no disponible. Revisa la configuración.
-          </p>
+          <div className="provider-unavailable-notice">
+            <div className="provider-unavailable-header">
+              <ShieldAlert size={16} style={{ color: 'var(--orange)' }} />
+              <strong>Proveedor LLM no disponible</strong>
+            </div>
+            <ul className="provider-unavailable-reasons">
+              {aiConfig.providerType === 'cloud' && !aiConfig.apiKey && (
+                <li>No hay API key configurada para el proveedor cloud. Agrégala en Configuración.</li>
+              )}
+              {aiConfig.providerType === 'cloud' && aiConfig.apiKey && (
+                <li>El proveedor cloud no responde. Verifica la API key y la conectividad en Configuración.</li>
+              )}
+              {aiConfig.providerType === 'local' && (
+                <li>WebGPU o modelo local no está disponible en este navegador. Requiere Chrome/Edge con soporte WebGPU.</li>
+              )}
+              {aiConfig.providerType === 'chrome' && (
+                <li>Chrome AI (Prompt API) no está disponible. Actívala en chrome://flags o usa otro proveedor.</li>
+              )}
+            </ul>
+            <div className="provider-unavailable-actions">
+              <p>
+                <strong>Puedes continuar con script determinista.</strong> El motor de reglas no depende del LLM.
+              </p>
+              <p className="provider-unavailable-note">
+                Continuar sin diagnóstico LLM no genera evidencia formal de IA. El intento fallido se registra como <code>attempted_failed</code>, no como resultado válido.
+              </p>
+            </div>
+          </div>
         )}
 
         {error && (

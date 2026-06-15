@@ -1799,6 +1799,61 @@ input::placeholder { color: var(--ink-muted); }
   border-top: 1px solid var(--border-faint);
 }
 
+/* ─── Lab Provider Unavailable Notice ─── */
+
+.lab-unavailable-notice {
+  margin-top: var(--space-lg);
+  padding: var(--space-md) var(--space-lg);
+  border: 1px solid rgba(201, 152, 56, 0.2);
+  border-radius: var(--radius-md);
+  background: rgba(201, 152, 56, 0.05);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.lab-unavailable-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+  font-size: 14px;
+}
+
+.lab-unavailable-reasons {
+  margin: 0 0 var(--space-sm) 0;
+  padding-left: var(--space-lg);
+  color: var(--ink2);
+  list-style: disc;
+}
+
+.lab-unavailable-reasons li {
+  margin-bottom: 4px;
+}
+
+.lab-unavailable-actions {
+  border-top: 1px solid rgba(201, 152, 56, 0.15);
+  padding-top: var(--space-sm);
+}
+
+.lab-unavailable-actions p {
+  margin: 0 0 4px 0;
+}
+
+.lab-unavailable-note {
+  font-size: 12px;
+  color: var(--ink3);
+  font-style: italic;
+}
+
+.lab-unavailable-note code,
+.lab-unavailable-actions code {
+  font-size: 11px;
+  background: var(--code-bg);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
 /* ─── Terminal Log (High Contrast) ─── */
 
 .lab-log-panel {
@@ -2297,6 +2352,64 @@ tr:hover td {
   text-transform: uppercase;
   font-size: 11px;
   letter-spacing: 0.04em;
+}
+
+/* ─── Provider Unavailable Notice ─── */
+
+.provider-unavailable-notice {
+  margin-top: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  border: 1px solid rgba(201, 152, 56, 0.2);
+  border-radius: var(--radius-md);
+  background: rgba(201, 152, 56, 0.05);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.provider-unavailable-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+  font-size: 14px;
+}
+
+.provider-unavailable-reasons {
+  margin: 0 0 var(--space-sm) 0;
+  padding-left: var(--space-lg);
+  color: var(--ink2);
+  list-style: disc;
+}
+
+.provider-unavailable-reasons li {
+  margin-bottom: 4px;
+}
+
+.provider-unavailable-reasons li:last-child {
+  margin-bottom: 0;
+}
+
+.provider-unavailable-actions {
+  border-top: 1px solid rgba(201, 152, 56, 0.15);
+  padding-top: var(--space-sm);
+}
+
+.provider-unavailable-actions p {
+  margin: 0 0 4px 0;
+}
+
+.provider-unavailable-note {
+  font-size: 12px;
+  color: var(--ink3);
+  font-style: italic;
+}
+
+.provider-unavailable-note code {
+  font-size: 11px;
+  background: var(--code-bg);
+  padding: 1px 4px;
+  border-radius: 3px;
 }
 
 /* ─── Column Stats ─── */
@@ -5620,6 +5733,32 @@ tr:hover td {
 
 .review-delta-card small {
   font-size: 11px;
+  color: var(--ink2);
+}
+
+.review-delta-zero-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  border: 1px solid rgba(201, 152, 56, 0.2);
+  border-radius: var(--radius-md);
+  background: rgba(201, 152, 56, 0.06);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.review-delta-zero-warning strong {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.review-delta-zero-warning p {
+  margin: 0;
+  font-size: 12px;
   color: var(--ink2);
 }
 

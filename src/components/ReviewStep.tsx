@@ -262,6 +262,16 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
               <small>{healthDelta.correctedRules.length} reglas corregidas</small>
             </div>
           </div>
+
+          {healthDelta.scoreDelta === 0 && (
+            <div className="review-delta-zero-warning">
+              <TriangleAlert size={16} style={{ color: 'var(--orange)', flexShrink: 0 }} />
+              <div>
+                <strong>La simulación no resolvió hallazgos detectados.</strong>
+                <p>Revisa el script antes de usarlo como evidencia de mejora. La aprobación humana no sustituye una mejora efectiva del score.</p>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

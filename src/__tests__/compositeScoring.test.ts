@@ -40,7 +40,7 @@ describe('auditEngine — scoring compuesto (Pendiente #3)', () => {
 
   it('Score-3 (regression): Titanic composite score stays in [60, 90] after weighted scoring', () => {
     const csv = fs.readFileSync(
-      path.resolve(process.cwd(), 'experiments/datasets/titanic.csv'),
+      path.resolve(__dirname, '../experiments/datasets/titanic.csv'),
       'utf-8'
     );
     const parsed = Papa.parse(csv, { header: true, dynamicTyping: true, skipEmptyLines: true });

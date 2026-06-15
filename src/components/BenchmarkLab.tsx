@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Activity, FlaskConical, ArrowLeft, Play, BarChart3, Database, FileJson, Gauge, ShieldAlert, Zap, CheckCircle2, ThermometerSun } from 'lucide-react';
+import { Activity, FlaskConical, ArrowLeft, Play, BarChart3, Database, FileJson, Gauge, ShieldAlert, Zap, CheckCircle2, ThermometerSun, AlertTriangle } from 'lucide-react';
 import { AuditReport, AIConfig, BenchmarkResult, AuditExecutionEvidence, DeterministicValidationReport, ExecutionTraceEvent, InputMode } from '../types';
-import { AVAILABLE_MODELS } from '../services/aiProvider';
+import { AVAILABLE_MODELS, checkWebGPUSupport } from '../services/aiProvider';
 import { runBenchmarkForConfig } from '../services/benchmarkService';
 import { compositeScore, experimentStats, exportBenchmarkJson } from '../services/benchmark/evaluationService';
 import { ScoreBarChart, ScatterPlot, HallucinationChart, LatencyChart } from './BenchmarkCharts';
@@ -72,6 +72,11 @@ const BenchmarkLab: React.FC<BenchmarkLabProps> = ({
   const [selectedInputMode, setSelectedInputMode] = useState<InputMode>(aiConfig.inputMode || 'smart_sample');
   const [logs, setLogs] = useState<{ time: string; msg: string }[]>([]);
   const [appliedConfigId, setAppliedConfigId] = useState<string | null>(null);
+  const [webGpuAvailable, setWebGpuAvailable] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    checkWebGPUSupport().then(setWebGpuAvailable).catch(() => setWebGpuAvailable(false));
+  }, []);
 
   useEffect(() => {
     onResultsChange?.(results);
@@ -106,6 +111,22 @@ const BenchmarkLab: React.FC<BenchmarkLabProps> = ({
       r.latencyMs < best.latencyMs ? r : best
     );
   }, [completedResults]);
+
+  const localUnavailable = selectedProvider === 'local' && webGpuAvailable === false;
+  const cloudUnavailable = selectedProvider === 'cloud' && !aiConfig.apiKey;
+  const noSelectedProviderAvailable = localUnavailable || cloudUnavailable;
+
+  const switchToAvailable = () => {
+    if (localUnavailable && aiConfig.apiKey) {
+      setSelectedProvider('cloud');
+      const models = cloudModels;
+      if (models.length > 0) setSelectedModel(models[0].id);
+    } else if (cloudUnavailable && webGpuAvailable) {
+      setSelectedProvider('local');
+      const models = AVAILABLE_MODELS.local;
+      if (models.length > 0) setSelectedModel(models[0].id);
+    }
+  };
 
   const addLog = (msg: string) => {
     const time = new Date().toLocaleTimeString('es-CO', {
@@ -245,7 +266,7 @@ const BenchmarkLab: React.FC<BenchmarkLabProps> = ({
       providerType: winner.providerType,
       model: winner.model,
       temperature: winner.temperature ?? aiConfig.temperature,
-      cloudProvider: winner.cloudProvider,
+      cloudProvider: winner.cloudProvider as AIConfig['cloudProvider'],
       inputMode: winner.inputMode,
     };
     onApplyConfig(config);
@@ -300,6 +321,37 @@ const BenchmarkLab: React.FC<BenchmarkLabProps> = ({
               </select>
             </label>
           </div>
+
+          {/* ── Provider Unavailability Notice ── */}
+          {noSelectedProviderAvailable && (
+            <div className="lab-unavailable-notice">
+              <div className="lab-unavailable-header">
+                <ShieldAlert size={16} style={{ color: 'var(--orange)' }} />
+                <strong>{localUnavailable ? 'WebGPU no disponible' : 'API key no configurada'}</strong>
+              </div>
+              <ul className="lab-unavailable-reasons">
+                {localUnavailable && (
+                  <li>WebGPU no está disponible en este navegador. Los modelos locales requieren Chrome/Edge con soporte WebGPU activo.</li>
+                )}
+                {cloudUnavailable && (
+                  <li>No hay API key configurada para el proveedor cloud. Configúrala en el panel de Ajustes (Configuración).</li>
+                )}
+              </ul>
+              <div className="lab-unavailable-actions">
+                <p>
+                  <strong>No se puede ejecutar una corrida formal sin proveedor.</strong> El resultado de un intento fallido se registra como <code>attempted_failed</code>, no como evidencia formal.
+                </p>
+                <p className="lab-unavailable-note">
+                  El Laboratorio es opcional y no bloquea la auditoría principal. Puedes volver al flujo sin ejecutar corridas.
+                </p>
+                {((localUnavailable && aiConfig.apiKey) || (cloudUnavailable && webGpuAvailable)) && (
+                  <button className="btn-s btn-sm" onClick={switchToAvailable} style={{ marginTop: 'var(--space-sm)' }}>
+                    Cambiar a {localUnavailable ? 'Cloud' : 'Local'}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)', marginBottom: 'var(--space-md)', flexWrap: 'wrap' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
               <ThermometerSun size={14} style={{ color: 'var(--ink3)' }} />

@@ -10,7 +10,7 @@ const DATASETS = [
   'adult_income.csv',
 ];
 
-const DATASET_DIR = path.resolve(process.cwd(), 'experiments/datasets');
+const DATASET_DIR = path.resolve(__dirname, '../experiments/datasets');
 
 function parseLikeBrowser(fileName: string) {
   const csvData = fs.readFileSync(path.join(DATASET_DIR, fileName), 'utf-8');
