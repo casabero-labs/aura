@@ -49,6 +49,22 @@ test.describe('AURA QA — Human-first audit', () => {
     const overflowX = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 5);
     log(`- Horizontal overflow on home: ${overflowX ? 'WARN' : 'PASS'}`);
 
+    // ── Visual Regression Checks (Loop 04) ──
+    const navLinksDesktop = await page.locator('.nav-links').isVisible().catch(() => true);
+    log(`- .nav-links hidden in desktop: ${navLinksDesktop ? 'FAIL' : 'PASS'}`);
+
+    const mobileToggleDesktop = await page.locator('.mobile-nav-toggle').isVisible().catch(() => true);
+    log(`- .mobile-nav-toggle hidden in desktop: ${mobileToggleDesktop ? 'FAIL' : 'PASS'}`);
+
+    const darkModeText = await page.getByText('Modo oscuro').isVisible().catch(() => true);
+    log(`- "Modo oscuro" text hidden in desktop: ${darkModeText ? 'FAIL' : 'PASS'}`);
+
+    const nativeCheckboxDesktop = await page.locator('.nav-links input[type="checkbox"]').isVisible().catch(() => true);
+    log(`- No native checkbox in desktop nav: ${nativeCheckboxDesktop ? 'FAIL' : 'PASS'}`);
+
+    const centerMenuVisible = await page.locator('.nav-center-menu').isVisible().catch(() => false);
+    log(`- .nav-center-menu visible in desktop: ${centerMenuVisible ? 'PASS' : 'FAIL'}`);
+
     // Upload
     await page.setInputFiles('input[type="file"]', fixtureCsv);
     await page.waitForTimeout(500);
@@ -250,27 +266,50 @@ test.describe('AURA QA — Human-first audit', () => {
     log('All stages completed without critical failures.');
   });
 
-  test('Mobile 390x844 — basic checks', async ({ page }) => {
+  test('Mobile 390x844 — basic checks + visual regression', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto('/', { waitUntil: 'commit', timeout: 60_000 });
+    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 60_000 });
+    await page.locator('.sys-nav').waitFor({ state: 'visible', timeout: 15_000 });
 
-    log('\n## Mobile 390x844\n');
+    log('\n## Mobile 390x844 — Visual Regression (Loop 04)\n');
+
+    // ── Mobile menu closed checks ──
+    const hamburgerVisible = await page.locator('.mobile-nav-toggle').isVisible().catch(() => false);
+    log(`- Mobile hamburger visible: ${hamburgerVisible ? 'PASS' : 'FAIL'}`);
+
+    const navLinksClosed = await page.locator('.nav-links-open').isVisible().catch(() => true);
+    log(`- .nav-links-open hidden when closed: ${navLinksClosed ? 'FAIL' : 'PASS'}`);
 
     const mobileOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 5);
     log(`- Horizontal overflow on mobile home: ${mobileOverflow ? 'WARN' : 'PASS'}`);
 
-    // Upload on mobile
+    // ── Open mobile menu ──
+    if (hamburgerVisible) {
+      await page.locator('.mobile-nav-toggle').click();
+      await page.waitForTimeout(400);
+    }
+
+    const navOpen = await page.locator('.nav-links-open').isVisible().catch(() => false);
+    log(`- Mobile nav open after hamburger click: ${navOpen ? 'PASS' : 'FAIL'}`);
+
+    const themeCheckbox = await page.locator('.nav-links-open input[type="checkbox"]').count();
+    log(`- No native checkbox in mobile nav: ${themeCheckbox === 0 ? 'PASS' : 'FAIL'}`);
+
+    const themeButton = await page.locator('.nav-links-open .nav-link').filter({ hasText: /Modo/i }).count();
+    log(`- Theme toggle as styled button in mobile: ${themeButton > 0 ? 'PASS' : 'FAIL'}`);
+
+    const labInMenu = await page.locator('.nav-links-open').getByText('Laboratorio').isVisible().catch(() => false);
+    log(`- Laboratorio in mobile menu: ${labInMenu ? 'PASS' : 'FAIL'}`);
+
+    // ── Upload on mobile ──
+    // Close menu first
+    await page.locator('.mobile-nav-toggle').click();
+    await page.waitForTimeout(300);
+
     await page.setInputFiles('input[type="file"]', fixtureCsv);
     await page.waitForTimeout(500);
 
     const profileMobileOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 5);
     log(`- Horizontal overflow on mobile profile: ${profileMobileOverflow ? 'WARN' : 'PASS'}`);
-
-    const hamburger = await page.locator('.mobile-nav-toggle').isVisible().catch(() => false);
-    log(`- Mobile hamburger visible: ${hamburger ? 'PASS' : 'FAIL'}`);
-
-    const mobileLabBtn = page.locator('.nav-links').getByText('Laboratorio');
-    const labMobileExists = await mobileLabBtn.isVisible().catch(() => false);
-    log(`- Lab in mobile menu: ${labMobileExists ? 'PASS' : 'not checkable (collapsed)'}`);
   });
 });

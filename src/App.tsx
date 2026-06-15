@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ChevronDown, ClipboardList, Download, FileCode2, FileJson, FileText, FlaskConical, HelpCircle, Settings, Layers, History, CheckCircle2, AlertTriangle, XCircle } from 'lucide-react';
+import { ChevronDown, ClipboardList, Download, FileCode2, FileJson, FileText, FlaskConical, HelpCircle, Settings, Layers, History, CheckCircle2, AlertTriangle, XCircle, Sun, Moon } from 'lucide-react';
 import ChangelogModal from './components/ChangelogModal';
 import ErrorBoundary from './components/ErrorBoundary';
 import AuditLogViewer from './components/AuditLogViewer';
@@ -420,15 +420,10 @@ const App: React.FC = () => {
         <button className="nav-link" onClick={() => { setShowAuditLog(true); setShowLab(false); setShowMobileNav(false); }}>
           <ClipboardList size={13} /> Trazabilidad
         </button>
-        <label className="nav-link" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 'var(--space-xs)' }}>
-          <input
-            type="checkbox"
-            checked={theme === 'dark'}
-            onChange={(e) => setTheme(e.target.checked ? 'dark' : 'light')}
-            style={{ width: 'auto', margin: 0 }}
-          />
-          Modo oscuro
-        </label>
+        <button className="nav-link" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+          {theme === 'dark' ? <Sun size={13} /> : <Moon size={13} />}
+          {theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
+        </button>
       </div>
 
       {showChangelog && <ChangelogModal onClose={() => setShowChangelog(false)} />}

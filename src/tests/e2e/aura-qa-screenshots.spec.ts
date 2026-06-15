@@ -1,10 +1,12 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
+import fs from 'node:fs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const fixtureCsv = path.resolve(__dirname, '../../../experiments/datasets/synthetic_ground_truth.csv');
 const screenshotDir = path.resolve(__dirname, '../../docs/qa');
+const regressionDir = path.resolve(__dirname, '../../docs/qa/ui-regression-2026-06-15');
 
 test.describe('AURA QA — Human-first screenshots', () => {
   test('Desktop 1280x900 — flujo completo con screenshots', async ({ page }) => {
@@ -87,5 +89,27 @@ test.describe('AURA QA — Human-first screenshots', () => {
       await page.waitForTimeout(300);
     }
     await page.screenshot({ path: path.join(screenshotDir, '11-aura-lab-nav-mobile.png'), fullPage: false });
+  });
+
+  test('Visual regression — Loop 04 screenshots', async ({ page }) => {
+    fs.mkdirSync(regressionDir, { recursive: true });
+
+    // Desktop 1280x900 — home
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 60_000 });
+    await page.locator('.sys-nav').waitFor({ state: 'visible', timeout: 15_000 });
+    await page.screenshot({ path: path.join(regressionDir, 'desktop-home-after.png'), fullPage: false });
+
+    // Mobile 390x844 — home (menu closed)
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 60_000 });
+    await page.locator('.sys-nav').waitFor({ state: 'visible', timeout: 15_000 });
+    await page.screenshot({ path: path.join(regressionDir, 'mobile-home-after.png'), fullPage: false });
+
+    // Mobile 390x844 — menu open
+    const hamburger = page.locator('.mobile-nav-toggle');
+    await hamburger.click();
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: path.join(regressionDir, 'mobile-nav-open-after.png'), fullPage: false });
   });
 });

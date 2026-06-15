@@ -6076,6 +6076,10 @@ tr:hover td {
   border-top: 1px solid var(--border-faint);
 }
 
+/* ─── Mobile Navigation Base (hidden in desktop, overridden in mobile) ─── */
+.mobile-nav-toggle { display: none; }
+.nav-links { display: none; }
+
 /* ─── Responsive ─── */
 
 @media (max-width: 768px) {
