@@ -595,7 +595,7 @@ const App: React.FC = () => {
                     <summary className="technical-details-summary">
                       <ChevronDown size={14} className="technical-details-chevron" />
                       <span>Detalles técnicos</span>
-                      <span className="technical-details-hint">cobertura de objetivos TFM, validationSummary</span>
+                      <span className="technical-details-hint">cobertura de evidencia y manifest</span>
                     </summary>
                     <div className="technical-details-body">
                       <div className="objectives-checklist">

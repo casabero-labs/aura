@@ -773,6 +773,11 @@ button, input, select, textarea {
   outline: none; display: inline-flex; align-items: center; justify-content: center;
   gap: 8px; user-select: none; -webkit-tap-highlight-color: transparent;
   transition: transform var(--motion-fast) var(--ease-casabero), opacity var(--motion-base) ease-out, background var(--motion-fast) ease-out;
+  min-height: 44px;
+}
+.btn:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
 }
 .btn:active:not(:disabled) { transform: scale(var(--state-press-scale)); }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; }
@@ -5018,7 +5023,7 @@ tr:hover td {
   border: 1px solid var(--border);
   background: var(--surface);
   transition: all var(--transition-base);
-  min-width: 72px;
+  min-width: 60px;
 }
 
 .stepper-step.done {
@@ -5048,6 +5053,11 @@ tr:hover td {
   background: var(--ink-soft);
 }
 
+.stepper-step:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
 .stepper-icon {
   width: 28px;
   height: 28px;
@@ -5069,6 +5079,10 @@ tr:hover td {
   font-weight: 500;
   color: var(--ink2);
   text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .stepper-step.done .stepper-label {
@@ -5591,7 +5605,7 @@ tr:hover td {
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--bg);
-  min-width: 100px;
+  min-width: 0;
 }
 
 .export-claim span {
