@@ -21,9 +21,11 @@ const ProgressDisclosure: React.FC<ProgressDisclosureProps> = ({
   compact = false,
 }) => {
   const isRunning = status === 'running';
-  const hasBar = isRunning || status === 'error' || status === 'success' || status === 'warning';
-  const showDeterminate = hasBar && !indeterminate && value !== undefined;
-  const showIndeterminate = hasBar && (indeterminate || value === undefined);
+  const showBar = isRunning || (indeterminate && status !== 'idle');
+  const showDeterminate = showBar && !indeterminate && value !== undefined;
+  const showIndeterminate = showBar && (indeterminate || (isRunning && value === undefined));
+  const showSuccessBar = status === 'success' && !indeterminate && value === undefined;
+  const showErrorBar = status === 'error' && value !== undefined;
 
   const ariaProps = showDeterminate
     ? {
@@ -74,11 +76,23 @@ const ProgressDisclosure: React.FC<ProgressDisclosureProps> = ({
         </div>
       )}
 
+      {showSuccessBar && (
+        <div className="progress-disclosure-track">
+          <div className="progress-disclosure-fill" style={{ width: '100%' }} />
+        </div>
+      )}
+
+      {showErrorBar && (
+        <div className="progress-disclosure-track">
+          <div className="progress-disclosure-fill" style={{ width: `${Math.round(value!)}%` }} />
+        </div>
+      )}
+
       {steps && steps.length > 0 && (
         <div className="progress-disclosure-steps">
           {steps.map((step, i) => {
-            const isCurrent = !isRunning && currentStep === step;
-            const isPast = !isRunning && steps.indexOf(currentStep || '') > i;
+            const isCurrent = currentStep === step;
+            const isPast = steps.indexOf(currentStep || '') > i && !isRunning;
             return (
               <span
                 key={step}
