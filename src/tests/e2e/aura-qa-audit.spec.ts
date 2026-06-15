@@ -22,7 +22,9 @@ test.describe('AURA QA — Human-first audit', () => {
 
   test('Desktop 1280x900 — audit each stage', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
-    await page.goto('/', { waitUntil: 'commit', timeout: 60_000 });
+    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 60_000 });
+    // Wait for React mount + sticky nav render before visibility checks
+    await page.locator('.sys-nav').waitFor({ state: 'visible', timeout: 15_000 });
 
     // ── Stage 0: Home ──
     log('# AURA QA — Human-first Audit\n');
@@ -35,10 +37,10 @@ test.describe('AURA QA — Human-first audit', () => {
     const benchmarkVisible = await page.getByRole('heading', { name: /Benchmark LLM/i }).isVisible().catch(() => true);
     log(`- Benchmark heading visible: ${benchmarkVisible ? 'FAIL' : 'PASS'}`);
 
-    // Check nav items
-    const navAudit = await page.locator('.nav-center-menu').getByRole('button', { name: 'Auditoría' }).isVisible().catch(() => false);
-    const navLab = await page.locator('.nav-center-menu').getByRole('button', { name: 'Laboratorio' }).isVisible().catch(() => false);
-    const navConfig = await page.locator('.nav-center-menu').getByRole('button', { name: 'Configuración' }).isVisible().catch(() => false);
+    // Check nav items — use explicit visibility wait per button to avoid render-timing race
+    const navAudit = await page.locator('.nav-center-menu').getByRole('button', { name: 'Auditoría' }).isVisible({ timeout: 10_000 }).catch(() => false);
+    const navLab = await page.locator('.nav-center-menu').getByRole('button', { name: 'Laboratorio' }).isVisible({ timeout: 5_000 }).catch(() => false);
+    const navConfig = await page.locator('.nav-center-menu').getByRole('button', { name: 'Configuración' }).isVisible({ timeout: 5_000 }).catch(() => false);
     log(`- Nav Auditoría visible: ${navAudit ? 'PASS' : 'FAIL'}`);
     log(`- Nav Laboratorio visible: ${navLab ? 'PASS' : 'FAIL'}`);
     log(`- Nav Configuración visible: ${navConfig ? 'PASS' : 'FAIL'}`);

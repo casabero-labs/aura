@@ -50,7 +50,7 @@ export const buildEvidenceManifest = (params: {
     },
     {
       id: 'OE3',
-      label: 'Diagnóstico LLM y benchmark formal',
+      label: 'Diagnóstico LLM y laboratorio',
       status: hasSuccessfulBenchmark ? (benchmarkFormalCount > 0 ? 'completed' : 'partial') : 'blocked',
       evidence: hasSuccessfulBenchmark
         ? `${benchmarkResults.length} corridas, ${benchmarkFormalCount} con evidencia formal, mejor score compuesto=${bestBenchmark?.compositeScore?.toFixed(2) ?? 'N/A'}.`

@@ -303,10 +303,9 @@ const App: React.FC = () => {
 
       {/* Navigation */}
       <nav className="sys-nav">
-        {/* Bloque Izquierdo: Branding y Contexto Académico */}
+        {/* Bloque Izquierdo: Branding */}
         <div className="nav-brand" onClick={() => { if (hasData) window.location.reload(); }}>
           <span className="nav-logo">AURA</span>
-          <span className="nav-academic-pill">TFM UNIR</span>
         </div>
 
         {/* Bloque Central: Navegación de Capas (Escritorio) */}
