@@ -14,6 +14,7 @@ const createResult = (overrides: Partial<BenchmarkResult> = {}): BenchmarkResult
   firstTokenMs: 100,
   tokensGenerated: 200,
   tokensPerSecond: 400,
+  contractCompliance: true,
   formatCompliance: true,
   pythonScriptIncluded: true,
   hallucinatedColumns: [],
@@ -33,13 +34,42 @@ describe('compositeScore', () => {
 
   it('penalizes results with hallucinations', () => {
     const clean = createResult({ hallucinatedColumns: [] });
-    const hallucinated = createResult({ hallucinatedColumns: ['col1', 'col2', 'col3'] });
+    const hallucinated = createResult({
+      hallucinatedColumns: ['col1', 'col2', 'col3'],
+      hallucinationReport: {
+        hallucinatedColumns: ['col1', 'col2', 'col3'],
+        unsupportedClaimsCount: 0,
+        jsonCompliance: false,
+        contractCompliance: true,
+        formatErrorCount: 0,
+        invalidScriptColumns: [],
+        knownColumnCount: 6,
+      },
+    });
     expect(compositeScore(clean)).toBeGreaterThan(compositeScore(hallucinated));
   });
 
-  it('penalizes non-compliant format', () => {
-    const compliant = createResult({ formatCompliance: true });
-    const nonCompliant = createResult({ formatCompliance: false });
+  it('uses known columns, not generated tokens, to penalize hallucinations', () => {
+    const verbose = createResult({
+      tokensGenerated: 1000,
+      hallucinatedColumns: ['phantom'],
+      hallucinationReport: {
+        hallucinatedColumns: ['phantom'],
+        unsupportedClaimsCount: 0,
+        jsonCompliance: false,
+        contractCompliance: true,
+        formatErrorCount: 0,
+        invalidScriptColumns: [],
+        knownColumnCount: 4,
+      },
+    });
+    const terse = createResult({ ...verbose, id: 'terse', tokensGenerated: 50 });
+    expect(compositeScore(verbose)).toBe(compositeScore(terse));
+  });
+
+  it('penalizes non-compliant contract', () => {
+    const compliant = createResult({ contractCompliance: true, formatCompliance: true });
+    const nonCompliant = createResult({ contractCompliance: false, formatCompliance: false });
     expect(compositeScore(compliant)).toBeGreaterThan(compositeScore(nonCompliant));
   });
 
@@ -118,6 +148,8 @@ describe('exportBenchmarkJson', () => {
     const parsed = JSON.parse(json);
     expect(parsed.experiments[0].config.temperature).toBe(0.3);
     expect(parsed.experiments[0].evidenceStatus).toBe('preliminary_valid');
+    expect(parsed.experiments[0].metrics.contractCompliance).toBe(true);
+    expect(parsed.experiments[0].metrics.jsonCompliance).toBe(false);
   });
 });
 

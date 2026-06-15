@@ -1,0 +1,1002 @@
+{
+  "manifest": {
+    "generatedAt": "2026-06-14T23:46:29.856Z",
+    "dataset": {
+      "name": "titanic.csv",
+      "fingerprint": "2defab5c",
+      "rows": 20,
+      "columns": 12
+    },
+    "app": {
+      "name": "AURA — Auditoría Unificada de Riesgos Algorítmicos",
+      "version": "0.5.0"
+    },
+    "objectivesCoverage": [
+      {
+        "id": "OE1",
+        "label": "Ingestión y perfilamiento determinista",
+        "status": "completed",
+        "evidence": "CSV cargado: titanic.csv, 20 filas, 12 columnas, fingerprint=2defab5c.",
+        "limitations": []
+      },
+      {
+        "id": "OE2",
+        "label": "Validación determinista formal por regla",
+        "status": "completed",
+        "evidence": "Ground truth titanic.csv. Macro F1=100.0%, 3 reglas match, 2 FP inesperados.",
+        "limitations": [
+          "2 falsos positivos inesperados en el motor determinista."
+        ]
+      },
+      {
+        "id": "OE3",
+        "label": "Diagnóstico LLM y benchmark formal",
+        "status": "blocked",
+        "evidence": "Sin corridas de benchmark completadas.",
+        "limitations": [
+          "Ninguna corrida alcanzó evidencia formal.",
+          "Benchmark bloqueado: sin API keys activas o WebGPU no disponible."
+        ]
+      },
+      {
+        "id": "OE4",
+        "label": "Script seguro y validación HITL",
+        "status": "partial",
+        "evidence": "Script generado (origen=deterministic), safetyScore=88/100, cobertura=60%, columnas fantasma=0.",
+        "limitations": [
+          "Requiere revisión humana explícita.",
+          "Script generado por respaldo determinista, no por LLM."
+        ]
+      },
+      {
+        "id": "OE5",
+        "label": "Exportación, gobernanza y resultados",
+        "status": "completed",
+        "evidence": "Decisión HITL registrada: safetyScore=88/100, cobertura=60%, checklist=5/5 criterios OK.",
+        "limitations": []
+      }
+    ],
+    "artifacts": [
+      "auditEvidence (JSON)",
+      "deterministicValidation (JSON)",
+      "scriptValidation (JSON)",
+      "cleaningScript (Python)",
+      "hitlDecision (JSON)",
+      "healthDelta (JSON)"
+    ],
+    "allowedClaims": {
+      "deterministicEngine": "formal",
+      "benchmarkLLM": "none",
+      "scriptSafety": "preliminary",
+      "hitlDecision": "formal",
+      "healthDelta": "formal"
+    },
+    "validationSummary": {
+      "deterministicF1": 1,
+      "benchmarkFormalCount": 0,
+      "benchmarkFailedCount": 0,
+      "scriptSafetyScore": 88,
+      "hitlApproved": true,
+      "healthDeltaPoints": 0
+    },
+    "limitations": [
+      "Simulación de remediación sobre copia en memoria; no modifica el archivo original.",
+      "Benchmark LLM puede ser preliminar si no hay API keys o WebGPU activos.",
+      "Ground truth disponible solo para datasets sintético y Titanic.",
+      "Métricas deterministas por regla usan detección binaria (rule fired / not fired), no conteo de filas."
+    ]
+  },
+  "profile": {
+    "report": {
+      "score": 62,
+      "rowCount": 20,
+      "colCount": 12,
+      "duplicateRows": 0,
+      "issues": [
+        {
+          "id": "integrity-null-Age",
+          "column": "Age",
+          "ruleName": "Valores Nulos / Vacíos",
+          "category": "Integridad y Estructura",
+          "description": "Advertencia: Faltan datos.",
+          "severity": "warning",
+          "count": 3,
+          "affectedPercentage": 15,
+          "sampleValues": []
+        },
+        {
+          "id": "logic-outlier-tukey-SibSp",
+          "column": "SibSp",
+          "category": "Validez y Lógica de Negocio",
+          "ruleName": "Outliers Leves (Tukey 1.5×)",
+          "description": "Valores desviados entre 1.5× y 3× del rango intercuartílico (mild Tukey outliers).",
+          "severity": "info",
+          "count": 2,
+          "affectedPercentage": 10,
+          "sampleValues": []
+        },
+        {
+          "id": "logic-outlier-Parch",
+          "column": "Parch",
+          "category": "Validez y Lógica de Negocio",
+          "ruleName": "Outliers Extremos (IQR 3×)",
+          "description": "Valores desviados > 3× del rango intercuartílico.",
+          "severity": "warning",
+          "count": 1,
+          "affectedPercentage": 5,
+          "sampleValues": [
+            5
+          ]
+        },
+        {
+          "id": "logic-outlier-tukey-Fare",
+          "column": "Fare",
+          "category": "Validez y Lógica de Negocio",
+          "ruleName": "Outliers Leves (Tukey 1.5×)",
+          "description": "Valores desviados entre 1.5× y 3× del rango intercuartílico (mild Tukey outliers).",
+          "severity": "info",
+          "count": 1,
+          "affectedPercentage": 5,
+          "sampleValues": []
+        },
+        {
+          "id": "integrity-null-Cabin",
+          "column": "Cabin",
+          "ruleName": "Valores Nulos / Vacíos",
+          "category": "Integridad y Estructura",
+          "description": "Crítico: 75.0% de datos faltantes.",
+          "severity": "critical",
+          "count": 15,
+          "affectedPercentage": 75,
+          "sampleValues": []
+        }
+      ],
+      "columnStats": {
+        "PassengerId": {
+          "name": "PassengerId",
+          "inferredType": "number",
+          "nullCount": 0,
+          "uniqueCount": 20,
+          "topFreq": [
+            {
+              "value": "1",
+              "count": 1
+            },
+            {
+              "value": "2",
+              "count": 1
+            },
+            {
+              "value": "3",
+              "count": 1
+            },
+            {
+              "value": "4",
+              "count": 1
+            },
+            {
+              "value": "5",
+              "count": 1
+            }
+          ],
+          "zeros": 0,
+          "sampleValues": [
+            1,
+            11,
+            20
+          ],
+          "min": 1,
+          "max": 20,
+          "mean": 10.5,
+          "median": 10.5,
+          "std": 5.766281297335398,
+          "cv": 0.5491696473652761,
+          "skewness": 0,
+          "q1": 6,
+          "q3": 16,
+          "iqr": 10,
+          "lowerFence": -24,
+          "upperFence": 46,
+          "outlierCount": 0,
+          "lowerFenceTukey": -9,
+          "upperFenceTukey": 31,
+          "outlierCountTukey": 0
+        },
+        "Survived": {
+          "name": "Survived",
+          "inferredType": "number",
+          "nullCount": 0,
+          "uniqueCount": 2,
+          "topFreq": [
+            {
+              "value": "0",
+              "count": 10
+            },
+            {
+              "value": "1",
+              "count": 10
+            }
+          ],
+          "zeros": 10,
+          "sampleValues": [
+            0,
+            1,
+            1
+          ],
+          "min": 0,
+          "max": 1,
+          "mean": 0.5,
+          "median": 0.5,
+          "std": 0.5,
+          "cv": 1,
+          "skewness": 0,
+          "q1": 0,
+          "q3": 1,
+          "iqr": 1,
+          "lowerFence": -3,
+          "upperFence": 4,
+          "outlierCount": 0,
+          "lowerFenceTukey": -1.5,
+          "upperFenceTukey": 2.5,
+          "outlierCountTukey": 0
+        },
+        "Pclass": {
+          "name": "Pclass",
+          "inferredType": "number",
+          "nullCount": 0,
+          "uniqueCount": 3,
+          "topFreq": [
+            {
+              "value": "3",
+              "count": 13
+            },
+            {
+              "value": "1",
+              "count": 4
+            },
+            {
+              "value": "2",
+              "count": 3
+            }
+          ],
+          "zeros": 0,
+          "sampleValues": [
+            3,
+            3,
+            3
+          ],
+          "min": 1,
+          "max": 3,
+          "mean": 2.45,
+          "median": 3,
+          "std": 0.8046738469715542,
+          "cv": 0.3284383048863486,
+          "skewness": -0.9889135812575081,
+          "q1": 2,
+          "q3": 3,
+          "iqr": 1,
+          "lowerFence": -1,
+          "upperFence": 6,
+          "outlierCount": 0,
+          "lowerFenceTukey": 0.5,
+          "upperFenceTukey": 4.5,
+          "outlierCountTukey": 0
+        },
+        "Name": {
+          "name": "Name",
+          "inferredType": "string",
+          "nullCount": 0,
+          "uniqueCount": 20,
+          "topFreq": [
+            {
+              "value": "Braund, Mr. Owen Harris",
+              "count": 1
+            },
+            {
+              "value": "Cumings, Mrs. John Bradley",
+              "count": 1
+            },
+            {
+              "value": "Heikkinen, Miss. Laina",
+              "count": 1
+            },
+            {
+              "value": "Futrelle, Mrs. Jacques Heath",
+              "count": 1
+            },
+            {
+              "value": "Allen, Mr. William Henry",
+              "count": 1
+            }
+          ],
+          "zeros": 0,
+          "sampleValues": [
+            "Braund, Mr. Owen Harris",
+            "Sandstrom, Miss. Marguerite",
+            "Masselmani, Mrs. Fatima"
+          ]
+        },
+        "Sex": {
+          "name": "Sex",
+          "inferredType": "string",
+          "nullCount": 0,
+          "uniqueCount": 2,
+          "topFreq": [
+            {
+              "value": "female",
+              "count": 11
+            },
+            {
+              "value": "male",
+              "count": 9
+            }
+          ],
+          "zeros": 0,
+          "sampleValues": [
+            "male",
+            "female",
+            "female"
+          ]
+        },
+        "Age": {
+          "name": "Age",
+          "inferredType": "number",
+          "nullCount": 3,
+          "uniqueCount": 14,
+          "topFreq": [
+            {
+              "value": "35",
+              "count": 2
+            },
+            {
+              "value": "2",
+              "count": 2
+            },
+            {
+              "value": "14",
+              "count": 2
+            },
+            {
+              "value": "22",
+              "count": 1
+            },
+            {
+              "value": "38",
+              "count": 1
+            }
+          ],
+          "zeros": 0,
+          "sampleValues": [
+            22,
+            4
+          ],
+          "min": 2,
+          "max": 58,
+          "mean": 28,
+          "median": 27,
+          "std": 17.2490408940528,
+          "cv": 0.6160371747876,
+          "skewness": 0.13871178861767586,
+          "q1": 14,
+          "q3": 38,
+          "iqr": 24,
+          "lowerFence": -58,
+          "upperFence": 110,
+          "outlierCount": 0,
+          "lowerFenceTukey": -22,
+          "upperFenceTukey": 74,
+          "outlierCountTukey": 0
+        },
+        "SibSp": {
+          "name": "SibSp",
+          "inferredType": "number",
+          "nullCount": 0,
+          "uniqueCount": 4,
+          "topFreq": [
+            {
+              "value": "0",
+              "count": 11
+            },
+            {
+              "value": "1",
+              "count": 7
+            },
+            {
+              "value": "3",
+              "count": 1
+            },
+            {
+              "value": "4",
+              "count": 1
+            }
+          ],
+          "zeros": 11,
+          "sampleValues": [
+            1,
+            1,
+            0
+          ],
+          "min": 0,
+          "max": 4,
+          "mean": 0.7,
+          "median": 0,
+          "std": 1.0535653752852738,
+          "cv": 1.505093393264677,
+          "skewness": 1.9034465752658225,
+          "q1": 0,
+          "q3": 1,
+          "iqr": 1,
+          "lowerFence": -3,
+          "upperFence": 4,
+          "outlierCount": 0,
+          "lowerFenceTukey": -1.5,
+          "upperFenceTukey": 2.5,
+          "outlierCountTukey": 2
+        },
+        "Parch": {
+          "name": "Parch",
+          "inferredType": "number",
+          "nullCount": 0,
+          "uniqueCount": 4,
+          "topFreq": [
+            {
+              "value": "0",
+              "count": 15
+            },
+            {
+              "value": "1",
+              "count": 3
+            },
+            {
+              "value": "2",
+              "count": 1
+            },
+            {
+              "value": "5",
+              "count": 1
+            }
+          ],
+          "zeros": 15,
+          "sampleValues": [
+            0,
+            1,
+            0
+          ],
+          "min": 0,
+          "max": 5,
+          "mean": 0.5,
+          "median": 0,
+          "std": 1.161895003862225,
+          "cv": 2.32379000772445,
+          "skewness": 2.964505771171108,
+          "q1": 0,
+          "q3": 1,
+          "iqr": 1,
+          "lowerFence": -3,
+          "upperFence": 4,
+          "outlierCount": 1,
+          "outlierSeverity": "WARNING",
+          "lowerFenceTukey": -1.5,
+          "upperFenceTukey": 2.5,
+          "outlierCountTukey": 1
+        },
+        "Ticket": {
+          "name": "Ticket",
+          "inferredType": "mixed",
+          "nullCount": 0,
+          "uniqueCount": 20,
+          "topFreq": [
+            {
+              "value": "A/5 21171",
+              "count": 1
+            },
+            {
+              "value": "PC 17599",
+              "count": 1
+            },
+            {
+              "value": "STON/O2. 3101282",
+              "count": 1
+            },
+            {
+              "value": "113803",
+              "count": 1
+            },
+            {
+              "value": "373450",
+              "count": 1
+            }
+          ],
+          "zeros": 0,
+          "sampleValues": [
+            "A/5 21171",
+            "PP 9549",
+            2649
+          ]
+        },
+        "Fare": {
+          "name": "Fare",
+          "inferredType": "number",
+          "nullCount": 0,
+          "uniqueCount": 19,
+          "topFreq": [
+            {
+              "value": "8.05",
+              "count": 2
+            },
+            {
+              "value": "7.25",
+              "count": 1
+            },
+            {
+              "value": "71.2833",
+              "count": 1
+            },
+            {
+              "value": "7.925",
+              "count": 1
+            },
+            {
+              "value": "53.1",
+              "count": 1
+            }
+          ],
+          "zeros": 0,
+          "sampleValues": [
+            7.25,
+            16.7,
+            7.225
+          ],
+          "min": 7.225,
+          "max": 71.2833,
+          "mean": 22.19937,
+          "median": 16.35,
+          "std": 17.60162634568465,
+          "cv": 0.7928885524987714,
+          "skewness": 1.3943647716093523,
+          "q1": 8.05,
+          "q3": 30.0708,
+          "iqr": 22.020799999999998,
+          "lowerFence": -58.0124,
+          "upperFence": 96.13319999999999,
+          "outlierCount": 0,
+          "lowerFenceTukey": -24.981199999999998,
+          "upperFenceTukey": 63.102,
+          "outlierCountTukey": 1
+        },
+        "Cabin": {
+          "name": "Cabin",
+          "inferredType": "string",
+          "nullCount": 15,
+          "uniqueCount": 5,
+          "topFreq": [
+            {
+              "value": "C85",
+              "count": 1
+            },
+            {
+              "value": "C123",
+              "count": 1
+            },
+            {
+              "value": "E46",
+              "count": 1
+            },
+            {
+              "value": "G6",
+              "count": 1
+            },
+            {
+              "value": "C103",
+              "count": 1
+            }
+          ],
+          "zeros": 0,
+          "sampleValues": [
+            "G6"
+          ]
+        },
+        "Embarked": {
+          "name": "Embarked",
+          "inferredType": "string",
+          "nullCount": 0,
+          "uniqueCount": 3,
+          "topFreq": [
+            {
+              "value": "S",
+              "count": 15
+            },
+            {
+              "value": "C",
+              "count": 3
+            },
+            {
+              "value": "Q",
+              "count": 2
+            }
+          ],
+          "zeros": 0,
+          "sampleValues": [
+            "S",
+            "S",
+            "C"
+          ]
+        }
+      },
+      "scoreBreakdown": [
+        {
+          "reason": "Valores Nulos en [Age]",
+          "points": 2.4,
+          "weight": 1.2,
+          "category": "Integridad y Estructura",
+          "severity": "warning",
+          "ruleId": "unknown"
+        },
+        {
+          "reason": "Outliers Leves en [SibSp]",
+          "points": 2.4,
+          "weight": 1.2,
+          "category": "Validez y Lógica de Negocio",
+          "severity": "warning",
+          "ruleId": "unknown"
+        },
+        {
+          "reason": "Outliers en [Parch]",
+          "points": 6,
+          "weight": 1.2,
+          "category": "Validez y Lógica de Negocio",
+          "severity": "warning",
+          "ruleId": "unknown"
+        },
+        {
+          "reason": "Outliers Leves en [Fare]",
+          "points": 2.4,
+          "weight": 1.2,
+          "category": "Validez y Lógica de Negocio",
+          "severity": "warning",
+          "ruleId": "unknown"
+        },
+        {
+          "reason": "Valores Nulos en [Cabin]",
+          "points": 12,
+          "weight": 1.2,
+          "category": "Integridad y Estructura",
+          "severity": "warning",
+          "ruleId": "unknown"
+        }
+      ],
+      "delimiterDetected": ",",
+      "datasetProfile": {
+        "totalRows": 20,
+        "totalColumns": 12,
+        "columns": [
+          {
+            "name": "PassengerId",
+            "cardinality": "unique",
+            "uniqueRatio": 1,
+            "sparsity": 0,
+            "inferredType": "number",
+            "isCandidateForCoalescence": false,
+            "pruneRecommendation": "keep"
+          },
+          {
+            "name": "Survived",
+            "cardinality": "medium",
+            "uniqueRatio": 0.1,
+            "sparsity": 0,
+            "inferredType": "number",
+            "isCandidateForCoalescence": false,
+            "pruneRecommendation": "keep"
+          },
+          {
+            "name": "Pclass",
+            "cardinality": "medium",
+            "uniqueRatio": 0.15,
+            "sparsity": 0,
+            "inferredType": "number",
+            "isCandidateForCoalescence": false,
+            "pruneRecommendation": "keep"
+          },
+          {
+            "name": "Name",
+            "cardinality": "unique",
+            "uniqueRatio": 1,
+            "sparsity": 0,
+            "inferredType": "string",
+            "isCandidateForCoalescence": false,
+            "pruneRecommendation": "keep"
+          },
+          {
+            "name": "Sex",
+            "cardinality": "medium",
+            "uniqueRatio": 0.1,
+            "sparsity": 0,
+            "inferredType": "string",
+            "isCandidateForCoalescence": false,
+            "pruneRecommendation": "keep"
+          },
+          {
+            "name": "Age",
+            "cardinality": "high",
+            "uniqueRatio": 0.7,
+            "sparsity": 0.15,
+            "inferredType": "number",
+            "isCandidateForCoalescence": false,
+            "pruneRecommendation": "keep"
+          },
+          {
+            "name": "SibSp",
+            "cardinality": "medium",
+            "uniqueRatio": 0.2,
+            "sparsity": 0,
+            "inferredType": "number",
+            "isCandidateForCoalescence": false,
+            "pruneRecommendation": "keep"
+          },
+          {
+            "name": "Parch",
+            "cardinality": "medium",
+            "uniqueRatio": 0.2,
+            "sparsity": 0,
+            "inferredType": "number",
+            "isCandidateForCoalescence": false,
+            "pruneRecommendation": "keep"
+          },
+          {
+            "name": "Ticket",
+            "cardinality": "unique",
+            "uniqueRatio": 1,
+            "sparsity": 0,
+            "inferredType": "mixed",
+            "isCandidateForCoalescence": false,
+            "pruneRecommendation": "keep"
+          },
+          {
+            "name": "Fare",
+            "cardinality": "high",
+            "uniqueRatio": 0.95,
+            "sparsity": 0,
+            "inferredType": "number",
+            "isCandidateForCoalescence": false,
+            "pruneRecommendation": "keep"
+          },
+          {
+            "name": "Cabin",
+            "cardinality": "medium",
+            "uniqueRatio": 0.25,
+            "sparsity": 0.75,
+            "inferredType": "string",
+            "isCandidateForCoalescence": false,
+            "pruneRecommendation": "keep"
+          },
+          {
+            "name": "Embarked",
+            "cardinality": "medium",
+            "uniqueRatio": 0.15,
+            "sparsity": 0,
+            "inferredType": "string",
+            "isCandidateForCoalescence": false,
+            "pruneRecommendation": "keep"
+          }
+        ],
+        "coalescencePairs": [],
+        "pruningCandidates": [],
+        "generatedAt": "2026-06-14T23:46:22.674Z"
+      }
+    },
+    "auditEvidence": {
+      "id": "audit-1781480782674",
+      "fileName": "titanic.csv",
+      "fileSize": 1353,
+      "datasetFingerprint": "2defab5c",
+      "startedAt": "2026-06-14T23:46:22.658Z",
+      "completedAt": "2026-06-14T23:46:22.674Z",
+      "parseDurationMs": 12,
+      "auditDurationMs": 4,
+      "totalDurationMs": 16,
+      "rowsProcessed": 20,
+      "columnsProcessed": 12,
+      "delimiter": ",",
+      "truncated": false,
+      "ingestionStatus": "success",
+      "issueCount": 5,
+      "score": 62,
+      "trace": [
+        {
+          "stage": "csv.parse.start",
+          "timestamp": "2026-06-14T23:46:22.658Z",
+          "elapsedMs": 0,
+          "details": {
+            "fileName": "titanic.csv",
+            "fileSize": 1353
+          }
+        },
+        {
+          "stage": "csv.parse.end",
+          "timestamp": "2026-06-14T23:46:22.670Z",
+          "elapsedMs": 12,
+          "details": {
+            "rows": 20,
+            "columns": 12,
+            "delimiter": ",",
+            "truncated": false,
+            "durationMs": 12
+          }
+        },
+        {
+          "stage": "audit.run.start",
+          "timestamp": "2026-06-14T23:46:22.670Z",
+          "elapsedMs": 12,
+          "details": {
+            "datasetFingerprint": "2defab5c"
+          }
+        },
+        {
+          "stage": "audit.run.end",
+          "timestamp": "2026-06-14T23:46:22.674Z",
+          "elapsedMs": 16,
+          "details": {
+            "durationMs": 4,
+            "score": 62,
+            "issues": 5,
+            "duplicateRows": 0
+          }
+        }
+      ]
+    }
+  },
+  "deterministicValidation": {
+    "datasetName": "titanic.csv",
+    "groundTruthMatched": true,
+    "perRuleMetrics": [
+      {
+        "ruleId": "integrity-null-Age",
+        "ruleName": "R02 — Valores Nulos (Age)",
+        "category": "Integridad y Estructura",
+        "tp": 1,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1,
+        "recall": 1,
+        "f1": 1,
+        "expectedTP": 1,
+        "actualDetected": 3,
+        "status": "match"
+      },
+      {
+        "ruleId": "integrity-null-Cabin",
+        "ruleName": "R02 — Valores Nulos (Cabin)",
+        "category": "Integridad y Estructura",
+        "tp": 1,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1,
+        "recall": 1,
+        "f1": 1,
+        "expectedTP": 1,
+        "actualDetected": 15,
+        "status": "match"
+      },
+      {
+        "ruleId": "logic-outlier-tukey-Fare",
+        "ruleName": "RTukey — Outliers Leves (Fare)",
+        "category": "Validez y Lógica de Negocio",
+        "tp": 1,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1,
+        "recall": 1,
+        "f1": 1,
+        "expectedTP": 1,
+        "actualDetected": 1,
+        "status": "match"
+      },
+      {
+        "ruleId": "logic-outlier-tukey-SibSp",
+        "ruleName": "Outliers Leves (Tukey 1.5×)",
+        "category": "Validez y Lógica de Negocio",
+        "tp": 0,
+        "fp": 2,
+        "fn": 0,
+        "precision": 0,
+        "recall": 1,
+        "f1": 0,
+        "expectedTP": 0,
+        "actualDetected": 2,
+        "status": "unexpected_fp"
+      },
+      {
+        "ruleId": "logic-outlier-Parch",
+        "ruleName": "Outliers Extremos (IQR 3×)",
+        "category": "Validez y Lógica de Negocio",
+        "tp": 0,
+        "fp": 1,
+        "fn": 0,
+        "precision": 0,
+        "recall": 1,
+        "f1": 0,
+        "expectedTP": 0,
+        "actualDetected": 1,
+        "status": "unexpected_fp"
+      }
+    ],
+    "summary": {
+      "totalTP": 3,
+      "totalFP": 3,
+      "totalFN": 0,
+      "macroPrecision": 1,
+      "macroRecall": 1,
+      "macroF1": 1,
+      "rulesMatched": 3,
+      "rulesPartial": 0,
+      "rulesMissed": 0,
+      "rulesUnexpectedFP": 2
+    }
+  },
+  "hitlDecision": {
+    "approved": true,
+    "timestamp": "2026-06-14T23:46:27.657Z",
+    "safetyScoreAtApproval": 88,
+    "coverageAtApproval": 60,
+    "checklist": [
+      {
+        "criterion": "Columnas válidas",
+        "passed": true,
+        "detail": "Todas las columnas existen en AuditReport."
+      },
+      {
+        "criterion": "Cobertura de hallazgos",
+        "passed": true,
+        "detail": "60% de hallazgos trazados."
+      },
+      {
+        "criterion": "Operaciones destructivas",
+        "passed": true,
+        "detail": "Sin operaciones destructivas detectadas."
+      },
+      {
+        "criterion": "Uso de Pandas",
+        "passed": true,
+        "detail": "El script evidencia importación de Pandas."
+      },
+      {
+        "criterion": "Revisión humana completa",
+        "passed": true,
+        "detail": "El revisor verificó el código completo antes de aprobar."
+      }
+    ],
+    "reviewerNotes": "Aprobado con advertencias: el script requiere criterio humano para operaciones marcadas."
+  },
+  "diagnosis": {
+    "model": "Qwen2.5-3B-Instruct-q4f16_1-MLC",
+    "providerType": "local",
+    "diagnosisText": ""
+  },
+  "script": {
+    "generatedScript": "import pandas as pd\nimport numpy as np\n\n# Script base generado por AURA desde hallazgos deterministas.\n# Ejecutar sobre una copia del DataFrame original: df_clean = df.copy()\ndf_clean = df.copy()\n\n# regla=Outliers Leves (Tukey 1.5×) issue=logic-outlier-tukey-SibSp :: Revisar manualmente SibSp: Valores desviados entre 1.5× y 3× del rango intercuartílico (mild Tukey outliers).\n# Requiere criterio humano antes de transformar esta columna.\n\n# regla=Outliers Extremos (IQR 3×) issue=logic-outlier-Parch :: Revisar manualmente Parch: Valores desviados > 3× del rango intercuartílico.\n# Requiere criterio humano antes de transformar esta columna.\n\n# regla=Outliers Leves (Tukey 1.5×) issue=logic-outlier-tukey-Fare :: Revisar manualmente Fare: Valores desviados entre 1.5× y 3× del rango intercuartílico (mild Tukey outliers).\n# Requiere criterio humano antes de transformar esta columna.\n\n# Resultado: df_clean contiene las transformaciones seguras propuestas por AURA.",
+    "scriptValidation": {
+      "valid": true,
+      "hasScript": true,
+      "invalidColumns": [],
+      "destructiveOperations": [],
+      "coveredIssueIds": [
+        "logic-outlier-tukey-SibSp",
+        "logic-outlier-Parch",
+        "logic-outlier-tukey-Fare"
+      ],
+      "uncoveredIssueIds": [
+        "integrity-null-Age",
+        "integrity-null-Cabin"
+      ],
+      "coveragePercentage": 60,
+      "safetyScore": 88,
+      "scriptOrigin": "deterministic",
+      "hasPandasImport": true,
+      "requiresHumanReview": true,
+      "warnings": [
+        "Script generado por respaldo determinista, no por LLM."
+      ]
+    },
+    "approvedScript": "import pandas as pd\nimport numpy as np\n\n# Script base generado por AURA desde hallazgos deterministas.\n# Ejecutar sobre una copia del DataFrame original: df_clean = df.copy()\ndf_clean = df.copy()\n\n# regla=Outliers Leves (Tukey 1.5×) issue=logic-outlier-tukey-SibSp :: Revisar manualmente SibSp: Valores desviados entre 1.5× y 3× del rango intercuartílico (mild Tukey outliers).\n# Requiere criterio humano antes de transformar esta columna.\n\n# regla=Outliers Extremos (IQR 3×) issue=logic-outlier-Parch :: Revisar manualmente Parch: Valores desviados > 3× del rango intercuartílico.\n# Requiere criterio humano antes de transformar esta columna.\n\n# regla=Outliers Leves (Tukey 1.5×) issue=logic-outlier-tukey-Fare :: Revisar manualmente Fare: Valores desviados entre 1.5× y 3× del rango intercuartílico (mild Tukey outliers).\n# Requiere criterio humano antes de transformar esta columna.\n\n# Resultado: df_clean contiene las transformaciones seguras propuestas por AURA."
+  }
+}

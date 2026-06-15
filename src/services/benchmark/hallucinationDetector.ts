@@ -11,6 +11,12 @@ export interface HallucinationReport {
   formatErrors: FormatError[];       // Errores de formato detectados
   pythonScriptColumnsValid: boolean;  // Si las columnas en scripts Python son válidas
   invalidScriptColumns: string[];     // Columnas usadas en scripts que no existen
+  knownColumnCount: number;
+  mentionedKnownColumns: string[];
+  mentionedRuleNames: string[];
+  citedBadSamples: string[];
+  evidenceAnchoringScore: number;
+  badSampleCitationScore: number;
 }
 
 /**
@@ -91,6 +97,54 @@ const detectPhantomColumns = (report: AuditReport, text: string): string[] => {
     .filter(col => !knownColumns.has(col))
     .filter(col => !knownIssueNames.has(col))
     .filter(col => !nonColumns.has(col.toLowerCase()));
+};
+
+const normalizeText = (value: unknown): string =>
+  String(value ?? '').trim().toLowerCase();
+
+const mentionsText = (haystack: string, needle: unknown): boolean => {
+  const normalizedNeedle = normalizeText(needle);
+  if (!normalizedNeedle) return false;
+  return haystack.includes(normalizedNeedle);
+};
+
+const detectEvidenceUse = (
+  report: AuditReport,
+  text: string
+): Pick<
+  HallucinationReport,
+  'mentionedKnownColumns' |
+  'mentionedRuleNames' |
+  'citedBadSamples' |
+  'evidenceAnchoringScore' |
+  'badSampleCitationScore'
+> => {
+  const lowered = text.toLowerCase();
+  const knownColumns = Object.keys(report.columnStats);
+  const ruleNames = Array.from(new Set(report.issues.map(issue => issue.ruleName)));
+  const badSamples = Array.from(new Set(
+    report.issues.flatMap(issue => issue.sampleValues || []).map(value => String(value))
+  )).filter(Boolean);
+
+  const mentionedKnownColumns = knownColumns.filter(column => mentionsText(lowered, column));
+  const mentionedRuleNames = ruleNames.filter(rule => mentionsText(lowered, rule));
+  const citedBadSamples = badSamples.filter(sample => mentionsText(lowered, sample));
+
+  const evidenceBasis = Math.max(1, knownColumns.length + ruleNames.length);
+  const sampleBasis = Math.max(1, badSamples.length);
+
+  return {
+    mentionedKnownColumns,
+    mentionedRuleNames,
+    citedBadSamples,
+    evidenceAnchoringScore: Math.min(
+      1,
+      (mentionedKnownColumns.length + mentionedRuleNames.length) / evidenceBasis
+    ),
+    badSampleCitationScore: badSamples.length === 0
+      ? 1
+      : Math.min(1, citedBadSamples.length / sampleBasis)
+  };
 };
 
 /**
@@ -313,6 +367,7 @@ export const detectHallucinations = (
   const phantomColumns = detectPhantomColumns(report, responseText);
   const unsupportedClaims = detectUnsupportedClaims(report, responseText);
   const jsonCheck = checkJsonCompliance(responseText);
+  const evidenceUse = detectEvidenceUse(report, responseText);
 
   // Si hay script Python, validar sus columnas
   const scriptToValidate = pythonScript || (responseText.match(/```python\n([\s\S]*?)```|```\n([\s\S]*?)```/)?.[1] || '');
@@ -324,7 +379,9 @@ export const detectHallucinations = (
     jsonCompliance: jsonCheck.compliant,
     formatErrors: jsonCheck.errors,
     pythonScriptColumnsValid: scriptValidation.valid,
-    invalidScriptColumns: scriptValidation.invalidColumns
+    invalidScriptColumns: scriptValidation.invalidColumns,
+    knownColumnCount: Object.keys(report.columnStats).length,
+    ...evidenceUse
   };
 };
 

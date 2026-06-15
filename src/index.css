@@ -5664,6 +5664,7 @@ tr:hover td {
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
   padding: var(--space-xl);
+  min-width: 0;
 }
 
 .profile-summary-hero {
@@ -5673,6 +5674,7 @@ tr:hover td {
   margin-bottom: var(--space-lg);
   padding-bottom: var(--space-lg);
   border-bottom: 1px solid var(--border-faint);
+  min-width: 0;
 }
 
 .profile-summary-score {
@@ -5714,6 +5716,7 @@ tr:hover td {
   gap: var(--space-lg);
   flex: 1;
   flex-wrap: wrap;
+  min-width: 0;
 }
 
 .profile-summary-stat {
@@ -5767,6 +5770,7 @@ tr:hover td {
   border-radius: var(--radius-sm);
   font-size: 13px;
   transition: background var(--transition-fast);
+  min-width: 0;
 }
 
 .profile-summary-finding:hover {
@@ -5813,6 +5817,7 @@ tr:hover td {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-xs);
+  min-width: 0;
 }
 
 .profile-summary-affected-chip {
@@ -5921,6 +5926,25 @@ tr:hover td {
 /* ─── Responsive ─── */
 
 @media (max-width: 768px) {
+  .stepper {
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding-left: 0;
+    padding-right: 0;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .stepper-track {
+    min-width: max-content;
+    padding: 0 var(--space-sm);
+  }
+
+  .profile-summary-section {
+    padding: var(--space-lg);
+    overflow: hidden;
+  }
+
   .profile-summary-hero {
     flex-direction: column;
     align-items: flex-start;

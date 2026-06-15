@@ -4,12 +4,15 @@
 
 ## Orden de lectura
 
-1. `RETROALIMENTACION_Y_DIRECTRICES.md`
-2. `MATRIZ_EVIDENCIA_RESULTADOS.md`
-3. `MATRIZ_PIPELINE_DESARROLLO_AURA.md`
-4. `PLAN_DESARROLLO_RESULTADOS_PUBLICACION.md`
-5. `../../../plans/2026-06-06-aura-tercera-entrega-resultados.md`
-6. `../../../plans/2026-06-12-aura-pipeline-matriz-loops.md`
+1. `DOCUMENTO_TERCERA_ENTREGA_AURA.md`
+2. `BITACORA_AVANCES_TERCERA_ENTREGA.md`
+3. `RETROALIMENTACION_Y_DIRECTRICES.md`
+4. `MATRIZ_EVIDENCIA_RESULTADOS.md`
+5. `PLAN_DESARROLLO_RESULTADOS_PUBLICACION.md`
+6. `../../../experiments/PROTOCOLO_BENCHMARK_AURA_2026-06.md`
+7. `../../../qa/AUDITORIA_UX_CASABERO_AURA_2026-06-14.md`
+8. `../../../plans/2026-06-06-aura-tercera-entrega-resultados.md`
+9. `../../../plans/2026-06-12-aura-pipeline-matriz-loops.md`
 
 ## Objetivo de esta carpeta
 
@@ -33,11 +36,12 @@ AURA debe defenderse como arquitectura hibrida evaluable, no como promesa absolu
 
 ## Prioridad inmediata
 
-1. Cerrar protocolo experimental.
-2. Reejecutar validacion determinista por regla y dataset.
-3. Ejecutar benchmark LLM con corridas validas.
-4. Generar paquete de evidencias para Word y articulo.
-5. Reescribir resultados/discusion/conclusiones desde evidencia, no desde aspiraciones.
+1. Mantener `DOCUMENTO_TERCERA_ENTREGA_AURA.md` como borrador vivo.
+2. Registrar cada avance en `BITACORA_AVANCES_TERCERA_ENTREGA.md`.
+3. Reejecutar validacion determinista por regla y dataset.
+4. Ejecutar benchmark LLM con corridas validas.
+5. Generar paquete de evidencias para Word y articulo.
+6. Reescribir resultados/discusion/conclusiones desde evidencia, no desde aspiraciones.
 
 ## Relacion con segunda entrega
 

@@ -52,6 +52,10 @@ Resultado esperado:
 
 Objetivo: producir resultados comparativos objetivos para OE4.
 
+Protocolo operativo:
+
+- `docs/experiments/PROTOCOLO_BENCHMARK_AURA_2026-06.md`
+
 Configuracion minima:
 
 - Dataset: `synthetic_ground_truth.csv` y un dataset sucio operacional.
@@ -63,7 +67,8 @@ Configuracion minima:
 Metricas:
 
 - latencia;
-- cumplimiento de formato;
+- cumplimiento de contrato (`contractCompliance`);
+- JSON real solo cuando `hallucinationReport.jsonCompliance` sea verdadero;
 - columnas alucinadas;
 - claims sin soporte;
 - script incluido;

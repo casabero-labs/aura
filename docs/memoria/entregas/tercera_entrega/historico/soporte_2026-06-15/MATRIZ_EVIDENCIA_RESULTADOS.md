@@ -17,7 +17,7 @@
 |---|---|---|---|
 | Validacion determinista por regla | `experiments/results/deterministic_validation_by_rule.json` | TP, FP, FN, precision, recall, F1 por regla y dataset | Metodologia y resultados OE2 |
 | Tabla APA del motor | `docs/tablas/resultados_motor_determinista_por_regla.md` | Tabla limpia para memoria/articulo | Cap. resultados |
-| Benchmark LLM formal | `experiments/results/benchmark_llm_formal.json` | modelo, proveedor, temperatura, input mode, latencia, alucinaciones, script, estado | OE4 y articulo |
+| Benchmark LLM formal | `experiments/results/benchmark_llm_formal.json` | modelo, proveedor, temperatura, input mode, latencia, contrato, JSON real, alucinaciones, script, estado | OE4 y articulo |
 | Tabla APA de benchmark | `docs/tablas/resultados_benchmark_llm_formal.md` | ranking y comparacion smart sample vs prompt libre | Estado del arte/resultados |
 | Evidencia de flujo completo | `docs/evidence/results/aura_flow_evidence_tercera_entrega.json` | audit, diagnosis, script, validation, improvementRun | OE1-OE3 |
 | Delta de salud | `docs/tablas/resultados_delta_salud.md` | score antes/despues, issues antes/despues, acciones bloqueadas | Impacto aplicado |
@@ -39,7 +39,8 @@
 - First token latency.
 - Tokens generados.
 - Tokens por segundo.
-- Cumplimiento de formato.
+- Cumplimiento de contrato (`contractCompliance`).
+- JSON real (`hallucinationReport.jsonCompliance`) solo si parsea y cumple campos requeridos.
 - Columnas alucinadas.
 - Claims sin soporte.
 - Validez del script.

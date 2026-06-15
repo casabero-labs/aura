@@ -14,16 +14,19 @@ import { BenchmarkResult, InputMode } from '../../types';
  * All weights should sum to 1.0.
  */
 export interface ScoreWeights {
-  jsonCompliance: number;   // Default: 0.25
-  hallucinationRate: number; // Default: 0.25
-  latencyScore: number;      // Default: 0.15
-  tokenEfficiency: number;   // Default: 0.10
-  scriptQuality: number;     // Default: 0.10
-  claimAccuracy: number;     // Default: 0.15
+  contractCompliance?: number; // Default: 0.25
+  /** @deprecated Use contractCompliance. JSON real se reporta por separado. */
+  jsonCompliance?: number;
+  hallucinationRate: number;   // Default: 0.25
+  latencyScore: number;        // Default: 0.15
+  tokenEfficiency: number;     // Default: 0.10
+  scriptQuality: number;       // Default: 0.10
+  claimAccuracy: number;       // Default: 0.15
 }
 
 /** Default weights for composite score calculation */
 const DEFAULT_WEIGHTS: ScoreWeights = {
+  contractCompliance: 0.25,
   jsonCompliance: 0.25,
   hallucinationRate: 0.25,
   latencyScore: 0.15,
@@ -75,10 +78,15 @@ export interface ExperimentEntry {
     firstTokenMs: number;
     tokensGenerated: number;
     tokensPerSecond: number;
+    contractCompliance: boolean;
+    jsonCompliance: boolean;
+    /** @deprecated Alias historico de contractCompliance. */
     formatCompliance: boolean;
     pythonScriptIncluded: boolean;
     hallucinatedColumns: string[];
     unsupportedClaims: number;
+    evidenceAnchoringScore?: number;
+    badSampleCitationScore?: number;
   };
   compositeScore: number;
   evidenceStatus: BenchmarkResult['evidenceStatus'];
@@ -102,7 +110,7 @@ export interface ExperimentStats {
 
 /** Normalized metrics before weighting */
 interface NormalizedMetrics {
-  jsonCompliance: number;
+  contractCompliance: number;
   hallucinationRate: number;
   latencyScore: number;
   tokenEfficiency: number;
@@ -115,29 +123,33 @@ interface NormalizedMetrics {
 // =============================================================================
 
 /**
- * Normalizes format compliance (boolean) to 0-1 range.
+ * Normalizes contract compliance (boolean) to 0-1 range.
  * 1.0 = compliant (true), 0.0 = non-compliant (false)
  */
-const normalizeJsonCompliance = (result: BenchmarkResult): number => {
-  return result.formatCompliance ? 1.0 : 0.0;
+const hasContractCompliance = (result: BenchmarkResult): boolean =>
+  result.contractCompliance ?? result.formatCompliance;
+
+const normalizeContractCompliance = (result: BenchmarkResult): number => {
+  return hasContractCompliance(result) ? 1.0 : 0.0;
 };
 
 /**
  * Normalizes hallucination rate to 0-1 range.
  * Based on: 1 - (hallucinatedColumns.length / totalKnownColumns)
  * where totalKnownColumns is derived from the result context.
- * Falls back to: 1 - (hallucinatedColumns.length / (tokensGenerated + 1))
- * to avoid division by zero.
+ * If the benchmark result does not carry knownColumnCount, the fallback is
+ * intentionally strict: any hallucinated columns consume the whole basis.
  *
  * Higher is better (1 = no hallucinations, 0 = all columns hallucinated).
  */
 const normalizeHallucinationRate = (result: BenchmarkResult): number => {
   const hallucinatedCount = result.hallucinatedColumns.length;
-  // Use tokensGenerated as a proxy for total columns expected
-  // A result with 0 hallucinations gets score 1
-  // A result where hallucinations > tokens gets score 0
-  const totalTokens = result.tokensGenerated || 1;
-  const rate = hallucinatedCount / (totalTokens * 0.1 + 1); // Weighted proxy
+  if (hallucinatedCount === 0) return 1;
+  const knownColumnCount = result.hallucinationReport?.knownColumnCount;
+  const basis = knownColumnCount && knownColumnCount > 0
+    ? knownColumnCount
+    : hallucinatedCount;
+  const rate = hallucinatedCount / basis;
   return Math.max(0, Math.min(1, 1 - rate));
 };
 
@@ -202,12 +214,13 @@ export const compositeScore = (
   weights: ScoreWeights = DEFAULT_WEIGHTS,
   maxLatencyMs?: number
 ): number => {
+  const contractWeight = weights.contractCompliance ?? weights.jsonCompliance ?? 0.25;
   // Determine max latency for normalization
   const effectiveMaxLatency = maxLatencyMs ?? Math.max(result.latencyMs, 1000);
 
   // Normalize each metric to 0-1 range
   const normalized: NormalizedMetrics = {
-    jsonCompliance: normalizeJsonCompliance(result),
+    contractCompliance: normalizeContractCompliance(result),
     hallucinationRate: normalizeHallucinationRate(result),
     latencyScore: normalizeLatency(result.latencyMs, effectiveMaxLatency),
     tokenEfficiency: normalizeTokenEfficiency(result.tokensPerSecond),
@@ -217,7 +230,7 @@ export const compositeScore = (
 
   // Apply weights and sum
   const score =
-    normalized.jsonCompliance * weights.jsonCompliance +
+    normalized.contractCompliance * contractWeight +
     normalized.hallucinationRate * weights.hallucinationRate +
     normalized.latencyScore * weights.latencyScore +
     normalized.tokenEfficiency * weights.tokenEfficiency +
@@ -261,10 +274,14 @@ export const exportBenchmarkJson = (
       firstTokenMs: result.firstTokenMs,
       tokensGenerated: result.tokensGenerated,
       tokensPerSecond: result.tokensPerSecond,
+      contractCompliance: hasContractCompliance(result),
+      jsonCompliance: Boolean(result.hallucinationReport?.jsonCompliance),
       formatCompliance: result.formatCompliance,
       pythonScriptIncluded: result.pythonScriptIncluded,
       hallucinatedColumns: result.hallucinatedColumns,
-      unsupportedClaims: result.unsupportedClaims
+      unsupportedClaims: result.unsupportedClaims,
+      evidenceAnchoringScore: result.hallucinationReport?.evidenceAnchoringScore,
+      badSampleCitationScore: result.hallucinationReport?.badSampleCitationScore
     },
     compositeScore: compositeScore(result, weights, maxLatencyMs),
     evidenceStatus: result.evidenceStatus,
@@ -371,7 +388,7 @@ export const experimentStats = (
  * based on evidence anchoring, bad sample citation, and hallucination control.
  *
  * Weights (sum = 1.0):
- * - formatCompliance: 0.20
+ * - contractCompliance: 0.20
  * - zeroHallucinations: 0.25
  * - evidenceAnchoring: 0.20 (mentions real rules/columns from the profile)
  * - badSampleCitation: 0.15 (cites actual detected values)
@@ -379,7 +396,9 @@ export const experimentStats = (
  * - latencyPenalty: 0.10 (speed as tradeoff, not quality)
  */
 export interface DiagnosisReliabilityWeights {
-  formatCompliance: number;
+  contractCompliance?: number;
+  /** @deprecated Use contractCompliance. */
+  formatCompliance?: number;
   zeroHallucinations: number;
   evidenceAnchoring: number;
   badSampleCitation: number;
@@ -388,6 +407,7 @@ export interface DiagnosisReliabilityWeights {
 }
 
 const DEFAULT_RELIABILITY_WEIGHTS: DiagnosisReliabilityWeights = {
+  contractCompliance: 0.20,
   formatCompliance: 0.20,
   zeroHallucinations: 0.25,
   evidenceAnchoring: 0.20,
@@ -397,29 +417,18 @@ const DEFAULT_RELIABILITY_WEIGHTS: DiagnosisReliabilityWeights = {
 };
 
 /**
- * Estimates evidence anchoring: what fraction of the diagnosis mentions
- * real column names or rule names from the benchmark result's context.
- * Falls back to 0.5 if no diagnosis text is stored in the result.
+ * Uses observed evidence anchoring computed by hallucinationDetector.
+ * No credit is granted just because a mode is expected to be better.
  */
 const estimateEvidenceAnchoring = (result: BenchmarkResult): number => {
-  if (!result.hallucinatedColumns || result.hallucinatedColumns.length === 0) return 0.8;
-  const hCount = result.hallucinatedColumns.length;
-  return Math.max(0, 1 - (hCount * 0.15));
+  return result.hallucinationReport?.evidenceAnchoringScore ?? 0;
 };
 
 /**
- * Estimates bad sample citation based on the input mode.
- * copy_paste_bad_samples and recommended modes force citations.
+ * Uses observed bad-sample citations computed by hallucinationDetector.
  */
 const estimateBadSampleCitation = (result: BenchmarkResult): number => {
-  switch (result.inputMode) {
-    case 'copy_paste_bad_samples': return 0.9;
-    case 'recommended': return 0.85;
-    case 'enhanced_registry': return 0.5;
-    case 'smart_sample': return 0.5;
-    case 'prompt_libre': return 0.2;
-    default: return 0.4;
-  }
+  return result.hallucinationReport?.badSampleCitationScore ?? 0;
 };
 
 /**
@@ -431,7 +440,8 @@ export const diagnosisReliabilityScore = (
   weights: DiagnosisReliabilityWeights = DEFAULT_RELIABILITY_WEIGHTS,
   maxLatencyMs?: number
 ): number => {
-  const fmtScore = result.formatCompliance ? 1.0 : 0.0;
+  const complianceWeight = weights.contractCompliance ?? weights.formatCompliance ?? 0.20;
+  const fmtScore = hasContractCompliance(result) ? 1.0 : 0.0;
   const hallucScore = result.hallucinatedColumns.length === 0 ? 1.0
     : Math.max(0, 1 - (result.hallucinatedColumns.length * 0.2));
   const anchoringScore = estimateEvidenceAnchoring(result);
@@ -441,7 +451,7 @@ export const diagnosisReliabilityScore = (
   const latencyScore = Math.max(0, 1 - (result.latencyMs / effectiveMaxLatency));
 
   const score =
-    fmtScore * weights.formatCompliance +
+    fmtScore * complianceWeight +
     hallucScore * weights.zeroHallucinations +
     anchoringScore * weights.evidenceAnchoring +
     citationScore * weights.badSampleCitation +
@@ -467,7 +477,7 @@ export const getDefaultWeights = (): ScoreWeights => ({ ...DEFAULT_WEIGHTS });
  */
 export const validateWeights = (weights: ScoreWeights): boolean => {
   const sum =
-    weights.jsonCompliance +
+    (weights.contractCompliance ?? weights.jsonCompliance ?? 0) +
     weights.hallucinationRate +
     weights.latencyScore +
     weights.tokenEfficiency +

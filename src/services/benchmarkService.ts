@@ -46,6 +46,7 @@ export const runBenchmarkForConfig = async (
     tokensGenerated: 0,
     tokensPerSecond: 0,
     formatCompliance: false,
+    contractCompliance: false,
     pythonScriptIncluded: false,
     hallucinatedColumns: [],
     unsupportedClaims: 0,
@@ -89,6 +90,7 @@ export const runBenchmarkForConfig = async (
         : 0;
       const hallucinationReport = detectHallucinations(report, text);
       const scriptValidation = validateCleaningScript(report, text);
+      const contractCompliance = text.trim().length > 0;
       const result: BenchmarkResult = {
         ...baseResult,
         status: 'completed',
@@ -96,7 +98,8 @@ export const runBenchmarkForConfig = async (
         firstTokenMs: metrics.firstTokenMs,
         tokensGenerated: metrics.tokensGenerated,
         tokensPerSecond,
-        formatCompliance: false,
+        formatCompliance: contractCompliance,
+        contractCompliance,
         pythonScriptIncluded: text.includes('import pandas') || text.includes('pd.'),
         hallucinatedColumns: hallucinationReport.hallucinatedColumns,
         unsupportedClaims: hallucinationReport.unsupportedClaims.length,
@@ -104,8 +107,15 @@ export const runBenchmarkForConfig = async (
           hallucinatedColumns: hallucinationReport.hallucinatedColumns,
           unsupportedClaimsCount: hallucinationReport.unsupportedClaims.length,
           jsonCompliance: hallucinationReport.jsonCompliance,
+          contractCompliance,
           formatErrorCount: hallucinationReport.formatErrors.length,
           invalidScriptColumns: hallucinationReport.invalidScriptColumns,
+          knownColumnCount: hallucinationReport.knownColumnCount,
+          mentionedKnownColumns: hallucinationReport.mentionedKnownColumns,
+          mentionedRuleNames: hallucinationReport.mentionedRuleNames,
+          citedBadSamples: hallucinationReport.citedBadSamples,
+          evidenceAnchoringScore: hallucinationReport.evidenceAnchoringScore,
+          badSampleCitationScore: hallucinationReport.badSampleCitationScore,
         },
         scriptValidation,
         completedAt: new Date().toISOString(),
@@ -149,6 +159,11 @@ export const runBenchmarkForConfig = async (
       : 0;
     const hallucinationReport = detectHallucinations(report, serializedContent, script);
     const scriptValidation = validateCleaningScript(report, script);
+    const contractCompliance = Boolean(
+      diagnosisText.includes('## Estado de ejecucion') ||
+      diagnosisText.includes('## Hallazgos respaldados') ||
+      diagnosisText.includes('## Criterios para generar script')
+    );
     const result: BenchmarkResult = {
       ...baseResult,
       status: 'completed',
@@ -156,11 +171,8 @@ export const runBenchmarkForConfig = async (
       firstTokenMs,
       tokensGenerated: totalTokens,
       tokensPerSecond,
-      formatCompliance: Boolean(
-        diagnosisText.includes('## Estado de ejecucion') ||
-        diagnosisText.includes('## Hallazgos respaldados') ||
-        diagnosisText.includes('## Criterios para generar script')
-      ),
+      formatCompliance: contractCompliance,
+      contractCompliance,
       pythonScriptIncluded: script.includes('import pandas') || script.includes('pd.'),
       hallucinatedColumns: hallucinationReport.hallucinatedColumns,
       unsupportedClaims: hallucinationReport.unsupportedClaims.length,
@@ -168,8 +180,15 @@ export const runBenchmarkForConfig = async (
         hallucinatedColumns: hallucinationReport.hallucinatedColumns,
         unsupportedClaimsCount: hallucinationReport.unsupportedClaims.length,
         jsonCompliance: hallucinationReport.jsonCompliance,
+        contractCompliance,
         formatErrorCount: hallucinationReport.formatErrors.length,
         invalidScriptColumns: hallucinationReport.invalidScriptColumns,
+        knownColumnCount: hallucinationReport.knownColumnCount,
+        mentionedKnownColumns: hallucinationReport.mentionedKnownColumns,
+        mentionedRuleNames: hallucinationReport.mentionedRuleNames,
+        citedBadSamples: hallucinationReport.citedBadSamples,
+        evidenceAnchoringScore: hallucinationReport.evidenceAnchoringScore,
+        badSampleCitationScore: hallucinationReport.badSampleCitationScore,
       },
       scriptValidation,
       completedAt: new Date().toISOString(),

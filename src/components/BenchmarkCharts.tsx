@@ -177,7 +177,7 @@ export const RadarChart: React.FC<RadarChartProps> = ({
     const radius = Math.min(width, height) / 2 - margin;
 
     const dimensions = [
-      { key: 'jsonCompliance', label: 'JSON', accessor: (r: BenchmarkResult) => r.formatCompliance ? 1 : 0 },
+      { key: 'contractCompliance', label: 'Contrato', accessor: (r: BenchmarkResult) => (r.contractCompliance ?? r.formatCompliance) ? 1 : 0 },
       { key: 'hallucination', label: 'Anti-Hall.', accessor: (r: BenchmarkResult) => {
         const cols = Object.keys(r.hallucinatedColumns || []).length;
         return Math.max(0, 1 - cols * 0.2);

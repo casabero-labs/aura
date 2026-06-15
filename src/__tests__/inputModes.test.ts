@@ -55,6 +55,7 @@ const baseBenchmark: BenchmarkResult = {
   tokensGenerated: 200,
   tokensPerSecond: 66,
   formatCompliance: true,
+  contractCompliance: true,
   pythonScriptIncluded: true,
   hallucinatedColumns: [],
   unsupportedClaims: 0,
@@ -62,6 +63,24 @@ const baseBenchmark: BenchmarkResult = {
   startedAt: new Date().toISOString(),
   timestamp: new Date().toISOString(),
 };
+
+const withObservedEvidence = (result: BenchmarkResult): BenchmarkResult => ({
+  ...result,
+  hallucinationReport: {
+    hallucinatedColumns: result.hallucinatedColumns,
+    unsupportedClaimsCount: result.unsupportedClaims,
+    jsonCompliance: false,
+    contractCompliance: result.contractCompliance ?? result.formatCompliance,
+    formatErrorCount: 1,
+    invalidScriptColumns: [],
+    knownColumnCount: report.colCount,
+    mentionedKnownColumns: ['email', 'edad'],
+    mentionedRuleNames: ['Formato Email Invalido'],
+    citedBadSamples: ['bad@email', '-5'],
+    evidenceAnchoringScore: 0.5,
+    badSampleCitationScore: 0.67,
+  },
+});
 
 // ── Input Mode Tests ──
 
@@ -123,22 +142,28 @@ describe('Input Mode Prompt Builders', () => {
 
 describe('Diagnosis Reliability Score', () => {
   it('penaliza alucinaciones severamente', () => {
-    const clean = diagnosisReliabilityScore(baseBenchmark);
-    const hallucinated: BenchmarkResult = { ...baseBenchmark, hallucinatedColumns: ['col_falsa_1', 'col_falsa_2', 'col_falsa_3'] };
+    const clean = diagnosisReliabilityScore(withObservedEvidence(baseBenchmark));
+    const hallucinated: BenchmarkResult = withObservedEvidence({ ...baseBenchmark, hallucinatedColumns: ['col_falsa_1', 'col_falsa_2', 'col_falsa_3'] });
     const withH = diagnosisReliabilityScore(hallucinated);
     expect(clean).toBeGreaterThan(withH);
     expect(withH).toBeLessThan(0.8);
   });
 
-  it('prompt_libre tiene menor citation score que recommended', () => {
-    const libre: BenchmarkResult = { ...baseBenchmark, inputMode: 'prompt_libre', formatCompliance: true };
-    const recommended: BenchmarkResult = { ...baseBenchmark, inputMode: 'recommended', formatCompliance: true };
-    expect(diagnosisReliabilityScore(recommended)).toBeGreaterThan(diagnosisReliabilityScore(libre));
+  it('no otorga credito de citas por modo si no hay evidencia observada', () => {
+    const libre: BenchmarkResult = { ...baseBenchmark, inputMode: 'prompt_libre', formatCompliance: true, contractCompliance: true };
+    const recommended: BenchmarkResult = { ...baseBenchmark, inputMode: 'recommended', formatCompliance: true, contractCompliance: true };
+    expect(diagnosisReliabilityScore(recommended)).toBe(diagnosisReliabilityScore(libre));
   });
 
-  it('formatCompliance true mejora el score', () => {
-    const withFmt = diagnosisReliabilityScore({ ...baseBenchmark, formatCompliance: true });
-    const withoutFmt = diagnosisReliabilityScore({ ...baseBenchmark, formatCompliance: false });
+  it('mejora el score cuando hay anclaje y bad samples observados', () => {
+    const withoutEvidence = diagnosisReliabilityScore(baseBenchmark);
+    const withEvidence = diagnosisReliabilityScore(withObservedEvidence(baseBenchmark));
+    expect(withEvidence).toBeGreaterThan(withoutEvidence);
+  });
+
+  it('contractCompliance true mejora el score', () => {
+    const withFmt = diagnosisReliabilityScore({ ...baseBenchmark, formatCompliance: true, contractCompliance: true });
+    const withoutFmt = diagnosisReliabilityScore({ ...baseBenchmark, formatCompliance: false, contractCompliance: false });
     expect(withFmt).toBeGreaterThan(withoutFmt);
   });
 

@@ -522,7 +522,7 @@ const App: React.FC = () => {
                       <strong style={{ color: statusColor }}>{statusLabel}</strong>
                     </div>
                     <div className="export-status-item">
-                      <span>Objetivos</span>
+                      <span>Cobertura</span>
                       <strong>{completedObjectives}/{manifest.objectivesCoverage.length}</strong>
                     </div>
                     <div className="export-status-item">

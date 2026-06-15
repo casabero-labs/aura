@@ -19,20 +19,21 @@ const countCritical = (report: AuditReport) =>
 const ruleNames = (report: AuditReport) => new Set(report.issues.map((issue) => issue.ruleName));
 
 export const deriveEvidenceStatus = (
-  result: Pick<BenchmarkResult, 'status' | 'inputMode' | 'formatCompliance' | 'hallucinatedColumns' | 'scriptValidation'>,
+  result: Pick<BenchmarkResult, 'status' | 'inputMode' | 'formatCompliance' | 'contractCompliance' | 'hallucinatedColumns' | 'scriptValidation'>,
   hasGroundTruthMatch?: boolean
 ): EvidenceStatus => {
+  const contractCompliance = result.contractCompliance ?? result.formatCompliance;
   if (result.status === 'error' || result.status === 'unavailable') return 'attempted_failed';
   if (result.status !== 'completed') return 'planned';
   if (result.inputMode === 'prompt_libre') {
     // Prompt libre is inherently less controlled → preliminary at best
-    if (result.formatCompliance && result.hallucinatedColumns.length === 0) {
+    if (contractCompliance && result.hallucinatedColumns.length === 0) {
       return 'preliminary_valid';
     }
     return 'attempted_failed';
   }
   // Smart sample: stricter grading
-  if (!result.formatCompliance || result.hallucinatedColumns.length > 0 || result.scriptValidation?.valid === false) {
+  if (!contractCompliance || result.hallucinatedColumns.length > 0 || result.scriptValidation?.valid === false) {
     return 'attempted_failed';
   }
   // Formal valid: smart sample completed, all checks pass, AND ground truth exists

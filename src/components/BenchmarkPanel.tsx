@@ -240,7 +240,7 @@ const BenchmarkPanel: React.FC<BenchmarkPanelProps> = ({
         </div>
         <div>
           <span>criterio</span>
-          <strong>JSON valido · script HITL · cero columnas fantasma</strong>
+          <strong>Contrato valido · script HITL · cero columnas fantasma</strong>
         </div>
         <div>
           <span>estado</span>
@@ -424,7 +424,7 @@ const BenchmarkPanel: React.FC<BenchmarkPanelProps> = ({
               <th>Latencia</th>
               <th>Activo</th>
               <th>Tokens/s</th>
-              <th>JSON</th>
+              <th>Contrato</th>
               <th>Script HITL</th>
               <th>Evidencia</th>
               <th>Alucinación columnas</th>
@@ -453,7 +453,7 @@ const BenchmarkPanel: React.FC<BenchmarkPanelProps> = ({
                 <td>{result.latencyMs ? `${result.latencyMs}ms` : '-'}</td>
                 <td>{result.status === 'running' ? elapsedFrom(result.startedAt) : result.completedAt ? 'cerrado' : '-'}</td>
                 <td>{result.tokensPerSecond || '-'}</td>
-                <td>{result.formatCompliance ? 'OK' : '-'}</td>
+                <td>{(result.contractCompliance ?? result.formatCompliance) ? 'OK' : '-'}</td>
                 <td>{result.pythonScriptIncluded ? 'OK' : '-'}</td>
                 <td>{evidenceLabel[result.evidenceStatus]}</td>
                 <td>

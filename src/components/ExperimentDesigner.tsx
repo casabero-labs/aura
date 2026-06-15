@@ -241,7 +241,7 @@ export const ExperimentDesigner = ({ report, config, onLog, onResultsChange }: E
                   <th style={styles.th}>Modo</th>
                   <th style={styles.th}>Latencia</th>
                   <th style={styles.th}>Tokens/s</th>
-                  <th style={styles.th}>JSON</th>
+                  <th style={styles.th}>Contrato</th>
                   <th style={styles.th}>Script</th>
                   <th style={styles.th}>Alucin.</th>
                   <th style={styles.th}>Score</th>
@@ -294,7 +294,7 @@ export const ExperimentDesigner = ({ report, config, onLog, onResultsChange }: E
             <h3 style={styles.sectionTitle}>Visualización de Métricas</h3>
             <div style={styles.chartsGrid}>
               <div style={styles.chartCard}>
-                <h4 style={styles.chartTitle}>Score Compuesto por Modelo</h4>
+                <h4 style={styles.chartTitle}>Score compuesto por modelo</h4>
                 <ScoreBarChart results={completedResults} />
               </div>
               <div style={styles.chartCard}>

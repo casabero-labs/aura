@@ -226,7 +226,7 @@ const ComparisonStep: React.FC<ComparisonStepProps> = ({
               <th>Modelo</th>
               <th>Estado</th>
               <th>Latencia</th>
-              <th>JSON</th>
+              <th>Contrato</th>
               <th>Script</th>
               <th>Evidencia</th>
               <th>Alucinación columnas</th>
@@ -255,7 +255,7 @@ const ComparisonStep: React.FC<ComparisonStepProps> = ({
                   {result.error && <small>{result.error}</small>}
                 </td>
                 <td>{result.latencyMs ? `${result.latencyMs}ms` : '-'}</td>
-                <td>{result.formatCompliance ? 'OK' : '-'}</td>
+                <td>{(result.contractCompliance ?? result.formatCompliance) ? 'OK' : '-'}</td>
                 <td>{result.pythonScriptIncluded ? 'OK' : '-'}</td>
                 <td>{evidenceLabel[result.evidenceStatus]}</td>
                 <td>{result.hallucinatedColumns.length ? result.hallucinatedColumns.join(', ') : '0'}</td>

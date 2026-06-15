@@ -128,6 +128,7 @@ const BenchmarkLab: React.FC<BenchmarkLabProps> = ({
       providerType,
       model: modelId,
       temperature,
+      inputMode,
       cloudProvider: providerType === 'cloud'
         ? (cloudModels.find(m => m.id === modelId)?.provider?.toLowerCase() as any)
         : undefined
@@ -146,6 +147,7 @@ const BenchmarkLab: React.FC<BenchmarkLabProps> = ({
       firstTokenMs: 0,
       tokensGenerated: 0,
       tokensPerSecond: 0,
+      contractCompliance: false,
       formatCompliance: false,
       pythonScriptIncluded: false,
       hallucinatedColumns: [],
@@ -461,6 +463,7 @@ const BenchmarkLab: React.FC<BenchmarkLabProps> = ({
                 <th>Temp</th>
                 <th>Estado</th>
                 <th>Latencia</th>
+                <th>Contrato</th>
                 <th>Script</th>
                 <th>Alucin.</th>
                 <th>Score</th>
@@ -470,7 +473,7 @@ const BenchmarkLab: React.FC<BenchmarkLabProps> = ({
             <tbody>
               {results.length === 0 && (
                 <tr>
-                  <td colSpan={10} className="lab-empty">
+                  <td colSpan={11} className="lab-empty">
                     Sin ejecuciones. Configura proveedor, modelo y temperatura para iniciar.
                   </td>
                 </tr>
@@ -494,6 +497,7 @@ const BenchmarkLab: React.FC<BenchmarkLabProps> = ({
                       {result.error && <small className="lab-error">{result.error}</small>}
                     </td>
                     <td>{result.latencyMs ? `${result.latencyMs}ms` : '-'}</td>
+                    <td>{(result.contractCompliance ?? result.formatCompliance) ? 'OK' : '-'}</td>
                     <td>{result.pythonScriptIncluded ? 'OK' : '-'}</td>
                     <td>
                       {result.hallucinatedColumns.length === 0 ? (

@@ -186,6 +186,12 @@ export interface BenchmarkResult {
   firstTokenMs: number;
   tokensGenerated: number;
   tokensPerSecond: number;
+  /**
+   * Cumplimiento del contrato de salida esperado para el modo de entrada usado.
+   * No significa necesariamente JSON valido; para JSON real usar hallucinationReport.jsonCompliance.
+   */
+  contractCompliance?: boolean;
+  /** @deprecated Alias historico. Mantener para compatibilidad; preferir contractCompliance. */
   formatCompliance: boolean;
   pythonScriptIncluded: boolean;
   hallucinatedColumns: string[];
@@ -296,8 +302,15 @@ export interface HallucinationReportSummary {
   hallucinatedColumns: string[];
   unsupportedClaimsCount: number;
   jsonCompliance: boolean;
+  contractCompliance?: boolean;
   formatErrorCount: number;
   invalidScriptColumns: string[];
+  knownColumnCount?: number;
+  mentionedKnownColumns?: string[];
+  mentionedRuleNames?: string[];
+  citedBadSamples?: string[];
+  evidenceAnchoringScore?: number;
+  badSampleCitationScore?: number;
 }
 
 export interface HealthDelta {
