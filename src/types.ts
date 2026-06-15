@@ -133,6 +133,26 @@ export interface DiagnosisEvent {
   message: string;
 }
 
+export type ProgressDisclosureStatus = 'idle' | 'running' | 'success' | 'warning' | 'error';
+
+export interface ProgressDisclosureProps {
+  title?: string;
+  description?: string;
+  value?: number;
+  indeterminate?: boolean;
+  status: ProgressDisclosureStatus;
+  currentStep?: string;
+  steps?: string[];
+  details?: React.ReactNode;
+  compact?: boolean;
+}
+
+export interface ProviderProgressEvent {
+  stage: 'checking' | 'downloading' | 'loading' | 'compiling' | 'generating' | 'completed' | 'error';
+  progress?: number;
+  message: string;
+}
+
 export interface PromptContractConfig {
   objective: string;
   evidencePolicy: 'strict' | 'balanced';
@@ -453,6 +473,9 @@ export interface AIProvider {
 
   /** Respuesta libre para benchmarks de prompt no controlado */
   generateText(prompt: string): Promise<{ text: string; metrics: ProviderMetrics }>;
+
+  /** Respuesta libre con callback de progreso observable */
+  generateTextWithProgress?(prompt: string, onProgress: (event: ProviderProgressEvent) => void): Promise<{ text: string; metrics: ProviderMetrics }>;
 
   /** Verifica si el proveedor está disponible en el entorno actual */
   isAvailable(): Promise<boolean>;

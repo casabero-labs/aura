@@ -8680,3 +8680,222 @@ tr:hover td {
     display: none;
   }
 }
+
+/* ============================================
+   LOOP 08B — Progress Transparency
+   ============================================ */
+
+/* ─── Progress Disclosure ─── */
+
+.progress-disclosure {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.progress-disclosure--compact {
+  padding: var(--space-sm);
+  gap: var(--space-xs);
+}
+
+.progress-disclosure--running {
+  border-color: var(--border-strong);
+}
+
+.progress-disclosure--success {
+  border-color: color-mix(in srgb, var(--success) 30%, transparent);
+}
+
+.progress-disclosure--warning {
+  border-color: color-mix(in srgb, var(--orange) 30%, transparent);
+}
+
+.progress-disclosure--error {
+  border-color: color-mix(in srgb, var(--error) 30%, transparent);
+}
+
+.progress-disclosure-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  min-height: 28px;
+}
+
+.progress-disclosure-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex: 1;
+  min-width: 0;
+}
+
+.progress-disclosure-status-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.progress-disclosure--running .progress-disclosure-status-icon { color: var(--ink); }
+.progress-disclosure--success .progress-disclosure-status-icon { color: var(--success); }
+.progress-disclosure--warning .progress-disclosure-status-icon { color: var(--orange); }
+.progress-disclosure--error .progress-disclosure-status-icon { color: var(--error); }
+
+.progress-disclosure-spinner {
+  animation: spin 1s linear infinite;
+}
+
+.progress-disclosure-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.progress-disclosure-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.progress-disclosure-description {
+  font-size: 11px;
+  color: var(--ink2);
+  line-height: 1.4;
+}
+
+.progress-disclosure-step {
+  font-size: 12px;
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.progress-disclosure-pct {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink2);
+  flex-shrink: 0;
+}
+
+.progress-disclosure-track {
+  width: 100%;
+  height: 6px;
+  background: var(--border-strong);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.progress-disclosure-track--indeterminate {
+  overflow: hidden;
+}
+
+.progress-disclosure-fill {
+  height: 100%;
+  background: var(--ink);
+  border-radius: 9999px;
+  transition: width 0.3s ease-out;
+}
+
+.progress-disclosure--error .progress-disclosure-fill {
+  background: var(--error);
+  opacity: 0.7;
+}
+
+.progress-disclosure--success .progress-disclosure-fill {
+  background: var(--success);
+}
+
+.progress-disclosure-fill--indeterminate {
+  width: 40%;
+  animation: progress-indeterminate 1.4s ease-in-out infinite;
+}
+
+@keyframes progress-indeterminate {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(350%); }
+}
+
+.progress-disclosure-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xxs);
+  align-items: center;
+}
+
+.progress-disclosure-step-item {
+  font-size: 10px;
+  color: var(--ink3);
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.progress-disclosure-step-item--done {
+  color: var(--success);
+}
+
+.progress-disclosure-step-item--active {
+  color: var(--ink);
+  background: var(--surface-raised);
+  font-weight: 600;
+}
+
+.progress-disclosure-details {
+  border-top: 1px solid var(--border-faint);
+  padding-top: var(--space-xs);
+}
+
+.progress-disclosure-details summary {
+  font-size: 11px;
+  color: var(--ink3);
+  cursor: pointer;
+  user-select: none;
+}
+
+.progress-disclosure-details-body {
+  margin-top: var(--space-sm);
+  font-size: 12px;
+  color: var(--ink2);
+  line-height: 1.5;
+}
+
+/* ─── FileUpload Processing Indicator ─── */
+
+.file-drop-processing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md) 0;
+  color: var(--ink3);
+}
+
+.file-drop-processing-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--ink-faint);
+  border-top-color: var(--ink);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* ─── PDF Generation Progress ─── */
+
+.pdf-generating-notice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: 12px;
+  color: var(--ink3);
+}
+
+.pdf-generating-notice svg {
+  animation: spin 1s linear infinite;
+}

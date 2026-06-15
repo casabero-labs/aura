@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { ArrowRight, CheckCircle2, FileCode2, ShieldAlert, ShieldCheck, TriangleAlert, Gauge, Sparkles } from 'lucide-react';
-import { AIProvider, AuditReport, ProviderMetrics, ScriptValidationResult } from '../types';
+import { AIProvider, AuditReport, ProviderMetrics, ScriptValidationResult, ProgressDisclosureStatus } from '../types';
+import ProgressDisclosure from './ProgressDisclosure';
 import { highlightPython } from '../services/highlightPython';
 import { buildDeterministicCleaningScript, buildFallbackScriptMetrics } from '../services/deterministicScriptBuilder';
 import { buildDiagnosisScriptBrief, buildDiagnosisSummaryPrompt, buildScriptPrompt, extractPythonScript } from '../services/providers/prompts';
@@ -33,6 +34,8 @@ const ScriptGenerationStep: React.FC<ScriptGenerationStepProps> = ({
   const [scriptOrigin, setScriptOrigin] = useState<'model' | 'deterministic' | null>(cleaningScript ? 'model' : null);
   const [diagnosisBrief, setDiagnosisBrief] = useState(() => buildDiagnosisScriptBrief(diagnosisText));
   const [showFullCode, setShowFullCode] = useState(false);
+  const [scriptProgressStatus, setScriptProgressStatus] = useState<ProgressDisclosureStatus>('idle');
+  const [scriptProgressStep, setScriptProgressStep] = useState('');
 
   const useFallbackScript = useCallback((reason: string) => {
     const fallbackScript = buildDeterministicCleaningScript(report);
@@ -50,11 +53,16 @@ const ScriptGenerationStep: React.FC<ScriptGenerationStepProps> = ({
     setStreamingText('');
     setStreamingMetrics(null);
     setScriptOrigin(null);
+    setScriptProgressStatus('running');
+    setScriptProgressStep('Resumiendo diagnóstico');
     onLog?.('script', 'Generando script desde diagnostico previo y paquete estructurado');
 
     if (!diagnosisText.trim()) {
       onLog?.('script', 'Sin diagnóstico LLM; usando script base determinista');
+      setScriptProgressStep('Generando script determinista');
       useFallbackScript('diagnóstico no disponible');
+      setScriptProgressStatus('success');
+      setScriptProgressStep('Script determinista listo');
       setIsLoading(false);
       return;
     }
@@ -72,6 +80,7 @@ const ScriptGenerationStep: React.FC<ScriptGenerationStepProps> = ({
         setDiagnosisBrief(operativeBrief);
       }
 
+      setScriptProgressStep('Generando script de limpieza');
       const prompt = buildScriptPrompt(report, diagnosisText, operativeBrief);
       const { text, metrics } = await aiProvider.generateText(prompt);
       setStreamingText(text);
@@ -81,17 +90,23 @@ const ScriptGenerationStep: React.FC<ScriptGenerationStepProps> = ({
         const msg = 'El modelo no entregó un script Python/Pandas estructurado; AURA generó un script base determinista para revisión.';
         setError(msg);
         useFallbackScript('sin python_script');
+        setScriptProgressStatus('warning');
+        setScriptProgressStep('Script determinista de respaldo generado');
         return;
       }
 
       setScriptOrigin('model');
       onScriptGenerated(pythonScript, metrics);
       setStreamingMetrics(metrics);
+      setScriptProgressStatus('success');
+      setScriptProgressStep(`Script generado · ${pythonScript.split('\n').length} líneas`);
       onLog?.('script', `Script generado desde diagnóstico · ${pythonScript.split('\n').length} líneas · ${metrics.latencyMs}ms`);
     } catch (err: any) {
       const msg = err?.message ?? 'Error desconocido generando script';
       setError(`No se pudo usar la salida del modelo. AURA generó un script base determinista para no bloquear el flujo. Detalle: ${msg}`);
       useFallbackScript(msg);
+      setScriptProgressStatus('warning');
+      setScriptProgressStep('Script determinista de respaldo generado');
     } finally {
       setIsLoading(false);
     }
@@ -149,6 +164,19 @@ const ScriptGenerationStep: React.FC<ScriptGenerationStepProps> = ({
             {isLoading ? 'Generando' : cleaningScript ? 'Regenerar propuesta' : 'Generar propuesta'}
           </button>
         </div>
+
+        {scriptProgressStatus !== 'idle' && (
+          <div style={{ marginTop: 'var(--space-md)' }}>
+            <ProgressDisclosure
+              title={scriptProgressStatus === 'running' ? 'Generando propuesta de limpieza' : scriptProgressStatus === 'success' ? 'Propuesta lista' : 'Script de respaldo generado'}
+              description={scriptProgressStatus === 'running' ? 'AURA resume el diagnóstico y genera el script. Si el modelo falla, usará un respaldo determinista.' : undefined}
+              indeterminate={scriptProgressStatus === 'running'}
+              status={scriptProgressStatus}
+              currentStep={scriptProgressStep}
+              compact
+            />
+          </div>
+        )}
 
         {isLoading && streamingText && (
           <div className="script-stream-box">

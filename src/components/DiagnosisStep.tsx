@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Brain, Database, Play, FlaskConical, Lock, Globe, ChevronDown, ChevronRight, FileCode2, Trash2, HardDrive, X, AlertTriangle, ShieldAlert, ListChecks, FileJson, FileText, Settings, Activity, CheckCircle, Circle, Clock, AlertCircle } from 'lucide-react';
 import GeminiAdvisor from './GeminiAdvisor';
-import { AIConfig, AIProvider, AuditReport, AuditExecutionEvidence, ProviderMetrics, LocalModelStatus, DiagnosisEvent } from '../types';
+import ProgressDisclosure from './ProgressDisclosure';
+import { AIConfig, AIProvider, AuditReport, AuditExecutionEvidence, ProviderMetrics, LocalModelStatus, DiagnosisEvent, ProviderProgressEvent, ProgressDisclosureStatus } from '../types';
 import { buildSmartSample, buildAnalysisPrompt } from '../services/providers/prompts';
 import { AVAILABLE_MODELS, LOCAL_MODELS, getLocalModelStatus, markPreloadVerified, clearPreloadVerification, deleteDownloadedModel } from '../services/aiProvider';
 import { recordLlmCall, computePromptHash, computeInputHash } from '../services/llmAuditLog';
@@ -82,6 +83,10 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
   const [modelStatuses, setModelStatuses] = useState<Record<string, LocalModelStatus>>({});
   const [diagnosisEvents, setDiagnosisEvents] = useState<DiagnosisEvent[]>([]);
   const [showActivityConsole, setShowActivityConsole] = useState(false);
+  const [progressStatus, setProgressStatus] = useState<ProgressDisclosureStatus>('idle');
+  const [progressValue, setProgressValue] = useState<number | undefined>(undefined);
+  const [progressStep, setProgressStep] = useState<string>('');
+  const [progressIndeterminate, setProgressIndeterminate] = useState(false);
 
   const pushEvent = useCallback((level: DiagnosisEvent['level'], message: string) => {
     const event: DiagnosisEvent = {
@@ -280,6 +285,10 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
     setDraftAnalysis('');
     setDiagnosisEvents([]);
     setShowActivityConsole(true);
+    setProgressValue(undefined);
+    setProgressIndeterminate(true);
+    setProgressStep('Preparando evidencia estructurada');
+    setProgressStatus('running');
     let finalText = '';
 
     const prompt = diagnosisPrompt;
@@ -292,21 +301,50 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
     try {
       if (aiConfig.providerType === 'local') {
         pushEvent('info', 'Verificando proveedor local (WebGPU)...');
+        setProgressStep('Descargando o cargando modelo local');
       } else {
         pushEvent('info', `Verificando conexión con proveedor cloud (${aiConfig.cloudProvider || 'API'})...`);
+        setProgressStep('Verificando proveedor cloud');
       }
 
-      pushEvent('info', 'Enviando paquete estructurado al modelo.');
-      pushEvent('info', 'Esperando respuesta...');
+      let text: string;
+      let metrics: ProviderMetrics;
 
-      const { text, metrics } = await aiProvider.generateText(prompt);
+      if (aiProvider.generateTextWithProgress) {
+        const result = await aiProvider.generateTextWithProgress(prompt, (event: ProviderProgressEvent) => {
+          if (event.progress !== undefined) {
+            setProgressIndeterminate(false);
+            setProgressValue(event.progress);
+          }
+          setProgressStep(event.message);
+          pushEvent(
+            event.stage === 'error' ? 'error' :
+            event.stage === 'completed' ? 'success' : 'info',
+            event.message
+          );
+        });
+        text = result.text;
+        metrics = result.metrics;
+      } else {
+        pushEvent('info', 'Enviando paquete estructurado al modelo.');
+        pushEvent('info', 'Esperando respuesta...');
+        setProgressStep('Generando diagnóstico');
+        const result = await aiProvider.generateText(prompt);
+        text = result.text;
+        metrics = result.metrics;
+      }
+
       finalText = text;
       setDraftAnalysis(text);
       setLastMetrics(metrics);
       onMetrics?.(metrics);
       onAnalysisComplete(finalText);
 
+      setProgressValue(100);
+      setProgressIndeterminate(false);
       pushEvent('success', `Diagnóstico completado · ${metrics.tokensGenerated} tokens · ${(metrics.latencyMs / 1000).toFixed(1)}s`);
+      setProgressStep(`Diagnóstico completado · ${(metrics.latencyMs / 1000).toFixed(1)}s`);
+      setProgressStatus('success');
       onLog?.('diagnosis', `Diagnóstico completado · ${metrics.tokensGenerated} tokens · ${metrics.latencyMs}ms`);
 
       if (aiConfig.providerType === 'local') {
@@ -345,6 +383,9 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
       setNormalizedError(normalized);
       pushEvent('error', `Diagnóstico fallido: ${normalized.title}`);
       pushEvent('warning', 'Puedes continuar con respaldo determinista si el flujo falla.');
+      setProgressStatus('error');
+      setProgressStep(`Error: ${normalized.title}`);
+      setProgressIndeterminate(false);
       onLog?.('diagnosis', `Error: ${normalized.title} - ${normalized.message}`);
 
       recordLlmCall({
@@ -509,6 +550,18 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
 
         {aiConfig.providerType === 'local' && !currentModelStatus && !isCheckingModel && (
           <p className="local-model-status-placeholder">Verifica el estado del modelo local antes de diagnosticar.</p>
+        )}
+
+        {progressStatus !== 'idle' && (
+          <ProgressDisclosure
+            title={progressStatus === 'running' ? 'AURA está trabajando' : progressStatus === 'success' ? 'Diagnóstico completado' : 'Diagnóstico fallido'}
+            description={aiConfig.providerType === 'local' ? 'El modelo local puede tardar la primera vez. No cierres esta pestaña.' : undefined}
+            value={progressValue}
+            indeterminate={progressIndeterminate}
+            status={progressStatus}
+            currentStep={progressStep}
+            compact={progressStatus !== 'running'}
+          />
         )}
 
         {isLoading && (

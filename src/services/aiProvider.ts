@@ -49,6 +49,10 @@ class LazyWebLLMProvider implements AIProvider {
     return (await this.provider()).generateText(...args);
   }
 
+  async generateTextWithProgress(...args: Parameters<NonNullable<AIProvider['generateTextWithProgress']>>) {
+    return (await this.provider()).generateTextWithProgress?.(...args);
+  }
+
   async isAvailable() {
     if (typeof navigator === 'undefined' || !(navigator as any).gpu) return false;
     return (await this.provider()).isAvailable();

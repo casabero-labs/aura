@@ -6,6 +6,7 @@ import AuditLogViewer from './components/AuditLogViewer';
 import BenchmarkLab from './components/BenchmarkLab';
 import SettingsPanel from './components/SettingsPanel';
 import HelpCenter from './components/HelpCenter';
+import ProgressDisclosure from './components/ProgressDisclosure';
 import MainPipeline, { PipelineData } from './components/MainPipeline';
 import { loadFromApi, syncToApi } from './services/api';
 import { createAIProvider } from './services/aiProvider';
@@ -168,6 +169,8 @@ const App: React.FC = () => {
 
   const [hasExported, setHasExported] = useState(false);
   const [isPdfGenerating, setIsPdfGenerating] = useState(false);
+  const [pdfProgressMsg, setPdfProgressMsg] = useState('');
+  const [pdfProgressStatus, setPdfProgressStatus] = useState<'idle' | 'running' | 'success' | 'error'>('idle');
 
   const hasData = !!report;
 
@@ -175,11 +178,19 @@ const App: React.FC = () => {
   const handleDownloadPdf = async () => {
     if (!report) return;
     setIsPdfGenerating(true);
+    setPdfProgressStatus('running');
+    setPdfProgressMsg('Construyendo reporte PDF...');
     try {
+      // Delay state update to let the UI render the progress
+      await new Promise(resolve => setTimeout(resolve, 100));
+      setPdfProgressMsg('Generando páginas del reporte...');
       generatePdfReport(report, buildDeterministicPdfContent(report, approvedCleaningScript), aiAnalysis, scriptValidation);
+      setPdfProgressStatus('success');
+      setPdfProgressMsg('Reporte PDF descargado');
       setHasExported(true);
     } catch (error: any) {
-      // silently fail
+      setPdfProgressStatus('error');
+      setPdfProgressMsg('Error al generar PDF');
     } finally {
       setIsPdfGenerating(false);
     }
@@ -534,6 +545,17 @@ const App: React.FC = () => {
                       <button className="btn-p" onClick={handleDownloadPdf} disabled={isPdfGenerating}>
                         <FileText size={14} /> {isPdfGenerating ? 'Generando reporte' : 'Reporte PDF ejecutivo'}
                       </button>
+                      {pdfProgressStatus !== 'idle' && (
+                        <div style={{ flexBasis: '100%' }}>
+                          <ProgressDisclosure
+                            title={pdfProgressStatus === 'running' ? 'Generando reporte PDF ejecutivo' : pdfProgressStatus === 'success' ? 'Reporte PDF listo' : 'Error en el PDF'}
+                            indeterminate={pdfProgressStatus === 'running'}
+                            status={pdfProgressStatus}
+                            currentStep={pdfProgressMsg}
+                            compact
+                          />
+                        </div>
+                      )}
                       <button className="btn-s" onClick={handleExportJson}>
                         <FileJson size={14} /> JSON técnico
                       </button>

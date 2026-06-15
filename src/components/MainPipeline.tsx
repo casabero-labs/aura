@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import FileUpload from './FileUpload';
 import PipelineProgress from './PipelineProgress';
+import ProgressDisclosure from './ProgressDisclosure';
 import DiagnosisStep from './DiagnosisStep';
 import ProfileStep from './ProfileStep';
 import ReviewStep from './ReviewStep';
@@ -10,7 +11,7 @@ import { parseCsv } from '../services/csvService';
 import { buildAuditEvidence, buildIngestionEvidence, createTraceRecorder, fingerprintDataset } from '../services/executionEvidence';
 import { matchGroundTruth, buildDeterministicValidationReport } from '../services/deterministicValidation';
 import { validateCleaningScript } from '../services/scriptValidationService';
-import { AIConfig, AIProvider, AuditReport, AuditExecutionEvidence, BenchmarkResult, DeterministicValidationReport, HealthDelta, ImprovementRun, ProviderMetrics, ScriptValidationResult } from '../types';
+import { AIConfig, AIProvider, AuditReport, AuditExecutionEvidence, BenchmarkResult, DeterministicValidationReport, HealthDelta, ImprovementRun, ProviderMetrics, ScriptValidationResult, ProgressDisclosureStatus } from '../types';
 
 export type PipelineState = 'upload' | 'profile' | 'diagnosis' | 'script' | 'review' | 'export';
 
@@ -62,6 +63,8 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, onLog
 
   const [scriptValidation, setScriptValidation] = useState<ScriptValidationResult | null>(null);
   const [deterministicValidation, setDeterministicValidation] = useState<DeterministicValidationReport | null>(null);
+  const [processProgressStatus, setProcessProgressStatus] = useState<ProgressDisclosureStatus>('idle');
+  const [processProgressStep, setProcessProgressStep] = useState('');
 
   // Sync pipeline data upward to parent
   React.useEffect(() => {
@@ -91,6 +94,8 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, onLog
     setHealthDelta(null); setAiAnalysis(''); setLogs([]);
     setScriptValidation(null);
     setBenchmarkResults([]); setImprovementRun(null);
+    setProcessProgressStatus('running');
+    setProcessProgressStep('Leyendo archivo CSV');
     addLog(`Cargando ${uploadedFile.name}...`);
 
     try {
@@ -109,6 +114,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, onLog
       const datasetFingerprint = fingerprintDataset(data, meta.fields);
       trace.mark('audit.run.start', { datasetFingerprint });
       addLog(`audit.run.start :: fingerprint=${datasetFingerprint}`);
+      setProcessProgressStep('Ejecutando auditoría determinista');
 
       const auditStart = performance.now();
       const auditResult = runAudit(data, meta.fields, meta.delimiter);
@@ -136,6 +142,8 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, onLog
       }
 
       setState('profile');
+      setProcessProgressStatus('success');
+      setProcessProgressStep('Perfil listo');
     } catch (err: any) {
       const completedAt = new Date().toISOString();
       const errorEvidence = buildIngestionEvidence({
@@ -148,6 +156,8 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, onLog
       });
       setAuditEvidence(errorEvidence as any);
       setState('profile');
+      setProcessProgressStatus('warning');
+      setProcessProgressStep(`Error: ${err.message}`);
       addLog(`Error: ${err.message}`);
     } finally {
       setIsProcessing(false);
@@ -182,6 +192,28 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, onLog
             </div>
           </div>
           <FileUpload onFileSelect={processFile} />
+          {isProcessing && (
+            <div style={{ marginTop: 'var(--space-md)' }}>
+              <ProgressDisclosure
+                title="Procesando archivo"
+                description="AURA está leyendo el CSV y ejecutando la auditoría determinista en tu navegador."
+                indeterminate
+                status="running"
+                currentStep={processProgressStep}
+                compact
+              />
+            </div>
+          )}
+          {processProgressStatus === 'success' && !isProcessing && file && (
+            <div style={{ marginTop: 'var(--space-md)' }}>
+              <ProgressDisclosure
+                title="Archivo procesado"
+                status="success"
+                currentStep={processProgressStep}
+                compact
+              />
+            </div>
+          )}
         </section>
       )}
 

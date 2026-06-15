@@ -11,7 +11,7 @@
  */
 
 import { CreateMLCEngine, MLCEngine, InitProgressReport } from '@mlc-ai/web-llm';
-import { AuditReport, AIProvider, ProviderMetrics, ExecutiveReportContent, AIConfig } from '../../types';
+import { AuditReport, AIProvider, ProviderMetrics, ExecutiveReportContent, AIConfig, ProviderProgressEvent } from '../../types';
 import { buildAnalysisPrompt, buildExecutivePrompt } from './prompts';
 import { normalizeAiProviderError, NormalizedProviderError } from './errors';
 
@@ -341,6 +341,68 @@ export class WebLLMProvider implements AIProvider {
         timestamp: new Date().toISOString()
       }
     };
+  }
+
+  async generateTextWithProgress(
+    prompt: string,
+    onProgress: (event: ProviderProgressEvent) => void
+  ): Promise<{ text: string; metrics: ProviderMetrics }> {
+    if (!await this.isAvailable()) {
+      throw new Error('WebGPU no soportado');
+    }
+
+    onProgress({ stage: 'checking', message: 'Verificando WebGPU disponible' });
+
+    let hasSentCompileMsg = false;
+    try {
+      const engine = await this.ensureEngineLoaded((progressText) => {
+        // Mapear el progressText del initProgressCallback a ProviderProgressEvent
+        // El texto de MLC tiene formato: "> Progreso: 45%\n> Estado: loading..."
+        const pctMatch = progressText.match(/Progreso:\s*(\d{1,3})%?/);
+        if (pctMatch) {
+          const pct = parseInt(pctMatch[1], 10);
+          if (pct >= 0 && pct <= 20) {
+            onProgress({ stage: 'downloading', progress: pct, message: 'Descargando pesos del modelo' });
+          } else if (pct > 20 && pct < 95) {
+            onProgress({ stage: 'loading', progress: pct, message: 'Cargando modelo en memoria' });
+          } else if (pct >= 95 && !hasSentCompileMsg) {
+            hasSentCompileMsg = true;
+            onProgress({ stage: 'compiling', progress: pct, message: 'Compilando artefactos WebGPU' });
+          }
+        }
+      });
+
+      onProgress({ stage: 'generating', message: 'Generando diagnóstico' });
+
+      const startTime = performance.now();
+      const response = await engine.chat.completions.create({
+        messages: [{ role: 'user', content: prompt }],
+        temperature: this.temperature,
+      });
+      const totalTime = performance.now() - startTime;
+      const text = response.choices[0]?.message?.content || '';
+
+      onProgress({ stage: 'completed', progress: 100, message: 'Diagnóstico completado' });
+
+      return {
+        text,
+        metrics: {
+          provider: this.name,
+          model: this.model,
+          latencyMs: Math.round(totalTime),
+          firstTokenMs: Math.round(totalTime),
+          tokensGenerated: response.usage?.completion_tokens || text.split(/\s+/).filter(Boolean).length,
+          isLocal: true,
+          timestamp: new Date().toISOString()
+        }
+      };
+    } catch (error: any) {
+      onProgress({
+        stage: 'error',
+        message: error.message || 'Error en inferencia local',
+      });
+      throw error;
+    }
   }
 
   /**
