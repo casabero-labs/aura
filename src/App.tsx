@@ -439,12 +439,17 @@ const App: React.FC = () => {
         {report && pipelineState === 'export' && (
           <section className="export-closure" id="export-section">
             <div className="export-closure-header">
-              <p className="sec-eye">cierre de auditoría</p>
-              <h2 className="sec-title">Exportar evidencia.</h2>
+              <p className="sec-eye">exportación</p>
+              <h2 className="sec-title">Tu evidencia está lista</h2>
             </div>
             <p className="section-note">
-              Descarga el reporte ejecutivo y los anexos técnicos. El archivo original no fue modificado.
+              AURA reúne reporte, hallazgos, script y manifest para que puedas defender el proceso.
             </p>
+
+            <div className="companion-note">
+              <ShieldCheck size={16} />
+              <p>Aquí no prometemos más de lo que la evidencia permite. Si algo quedó preliminar o pendiente, AURA lo muestra.</p>
+            </div>
 
             {(() => {
               const manifest = buildEvidenceManifest({
@@ -459,93 +464,129 @@ const App: React.FC = () => {
               const statusLabel = completedObjectives >= 4 ? 'Completo' : completedObjectives >= 2 ? 'Parcial' : 'Incompleto';
               const statusColor = completedObjectives >= 4 ? 'var(--success)' : completedObjectives >= 2 ? 'var(--orange)' : 'var(--error)';
 
+              const formalClaims = [];
+              const preliminaryClaims = [];
+              const pendingClaims = [];
+
+              if (manifest.allowedClaims.deterministicEngine === 'formal') formalClaims.push('Motor determinista verificado');
+              else if (manifest.allowedClaims.deterministicEngine === 'preliminary') preliminaryClaims.push('Motor determinista preliminar');
+              else pendingClaims.push('Motor determinista pendiente');
+
+              if (manifest.allowedClaims.scriptSafety === 'formal') formalClaims.push('Script seguro verificado');
+              else if (manifest.allowedClaims.scriptSafety === 'preliminary') preliminaryClaims.push('Script seguro preliminar');
+              else pendingClaims.push('Script seguro pendiente');
+
+              if (manifest.allowedClaims.hitlDecision === 'formal') formalClaims.push('Decisión humana registrada');
+              else pendingClaims.push('Decisión humana pendiente');
+
+              if (manifest.allowedClaims.healthDelta === 'formal') formalClaims.push('Delta de salud formal');
+              else if (manifest.allowedClaims.healthDelta === 'preliminary') preliminaryClaims.push('Delta de salud preliminar');
+              else pendingClaims.push('Delta de salud pendiente');
+
               return (
                 <>
-                  {/* Status */}
-                  <div className="export-status-strip">
-                    <div className="export-status-item">
-                      <span>Paquete</span>
+                  <div className="stage-decision-summary">
+                    <div className="stage-summary-item">
+                      <span className="stage-summary-label">Paquete</span>
                       <strong style={{ color: statusColor }}>{statusLabel}</strong>
                     </div>
-                    <div className="export-status-item">
-                      <span>Cobertura</span>
-                      <strong>{completedObjectives}/{manifest.objectivesCoverage.length}</strong>
-                    </div>
-                    <div className="export-status-item">
-                      <span>Artefactos</span>
-                      <strong>{manifest.artifacts.length}</strong>
-                    </div>
-                    <div className="export-status-item">
-                      <span>Script</span>
+                    <div className="stage-summary-item">
+                      <span className="stage-summary-label">Script</span>
                       <strong style={{ color: approvedCleaningScript ? 'var(--success)' : 'var(--ink3)' }}>
                         {approvedCleaningScript ? 'Aprobado' : 'Pendiente'}
                       </strong>
                     </div>
-                  </div>
-
-                  {/* Claims brief */}
-                  <div className="export-claims">
-                    <span className="export-claims-title">Evidencia generada</span>
-                    <div className="export-claims-grid">
-                      <div className={`export-claim export-claim--${manifest.allowedClaims.deterministicEngine}`}>
-                        <span>Motor determinista</span>
-                        <strong>{manifest.allowedClaims.deterministicEngine === 'formal' ? 'Formal' : 'Preliminar'}</strong>
-                      </div>
-                      <div className={`export-claim export-claim--${manifest.allowedClaims.scriptSafety}`}>
-                        <span>Script seguro</span>
-                        <strong>{manifest.allowedClaims.scriptSafety === 'formal' ? 'Formal' : manifest.allowedClaims.scriptSafety === 'preliminary' ? 'Preliminar' : 'Pendiente'}</strong>
-                      </div>
-                      <div className={`export-claim export-claim--${manifest.allowedClaims.hitlDecision}`}>
-                        <span>HITL</span>
-                        <strong>{manifest.allowedClaims.hitlDecision === 'formal' ? 'Formal' : 'Pendiente'}</strong>
-                      </div>
-                      <div className={`export-claim export-claim--${manifest.allowedClaims.healthDelta}`}>
-                        <span>Delta de salud</span>
-                        <strong>{manifest.allowedClaims.healthDelta === 'formal' ? 'Formal' : manifest.allowedClaims.healthDelta === 'preliminary' ? 'Preliminar' : 'Pendiente'}</strong>
-                      </div>
-                      <div className={`export-claim export-claim--${manifest.allowedClaims.benchmarkLLM}`}>
-                        <span>Benchmark LLM</span>
-                        <strong>{manifest.allowedClaims.benchmarkLLM === 'formal' ? 'Formal' : manifest.allowedClaims.benchmarkLLM === 'preliminary' ? 'Preliminar' : 'Pendiente'}</strong>
-                      </div>
+                    <div className="stage-summary-item">
+                      <span className="stage-summary-label">Evidencia</span>
+                      <strong>{completedObjectives >= 4 ? 'formal' : completedObjectives >= 2 ? 'parcial' : 'incompleta'}</strong>
                     </div>
                   </div>
 
-                  {/* Limitations */}
-                  <div className="export-limitations">
-                    <span className="export-limitations-title">Limitaciones</span>
-                    <ul>
-                      {manifest.limitations.slice(0, 5).map((lim) => (
-                        <li key={lim}>{lim}</li>
-                      ))}
-                    </ul>
+                  {formalClaims.length > 0 && (
+                    <div className="export-human-summary">
+                      <h3 className="export-human-summary-title">Qué puedes afirmar</h3>
+                      <ul className="export-human-summary-list">
+                        {formalClaims.map((claim) => (
+                          <li key={claim}>
+                            <CheckCircle2 size={14} style={{ color: 'var(--success)' }} />
+                            {claim}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {preliminaryClaims.length > 0 && (
+                    <div className="export-human-summary export-human-summary--preliminary">
+                      <h3 className="export-human-summary-title">Qué está en revisión</h3>
+                      <ul className="export-human-summary-list">
+                        {preliminaryClaims.map((claim) => (
+                          <li key={claim}>
+                            <AlertTriangle size={14} style={{ color: 'var(--orange)' }} />
+                            {claim}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {pendingClaims.length > 0 && (
+                    <div className="export-human-summary export-human-summary--pending">
+                      <h3 className="export-human-summary-title">Qué no debes afirmar todavía</h3>
+                      <ul className="export-human-summary-list">
+                        {pendingClaims.map((claim) => (
+                          <li key={claim}>
+                            <XCircle size={14} style={{ color: 'var(--ink3)' }} />
+                            {claim}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {manifest.limitations.length > 0 && (
+                    <div className="export-limitations">
+                      <span className="export-limitations-title">Limitaciones conocidas</span>
+                      <ul>
+                        {manifest.limitations.slice(0, 3).map((lim) => (
+                          <li key={lim}>{lim}</li>
+                        ))}
+                        {manifest.limitations.length > 3 && (
+                          <li className="export-limitations-more">
+                            +{manifest.limitations.length - 3} limitaciones más en detalles técnicos
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+                  )}
+
+                  <div className="export-downloads">
+                    <h3 className="export-downloads-title">Descargas</h3>
+                    <div className="export-downloads-grid">
+                      <button className="btn-p" onClick={handleDownloadPdf} disabled={isPdfGenerating}>
+                        <FileText size={14} /> {isPdfGenerating ? 'Generando reporte' : 'Reporte PDF ejecutivo'}
+                      </button>
+                      <button className="btn-s" onClick={handleExportJson}>
+                        <FileJson size={14} /> JSON técnico
+                      </button>
+                      <button className="btn-s" onClick={handleExportIssuesCsv}>
+                        <Download size={14} /> Hallazgos CSV
+                      </button>
+                      <button className="btn-s" onClick={handleExportApprovedScript} disabled={!approvedCleaningScript}>
+                        <FileCode2 size={14} /> Script aprobado
+                      </button>
+                    </div>
                   </div>
 
-                  {/* Download buttons */}
-                  <div className="export-grid">
-                    <button className="btn-p" onClick={handleDownloadPdf} disabled={isPdfGenerating}>
-                      <FileText size={14} /> {isPdfGenerating ? 'Generando reporte' : 'Reporte PDF ejecutivo'}
-                    </button>
-                    <button className="btn-s" onClick={handleExportJson}>
-                      <FileJson size={14} /> Descargar JSON técnico
-                    </button>
-                    <button className="btn-s" onClick={handleExportIssuesCsv}>
-                      <Download size={14} /> Hallazgos CSV
-                    </button>
-                    <button className="btn-s" onClick={handleExportApprovedScript} disabled={!approvedCleaningScript}>
-                      <FileCode2 size={14} /> Script aprobado
-                    </button>
-                  </div>
-
-                  {/* Technical details: OE objectives + manifest */}
                   <details className="technical-details" style={{ marginTop: 'var(--space-lg)' }}>
                     <summary className="technical-details-summary">
                       <ChevronDown size={14} className="technical-details-chevron" />
                       <span>Detalles técnicos</span>
-                      <span className="technical-details-hint">cobertura de evidencia y manifest</span>
+                      <span className="technical-details-hint">cobertura técnica de evidencia y manifest</span>
                     </summary>
                     <div className="technical-details-body">
                       <div className="objectives-checklist">
-                        <span className="objectives-checklist-title">Cobertura de objetivos TFM</span>
+                        <span className="objectives-checklist-title">Cobertura técnica de evidencia</span>
                         {manifest.objectivesCoverage.map((obj) => (
                           <div key={obj.id} className={`obj-row obj-row--${obj.status}`}>
                             {obj.status === 'completed' ? <CheckCircle2 size={14} /> : obj.status === 'partial' ? <AlertTriangle size={14} /> : <XCircle size={14} />}

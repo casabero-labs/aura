@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import ScriptReview from './ScriptReview';
 import ImprovementRunPanel from './ImprovementRunPanel';
 import { createImprovementRun } from '../services/improvementService';
-import { ArrowRight, CheckCircle2, ChevronDown, ShieldAlert, ShieldCheck, TrendingUp, TriangleAlert } from 'lucide-react';
+import { ArrowRight, CheckCircle2, ChevronDown, ShieldAlert, ShieldCheck, TrendingUp, TriangleAlert, Play } from 'lucide-react';
 import {
   AuditReport,
   AuditExecutionEvidence,
@@ -167,13 +167,14 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
     }
   };
 
+  const canContinue = currentApprovedScript && stage === 'completed';
+
   return (
     <div className="review-step">
-      {/* Header */}
       <div className="section-header">
         <div>
           <p className="sec-eye">revisión humana</p>
-          <h2 className="sec-title">Revisión humana + simulación.</h2>
+          <h2 className="sec-title">Tú decides antes de aplicar</h2>
         </div>
         {stage === 'completed' && improvementRun && (
           <div className="flex items-center gap-2" style={{ color: 'var(--success)' }}>
@@ -183,35 +184,32 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
         )}
       </div>
 
-      <p className="section-note mt-6">
-        Revisa el script, edítalo si es necesario, y aprueba para simular el impacto sobre una copia del dataset.
+      <p className="section-note">
+        AURA no modifica el archivo original. La simulación se hace sobre una copia.
       </p>
 
-      {/* ── Status Strip ── */}
-      <div className="review-status-strip">
-        <div className="review-status-item">
-          <span>Estado del script</span>
+      <div className="companion-note">
+        <ShieldCheck size={16} />
+        <p>Aquí revisas la propuesta, confirmas que las columnas existen y decides si vale la pena simular. La aprobación humana queda registrada como evidencia.</p>
+      </div>
+
+      <div className="stage-decision-summary">
+        <div className="stage-summary-item">
+          <span className="stage-summary-label">Estado del script</span>
           <strong style={{ color: scriptStatusColor }}>{scriptStatus}</strong>
         </div>
-        <div className="review-status-item">
-          <span>Safety Score</span>
-          <strong style={{ color: safetyColor }}>{scriptValidation ? `${scriptValidation.safetyScore}/100 — ${safetyLabel}` : '—'}</strong>
+        <div className="stage-summary-item">
+          <span className="stage-summary-label">Seguridad</span>
+          <strong style={{ color: safetyColor }}>{safetyLabel}</strong>
         </div>
         {scriptValidation && (
-          <div className="review-status-item">
-            <span>Cobertura</span>
+          <div className="stage-summary-item">
+            <span className="stage-summary-label">Cobertura</span>
             <strong>{scriptValidation.coveragePercentage}%</strong>
-          </div>
-        )}
-        {scriptValidation && scriptValidation.destructiveOperations.length > 0 && (
-          <div className="review-status-item" style={{ color: 'var(--orange)' }}>
-            <span>Riesgo</span>
-            <strong><TriangleAlert size={12} /> {scriptValidation.destructiveOperations.length} ops destructivas</strong>
           </div>
         )}
       </div>
 
-      {/* Script Review */}
       <div className="mt-6">
         <ScriptReview
           code={draftScript}
@@ -223,7 +221,6 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
         />
       </div>
 
-      {/* Simulation Progress */}
       {stage === 'simulating' && (
         <div className="sim-progress-box">
           <div className="flex items-center gap-3">
@@ -233,13 +230,12 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
         </div>
       )}
 
-      {/* ── Delta Summary (after simulation) ── */}
       {stage === 'completed' && healthDelta && (
         <div className="review-delta">
           <div className="review-delta-header">
             <TrendingUp size={16} />
             <strong>Resultado de la simulación</strong>
-            <span style={{ fontSize: '11px', color: 'var(--ink3)' }}>simulación sobre copia — el archivo original no fue modificado</span>
+            <span className="review-delta-hint">simulación sobre copia — el archivo original no fue modificado</span>
           </div>
           <div className="review-delta-grid">
             <div className="review-delta-card">
@@ -263,6 +259,16 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
             </div>
           </div>
 
+          <div className="review-delta-interpretation">
+            {healthDelta.scoreDelta > 0 ? (
+              <p>La simulación mejoró el dataset.</p>
+            ) : healthDelta.scoreDelta === 0 ? (
+              <p>La simulación no resolvió hallazgos detectados.</p>
+            ) : (
+              <p>La simulación empeoró el score del dataset.</p>
+            )}
+          </div>
+
           {healthDelta.scoreDelta === 0 && (
             <div className="review-delta-zero-warning">
               <TriangleAlert size={16} style={{ color: 'var(--orange)', flexShrink: 0 }} />
@@ -275,7 +281,6 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
         </div>
       )}
 
-      {/* ── Technical Details ── */}
       <details className="technical-details" style={{ marginTop: 'var(--space-lg)' }}>
         <summary className="technical-details-summary">
           <ChevronDown size={14} className="technical-details-chevron" />
@@ -284,9 +289,8 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
         </summary>
         <div className="technical-details-body">
 
-          {/* HITL Decision Block */}
           {hitlDecision && (
-            <div className="hitl-decision-block" style={{ marginTop: 'var(--space-md)' }}>
+            <div className="hitl-decision-block">
               <div className="hitl-decision-header">
                 <ShieldCheck size={16} />
                 <div>
@@ -336,7 +340,6 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
             </div>
           )}
 
-          {/* Improvement Run */}
           {stage === 'completed' && improvementRun && (
             <div style={{ marginTop: 'var(--space-lg)' }}>
               <ImprovementRunPanel run={improvementRun} />
@@ -348,10 +351,10 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
       <div className="context-guide">
         <span className="guide-icon"><ArrowRight size={14} /></span>
         <div>
-          <p className="guide-title">Evidencia lista para exportar</p>
+          <p className="guide-title">Preparar exportación</p>
           <p className="guide-desc">Con el script aprobado y la simulación registrada, prepara el reporte final.</p>
         </div>
-        <button className="btn-p btn-sm" onClick={onContinue} disabled={!currentApprovedScript || stage !== 'completed'}>
+        <button className="btn-p btn-sm" onClick={onContinue} disabled={!canContinue}>
           Preparar exportación <ArrowRight size={12} />
         </button>
       </div>

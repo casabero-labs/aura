@@ -32,19 +32,12 @@ export const buildDiagnosisInputSummary = (report: AuditReport) => {
   const critical = report.issues.filter((issue) => issue.severity === 'critical').length;
   const warning = report.issues.filter((issue) => issue.severity === 'warning').length;
   const affectedColumns = new Set(report.issues.map((issue) => issue.column).filter(Boolean)).size;
-  const mainIssue = report.issues
-    .slice()
-    .sort((a, b) => b.affectedPercentage - a.affectedPercentage)[0];
 
   return {
-    stage: 'Diagnóstico asistido',
-    input: `${report.issues.length} hallazgos estructurados del perfil determinista`,
-    rawDatasetAccess: false,
-    problem: mainIssue
-      ? `${mainIssue.ruleName} en ${mainIssue.column || 'dataset'} afecta ${mainIssue.affectedPercentage.toFixed(2)}% de registros.`
-      : 'No hay hallazgos críticos; el diagnóstico puede documentar estabilidad y riesgos residuales.',
-    risk: `${critical} críticos, ${warning} advertencias, ${affectedColumns} columnas afectadas`,
-    output: 'causas probables, prioridades de limpieza y criterios para generar script',
+    findings: report.issues.length,
+    critical,
+    warning,
+    affectedColumns,
   };
 };
 
@@ -128,7 +121,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
 
   const smartSample = React.useMemo(() => buildSmartSample(report), [report]);
   const diagnosisPrompt = React.useMemo(() => buildAnalysisPrompt(report, aiConfig.promptContract, aiConfig.inputMode), [report, aiConfig.promptContract, aiConfig.inputMode]);
-  const diagnosisSummary = React.useMemo(() => buildDiagnosisInputSummary(report), [report]);
+  const inputSummary = React.useMemo(() => buildDiagnosisInputSummary(report), [report]);
 
   const downloadTextFile = (filename: string, content: string, type: string) => {
     const blob = new Blob([content], { type });
@@ -167,7 +160,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
         model: aiConfig.model,
         temperature: aiConfig.temperature,
         promptHash: computePromptHash(diagnosisPrompt),
-        inputSummary: diagnosisSummary,
+        inputSummary,
         smartSample,
         diagnosis: draftAnalysis,
         metrics: lastMetrics,
@@ -217,12 +210,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
     });
     y += 3;
     doc.setFont('helvetica', 'bold');
-    draw('3. Problema observado', 11, 6);
-    doc.setFont('helvetica', 'normal');
-    draw(diagnosisSummary.problem, 9, 5);
-    y += 3;
-    doc.setFont('helvetica', 'bold');
-    draw('4. Diagnostico LLM generado', 11, 6);
+    draw('3. Diagnostico LLM generado', 11, 6);
     doc.setFont('helvetica', 'normal');
     draw(draftAnalysis.replace(/[#*_`]/g, ''), 9, 5);
     doc.save(`aura_reporte_perfil_diagnostico_${Date.now()}.pdf`);
@@ -347,34 +335,36 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
 
   return (
     <>
-      {/* ── COMPACT DIAGNOSIS ── */}
       <section className="diagnosis-compact">
         <div className="diagnosis-compact-header">
           <p className="sec-eye">diagnóstico asistido</p>
-          <h2 className="sec-title">Interpretar los problemas de calidad.</h2>
+          <h2 className="sec-title">AURA interpreta los hallazgos</h2>
+          <p className="section-note">
+            No enviamos el dataset completo. AURA trabaja con la evidencia estructurada del perfil.
+          </p>
         </div>
 
-        {/* Problem Summary */}
-        <div className="diagnosis-problem-grid">
-          <article className="diagnosis-problem-card diagnosis-problem-card--primary">
-            <AlertTriangle size={16} />
-            <span>principal señal de calidad</span>
-            <strong>{diagnosisSummary.problem}</strong>
-          </article>
-          <article className="diagnosis-problem-card">
-            <ListChecks size={16} />
-            <span>riesgo agregado</span>
-            <strong>{diagnosisSummary.risk}</strong>
-          </article>
-          <article className="diagnosis-problem-card">
-            <Database size={16} />
-            <span>dataset</span>
-            <strong>{report.colCount} columnas, {report.rowCount.toLocaleString('es-CO')} filas, score {report.score}/100</strong>
-          </article>
+        <div className="companion-note">
+          <Brain size={16} />
+          <p>AURA mirará los hallazgos del perfil y propondrá causas probables, prioridades y criterios para limpiar. Si el modelo no está disponible, puedes seguir con un script determinista.</p>
         </div>
 
-        {/* Privacy notice */}
-        <div className={`privacy-notice ${isCloud ? 'privacy-notice--cloud' : 'privacy-notice--local'}`} style={{ marginBottom: 'var(--space-md)' }}>
+        <div className="stage-decision-summary">
+          <div className="stage-summary-item">
+            <span className="stage-summary-label">hallazgos</span>
+            <strong className="stage-summary-value">{inputSummary.findings}</strong>
+          </div>
+          <div className="stage-summary-item">
+            <span className="stage-summary-label">críticos</span>
+            <strong className="stage-summary-value stage-summary-value--critical">{inputSummary.critical}</strong>
+          </div>
+          <div className="stage-summary-item">
+            <span className="stage-summary-label">advertencias</span>
+            <strong className="stage-summary-value stage-summary-value--warning">{inputSummary.warning}</strong>
+          </div>
+        </div>
+
+        <div className={`privacy-notice ${isCloud ? 'privacy-notice--cloud' : 'privacy-notice--local'}`}>
           {isCloud ? (
             <>
               <Globe size={14} />
@@ -394,7 +384,6 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
           )}
         </div>
 
-        {/* Model selector — compact inline */}
         <div className="diagnosis-model-bar">
           <div className="model-type-toggle" style={{ flex: 'none' }}>
             <button
@@ -439,9 +428,9 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
         </div>
 
         {isLoading && (
-          <div className="diagnosis-loading" style={{ textAlign: 'center', padding: 'var(--space-lg)', color: 'var(--ink3)' }}>
-            <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: 'var(--ink-soft)', animation: 'pulse 1.5s ease-in-out infinite' }} />
-            {' '}Generando diagnóstico con {aiConfig.model}...
+          <div className="diagnosis-loading">
+            <span className="pulse-dot" />
+            Generando diagnóstico con {aiConfig.model}...
           </div>
         )}
 
@@ -449,77 +438,42 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
           <div className="provider-unavailable-notice">
             <div className="provider-unavailable-header">
               <ShieldAlert size={16} style={{ color: 'var(--orange)' }} />
-              <strong>Proveedor LLM no disponible</strong>
+              <strong>Proveedor no disponible</strong>
             </div>
             <ul className="provider-unavailable-reasons">
               {aiConfig.providerType === 'cloud' && !aiConfig.apiKey && (
-                <li>No hay API key configurada para el proveedor cloud. Agrégala en Configuración.</li>
+                <li>No hay API key configurada. Agrégala en Configuración.</li>
               )}
               {aiConfig.providerType === 'cloud' && aiConfig.apiKey && (
-                <li>El proveedor cloud no responde. Verifica la API key y la conectividad en Configuración.</li>
+                <li>El proveedor cloud no responde. Verifica la API key.</li>
               )}
               {aiConfig.providerType === 'local' && (
-                <li>WebGPU o modelo local no está disponible en este navegador. Requiere Chrome/Edge con soporte WebGPU.</li>
-              )}
-              {aiConfig.providerType === 'chrome' && (
-                <li>Chrome AI (Prompt API) no está disponible. Actívala en chrome://flags o usa otro proveedor.</li>
+                <li>WebGPU o modelo local no disponible. Requiere Chrome/Edge con soporte WebGPU.</li>
               )}
             </ul>
             <div className="provider-unavailable-actions">
-              <p>
-                <strong>Puedes continuar con script determinista.</strong> El motor de reglas no depende del LLM.
-              </p>
-              <p className="provider-unavailable-note">
-                Continuar sin diagnóstico LLM no genera evidencia formal de IA. El intento fallido se registra como <code>attempted_failed</code>, no como resultado válido.
-              </p>
+              <p><strong>Puedes continuar con script determinista.</strong> El motor de reglas no depende del LLM.</p>
             </div>
           </div>
         )}
 
         {error && normalizedError && (
-          <div className="provider-error-notice" style={{ 
-            marginTop: 'var(--space-sm)',
-            padding: 'var(--space-md)',
-            background: 'var(--error-surface)',
-            border: '1px solid var(--error-border)',
-            borderRadius: 'var(--radius-sm)',
-            fontSize: '12px'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-xs)', marginBottom: 'var(--space-xs)' }}>
+          <div className="provider-error-notice">
+            <div className="provider-error-header">
               <AlertTriangle size={14} style={{ color: 'var(--error)' }} />
               <strong style={{ color: 'var(--error)' }}>{normalizedError.title}</strong>
             </div>
-            <p style={{ margin: '0 0 var(--space-xs) 0', color: 'var(--ink2)' }}>{normalizedError.message}</p>
-            <p style={{ margin: '0 0 var(--space-xs) 0', color: 'var(--ink3)', fontStyle: 'italic' }}>Causa: {normalizedError.cause}</p>
-            
-            {normalizedError.recommendedActions.length > 0 && (
-              <div style={{ marginTop: 'var(--space-xs)' }}>
-                <p style={{ margin: '0 0 var(--space-xs) 0', fontWeight: 500 }}>Acciones sugeridas:</p>
-                <ul style={{ margin: 0, paddingLeft: 'var(--space-md)' }}>
-                  {normalizedError.recommendedActions.map((action, index) => (
-                    <li key={index} style={{ marginBottom: '2px' }}>{action}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            
-            <div style={{ marginTop: 'var(--space-md)', display: 'flex', gap: 'var(--space-xs)', flexWrap: 'wrap' }}>
-              <button 
-                className="btn-s btn-sm"
-                onClick={() => onOpenSettings?.()}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-              >
+            <p className="provider-error-cause">Causa probable: {normalizedError.cause}</p>
+            <div className="provider-error-actions">
+              <button className="btn-s btn-sm" onClick={() => onOpenSettings?.()}>
                 <Settings size={12} /> Abrir Configuración
               </button>
-              
               {aiConfig.providerType === 'local' && (
                 <button
                   className="btn-s btn-sm"
                   onClick={async () => {
                     const success = await deleteDownloadedModel(aiConfig.model);
                     if (success) {
-                      alert('Modelo eliminado. Intenta descargarlo nuevamente desde Configuración.');
-                      // Actualizar estado local
                       setDownloadedModels(prev => {
                         const next = new Set(prev);
                         next.delete(aiConfig.model);
@@ -527,48 +481,37 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
                       });
                     }
                   }}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                 >
                   <Trash2 size={12} /> Limpiar modelo cacheado
                 </button>
               )}
-              
-              <button
-                className="btn-s btn-sm"
-                onClick={onContinue}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-              >
-                <Play size={12} /> Continuar con script determinista
+              <button className="btn-s btn-sm" onClick={onContinue}>
+                <Play size={12} /> Continuar sin diagnóstico
               </button>
             </div>
-            
-            <p style={{ marginTop: 'var(--space-xs)', fontSize: '10px', color: 'var(--ink3)' }}>
-              El diagnóstico LLM no se completó. No hay evidencia formal de IA. 
-              El motor de reglas determinista puede generar un script base.
-            </p>
           </div>
         )}
 
-        {/* Diagnosis result */}
-        <div style={{ marginTop: 'var(--space-lg)' }}>
-          <GeminiAdvisor
-            analysis={draftAnalysis}
-            isLoading={isLoading}
-            providerType={aiConfig.providerType as 'local' | 'cloud'}
-            model={aiConfig.model}
-          />
-        </div>
-
-        {lastMetrics && !isLoading && (
-          <div style={{ fontSize: '11px', color: 'var(--ink3)', marginTop: 'var(--space-xs)', display: 'flex', gap: 'var(--space-md)' }}>
-            <span>{(lastMetrics.latencyMs / 1000).toFixed(1)}s</span>
-            <span>{lastMetrics.tokensGenerated} tokens</span>
+        {hasDiagnosis && !isLoading && (
+          <div className="stage-result">
+            <h3 className="stage-result-title">Resumen de AURA</h3>
+            <GeminiAdvisor
+              analysis={draftAnalysis}
+              isLoading={isLoading}
+              providerType={aiConfig.providerType as 'local' | 'cloud'}
+              model={aiConfig.model}
+            />
+            {lastMetrics && (
+              <div className="stage-result-metrics">
+                <span>{(lastMetrics.latencyMs / 1000).toFixed(1)}s</span>
+                <span>{lastMetrics.tokensGenerated} tokens</span>
+              </div>
+            )}
           </div>
         )}
 
-        {/* Export buttons */}
         {hasDiagnosis && (
-          <div style={{ marginTop: 'var(--space-md)', display: 'flex', gap: 'var(--space-xs)' }}>
+          <div className="evidence-options">
             <button className="btn-s btn-sm" onClick={exportDiagnosisPdf}>
               <FileText size={12} /> PDF consolidado
             </button>
@@ -579,30 +522,27 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
         )}
       </section>
 
-      {/* ── PRIMARY CTA ── */}
       <div className="context-guide">
         <span className="guide-icon"><Play size={14} /></span>
         <div>
           <p className="guide-title">Generar script de limpieza</p>
-          <p className="guide-desc">El script usa los hallazgos deterministas y el diagnóstico como anclaje. Si el proveedor no responde, se genera un script base.</p>
+          <p className="guide-desc">El script usa los hallazgos y el diagnóstico como anclaje. Si el proveedor no responde, se genera un script base.</p>
         </div>
         <button className="btn-p btn-sm" onClick={onContinue}>
           Generar script <Play size={12} />
         </button>
       </div>
 
-      {/* ── TECHNICAL DETAILS ── */}
       <details className="technical-details">
         <summary className="technical-details-summary">
           <ChevronDown size={14} className="technical-details-chevron" />
           <span>Detalles técnicos</span>
-          <span className="technical-details-hint">modelo, paquete estructurado, contrato técnico y calibración</span>
+          <span className="technical-details-hint">modelo, paquete estructurado, contrato y calibración</span>
         </summary>
         <div className="technical-details-body">
 
-          {/* Downloaded models management (local only) */}
           {aiConfig.providerType === 'local' && downloadedModels.size > 0 && (
-            <div className="downloaded-models-list" style={{ marginBottom: 'var(--space-md)' }}>
+            <div className="downloaded-models-list">
               <div className="downloaded-models-header">
                 <HardDrive size={10} />
                 <span>Modelos descargados ({downloadedModels.size})</span>
@@ -628,27 +568,24 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
             </div>
           )}
 
-          {/* Lab CTA — secondary */}
           {onOpenLab && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', padding: 'var(--space-sm) var(--space-md)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', marginBottom: 'var(--space-md)', background: 'var(--surface)' }}>
+            <div className="lab-cta-strip">
               <FlaskConical size={14} style={{ color: 'var(--ink3)', flexShrink: 0 }} />
-              <span style={{ fontSize: '12px', color: 'var(--ink2)', flex: 1 }}>Calibrar diagnóstico en Laboratorio</span>
+              <span>Calibrar diagnóstico en Laboratorio</span>
               <button className="btn-s btn-sm" onClick={onOpenLab}>Abrir</button>
             </div>
           )}
 
-          {/* Smart sample JSON */}
-          <div style={{ marginBottom: 'var(--space-md)' }}>
+          <div className="smart-sample-section">
             <button
               className="btn-s btn-sm"
               onClick={() => setShowEvidence(!showEvidence)}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
             >
               {showEvidence ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
               {showEvidence ? 'Ocultar paquete estructurado' : 'Ver paquete estructurado'}
             </button>
             {showEvidence && (
-              <div className="smart-sample-viewer" style={{ marginTop: 'var(--space-sm)' }}>
+              <div className="smart-sample-viewer">
                 <div className="smart-sample-header">
                   <div className="smart-sample-title">
                     <FileCode2 size={14} />
@@ -678,7 +615,6 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
         </div>
       </details>
 
-      {/* ── Prompt modal ── */}
       {showPrompt && (
         <div className="prompt-modal" onClick={() => setShowPrompt(false)}>
           <div className="prompt-modal-content" onClick={(e) => e.stopPropagation()}>

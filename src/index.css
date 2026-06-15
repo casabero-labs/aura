@@ -5747,6 +5747,326 @@ tr:hover td {
   color: var(--ink2);
 }
 
+/* ─── Companion Note (Casabero Hierarchy) ─── */
+
+.companion-note {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-lg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-lg);
+  font-size: 13px;
+  color: var(--ink2);
+  line-height: 1.5;
+}
+
+.companion-note svg {
+  color: var(--ink3);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.companion-note p {
+  margin: 0;
+}
+
+/* ─── Stage Decision Summary (Casabero Hierarchy) ─── */
+
+.stage-decision-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-lg);
+}
+
+.stage-summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 100px;
+}
+
+.stage-summary-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink3);
+}
+
+.stage-summary-value {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.stage-summary-value--critical {
+  color: var(--error);
+}
+
+.stage-summary-value--warning {
+  color: var(--orange);
+}
+
+/* ─── Stage Result (Casabero Hierarchy) ─── */
+
+.stage-result {
+  margin-top: var(--space-lg);
+  padding: var(--space-lg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.stage-result-title {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 var(--space-md) 0;
+}
+
+.stage-result-metrics {
+  display: flex;
+  gap: var(--space-md);
+  margin-top: var(--space-sm);
+  font-size: 11px;
+  color: var(--ink3);
+  font-family: var(--font-mono);
+}
+
+/* ─── Evidence Options (Casabero Hierarchy) ─── */
+
+.evidence-options {
+  display: flex;
+  gap: var(--space-xs);
+  margin-top: var(--space-md);
+}
+
+/* ─── Provider Error Notice (Casabero Hierarchy) ─── */
+
+.provider-error-notice {
+  margin-top: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  background: var(--error-surface);
+  border: 1px solid var(--error-border);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.provider-error-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-xs);
+}
+
+.provider-error-cause {
+  font-size: 12px;
+  color: var(--ink2);
+  font-style: italic;
+  margin: 0 0 var(--space-sm) 0;
+}
+
+.provider-error-actions {
+  display: flex;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+  margin-top: var(--space-sm);
+}
+
+/* ─── Validation Minimal (Casabero Hierarchy) ─── */
+
+.validation-minimal {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.validation-minimal-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 12px;
+}
+
+.validation-minimal-item span {
+  color: var(--ink2);
+}
+
+.validation-minimal-item strong {
+  font-weight: 600;
+}
+
+/* ─── Validation Details (Casabero Hierarchy) ─── */
+
+.validation-details {
+  font-size: 12px;
+  color: var(--ink2);
+}
+
+.validation-details summary {
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--ink3);
+  padding: var(--space-xs) 0;
+}
+
+/* ─── Script Preview Section (Casabero Hierarchy) ─── */
+
+.script-preview-section {
+  margin-top: var(--space-lg);
+}
+
+.script-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-sm);
+}
+
+.script-scroll--preview {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+/* ─── Lab CTA Strip (Casabero Hierarchy) ─── */
+
+.lab-cta-strip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-md);
+  background: var(--surface);
+  font-size: 12px;
+  color: var(--ink2);
+}
+
+.lab-cta-strip span {
+  flex: 1;
+}
+
+/* ─── Smart Sample Section (Casabero Hierarchy) ─── */
+
+.smart-sample-section {
+  margin-top: var(--space-md);
+}
+
+/* ─── Export Human Summary (Casabero Hierarchy) ─── */
+
+.export-human-summary {
+  margin-bottom: var(--space-lg);
+  padding: var(--space-md) var(--space-lg);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.export-human-summary-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink2);
+  margin: 0 0 var(--space-sm) 0;
+}
+
+.export-human-summary-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.export-human-summary-list li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.export-human-summary--preliminary {
+  border-color: rgba(230, 81, 0, 0.2);
+  background: rgba(230, 81, 0, 0.03);
+}
+
+.export-human-summary--pending {
+  border-color: var(--border);
+  background: var(--surface);
+}
+
+/* ─── Export Downloads (Casabero Hierarchy) ─── */
+
+.export-downloads {
+  margin-bottom: var(--space-lg);
+}
+
+.export-downloads-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink2);
+  margin: 0 0 var(--space-sm) 0;
+}
+
+.export-downloads-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+/* ─── Export Limitations More (Casabero Hierarchy) ─── */
+
+.export-limitations-more {
+  font-size: 11px;
+  color: var(--ink3);
+  font-style: italic;
+}
+
+/* ─── Review Delta Hint (Casabero Hierarchy) ─── */
+
+.review-delta-hint {
+  font-size: 11px;
+  color: var(--ink3);
+  margin-left: auto;
+}
+
+/* ─── Review Delta Interpretation (Casabero Hierarchy) ─── */
+
+.review-delta-interpretation {
+  margin-top: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: var(--ink2);
+}
+
+.review-delta-interpretation p {
+  margin: 0;
+}
+
 /* ─── Diagnosis Compact (AURA-UX-CORE-03) ─── */
 
 .diagnosis-compact {

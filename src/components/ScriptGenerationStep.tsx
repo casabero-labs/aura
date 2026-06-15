@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { ArrowRight, CheckCircle2, FileCode2, ShieldAlert, ShieldCheck, TriangleAlert, Gauge } from 'lucide-react';
+import { ArrowRight, CheckCircle2, FileCode2, ShieldAlert, ShieldCheck, TriangleAlert, Gauge, Sparkles } from 'lucide-react';
 import { AIProvider, AuditReport, ProviderMetrics, ScriptValidationResult } from '../types';
 import { highlightPython } from '../services/highlightPython';
 import { buildDeterministicCleaningScript, buildFallbackScriptMetrics } from '../services/deterministicScriptBuilder';
@@ -32,6 +32,7 @@ const ScriptGenerationStep: React.FC<ScriptGenerationStepProps> = ({
   const [streamingMetrics, setStreamingMetrics] = useState<ProviderMetrics | null>(null);
   const [scriptOrigin, setScriptOrigin] = useState<'model' | 'deterministic' | null>(cleaningScript ? 'model' : null);
   const [diagnosisBrief, setDiagnosisBrief] = useState(() => buildDiagnosisScriptBrief(diagnosisText));
+  const [showFullCode, setShowFullCode] = useState(false);
 
   const useFallbackScript = useCallback((reason: string) => {
     const fallbackScript = buildDeterministicCleaningScript(report);
@@ -98,88 +99,54 @@ const ScriptGenerationStep: React.FC<ScriptGenerationStepProps> = ({
 
   const scriptPromptPreview = React.useMemo(() => buildScriptPrompt(report, diagnosisText, diagnosisBrief), [report, diagnosisText, diagnosisBrief]);
 
-  const validationItems = scriptValidation ? [
-    {
-      label: 'Safety Score',
-      value: `${scriptValidation.safetyScore}/100`,
-      state: scriptValidation.safetyScore >= 80 ? 'pass' : scriptValidation.safetyScore >= 50 ? 'review' : 'warn',
-    },
-    {
-      label: 'Columnas existentes',
-      value: scriptValidation.invalidColumns.length === 0 ? 'Sin columnas fantasma' : `${scriptValidation.invalidColumns.length} inválidas: ${scriptValidation.invalidColumns.join(', ')}`,
-      state: scriptValidation.invalidColumns.length === 0 ? 'pass' : 'warn',
-    },
-    {
-      label: 'Cobertura de hallazgos',
-      value: `${scriptValidation.coveredIssueIds.length} / ${report.issues.length} (${scriptValidation.coveragePercentage}%)`,
-      state: scriptValidation.coveragePercentage >= 50 ? 'pass' : 'warn',
-    },
-    {
-      label: 'Operaciones destructivas',
-      value: scriptValidation.destructiveOperations.length === 0 ? 'No detectadas' : scriptValidation.destructiveOperations.join(', '),
-      state: scriptValidation.destructiveOperations.length === 0 ? 'pass' : 'warn',
-    },
-    {
-      label: 'Uso de Pandas',
-      value: scriptValidation.hasPandasImport ? 'Detectado' : 'No evidente',
-      state: scriptValidation.hasPandasImport ? 'pass' : 'warn',
-    },
-    {
-      label: 'Origen',
-      value: scriptValidation.scriptOrigin === 'deterministic' ? 'Respaldo determinista' : scriptValidation.scriptOrigin === 'model' ? 'Modelo LLM' : 'Pendiente',
-      state: scriptValidation.scriptOrigin === 'deterministic' ? 'review' : 'pass',
-    },
-    {
-      label: 'Revisión humana',
-      value: scriptValidation.requiresHumanReview ? 'Requerida' : 'Sin alertas',
-      state: scriptValidation.requiresHumanReview ? 'review' : 'pass',
-    },
-  ] : [];
+  const safetyLabel = scriptValidation
+    ? (scriptValidation.safetyScore >= 80 ? 'Seguro' : scriptValidation.safetyScore >= 50 ? 'Requiere revisión' : 'Riesgoso')
+    : null;
+
+  const safetyColor = scriptValidation
+    ? (scriptValidation.safetyScore >= 80 ? 'var(--success)' : scriptValidation.safetyScore >= 50 ? 'var(--orange)' : 'var(--error)')
+    : 'var(--ink3)';
+
+  const hasAlerts = scriptValidation
+    && (scriptValidation.invalidColumns.length > 0 || scriptValidation.destructiveOperations.length > 0 || scriptValidation.requiresHumanReview);
 
   return (
     <>
       <section className="section">
         <header className="section-header">
           <div>
-            <p className="sec-eye">acciones sugeridas</p>
-            <h2 className="sec-title">Generar script de asistencia.</h2>
+            <p className="sec-eye">script asistido</p>
+            <h2 className="sec-title">AURA prepara una propuesta de limpieza</h2>
           </div>
         </header>
         <p className="section-note">
-          El script no nace de un análisis nuevo. Usa el diagnóstico previo, el paquete estructurado y el anclaje semántico
-          de la Capa 2 para producir transformaciones Pandas revisables bajo paradigma copy-paste.
+          El script es una ayuda revisable, no una corrección automática.
         </p>
 
-        <div className="benchmark-protocol mt-6">
-          <div>
-            <span>hallazgos base</span>
-            <strong>{report.issues.length}</strong>
+        <div className="companion-note">
+          <Sparkles size={16} />
+          <p>AURA usará el diagnóstico y las reglas detectadas para construir un script Pandas. Si el modelo falla, generará una base determinista para no bloquearte.</p>
+        </div>
+
+        <div className="stage-decision-summary">
+          <div className="stage-summary-item">
+            <span className="stage-summary-label">hallazgos base</span>
+            <strong className="stage-summary-value">{report.issues.length}</strong>
           </div>
-          <div>
-            <span>diagnóstico previo</span>
-            <strong>{diagnosisText.trim() ? 'disponible' : 'requerido'}</strong>
+          <div className="stage-summary-item">
+            <span className="stage-summary-label">diagnóstico</span>
+            <strong className="stage-summary-value">{diagnosisText.trim() ? 'disponible' : 'pendiente'}</strong>
           </div>
-          <div>
-            <span>origen</span>
-            <strong>{scriptOrigin === 'deterministic' ? 'determinista' : scriptOrigin === 'model' ? 'modelo' : 'pendiente'}</strong>
-          </div>
-          <div>
-            <span>validación</span>
-            <strong>{scriptValidation ? (scriptValidation.valid ? 'válido' : 'requiere revisión') : 'pendiente'}</strong>
+          <div className="stage-summary-item">
+            <span className="stage-summary-label">origen</span>
+            <strong className="stage-summary-value">{scriptOrigin === 'deterministic' ? 'determinista' : scriptOrigin === 'model' ? 'modelo' : 'pendiente'}</strong>
           </div>
         </div>
 
-        <div className="mt-6">
-          <details className="script-contract-details">
-            <summary>Ver contrato usado para generar script</summary>
-            <pre>{scriptPromptPreview}</pre>
-          </details>
-        </div>
-
-        <div className="mt-6">
+        <div className="stage-actions">
           <button className="btn-p" onClick={generateScript} disabled={isLoading}>
             <FileCode2 size={14} />
-            {isLoading ? 'Generando' : cleaningScript ? 'Regenerar script' : 'Generar script'}
+            {isLoading ? 'Generando' : cleaningScript ? 'Regenerar propuesta' : 'Generar propuesta'}
           </button>
         </div>
 
@@ -210,147 +177,113 @@ const ScriptGenerationStep: React.FC<ScriptGenerationStepProps> = ({
 
         {scriptValidation && (
           <div className="script-validation-panel">
-            {/* ── Safety Score Bar (always visible) ── */}
-            {scriptValidation.hasScript && (
-              <div className="safety-score-bar-wrap">
-                <div className="safety-score-header">
-                  <Gauge size={14} />
-                  <span>Safety Score</span>
-                  <strong style={{
-                    color: scriptValidation.safetyScore >= 80 ? 'var(--success)'
-                      : scriptValidation.safetyScore >= 50 ? 'var(--orange)'
-                      : 'var(--error)'
-                  }}>
-                    {scriptValidation.safetyScore}/100
-                  </strong>
-                </div>
-                <div className="safety-score-track">
-                  <div
-                    className="safety-score-fill"
-                    style={{
-                      width: `${scriptValidation.safetyScore}%`,
-                      background: scriptValidation.safetyScore >= 80 ? 'var(--success)'
-                        : scriptValidation.safetyScore >= 50 ? 'var(--orange)'
-                        : 'var(--error)'
-                    }}
-                  />
-                </div>
+            <div className="validation-minimal">
+              <div className="validation-minimal-item">
+                <ShieldCheck size={14} style={{ color: safetyColor }} />
+                <span>Seguridad</span>
+                <strong style={{ color: safetyColor }}>{safetyLabel}</strong>
               </div>
-            )}
+              <div className="validation-minimal-item">
+                <Gauge size={14} />
+                <span>Cobertura</span>
+                <strong>{scriptValidation.coveragePercentage}%</strong>
+              </div>
+              <div className="validation-minimal-item">
+                {hasAlerts ? (
+                  <>
+                    <TriangleAlert size={14} style={{ color: 'var(--orange)' }} />
+                    <span>Alertas</span>
+                    <strong style={{ color: 'var(--orange)' }}>revisar</strong>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 size={14} style={{ color: 'var(--success)' }} />
+                    <span>Alertas</span>
+                    <strong style={{ color: 'var(--success)' }}>sin alertas</strong>
+                  </>
+                )}
+              </div>
+            </div>
 
-            {/* ── Coverage Bar (always visible) ── */}
-            {scriptValidation.hasScript && (
-              <div className="coverage-bar-wrap">
-                <div className="coverage-bar-label">
+            <details className="validation-details">
+              <summary>Ver matriz de validación completa</summary>
+              <div className="script-validation-grid">
+                <div className={`script-validation-card ${scriptValidation.safetyScore >= 80 ? 'script-validation-card--pass' : scriptValidation.safetyScore >= 50 ? 'script-validation-card--warn' : 'script-validation-card--fail'}`}>
+                  <CheckCircle2 size={14} />
+                  <span>Safety Score</span>
+                  <strong>{scriptValidation.safetyScore}/100</strong>
+                </div>
+                <div className={`script-validation-card ${scriptValidation.invalidColumns.length === 0 ? 'script-validation-card--pass' : 'script-validation-card--warn'}`}>
+                  {scriptValidation.invalidColumns.length === 0 ? <CheckCircle2 size={14} /> : <TriangleAlert size={14} />}
+                  <span>Columnas existentes</span>
+                  <strong>{scriptValidation.invalidColumns.length === 0 ? 'Sin columnas fantasma' : `${scriptValidation.invalidColumns.length} inválidas`}</strong>
+                </div>
+                <div className={`script-validation-card ${scriptValidation.coveragePercentage >= 50 ? 'script-validation-card--pass' : 'script-validation-card--warn'}`}>
+                  <Gauge size={14} />
                   <span>Cobertura de hallazgos</span>
                   <strong>{scriptValidation.coveragePercentage}%</strong>
                 </div>
-                <div className="coverage-bar-track">
-                  <div
-                    className="coverage-bar-fill"
-                    style={{
-                      width: `${scriptValidation.coveragePercentage}%`,
-                      background: scriptValidation.coveragePercentage >= 50 ? 'var(--success)' : 'var(--orange)'
-                    }}
-                  />
+                <div className={`script-validation-card ${scriptValidation.destructiveOperations.length === 0 ? 'script-validation-card--pass' : 'script-validation-card--warn'}`}>
+                  {scriptValidation.destructiveOperations.length === 0 ? <CheckCircle2 size={14} /> : <ShieldAlert size={14} />}
+                  <span>Operaciones destructivas</span>
+                  <strong>{scriptValidation.destructiveOperations.length === 0 ? 'No detectadas' : `${scriptValidation.destructiveOperations.length} detectadas`}</strong>
                 </div>
-                {scriptValidation.uncoveredIssueIds.length > 0 && (
-                  <p className="coverage-uncovered">
-                    Sin cobertura: {scriptValidation.uncoveredIssueIds.length} hallazgo(s) sin traza en el script
-                  </p>
-                )}
               </div>
-            )}
-
-            {/* ── Key risk indicators (always visible) ── */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-sm)', marginBottom: 'var(--space-sm)' }}>
-              {scriptValidation.invalidColumns.length > 0 && (
-                <span style={{ fontSize: '11px', color: 'var(--error)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <TriangleAlert size={12} /> {scriptValidation.invalidColumns.length} columna(s) inválida(s)
-                </span>
-              )}
-              {scriptValidation.destructiveOperations.length > 0 && (
-                <span style={{ fontSize: '11px', color: 'var(--orange)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <ShieldAlert size={12} /> {scriptValidation.destructiveOperations.length} operación(es) destructiva(s)
-                </span>
-              )}
-              {scriptValidation.requiresHumanReview && (
-                <span style={{ fontSize: '11px', color: 'var(--orange)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <ShieldAlert size={12} /> Requiere revisión humana
-                </span>
-              )}
-              {!scriptValidation.requiresHumanReview && !scriptValidation.invalidColumns.length && !scriptValidation.destructiveOperations.length && (
-                <span style={{ fontSize: '11px', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <CheckCircle2 size={12} /> Sin alertas
-                </span>
-              )}
-            </div>
-
-            {/* ── Full validation matrix (collapsed) ── */}
-            <details style={{ marginTop: 'var(--space-xs)' }}>
-              <summary style={{ cursor: 'pointer', fontSize: '12px', color: 'var(--ink2)', fontWeight: 500, userSelect: 'none' }}>
-                Matriz de validación completa
-              </summary>
-              <div style={{ marginTop: 'var(--space-sm)' }}>
-                <div className="script-validation-grid">
-                  {validationItems.map((item) => (
-                    <div key={item.label} className={`script-validation-card script-validation-card--${item.state}`}>
-                      {item.state === 'pass' ? <CheckCircle2 size={14} /> : item.state === 'review' ? <ShieldAlert size={14} /> : <TriangleAlert size={14} />}
-                      <span>{item.label}</span>
-                      <strong>{item.value}</strong>
-                    </div>
+              {scriptValidation.warnings.length > 0 && (
+                <ul className="script-validation-warnings">
+                  {scriptValidation.warnings.map((warning) => (
+                    <li key={warning}>{warning}</li>
                   ))}
-                </div>
-                {scriptValidation.warnings.length > 0 && (
-                  <ul className="script-validation-warnings">
-                    {scriptValidation.warnings.map((warning) => (
-                      <li key={warning}>{warning}</li>
-                    ))}
-                  </ul>
-                )}
-              </div>
+                </ul>
+              )}
             </details>
           </div>
         )}
 
         {cleaningScript && (
-          <div className="mt-6">
-            <div className="script-review">
-              <div className="script-review-header">
-                <div className="flex items-center gap-2">
-                  <FileCode2 size={14} style={{color:'var(--ink)'}} />
-                  <span className="eyebrow">Vista previa del script generado</span>
-                </div>
+          <div className="script-preview-section">
+            <div className="script-preview-header">
+              <div className="flex items-center gap-2">
+                <FileCode2 size={14} style={{color:'var(--ink)'}} />
+                <span className="eyebrow">Vista previa del script generado</span>
               </div>
-              <div className="script-governance-note">
-                <ShieldCheck size={14} />
-                <p>Esta etapa solo genera y valida. La aprobación humana ocurre en la siguiente pantalla.</p>
-              </div>
-              <div className="script-code-shell">
-                <div className="script-scroll custom-scrollbar">
-                  <pre className="script-code">
-                    {cleaningScript.split('\n').map((line, index) => (
-                      <span key={`${index}-${line}`} className="script-line">
-                        <span className="line-number">{String(index + 1).padStart(2, '0')}</span>
-                        <code dangerouslySetInnerHTML={{ __html: highlightPython(line) || ' ' }} />
-                      </span>
-                    ))}
-                  </pre>
-                </div>
+              <button className="btn-s btn-sm" onClick={() => setShowFullCode(!showFullCode)}>
+                {showFullCode ? 'Ocultar código' : 'Ver código completo'}
+              </button>
+            </div>
+            <div className="script-governance-note">
+              <ShieldCheck size={14} />
+              <p>Esta etapa solo genera y valida. La aprobación humana ocurre en la siguiente pantalla.</p>
+            </div>
+            <div className="script-code-shell">
+              <div className={`script-scroll custom-scrollbar ${showFullCode ? '' : 'script-scroll--preview'}`}>
+                <pre className="script-code">
+                  {cleaningScript.split('\n').map((line, index) => (
+                    <span key={`${index}-${line}`} className="script-line">
+                      <span className="line-number">{String(index + 1).padStart(2, '0')}</span>
+                      <code dangerouslySetInnerHTML={{ __html: highlightPython(line) || ' ' }} />
+                    </span>
+                  ))}
+                </pre>
               </div>
             </div>
           </div>
         )}
+
+        <details className="script-contract-details">
+          <summary>Ver contrato usado para generar script</summary>
+          <pre>{scriptPromptPreview}</pre>
+        </details>
       </section>
 
       <div className="context-guide">
         <span className="guide-icon"><ArrowRight size={14} /></span>
         <div>
-          <p className="guide-title">Revisión final</p>
-          <p className="guide-desc">Revisa el script, aprueba las transformaciones y prepara la exportación.</p>
+          <p className="guide-title">Revisar propuesta</p>
+          <p className="guide-desc">AURA ya preparó una propuesta. El siguiente paso no es ejecutar: es revisar y aprobar.</p>
         </div>
         <button className="btn-p btn-sm" onClick={onContinue}>
-          Revisar script <ArrowRight size={12} />
+          Revisar propuesta <ArrowRight size={12} />
         </button>
       </div>
     </>

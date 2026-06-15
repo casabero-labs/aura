@@ -52,9 +52,10 @@ describe('AURA UI flow contracts', () => {
     const summary = buildDiagnosisInputSummary(report);
     const visibleText = Object.values(summary).flat().join(' ');
 
-    expect(summary.rawDatasetAccess).toBe(false);
-    expect(summary.input).toContain('hallazgos estructurados');
-    expect(summary.output).toContain('causas probables');
+    expect(summary.findings).toBe(1);
+    expect(summary.critical).toBe(1);
+    expect(summary.warning).toBe(0);
+    expect(summary.affectedColumns).toBe(1);
     expect(visibleText).not.toMatch(/dataset crudo/i);
   });
 });
