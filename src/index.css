@@ -165,6 +165,26 @@ button, input, select, textarea {
   text-transform: uppercase;
 }
 
+.footer-links {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.footer-link {
+  font-size: 11px;
+  color: var(--ink3);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.footer-link:hover {
+  color: var(--ink);
+}
+
 /* ─── Navigation (Anthropic-style) ─── */
 
 .sys-nav {
@@ -626,29 +646,26 @@ button, input, select, textarea {
 .nav-center-menu {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: var(--space-xxs);
 }
 
 .nav-menu-item {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
+  padding: 4px var(--space-sm);
   font-size: 13px;
   font-weight: 500;
   color: var(--ink2);
   background: none;
   border: none;
   cursor: pointer;
-  border-radius: var(--radius-sm);
-  transition: color var(--transition-fast), background var(--transition-fast);
+  border-radius: var(--radius-xs);
+  transition: color var(--transition-fast);
   white-space: nowrap;
 }
 
 .nav-menu-item:hover {
   color: var(--ink);
-  text-decoration: underline;
-  text-underline-offset: 4px;
 }
 
 .nav-menu-item.active {
@@ -738,7 +755,7 @@ button, input, select, textarea {
 
 .hero {
   width: 100%;
-  padding: var(--space-section-lg) 24px var(--space-section);
+  padding: var(--space-xxl) 0 var(--space-xl);
   text-align: center;
   border-bottom: 1px solid var(--border);
   margin-bottom: var(--space-section);
@@ -1492,13 +1509,11 @@ input::placeholder { color: var(--ink-muted); }
   border-bottom: 1px solid var(--border);
 }
 
-.sec-eye {
-  font-size: 10px;
+.panel-line .sec-eye {
+  margin: 0;
   font-weight: 600;
-  text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--ink2);
-  margin: 0;
 }
 
 .help-sections {
@@ -1540,19 +1555,7 @@ input::placeholder { color: var(--ink-muted); }
   margin: 0 0 var(--space-xs) 0;
 }
 
-/* ─── Hero & Export ─── */
-
-.hero {
-  padding: var(--space-xxl) 0 var(--space-xl);
-}
-
-.hero-sub {
-  font-size: 13px;
-  color: var(--ink2);
-  line-height: 1.6;
-  max-width: 600px;
-  margin: 0;
-}
+/* ─── Export ─── */
 
 .quote {
   padding: var(--space-xl) 0;
@@ -5003,8 +5006,9 @@ tr:hover td {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--space-lg) var(--space-md);
+  padding: var(--space-md) var(--space-md);
   width: 100%;
+  border-bottom: 1px solid var(--border-faint);
 }
 
 .stepper-track {
@@ -5015,30 +5019,24 @@ tr:hover td {
 
 .stepper-step {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: var(--space-xs);
-  padding: var(--space-sm) var(--space-md);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border);
-  background: var(--surface);
-  transition: all var(--transition-base);
-  min-width: 60px;
+  padding: 4px var(--space-sm);
+  border-radius: var(--radius-xs);
+  transition: color var(--transition-fast);
+  min-width: 0;
 }
 
 .stepper-step.done {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: var(--bg);
+  color: var(--ink3);
 }
 
 .stepper-step.active {
-  border-color: var(--ink-soft);
-  box-shadow: 0 0 0 2px rgba(30, 30, 28, 0.06);
+  color: var(--ink);
+  font-weight: 600;
 }
 
 .stepper-step.pending {
-  opacity: 0.5;
+  color: var(--ink-faint);
 }
 
 .stepper-step.clickable {
@@ -5046,11 +5044,7 @@ tr:hover td {
 }
 
 .stepper-step.clickable:hover {
-  background: var(--surface-hover);
-}
-
-.stepper-step.done.clickable:hover {
-  background: var(--ink-soft);
+  color: var(--ink);
 }
 
 .stepper-step:focus-visible {
@@ -5058,42 +5052,19 @@ tr:hover td {
   outline-offset: 2px;
 }
 
-.stepper-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--bg);
-  color: var(--ink);
-}
-
-.stepper-step.done .stepper-icon {
-  background: rgba(255, 255, 255, 0.15);
-  color: var(--bg);
-}
-
 .stepper-label {
   font-size: 11px;
-  font-weight: 500;
-  color: var(--ink2);
+  font-weight: inherit;
+  color: inherit;
   text-align: center;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-}
-
-.stepper-step.done .stepper-label {
-  color: var(--bg);
 }
 
 .stepper-line {
   height: 1px;
   background: var(--border);
   flex: 1;
-  max-width: 40px;
+  max-width: 24px;
   margin: 0;
 }
 

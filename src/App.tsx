@@ -314,87 +314,38 @@ const App: React.FC = () => {
             className={`nav-menu-item ${!showLab && !showAuditLog && !showSettings ? 'active' : ''}`}
             onClick={() => { setShowLab(false); setShowAuditLog(false); setShowSettings(false); scrollTo('sistema'); }}
           >
-            <Layers size={13} />
-            <span>Auditoría</span>
+            Auditoría
           </button>
 
           <button
             className={`nav-menu-item ${showLab ? 'active' : ''}`}
             onClick={() => { setShowLab(true); setShowAuditLog(false); setShowSettings(false); }}
           >
-            <FlaskConical size={13} />
-            <span>Laboratorio</span>
+            Laboratorio
           </button>
 
           <button
             className={`nav-menu-item ${showSettings ? 'active' : ''}`}
             onClick={() => { setShowSettings(true); setShowLab(false); setShowAuditLog(false); }}
           >
-            <Settings size={13} />
-            <span>Configuración</span>
+            Configuración
           </button>
         </div>
 
-        {/* Bloque Derecho: Herramientas y Estado (Escritorio) */}
+        {/* Bloque Derecho: Controles mínimos (Escritorio) */}
         <div className="nav-system-controls">
-          <div className={`nav-status-pill ${aiConfig.providerType === 'local' ? 'local' : 'cloud'}`}>
-            <span className="pulse-dot" />
-            <span className="status-label">
-              {aiConfig.providerType === 'local' ? 'LOCAL-FIRST' : 'MODO CLOUD'}
-            </span>
-          </div>
-
-          <div className="vertical-divider" />
-
-          <div className="nav-tools-group">
-            <button
-              className={`tool-btn ${showAuditLog ? 'active' : ''}`}
-              onClick={() => { setShowAuditLog(true); setShowLab(false); }}
-              title="Registro de trazabilidad"
-            >
-              <ClipboardList size={15} />
-            </button>
-
-            <button
-              className={`tool-btn ${showSettings ? 'active' : ''}`}
-              onClick={() => setShowSettings(true)}
-              title="Configuración"
-            >
-              <Settings size={15} />
-            </button>
-
-            <button
-              className={`tool-btn ${showHelp ? 'active' : ''}`}
-              onClick={() => setShowHelp(true)}
-              title="Ayuda"
-            >
-              <HelpCircle size={15} />
-            </button>
-
-            <button
-              className={`tool-btn ${showChangelog ? 'active' : ''}`}
-              onClick={() => setShowChangelog(true)}
-              title="Historial de cambios"
-            >
-              <History size={15} />
-            </button>
-
-            <label className="theme-toggle" aria-label="Cambiar tema">
-              <input
-                type="checkbox"
-                checked={theme === 'dark'}
-                onChange={(e) => setTheme(e.target.checked ? 'dark' : 'light')}
-              />
-            </label>
-          </div>
+          <label className="theme-toggle" aria-label="Cambiar tema">
+            <input
+              type="checkbox"
+              checked={theme === 'dark'}
+              onChange={(e) => setTheme(e.target.checked ? 'dark' : 'light')}
+            />
+          </label>
 
           {hasData && (
-            <>
-              <div className="vertical-divider" />
-              <button className="nav-reset-cta" onClick={() => window.location.reload()}>
-                Nuevo análisis
-              </button>
-            </>
+            <button className="nav-reset-cta" onClick={() => window.location.reload()}>
+              Nuevo análisis
+            </button>
           )}
         </div>
 
@@ -409,16 +360,16 @@ const App: React.FC = () => {
       {/* Mobile Navigation Menu */}
       <div className={`nav-links ${showMobileNav ? 'nav-links-open' : ''}`}>
         <button className="nav-link" onClick={() => { setShowLab(false); setShowAuditLog(false); setShowSettings(false); setShowMobileNav(false); scrollTo('sistema'); }}>
-          <Layers size={13} /> Auditoría
+          Auditoría
         </button>
         <button className="nav-link" onClick={() => { setShowLab(true); setShowAuditLog(false); setShowSettings(false); setShowMobileNav(false); }}>
-          <FlaskConical size={13} /> Laboratorio
+          Laboratorio
         </button>
         <button className="nav-link" onClick={() => { setShowSettings(true); setShowLab(false); setShowAuditLog(false); setShowMobileNav(false); }}>
-          <Settings size={13} /> Configuración
+          Configuración
         </button>
         <button className="nav-link" onClick={() => { setShowAuditLog(true); setShowLab(false); setShowMobileNav(false); }}>
-          <ClipboardList size={13} /> Trazabilidad
+          Trazabilidad
         </button>
         <button className="nav-link" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
           {theme === 'dark' ? <Sun size={13} /> : <Moon size={13} />}
@@ -466,10 +417,10 @@ const App: React.FC = () => {
         {/* Hero */}
         <section className="hero" id="sistema">
           <h1 className="hero-sub">
-            La calidad del dato merece un diagnóstico cognitivo.
+            La calidad del dato merece un diagnóstico preciso.
           </h1>
           <p className="hero-desc">
-            AURA perfila el dataset con reglas reproducibles; luego separa diagnóstico, script de limpieza, revisión humana y exportación técnica.
+            Auditoría determinista, diagnóstico asistido y limpieza reproducible. Todo en el navegador.
           </p>
         </section>
 
@@ -621,6 +572,11 @@ const App: React.FC = () => {
       {/* Footer */}
       <footer className="sys-footer" style={{ display: showLab ? 'none' : undefined }}>
         <span className="footer-brand">AURA</span>
+        <div className="footer-links">
+          <button className="footer-link" onClick={() => setShowAuditLog(true)}>Trazabilidad</button>
+          <button className="footer-link" onClick={() => setShowHelp(true)}>Ayuda</button>
+          <button className="footer-link" onClick={() => setShowChangelog(true)}>Historial</button>
+        </div>
         <span className="footer-copy">casabero · tfm · 2026</span>
       </footer>
     </div></ErrorBoundary>

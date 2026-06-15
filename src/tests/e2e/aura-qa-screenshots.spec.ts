@@ -7,6 +7,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const fixtureCsv = path.resolve(__dirname, '../../../experiments/datasets/synthetic_ground_truth.csv');
 const screenshotDir = path.resolve(__dirname, '../../docs/qa');
 const regressionDir = path.resolve(__dirname, '../../docs/qa/ui-regression-2026-06-15');
+const aestheticDir = path.resolve(__dirname, '../../docs/qa/casabero-aesthetic-reset-2026-06-15');
 
 test.describe('AURA QA — Human-first screenshots', () => {
   test('Desktop 1280x900 — flujo completo con screenshots', async ({ page }) => {
@@ -111,5 +112,73 @@ test.describe('AURA QA — Human-first screenshots', () => {
     await hamburger.click();
     await page.waitForTimeout(400);
     await page.screenshot({ path: path.join(regressionDir, 'mobile-nav-open-after.png'), fullPage: false });
+  });
+
+  test('Casabero aesthetic reset — Loop 05B screenshots', async ({ page }) => {
+    fs.mkdirSync(aestheticDir, { recursive: true });
+
+    // 01 — Desktop home
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 60_000 });
+    await page.locator('.sys-nav').waitFor({ state: 'visible', timeout: 15_000 });
+    await page.screenshot({ path: path.join(aestheticDir, '01-home-desktop.png'), fullPage: false });
+
+    // 02 — Upload → Profile
+    await page.setInputFiles('input[type="file"]', fixtureCsv);
+    await page.waitForTimeout(600);
+    await page.screenshot({ path: path.join(aestheticDir, '02-profile-desktop.png'), fullPage: false });
+
+    // 03 — Diagnosis (go to diagnosis)
+    const profileSummary = page.locator('.profile-summary-section');
+    await profileSummary.getByRole('button', { name: /Generar diagnóstico/i }).click();
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: path.join(aestheticDir, '03-diagnosis-desktop.png'), fullPage: false });
+
+    // 04 — Script (generate fallback)
+    await page.getByRole('button', { name: /Generar script/i }).first().click();
+    await page.waitForTimeout(300);
+    await page.getByRole('button', { name: /Generar script/i }).click();
+    await expect(page.locator('.script-review')).toBeVisible({ timeout: 10000 });
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: path.join(aestheticDir, '04-script-desktop.png'), fullPage: false });
+
+    // 05 — Review (approve)
+    await page.getByRole('button', { name: /Revisar script/i }).click();
+    await page.waitForTimeout(300);
+    const scriptScroll = page.locator('.script-scroll');
+    await scriptScroll.evaluate((el) => { el.scrollTop = el.scrollHeight; });
+    await expect(page.getByText(/Código revisado completo/i)).toBeVisible({ timeout: 5000 });
+    await page.getByRole('button', { name: /Aprobar script/i }).click();
+    await expect(page.locator('.review-delta')).toBeVisible({ timeout: 10000 });
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: path.join(aestheticDir, '05-review-desktop.png'), fullPage: false });
+
+    // 06 — Export
+    await page.getByRole('button', { name: /Preparar exportación/i }).click();
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: path.join(aestheticDir, '06-export-desktop.png'), fullPage: false });
+
+    // 07 — Lab
+    const navMenu = page.locator('.nav-center-menu');
+    await navMenu.getByRole('button', { name: 'Laboratorio' }).click();
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: path.join(aestheticDir, '07-lab-desktop.png'), fullPage: false });
+
+    // 08 — Mobile home
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 60_000 });
+    await page.locator('.sys-nav').waitFor({ state: 'visible', timeout: 15_000 });
+    await page.screenshot({ path: path.join(aestheticDir, '08-home-mobile.png'), fullPage: false });
+
+    // 09 — Mobile profile
+    await page.setInputFiles('input[type="file"]', fixtureCsv);
+    await page.waitForTimeout(600);
+    await page.screenshot({ path: path.join(aestheticDir, '09-profile-mobile.png'), fullPage: false });
+
+    // 10 — Mobile nav open
+    const hamburger = page.locator('.mobile-nav-toggle');
+    await hamburger.click();
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: path.join(aestheticDir, '10-mobile-nav-open.png'), fullPage: false });
   });
 });

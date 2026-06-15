@@ -65,6 +65,19 @@ test.describe('AURA QA — Human-first audit', () => {
     const centerMenuVisible = await page.locator('.nav-center-menu').isVisible().catch(() => false);
     log(`- .nav-center-menu visible in desktop: ${centerMenuVisible ? 'PASS' : 'FAIL'}`);
 
+    // ── Aesthetic Reset Checks (Loop 05B) ──
+    const statusPill = await page.locator('.nav-status-pill').isVisible().catch(() => true);
+    log(`- Status pill hidden (no dashboard feel): ${statusPill ? 'FAIL' : 'PASS'}`);
+
+    const toolBtnCount = await page.locator('.tool-btn').count().catch(() => 99);
+    log(`- Icon tool buttons removed from header: ${toolBtnCount === 0 ? 'PASS' : 'FAIL'}`);
+
+    const footerLinks = await page.locator('.footer-link').count().catch(() => 0);
+    log(`- Footer links visible (help/history moved): ${footerLinks > 0 ? 'PASS' : 'FAIL'}`);
+
+    const navIconsInMenu = await page.locator('.nav-menu-item svg').count().catch(() => 99);
+    log(`- No icons inside nav menu items: ${navIconsInMenu === 0 ? 'PASS' : 'FAIL'}`);
+
     // Upload
     await page.setInputFiles('input[type="file"]', fixtureCsv);
     await page.waitForTimeout(500);

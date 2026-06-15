@@ -32,10 +32,9 @@ const report: AuditReport = {
 
 describe('AURA UI flow contracts', () => {
   it('explains local-first upload before profiling', () => {
-    expect(uploadCopy.title).toContain('CSV local');
+    expect(uploadCopy.title).toContain('Cargar CSV');
     expect(uploadCopy.privacy).toContain('navegador');
-    expect(uploadCopy.nextStep).toContain('perfil determinista');
-    expect(uploadCopy.constraints).toContain('Sin envio del archivo crudo');
+    expect(uploadCopy.privacy).toContain('envía');
   });
 
   it('describes profiling as deterministic evidence without AI language', () => {

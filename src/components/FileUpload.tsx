@@ -1,15 +1,13 @@
 import React, { useCallback, useRef, useState } from 'react';
-import { CheckCircle2, FileSpreadsheet, FileUp, ShieldCheck } from 'lucide-react';
+import { FileUp, ShieldCheck } from 'lucide-react';
 
 interface FileUploadProps {
   onFileSelect: (file: File) => void;
 }
 
 export const uploadCopy = {
-  title: 'Cargar CSV local',
-  privacy: 'El archivo se lee en el navegador antes de cualquier diagnostico.',
-  nextStep: 'El siguiente paso genera un perfil determinista del dataset.',
-  constraints: ['CSV tabular', 'Preview hasta 5.000 filas', 'Sin envio del archivo crudo', 'Reglas reproducibles'],
+  title: 'Cargar CSV',
+  privacy: 'El archivo se procesa en el navegador. No se envía a ningún servidor.',
 };
 
 const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect }) => {
@@ -57,19 +55,13 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect }) => {
         if (event.key === 'Enter' || event.key === ' ') inputRef.current?.click();
       }}
     >
-      <span className="file-drop-icon"><FileUp size={22} /></span>
+      <span className="file-drop-icon"><FileUp size={24} /></span>
       <div className="file-drop-main">
-        <p className="file-drop-eyebrow">entrada local-first</p>
         <h3>{uploadCopy.title}</h3>
-        <p>{uploadCopy.privacy} {uploadCopy.nextStep}</p>
-        <div className="file-drop-checks">
-          {uploadCopy.constraints.map((item) => (
-            <span key={item}><CheckCircle2 size={12} /> {item}</span>
-          ))}
-        </div>
+        <p className="file-drop-eyebrow">{uploadCopy.privacy}</p>
         <div className="file-drop-actions">
           <button className="btn-p btn-sm" type="button">
-            <FileSpreadsheet size={13} /> Seleccionar archivo
+            <FileUp size={13} /> Seleccionar archivo
           </button>
           <span className="file-drop-status">
             {selectedName ? (

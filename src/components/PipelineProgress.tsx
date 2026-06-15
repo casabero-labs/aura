@@ -1,4 +1,3 @@
-import { Check, Brain, ClipboardCheck, FileCode2, FileText, Search, Upload } from 'lucide-react';
 
 export type PipelineState = 'upload' | 'profile' | 'diagnosis' | 'script' | 'review' | 'export';
 
@@ -7,13 +6,13 @@ interface PipelineProgressProps {
   onStepClick?: (step: PipelineState) => void;
 }
 
-const steps: { num: number; label: string; icon: React.ReactNode; state: PipelineState }[] = [
-  { num: 1, label: 'Subir CSV', icon: <Upload size={14} />, state: 'upload' },
-  { num: 2, label: 'Perfilar', icon: <Search size={14} />, state: 'profile' },
-  { num: 3, label: 'Diagnóstico', icon: <Brain size={14} />, state: 'diagnosis' },
-  { num: 4, label: 'Script', icon: <FileCode2 size={14} />, state: 'script' },
-  { num: 5, label: 'Revisar', icon: <ClipboardCheck size={14} />, state: 'review' },
-  { num: 6, label: 'Exportar', icon: <FileText size={14} />, state: 'export' },
+const steps: { num: number; label: string; state: PipelineState }[] = [
+  { num: 1, label: 'Carga', state: 'upload' },
+  { num: 2, label: 'Perfil', state: 'profile' },
+  { num: 3, label: 'Diagnóstico', state: 'diagnosis' },
+  { num: 4, label: 'Script', state: 'script' },
+  { num: 5, label: 'Revisión', state: 'review' },
+  { num: 6, label: 'Exportar', state: 'export' },
 ];
 
 const stepOrder: PipelineState[] = ['upload', 'profile', 'diagnosis', 'script', 'review', 'export'];
@@ -54,9 +53,6 @@ const PipelineProgress = ({ currentStep, onStepClick }: PipelineProgressProps) =
                   }
                 }}
               >
-                <div className="stepper-icon">
-                  {status === 'done' ? <Check size={14} /> : step.icon}
-                </div>
                 <span className="stepper-label">{step.label}</span>
               </div>
               {index < steps.length - 1 && (
