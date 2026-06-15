@@ -12,7 +12,7 @@ export interface NormalizedProviderError {
   recommendedActions: string[];
   technicalMessage: string;
   evidenceStatus: 'attempted_failed';
-  category: 'cache_network' | 'webgpu_unsupported' | 'model_download' | 'quota_storage' | 'api_key' | 'generic';
+  category: 'cache_network' | 'webgpu_unsupported' | 'model_download' | 'quota_storage' | 'api_key' | 'chrome_api_missing' | 'chrome_model_download_required' | 'chrome_model_download_failed' | 'chrome_incompatible' | 'chrome_user_activation_required' | 'generic';
 }
 
 /**
@@ -142,6 +142,103 @@ export function normalizeAiProviderError(
       evidenceStatus: 'attempted_failed',
       category: 'api_key',
     };
+  }
+
+  // Chrome AI specific errors
+  if (
+    rawMessage.includes('Chrome AI') ||
+    rawMessage.includes('Gemini Nano') ||
+    rawMessage.includes('chrome://flags') ||
+    rawMessage.includes('Prompt API') ||
+    rawMessage.includes('user activation') ||
+    aiConfig.providerType === 'chrome'
+  ) {
+    const lower = rawMessage.toLowerCase();
+
+    // User activation required
+    if (lower.includes('activation') || lower.includes('user')) {
+      return {
+        title: 'Chrome AI requiere tu acción',
+        message: 'Chrome necesita que actives Gemini Nano manualmente antes de usarlo.',
+        cause: 'Chrome Built-in AI requiere user activation para descargar o crear sesión.',
+        recommendedActions: [
+          'Pulsa "Preparar Gemini Nano" para iniciar la activación.',
+          'Si no funciona, abre chrome://flags y busca "Prompt API".',
+          'Como alternativa, usa Ollama o Cloud.',
+        ],
+        technicalMessage,
+        evidenceStatus: 'attempted_failed',
+        category: 'chrome_user_activation_required',
+      };
+    }
+
+    // Model download required (but not failed)
+    if (lower.includes('descarg') || lower.includes('download') || lower.includes('after-download')) {
+      if (lower.includes('fail') || lower.includes('error') || lower.includes('no se pudo')) {
+        return {
+          title: 'Error al descargar Gemini Nano',
+          message: 'La descarga de Gemini Nano falló. Puede ser por espacio insuficiente, red inestable o permisos.',
+          cause: rawMessage,
+          recommendedActions: [
+            'Libera espacio en disco (se requieren ~22GB libres).',
+            'Verifica tu conexión a internet.',
+            'Revisa chrome://on-device-internals para ver el estado.',
+            'Usa Ollama o Cloud como alternativa.',
+          ],
+          technicalMessage,
+          evidenceStatus: 'attempted_failed',
+          category: 'chrome_model_download_failed',
+        };
+      }
+
+      return {
+        title: 'Gemini Nano requiere descarga',
+        message: 'Gemini Nano necesita descargarse una vez en Chrome antes de usarse.',
+        cause: 'El modelo on-device no está descargado.',
+        recommendedActions: [
+          'Pulsa "Preparar Gemini Nano" para iniciar la descarga.',
+          'No cierres esta pestaña durante la descarga.',
+          'Asegúrate de tener ~22GB libres y conexión estable.',
+        ],
+        technicalMessage,
+        evidenceStatus: 'attempted_failed',
+        category: 'chrome_model_download_required',
+      };
+    }
+
+    // API missing
+    if (lower.includes('no detectada') || lower.includes('no presente') || lower.includes('no está habilitado') || lower.includes('no disponible')) {
+      return {
+        title: 'Chrome AI no habilitado',
+        message: 'La API de Chrome AI no está disponible en este navegador.',
+        cause: rawMessage,
+        recommendedActions: [
+          'Verifica que uses Chrome 138 o superior.',
+          'Abre chrome://flags y busca "Prompt API" o "Built-in AI".',
+          'Activa las opciones disponibles y reinicia Chrome.',
+          'Como alternativa, usa Ollama o Cloud.',
+        ],
+        technicalMessage,
+        evidenceStatus: 'attempted_failed',
+        category: 'chrome_api_missing',
+      };
+    }
+
+    // Incompatible device
+    if (lower.includes('dispositivo') || lower.includes('compatible') || lower.includes('no está soportado')) {
+      return {
+        title: 'Dispositivo incompatible con Gemini Nano',
+        message: 'Tu dispositivo no cumple los requisitos para Gemini Nano (macOS 13+, GPU >4GB VRAM o CPU 16GB RAM 4 cores, 22GB libres).',
+        cause: rawMessage,
+        recommendedActions: [
+          'Usa Ollama local como alternativa en este dispositivo.',
+          'Usa Cloud como alternativa.',
+        ],
+        technicalMessage,
+        evidenceStatus: 'attempted_failed',
+        category: 'chrome_incompatible',
+      };
+    }
   }
 
   // Generic fallback

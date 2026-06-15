@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Settings, Save, HardDrive, AlertTriangle, CheckCircle, Download, Loader2, Cloud, Globe, Cpu, Trash2, FileCode2, ArrowLeft, Shield, HelpCircle, Wifi, Activity, Circle, Zap, Lock, Info, Server, RefreshCw } from 'lucide-react';
 import { AIConfig, ModelDownloadState, CloudProvider, LocalModelStatus, ProviderProgressEvent } from '../types';
-import { AVAILABLE_MODELS, LOCAL_MODELS, OLLAMA_MODELS, checkWebGPUSupport, createAIProvider, deleteDownloadedModel, getLocalModelStatus, markPreloadVerified, clearPreloadVerification, hasShownMigrationNotice, markMigrationNoticeShown } from '../services/aiProvider';
+import { AVAILABLE_MODELS, LOCAL_MODELS, OLLAMA_MODELS, checkWebGPUSupport, createAIProvider, deleteDownloadedModel, getLocalModelStatus, markPreloadVerified, clearPreloadVerification, hasShownMigrationNotice, markMigrationNoticeShown, getChromeAiDiagnostic } from '../services/aiProvider';
+import type { ChromeAiDiagnostic } from '../services/aiProvider';
 import { OLLAMA_SUGGESTED_MODELS } from '../services/providers/ollamaProvider';
 import type { OllamaModel } from '../services/providers/ollamaProvider';
 import { normalizePromptContract } from '../services/providers/prompts';
@@ -39,7 +40,7 @@ const isWebLLMExperimentalEnabled = (): boolean => {
 const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }) => {
     const [localConfig, setLocalConfig] = useState<AIConfig>(config);
     const [webGpuSupported, setWebGpuSupported] = useState<boolean | null>(null);
-    const [chromeAvailability, setChromeAvailability] = useState<'idle' | 'available' | 'downloading' | 'unavailable' | 'incompatible'>('idle');
+    const [chromeDiagnostic, setChromeDiagnostic] = useState<ChromeAiDiagnostic | null>(null);
     const [ollamaConnected, setOllamaConnected] = useState<boolean | null>(null);
     const [ollamaModels, setOllamaModels] = useState<OllamaModel[]>([]);
     const [ollamaLoading, setOllamaLoading] = useState(false);
@@ -55,7 +56,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
 
     useEffect(() => {
         checkWebGPUSupport().then(setWebGpuSupported);
-        checkChromeAvailabilityStatus();
+        checkChromeDiagnostic();
         checkOllamaConnection();
 
         // Show migration notice once
@@ -70,16 +71,12 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
         }
     }, [localConfig.providerType]);
 
-    const checkChromeAvailabilityStatus = async () => {
+    const checkChromeDiagnostic = async () => {
         try {
-            const { ChromePromptProvider } = await import('../services/providers/chromeProvider');
-            const provider = new ChromePromptProvider(0.1);
-            const details = await provider.getAvailabilityDetails();
-            if (details.downloading) setChromeAvailability('downloading');
-            else if (details.available) setChromeAvailability('available');
-            else setChromeAvailability('unavailable');
+            const diag = await getChromeAiDiagnostic();
+            setChromeDiagnostic(diag);
         } catch {
-            setChromeAvailability('incompatible');
+            setChromeDiagnostic(null);
         }
     };
 
@@ -331,41 +328,110 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                     {localConfig.providerType === 'chrome' && (
                         <div className="settings-provider-details">
                             <div className="settings-field">
-                                <label className="settings-label">Chrome AI / Gemini Nano</label>
-                                {chromeAvailability === 'downloading' && (
-                                    <div className="settings-status-card settings-status-card--warn">
-                                        <Loader2 size={14} className="settings-status-icon animate-spin" />
-                                        <p>Chrome está descargando Gemini Nano. No cierres esta pestaña.</p>
-                                    </div>
-                                )}
-                                {chromeAvailability === 'available' && (
-                                    <div className="settings-status-card settings-status-card--ok">
-                                        <CheckCircle size={14} className="settings-status-icon" />
-                                        <p>Gemini Nano disponible en este navegador. Sin envío de datos externos.</p>
-                                    </div>
-                                )}
-                                {chromeAvailability === 'unavailable' && (
-                                    <div className="settings-status-card settings-status-card--warn">
-                                        <AlertTriangle size={14} className="settings-status-icon" />
-                                        <p>Gemini Nano no disponible. Habilita chrome://flags/#prompt-api-for-gemini-nano y chrome://flags/#optimization-guide-on-device-model.</p>
-                                    </div>
-                                )}
-                                {chromeAvailability === 'incompatible' && (
-                                    <div className="settings-status-card settings-status-card--warn">
-                                        <AlertTriangle size={14} className="settings-status-icon" />
-                                        <p>Tu navegador no soporta Chrome AI. Requiere Chrome 127+ compatible con Built-in AI.</p>
-                                    </div>
-                                )}
-                                {chromeAvailability === 'idle' && (
+                                <label className="settings-label">Estado de Chrome AI</label>
+                                {!chromeDiagnostic ? (
                                     <div className="settings-info-box">
                                         <Loader2 size={14} className="animate-spin" />
                                         <p>Verificando disponibilidad de Chrome AI...</p>
                                     </div>
+                                ) : chromeDiagnostic.status === 'available' ? (
+                                    <div className="settings-status-card settings-status-card--ok">
+                                        <CheckCircle size={14} className="settings-status-icon" />
+                                        <div>
+                                            <p>{chromeDiagnostic.message}</p>
+                                            <p style={{ fontSize: '11px', color: 'var(--ink3)', marginTop: '2px' }}>
+                                                API: {chromeDiagnostic.apiSurface}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ) : chromeDiagnostic.status === 'downloadable' ? (
+                                    <div className="settings-status-card settings-status-card--warn">
+                                        <Download size={14} className="settings-status-icon" />
+                                        <div>
+                                            <p>{chromeDiagnostic.message}</p>
+                                            <p style={{ fontSize: '11px', color: 'var(--ink3)', marginTop: '2px' }}>
+                                                API: {chromeDiagnostic.apiSurface} · Pulsa "Preparar Gemini Nano" para iniciar.
+                                            </p>
+                                        </div>
+                                    </div>
+                                ) : chromeDiagnostic.status === 'error' ? (
+                                    <div className="settings-status-card settings-status-card--warn">
+                                        <AlertTriangle size={14} className="settings-status-icon" />
+                                        <div>
+                                            <p>{chromeDiagnostic.message}</p>
+                                            <p style={{ fontSize: '11px', color: 'var(--ink3)', marginTop: '2px' }}>
+                                                API: {chromeDiagnostic.apiSurface}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="settings-status-card settings-status-card--warn">
+                                        <AlertTriangle size={14} className="settings-status-icon" />
+                                        <div>
+                                            <p>{chromeDiagnostic.message}</p>
+                                            <p style={{ fontSize: '11px', color: 'var(--ink3)', marginTop: '2px' }}>
+                                                API: {chromeDiagnostic.apiSurface === 'none' ? 'No detectada' : chromeDiagnostic.apiSurface}
+                                            </p>
+                                        </div>
+                                    </div>
                                 )}
                             </div>
+
+                            {chromeDiagnostic && chromeDiagnostic.status !== 'available' && (
+                                <div className="settings-field">
+                                    <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
+                                        <button className="btn-s btn-sm" onClick={checkChromeDiagnostic}>
+                                            <RefreshCw size={10} /> Verificar estado
+                                        </button>
+                                        {chromeDiagnostic.status === 'downloadable' && (
+                                            <button className="btn-p btn-sm" onClick={async () => {
+                                                try {
+                                                    const { ChromePromptProvider } = await import('../services/providers/chromeProvider');
+                                                    const provider = new ChromePromptProvider(localConfig.temperature);
+                                                    await provider.preloadModel((pct, msg) => {
+                                                        setOllamaPullProgress({ stage: 'downloading', progress: pct, message: msg });
+                                                    });
+                                                    await checkChromeDiagnostic();
+                                                } catch (err: any) {
+                                                    setOllamaPullProgress({ stage: 'error', message: err.message });
+                                                }
+                                            }}>
+                                                <Download size={10} /> Preparar Gemini Nano
+                                            </button>
+                                        )}
+                                        <button className="btn-s btn-sm" onClick={() => setProviderType('ollama')}>
+                                            <Server size={10} /> Usar Ollama
+                                        </button>
+                                        <button className="btn-s btn-sm" onClick={() => setProviderType('cloud')}>
+                                            <Cloud size={10} /> Usar Cloud
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            <details className="settings-collapsible-section" style={{ marginTop: 'var(--space-sm)' }}>
+                                <summary className="settings-collapsible-summary" style={{ fontSize: '13px', padding: '8px 0' }}>
+                                    <HelpCircle size={12} />
+                                    <span>Cómo activar Chrome AI</span>
+                                </summary>
+                                <div className="settings-collapsible-body" style={{ paddingTop: 'var(--space-sm)' }}>
+                                    <ol style={{ fontSize: '13px', lineHeight: 1.7, paddingLeft: '20px', color: 'var(--ink2)' }}>
+                                        <li>Actualiza Chrome a la versión más reciente (138+).</li>
+                                        <li>Abre <code style={{ fontSize: '12px' }}>chrome://flags</code> en una pestaña nueva.</li>
+                                        <li>Busca <strong>"Prompt API"</strong>, <strong>"Gemini Nano"</strong> o <strong>"Built-in AI"</strong>.</li>
+                                        <li>Activa las opciones disponibles (los nombres pueden variar según versión).</li>
+                                        <li>Reinicia Chrome.</li>
+                                        <li>Vuelve a AURA y pulsa <strong>Verificar estado</strong>.</li>
+                                    </ol>
+                                    <p style={{ fontSize: '12px', color: 'var(--ink3)', marginTop: 'var(--space-sm)' }}>
+                                        También puedes revisar <code style={{ fontSize: '11px' }}>chrome://on-device-internals</code> para ver modelos on-device disponibles y estado de descarga.
+                                    </p>
+                                </div>
+                            </details>
+
                             <div className="settings-info-box">
                                 <Info size={14} />
-                                <p>Gemini Nano está integrado en Chrome. No requiere descarga externa ni API key. No se envían datos a terceros cuando el modelo local está disponible. Puede no estar disponible en todos los equipos ni en Chrome móvil.</p>
+                                <p>Gemini Nano está integrado en Chrome. No requiere descarga externa ni API key. Requisitos: macOS 13+, GPU {'>'}4GB VRAM o CPU 16GB RAM con 4 cores, ~22GB libres en el perfil de Chrome. No funciona en Chrome móvil (iOS/Android).</p>
                             </div>
                         </div>
                     )}

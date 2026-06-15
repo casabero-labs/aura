@@ -137,7 +137,7 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
       content: (
         <div className="help-section-body">
           <dl className="help-glossary">
-            <dt>Chrome AI / Gemini Nano</dt><dd>Modelo integrado en Chrome. Se ejecuta en el navegador sin enviar datos a terceros. Requiere Chrome 127+ con flags habilitados. No funciona en Chrome móvil (iOS/Android).</dd>
+            <dt>Chrome AI / Gemini Nano</dt><dd>Modelo integrado en Chrome. Se ejecuta en el navegador sin enviar datos a terceros. Requiere Chrome 138+ con la API de Prompt API habilitada en chrome://flags. No funciona en Chrome móvil (iOS/Android). Requisitos: macOS 13+, GPU {'>'}4GB VRAM o CPU 16GB RAM 4 cores, ~22GB libres en perfil de Chrome.</dd>
             <dt>Ollama local</dt><dd>Servidor local de modelos LLM. Ejecuta la inferencia en tu máquina. Requiere instalar Ollama por separado. Conexión a http://localhost:11434. Ofrece máxima privacidad y variedad de modelos.</dd>
             <dt>Proveedor cloud</dt><dd>El modelo se ejecuta en servidores externos (Google, DeepSeek, Groq, etc.). Mayor velocidad y capacidad, pero envía un paquete estructurado al proveedor (no el archivo completo).</dd>
             <dt>WebGPU</dt><dd>Tecnología que permite ejecutar modelos de IA en la GPU del navegador. Necesaria para el modo Local. Disponible en Chrome/Edge 113+.</dd>
@@ -174,7 +174,7 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
         <div className="help-section-body">
           <dl className="help-glossary">
             <dt>Ollama no responde</dt><dd>Ollama no está accesible en localhost:11434. Solución: abre Ollama, verifica que esté corriendo, configura OLLAMA_ORIGINS si hay errores de CORS.</dd>
-            <dt>Chrome AI no disponible</dt><dd>Gemini Nano no está habilitado en tu navegador. Solución: habilita chrome://flags/#prompt-api-for-gemini-nano y chrome://flags/#optimization-guide-on-device-model. Requiere Chrome 127+.</dd>
+            <dt>Chrome AI / Gemini Nano no aparece o no está disponible</dt><dd>Si usas Chrome 138+ y ves "Proveedor no disponible", verifica los flags en <code>chrome://flags</code> buscando "Prompt API" o "Built-in AI". También revisa <code>chrome://on-device-internals</code> para ver modelos descargados. Desde DevTools ejecuta: <code>'LanguageModel' in globalThis</code> y <code>await LanguageModel.availability()</code>. Si no funciona, usa Ollama o Cloud como alternativa.</dd>
             <dt>WebLLM (experimental)</dt><dd>WebLLM fue movido a experimental por problemas de estabilidad con caché del navegador. Se recomienda usar Chrome AI u Ollama como alternativa local.</dd>
             <dt>Cache.add / network error</dt><dd>Error al descargar el modelo WebLLM. Solución: usa Chrome AI u Ollama en su lugar. WebLLM es experimental.</dd>
             <dt>WebGPU no disponible</dt><dd>Tu navegador no soporta WebGPU (necesario solo para WebLLM experimental). Usa Chrome AI u Ollama como alternativa local.</dd>

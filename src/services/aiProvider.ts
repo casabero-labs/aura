@@ -16,6 +16,8 @@ import { CLOUD_MODELS } from './modelRegistry';
 
 export { AVAILABLE_MODELS, LOCAL_MODELS, CLOUD_MODELS, CHROME_MODELS, OLLAMA_MODELS } from './modelRegistry';
 export { checkModelDownloaded, deleteDownloadedModel, getDownloadedModels, getLocalModelStatus, markPreloadVerified, clearPreloadVerification } from './modelManager';
+export { getChromeAiDiagnostic } from './providers/chromeProvider';
+export type { ChromeAiDiagnostic, ChromeAiApiSurface, ChromeAiStatus } from './providers/chromeProvider';
 
 /** Check if WebLLM experimental mode is enabled via env flag */
 const isWebLLMExperimentalEnabled = (): boolean => {

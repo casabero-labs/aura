@@ -4,7 +4,7 @@ import GeminiAdvisor from './GeminiAdvisor';
 import ProgressDisclosure from './ProgressDisclosure';
 import { AIConfig, AIProvider, AuditReport, AuditExecutionEvidence, ProviderMetrics, LocalModelStatus, DiagnosisEvent, ProviderProgressEvent, ProgressDisclosureStatus } from '../types';
 import { buildSmartSample, buildAnalysisPrompt } from '../services/providers/prompts';
-import { AVAILABLE_MODELS, LOCAL_MODELS, getLocalModelStatus, markPreloadVerified, clearPreloadVerification, deleteDownloadedModel } from '../services/aiProvider';
+import { AVAILABLE_MODELS, LOCAL_MODELS, getLocalModelStatus, markPreloadVerified, clearPreloadVerification, deleteDownloadedModel, getChromeAiDiagnostic } from '../services/aiProvider';
 import { recordLlmCall, computePromptHash, computeInputHash } from '../services/llmAuditLog';
 import { normalizeAiProviderError, NormalizedProviderError } from '../services/providers/errors';
 
@@ -642,7 +642,21 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
                 <li>El proveedor cloud no responde. Verifica la API key.</li>
               )}
               {aiConfig.providerType === 'chrome' && (
-                <li>Chrome AI no disponible. Requiere Chrome 127+ con flags habilitados.</li>
+                <>
+                  <li><strong>Chrome AI (Gemini Nano)</strong> no está disponible en este navegador.</li>
+                  <li style={{ marginTop: 'var(--space-sm)' }}>
+                    <strong>Para activarlo:</strong>
+                    <ol style={{ margin: '4px 0 0 16px', fontSize: '13px', lineHeight: 1.7 }}>
+                      <li>Verifica que uses Chrome 138 o superior.</li>
+                      <li>Abre <code>chrome://flags</code> en una pestaña nueva.</li>
+                      <li>Busca "Prompt API", "Gemini Nano" o "Built-in AI".</li>
+                      <li>Activa las opciones y reinicia Chrome.</li>
+                    </ol>
+                  </li>
+                  <li style={{ marginTop: 'var(--space-sm)', fontSize: '12px', color: 'var(--ink3)' }}>
+                    También puedes revisar <code>chrome://on-device-internals</code> para ver modelos disponibles.
+                  </li>
+                </>
               )}
               {aiConfig.providerType === 'ollama' && (
                 <li>Ollama no responde en {aiConfig.ollamaBaseUrl || 'http://localhost:11434'}. Verifica que Ollama esté abierto y que CORS esté configurado.</li>
@@ -652,6 +666,22 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
               )}
             </ul>
             <div className="provider-unavailable-actions">
+              {aiConfig.providerType === 'chrome' && (
+                <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap', marginBottom: 'var(--space-sm)' }}>
+                  <button className="btn-s btn-sm" onClick={async () => {
+                    await getChromeAiDiagnostic();
+                    aiProvider.isAvailable().then((avail) => setProviderAvailable(avail)).catch(() => setProviderAvailable(false));
+                  }}>
+                    <Activity size={12} /> Verificar Chrome AI
+                  </button>
+                  <button className="btn-s btn-sm" onClick={() => handleProviderTypeChange('ollama')}>
+                    <Server size={12} /> Usar Ollama
+                  </button>
+                  <button className="btn-s btn-sm" onClick={() => handleProviderTypeChange('cloud')}>
+                    <Globe size={12} /> Usar Cloud
+                  </button>
+                </div>
+              )}
               <p><strong>Puedes continuar con script determinista.</strong> El motor de reglas no depende del LLM.</p>
               <button className="btn-s btn-sm" onClick={onContinue} style={{ marginTop: 'var(--space-sm)' }}>
                 <Play size={12} /> Continuar sin diagnóstico
