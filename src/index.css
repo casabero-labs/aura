@@ -5983,6 +5983,174 @@ tr:hover td {
   font-size: 13px;
 }
 
+/* ─── Profile Casabero Reset — Minimal Decision Interface ─── */
+
+.profile-editorial-header {
+  margin-bottom: var(--space-xl);
+}
+
+.profile-editorial-eyebrow {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: var(--space-xs);
+}
+
+.profile-editorial-title {
+  font-family: var(--font-serif);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.2;
+  margin: 0;
+}
+
+.profile-decision-summary {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-xl);
+  margin-bottom: var(--space-lg);
+}
+
+.profile-decision-score {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  margin-bottom: var(--space-md);
+}
+
+.profile-decision-score-ring {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 3px solid var(--score-color, var(--ink));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  flex-shrink: 0;
+}
+
+.profile-decision-score-value {
+  font-family: var(--font-serif);
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.profile-decision-status {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.profile-decision-status-label {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.profile-decision-status-desc {
+  font-size: 13px;
+  color: var(--ink2);
+}
+
+.profile-decision-description {
+  font-size: 14px;
+  color: var(--ink2);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.profile-priorities {
+  margin-bottom: var(--space-lg);
+}
+
+.profile-priorities-title {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink2);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 var(--space-md) 0;
+}
+
+.profile-priorities-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.profile-priority-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+}
+
+.profile-priority-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-xs);
+}
+
+.profile-priority-column {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.profile-priority-severity {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.profile-priority-severity--critical {
+  color: var(--error);
+}
+
+.profile-priority-severity--warning {
+  color: var(--orange);
+}
+
+.profile-priority-rule {
+  font-size: 13px;
+  color: var(--ink2);
+  margin: 0 0 var(--space-xs) 0;
+}
+
+.profile-priority-impact {
+  font-size: 12px;
+  color: var(--ink3);
+  margin: 0;
+}
+
+.profile-actions {
+  display: flex;
+  gap: var(--space-md);
+  margin-bottom: var(--space-xl);
+}
+
+.profile-actions-primary {
+  padding: 12px 24px;
+  font-size: 13px;
+}
+
+.profile-actions-secondary {
+  padding: 12px 24px;
+  font-size: 13px;
+}
+
 /* ─── Technical Details (collapsed) ─── */
 
 .technical-details {
@@ -7203,4 +7371,110 @@ tr:hover td {
   font-size: 11px;
   color: var(--ink3);
   line-height: 1.4;
+}
+
+/* ─── Print Styles — Casabero Reset ─── */
+
+@media print {
+  /* Ocultar elementos interactivos */
+  .profile-actions,
+  .technical-details summary,
+  .btn-p,
+  .btn-s,
+  .settings-close-btn,
+  .nav-menu-item,
+  .mobile-nav-toggle {
+    display: none !important;
+  }
+
+  /* Expandir technical-details solo si están abiertos */
+  .technical-details[open] .technical-details-body {
+    display: block !important;
+  }
+
+  /* Asegurar que el resumen sea visible */
+  .profile-editorial-header,
+  .profile-decision-summary,
+  .profile-priorities {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Estilos para impresión */
+  body {
+    font-size: 10pt;
+    line-height: 1.4;
+    color: #000;
+    background: #fff;
+  }
+
+  .profile-editorial-title {
+    font-size: 18pt;
+    margin-bottom: 8pt;
+  }
+
+  .profile-decision-summary {
+    border: 1px solid #ccc;
+    padding: 12pt;
+    margin-bottom: 12pt;
+  }
+
+  .profile-decision-score-ring {
+    width: 48pt;
+    height: 48pt;
+  }
+
+  .profile-decision-score-value {
+    font-size: 18pt;
+  }
+
+  .profile-priorities {
+    margin-bottom: 12pt;
+  }
+
+  .profile-priority-item {
+    border: 1px solid #ccc;
+    padding: 8pt;
+    margin-bottom: 6pt;
+  }
+
+  /* Ajustar detalles técnicos para impresión */
+  .technical-details {
+    border: 1px solid #ccc;
+    margin-top: 12pt;
+  }
+
+  .technical-details-body {
+    padding: 0 12pt 12pt;
+  }
+
+  /* Evitar saltos de página en elementos importantes */
+  .profile-summary-section,
+  .profile-block {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Ajustar tamaños de fuente para impresión */
+  h1, h2, h3 {
+    page-break-after: avoid;
+  }
+
+  /* Ocultar sombras y efectos visuales */
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Asegurar que los enlaces se muestren */
+  a[href]::after {
+    content: " (" attr(href) ")";
+    font-size: 8pt;
+    color: #666;
+  }
+
+  /* Ocultar enlaces que no son necesarios en impresión */
+  .no-print::after {
+    content: none !important;
+  }
 }

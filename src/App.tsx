@@ -431,6 +431,7 @@ const App: React.FC = () => {
           onPipelineChange={setPipelineData}
           onAiConfigChange={setAiConfig}
           onOpenLab={() => setShowLab(true)}
+          onOpenSettings={() => setShowSettings(true)}
           onLog={(stage, msg) => { /* logs handled internally by MainPipeline */ }}
         />
 

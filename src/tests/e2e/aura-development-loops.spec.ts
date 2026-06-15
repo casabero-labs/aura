@@ -12,13 +12,13 @@ test('AURA: flujo completo perfil → diagnóstico → script → revisar → ex
   await page.setInputFiles('input[type="file"]', fixtureCsv);
 
   // ── Perfil compacto ──
-  const profileSummary = page.locator('.profile-summary-section');
-  await expect(profileSummary.locator('.profile-summary-score-label')).toBeVisible();
-  await expect(profileSummary.getByRole('button', { name: /Generar diagnóstico/i })).toBeVisible();
+  const profileSummary = page.locator('.profile-decision-summary');
+  await expect(profileSummary.locator('.profile-decision-status-label')).toBeVisible();
+  await expect(page.locator('.profile-actions').getByRole('button', { name: /Generar diagnóstico/i })).toBeVisible();
   await expect(page.getByText('Macro F1')).not.toBeVisible();
 
   // ── Ir a Diagnóstico ──
-  await profileSummary.getByRole('button', { name: /Generar diagnóstico/i }).click();
+  await page.locator('.profile-actions').getByRole('button', { name: /Generar diagnóstico/i }).click();
   const diagnosisSection = page.locator('.diagnosis-compact');
   await expect(diagnosisSection.getByText(/principal señal de calidad/i)).toBeVisible();
 

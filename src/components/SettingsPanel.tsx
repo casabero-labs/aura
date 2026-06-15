@@ -3,6 +3,7 @@ import { Settings, X, Save, HardDrive, AlertTriangle, CheckCircle, Download, Loa
 import { AIConfig, ModelDownloadState, CloudProvider } from '../types';
 import { AVAILABLE_MODELS, LOCAL_MODELS, checkWebGPUSupport, createAIProvider, checkModelDownloaded, deleteDownloadedModel } from '../services/aiProvider';
 import { normalizePromptContract } from '../services/providers/prompts';
+import { normalizeAiProviderError } from '../services/providers/errors';
 
 interface SettingsPanelProps {
     config: AIConfig;
@@ -102,15 +103,17 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
             setLocalConfig(updatedConfig);
             onSave(updatedConfig);
         } catch (err: any) {
+            // Normalizar el error para mensajes más claros
+            const normalized = normalizeAiProviderError(err, localConfig);
             const updatedConfig = {
                 ...localConfig,
                 modelDownloadState: {
                     ...(localConfig.modelDownloadState || {}),
-                    [modelId]: { status: 'error' as const, progress: 0, message: err.message },
+                    [modelId]: { status: 'error' as const, progress: 0, message: normalized.message },
                 },
             };
             setLocalConfig(updatedConfig);
-            setDownloadProgress({ status: 'error', progress: 0, message: err.message });
+            setDownloadProgress({ status: 'error', progress: 0, message: normalized.message });
         } finally {
             setDownloadingModel(null);
         }
@@ -329,7 +332,24 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                                             </button>
                                         )}
                                         {currentModelState?.status === 'error' && (
-                                            <p className="settings-error-msg">{currentModelState.message}</p>
+                                            <div className="settings-error-msg" style={{ 
+                                                marginTop: 'var(--space-xs)',
+                                                padding: 'var(--space-sm)',
+                                                background: 'var(--error-surface)',
+                                                border: '1px solid var(--error-border)',
+                                                borderRadius: 'var(--radius-sm)',
+                                                fontSize: '12px'
+                                            }}>
+                                                <p style={{ margin: '0 0 var(--space-xs) 0', color: 'var(--error)' }}>{currentModelState.message}</p>
+                                                <p style={{ margin: '0 0 var(--space-xs) 0', color: 'var(--ink3)' }}>
+                                                    Si la descarga falla, intenta:
+                                                </p>
+                                                <ul style={{ margin: 0, paddingLeft: 'var(--space-md)' }}>
+                                                    <li>Eliminar el modelo cacheado y volver a intentar</li>
+                                                    <li>Verificar tu conexión a internet</li>
+                                                    <li>Libiar espacio en disco</li>
+                                                </ul>
+                                            </div>
                                         )}
                                         <p className="settings-hint">
                                             El modelo se almacena en caché del navegador. Los modelos ★ son recomendados para análisis de datos.

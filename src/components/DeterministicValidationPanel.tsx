@@ -37,7 +37,7 @@ const statusLabel = (status: PerRuleMetrics['status']) => {
 };
 
 const DeterministicValidationPanel: React.FC<DeterministicValidationPanelProps> = ({ validationReport }) => {
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
 
   if (!validationReport.groundTruthMatched) {
     return (
@@ -73,47 +73,43 @@ const DeterministicValidationPanel: React.FC<DeterministicValidationPanelProps> 
       </div>
 
       <h3 id="dv-title" className="deterministic-validation-title">
-        Métricas por regla contra ground truth
+        Cobertura de reglas esperadas
       </h3>
       <p className="deterministic-validation-desc">
-        Cada regla del motor determinista se compara con lo que se esperaba detectar.
-        Esto permite cuantificar precisión, exhaustividad y F1 del perfilamiento automático.
+        Comparación entre lo que el motor debería detectar y lo que realmente detectó.
+        Esto permite evaluar la calidad del perfilamiento automático.
       </p>
 
       {/* ── Summary Cards ── */}
       <div className="dv-macro-grid">
         <div className="dv-macro-card">
-          <span className="dv-macro-label">Macro Precisión</span>
+          <span className="dv-macro-label">Precisión</span>
           <span className="dv-macro-value">{(summary.macroPrecision * 100).toFixed(1)}%</span>
           <span className="dv-macro-desc">Qué % de lo detectado era esperado</span>
         </div>
         <div className="dv-macro-card">
-          <span className="dv-macro-label">Macro Recall</span>
+          <span className="dv-macro-label">Exhaustividad</span>
           <span className="dv-macro-value">{(summary.macroRecall * 100).toFixed(1)}%</span>
           <span className="dv-macro-desc">Qué % de los errores reales se encontró</span>
         </div>
         <div className="dv-macro-card">
-          <span className="dv-macro-label">Macro F1</span>
-          <span className="dv-macro-value" style={{ color: macroF1Color }}>{(summary.macroF1 * 100).toFixed(1)}%</span>
-          <span className="dv-macro-desc">Media armónica de P y R</span>
+          <span className="dv-macro-label">Reglas detectadas</span>
+          <span className="dv-macro-value">{summary.rulesMatched}/{summary.rulesMatched + summary.rulesMissed}</span>
+          <span className="dv-macro-desc">de las reglas esperadas</span>
         </div>
         <div className="dv-macro-card">
-          <span className="dv-macro-label">Conteo Global</span>
+          <span className="dv-macro-label">Ruido adicional</span>
           <span className="dv-macro-value dv-macro-counts">
-            <span style={{ color: 'var(--success)' }}>TP {summary.totalTP}</span>
-            {' · '}
-            <span style={{ color: 'var(--error)' }}>FP {summary.totalFP}</span>
-            {' · '}
-            <span style={{ color: 'var(--orange)' }}>FN {summary.totalFN}</span>
+            <span style={{ color: 'var(--error)' }}>{summary.totalFP} FP</span>
           </span>
-          <span className="dv-macro-desc">Instancias clasificadas</span>
+          <span className="dv-macro-desc">instancias no esperadas</span>
         </div>
       </div>
 
       {/* ── Status Summary Pills ── */}
       <div className="dv-status-pills">
         <span className="dv-pill dv-pill--match">
-          <CheckCircle2 size={11} /> {summary.rulesMatched} match
+          <CheckCircle2 size={11} /> {summary.rulesMatched} reglas esperadas detectadas
         </span>
         {summary.rulesPartial > 0 && (
           <span className="dv-pill dv-pill--partial">
@@ -127,7 +123,7 @@ const DeterministicValidationPanel: React.FC<DeterministicValidationPanelProps> 
         )}
         {summary.rulesUnexpectedFP > 0 && (
           <span className="dv-pill dv-pill--unexpected">
-            <AlertTriangle size={11} /> {summary.rulesUnexpectedFP} FP inesperado
+            <AlertTriangle size={11} /> {summary.rulesUnexpectedFP} reglas no esperadas / {summary.totalFP} instancias FP
           </span>
         )}
       </div>

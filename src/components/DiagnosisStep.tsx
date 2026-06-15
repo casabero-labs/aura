@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Brain, Database, Play, FlaskConical, Lock, Globe, ChevronDown, ChevronRight, FileCode2, Trash2, HardDrive, X, AlertTriangle, ShieldAlert, ListChecks, FileJson, FileText } from 'lucide-react';
+import { Brain, Database, Play, FlaskConical, Lock, Globe, ChevronDown, ChevronRight, FileCode2, Trash2, HardDrive, X, AlertTriangle, ShieldAlert, ListChecks, FileJson, FileText, Settings } from 'lucide-react';
 import GeminiAdvisor from './GeminiAdvisor';
 import { AIConfig, AIProvider, AuditReport, AuditExecutionEvidence, ProviderMetrics } from '../types';
 import { buildSmartSample, buildAnalysisPrompt } from '../services/providers/prompts';
 import { AVAILABLE_MODELS, LOCAL_MODELS, checkModelDownloaded, deleteDownloadedModel } from '../services/aiProvider';
 import { recordLlmCall, computePromptHash, computeInputHash } from '../services/llmAuditLog';
+import { normalizeAiProviderError, NormalizedProviderError } from '../services/providers/errors';
 
 interface DiagnosisStepProps {
   report: AuditReport;
@@ -18,6 +19,7 @@ interface DiagnosisStepProps {
   onLog?: (stage: string, msg: string) => void;
   onContinue: () => void;
   onOpenLab?: () => void;
+  onOpenSettings?: () => void;
 }
 
 type JsonSectionProps = {
@@ -71,10 +73,12 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
   onLog,
   onContinue,
   onOpenLab,
+  onOpenSettings,
 }) => {
   const [draftAnalysis, setDraftAnalysis] = useState(analysisText);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [normalizedError, setNormalizedError] = useState<NormalizedProviderError | null>(null);
   const [lastMetrics, setLastMetrics] = useState<ProviderMetrics | null>(null);
   const [providerAvailable, setProviderAvailable] = useState<boolean | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
@@ -307,9 +311,10 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
         status: 'completed',
       });
     } catch (err: any) {
-      const msg = err?.message ?? 'Error desconocido durante el diagnóstico';
-      setError(msg);
-      onLog?.('diagnosis', `Error: ${msg}`);
+      const normalized = normalizeAiProviderError(err, aiConfig);
+      setError(normalized.message);
+      setNormalizedError(normalized);
+      onLog?.('diagnosis', `Error: ${normalized.title} - ${normalized.message}`);
 
       recordLlmCall({
         callType: 'diagnosis',
@@ -330,7 +335,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
         latencyMs: 0,
         tokensGenerated: 0,
         status: 'error',
-        error: msg,
+        error: normalized.message,
       });
     } finally {
       setIsLoading(false);
@@ -471,8 +476,77 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
           </div>
         )}
 
-        {error && (
-          <p style={{ fontSize: '12px', color: 'var(--error)', marginTop: 'var(--space-sm)' }}>{error}</p>
+        {error && normalizedError && (
+          <div className="provider-error-notice" style={{ 
+            marginTop: 'var(--space-sm)',
+            padding: 'var(--space-md)',
+            background: 'var(--error-surface)',
+            border: '1px solid var(--error-border)',
+            borderRadius: 'var(--radius-sm)',
+            fontSize: '12px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-xs)', marginBottom: 'var(--space-xs)' }}>
+              <AlertTriangle size={14} style={{ color: 'var(--error)' }} />
+              <strong style={{ color: 'var(--error)' }}>{normalizedError.title}</strong>
+            </div>
+            <p style={{ margin: '0 0 var(--space-xs) 0', color: 'var(--ink2)' }}>{normalizedError.message}</p>
+            <p style={{ margin: '0 0 var(--space-xs) 0', color: 'var(--ink3)', fontStyle: 'italic' }}>Causa: {normalizedError.cause}</p>
+            
+            {normalizedError.recommendedActions.length > 0 && (
+              <div style={{ marginTop: 'var(--space-xs)' }}>
+                <p style={{ margin: '0 0 var(--space-xs) 0', fontWeight: 500 }}>Acciones sugeridas:</p>
+                <ul style={{ margin: 0, paddingLeft: 'var(--space-md)' }}>
+                  {normalizedError.recommendedActions.map((action, index) => (
+                    <li key={index} style={{ marginBottom: '2px' }}>{action}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
+            <div style={{ marginTop: 'var(--space-md)', display: 'flex', gap: 'var(--space-xs)', flexWrap: 'wrap' }}>
+              <button 
+                className="btn-s btn-sm"
+                onClick={() => onOpenSettings?.()}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+              >
+                <Settings size={12} /> Abrir Configuración
+              </button>
+              
+              {aiConfig.providerType === 'local' && (
+                <button
+                  className="btn-s btn-sm"
+                  onClick={async () => {
+                    const success = await deleteDownloadedModel(aiConfig.model);
+                    if (success) {
+                      alert('Modelo eliminado. Intenta descargarlo nuevamente desde Configuración.');
+                      // Actualizar estado local
+                      setDownloadedModels(prev => {
+                        const next = new Set(prev);
+                        next.delete(aiConfig.model);
+                        return next;
+                      });
+                    }
+                  }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                >
+                  <Trash2 size={12} /> Limpiar modelo cacheado
+                </button>
+              )}
+              
+              <button
+                className="btn-s btn-sm"
+                onClick={onContinue}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+              >
+                <Play size={12} /> Continuar con script determinista
+              </button>
+            </div>
+            
+            <p style={{ marginTop: 'var(--space-xs)', fontSize: '10px', color: 'var(--ink3)' }}>
+              El diagnóstico LLM no se completó. No hay evidencia formal de IA. 
+              El motor de reglas determinista puede generar un script base.
+            </p>
+          </div>
         )}
 
         {/* Diagnosis result */}

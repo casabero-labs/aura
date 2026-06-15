@@ -40,9 +40,10 @@ interface MainPipelineProps {
   onPipelineChange?: (data: PipelineData) => void;
   onAiConfigChange?: (config: AIConfig) => void;
   onOpenLab?: () => void;
+  onOpenSettings?: () => void;
 }
 
-const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, onLog, onPipelineChange, onAiConfigChange, onOpenLab }) => {
+const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, onLog, onPipelineChange, onAiConfigChange, onOpenLab, onOpenSettings }) => {
   const [state, setState] = useState<PipelineState>('upload');
   const [file, setFile] = useState<File | null>(null);
   const [report, setReport] = useState<AuditReport | null>(null);
@@ -208,6 +209,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, onLog
           onLog={(stage, msg) => addLog(`${stage} :: ${msg}`)}
           onContinue={() => setState('script')}
           onOpenLab={onOpenLab}
+          onOpenSettings={onOpenSettings}
         />
       )}
 

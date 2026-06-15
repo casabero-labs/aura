@@ -85,19 +85,16 @@ test.describe('AURA QA — Human-first audit', () => {
     // ── Stage 1: Profile ──
     log('\n## Stage 1: Profile\n');
 
-    const scoreLabel = await page.locator('.profile-summary-score-label').textContent().catch(() => '');
+    const scoreLabel = await page.locator('.profile-decision-status-label').textContent().catch(() => '');
     log(`- Score label visible: "${scoreLabel}" ${scoreLabel ? 'PASS' : 'FAIL'}`);
 
-    const criticalStat = await page.locator('.profile-summary-stat--critical').isVisible().catch(() => false);
+    const criticalStat = await page.locator('.profile-priority-severity--critical').isVisible().catch(() => false);
     log(`- Critical count visible: ${criticalStat ? 'PASS' : 'FAIL'}`);
 
-    const findingsVisible = await page.locator('.profile-summary-findings-list').isVisible().catch(() => false);
-    log(`- Top findings visible: ${findingsVisible ? 'PASS' : 'FAIL'}`);
+    const findingsVisible = await page.locator('.profile-priorities-list').isVisible().catch(() => false);
+    log(`- Top priorities visible: ${findingsVisible ? 'PASS' : 'FAIL'}`);
 
-    const affectedVisible = await page.locator('.profile-summary-affected-list').isVisible().catch(() => false);
-    log(`- Most affected columns visible: ${affectedVisible ? 'PASS' : 'FAIL'}`);
-
-    const genDiagBtn = await page.locator('.profile-summary-section').getByRole('button', { name: /Generar diagnóstico/i }).isVisible().catch(() => false);
+    const genDiagBtn = await page.locator('.profile-actions').getByRole('button', { name: /Generar diagnóstico/i }).isVisible().catch(() => false);
     log(`- CTA Generar diagnóstico visible: ${genDiagBtn ? 'PASS' : 'FAIL'}`);
 
     // Ground truth not in foreground
@@ -116,7 +113,7 @@ test.describe('AURA QA — Human-first audit', () => {
     log(`- Horizontal overflow on profile: ${profileOverflowX ? 'WARN' : 'PASS'}`);
 
     // Go to Diagnosis
-    await page.locator('.profile-summary-section').getByRole('button', { name: /Generar diagnóstico/i }).click();
+    await page.locator('.profile-actions').getByRole('button', { name: /Generar diagnóstico/i }).click();
     await page.waitForTimeout(300);
 
     // ── Stage 2: Diagnosis ──

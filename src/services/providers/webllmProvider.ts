@@ -11,8 +11,9 @@
  */
 
 import { CreateMLCEngine, MLCEngine, InitProgressReport } from '@mlc-ai/web-llm';
-import { AuditReport, AIProvider, ProviderMetrics, ExecutiveReportContent } from '../../types';
+import { AuditReport, AIProvider, ProviderMetrics, ExecutiveReportContent, AIConfig } from '../../types';
 import { buildAnalysisPrompt, buildExecutivePrompt } from './prompts';
+import { normalizeAiProviderError, NormalizedProviderError } from './errors';
 
 export class WebLLMProvider implements AIProvider {
   readonly name = 'WebLLM';
@@ -20,12 +21,14 @@ export class WebLLMProvider implements AIProvider {
   
   private model: string;
   private temperature: number;
+  private aiConfig?: AIConfig;
   private engine: MLCEngine | null = null;
   private isLoaded: boolean = false;
 
-  constructor(model: string = 'Llama-3.2-3B-Instruct-q4f16_1-MLC', temperature: number = 0.1) {
+  constructor(model: string = 'Llama-3.2-3B-Instruct-q4f16_1-MLC', temperature: number = 0.1, aiConfig?: AIConfig) {
     this.model = model;
     this.temperature = temperature;
+    this.aiConfig = aiConfig;
   }
 
   async isAvailable(): Promise<boolean> {
@@ -52,14 +55,34 @@ export class WebLLMProvider implements AIProvider {
       }
     };
 
-    // Crear el motor con el modelo especificado
-    this.engine = await CreateMLCEngine(
-      this.model,
-      { initProgressCallback }
-    );
-    
-    this.isLoaded = true;
-    return this.engine;
+    try {
+      // Crear el motor con el modelo especificado
+      this.engine = await CreateMLCEngine(
+        this.model,
+        { initProgressCallback }
+      );
+      
+      this.isLoaded = true;
+      return this.engine;
+    } catch (error) {
+      // Normalizar errores conocidos de WebLLM
+      const normalized = this.aiConfig 
+        ? normalizeAiProviderError(error, this.aiConfig)
+        : {
+            title: 'Error al cargar modelo local',
+            message: (error as Error).message,
+            cause: (error as Error).message,
+            recommendedActions: ['Verifica tu conexión a internet', 'Intenta con otro modelo'],
+            technicalMessage: (error as Error).stack || (error as Error).message,
+            evidenceStatus: 'attempted_failed' as const,
+            category: 'generic' as const,
+          };
+      
+      // Lanzar error enriquecido con información normalizada
+      const enrichedError = new Error(normalized.message);
+      (enrichedError as any).normalized = normalized;
+      throw enrichedError;
+    }
   }
 
   /**
@@ -127,7 +150,21 @@ export class WebLLMProvider implements AIProvider {
 
     } catch (error) {
       console.error('WebLLM Error:', error);
-      onChunk(`\n\n**Error en inferencia local:** ${(error as Error).message}`);
+      
+      // Usar error normalizado si está disponible
+      const normalized = (error as any).normalized || (this.aiConfig 
+        ? normalizeAiProviderError(error, this.aiConfig)
+        : {
+            title: 'Error en inferencia local',
+            message: (error as Error).message,
+            cause: (error as Error).message,
+            recommendedActions: ['Intenta nuevamente', 'Cambia de proveedor'],
+            technicalMessage: (error as Error).stack || (error as Error).message,
+            evidenceStatus: 'attempted_failed' as const,
+            category: 'generic' as const,
+          });
+      
+      onChunk(`\n\n**${normalized.title}:** ${normalized.message}\n\n*${normalized.cause}*`);
       return this.emptyMetrics();
     }
   }
@@ -140,7 +177,18 @@ export class WebLLMProvider implements AIProvider {
     report: AuditReport
   ): Promise<{ content: ExecutiveReportContent; metrics: ProviderMetrics }> {
     if (!await this.isAvailable()) {
-      throw new Error('WebGPU no soportado para análisis local.');
+      const normalized = this.aiConfig 
+        ? normalizeAiProviderError(new Error('WebGPU no soportado'), this.aiConfig)
+        : {
+            title: 'WebGPU no disponible',
+            message: 'Tu navegador no soporta WebGPU para análisis local.',
+            cause: 'WebGPU no está habilitado',
+            recommendedActions: ['Usa Chrome 113+', 'Cambia a proveedor cloud'],
+            technicalMessage: 'WebGPU not supported',
+            evidenceStatus: 'attempted_failed' as const,
+            category: 'webgpu_unsupported' as const,
+          };
+      throw new Error(normalized.message);
     }
 
     const engine = await this.ensureEngineLoaded();
@@ -182,7 +230,18 @@ export class WebLLMProvider implements AIProvider {
     onChunk: (text: string) => void
   ): Promise<{ content: ExecutiveReportContent; metrics: ProviderMetrics }> {
     if (!await this.isAvailable()) {
-      throw new Error('WebGPU no soportado para análisis local.');
+      const normalized = this.aiConfig 
+        ? normalizeAiProviderError(new Error('WebGPU no soportado'), this.aiConfig)
+        : {
+            title: 'WebGPU no disponible',
+            message: 'Tu navegador no soporta WebGPU para análisis local.',
+            cause: 'WebGPU no está habilitado',
+            recommendedActions: ['Usa Chrome 113+', 'Cambia a proveedor cloud'],
+            technicalMessage: 'WebGPU not supported',
+            evidenceStatus: 'attempted_failed' as const,
+            category: 'webgpu_unsupported' as const,
+          };
+      throw new Error(normalized.message);
     }
 
     const engine = await this.ensureEngineLoaded();
@@ -247,7 +306,18 @@ export class WebLLMProvider implements AIProvider {
 
   async generateText(prompt: string): Promise<{ text: string; metrics: ProviderMetrics }> {
     if (!await this.isAvailable()) {
-      throw new Error('WebGPU no soportado para análisis local.');
+      const normalized = this.aiConfig 
+        ? normalizeAiProviderError(new Error('WebGPU no soportado'), this.aiConfig)
+        : {
+            title: 'WebGPU no disponible',
+            message: 'Tu navegador no soporta WebGPU para análisis local.',
+            cause: 'WebGPU no está habilitado',
+            recommendedActions: ['Usa Chrome 113+', 'Cambia a proveedor cloud'],
+            technicalMessage: 'WebGPU not supported',
+            evidenceStatus: 'attempted_failed' as const,
+            category: 'webgpu_unsupported' as const,
+          };
+      throw new Error(normalized.message);
     }
 
     const engine = await this.ensureEngineLoaded();
@@ -279,7 +349,18 @@ export class WebLLMProvider implements AIProvider {
    */
   async preloadModel(onProgress?: (progress: number, message: string) => void): Promise<void> {
     if (!await this.isAvailable()) {
-      throw new Error('WebGPU no soportado en este navegador.');
+      const normalized = this.aiConfig 
+        ? normalizeAiProviderError(new Error('WebGPU no soportado'), this.aiConfig)
+        : {
+            title: 'WebGPU no disponible',
+            message: 'Tu navegador no soporta WebGPU para modelos locales.',
+            cause: 'WebGPU no está habilitado',
+            recommendedActions: ['Usa Chrome 113+', 'Cambia a proveedor cloud'],
+            technicalMessage: 'WebGPU not supported',
+            evidenceStatus: 'attempted_failed' as const,
+            category: 'webgpu_unsupported' as const,
+          };
+      throw new Error(normalized.message);
     }
 
     if (this.engine && this.isLoaded) {
@@ -294,12 +375,32 @@ export class WebLLMProvider implements AIProvider {
       }
     };
 
-    this.engine = await CreateMLCEngine(
-      this.model,
-      { initProgressCallback }
-    );
+    try {
+      this.engine = await CreateMLCEngine(
+        this.model,
+        { initProgressCallback }
+      );
 
-    this.isLoaded = true;
+      this.isLoaded = true;
+    } catch (error) {
+      // Normalizar errores conocidos de WebLLM
+      const normalized = this.aiConfig 
+        ? normalizeAiProviderError(error, this.aiConfig)
+        : {
+            title: 'Error al descargar modelo',
+            message: (error as Error).message,
+            cause: (error as Error).message,
+            recommendedActions: ['Verifica tu conexión a internet', 'Libera espacio en disco'],
+            technicalMessage: (error as Error).stack || (error as Error).message,
+            evidenceStatus: 'attempted_failed' as const,
+            category: 'model_download' as const,
+          };
+      
+      // Lanzar error enriquecido
+      const enrichedError = new Error(normalized.message);
+      (enrichedError as any).normalized = normalized;
+      throw enrichedError;
+    }
   }
 
   /**

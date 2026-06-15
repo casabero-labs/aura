@@ -22,12 +22,12 @@ class LazyWebLLMProvider implements AIProvider {
 
   private providerPromise?: Promise<AIProvider>;
 
-  constructor(private model: string, private temperature: number) {}
+  constructor(private model: string, private temperature: number, private aiConfig?: AIConfig) {}
 
   private async provider(): Promise<AIProvider> {
     if (!this.providerPromise) {
       this.providerPromise = import('./providers/webllmProvider').then(({ WebLLMProvider }) =>
-        new WebLLMProvider(this.model, this.temperature)
+        new WebLLMProvider(this.model, this.temperature, this.aiConfig)
       );
     }
     return this.providerPromise;
@@ -180,7 +180,7 @@ export const createAIProvider = (config: AIConfig): AIProvider => {
 
     case 'local':
     default:
-      return new LazyWebLLMProvider(config.model, config.temperature);
+      return new LazyWebLLMProvider(config.model, config.temperature, config);
   }
 };
 
