@@ -5849,6 +5849,16 @@ tr:hover td {
   display: flex;
   gap: var(--space-xs);
   margin-top: var(--space-md);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.stage-actions {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-lg);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--border);
 }
 
 /* ─── Provider Error Notice (Casabero Hierarchy) ─── */
@@ -5942,6 +5952,14 @@ tr:hover td {
 .script-scroll--preview {
   max-height: 200px;
   overflow-y: auto;
+}
+
+.script-preview-cta {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--border);
 }
 
 /* ─── Lab CTA Strip (Casabero Hierarchy) ─── */

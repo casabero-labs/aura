@@ -281,6 +281,14 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
         </div>
       )}
 
+      {canContinue && (
+        <div className="stage-actions">
+          <button className="btn-p btn-sm" onClick={onContinue}>
+            Preparar exportación <ArrowRight size={12} />
+          </button>
+        </div>
+      )}
+
       <details className="technical-details" style={{ marginTop: 'var(--space-lg)' }}>
         <summary className="technical-details-summary">
           <ChevronDown size={14} className="technical-details-chevron" />
@@ -347,17 +355,6 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
           )}
         </div>
       </details>
-
-      <div className="context-guide">
-        <span className="guide-icon"><ArrowRight size={14} /></span>
-        <div>
-          <p className="guide-title">Preparar exportación</p>
-          <p className="guide-desc">Con el script aprobado y la simulación registrada, prepara el reporte final.</p>
-        </div>
-        <button className="btn-p btn-sm" onClick={onContinue} disabled={!canContinue}>
-          Preparar exportación <ArrowRight size={12} />
-        </button>
-      </div>
     </div>
   );
 };

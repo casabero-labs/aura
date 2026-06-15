@@ -518,20 +518,12 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
             <button className="btn-s btn-sm" onClick={exportDiagnosisJson}>
               <FileJson size={12} /> JSON consolidado
             </button>
+            <button className="btn-p btn-sm" onClick={onContinue}>
+              Continuar a propuesta <Play size={12} />
+            </button>
           </div>
         )}
       </section>
-
-      <div className="context-guide">
-        <span className="guide-icon"><Play size={14} /></span>
-        <div>
-          <p className="guide-title">Generar script de limpieza</p>
-          <p className="guide-desc">El script usa los hallazgos y el diagnóstico como anclaje. Si el proveedor no responde, se genera un script base.</p>
-        </div>
-        <button className="btn-p btn-sm" onClick={onContinue}>
-          Generar script <Play size={12} />
-        </button>
-      </div>
 
       <details className="technical-details">
         <summary className="technical-details-summary">

@@ -267,6 +267,11 @@ const ScriptGenerationStep: React.FC<ScriptGenerationStepProps> = ({
                 </pre>
               </div>
             </div>
+            <div className="script-preview-cta">
+              <button className="btn-p btn-sm" onClick={onContinue}>
+                Revisar propuesta <ArrowRight size={12} />
+              </button>
+            </div>
           </div>
         )}
 
@@ -275,17 +280,6 @@ const ScriptGenerationStep: React.FC<ScriptGenerationStepProps> = ({
           <pre>{scriptPromptPreview}</pre>
         </details>
       </section>
-
-      <div className="context-guide">
-        <span className="guide-icon"><ArrowRight size={14} /></span>
-        <div>
-          <p className="guide-title">Revisar propuesta</p>
-          <p className="guide-desc">AURA ya preparó una propuesta. El siguiente paso no es ejecutar: es revisar y aprobar.</p>
-        </div>
-        <button className="btn-p btn-sm" onClick={onContinue}>
-          Revisar propuesta <ArrowRight size={12} />
-        </button>
-      </div>
     </>
   );
 };
