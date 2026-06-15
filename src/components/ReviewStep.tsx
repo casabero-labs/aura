@@ -170,7 +170,7 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
   const canContinue = currentApprovedScript && stage === 'completed';
 
   return (
-    <div className="review-step">
+    <div className="review-step" data-testid="review-stage">
       <div className="section-header">
         <div>
           <p className="sec-eye">revisión humana</p>
@@ -193,7 +193,7 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
         <p>Aquí revisas la propuesta, confirmas que las columnas existen y decides si vale la pena simular. La aprobación humana queda registrada como evidencia.</p>
       </div>
 
-      <div className="stage-decision-summary">
+      <div className="stage-decision-summary" data-testid="stage-decision-summary">
         <div className="stage-summary-item">
           <span className="stage-summary-label">Estado del script</span>
           <strong style={{ color: scriptStatusColor }}>{scriptStatus}</strong>
@@ -282,14 +282,14 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
       )}
 
       {canContinue && (
-        <div className="stage-actions">
+        <div className="stage-actions" data-testid="primary-stage-action">
           <button className="btn-p btn-sm" onClick={onContinue}>
             Preparar exportación <ArrowRight size={12} />
           </button>
         </div>
       )}
 
-      <details className="technical-details" style={{ marginTop: 'var(--space-lg)' }}>
+      <details className="technical-details" style={{ marginTop: 'var(--space-lg)' }} data-testid="technical-details">
         <summary className="technical-details-summary">
           <ChevronDown size={14} className="technical-details-chevron" />
           <span>Detalles técnicos</span>

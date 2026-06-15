@@ -112,7 +112,7 @@ const ScriptGenerationStep: React.FC<ScriptGenerationStepProps> = ({
 
   return (
     <>
-      <section className="section">
+      <section className="section" data-testid="script-stage">
         <header className="section-header">
           <div>
             <p className="sec-eye">script asistido</p>
@@ -128,7 +128,7 @@ const ScriptGenerationStep: React.FC<ScriptGenerationStepProps> = ({
           <p>AURA usará el diagnóstico y las reglas detectadas para construir un script Pandas. Si el modelo falla, generará una base determinista para no bloquearte.</p>
         </div>
 
-        <div className="stage-decision-summary">
+        <div className="stage-decision-summary" data-testid="stage-decision-summary">
           <div className="stage-summary-item">
             <span className="stage-summary-label">hallazgos base</span>
             <strong className="stage-summary-value">{report.issues.length}</strong>
@@ -267,7 +267,7 @@ const ScriptGenerationStep: React.FC<ScriptGenerationStepProps> = ({
                 </pre>
               </div>
             </div>
-            <div className="script-preview-cta">
+            <div className="script-preview-cta" data-testid="primary-stage-action">
               <button className="btn-p btn-sm" onClick={onContinue}>
                 Revisar propuesta <ArrowRight size={12} />
               </button>
@@ -275,7 +275,7 @@ const ScriptGenerationStep: React.FC<ScriptGenerationStepProps> = ({
           </div>
         )}
 
-        <details className="script-contract-details">
+        <details className="script-contract-details" data-testid="technical-details">
           <summary>Ver contrato usado para generar script</summary>
           <pre>{scriptPromptPreview}</pre>
         </details>

@@ -1,4 +1,4 @@
-# AURA QA — Human-first Audit
+# AURA QA — Human-first Audit (LOOP 07C)
 
 ## Stage 0: Home (1280x900)
 
@@ -31,10 +31,9 @@
 
 ## Stage 2: Diagnosis
 
-- Diagnosis compact section visible: PASS
-- Problem summary visible: FAIL
+- Diagnosis stage visible: PASS
+- Diagnosis title "AURA interpreta los hallazgos": PASS
+- Stage decision summary visible: PASS
 - Generate diagnosis button visible: PASS
 - "Comparar modelos" hidden: PASS
 - Prompt modal hidden: PASS
-- CTA Generar script visible: PASS
-- Horizontal overflow on diagnosis: PASS

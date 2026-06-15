@@ -437,7 +437,7 @@ const App: React.FC = () => {
 
         {/* Export Section */}
         {report && pipelineState === 'export' && (
-          <section className="export-closure" id="export-section">
+          <section className="export-closure" id="export-section" data-testid="export-stage">
             <div className="export-closure-header">
               <p className="sec-eye">exportación</p>
               <h2 className="sec-title">Tu evidencia está lista</h2>
@@ -485,7 +485,7 @@ const App: React.FC = () => {
 
               return (
                 <>
-                  <div className="stage-decision-summary">
+                  <div className="stage-decision-summary" data-testid="stage-decision-summary">
                     <div className="stage-summary-item">
                       <span className="stage-summary-label">Paquete</span>
                       <strong style={{ color: statusColor }}>{statusLabel}</strong>
@@ -578,7 +578,7 @@ const App: React.FC = () => {
                     </div>
                   </div>
 
-                  <details className="technical-details" style={{ marginTop: 'var(--space-lg)' }}>
+                  <details className="technical-details" style={{ marginTop: 'var(--space-lg)' }} data-testid="technical-details">
                     <summary className="technical-details-summary">
                       <ChevronDown size={14} className="technical-details-chevron" />
                       <span>Detalles técnicos</span>

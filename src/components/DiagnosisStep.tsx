@@ -335,7 +335,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
 
   return (
     <>
-      <section className="diagnosis-compact">
+      <section className="diagnosis-compact" data-testid="diagnosis-stage">
         <div className="diagnosis-compact-header">
           <p className="sec-eye">diagnóstico asistido</p>
           <h2 className="sec-title">AURA interpreta los hallazgos</h2>
@@ -349,7 +349,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
           <p>AURA mirará los hallazgos del perfil y propondrá causas probables, prioridades y criterios para limpiar. Si el modelo no está disponible, puedes seguir con un script determinista.</p>
         </div>
 
-        <div className="stage-decision-summary">
+        <div className="stage-decision-summary" data-testid="stage-decision-summary">
           <div className="stage-summary-item">
             <span className="stage-summary-label">hallazgos</span>
             <strong className="stage-summary-value">{inputSummary.findings}</strong>
@@ -511,7 +511,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
         )}
 
         {hasDiagnosis && (
-          <div className="evidence-options">
+          <div className="evidence-options" data-testid="primary-stage-action">
             <button className="btn-s btn-sm" onClick={exportDiagnosisPdf}>
               <FileText size={12} /> PDF consolidado
             </button>
@@ -525,7 +525,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
         )}
       </section>
 
-      <details className="technical-details">
+      <details className="technical-details" data-testid="technical-details">
         <summary className="technical-details-summary">
           <ChevronDown size={14} className="technical-details-chevron" />
           <span>Detalles técnicos</span>
