@@ -34,6 +34,43 @@ export interface NormalizedAvailability {
 }
 
 /**
+ * Extract availability value from LanguageModel.availability() result.
+ * Handles both formats:
+ * - String direct: "available", "downloadable", "downloading", "unavailable"
+ * - Object legacy/experimental: { available: "available" } or { status: "available" }
+ * 
+ * @param result - Raw result from availability() call
+ * @returns Normalized string value or undefined if无法 extract
+ */
+export function extractAvailabilityValue(result: unknown): string | undefined {
+  if (result === null || result === undefined) {
+    return undefined;
+  }
+  
+  // If result is a string, return it directly
+  if (typeof result === 'string') {
+    return result;
+  }
+  
+  // If result is an object, try to extract from .available or .status
+  if (typeof result === 'object') {
+    const obj = result as Record<string, unknown>;
+    
+    // Try .available first (most common format)
+    if (typeof obj.available === 'string') {
+      return obj.available;
+    }
+    
+    // Try .status as fallback
+    if (typeof obj.status === 'string') {
+      return obj.status;
+    }
+  }
+  
+  return undefined;
+}
+
+/**
  * Normalize raw availability status from Chrome AI APIs
  */
 export function normalizeAvailability(
@@ -43,7 +80,9 @@ export function normalizeAvailability(
   // Map raw statuses to normalized ones
   if (rawStatus === 'readily') return 'ready';
   if (rawStatus === 'after-download') return 'downloadable';
+  if (rawStatus === 'downloadable') return 'downloadable';
   if (rawStatus === 'no') return 'unavailable';
+  if (rawStatus === 'downloading') return 'downloading';
   
   // Handle legacy API responses
   if (rawStatus === 'available') return 'ready';
@@ -186,29 +225,29 @@ export async function detectChromeAiAvailability(): Promise<NormalizedAvailabili
     // Try availability() with options first (some browsers may need this)
     if (apiSurface === 'LanguageModel') {
       try {
-        const availabilityWithOptions = await globalThis.LanguageModel!.availability({
+        const availabilityWithOptionsResult = await globalThis.LanguageModel!.availability({
           expectedInputLanguages: ['es', 'en'],
         });
-        availabilityWithOptionsRaw = availabilityWithOptions.available;
+        availabilityWithOptionsRaw = extractAvailabilityValue(availabilityWithOptionsResult);
         rawAvailability = availabilityWithOptionsRaw;
-        technicalDetails.push(`LanguageModel.availability(options) returned: ${availabilityWithOptionsRaw}`);
+        technicalDetails.push(`LanguageModel.availability(options) returned: ${JSON.stringify(availabilityWithOptionsResult)} => extracted: ${availabilityWithOptionsRaw}`);
       } catch (e) {
         technicalDetails.push(`LanguageModel.availability(options) failed: ${(e as Error).message}, trying clean call...`);
       }
       
       // Fallback to clean call without options
       if (rawAvailability === undefined) {
-        const availability = await globalThis.LanguageModel!.availability();
-        rawAvailability = availability.available;
+        const availabilityResult = await globalThis.LanguageModel!.availability();
+        rawAvailability = extractAvailabilityValue(availabilityResult);
         availabilityFallbackUsed = true;
-        technicalDetails.push(`LanguageModel.availability() (clean) returned: ${rawAvailability}`);
+        technicalDetails.push(`LanguageModel.availability() (clean) returned: ${JSON.stringify(availabilityResult)} => extracted: ${rawAvailability}`);
       }
     } else if (apiSurface === 'window.ai.languageModel') {
       try {
-        const availabilityWithOptions = await window.ai!.languageModel!.availability();
-        availabilityWithOptionsRaw = availabilityWithOptions.available;
+        const availabilityResult = await window.ai!.languageModel!.availability();
+        availabilityWithOptionsRaw = extractAvailabilityValue(availabilityResult);
         rawAvailability = availabilityWithOptionsRaw;
-        technicalDetails.push(`window.ai.languageModel.availability() returned: ${rawAvailability}`);
+        technicalDetails.push(`window.ai.languageModel.availability() returned: ${JSON.stringify(availabilityResult)} => extracted: ${rawAvailability}`);
       } catch (e) {
         technicalDetails.push(`window.ai.languageModel.availability() failed: ${(e as Error).message}`);
       }

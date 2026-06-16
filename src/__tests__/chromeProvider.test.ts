@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { getChromeAiDiagnostic, ChromePromptProvider } from '../services/providers/chromeProvider';
-import { detectChromeAiAvailability, normalizeAvailability, getStatusDescription } from '../services/chromeAvailability';
+import { detectChromeAiAvailability, normalizeAvailability, getStatusDescription, extractAvailabilityValue } from '../services/chromeAvailability';
 import { NetworkGuard } from '../services/networkGuard';
 import { PrivacyReceiptService } from '../services/privacyReceipt';
 
@@ -181,6 +181,40 @@ describe('ChromePromptProvider', () => {
 });
 
 describe('Chrome AI Availability Normalizer', () => {
+  describe('extractAvailabilityValue', () => {
+    it('returns string directly when result is a string', () => {
+      expect(extractAvailabilityValue('available')).toBe('available');
+      expect(extractAvailabilityValue('readily')).toBe('readily');
+      expect(extractAvailabilityValue('downloadable')).toBe('downloadable');
+    });
+
+    it('extracts .available from object when result is an object', () => {
+      expect(extractAvailabilityValue({ available: 'available' })).toBe('available');
+      expect(extractAvailabilityValue({ available: 'readily' })).toBe('readily');
+      expect(extractAvailabilityValue({ available: 'after-download' })).toBe('after-download');
+    });
+
+    it('extracts .status from object when .available is not a string', () => {
+      expect(extractAvailabilityValue({ status: 'available' })).toBe('available');
+      expect(extractAvailabilityValue({ status: 'readily' })).toBe('readily');
+    });
+
+    it('returns undefined for null or undefined', () => {
+      expect(extractAvailabilityValue(null)).toBeUndefined();
+      expect(extractAvailabilityValue(undefined)).toBeUndefined();
+    });
+
+    it('returns undefined for objects without .available or .status', () => {
+      expect(extractAvailabilityValue({})).toBeUndefined();
+      expect(extractAvailabilityValue({ other: 'value' })).toBeUndefined();
+    });
+
+    it('returns undefined for non-string, non-object values', () => {
+      expect(extractAvailabilityValue(123)).toBeUndefined();
+      expect(extractAvailabilityValue(true)).toBeUndefined();
+    });
+  });
+
   describe('normalizeAvailability', () => {
     it('normalizes "readily" to "ready"', () => {
       expect(normalizeAvailability('readily', 'LanguageModel')).toBe('ready');
@@ -196,6 +230,18 @@ describe('Chrome AI Availability Normalizer', () => {
 
     it('normalizes "available" to "ready"', () => {
       expect(normalizeAvailability('available', 'window.ai.assistant')).toBe('ready');
+    });
+
+    it('normalizes "downloadable" to "downloadable"', () => {
+      expect(normalizeAvailability('downloadable', 'LanguageModel')).toBe('downloadable');
+    });
+
+    it('normalizes "downloading" to "downloading"', () => {
+      expect(normalizeAvailability('downloading', 'LanguageModel')).toBe('downloading');
+    });
+
+    it('normalizes "unavailable" to "unavailable"', () => {
+      expect(normalizeAvailability('unavailable', 'LanguageModel')).toBe('unavailable');
     });
 
     it('normalizes unknown status to "error"', () => {
@@ -338,6 +384,78 @@ describe('Chrome AI Availability Normalizer', () => {
       expect(result.status).toBe('ready');
       expect(result.availabilityFallbackUsed).toBe(true);
       expect(availabilityFn).toHaveBeenCalledTimes(2);
+    });
+
+    it('returns ready when availability returns string "available" directly', async () => {
+      (globalThis as any).LanguageModel = {
+        availability: vi.fn().mockResolvedValue('available'),
+      };
+      const result = await detectChromeAiAvailability();
+      expect(result.status).toBe('ready');
+      expect(result.availabilityRaw).toBe('available');
+    });
+
+    it('returns ready when availability returns object { available: "available" }', async () => {
+      (globalThis as any).LanguageModel = {
+        availability: vi.fn().mockResolvedValue({ available: 'available' }),
+      };
+      const result = await detectChromeAiAvailability();
+      expect(result.status).toBe('ready');
+      expect(result.availabilityRaw).toBe('available');
+    });
+
+    it('returns downloadable when availability returns "downloadable" string', async () => {
+      (globalThis as any).LanguageModel = {
+        availability: vi.fn().mockResolvedValue('downloadable'),
+      };
+      const result = await detectChromeAiAvailability();
+      expect(result.status).toBe('downloadable');
+      expect(result.availabilityRaw).toBe('downloadable');
+    });
+
+    it('returns downloading when availability returns "downloading" string', async () => {
+      (globalThis as any).LanguageModel = {
+        availability: vi.fn().mockResolvedValue('downloading'),
+      };
+      const result = await detectChromeAiAvailability();
+      expect(result.status).toBe('downloading');
+      expect(result.availabilityRaw).toBe('downloading');
+    });
+
+    it('returns unavailable when availability returns "unavailable" string', async () => {
+      (globalThis as any).LanguageModel = {
+        availability: vi.fn().mockResolvedValue('unavailable'),
+      };
+      const result = await detectChromeAiAvailability();
+      expect(result.status).toBe('unavailable');
+      expect(result.availabilityRaw).toBe('unavailable');
+    });
+
+    it('returns unavailable when availability returns "no" string', async () => {
+      (globalThis as any).LanguageModel = {
+        availability: vi.fn().mockResolvedValue('no'),
+      };
+      const result = await detectChromeAiAvailability();
+      expect(result.status).toBe('unavailable');
+      expect(result.availabilityRaw).toBe('no');
+    });
+
+    it('extracts .available from object and normalizes correctly', async () => {
+      (globalThis as any).LanguageModel = {
+        availability: vi.fn().mockResolvedValue({ available: 'readily' }),
+      };
+      const result = await detectChromeAiAvailability();
+      expect(result.status).toBe('ready');
+      expect(result.availabilityRaw).toBe('readily');
+    });
+
+    it('extracts .status from object when .available is missing', async () => {
+      (globalThis as any).LanguageModel = {
+        availability: vi.fn().mockResolvedValue({ status: 'available' }),
+      };
+      const result = await detectChromeAiAvailability();
+      expect(result.status).toBe('ready');
+      expect(result.availabilityRaw).toBe('available');
     });
   });
 });
