@@ -15,6 +15,9 @@
 
 import { AuditReport, AIProvider, ProviderMetrics, ExecutiveReportContent, ProviderProgressEvent } from '../../types';
 import { buildAnalysisPrompt, buildExecutivePrompt } from './prompts';
+import { detectChromeAiAvailability, NormalizedAvailability, NormalizedStatus } from '../chromeAvailability';
+import { NetworkGuard, NetworkGuardResult } from '../networkGuard';
+import { PrivacyReceiptService, PrivacyReceipt } from '../privacyReceipt';
 
 // ── Chrome AI Type Declarations ──
 
@@ -215,6 +218,8 @@ export class ChromePromptProvider implements AIProvider {
   private session: ChromeSession | null = null;
   private sessionPromise: Promise<ChromeSession> | null = null;
   private pendingMonitor: DownloadMonitor | null = null;
+  private networkGuard: NetworkGuard | null = null;
+  private privacyReceiptService: PrivacyReceiptService | null = null;
 
   constructor(temperature: number = 0.1) {
     this.temperature = temperature;
@@ -228,14 +233,43 @@ export class ChromePromptProvider implements AIProvider {
     return getChromeAiDiagnostic();
   }
 
+  async getNormalizedAvailability(): Promise<NormalizedAvailability> {
+    return detectChromeAiAvailability();
+  }
+
   async isAvailable(): Promise<boolean> {
-    const diag = await getChromeAiDiagnostic();
-    return diag.status === 'available';
+    const availability = await detectChromeAiAvailability();
+    return availability.status === 'ready';
   }
 
   async isDownloadable(): Promise<boolean> {
-    const diag = await getChromeAiDiagnostic();
-    return diag.status === 'downloadable' || diag.status === 'available';
+    const availability = await detectChromeAiAvailability();
+    return availability.status === 'downloadable' || availability.status === 'ready';
+  }
+
+  async startNetworkMonitoring(): Promise<void> {
+    this.networkGuard = new NetworkGuard();
+    this.networkGuard.start();
+  }
+
+  async stopNetworkMonitoring(): Promise<NetworkGuardResult | null> {
+    if (this.networkGuard) {
+      const result = this.networkGuard.stop();
+      this.networkGuard = null;
+      return result;
+    }
+    return null;
+  }
+
+  async generatePrivacyReceipt(
+    data: any[][],
+    columns: string[],
+    networkResult: NetworkGuardResult,
+    availability: NormalizedAvailability
+  ): Promise<PrivacyReceipt> {
+    this.privacyReceiptService = new PrivacyReceiptService();
+    this.privacyReceiptService.startTracking();
+    return this.privacyReceiptService.generateReceipt(data, columns, networkResult, availability);
   }
 
   private async createSession(

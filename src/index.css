@@ -2420,6 +2420,305 @@ tr:hover td {
   border-radius: 3px;
 }
 
+/* ─── Chrome AI Guided UX ─── */
+
+.chrome-ai-guided-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  margin-top: var(--space-md);
+}
+
+.chrome-ai-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-sm);
+}
+
+.chrome-ai-header h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0;
+}
+
+.chrome-ai-description {
+  font-size: 13px;
+  color: var(--ink2);
+  line-height: 1.6;
+  margin-bottom: var(--space-md);
+}
+
+.chrome-ai-verification {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.chrome-ai-status-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.chrome-ai-status-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink2);
+}
+
+.chrome-ai-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.chrome-ai-status-badge--success {
+  background: rgba(46, 125, 50, 0.1);
+  color: var(--success);
+}
+
+.chrome-ai-status-badge--warning {
+  background: rgba(230, 81, 0, 0.1);
+  color: var(--orange);
+}
+
+.chrome-ai-status-badge--error {
+  background: rgba(211, 47, 47, 0.1);
+  color: var(--error);
+}
+
+.chrome-ai-status-badge--info {
+  background: rgba(21, 101, 192, 0.1);
+  color: var(--blue);
+}
+
+.chrome-ai-actions {
+  display: flex;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+}
+
+.chrome-ai-download-progress {
+  margin-top: var(--space-md);
+  padding: var(--space-sm);
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-faint);
+}
+
+.chrome-ai-download-bar {
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: var(--space-xs);
+}
+
+.chrome-ai-download-fill {
+  height: 100%;
+  background: var(--blue);
+  transition: width 0.3s ease;
+}
+
+.chrome-ai-download-message {
+  font-size: 12px;
+  color: var(--ink2);
+  display: block;
+  margin-bottom: var(--space-xs);
+}
+
+.chrome-ai-download-note {
+  font-size: 11px;
+  color: var(--ink3);
+  font-style: italic;
+  margin: 0;
+}
+
+.chrome-ai-details {
+  margin-top: var(--space-md);
+}
+
+.chrome-ai-details-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink2);
+  padding: var(--space-xs) 0;
+  border-top: 1px solid var(--border-faint);
+}
+
+.chrome-ai-details-content {
+  padding: var(--space-sm) 0;
+}
+
+.chrome-ai-detail-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-size: 12px;
+  border-bottom: 1px solid var(--border-faint);
+}
+
+.chrome-ai-detail-row span:first-child {
+  color: var(--ink2);
+  font-weight: 500;
+}
+
+.chrome-ai-detail-row span:last-child {
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.chrome-ai-technical-details {
+  margin-top: var(--space-sm);
+}
+
+.chrome-ai-technical-details h4 {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink2);
+  margin-bottom: var(--space-xs);
+}
+
+.chrome-ai-technical-details ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.chrome-ai-technical-details li {
+  font-size: 11px;
+  color: var(--ink3);
+  padding: 2px 0;
+  font-family: var(--font-mono);
+}
+
+.chrome-ai-privacy-receipt {
+  margin-top: var(--space-md);
+  padding: var(--space-sm);
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-faint);
+}
+
+.chrome-ai-privacy-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-xs);
+}
+
+.chrome-ai-privacy-header span {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink2);
+}
+
+.chrome-ai-privacy-statement {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: 12px;
+  color: var(--ink2);
+  margin: 0;
+}
+
+.chrome-ai-privacy-details {
+  margin-top: var(--space-sm);
+  padding-top: var(--space-xs);
+  border-top: 1px solid var(--border-faint);
+}
+
+.chrome-ai-privacy-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 0;
+  font-size: 11px;
+}
+
+.chrome-ai-privacy-row span:first-child {
+  color: var(--ink3);
+}
+
+.chrome-ai-privacy-row span:last-child {
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.chrome-ai-hash {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chrome-ai-external-requests {
+  margin-top: var(--space-xs);
+}
+
+.chrome-ai-external-requests h4 {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--orange);
+  margin-bottom: 4px;
+}
+
+.chrome-ai-external-requests ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.chrome-ai-external-requests li {
+  font-size: 10px;
+  color: var(--ink3);
+  padding: 2px 0;
+}
+
+.chrome-ai-fallback-options {
+  margin-top: var(--space-md);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--border-faint);
+}
+
+.chrome-ai-fallback-text {
+  font-size: 12px;
+  color: var(--ink2);
+  margin: 0 0 var(--space-xs) 0;
+}
+
+.chrome-ai-fallback-buttons {
+  display: flex;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+}
+
+.btn-xs {
+  padding: 4px 8px;
+  font-size: 10px;
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 /* ─── Column Stats ─── */
 
 .column-stats {
