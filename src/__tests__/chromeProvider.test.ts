@@ -275,6 +275,70 @@ describe('Chrome AI Availability Normalizer', () => {
       expect(result.status).toBe('error');
       expect(result.technicalDetails.some(d => d.includes('Test error'))).toBe(true);
     });
+
+    it('returns ready when availability returns "available" (not "readily")', async () => {
+      (globalThis as any).LanguageModel = {
+        availability: vi.fn().mockResolvedValue({ available: 'available' }),
+      };
+      const result = await detectChromeAiAvailability();
+      expect(result.status).toBe('ready');
+      expect(result.availabilityRaw).toBe('available');
+    });
+
+    it('returns ready when availability returns undefined but smoke test passes', async () => {
+      const mockSession = {
+        prompt: vi.fn().mockResolvedValue('OK'),
+        destroy: vi.fn(),
+      };
+      (globalThis as any).LanguageModel = {
+        availability: vi.fn().mockResolvedValue({ available: undefined }),
+        create: vi.fn().mockResolvedValue(mockSession),
+      };
+      const result = await detectChromeAiAvailability();
+      expect(result.status).toBe('ready');
+      expect(result.availabilityFallbackUsed).toBe(true);
+      expect(result.technicalDetails.some(d => d.includes('smoke test'))).toBe(true);
+    });
+
+    it('returns unavailable when availability returns undefined and smoke test fails', async () => {
+      (globalThis as any).LanguageModel = {
+        availability: vi.fn().mockResolvedValue({ available: undefined }),
+        create: vi.fn().mockRejectedValue(new Error('Create failed')),
+      };
+      const result = await detectChromeAiAvailability();
+      expect(result.status).toBe('unavailable');
+      expect(result.technicalDetails.some(d => d.includes('Smoke test failed'))).toBe(true);
+    });
+
+    it('includes detectedAt timestamp in result', async () => {
+      (globalThis as any).LanguageModel = {
+        availability: vi.fn().mockResolvedValue({ available: 'readily' }),
+      };
+      const result = await detectChromeAiAvailability();
+      expect(result.detectedAt).toBeDefined();
+      expect(new Date(result.detectedAt)).toBeInstanceOf(Date);
+    });
+
+    it('includes availabilityRaw in result', async () => {
+      (globalThis as any).LanguageModel = {
+        availability: vi.fn().mockResolvedValue({ available: 'readily' }),
+      };
+      const result = await detectChromeAiAvailability();
+      expect(result.availabilityRaw).toBe('readily');
+    });
+
+    it('tries clean call fallback when availability(options) fails', async () => {
+      const availabilityFn = vi.fn()
+        .mockRejectedValueOnce(new Error('Options failed'))
+        .mockResolvedValueOnce({ available: 'readily' });
+      (globalThis as any).LanguageModel = {
+        availability: availabilityFn,
+      };
+      const result = await detectChromeAiAvailability();
+      expect(result.status).toBe('ready');
+      expect(result.availabilityFallbackUsed).toBe(true);
+      expect(availabilityFn).toHaveBeenCalledTimes(2);
+    });
   });
 });
 

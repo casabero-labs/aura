@@ -253,12 +253,33 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
 
   const checkChromeAiAvailability = useCallback(async () => {
     setIsCheckingChrome(true);
+    setError(null);
+    setNormalizedError(null);
+    setProviderAvailable(null);
+    
+    // Clear any cached Chrome AI status from storage
+    try {
+      localStorage.removeItem('chrome-ai-status');
+      localStorage.removeItem('chrome-ai-availability');
+      sessionStorage.removeItem('chrome-ai-status');
+      sessionStorage.removeItem('chrome-ai-availability');
+    } catch {
+      // Ignore storage errors
+    }
+    
     try {
       const availability = await detectChromeAiAvailability();
       setChromeAvailability(availability);
+      setProviderAvailable(availability.status === 'ready');
       pushEvent('info', `Chrome AI: ${availability.message}`);
+      
+      // Log technical details for debugging
+      availability.technicalDetails.forEach(detail => {
+        pushEvent('info', detail);
+      });
     } catch (error) {
       pushEvent('error', `Error verificando Chrome AI: ${(error as Error).message}`);
+      setProviderAvailable(false);
     } finally {
       setIsCheckingChrome(false);
     }
@@ -709,7 +730,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
           </div>
         )}
 
-        {providerAvailable === false && (
+        {providerAvailable === false && aiConfig.providerType !== 'chrome' && (
           <div className="provider-unavailable-notice">
             <div className="provider-unavailable-header">
               <ShieldAlert size={16} style={{ color: 'var(--orange)' }} />
@@ -830,6 +851,17 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
                     )}
                   </button>
                 )}
+
+                {(chromeAvailability?.status === 'error' || chromeAvailability?.status === 'api_missing') && (
+                  <button 
+                    className="btn-s btn-sm" 
+                    onClick={checkChromeAiAvailability}
+                    disabled={isCheckingChrome}
+                    title="Forzar prueba de fuego para verificar Chrome AI"
+                  >
+                    <FlaskConical size={12} /> Probar Gemini Nano
+                  </button>
+                )}
               </div>
             </div>
 
@@ -864,6 +896,28 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
                   <div className="chrome-ai-detail-row">
                     <span>Estado normalizado:</span>
                     <span>{chromeAvailability.status}</span>
+                  </div>
+                  {chromeAvailability.availabilityRaw !== undefined && (
+                    <div className="chrome-ai-detail-row">
+                      <span>availabilityRaw:</span>
+                      <span>{chromeAvailability.availabilityRaw}</span>
+                    </div>
+                  )}
+                  {chromeAvailability.availabilityWithOptionsRaw !== undefined && (
+                    <div className="chrome-ai-detail-row">
+                      <span>availabilityWithOptionsRaw:</span>
+                      <span>{chromeAvailability.availabilityWithOptionsRaw}</span>
+                    </div>
+                  )}
+                  {chromeAvailability.availabilityFallbackUsed && (
+                    <div className="chrome-ai-detail-row">
+                      <span>Fallback used:</span>
+                      <span>true</span>
+                    </div>
+                  )}
+                  <div className="chrome-ai-detail-row">
+                    <span>Última verificación:</span>
+                    <span>{new Date(chromeAvailability.detectedAt).toLocaleTimeString()}</span>
                   </div>
                   {chromeAvailability.browserInfo && (
                     <>

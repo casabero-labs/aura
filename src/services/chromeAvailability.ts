@@ -23,6 +23,14 @@ export interface NormalizedAvailability {
     platform: string;
     chromeVersion?: string;
   };
+  /** Raw value returned by availability() before normalization */
+  availabilityRaw?: string;
+  /** Raw value from availability() called with options */
+  availabilityWithOptionsRaw?: string;
+  /** Whether clean call fallback was used */
+  availabilityFallbackUsed?: boolean;
+  /** Timestamp of when this detection was performed */
+  detectedAt: string;
 }
 
 /**
@@ -66,10 +74,58 @@ export function getBrowserInfo(): NormalizedAvailability['browserInfo'] {
 }
 
 /**
+ * Smoke test: try to create a session and run a minimal prompt
+ * Used as fallback when availability() fails or returns unexpected values
+ */
+async function smokeTestChromeAi(
+  apiSurface: 'LanguageModel' | 'window.ai.languageModel' | 'window.ai.assistant',
+  technicalDetails: string[]
+): Promise<boolean> {
+  try {
+    technicalDetails.push('Running smoke test: creating session and testing prompt...');
+    
+    if (apiSurface === 'LanguageModel') {
+      const session = await globalThis.LanguageModel!.create({
+        temperature: 0.1,
+      });
+      const response = await session.prompt('Responde solo: OK');
+      session.destroy();
+      technicalDetails.push(`Smoke test response: "${response}"`);
+      return response.includes('OK');
+    }
+    
+    if (apiSurface === 'window.ai.languageModel') {
+      const session = await window.ai!.languageModel!.create({
+        temperature: 0.1,
+      });
+      const response = await session.prompt('Responde solo: OK');
+      session.destroy();
+      technicalDetails.push(`Smoke test response: "${response}"`);
+      return response.includes('OK');
+    }
+    
+    if (apiSurface === 'window.ai.assistant') {
+      const ai = await window.ai!.assistant!();
+      const session = await ai.create({ temperature: 0.1 });
+      const response = await session.prompt('Responde solo: OK');
+      session.destroy();
+      technicalDetails.push(`Smoke test response: "${response}"`);
+      return response.includes('OK');
+    }
+    
+    return false;
+  } catch (e) {
+    technicalDetails.push(`Smoke test failed: ${(e as Error).message}`);
+    return false;
+  }
+}
+
+/**
  * Detect Chrome AI API availability and return normalized status
  */
 export async function detectChromeAiAvailability(): Promise<NormalizedAvailability> {
   const technicalDetails: string[] = [];
+  const detectedAt = new Date().toISOString();
   
   // Detect API surface
   let apiSurface: NormalizedAvailability['apiSurface'] = 'none';
@@ -105,7 +161,7 @@ export async function detectChromeAiAvailability(): Promise<NormalizedAvailabili
     }
   }
   
-  // If no API surface found, return unavailable
+  // If no API surface found, return api_missing
   if (apiSurface === 'none') {
     return {
       status: 'api_missing',
@@ -117,27 +173,65 @@ export async function detectChromeAiAvailability(): Promise<NormalizedAvailabili
         'Visita chrome://flags para habilitar la API de Prompt.',
       ],
       browserInfo: getBrowserInfo(),
+      detectedAt,
     };
   }
   
   // Check availability for detected API surface
+  let rawAvailability: string | undefined;
+  let availabilityWithOptionsRaw: string | undefined;
+  let availabilityFallbackUsed = false;
+  
   try {
-    let rawAvailability: string;
-    
+    // Try availability() with options first (some browsers may need this)
     if (apiSurface === 'LanguageModel') {
-      const availability = await globalThis.LanguageModel!.availability();
-      rawAvailability = availability.available;
-      technicalDetails.push(`LanguageModel.availability() returned: ${rawAvailability}`);
+      try {
+        const availabilityWithOptions = await globalThis.LanguageModel!.availability({
+          expectedInputLanguages: ['es', 'en'],
+        });
+        availabilityWithOptionsRaw = availabilityWithOptions.available;
+        rawAvailability = availabilityWithOptionsRaw;
+        technicalDetails.push(`LanguageModel.availability(options) returned: ${availabilityWithOptionsRaw}`);
+      } catch (e) {
+        technicalDetails.push(`LanguageModel.availability(options) failed: ${(e as Error).message}, trying clean call...`);
+      }
+      
+      // Fallback to clean call without options
+      if (rawAvailability === undefined) {
+        const availability = await globalThis.LanguageModel!.availability();
+        rawAvailability = availability.available;
+        availabilityFallbackUsed = true;
+        technicalDetails.push(`LanguageModel.availability() (clean) returned: ${rawAvailability}`);
+      }
     } else if (apiSurface === 'window.ai.languageModel') {
-      const availability = await window.ai!.languageModel!.availability();
-      rawAvailability = availability.available;
-      technicalDetails.push(`window.ai.languageModel.availability() returned: ${rawAvailability}`);
+      try {
+        const availabilityWithOptions = await window.ai!.languageModel!.availability();
+        availabilityWithOptionsRaw = availabilityWithOptions.available;
+        rawAvailability = availabilityWithOptionsRaw;
+        technicalDetails.push(`window.ai.languageModel.availability() returned: ${rawAvailability}`);
+      } catch (e) {
+        technicalDetails.push(`window.ai.languageModel.availability() failed: ${(e as Error).message}`);
+      }
     } else {
       // Legacy assistant API
       const ai = await window.ai!.assistant!();
       const caps = await ai.capabilities();
       rawAvailability = caps.available ? 'readily' : 'no';
       technicalDetails.push(`window.ai.assistant.capabilities() returned available: ${caps.available}`);
+    }
+    
+    // If availability returned undefined/null/empty, try smoke test as fallback
+    if (rawAvailability === undefined || rawAvailability === null || rawAvailability === '') {
+      technicalDetails.push('Availability returned undefined/null/empty, running smoke test fallback...');
+      const smokeTestPassed = await smokeTestChromeAi(apiSurface, technicalDetails);
+      
+      if (smokeTestPassed) {
+        rawAvailability = 'readily';
+        technicalDetails.push('Smoke test passed, treating as ready');
+      } else {
+        rawAvailability = 'no';
+        technicalDetails.push('Smoke test failed, treating as unavailable');
+      }
     }
     
     const normalizedStatus = normalizeAvailability(rawAvailability, apiSurface);
@@ -167,15 +261,41 @@ export async function detectChromeAiAvailability(): Promise<NormalizedAvailabili
       message,
       technicalDetails,
       browserInfo: getBrowserInfo(),
+      availabilityRaw: rawAvailability,
+      availabilityWithOptionsRaw,
+      availabilityFallbackUsed,
+      detectedAt,
     };
   } catch (error) {
     technicalDetails.push(`Error checking availability: ${(error as Error).message}`);
+    
+    // If availability check failed entirely, try smoke test as last resort
+    technicalDetails.push('Availability check failed, attempting smoke test as last resort...');
+    const smokeTestPassed = await smokeTestChromeAi(apiSurface, technicalDetails);
+    
+    if (smokeTestPassed) {
+      return {
+        status: 'ready',
+        apiSurface,
+        message: 'Gemini Nano listo para usar (verificado por prueba de fuego).',
+        technicalDetails,
+        browserInfo: getBrowserInfo(),
+        availabilityRaw: 'smoke_test_passed',
+        availabilityFallbackUsed: true,
+        detectedAt,
+      };
+    }
+    
     return {
       status: 'error',
       apiSurface,
       message: `Error al verificar Chrome AI: ${(error as Error).message}`,
       technicalDetails,
       browserInfo: getBrowserInfo(),
+      availabilityRaw: rawAvailability,
+      availabilityWithOptionsRaw,
+      availabilityFallbackUsed,
+      detectedAt,
     };
   }
 }
