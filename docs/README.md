@@ -1,25 +1,13 @@
-# Documentación Académica — AURA TFM
+# Documentacion AURA
 
-## Navegación
+La documentacion activa del TFM queda consolidada en una sola carpeta:
 
-| Carpeta | Contenido |
-|---|---|
-| [📋 CENTRO_COMANDO_ACADEMICO.md](./CENTRO_COMANDO_ACADEMICO.md) | **Documento maestro** — Checklists, trazabilidad, cronograma |
-| [memoria/](./memoria/) | Documento TFM: entregas formales, borradores, retroalimentación |
-| [figuras/](./figuras/) | Diagramas de arquitectura, screenshots, gráficos |
-| [tablas/](./tablas/) | Tablas comparativas, catálogos, material de soporte |
-| [referencias/](./referencias/) | Bibliografía, notas de lectura, fichas |
-| [publicacion/](./publicacion/) | Material para artículo científico futuro |
+- [`tercera_entrega_aura/`](./tercera_entrega_aura/)
 
-## Entregas del TFM
+Empieza por:
 
-| # | Entrega | Semana | Estado | Ubicación |
-|---|---|---|---|---|
-| 1 | Borrador Inicial | 3 | ✅ Entregado | `memoria/entregas/primera_entrega/` |
-| 2 | Borrador Intermedio | 10 | 🔴 En preparación | `memoria/entregas/segunda_entrega/` |
-| 3 | Entrega Final + Depósito | 14 | ⬜ Pendiente | — |
+1. [`00_LEEME.md`](./tercera_entrega_aura/00_LEEME.md)
+2. [`01_borrador/BORRADOR_TERCERA_ENTREGA_AURA.md`](./tercera_entrega_aura/01_borrador/BORRADOR_TERCERA_ENTREGA_AURA.md)
+3. [`05_desarrollo/NEXT_STEPS.md`](./tercera_entrega_aura/05_desarrollo/NEXT_STEPS.md)
 
-## Regla de Trabajo
-
-> **Todo cambio en `src/` debe generar evidencia en `docs/`.**
-> Un feature sin documentación académica no está terminado.
+El resto de documentos antiguos, reportes de loops, capturas repetidas y archivos de soporte historico denso fueron retirados para dejar una base de trabajo limpia.
