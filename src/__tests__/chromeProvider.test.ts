@@ -313,12 +313,14 @@ describe('Chrome AI Availability Normalizer', () => {
       expect(result.status).toBe('downloadable');
     });
 
-    it('returns error when availability check throws', async () => {
+    it('returns unavailable when availability throws and smoke test fails', async () => {
       (globalThis as any).LanguageModel = {
         availability: vi.fn().mockRejectedValue(new Error('Test error')),
+        create: vi.fn().mockRejectedValue(new Error('No model')),
       };
       const result = await detectChromeAiAvailability();
-      expect(result.status).toBe('error');
+      expect(result.status).toBe('unavailable');
+      expect(result.availabilityCallMode).toBe('clean');
       expect(result.technicalDetails.some(d => d.includes('Test error'))).toBe(true);
     });
 
@@ -342,7 +344,7 @@ describe('Chrome AI Availability Normalizer', () => {
       };
       const result = await detectChromeAiAvailability();
       expect(result.status).toBe('ready');
-      expect(result.availabilityFallbackUsed).toBe(true);
+      expect(result.availabilityCallMode).toBe('clean');
       expect(result.technicalDetails.some(d => d.includes('smoke test'))).toBe(true);
     });
 
@@ -373,17 +375,16 @@ describe('Chrome AI Availability Normalizer', () => {
       expect(result.availabilityRaw).toBe('readily');
     });
 
-    it('tries clean call fallback when availability(options) fails', async () => {
-      const availabilityFn = vi.fn()
-        .mockRejectedValueOnce(new Error('Options failed'))
-        .mockResolvedValueOnce({ available: 'readily' });
+    it('uses clean availability call without options and returns ready', async () => {
+      const availabilityFn = vi.fn().mockResolvedValue({ available: 'readily' });
       (globalThis as any).LanguageModel = {
         availability: availabilityFn,
       };
       const result = await detectChromeAiAvailability();
       expect(result.status).toBe('ready');
-      expect(result.availabilityFallbackUsed).toBe(true);
-      expect(availabilityFn).toHaveBeenCalledTimes(2);
+      expect(result.availabilityCallMode).toBe('clean');
+      expect(availabilityFn).toHaveBeenCalledTimes(1);
+      expect(availabilityFn).toHaveBeenCalledWith();
     });
 
     it('returns ready when availability returns string "available" directly', async () => {
@@ -456,6 +457,20 @@ describe('Chrome AI Availability Normalizer', () => {
       const result = await detectChromeAiAvailability();
       expect(result.status).toBe('ready');
       expect(result.availabilityRaw).toBe('available');
+    });
+
+    it('smoke test calls create without temperature or topK', async () => {
+      const createFn = vi.fn().mockResolvedValue({
+        prompt: vi.fn().mockResolvedValue('OK'),
+        destroy: vi.fn(),
+      });
+      (globalThis as any).LanguageModel = {
+        availability: vi.fn().mockResolvedValue({ available: undefined }),
+        create: createFn,
+      };
+      await detectChromeAiAvailability();
+      expect(createFn).toHaveBeenCalledTimes(1);
+      expect(createFn).toHaveBeenCalledWith();
     });
   });
 });
