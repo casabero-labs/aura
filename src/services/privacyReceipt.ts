@@ -12,32 +12,38 @@ export interface PrivacyReceipt {
   // Provider information
   provider: 'chrome_ai';
   mode: 'browser_on_device';
-  
+
+  // Generation status
+  generation_status: 'success' | 'attempted_failed' | 'not_attempted';
+  provider_ready_before_run: boolean;
+  session_created: boolean;
+  generation_method: 'promptStreaming' | 'prompt' | 'failed';
+
   // Data handling guarantees
   dataset_sent_to_cloud: boolean;
   raw_dataset_sent: boolean;
   prompt_scope: 'structured_findings_only';
-  
+
   // Data integrity
   dataset_sha256: string;
   rows: number;
   columns: number;
-  
+
   // Timing
   started_at: string;
   finished_at: string;
-  
+
   // Network monitoring
   outbound_requests_from_aura: number;
   external_requests_detected: NetworkGuardResult['externalRequests'];
-  
+
   // Browser information
   browser: {
     userAgent: string;
     platform: string;
     chromeVersion?: string;
   };
-  
+
   // Verification
   verification_url?: string;
   receipt_id: string;
@@ -94,23 +100,35 @@ export class PrivacyReceiptService {
     data: any[][],
     columns: string[],
     networkResult: NetworkGuardResult,
-    availability: NormalizedAvailability
+    availability: NormalizedAvailability,
+    sessionCreated: boolean = false,
+    generationMethod: 'promptStreaming' | 'prompt' | 'failed' = 'failed',
   ): Promise<PrivacyReceipt> {
     const finishedAt = new Date().toISOString();
-    
+
     // Generate dataset hash
     const datasetHash = await generateDatasetHash(data);
-    
+
     // Get browser information
     const browserInfo = availability.browserInfo || {
       userAgent: navigator.userAgent,
       platform: navigator.platform,
     };
-    
+
+    const providerReady = availability.status === 'ready';
+    const generationStatus: PrivacyReceipt['generation_status'] =
+      !providerReady ? 'not_attempted' :
+      sessionCreated && generationMethod !== 'failed' ? 'success' :
+      'attempted_failed';
+
     // Create complete receipt
     const receipt: PrivacyReceipt = {
       provider: 'chrome_ai',
       mode: 'browser_on_device',
+      generation_status: generationStatus,
+      provider_ready_before_run: providerReady,
+      session_created: sessionCreated,
+      generation_method: generationMethod,
       dataset_sent_to_cloud: false,
       raw_dataset_sent: false,
       prompt_scope: 'structured_findings_only',
@@ -124,7 +142,7 @@ export class PrivacyReceiptService {
       browser: browserInfo,
       receipt_id: generateReceiptId(),
     };
-    
+
     this.receipt = receipt;
     return receipt;
   }

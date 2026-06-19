@@ -90,12 +90,13 @@ describe('getChromeAiDiagnostic', () => {
       expect(result.status).toBe('unavailable');
     });
 
-    it('returns status "error" when availability throws', async () => {
+    it('returns status "unavailable" when availability throws and smoke test fails', async () => {
       (globalThis as any).LanguageModel = {
         availability: vi.fn().mockRejectedValue(new Error('Permission denied')),
+        create: vi.fn().mockRejectedValue(new Error('No model')),
       };
       const result = await getChromeAiDiagnostic();
-      expect(result.status).toBe('error');
+      expect(result.status).toBe('unavailable');
     });
   });
 
@@ -171,7 +172,7 @@ describe('ChromePromptProvider', () => {
 
   it('preloadModel throws with diagnostic message', async () => {
     const provider = new ChromePromptProvider();
-    await expect(provider.preloadModel()).rejects.toThrow('Chrome AI no está habilitado');
+    await expect(provider.preloadModel()).rejects.toThrow('API de Chrome AI no detectada');
   });
 
   it('unloadModel does not throw when no session', async () => {

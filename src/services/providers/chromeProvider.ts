@@ -111,92 +111,67 @@ function detectApiSurface(): ChromeAiApiSurface {
   return 'none';
 }
 
-/** Full diagnostic of Chrome AI availability */
+/** Full diagnostic of Chrome AI availability - now uses detectChromeAiAvailability as single source of truth */
 export async function getChromeAiDiagnostic(): Promise<ChromeAiDiagnostic> {
-  const surface = detectApiSurface();
+  const normalized = await detectChromeAiAvailability();
 
-  if (surface === 'none') {
-    return {
-      apiSurface: 'none',
-      status: 'unavailable',
-      message: 'Chrome AI no está habilitado en este navegador.',
-      actions: [
+  const surfaceMap: Record<NormalizedAvailability['apiSurface'], ChromeAiApiSurface> = {
+    'LanguageModel': 'LanguageModel',
+    'window.ai.languageModel': 'window.ai.languageModel',
+    'window.ai.assistant': 'window.ai.assistant',
+    'none': 'none',
+  };
+
+  const statusMap: Record<NormalizedStatus, ChromeAiStatus> = {
+    'ready': 'available',
+    'downloadable': 'downloadable',
+    'downloading': 'downloading',
+    'unavailable': 'unavailable',
+    'api_missing': 'unavailable',
+    'error': 'error',
+  };
+
+  let actions: string[] = [];
+  switch (normalized.status) {
+    case 'ready':
+      actions = ['Puedes generar diagnósticos con Chrome AI.'];
+      break;
+    case 'downloadable':
+      actions = [
+        'Pulsa "Preparar Gemini Nano" para iniciar la descarga.',
+        'No cierres esta pestaña durante la descarga.',
+        'La descarga puede pesar varios GB.',
+      ];
+      break;
+    case 'downloading':
+      actions = ['Espera a que termine la descarga.'];
+      break;
+    case 'unavailable':
+    case 'api_missing':
+      actions = [
         'Verifica que uses Chrome 138 o superior.',
         'Abre chrome://flags y busca "Prompt API" o "Built-in AI".',
         'Activa las opciones disponibles y reinicia Chrome.',
         'Revisa chrome://on-device-internals para ver modelos descargados.',
-      ],
-    };
-  }
-
-  try {
-    let availability: { available: string };
-    let raw: unknown;
-
-    if (surface === 'LanguageModel') {
-      availability = await globalThis.LanguageModel!.availability();
-      raw = availability;
-    } else if (surface === 'window.ai.languageModel') {
-      availability = await window.ai!.languageModel!.availability();
-      raw = availability;
-    } else {
-      // window.ai.assistant — legacy, no availability() granular
-      const ai = await window.ai!.assistant!();
-      const caps = await ai.capabilities();
-      availability = { available: caps.available ? 'readily' : 'no' };
-      raw = caps;
-    }
-
-    const av = availability.available;
-
-    if (av === 'readily') {
-      return {
-        apiSurface: surface,
-        status: 'available',
-        rawAvailability: raw,
-        message: 'Gemini Nano listo para usar en este navegador.',
-        actions: ['Puedes generar diagnósticos con Chrome AI.'],
-      };
-    }
-
-    if (av === 'after-download') {
-      return {
-        apiSurface: surface,
-        status: 'downloadable',
-        rawAvailability: raw,
-        message: 'Gemini Nano requiere una descarga inicial antes de usarse.',
-        actions: [
-          'Pulsa "Preparar Gemini Nano" para iniciar la descarga.',
-          'No cierres esta pestaña durante la descarga.',
-          'La descarga puede pesar varios GB.',
-        ],
-      };
-    }
-
-    // av === 'no'
-    return {
-      apiSurface: surface,
-      status: 'unavailable',
-      rawAvailability: raw,
-      message: 'Gemini Nano no está disponible en este dispositivo.',
-      actions: [
-        'Verifica los flags en chrome://flags.',
-        'Revisa chrome://on-device-internals.',
         'Prueba con Ollama o Cloud como alternativa.',
-      ],
-    };
-  } catch (err) {
-    return {
-      apiSurface: surface,
-      status: 'error',
-      rawAvailability: undefined,
-      message: `Error al verificar Gemini Nano: ${(err as Error).message}`,
-      actions: [
+      ];
+      break;
+    case 'error':
+      actions = [
         'Reinicia Chrome e intenta de nuevo.',
         'Revisa chrome://on-device-internals.',
-      ],
-    };
+        'Prueba con Ollama o Cloud como alternativa.',
+      ];
+      break;
   }
+
+  return {
+    apiSurface: surfaceMap[normalized.apiSurface],
+    status: statusMap[normalized.status],
+    rawAvailability: normalized.availabilityRaw,
+    message: normalized.message,
+    actions,
+  };
 }
 
 // ── Session (internal) ──
@@ -214,16 +189,13 @@ export class ChromePromptProvider implements AIProvider {
   readonly type = 'chrome' as const;
 
   private model = 'gemini-nano';
-  private temperature: number;
   private session: ChromeSession | null = null;
   private sessionPromise: Promise<ChromeSession> | null = null;
   private pendingMonitor: DownloadMonitor | null = null;
   private networkGuard: NetworkGuard | null = null;
   private privacyReceiptService: PrivacyReceiptService | null = null;
-
-  constructor(temperature: number = 0.1) {
-    this.temperature = temperature;
-  }
+  private _sessionCreated: boolean = false;
+  private _generationMethod: 'promptStreaming' | 'prompt' | 'failed' = 'failed';
 
   getApiSurface(): ChromeAiApiSurface {
     return detectApiSurface();
@@ -265,11 +237,18 @@ export class ChromePromptProvider implements AIProvider {
     data: any[][],
     columns: string[],
     networkResult: NetworkGuardResult,
-    availability: NormalizedAvailability
+    availability: NormalizedAvailability,
   ): Promise<PrivacyReceipt> {
     this.privacyReceiptService = new PrivacyReceiptService();
     this.privacyReceiptService.startTracking();
-    return this.privacyReceiptService.generateReceipt(data, columns, networkResult, availability);
+    return this.privacyReceiptService.generateReceipt(
+      data,
+      columns,
+      networkResult,
+      availability,
+      this._sessionCreated,
+      this._generationMethod
+    );
   }
 
   private async createSession(
@@ -282,40 +261,51 @@ export class ChromePromptProvider implements AIProvider {
     }
 
     try {
-      // Modern global LanguageModel (Chrome 138+)
+      // Modern global LanguageModel (Chrome 138+) - clean session without temperature/topK
       if (surface === 'LanguageModel') {
-        const session = await globalThis.LanguageModel!.create({
-          temperature: this.temperature,
-          topK: 40,
-          monitor(m) {
-            m.addEventListener('downloadprogress', (e: DownloadProgressEvent) => {
-              const pct = e.total > 0 ? Math.round((e.loaded / e.total) * 100) : 0;
-              onDownloadProgress?.(pct, `Descargando Gemini Nano ${pct}%`);
-            });
-          },
-        });
+        let session: ChromeSession;
+        try {
+          const createOptions: { monitor?: (m: DownloadMonitor) => void } = {};
+          if (onDownloadProgress) {
+            createOptions.monitor = (m) => {
+              m.addEventListener('downloadprogress', (e: DownloadProgressEvent) => {
+                const pct = e.total > 0 ? Math.round((e.loaded / e.total) * 100) : 0;
+                onDownloadProgress(pct, `Descargando Gemini Nano ${pct}%`);
+              });
+            };
+          }
+          session = await globalThis.LanguageModel!.create(createOptions);
+        } catch (monitorError) {
+          // Fallback: create without monitor if monitor causes error
+          session = await globalThis.LanguageModel!.create();
+        }
         return session;
       }
 
-      // window.ai.languageModel (Chrome 127-137)
+      // window.ai.languageModel (Chrome 127-137) - clean session
       if (surface === 'window.ai.languageModel') {
-        const session = await window.ai!.languageModel!.create({
-          temperature: this.temperature,
-          topK: 40,
-          monitor(m) {
-            m.addEventListener('downloadprogress', (e: any) => {
-              const pct = e.total > 0 ? Math.round((e.loaded / e.total) * 100) : 0;
-              onDownloadProgress?.(pct, `Descargando Gemini Nano ${pct}%`);
-            });
-          },
-        });
+        let session: ChromeSession;
+        try {
+          const createOptions: { monitor?: (m: DownloadMonitor) => void } = {};
+          if (onDownloadProgress) {
+            createOptions.monitor = (m) => {
+              m.addEventListener('downloadprogress', (e: any) => {
+                const pct = e.total > 0 ? Math.round((e.loaded / e.total) * 100) : 0;
+                onDownloadProgress(pct, `Descargando Gemini Nano ${pct}%`);
+              });
+            };
+          }
+          session = await window.ai!.languageModel!.create(createOptions);
+        } catch (monitorError) {
+          session = await window.ai!.languageModel!.create();
+        }
         return session;
       }
 
       // Legacy window.ai.assistant
       if (surface === 'window.ai.assistant') {
         const ai = await window.ai!.assistant!();
-        const session = await ai.create({ temperature: this.temperature });
+        const session = await ai.create();
         return session as unknown as ChromeSession;
       }
 
@@ -324,6 +314,9 @@ export class ChromePromptProvider implements AIProvider {
       const msg = (err as Error).message || '';
       if (msg.includes('activation') || msg.includes('user')) {
         throw new Error('Chrome requiere interacción del usuario para activar Gemini Nano. Pulsa "Preparar Gemini Nano".');
+      }
+      if (msg.includes('session')) {
+        throw new Error('Chrome AI fue detectado, pero la sesión falló al iniciar. Acciones: Probar sesión simple, Reiniciar Chrome, Usar Ollama, Usar Cloud');
       }
       throw err;
     }
@@ -344,9 +337,9 @@ export class ChromePromptProvider implements AIProvider {
     report: AuditReport,
     onChunk: (text: string) => void,
   ): Promise<ProviderMetrics> {
-    const diag = await getChromeAiDiagnostic();
-    if (diag.status !== 'available') {
-      onChunk(`⚠️ ${diag.message}`);
+    const availability = await detectChromeAiAvailability();
+    if (availability.status !== 'ready') {
+      onChunk(`⚠️ ${availability.message}`);
       return this.emptyMetrics();
     }
 
@@ -357,24 +350,35 @@ export class ChromePromptProvider implements AIProvider {
 
     try {
       const session = await this.getSession();
-      const stream = session.promptStreaming(prompt);
-      const reader = stream.getReader();
-      const decoder = new TextDecoder();
-      let previousText = '';
+      let fullText = '';
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+      try {
+        const stream = session.promptStreaming(prompt);
+        const reader = stream.getReader();
+        const decoder = new TextDecoder();
+        let previousText = '';
 
-        const text = decoder.decode(value);
-        if (firstTokenTime === 0) firstTokenTime = performance.now() - startTime;
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-        const delta = text.slice(previousText.length);
-        if (delta) {
-          tokensGenerated += Math.round(delta.length / 4);
-          onChunk(delta);
+          const text = decoder.decode(value);
+          if (firstTokenTime === 0) firstTokenTime = performance.now() - startTime;
+
+          const delta = text.slice(previousText.length);
+          if (delta) {
+            tokensGenerated += Math.round(delta.length / 4);
+            onChunk(delta);
+            fullText += delta;
+          }
+          previousText = text;
         }
-        previousText = text;
+      } catch (streamingError) {
+        // Fallback: use session.prompt() if promptStreaming fails
+        const response = await session.prompt(prompt);
+        fullText = response;
+        tokensGenerated = Math.round(response.length / 4);
+        onChunk(response);
       }
     } catch (error) {
       console.error('Chrome AI Error:', error);
@@ -396,15 +400,33 @@ export class ChromePromptProvider implements AIProvider {
   async generateExecutiveReport(
     report: AuditReport,
   ): Promise<{ content: ExecutiveReportContent; metrics: ProviderMetrics }> {
-    const diag = await getChromeAiDiagnostic();
-    if (diag.status !== 'available') throw new Error(diag.message);
+    const availability = await detectChromeAiAvailability();
+    if (availability.status !== 'ready') throw new Error(availability.message);
 
     const prompt = buildExecutivePrompt(report);
     const startTime = performance.now();
 
     try {
       const session = await this.getSession();
-      const response = await session.prompt(prompt);
+      let response: string;
+
+      try {
+        const stream = session.promptStreaming(prompt);
+        const reader = stream.getReader();
+        const decoder = new TextDecoder();
+        let fullText = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          fullText += decoder.decode(value);
+        }
+        response = fullText;
+      } catch (streamingError) {
+        // Fallback: use session.prompt() if promptStreaming fails
+        response = await session.prompt(prompt);
+      }
+
       const totalTime = performance.now() - startTime;
 
       let content: ExecutiveReportContent;
@@ -436,8 +458,8 @@ export class ChromePromptProvider implements AIProvider {
     report: AuditReport,
     onChunk: (text: string) => void,
   ): Promise<{ content: ExecutiveReportContent; metrics: ProviderMetrics }> {
-    const diag = await getChromeAiDiagnostic();
-    if (diag.status !== 'available') throw new Error(diag.message);
+    const availability = await detectChromeAiAvailability();
+    if (availability.status !== 'ready') throw new Error(availability.message);
 
     const prompt = buildExecutivePrompt(report);
     const startTime = performance.now();
@@ -447,25 +469,33 @@ export class ChromePromptProvider implements AIProvider {
 
     try {
       const session = await this.getSession();
-      const stream = session.promptStreaming(prompt);
-      const reader = stream.getReader();
-      const decoder = new TextDecoder();
-      let previousText = '';
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+      try {
+        const stream = session.promptStreaming(prompt);
+        const reader = stream.getReader();
+        const decoder = new TextDecoder();
+        let previousText = '';
 
-        const text = decoder.decode(value);
-        if (firstTokenTime === 0) firstTokenTime = performance.now() - startTime;
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-        const delta = text.slice(previousText.length);
-        if (delta) {
-          tokensGenerated += Math.round(delta.length / 4);
-          fullText += delta;
-          onChunk(delta);
+          const text = decoder.decode(value);
+          if (firstTokenTime === 0) firstTokenTime = performance.now() - startTime;
+
+          const delta = text.slice(previousText.length);
+          if (delta) {
+            tokensGenerated += Math.round(delta.length / 4);
+            fullText += delta;
+            onChunk(delta);
+          }
+          previousText = text;
         }
-        previousText = text;
+      } catch (streamingError) {
+        // Fallback: use session.prompt() if promptStreaming fails
+        fullText = await session.prompt(prompt);
+        tokensGenerated = Math.round(fullText.length / 4);
+        onChunk(fullText);
       }
     } catch (error) {
       throw new Error(`Chrome AI streaming error: ${(error as Error).message}`);
@@ -495,12 +525,30 @@ export class ChromePromptProvider implements AIProvider {
   }
 
   async generateText(prompt: string): Promise<{ text: string; metrics: ProviderMetrics }> {
-    const diag = await getChromeAiDiagnostic();
-    if (diag.status !== 'available') throw new Error(diag.message);
+    const availability = await detectChromeAiAvailability();
+    if (availability.status !== 'ready') throw new Error(availability.message);
 
     const startTime = performance.now();
     const session = await this.getSession();
-    const response = await session.prompt(prompt);
+    let response: string;
+
+    try {
+      const stream = session.promptStreaming(prompt);
+      const reader = stream.getReader();
+      const decoder = new TextDecoder();
+      let fullText = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        fullText += decoder.decode(value);
+      }
+      response = fullText;
+    } catch (streamingError) {
+      // Fallback: use session.prompt() if promptStreaming fails
+      response = await session.prompt(prompt);
+    }
+
     const totalTime = performance.now() - startTime;
 
     return {
@@ -523,19 +571,19 @@ export class ChromePromptProvider implements AIProvider {
   ): Promise<{ text: string; metrics: ProviderMetrics }> {
     onProgress({ stage: 'checking', message: 'Verificando disponibilidad de Chrome AI' });
 
-    const diag = await getChromeAiDiagnostic();
+    const availability = await detectChromeAiAvailability();
 
-    if (diag.status === 'downloadable') {
+    if (availability.status === 'downloadable' || availability.status === 'downloading') {
       onProgress({
         stage: 'downloading',
         progress: 0,
         message: 'Gemini Nano necesita descargarse. Iniciando descarga...',
       });
 
-      // Create session with monitor to track download
       const session = await this.getSession((pct, msg) => {
         onProgress({ stage: 'downloading', progress: pct, message: msg });
       });
+      this._sessionCreated = true;
 
       onProgress({ stage: 'loading', message: 'Modelo descargado. Creando sesión...' });
 
@@ -546,22 +594,31 @@ export class ChromePromptProvider implements AIProvider {
 
       try {
         onProgress({ stage: 'generating', message: 'Generando diagnóstico con Gemini Nano' });
-        const stream = session.promptStreaming(prompt);
-        const reader = stream.getReader();
-        const decoder = new TextDecoder();
-        let previousText = '';
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          const text = decoder.decode(value);
-          if (firstTokenTime === 0) firstTokenTime = performance.now() - startTime;
-          const delta = text.slice(previousText.length);
-          if (delta) {
-            tokensGenerated += Math.round(delta.length / 4);
-            fullText += delta;
+        try {
+          const stream = session.promptStreaming(prompt);
+          const reader = stream.getReader();
+          const decoder = new TextDecoder();
+          let previousText = '';
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            const text = decoder.decode(value);
+            if (firstTokenTime === 0) firstTokenTime = performance.now() - startTime;
+            const delta = text.slice(previousText.length);
+            if (delta) {
+              tokensGenerated += Math.round(delta.length / 4);
+              fullText += delta;
+            }
+            previousText = text;
           }
-          previousText = text;
+          this._generationMethod = 'promptStreaming';
+        } catch (streamingError) {
+          // Fallback: use session.prompt() if promptStreaming fails
+          fullText = await session.prompt(prompt);
+          tokensGenerated = Math.round(fullText.length / 4);
+          this._generationMethod = 'prompt';
         }
 
         const totalTime = performance.now() - startTime;
@@ -580,14 +637,15 @@ export class ChromePromptProvider implements AIProvider {
           },
         };
       } catch (error) {
+        this._generationMethod = 'failed';
         onProgress({ stage: 'error', message: (error as Error).message });
         throw error;
       }
     }
 
-    if (diag.status !== 'available') {
-      onProgress({ stage: 'error', message: diag.message });
-      throw new Error(diag.message);
+    if (availability.status !== 'ready') {
+      onProgress({ stage: 'error', message: availability.message });
+      throw new Error(availability.message);
     }
 
     onProgress({ stage: 'loading', message: 'Creando sesión de Gemini Nano' });
@@ -599,24 +657,33 @@ export class ChromePromptProvider implements AIProvider {
 
     try {
       const session = await this.getSession();
+      this._sessionCreated = true;
       onProgress({ stage: 'generating', message: 'Generando diagnóstico con Gemini Nano' });
 
-      const stream = session.promptStreaming(prompt);
-      const reader = stream.getReader();
-      const decoder = new TextDecoder();
-      let previousText = '';
+      try {
+        const stream = session.promptStreaming(prompt);
+        const reader = stream.getReader();
+        const decoder = new TextDecoder();
+        let previousText = '';
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const text = decoder.decode(value);
-        if (firstTokenTime === 0) firstTokenTime = performance.now() - startTime;
-        const delta = text.slice(previousText.length);
-        if (delta) {
-          tokensGenerated += Math.round(delta.length / 4);
-          fullText += delta;
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const text = decoder.decode(value);
+          if (firstTokenTime === 0) firstTokenTime = performance.now() - startTime;
+          const delta = text.slice(previousText.length);
+          if (delta) {
+            tokensGenerated += Math.round(delta.length / 4);
+            fullText += delta;
+          }
+          previousText = text;
         }
-        previousText = text;
+        this._generationMethod = 'promptStreaming';
+      } catch (streamingError) {
+        // Fallback: use session.prompt() if promptStreaming fails
+        fullText = await session.prompt(prompt);
+        tokensGenerated = Math.round(fullText.length / 4);
+        this._generationMethod = 'prompt';
       }
 
       const totalTime = performance.now() - startTime;
@@ -635,20 +702,21 @@ export class ChromePromptProvider implements AIProvider {
         },
       };
     } catch (error) {
+      this._generationMethod = 'failed';
       onProgress({ stage: 'error', message: (error as Error).message });
       throw error;
     }
   }
 
   async preloadModel(onProgress?: (progress: number, message: string) => void): Promise<void> {
-    const diag = await getChromeAiDiagnostic();
+    const availability = await detectChromeAiAvailability();
 
-    if (diag.status === 'available') {
+    if (availability.status === 'ready') {
       onProgress?.(100, 'Gemini Nano ya está disponible.');
       return;
     }
 
-    if (diag.status === 'downloadable') {
+    if (availability.status === 'downloadable') {
       onProgress?.(0, 'Iniciando descarga de Gemini Nano...');
 
       try {
@@ -663,8 +731,8 @@ export class ChromePromptProvider implements AIProvider {
       return;
     }
 
-    onProgress?.(0, diag.message);
-    throw new Error(diag.message);
+    onProgress?.(0, availability.message);
+    throw new Error(availability.message);
   }
 
   async unloadModel(): Promise<void> {
