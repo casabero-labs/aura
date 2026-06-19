@@ -42,3 +42,29 @@ Para la segunda entrega, esta tabla debe completarse únicamente con corridas ex
 - validación de alucinaciones;
 - validación de script;
 - delta de salud si se ejecutó el Ciclo de Mejora Guiado por Evidencia.
+
+## Caso Incidentes Policiales: diagnóstico generativo vs regla determinista
+
+> Ver artefacto completo: `docs/tercera_entrega_aura/03_evidencia/results/incidentes_policiales_aura_vs_gemini.md`
+
+### Resumen del caso
+
+Se comparó el diagnóstico de Gemini Nano (Chrome built-in) sobre el dataset `Incidentes_Policiales.csv` (5,000 filas preview) contra el motor determinista de AURA antes y después de Loop 2.
+
+### Hallazgo principal
+
+Gemini Nano **no identificó** que `CrimeId` contiene 319 valores (`Handled/Advised`, `Not Recorded`, `Arrest/Citation`, `Gone/Unable to Locate`) que coinciden con el vocabulario de `Disposition`. AURA post-Loop 2 sí lo detecta mediante la regla determinista `Contaminación Semántica de ID`.
+
+### Implicación para OE3/OE4
+
+Este caso constituye evidencia preliminar de que:
+
+1. El diagnóstico generativo (LLM) depende críticamente de la calidad del motor determinista que lo alimenta: tres falsos positivos del motor fueron replicados por Gemini Nano.
+2. Una regla determinista nueva puede detectar patrones semánticos que el LLM no produce por sí solo.
+3. La combinación "motor determinista corregido → reglas nuevas → diagnóstico LLM informado" es más sólida que cualquiera de las dos capas por separado.
+
+### Estado de evidencia
+
+- **Tipo:** `preliminary_valid`
+- **Limitación:** una sola corrida con Gemini Nano; sin repeticiones ni contraste con otros modelos.
+- **Reproducibilidad:** el motor determinista es completamente reproducible; la salida de Gemini Nano depende de la disponibilidad del modelo Chrome built-in.

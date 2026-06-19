@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ChevronDown, ClipboardList, Download, FileCode2, FileJson, FileText, FlaskConical, HelpCircle, Settings, Layers, History, CheckCircle2, AlertTriangle, XCircle, Sun, Moon } from 'lucide-react';
+import { ChevronDown, ClipboardList, Download, FileCode2, FileJson, FileText, FlaskConical, HelpCircle, Settings, Layers, History, CheckCircle2, ShieldCheck, AlertTriangle, XCircle, Sun, Moon, BookOpen } from 'lucide-react';
 import ChangelogModal from './components/ChangelogModal';
 import ErrorBoundary from './components/ErrorBoundary';
 import AuditLogViewer from './components/AuditLogViewer';
@@ -12,6 +12,8 @@ import { loadFromApi, syncToApi } from './services/api';
 import { createAIProvider } from './services/aiProvider';
 import { generatePdfReport } from './services/pdfGenerator';
 import { buildEvidenceManifest } from './services/evidenceManifest';
+import { savePipelineSession, loadPipelineSession, clearPipelineSession } from './services/pipelineSession';
+import { buildColabNotebookJSON } from './services/colabExporter';
 import { AIConfig, AuditReport, BenchmarkResult, DeterministicValidationReport, EvidenceManifest, ExecutiveReportContent, IssueSeverity } from './types';
 
 const countBySeverity = (report: AuditReport | null, severity: IssueSeverity) =>
@@ -68,25 +70,50 @@ const buildDeterministicPdfContent = (auditReport: AuditReport, approvedScript?:
   };
 };
 
+const INITIAL_PIPELINE_DATA: PipelineData = {
+  state: 'upload',
+  file: null,
+  report: null,
+  auditEvidence: null,
+  rawData: [],
+  csvFields: [],
+  csvDelimiter: ',',
+  cleaningScript: '',
+  approvedScript: '',
+  healthDelta: null,
+  aiAnalysis: '',
+  benchmarkResults: [],
+  improvementRun: null,
+  scriptValidation: null,
+  deterministicValidation: null,
+  logs: [],
+};
+
 const App: React.FC = () => {
   // ── Pipeline data (recibido de MainPipeline) ──
-  const [pipelineData, setPipelineData] = useState<PipelineData>({
-    state: 'upload',
-    file: null,
-    report: null,
-    auditEvidence: null,
-    rawData: [],
-    csvFields: [],
-    csvDelimiter: ',',
-    cleaningScript: '',
-    approvedScript: '',
-    healthDelta: null,
-    aiAnalysis: '',
-    benchmarkResults: [],
-    improvementRun: null,
-    scriptValidation: null,
-    deterministicValidation: null,
-    logs: [],
+  const [pipelineData, setPipelineData] = useState<PipelineData>(() => {
+    const snap = loadPipelineSession();
+    if (snap) {
+      return {
+        state: snap.state,
+        file: null,
+        report: snap.report,
+        auditEvidence: snap.auditEvidence,
+        rawData: snap.rawData,
+        csvFields: snap.csvFields,
+        csvDelimiter: snap.csvDelimiter,
+        cleaningScript: snap.cleaningScript,
+        approvedScript: snap.approvedScript,
+        healthDelta: snap.healthDelta,
+        aiAnalysis: snap.aiAnalysis,
+        benchmarkResults: snap.benchmarkResults,
+        improvementRun: snap.improvementRun,
+        scriptValidation: snap.scriptValidation,
+        deterministicValidation: snap.deterministicValidation,
+        logs: snap.logs,
+      };
+    }
+    return INITIAL_PIPELINE_DATA;
   });
 
   // ── UI state ──
@@ -107,6 +134,12 @@ const App: React.FC = () => {
     localStorage.setItem('aura_theme', theme);
     localStorage.setItem('casabero-theme', theme);
   }, [theme]);
+
+  useEffect(() => {
+    if (pipelineData.report) {
+      savePipelineSession(pipelineData);
+    }
+  }, [pipelineData]);
 
   // ── AI Config (para settings panel) ──
   const [aiConfig, setAiConfig] = useState<AIConfig>(() => {
@@ -171,6 +204,7 @@ const App: React.FC = () => {
   const [isPdfGenerating, setIsPdfGenerating] = useState(false);
   const [pdfProgressMsg, setPdfProgressMsg] = useState('');
   const [pdfProgressStatus, setPdfProgressStatus] = useState<'idle' | 'running' | 'success' | 'error'>('idle');
+  const [sessionDestroyed, setSessionDestroyed] = useState(false);
 
   const hasData = !!report;
 
@@ -262,8 +296,35 @@ const App: React.FC = () => {
     setHasExported(true);
   };
 
+  const handleExportColab = () => {
+    if (!approvedCleaningScript || !report) return;
+    const notebook = buildColabNotebookJSON({
+      datasetName: file?.name ?? 'dataset.csv',
+      csvFields,
+      approvedScript: approvedCleaningScript,
+      auditSummary: {
+        score: report.score,
+        rowCount: report.rowCount,
+        colCount: report.colCount,
+        issueCount: report.issues.length,
+        truncated: report.rowCount >= 5000,
+      },
+    });
+    downloadTextFile(`aura_colab_${Date.now()}.ipynb`, notebook, 'application/x-ipynb+json;charset=utf-8');
+    setHasExported(true);
+  };
+
   const scrollTo = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const handleDestroySession = () => {
+    clearPipelineSession();
+    setPipelineData(INITIAL_PIPELINE_DATA);
+    setHasExported(false);
+    setPdfProgressStatus('idle');
+    setPdfProgressMsg('');
+    setSessionDestroyed(true);
   };
 
   return (
@@ -402,6 +463,14 @@ const App: React.FC = () => {
             Auditoría determinista, diagnóstico asistido y limpieza reproducible. Todo en el navegador.
           </p>
         </section>
+
+        {sessionDestroyed && (
+          <section className="section" style={{ textAlign: 'center' }} data-testid="session-destroyed-msg">
+            <p className="sec-eye" style={{ color: 'var(--success)', fontSize: 13, fontWeight: 600 }}>
+              Sesión destruida — tus datos locales fueron eliminados del navegador.
+            </p>
+          </section>
+        )}
 
         {/* Main Pipeline — Phase 1: Upload + Diagnostic */}
         <MainPipeline
@@ -564,6 +633,12 @@ const App: React.FC = () => {
                       </button>
                       <button className="btn-s" onClick={handleExportApprovedScript} disabled={!approvedCleaningScript}>
                         <FileCode2 size={14} /> Script aprobado
+                      </button>
+                      <button className="btn-s" onClick={handleExportColab} disabled={!approvedCleaningScript}>
+                        <BookOpen size={14} /> Notebook Colab
+                      </button>
+                      <button className="btn-s" onClick={handleDestroySession} style={{ borderColor: 'var(--error)', color: 'var(--error)' }}>
+                        Cerrar y destruir sesión
                       </button>
                     </div>
                   </div>

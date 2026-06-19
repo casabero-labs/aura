@@ -238,6 +238,77 @@ describe('AuditEngine - Deterministic Rules', () => {
       expect(issue!.affectedPercentage).toBeGreaterThan(0);
     });
   });
+
+  // ── Loop 2: Semantic ID Contamination & False Positive Gates ──
+
+  describe('Contaminación Semántica de ID', () => {
+    it('detects ID column contamination by neighboring categorical vocabulary', () => {
+      const rows = [
+        { City: '160920001', CrimeId: 'Handled/Advised', Disposition: 'Handled/Advised', OriginalCrimeTypeName: '' },
+        { City: 'San Francisco', CrimeId: 160903280, Disposition: 'Report Taken', OriginalCrimeTypeName: 'Violent Crime/Assault' },
+        { City: 'San Francisco', CrimeId: 'Not Recorded', Disposition: 'Not Recorded', OriginalCrimeTypeName: 'Homeless Related' },
+        { City: '160920002', CrimeId: 'Arrest/Citation', Disposition: 'Arrest/Citation', OriginalCrimeTypeName: '' },
+        { City: '160920003', CrimeId: 160903300, Disposition: 'Report Taken', OriginalCrimeTypeName: '' },
+        { City: '160920004', CrimeId: 160912801, Disposition: 'Handled/Advised', OriginalCrimeTypeName: 'Service/Report/Admin' },
+        { City: '160920005', CrimeId: 160912811, Disposition: 'Report Taken', OriginalCrimeTypeName: 'Vandalism' },
+        { City: 'San Francisco', CrimeId: 'Gone/Unable to Locate', Disposition: 'Gone/Unable to Locate', OriginalCrimeTypeName: 'Homeless Related' },
+      ];
+
+      const report = runAudit(rows, ['City', 'CrimeId', 'Disposition', 'OriginalCrimeTypeName'], ',');
+      expect(report.issues.some(issue =>
+        issue.ruleName === 'Contaminación Semántica de ID' &&
+        issue.column === 'CrimeId'
+      )).toBe(true);
+    });
+  });
+
+  describe('False Positive: Números Disfrazados on CallDateTime', () => {
+    it('does NOT flag CallDateTime ISO timestamps as disguised numbers', () => {
+      const rows = Array.from({ length: 10 }, (_, i) => ({
+        CallDateTime: `2016-03-3${i}T23:42:00Z`,
+        City: 'San Francisco',
+        CrimeId: 160903280 + i,
+      }));
+
+      const report = runAudit(rows, ['CallDateTime', 'City', 'CrimeId'], ',');
+      const disguised = report.issues.filter(i => i.ruleName === 'Números Disfrazados' && i.column === 'CallDateTime');
+      expect(disguised).toHaveLength(0);
+    });
+  });
+
+  describe('False Positive: URL Detection on Disposition', () => {
+    it('does NOT flag Disposition as URL just for containing substring "sitio"', () => {
+      const rows = Array.from({ length: 12 }, (_, i) => ({
+        Disposition: i % 3 === 0 ? 'Report Taken' : i % 3 === 1 ? 'Gone/Unable to Locate' : 'Suspicious Activity',
+        City: 'San Francisco',
+      }));
+
+      const report = runAudit(rows, ['Disposition', 'City'], ',');
+      const urlIssues = report.issues.filter(i => i.id.startsWith('logic-url-Disposition'));
+      expect(urlIssues).toHaveLength(0);
+    });
+  });
+
+  describe('False Positive: Symbol Chaos on Categorical Taxonomy', () => {
+    it('does NOT flag OriginalCrimeTypeName as symbols when column is categorical with slashes', () => {
+      const rows = [
+        { OriginalCrimeTypeName: 'Violent Crime/Assault', City: 'San Francisco' },
+        { OriginalCrimeTypeName: 'Service/Report/Admin', City: 'San Francisco' },
+        { OriginalCrimeTypeName: 'Traffic/Parking/Sidewalk', City: 'San Francisco' },
+        { OriginalCrimeTypeName: 'Homeless Related', City: 'San Francisco' },
+        { OriginalCrimeTypeName: 'Vandalism', City: 'San Francisco' },
+        { OriginalCrimeTypeName: 'Violent Crime/Assault', City: 'San Francisco' },
+        { OriginalCrimeTypeName: 'Suspicious Activity', City: 'San Francisco' },
+        { OriginalCrimeTypeName: 'Service/Report/Admin', City: 'San Francisco' },
+      ];
+
+      const report = runAudit(rows, ['OriginalCrimeTypeName', 'City'], ',');
+      const symbolIssues = report.issues.filter(i =>
+        i.ruleName === 'Símbolos Sospechosos' && i.column === 'OriginalCrimeTypeName'
+      );
+      expect(symbolIssues).toHaveLength(0);
+    });
+  });
 });
 
 describe('Per-Rule TP/FP/FN on Titanic dataset', () => {

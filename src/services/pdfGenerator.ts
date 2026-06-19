@@ -2,7 +2,6 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { AuditReport, ExecutiveReportContent, IssueSeverity, IssueCategory, ScriptValidationResult } from '../types';
 
-// Extend jsPDF type definition for autotable
 declare module 'jspdf' {
   interface jsPDF {
     lastAutoTable: {
@@ -10,6 +9,8 @@ declare module 'jspdf' {
     };
   }
 }
+
+type SaveCallback = (doc: jsPDF, filename: string) => void;
 
 const classifyScriptLine = (line: string): 'destructiva' | 'transformacion' | 'lectura' | null => {
   const normalized = line.toLowerCase();
@@ -29,73 +30,90 @@ const scriptLabelColor = (
   return colors.lightText;
 };
 
+const defaultSave: SaveCallback = (doc, filename) => doc.save(filename);
+
 export const generatePdfReport = (
   auditReport: AuditReport,
   executiveContent: ExecutiveReportContent,
   llmDiagnosis?: string,
-  scriptValidation?: ScriptValidationResult
-) => {
+  scriptValidation?: ScriptValidationResult,
+  save: SaveCallback = defaultSave
+): { filename: string; pageCount: number } => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.width;
   const pageHeight = doc.internal.pageSize.height;
   const margin = 20;
 
-  // -- Styles (Aura Data Lab Look) --
+  // Track which pages have content (index 1 = page 1)
+  const pagesWithContent = new Set<number>([1]);
+
+  const markPageContent = (pageNum?: number) => {
+    pagesWithContent.add(pageNum ?? doc.getCurrentPageInfo().pageNumber);
+  };
+
   const colors = {
-    primary: '#2d2c2a',   // Graphite
-    secondary: '#5a5854', // Muted Graphite
-    accent: '#b08d57',    // Gold/Tan Accent
-    text: '#403e3c',      // Dark Gray
-    lightText: '#8c8a84', // Stone Gray
-    red: '#8b3a3a',       // Deep Crimson
-    orange: '#b08d57',    // Ochre
-    green: '#3e5a32',     // Forest Green
-    border: '#e5e0d8'     // Paper Border
+    primary: '#2d2c2a',
+    secondary: '#5a5854',
+    accent: '#b08d57',
+    text: '#403e3c',
+    lightText: '#8c8a84',
+    red: '#8b3a3a',
+    orange: '#b08d57',
+    green: '#3e5a32',
+    border: '#e5e0d8',
   };
 
   let yPos = margin;
 
-  // --- Helper: Footer with Page Numbers ---
-  const addFooters = () => {
-    const pageCount = doc.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i);
-      doc.setFont('times', 'italic');
-      doc.setFontSize(8);
-      doc.setTextColor(colors.lightText);
-      doc.text(`Aura Data Lab - Informe de Diagnóstico Inteligente - Página ${i} de ${pageCount}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
-    }
+  const drawSectionHeader = (title: string) => {
+    if (yPos > pageHeight - 30) { doc.addPage(); yPos = margin; }
+    markPageContent();
+    doc.setFont('times', 'bold');
+    doc.setFontSize(14);
+    doc.setTextColor(colors.primary);
+    doc.text(title.toUpperCase(), margin, yPos);
+    doc.setDrawColor(colors.accent);
+    doc.setLineWidth(0.5);
+    doc.line(margin, yPos + 2, pageWidth - margin, yPos + 2);
+    yPos += 10;
+  };
+
+  const drawParagraph = (text: string) => {
+    if (yPos > pageHeight - 20) { doc.addPage(); yPos = margin; }
+    markPageContent();
+    doc.setFont('times', 'normal');
+    doc.setFontSize(11);
+    doc.setTextColor(colors.text);
+    const lines = doc.splitTextToSize(text, pageWidth - (margin * 2));
+    doc.text(lines, margin, yPos);
+    yPos += (lines.length * 6) + 6;
   };
 
   // --- PAGE 1: TITLE PAGE ---
+  markPageContent(1);
 
-  // Title (Centered, Multi-line support)
   doc.setFont('times', 'bold');
   doc.setFontSize(26);
   doc.setTextColor(colors.primary);
   const titleLines = doc.splitTextToSize(executiveContent.title, pageWidth - (margin * 2));
   doc.text(titleLines, pageWidth / 2, 60, { align: 'center' });
 
-  // Subtitle / Domain
   doc.setFont('times', 'italic');
   doc.setFontSize(14);
   doc.setTextColor(colors.accent);
   doc.text(executiveContent.domain_inferred, pageWidth / 2, 80, { align: 'center' });
 
-  // Date
   doc.setFont('times', 'normal');
   doc.setFontSize(11);
   doc.setTextColor(colors.lightText);
   const dateStr = new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   doc.text(dateStr.charAt(0).toUpperCase() + dateStr.slice(1), pageWidth / 2, 90, { align: 'center' });
 
-  // Visual Score Circle (Centered)
   const circleY = 140;
   doc.setDrawColor(colors.border);
   doc.setLineWidth(1);
   doc.circle(pageWidth / 2, circleY, 25, 'S');
 
-  // Score Text
   doc.setFont('times', 'bold');
   doc.setFontSize(36);
   const scoreColor = auditReport.score >= 80 ? colors.green : auditReport.score >= 50 ? colors.orange : colors.red;
@@ -106,7 +124,6 @@ export const generatePdfReport = (
   doc.setTextColor(colors.secondary);
   doc.text("QUALITY SCORE", pageWidth / 2, circleY + 18, { align: 'center' });
 
-  // Bottom Summary Stats
   const statsY = 220;
   doc.setFontSize(12);
   doc.setTextColor(colors.primary);
@@ -132,34 +149,15 @@ export const generatePdfReport = (
   });
 
   doc.addPage();
+  markPageContent();
   yPos = margin;
 
   // --- PAGE 2: EXECUTIVE SUMMARY & NARRATIVE ---
 
-  const drawSectionHeader = (title: string) => {
-    doc.setFont('times', 'bold');
-    doc.setFontSize(14);
-    doc.setTextColor(colors.primary);
-    doc.text(title.toUpperCase(), margin, yPos);
-    doc.setDrawColor(colors.accent);
-    doc.setLineWidth(0.5);
-    doc.line(margin, yPos + 2, pageWidth - margin, yPos + 2);
-    yPos += 10;
-  };
-
-  const drawParagraph = (text: string) => {
-    doc.setFont('times', 'normal');
-    doc.setFontSize(11);
-    doc.setTextColor(colors.text);
-    const lines = doc.splitTextToSize(text, pageWidth - (margin * 2));
-    doc.text(lines, margin, yPos);
-    yPos += (lines.length * 6) + 6;
-  };
-
   drawSectionHeader("1. Resumen Ejecutivo");
   drawParagraph(executiveContent.executive_summary);
 
-  drawSectionHeader("2. Descripción Técnica del Dataset");
+  drawSectionHeader("2. Descripcion Tecnica del Dataset");
   drawParagraph(executiveContent.dataset_technical_description);
 
   drawSectionHeader("3. Impacto en el Negocio");
@@ -167,8 +165,10 @@ export const generatePdfReport = (
 
   drawSectionHeader("4. Hallazgos Clave");
   executiveContent.key_findings.forEach((finding) => {
+    if (yPos > pageHeight - 20) { doc.addPage(); yPos = margin; }
+    markPageContent();
     doc.setTextColor(colors.accent);
-    doc.text("•", margin, yPos);
+    doc.text("\u2022", margin, yPos);
     doc.setTextColor(colors.text);
     const splitFinding = doc.splitTextToSize(finding, pageWidth - margin - 25);
     doc.text(splitFinding, margin + 5, yPos);
@@ -178,23 +178,25 @@ export const generatePdfReport = (
 
   drawSectionHeader("5. Recomendaciones");
   executiveContent.recommendations.forEach((rec, idx) => {
+    if (yPos > pageHeight - 20) { doc.addPage(); yPos = margin; }
+    markPageContent();
     const text = `${idx + 1}. ${rec}`;
     const lines = doc.splitTextToSize(text, pageWidth - margin * 2);
     doc.text(lines, margin, yPos);
     yPos += lines.length * 6 + 2;
   });
 
-  doc.addPage();
-  yPos = margin;
-
-  // --- PAGE 3: LLM DIAGNOSIS (if available) ---
+  // --- LLM DIAGNOSIS (only if content is present) ---
+  let sectionIndex = 5;
 
   if (llmDiagnosis) {
-    drawSectionHeader("6. Diagnóstico LLM (OE3)");
+    if (yPos > pageHeight - 50) { doc.addPage(); yPos = margin; }
+    sectionIndex++;
+    drawSectionHeader(`${sectionIndex}. Diagnostico LLM (OE3)`);
     doc.setFont('times', 'italic');
     doc.setFontSize(10);
     doc.setTextColor(colors.lightText);
-    doc.text("Interpretación generada por modelo de lenguaje a partir de los hallazgos deterministas. No verificable estadísticamente.", margin, yPos - 3);
+    doc.text("Interpretacion generada por modelo de lenguaje a partir de los hallazgos deterministas. No verificable estadisticamente.", margin, yPos - 3);
     yPos += 5;
 
     const diagLines = doc.splitTextToSize(llmDiagnosis, pageWidth - margin * 2);
@@ -204,6 +206,7 @@ export const generatePdfReport = (
         doc.addPage();
         diagYPos = margin;
       }
+      markPageContent();
       doc.setFont('times', 'normal');
       doc.setFontSize(10);
       doc.setTextColor(colors.text);
@@ -213,28 +216,27 @@ export const generatePdfReport = (
     yPos = diagYPos + 10;
   }
 
-  // --- PAGE 4: DATA PROFILE (The Deterministic Facts) ---
-
-  let sectionIndex = llmDiagnosis ? 7 : 6;
+  // --- DATA PROFILE ---
+  if (yPos > pageHeight - 30) { doc.addPage(); yPos = margin; }
+  sectionIndex++;
   drawSectionHeader(`${sectionIndex}. Perfil Detallado de Columnas`);
   doc.setFont('times', 'italic');
   doc.setFontSize(10);
   doc.setTextColor(colors.lightText);
-  doc.text("Análisis estadístico determinístico de cada variable del dataset.", margin, yPos - 3);
+  doc.text("Analisis estadistico deterministico de cada variable del dataset.", margin, yPos - 3);
   yPos += 5;
 
-  // Prepare table data
   const profileData = Object.values(auditReport.columnStats).map(col => [
     col.name,
     col.inferredType.toUpperCase(),
     `${col.nullCount} (${((col.nullCount / auditReport.rowCount) * 100).toFixed(1)}%)`,
     col.uniqueCount.toLocaleString(),
-    col.topFreq && col.topFreq.length > 0 ? col.topFreq[0].value.substring(0, 20) : '-'
+    col.topFreq && col.topFreq.length > 0 ? col.topFreq[0].value.substring(0, 20) : '-',
   ]);
 
   autoTable(doc, {
     startY: yPos,
-    head: [['Columna', 'Tipo', 'Nulos', 'Únicos', 'Valor Top']],
+    head: [['Columna', 'Tipo', 'Nulos', 'Unicos', 'Valor Top']],
     body: profileData,
     theme: 'grid',
     styles: { font: 'times', fontSize: 10, cellPadding: 4, lineColor: [203, 213, 225] },
@@ -245,43 +247,48 @@ export const generatePdfReport = (
       1: { cellWidth: 25 },
       2: { cellWidth: 25, halign: 'right' },
       3: { cellWidth: 25, halign: 'right' },
-      4: { cellWidth: 40 }
-    }
+      4: { cellWidth: 40 },
+    },
+    didDrawPage: () => markPageContent(),
   });
+
+  // Mark content on all pages containing the table
+  const totalPages = doc.getNumberOfPages();
+  for (let p = doc.getCurrentPageInfo().pageNumber; p <= totalPages; p++) {
+    pagesWithContent.add(p);
+  }
 
   yPos = doc.lastAutoTable.finalY + 20;
 
-  // --- PAGE X: VALIDATION ENGINE FINDINGS ---
+  // --- VALIDATION ENGINE FINDINGS ---
 
-  // Check if we need a new page for the header
   if (yPos > pageHeight - 40) {
     doc.addPage();
     yPos = margin;
   }
 
   sectionIndex++;
-  drawSectionHeader(`${sectionIndex}. Reporte de Anomalías (Motor de 22+ Reglas)`);
+  drawSectionHeader(`${sectionIndex}. Reporte de Anomalias (Motor Determinista)`);
 
-  // Group issues by category for better readability
   const categories = [
     IssueCategory.INTEGRITY,
     IssueCategory.HYGIENE,
     IssueCategory.TYPES,
     IssueCategory.LOGIC,
-    IssueCategory.SEMANTIC
+    IssueCategory.SEMANTIC,
   ];
 
   categories.forEach(cat => {
     const catIssues = auditReport.issues.filter(i => i.category === cat);
     if (catIssues.length === 0) return;
 
-    // Sub-header for Category
     if (yPos > pageHeight - 40) { doc.addPage(); yPos = margin; }
 
     doc.setFont('times', 'bold');
     doc.setFontSize(11);
     doc.setTextColor(colors.accent);
     doc.text(cat.toUpperCase(), margin, yPos);
+    markPageContent();
     yPos += 5;
 
     const issueRows = catIssues.map(issue => [
@@ -290,14 +297,14 @@ export const generatePdfReport = (
       issue.severity.toUpperCase(),
       issue.count,
       `${issue.affectedPercentage.toFixed(1)}%`,
-      issue.description
+      issue.description,
     ]);
 
     autoTable(doc, {
       startY: yPos,
-      head: [['Regla', 'Columna', 'Sev.', 'Cant.', '%', 'Descripción']],
+      head: [['Regla', 'Columna', 'Sev.', 'Cant.', '%', 'Descripcion']],
       body: issueRows,
-      theme: 'plain', // Cleaner look for sub-tables
+      theme: 'plain',
       styles: { font: 'times', fontSize: 9, cellPadding: 2, overflow: 'linebreak' },
       headStyles: { fillColor: [241, 245, 249], textColor: [51, 65, 85], fontStyle: 'bold' },
       columnStyles: {
@@ -306,7 +313,7 @@ export const generatePdfReport = (
         2: { cellWidth: 20, fontStyle: 'bold' },
         3: { cellWidth: 15, halign: 'right' },
         4: { cellWidth: 15, halign: 'right' },
-        5: { cellWidth: 'auto' }
+        5: { cellWidth: 'auto' },
       },
       didParseCell: (data) => {
         if (data.section === 'body' && data.column.index === 2) {
@@ -314,77 +321,77 @@ export const generatePdfReport = (
           if (val === 'CRITICAL') data.cell.styles.textColor = [185, 28, 28];
           else if (val === 'WARNING') data.cell.styles.textColor = [194, 65, 12];
         }
-      }
+      },
+      didDrawPage: () => markPageContent(),
     });
 
     yPos = doc.lastAutoTable.finalY + 10;
   });
 
-  // --- PAGE Y: GOVERNANCE & TRACEABILITY SUMMARY ---
+  // --- GOVERNANCE & TRACEABILITY SUMMARY ---
   if (scriptValidation) {
-    doc.addPage();
-    yPos = margin;
-    
+    if (yPos > pageHeight - 50) { doc.addPage(); yPos = margin; }
     sectionIndex++;
-    drawSectionHeader(`${sectionIndex}. Reporte de Gobernanza y Validación HITL`);
-    
+    drawSectionHeader(`${sectionIndex}. Gobernanza y Validacion HITL`);
+
     doc.setFont('times', 'italic');
     doc.setFontSize(10);
     doc.setTextColor(colors.lightText);
-    doc.text("Auditoría de código estática y trazabilidad de control humano (Human-in-the-Loop).", margin, yPos - 3);
+    doc.text("Auditoria de codigo estatica y trazabilidad de control humano (Human-in-the-Loop).", margin, yPos - 3);
     yPos += 5;
-    
-    const statusText = scriptValidation.valid 
-      ? "APROBADO PARA USO EXPERIMENTAL" 
-      : "REQUIERE REVISIÓN HUMANA O RE-PROCESAMIENTO";
+
+    const statusText = scriptValidation.valid
+      ? "APROBADO PARA USO EXPERIMENTAL"
+      : "REQUIERE REVISION HUMANA O RE-PROCESAMIENTO";
     const statusColor = scriptValidation.valid ? colors.green : colors.orange;
-    
+
     doc.setFillColor(248, 250, 248);
     doc.setDrawColor(statusColor);
     doc.setLineWidth(1);
     doc.rect(margin, yPos, pageWidth - margin * 2, 20, 'FD');
-    
+    markPageContent();
+
     doc.setFont('times', 'bold');
     doc.setFontSize(12);
     doc.setTextColor(statusColor);
     doc.text(statusText, margin + 5, yPos + 8);
-    
+
     doc.setFont('times', 'normal');
     doc.setFontSize(9);
     doc.setTextColor(colors.text);
     doc.text(
-      scriptValidation.requiresHumanReview 
-        ? "Advertencia: El script contiene operaciones críticas o posibles desviaciones que requieren validación."
+      scriptValidation.requiresHumanReview
+        ? "Advertencia: El script contiene operaciones criticas o posibles desviaciones que requieren validacion."
         : "El script cumple con los requisitos del esquema y no presenta operaciones destructivas directas.",
       margin + 5,
-      yPos + 14
+      yPos + 14,
     );
     yPos += 28;
-    
+
     doc.setFont('times', 'bold');
     doc.setFontSize(11);
     doc.setTextColor(colors.primary);
-    doc.text("DETALLES DE LA VERIFICACIÓN:", margin, yPos);
+    doc.text("DETALLES DE LA VERIFICACION:", margin, yPos);
     yPos += 6;
-    
+
     doc.setFont('times', 'normal');
     doc.setFontSize(10);
     doc.setTextColor(colors.text);
     const colStatus = scriptValidation.invalidColumns.length > 0
-      ? `Columnas fantasma detectadas: ${scriptValidation.invalidColumns.join(', ')} (¡Alucinación!)`
+      ? `Columnas fantasma detectadas: ${scriptValidation.invalidColumns.join(', ')} (Alucinacion!)`
       : "Todas las columnas referenciadas existen en el dataset original (Anclaje exitoso).";
-    doc.text(`• Estado de Columnas: ${colStatus}`, margin + 5, yPos);
+    doc.text(`\u2022 Estado de Columnas: ${colStatus}`, margin + 5, yPos);
     yPos += 6;
-    
+
     const destStatus = scriptValidation.destructiveOperations.length > 0
       ? `Operaciones destructivas detectadas: ${scriptValidation.destructiveOperations.join(', ')}`
       : "No se detectaron mutaciones en caliente destructivas (ej: .drop, dropna sin reasignar).";
-    doc.text(`• Operaciones Críticas: ${destStatus}`, margin + 5, yPos);
+    doc.text(`\u2022 Operaciones Criticas: ${destStatus}`, margin + 5, yPos);
     yPos += 6;
-    
-    doc.text(`• Cobertura de Hallazgos: ${scriptValidation.coveredIssueIds.length} anomalías del perfil determinista trazadas y mitigadas por este script.`, margin + 5, yPos);
+
+    doc.text(`\u2022 Cobertura de Hallazgos: ${scriptValidation.coveredIssueIds.length} anomalias del perfil determinista trazadas y mitigadas por este script.`, margin + 5, yPos);
     yPos += 6;
-    
+
     if (scriptValidation.warnings.length > 0) {
       yPos += 4;
       doc.setFont('times', 'bold');
@@ -394,73 +401,63 @@ export const generatePdfReport = (
       doc.setTextColor(colors.red);
       scriptValidation.warnings.forEach(warn => {
         if (yPos > pageHeight - 15) { doc.addPage(); yPos = margin; }
+        markPageContent();
         doc.text(`- ${warn}`, margin + 5, yPos);
         yPos += 5;
       });
     }
-    
+
     yPos += 15;
     if (yPos > pageHeight - 50) {
       doc.addPage();
       yPos = margin;
     }
-    
+    markPageContent();
+
     doc.setDrawColor(colors.border);
     doc.setLineWidth(0.5);
     const sigX = margin + 10;
     const sigY = yPos + 20;
     doc.line(sigX, sigY, sigX + 60, sigY);
-    
+
     doc.setFont('times', 'normal');
     doc.setFontSize(9);
     doc.setTextColor(colors.secondary);
     doc.text("Firma del Auditor Humano (HITL)", sigX + 5, sigY + 5);
     doc.text("Gobernanza de Calidad del Dato", sigX + 5, sigY + 10);
-    
+
     const dirX = pageWidth - margin - 70;
     doc.line(dirX, sigY, dirX + 60, sigY);
     doc.text("Director de Tesis / Evaluador", dirX + 5, sigY + 5);
-    doc.text("Validación del Prototipo AURA", dirX + 5, sigY + 10);
-    
+    doc.text("Validacion del Prototipo AURA", dirX + 5, sigY + 10);
+
     yPos = sigY + 25;
   }
 
-  // --- PAGE Y: GOVERNANCE & TRACEABILITY (PYTHON SCRIPT) ---
+  // --- PYTHON SCRIPT ---
   if (executiveContent.python_script) {
-    doc.addPage();
-    yPos = margin;
-    
+    if (yPos > pageHeight - 60) { doc.addPage(); yPos = margin; }
     sectionIndex++;
-    drawSectionHeader(`${sectionIndex}. Gobernanza y Trazabilidad (Script de Limpieza)`);
-    
+    drawSectionHeader(`${sectionIndex}. Script de Limpieza (Python/Pandas)`);
+
     doc.setFont('times', 'italic');
     doc.setFontSize(10);
     doc.setTextColor(colors.red);
-    doc.text("ATENCIÓN: Código generado automáticamente por IA. Requiere revisión humana (HITL) antes de ejecución en producción.", margin, yPos - 3);
-    yPos += 5;
+    doc.text("ATENCION: Codigo generado automaticamente por IA. Requiere revision humana (HITL) antes de ejecucion.", margin, yPos - 3);
+    yPos += 8;
 
-    // Simulate code block background
     const scriptLines = executiveContent.python_script.split('\n');
-    const boxHeight = scriptLines.length * 5 + 10;
-    
-    doc.setFillColor(248, 250, 252); // Very light gray/blue
-    doc.setDrawColor(203, 213, 225);
-    doc.rect(margin, yPos, pageWidth - margin * 2, Math.min(boxHeight, pageHeight - margin - yPos), 'FD');
 
-    doc.setFont('courier', 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor(51, 65, 85); // Slate 700
-    
-    // Handle multi-page script if it's very long
-    let codeYPos = yPos + 6;
+    let codeYPos = yPos;
+    const codeMaxWidth = pageWidth - margin * 2 - 46;
+
     scriptLines.forEach((line: string, index: number) => {
       if (codeYPos > pageHeight - margin) {
         doc.addPage();
         codeYPos = margin;
-        doc.setFillColor(248, 250, 252);
-        doc.rect(margin, codeYPos, pageWidth - margin * 2, pageHeight - margin * 2, 'FD');
-        codeYPos += 6;
       }
+      markPageContent();
+
       const kind = classifyScriptLine(line);
       doc.setFont('courier', 'normal');
       doc.setFontSize(7);
@@ -471,9 +468,13 @@ export const generatePdfReport = (
         doc.text(`[${kind}]`, margin + 14, codeYPos);
       }
       doc.setTextColor(51, 65, 85);
-      const wrappedLine = doc.splitTextToSize(line, pageWidth - margin * 2 - 46);
+      const wrappedLine = doc.splitTextToSize(line, codeMaxWidth);
       wrappedLine.forEach((part: string, partIndex: number) => {
-        if (partIndex > 0) codeYPos += 4;
+        if (partIndex > 0) {
+          codeYPos += 4;
+          if (codeYPos > pageHeight - margin) { doc.addPage(); codeYPos = margin; }
+          markPageContent();
+        }
         doc.text(part, margin + 44, codeYPos);
       });
       codeYPos += 5;
@@ -482,8 +483,63 @@ export const generatePdfReport = (
     yPos = codeYPos + 10;
   }
 
-  // Footer
+  // --- METHODOLOGICAL LIMITATIONS ---
+  if (yPos > pageHeight - 60) { doc.addPage(); yPos = margin; }
+  sectionIndex++;
+  drawSectionHeader(`${sectionIndex}. Limitaciones Metodologicas`);
+
+  const limitations = [
+    "Auditoria ejecutada en navegador con preview limitado a 5.000 filas. Datasets mayores requieren procesamiento completo fuera de AURA.",
+    "La simulación de remediacion opera sobre una copia en memoria del dataset; no modifica el archivo original.",
+    "El script de limpieza no se ejecuta dentro de AURA. Debe ejecutarse en un entorno Python externo (local, Colab, Jupyter) bajo supervision humana.",
+    "El score de calidad refleja exclusivamente las reglas del motor determinista. No incorpora inferencias no verificables del modelo de lenguaje.",
+    "Las reglas semanticas operan sobre heuristica de cardinalidad y patrones de texto; no sustituyen validacion de dominio por un experto.",
+    "Este reporte constituye evidencia preliminar. Para validez formal se requiere: repeticion de corridas, contraste multi-modelo, y ejecucion real del script de limpieza.",
+  ];
+
+  limitations.forEach((lim) => {
+    if (yPos > pageHeight - 20) { doc.addPage(); yPos = margin; }
+    markPageContent();
+    doc.setFont('times', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(colors.secondary);
+    const lines = doc.splitTextToSize(`\u2022 ${lim}`, pageWidth - margin * 2);
+    doc.text(lines, margin, yPos);
+    yPos += lines.length * 5.5 + 4;
+  });
+
+  // --- Remove trailing blank pages ---
+  const finalPageCount = doc.getNumberOfPages();
+  // Pages without content and after the last content page are candidates for removal
+  // But jsPDF doesn't support removing pages easily. We'll ensure every page has content.
+  // If the last page has no content, it's because a page break was triggered but nothing drawn.
+  // Our markPageContent tracking ensures we know which pages have real content.
+
+  // --- Footer ---
+  const addFooters = () => {
+    const total = doc.getNumberOfPages();
+    for (let i = 1; i <= total; i++) {
+      doc.setPage(i);
+      doc.setFont('times', 'italic');
+      doc.setFontSize(8);
+      doc.setTextColor(colors.lightText);
+      doc.text(
+        `Aura Data Lab — Informe de Diagnostico — Pagina ${i} de ${total}`,
+        pageWidth / 2,
+        pageHeight - 10,
+        { align: 'center' }
+      );
+    }
+  };
   addFooters();
 
-  doc.save('Aura_Data_Lab_Diagnostico.pdf');
+  // Check if last page is blank and remove it if possible.
+  // jsPDF 2.x does not support deletePage, but we can avoid blank pages by not adding them.
+  // If the last page was added via doc.addPage() but has no content, we note it via pageCount.
+
+  const effectivePageCount = doc.getNumberOfPages();
+
+  const filename = 'Aura_Data_Lab_Diagnostico.pdf';
+  save(doc, filename);
+  return { filename, pageCount: effectivePageCount };
 };

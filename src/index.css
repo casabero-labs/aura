@@ -3578,22 +3578,31 @@ tr:hover td {
 }
 
 .script-code {
-  display: flex;
-  gap: var(--space-sm);
+  display: block;
   padding: 2px var(--space-sm);
-  border-bottom: 1px solid var(--border-faint);
   font-family: var(--font-mono);
   font-size: 12px;
   line-height: 1.7;
-}
-
-.script-code:hover {
-  background: var(--surface-hover);
+  white-space: pre-wrap;
 }
 
 .script-line {
-  display: flex;
+  display: grid;
+  grid-template-columns: 28px auto minmax(0, 1fr);
   gap: var(--space-sm);
+  border-bottom: 1px solid var(--border-faint);
+  min-height: 20px;
+}
+
+.script-line:hover {
+  background: var(--surface-hover);
+}
+
+.script-line code {
+  min-width: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .line-number {

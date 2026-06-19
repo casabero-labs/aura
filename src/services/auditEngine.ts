@@ -578,9 +578,12 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
     const isEmailCol = col.toLowerCase().includes('mail') || col.toLowerCase().includes('correo');
     const isPhoneCol = col.toLowerCase().includes('phone') || col.toLowerCase().includes('tel') || col.toLowerCase().includes('cel') || col.toLowerCase().includes('movil');
     const isIdCol = col.toLowerCase().includes('id') || col.toLowerCase().endsWith('cod') || col.toLowerCase().endsWith('code') || col.toLowerCase().endsWith('key');
-    const isUrlCol = col.toLowerCase().includes('url') || col.toLowerCase().includes('web') || col.toLowerCase().includes('link') || col.toLowerCase().includes('sitio');
+    const isUrlCol = /\b(?:url|web|link|sitio|website|href)\b/i.test(col);
     const isNameCol = col.toLowerCase().includes('name') || col.toLowerCase().includes('nombre') || col.toLowerCase().includes('ape');
     const isDateTimeLikeColumn = looksLikeDateTimeColumn(col, values, rowCount);
+
+    // A categorical taxonomy column should not be treated as an ID or name for symbol chaos
+    const isCategoricalTaxonomy = stats.inferredType === 'string' && stats.uniqueCount <= Math.max(20, rowCount * 0.3);
 
     // --- Row Iteration ---
     values.forEach(val => {
@@ -626,7 +629,7 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
       }
 
       // 10. Disguised Numbers
-      if (stats.inferredType === 'string' && !isNaN(Number(val)) && val !== '' && !isPhoneCol && !isIdCol) {
+      if (stats.inferredType === 'string' && !isNaN(Number(val)) && val !== '' && !isPhoneCol && !isIdCol && !isDateTimeLikeColumn) {
         disguisedNumberCount++;
         if (samples.disguised.length < 3) samples.disguised.push(val);
       }
@@ -720,7 +723,7 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
       }
 
       // 22. Symbol Chaos in Clean Columns
-      if (typeof val === 'string' && (isIdCol || isNameCol) && REGEX_SYMBOLS.test(val)) {
+      if (typeof val === 'string' && (isIdCol || isNameCol) && !isCategoricalTaxonomy && REGEX_SYMBOLS.test(val)) {
         if (!val.includes('.') || (isIdCol && REGEX_SYMBOLS.test(val.replace(/\./g, '')))) {
           symbolChaosCount++;
           if (samples.symbol.length < 3) samples.symbol.push(val);
@@ -1042,6 +1045,69 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
       }
     }
   }
+
+  // 26. Semantic ID Contamination — Cross Column
+  const looksLikeIdentifierColumn = (col: string, stats: ColumnStats): boolean => {
+    const lower = col.toLowerCase();
+    return lower.includes('id') || lower.endsWith('code') || lower.endsWith('key') || stats.semanticType === 'uuid';
+  };
+
+  const detectVocabularyLeakage = (
+    field: string,
+    values: any[],
+    allFields: string[],
+    data: Record<string, any>[],
+    rowCount: number
+  ): { count: number; samples: string[]; sourceColumns: string[] } => {
+    const foreignVocabulary = new Set<string>();
+    const sourceColumns = new Set<string>();
+
+    allFields
+      .filter(other => other !== field)
+      .forEach(other => {
+        const otherValues = data.map(row => row[other]).filter(v => typeof v === 'string').map(normalizeCategoryValue);
+        const unique = new Set(otherValues);
+        if (unique.size > 1 && unique.size <= Math.max(50, rowCount * 0.2)) {
+          unique.forEach(value => {
+            if (value.length > 0) {
+              foreignVocabulary.add(value);
+              sourceColumns.add(other);
+            }
+          });
+        }
+      });
+
+    const hits = values
+      .map(value => normalizeCategoryValue(value))
+      .filter(value => value && value.length > 0 && foreignVocabulary.has(value));
+
+    return { count: hits.length, samples: Array.from(new Set(hits)).slice(0, 5), sourceColumns: Array.from(sourceColumns) };
+  };
+
+  fields.forEach(col => {
+    const stats = colStats[col];
+    if (!looksLikeIdentifierColumn(col, stats)) return;
+    const values = data.map(r => r[col]);
+
+    const leakage = detectVocabularyLeakage(col, values, fields, data, rowCount);
+    const leakagePct = (leakage.count / rowCount) * 100;
+
+    if (leakage.count >= 3 && leakagePct >= 1) {
+      const sourceList = leakage.sourceColumns.join(', ');
+      addDeduction(`Contaminación Semántica de ID [${col}]`, 5, IssueCategory.SEMANTIC);
+      issues.push({
+        id: `semantic-id-contamination-${col}`,
+        column: col,
+        ruleName: 'Contaminación Semántica de ID',
+        category: IssueCategory.SEMANTIC,
+        description: `La columna '${col}' parece un identificador pero contiene ${leakage.count} valores que coinciden con el vocabulario de otra(s) columna(s) categórica(s) (${sourceList}). Probable desplazamiento de columnas, coalescencia o error ETL.`,
+        severity: IssueSeverity.WARNING,
+        count: leakage.count,
+        affectedPercentage: leakagePct,
+        sampleValues: leakage.samples,
+      });
+    }
+  });
 
   let normalizedPenalty = penaltyPoints;
   if (rowCount < 100) {

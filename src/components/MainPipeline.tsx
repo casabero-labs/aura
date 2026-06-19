@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import FileUpload from './FileUpload';
 import PipelineProgress from './PipelineProgress';
 import ProgressDisclosure from './ProgressDisclosure';
@@ -66,8 +66,13 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, onLog
   const [processProgressStatus, setProcessProgressStatus] = useState<ProgressDisclosureStatus>('idle');
   const [processProgressStep, setProcessProgressStep] = useState('');
 
-  // Sync pipeline data upward to parent
+  // Sync pipeline data upward to parent (deferred to avoid overwriting App's session restore)
+  const mountCountRef = useRef(0);
   React.useEffect(() => {
+    if (mountCountRef.current < 2) {
+      mountCountRef.current += 1;
+      return;
+    }
     onPipelineChange?.({
       state, file, report, auditEvidence, rawData, csvFields, csvDelimiter,
       cleaningScript, approvedScript, healthDelta, aiAnalysis,
