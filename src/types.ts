@@ -33,6 +33,7 @@ export interface QualityIssue {
   count: number;
   affectedPercentage: number;
   sampleValues: any[];
+  evidenceNote?: string;
 }
 
 export type SemanticType = 'string' | 'number' | 'boolean' | 'date' | 'mixed' | 'email' | 'phone' | 'ip' | 'url' | 'currency' | 'percentage' | 'uuid' | 'zip';

@@ -173,6 +173,71 @@ describe('AuditEngine - Deterministic Rules', () => {
       expect(freshnessIssue!.severity).toBe(IssueSeverity.CRITICAL);
     });
   });
+
+  describe('R07 Caos de Capitalización', () => {
+    it('detects Bogotá/BOGOTÁ/bogotá with grouped evidence', () => {
+      const data = [
+        { ciudad: 'Bogotá' },
+        { ciudad: 'BOGOTÁ' },
+        { ciudad: 'bogotá' },
+        { ciudad: 'Medellín' },
+        { ciudad: 'Cali' },
+      ];
+
+      const result = runAudit(data, ['ciudad'], ',');
+      const issue = result.issues.find(i => i.id === 'hygiene-case-ciudad');
+
+      expect(issue).toBeDefined();
+      expect(issue!.ruleName).toBe('Caos de Capitalización');
+      expect(issue!.count).toBe(3);
+      expect(issue!.affectedPercentage).toBeGreaterThan(0);
+      expect(issue!.sampleValues).toContain('bogota: Bogotá | BOGOTÁ | bogotá');
+    });
+
+    it('does not detect AM/am variants in datetime columns', () => {
+      const data = [
+        { CallDateTime: '2024-01-01 08:00 AM' },
+        { CallDateTime: '2024-01-01 08:00 am' },
+        { CallDateTime: '2024-01-02 09:30 AM' },
+        { CallDateTime: '2024-01-02 09:30 am' },
+      ];
+
+      const result = runAudit(data, ['CallDateTime'], ',');
+      const issue = result.issues.find(i => i.id === 'hygiene-case-CallDateTime');
+
+      expect(issue).toBeUndefined();
+    });
+
+    it('does not detect differences caused only by spaces', () => {
+      const data = [
+        { ciudad: 'Bogotá' },
+        { ciudad: ' Bogotá ' },
+        { ciudad: 'Bogotá  ' },
+        { ciudad: 'Medellín' },
+      ];
+
+      const result = runAudit(data, ['ciudad'], ',');
+      const issue = result.issues.find(i => i.id === 'hygiene-case-ciudad');
+
+      expect(issue).toBeUndefined();
+    });
+
+    it('reports a non-zero affectedPercentage whenever count is greater than zero', () => {
+      const data = [
+        { ciudad: 'Lima' },
+        { ciudad: 'LIMA' },
+        { ciudad: 'Quito' },
+        { ciudad: 'Quito' },
+      ];
+
+      const result = runAudit(data, ['ciudad'], ',');
+      const issue = result.issues.find(i => i.id === 'hygiene-case-ciudad');
+
+      expect(issue).toBeDefined();
+      expect(issue!.count).toBeGreaterThan(0);
+      expect(issue!.affectedPercentage).toBeGreaterThan(0);
+    });
+  });
 });
 
 describe('Per-Rule TP/FP/FN on Titanic dataset', () => {

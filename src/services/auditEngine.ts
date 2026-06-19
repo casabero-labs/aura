@@ -119,6 +119,74 @@ const isLikelyTextDimension = (col: string, stats: ColumnStats, rowCount: number
     && !excludedHints.some(hint => lower.includes(hint));
 };
 
+const R07_EXCLUDED_SEMANTIC_TYPES = new Set<ColumnStats['semanticType']>(['date', 'email', 'phone', 'url', 'uuid', 'zip']);
+const R07_EXCLUDED_NAME_HINTS = [
+  'datetime', 'date_time', 'timestamp', 'fecha_hora', 'calltime', 'call_time', 'calldatetime',
+  'date', 'fecha', 'time', 'hora', 'id', 'uuid', 'guid', 'email', 'mail', 'correo', 'phone',
+  'tel', 'cel', 'movil', 'url', 'link', 'web', 'zip', 'postal', 'codigo_postal', 'zipcode'
+];
+
+const shouldSkipCapitalizationChaos = (
+  col: string,
+  stats: ColumnStats,
+  values: any[],
+  rowCount: number
+): boolean => {
+  const lower = col.toLowerCase().replace(/[^a-z0-9_]/g, '');
+  return stats.inferredType !== 'string'
+    || R07_EXCLUDED_SEMANTIC_TYPES.has(stats.semanticType)
+    || R07_EXCLUDED_NAME_HINTS.some(hint => lower.includes(hint.replace(/[^a-z0-9_]/g, '')))
+    || looksLikeDateTimeColumn(col, values, rowCount)
+    || looksLikeTimeColumn(col, values, rowCount);
+};
+
+const normalizeCapitalizationKey = (value: string): string => value
+  .trim()
+  .replace(/\s+/g, ' ')
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .toLocaleLowerCase('es-CO');
+
+const canonicalCapitalizationVariant = (value: string): string => value.trim().replace(/\s+/g, ' ');
+
+const detectCapitalizationVariantGroups = (
+  values: any[]
+): { affectedRows: number; samples: string[] } => {
+  const groups = new Map<string, { variants: Set<string>; rowIndexes: Set<number> }>();
+
+  values.forEach((value, rowIndex) => {
+    if (typeof value !== 'string') return;
+    const variant = canonicalCapitalizationVariant(value);
+    if (!variant) return;
+    const key = normalizeCapitalizationKey(variant);
+    if (!key) return;
+
+    const group = groups.get(key) || { variants: new Set<string>(), rowIndexes: new Set<number>() };
+    group.variants.add(variant);
+    group.rowIndexes.add(rowIndex);
+    groups.set(key, group);
+  });
+
+  const variantGroups = Array.from(groups.entries())
+    .map(([normalizedKey, group]) => ({
+      normalizedKey,
+      variants: Array.from(group.variants),
+      rowIndexes: group.rowIndexes
+    }))
+    .filter(group => group.variants.length > 1)
+    .filter(group => new Set(group.variants.map(variant => variant.toLocaleLowerCase('es-CO'))).size === 1);
+
+  const affectedRowIndexes = new Set<number>();
+  variantGroups.forEach(group => group.rowIndexes.forEach(rowIndex => affectedRowIndexes.add(rowIndex)));
+
+  return {
+    affectedRows: affectedRowIndexes.size,
+    samples: variantGroups
+      .slice(0, 3)
+      .map(group => `${group.normalizedKey}: ${group.variants.slice(0, 5).join(' | ')}`)
+  };
+};
+
 const detectControlledVocabularyVariants = (values: any[]): { group: string; variants: string[]; count: number }[] => {
   const normalizedValues = values
     .filter(v => v !== null && v !== undefined && v !== '')
@@ -467,7 +535,6 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
     // Prepare for row iteration
     let ghostSpaceCount = 0;
     let mojibakeCount = 0;
-    let capChaosSet = new Set<string>();
     let toxicCount = 0;
     let overflowCount = 0;
     let disguisedNumberCount = 0;
@@ -531,11 +598,6 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
       if (typeof val === 'string' && REGEX_MOJIBAKE.test(val)) {
         mojibakeCount++;
         if (samples.mojibake.length < 3) samples.mojibake.push(val);
-      }
-
-      // 7. Cap Chaos (Data Collection)
-      if (typeof val === 'string' && val.length > 0) {
-        capChaosSet.add(val.toLowerCase());
       }
 
       // 8. Toxic Placeholders
@@ -695,12 +757,21 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
       issues.push({ id: `logic-mixed-date-${col}`, column: col, category: IssueCategory.LOGIC, ruleName: 'Formatos de Fecha Mixtos', description: 'Múltiples estándares de fecha (ISO y DMY) en la misma columna.', severity: IssueSeverity.WARNING, count: Math.min(isoDateCount, dmyDateCount), affectedPercentage: (Math.min(isoDateCount, dmyDateCount) / rowCount) * 100, sampleValues: samples.mixedDate });
     }
 
-    if (stats.inferredType === 'string' && stats.uniqueCount > 0) {
-      const distinctLower = capChaosSet.size;
-      // If unique count > lower unique count, we have "Lima" vs "LIMA"
-      if (stats.uniqueCount > distinctLower && stats.uniqueCount < rowCount * 0.8) {
+    if (!shouldSkipCapitalizationChaos(col, stats, values, rowCount)) {
+      const capitalizationVariants = detectCapitalizationVariantGroups(values);
+      if (capitalizationVariants.affectedRows > 0) {
         addDeduction(`Caos de Mayúsculas en [${col}]`, 3, IssueCategory.HYGIENE);
-        issues.push({ id: `hygiene-case-${col}`, column: col, category: IssueCategory.HYGIENE, ruleName: 'Caos de Capitalización', description: 'Mismos valores escritos con distintas mayúsculas.', severity: IssueSeverity.INFO, count: stats.uniqueCount - distinctLower, affectedPercentage: 0, sampleValues: [] });
+        issues.push({
+          id: `hygiene-case-${col}`,
+          column: col,
+          category: IssueCategory.HYGIENE,
+          ruleName: 'Caos de Capitalización',
+          description: 'Mismos valores escritos con distintas mayúsculas en una misma columna categórica.',
+          severity: IssueSeverity.INFO,
+          count: capitalizationVariants.affectedRows,
+          affectedPercentage: (capitalizationVariants.affectedRows / rowCount) * 100,
+          sampleValues: capitalizationVariants.samples
+        });
       }
     }
 

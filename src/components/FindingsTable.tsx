@@ -33,9 +33,12 @@ const suggestAction = (issue: QualityIssue) => {
   return issue.category === IssueCategory.TYPES ? 'Documentar tipo' : 'Normalizar si aplica';
 };
 
-const sampleText = (values: unknown[]) => {
-  if (!values.length) return '-';
-  return values.slice(0, 3).map((value) => JSON.stringify(value)).join(' · ');
+const sampleText = (issue: QualityIssue) => {
+  if (issue.sampleValues.length) {
+    return issue.sampleValues.slice(0, 3).map((value) => JSON.stringify(value)).join(' · ');
+  }
+  if (issue.evidenceNote) return 'Sin muestra disponible';
+  return 'Muestra pendiente de instrumentación';
 };
 
 const FindingsTable: React.FC<FindingsTableProps> = ({ issues, rowCount }) => {
@@ -156,7 +159,7 @@ const FindingsTable: React.FC<FindingsTableProps> = ({ issues, rowCount }) => {
               </div>
               <div>
                 <span>evidencia</span>
-                <strong>{sampleText(issue.sampleValues)}</strong>
+                <strong>{sampleText(issue)}</strong>
               </div>
               <div>
                 <span>acción sugerida</span>
