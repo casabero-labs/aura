@@ -17,8 +17,9 @@ export const buildEvidenceManifest = (params: {
   scriptValidation?: ScriptValidationResult | null;
   hitlDecision?: HitlDecision | null;
   healthDeltaPoints?: number;
+  remediationClassification?: 'source_debt_preserved' | 'improvement';
 }): EvidenceManifest => {
-  const { auditEvidence, deterministicValidation, benchmarkResults, scriptValidation, hitlDecision, healthDeltaPoints } = params;
+  const { auditEvidence, deterministicValidation, benchmarkResults, scriptValidation, hitlDecision, healthDeltaPoints, remediationClassification } = params;
 
   const hasGroundTruth = deterministicValidation?.groundTruthMatched ?? false;
   const benchmarkFormalCount = benchmarkResults.filter(r => r.evidenceStatus === 'formal_valid').length;
@@ -98,7 +99,24 @@ export const buildEvidenceManifest = (params: {
     healthDelta: (healthDeltaPoints !== undefined && hitlDecision?.approved ? 'formal' : healthDeltaPoints !== undefined ? 'preliminary' : 'none') as 'formal' | 'preliminary' | 'none',
   };
 
-  // ── Artifacts ──
+  const limitations: string[] = [
+    'Simulación de remediación sobre copia en memoria; no modifica el archivo original.',
+    'Benchmark LLM puede ser preliminar si no hay API keys o WebGPU activos.',
+    'Ground truth disponible solo para datasets sintético y Titanic.',
+    'Métricas deterministas por regla usan detección binaria (rule fired / not fired), no conteo de filas.',
+  ];
+
+  if (remediationClassification === 'source_debt_preserved') {
+    limitations.push(
+      'La remediación preserva deuda de fuente: el score no mejora bajo runAudit porque la deuda de CrimeId es de origen (columna contaminada en el sistema fuente). Se requieren columnas auxiliares de trazabilidad.',
+      'La remediación no corrige el dato primario: CrimeId contaminado permanece como evidencia en crimeid_original. El placeholder usado en CrimeId no constituye una corrección, sino una marcación.',
+    );
+  }
+
+  if (auditEvidence?.truncated) {
+    limitations.push('Dataset truncado a 5000 filas (modo preview del navegador).');
+  }
+
   const artifacts: string[] = [];
   if (auditEvidence?.ingestionStatus === 'success') artifacts.push('auditEvidence (JSON)');
   if (hasGroundTruth) artifacts.push('deterministicValidation (JSON)');
@@ -107,16 +125,8 @@ export const buildEvidenceManifest = (params: {
   if (scriptValidation?.hasScript) artifacts.push('cleaningScript (Python)');
   if (hitlDecision?.approved) artifacts.push('hitlDecision (JSON)');
   if (healthDeltaPoints !== undefined) artifacts.push('healthDelta (JSON)');
-
-  const limitations: string[] = [
-    'Simulación de remediación sobre copia en memoria; no modifica el archivo original.',
-    'Benchmark LLM puede ser preliminar si no hay API keys o WebGPU activos.',
-    'Ground truth disponible solo para datasets sintético y Titanic.',
-    'Métricas deterministas por regla usan detección binaria (rule fired / not fired), no conteo de filas.',
-  ];
-
-  if (auditEvidence?.truncated) {
-    limitations.push('Dataset truncado a 5000 filas (modo preview del navegador).');
+  if (remediationClassification === 'source_debt_preserved') {
+    artifacts.push('sourceDebtEvidence (delta JSON)');
   }
 
   return {

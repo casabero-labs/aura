@@ -218,7 +218,7 @@ const App: React.FC = () => {
       // Delay state update to let the UI render the progress
       await new Promise(resolve => setTimeout(resolve, 100));
       setPdfProgressMsg('Generando páginas del reporte...');
-      generatePdfReport(report, buildDeterministicPdfContent(report, approvedCleaningScript), aiAnalysis, scriptValidation);
+      generatePdfReport(report, buildDeterministicPdfContent(report, approvedCleaningScript), aiAnalysis, scriptValidation, undefined, improvementRun?.healthDelta ?? null);
       setPdfProgressStatus('success');
       setPdfProgressMsg('Reporte PDF descargado');
       setHasExported(true);

@@ -278,6 +278,21 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
               </div>
             </div>
           )}
+
+          {(healthDelta.scoreDelta < 0 || healthDelta.criticalDelta > 0) && (
+            <div className="review-delta-zero-warning" style={{ borderColor: 'var(--error)', background: 'color-mix(in srgb, var(--error) 8%, transparent)' }}>
+              <TriangleAlert size={16} style={{ color: 'var(--error)', flexShrink: 0 }} />
+              <div>
+                <strong>Preservación de deuda de fuente: el score no mejora.</strong>
+                <p>La remediación preserva deuda de fuente: el score oficial no mejora bajo runAudit. Deuda de CrimeId es de origen (columna contaminada en el sistema fuente). La remediación no corrige el dato primario. Se requieren columnas auxiliares de trazabilidad.</p>
+                {healthDelta.criticalDelta > 0 && (
+                  <p style={{ marginTop: '4px', color: 'var(--error)' }}>
+                    Advertencia: {healthDelta.criticalDelta} hallazgo(s) crítico(s) adicional(es) detectado(s) después de la remediación.
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

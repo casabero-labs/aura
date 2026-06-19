@@ -46,6 +46,8 @@ Para la segunda entrega, esta tabla debe completarse únicamente con corridas ex
 ## Caso Incidentes Policiales: diagnóstico generativo vs regla determinista
 
 > Ver artefacto completo: `docs/tercera_entrega_aura/03_evidencia/results/incidentes_policiales_aura_vs_gemini.md`
+>
+> **Delta real documentado (Loop 5c/5d):** score 65→26 (delta −39) vía Python externo + runAudit oficial. Clasificado como `source_debt_preserved`. Ver `experiments/tests/results/incidentes_colab_delta_fixture.json` y `RESUMEN_CIERRE_INCIDENTES_POLICIALES.md`.
 
 ### Resumen del caso
 

@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { AuditReport, ExecutiveReportContent, IssueSeverity, IssueCategory, ScriptValidationResult } from '../types';
+import { AuditReport, ExecutiveReportContent, IssueSeverity, IssueCategory, ScriptValidationResult, HealthDelta } from '../types';
 
 declare module 'jspdf' {
   interface jsPDF {
@@ -37,7 +37,8 @@ export const generatePdfReport = (
   executiveContent: ExecutiveReportContent,
   llmDiagnosis?: string,
   scriptValidation?: ScriptValidationResult,
-  save: SaveCallback = defaultSave
+  save: SaveCallback = defaultSave,
+  healthDelta?: HealthDelta | null
 ): { filename: string; pageCount: number } => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.width;
@@ -185,6 +186,33 @@ export const generatePdfReport = (
     doc.text(lines, margin, yPos);
     yPos += lines.length * 6 + 2;
   });
+
+  // --- SOURCE DEBT WARNING (when delta ≤ 0) ---
+  if (healthDelta && healthDelta.scoreDelta <= 0) {
+    if (yPos > pageHeight - 40) { doc.addPage(); yPos = margin; }
+    sectionIndex++;
+    drawSectionHeader(`${sectionIndex}. Preservacion de Deuda de Fuente`);
+    yPos += 3;
+    doc.setFillColor(139, 58, 58);
+    doc.rect(margin, yPos, pageWidth - margin * 2, 22, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(10);
+    const warningLines = doc.splitTextToSize(
+      'La remediacion aplicada preserva deuda de fuente. El score no mejora bajo runAudit porque la deuda de CrimeId es de origen (columna contaminada en el sistema fuente). La remediacion no corrige el dato primario: CrimeId permanece como evidencia en columnas auxiliares. Deuda de fuente presente.',
+      pageWidth - margin * 2 - 10
+    );
+    doc.text(warningLines.slice(0, 3), margin + 5, yPos + 7);
+    yPos += 27;
+    doc.setTextColor(colors.text);
+    if (healthDelta.criticalDelta > 0) {
+      doc.setFontSize(9);
+      const criticalWarning = `Advertencia: ${healthDelta.criticalDelta} hallazgo(s) critico(s) adicional(es) detectado(s) despues de la remediacion. El score oficial no mejora. La deuda de fuente persiste.`;
+      const critLines = doc.splitTextToSize(criticalWarning, pageWidth - margin * 2);
+      doc.text(critLines, margin, yPos);
+      yPos += critLines.length * 5 + 5;
+    }
+    yPos += 5;
+  }
 
   // --- LLM DIAGNOSIS (only if content is present) ---
   let sectionIndex = 5;

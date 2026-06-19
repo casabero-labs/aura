@@ -1,0 +1,207 @@
+{
+  "generatedAt": "2026-06-19T17:02:44.378Z",
+  "scriptExecution": "external_python_fixture",
+  "reAuditEngine": "aura_runAudit",
+  "auditEngine": "src/services/auditEngine.ts",
+  "auditWrapper": "experiments/tests/run_audit_wrapper.ts",
+  "pythonVersion": "Python 3.14.3",
+  "fixture": "experiments/tests/fixtures/incidentes_semantic_sample.csv",
+  "cleanScript": "experiments/tests/fixtures/incidentes_clean_script.py",
+  "remediationClassification": "source_debt_preserved",
+  "beforeScore": 65,
+  "afterScore": 26,
+  "scoreDelta": -39,
+  "beforeIssueCount": 5,
+  "afterIssueCount": 7,
+  "issueDelta": 2,
+  "beforeReport": {
+    "score": 65,
+    "rowCount": 10,
+    "colCount": 7,
+    "duplicateRows": 0,
+    "issueCount": 5,
+    "issues": [
+      {
+        "id": "hygiene-case-City",
+        "ruleName": "Caos de Capitalización",
+        "column": "City",
+        "severity": "info",
+        "count": 10,
+        "affectedPercentage": 100,
+        "description": "Mismos valores escritos con distintas mayúsculas en una misma columna categórica.",
+        "sampleValues": [
+          "san francisco: San Francisco | san francisco | SAN FRANCISCO"
+        ]
+      },
+      {
+        "id": "hygiene-space-City",
+        "ruleName": "Espacios Múltiples",
+        "column": "City",
+        "severity": "info",
+        "count": 1,
+        "affectedPercentage": 10,
+        "description": "Cadenas con dobles espacios internos detectados.",
+        "sampleValues": [
+          "San  Francisco"
+        ]
+      },
+      {
+        "id": "integrity-mixed-CrimeId",
+        "ruleName": "Tipos Mixtos (Dirty Object)",
+        "column": "CrimeId",
+        "severity": "critical",
+        "count": 10,
+        "affectedPercentage": 100,
+        "description": "Columna contiene mezcla de números y texto.",
+        "sampleValues": [
+          160903280,
+          "Handled/Advised"
+        ]
+      },
+      {
+        "id": "hygiene-symbol-CrimeId",
+        "ruleName": "Símbolos Sospechosos",
+        "column": "CrimeId",
+        "severity": "warning",
+        "count": 4,
+        "affectedPercentage": 40,
+        "description": "Caracteres especiales detectados en columnas de ID o Nombres.",
+        "sampleValues": [
+          "Handled/Advised",
+          "Arrest/Citation",
+          "Gone/Unable to Locate"
+        ]
+      },
+      {
+        "id": "semantic-id-contamination-CrimeId",
+        "ruleName": "Contaminación Semántica de ID",
+        "column": "CrimeId",
+        "severity": "warning",
+        "count": 5,
+        "affectedPercentage": 50,
+        "description": "La columna 'CrimeId' parece un identificador pero contiene 5 valores que coinciden con el vocabulario de otra(s) columna(s) categórica(s) (Address, AddressType, Disposition, OriginalCrimeTypeName). Probable desplazamiento de columnas, coalescencia o error ETL.",
+        "sampleValues": [
+          "handled advised",
+          "not recorded",
+          "arrest citation",
+          "gone unable to locate"
+        ]
+      }
+    ]
+  },
+  "afterReport": {
+    "score": 26,
+    "rowCount": 10,
+    "colCount": 10,
+    "duplicateRows": 0,
+    "issueCount": 7,
+    "issues": [
+      {
+        "id": "hygiene-space-City",
+        "ruleName": "Espacios Múltiples",
+        "column": "City",
+        "severity": "info",
+        "count": 1,
+        "affectedPercentage": 10,
+        "description": "Cadenas con dobles espacios internos detectados.",
+        "sampleValues": [
+          "san  francisco"
+        ]
+      },
+      {
+        "id": "integrity-mixed-CrimeId",
+        "ruleName": "Tipos Mixtos (Dirty Object)",
+        "column": "CrimeId",
+        "severity": "critical",
+        "count": 10,
+        "affectedPercentage": 100,
+        "description": "Columna contiene mezcla de números y texto.",
+        "sampleValues": [
+          160903280,
+          "CORRUPTED_ID_REQUIRES_SOURCE_REVIEW"
+        ]
+      },
+      {
+        "id": "hygiene-symbol-CrimeId",
+        "ruleName": "Símbolos Sospechosos",
+        "column": "CrimeId",
+        "severity": "warning",
+        "count": 5,
+        "affectedPercentage": 50,
+        "description": "Caracteres especiales detectados en columnas de ID o Nombres.",
+        "sampleValues": [
+          "CORRUPTED_ID_REQUIRES_SOURCE_REVIEW",
+          "CORRUPTED_ID_REQUIRES_SOURCE_REVIEW",
+          "CORRUPTED_ID_REQUIRES_SOURCE_REVIEW"
+        ]
+      },
+      {
+        "id": "integrity-mixed-crimeid_original",
+        "ruleName": "Tipos Mixtos (Dirty Object)",
+        "column": "crimeid_original",
+        "severity": "critical",
+        "count": 10,
+        "affectedPercentage": 100,
+        "description": "Columna contiene mezcla de números y texto.",
+        "sampleValues": [
+          160903280,
+          "Handled/Advised"
+        ]
+      },
+      {
+        "id": "hygiene-symbol-crimeid_original",
+        "ruleName": "Símbolos Sospechosos",
+        "column": "crimeid_original",
+        "severity": "warning",
+        "count": 4,
+        "affectedPercentage": 40,
+        "description": "Caracteres especiales detectados en columnas de ID o Nombres.",
+        "sampleValues": [
+          "Handled/Advised",
+          "Arrest/Citation",
+          "Gone/Unable to Locate"
+        ]
+      },
+      {
+        "id": "integrity-null-crimeid_correction_note",
+        "ruleName": "Valores Nulos / Vacíos",
+        "column": "crimeid_correction_note",
+        "severity": "critical",
+        "count": 5,
+        "affectedPercentage": 50,
+        "description": "Crítico: 50.0% de datos faltantes.",
+        "sampleValues": []
+      },
+      {
+        "id": "semantic-id-contamination-crimeid_original",
+        "ruleName": "Contaminación Semántica de ID",
+        "column": "crimeid_original",
+        "severity": "warning",
+        "count": 5,
+        "affectedPercentage": 50,
+        "description": "La columna 'crimeid_original' parece un identificador pero contiene 5 valores que coinciden con el vocabulario de otra(s) columna(s) categórica(s) (Address, AddressType, Disposition, OriginalCrimeTypeName, crimeid_corrupted, crimeid_correction_note). Probable desplazamiento de columnas, coalescencia o error ETL.",
+        "sampleValues": [
+          "handled advised",
+          "not recorded",
+          "arrest citation",
+          "gone unable to locate"
+        ]
+      }
+    ]
+  },
+  "correctedRules": [
+    "Caos de Capitalización"
+  ],
+  "unchangedRules": [
+    "Espacios Múltiples",
+    "Tipos Mixtos (Dirty Object)",
+    "Símbolos Sospechosos",
+    "Contaminación Semántica de ID"
+  ],
+  "newRulesAfterScript": [
+    "Valores Nulos / Vacíos"
+  ],
+  "beforeCriticalIssues": 1,
+  "afterCriticalIssues": 3,
+  "criticalDelta": 2
+}

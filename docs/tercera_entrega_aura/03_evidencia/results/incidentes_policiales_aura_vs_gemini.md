@@ -174,7 +174,98 @@ cd src && npm run dev
 
 ---
 
-## 9. Referencias
+## 9. Evidencia de delta real — AURA-SCRIPT-SCORING-ALIGNMENT-01
+
+> Fuente: `experiments/tests/results/incidentes_colab_delta_fixture.json`
+> Ejecutor: agente 2, Loop AURA-SCRIPT-SCORING-ALIGNMENT-01
+> Script: `experiments/tests/fixtures/incidentes_clean_script.py` v2
+
+Se ejecutó Python externo sobre el fixture controlado (10 filas, CrimeId contaminado con vocabulario Disposition). El resultado fue re-auditado con `runAudit` oficial vía tsx.
+
+### Estrategia de remediación aplicada
+
+- Placeholder no-tóxico: `"CORRUPTED_ID_REQUIRES_SOURCE_REVIEW"` (string sin slashes).
+- Auxiliary columns completas: `crimeid_original`, `crimeid_corrupted`, `crimeid_correction_note`.
+- No se usan `np.nan` en CrimeId (no se introducen nulls en la columna ID primaria).
+- No se inventan IDs numéricos.
+
+### Delta re-auditado con runAudit oficial
+
+| Métrica | Antes (runAudit) | Después (runAudit) | Delta |
+|---|---|---|---|
+| Score | 65 | 26 | **−39** |
+| Issues | 5 | 7 | +2 |
+| Critical | 1 | 3 | +2 |
+| Caos de Capitalización | ✓ Detectado | ✓ Corregido | corregido |
+| Contaminación Semántica de ID | ✓ CrimeId | Migró a `crimeid_original` | evidencia preservada |
+| Tipos Mixtos (Dirty Object) | ✓ CrimeId | CrimeId + crimeid_original | empeoró |
+| Valores Nulos / Vacíos | — | crimeid_correction_note | nuevo (crítico) |
+
+### Detalle de issues antes y después
+
+**Antes (5 issues, score 65):**
+1. `[info]` Caos de Capitalización — City
+2. `[info]` Espacios Múltiples — City
+3. `[critical]` Tipos Mixtos — CrimeId
+4. `[warning]` Símbolos Sospechosos — CrimeId
+5. `[warning]` Contaminación Semántica de ID — CrimeId
+
+**Después (7 issues, score 26):**
+1. `[info]` Espacios Múltiples — City
+2. `[critical]` Tipos Mixtos — CrimeId (5 numeric + 5 placeholder = mixto)
+3. `[warning]` Símbolos Sospechosos — CrimeId (placeholder: 5/10)
+4. `[critical]` Tipos Mixtos — crimeid_original (original contaminado: mixto)
+5. `[warning]` Símbolos Sospechosos — crimeid_original (original contaminado)
+6. `[critical]` Valores Nulos / Vacíos — crimeid_correction_note (NaN para filas limpias)
+7. `[warning]` Contaminación Semántica de ID — crimeid_original
+
+### Por qué el score no mejora
+
+1. **crimeid_correction_note** es columna mixed-type: las filas no contaminadas tienen `NaN` (float), las contaminadas tienen string → penalty critical null. La auxiliary column necesaria para trazabilidad introduce el problema que se intentaba evitar.
+2. **crimeid_original** conserva los datos originales contaminados → Contaminación Semántica de ID, Tipos Mixtos, Símbolos Sospechosos persisten en auxiliary column.
+3. **CrimeId con placeholder** sigue siendo tipo mixto: 5 valores numéricos + 5 placeholder strings.
+
+### Análisis de estrategias probadas
+
+| Estrategia | Score resultante | Veredicto |
+|---|---|---|
+| v2 script (placeholder + aux columns) | 26 | No mejora; aux columns introducen deuda |
+| v1 script (np.nan CrimeId, sin aux columns) | 41 | Menos peor; pero viola constraint de no nulls en CrimeId |
+| Solo normalizar City + trim | ~58 | Mejor score pero sin trazabilidad de CrimeId |
+| Sin script (baseline) | 65 | Score más alto pero sin remediación |
+
+**Ninguna estrategia mejora el score sobre el baseline en este fixture.**
+
+### Claim permitido
+
+> "La remediación externa preserva trazabilidad (crimeid_original, crimeid_corrupted, crimeid_correction_note), pero el score oficial bajo runAudit no mejora. La deuda de CrimeId es de origen y requiere intervención en el sistema fuente, no corrección a nivel de columna sin inventar datos."
+
+### Claim NO permitido
+
+- "El script mejora el score." ❌
+- "AURA ejecuta Python internamente." ❌
+- "Validado en Colab real." ❌
+- "El script elimina la contaminación." ❌
+
+### Archivos
+
+- Fixture CSV: `experiments/tests/fixtures/incidentes_semantic_sample.csv`
+- Script Python v2: `experiments/tests/fixtures/incidentes_clean_script.py`
+- Wrapper TS: `experiments/tests/run_audit_wrapper.ts`
+- Runner: `experiments/tests/run_colab_delta_fixture.mjs`
+- Delta JSON: `experiments/tests/results/incidentes_colab_delta_fixture.json`
+- Tests: `src/__tests__/colabDeltaFixture.test.ts` (19 tests, valida `remediationClassification: "source_debt_preserved"`)
+- Motor: `src/services/auditEngine.ts`
+
+### Limitaciones
+
+- Fixture de 10 filas; no representa datasets de producción.
+- Runner usa Python local, no Google Colab real.
+- El score no mejora bajo ninguna estrategia probada; la remediación a nivel de CSV no puede mejorar CrimeId sin inventar datos o introducir deuda equivalente.
+
+---
+
+## 10. Referencias
 
 - Plan de desarrollo: `docs/tercera_entrega_aura/05_desarrollo/PLAN_INCIDENTES_POLICIALES_DEV_LOOPS.md`
 - Código del motor: `src/services/auditEngine.ts`

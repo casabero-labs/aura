@@ -247,4 +247,33 @@ describe('buildEvidenceManifest', () => {
     expect(manifest.limitations.some(l => l.includes('Benchmark'))).toBe(true);
     expect(manifest.limitations.some(l => l.includes('Ground truth'))).toBe(true);
   });
+
+  it('con remediationClassification=source_debt_preserved, agrega artifact sourceDebtEvidence y limitaciones de deuda de fuente', () => {
+    const manifest = buildEvidenceManifest({
+      auditEvidence: stubEvidence,
+      benchmarkResults: [stubBenchmark],
+      scriptValidation: stubScriptValidation,
+      hitlDecision: stubHitlDecision,
+      healthDeltaPoints: -33,
+      remediationClassification: 'source_debt_preserved',
+    });
+
+    expect(manifest.artifacts).toContain('sourceDebtEvidence (delta JSON)');
+    expect(manifest.limitations.some(l => l.includes('preserva deuda de fuente'))).toBe(true);
+    expect(manifest.limitations.some(l => l.includes('CrimeId'))).toBe(true);
+    expect(manifest.limitations.some(l => l.includes('crimeid_original'))).toBe(true);
+  });
+
+  it('con remediationClassification=improvement, NO agrega artifact sourceDebtEvidence', () => {
+    const manifest = buildEvidenceManifest({
+      auditEvidence: stubEvidence,
+      benchmarkResults: [stubBenchmark],
+      scriptValidation: stubScriptValidation,
+      hitlDecision: stubHitlDecision,
+      healthDeltaPoints: 20,
+      remediationClassification: 'improvement',
+    });
+
+    expect(manifest.artifacts).not.toContain('sourceDebtEvidence (delta JSON)');
+  });
 });

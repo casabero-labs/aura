@@ -1,0 +1,11 @@
+Address,AddressType,CallDateTime,City,CrimeId,Disposition,OriginalCrimeTypeName
+100 Block Of Chilton Av,Dirección Exacta,2016-03-30T23:42:00Z,San Francisco,160903280,Report Taken,Violent Crime/Assault
+2300 Block Of Market St,Dirección Exacta,2016-03-31T20:31:00Z,san francisco,Handled/Advised,Handled/Advised,Homeless Related
+2300 Block Of Market St,Dirección Exacta,2016-03-31T21:49:00Z,SAN FRANCISCO,160912590,Gone/Unable to Locate,Suspicious Activity
+500 Block Of 7th St,Dirección Exacta,2016-03-31T22:38:00Z,San Francisco,Not Recorded,Not Recorded,Service/Report/Admin
+Beale St/bryant St,Intersección/Calle,2016-03-31T22:42:00Z,San Francisco,160912811,Report Taken,Vandalism
+100 Block Of Market St,Dirección Exacta,2016-04-01T08:00:00Z,San Francisco,Arrest/Citation,Arrest/Citation,Violent Crime/Assault
+200 Block Of Market St,Dirección Exacta,2016-04-01T09:30:00Z,San Francisco,160913050,Report Taken,Traffic/Parking/Sidewalk
+300 Block Of Market St,Dirección Exacta,2016-04-01T10:00:00Z,San  Francisco,Gone/Unable to Locate,Gone/Unable to Locate,Homeless Related
+400 Block Of Market St,Dirección Exacta,2016-04-01T11:00:00Z,san francisco,160913100,Report Taken,Suspicious Activity
+500 Block Of Market St,Dirección Exacta,2016-04-01T12:00:00Z,San Francisco,Handled/Advised,Handled/Advised,Service/Report/Admin
