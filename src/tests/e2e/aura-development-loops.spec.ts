@@ -156,7 +156,8 @@ test('AURA: flujo completo perfil → diagnóstico → script → revisar → ex
 
   // Verificar que el diagnóstico principal sigue accesible
   await navMenu.getByRole('button', { name: 'Auditoría' }).click();
-  await expect(page.getByText(/La calidad del dato merece/i)).toBeVisible();
+  await expect(page.getByText(/La calidad del dato merece/i)).toHaveCount(0);
+  await expect(page.locator('[data-testid="export-stage"]')).toBeVisible();
 
   // ── Task 3+5: Session restore — reload should keep export state ──
   await page.reload({ waitUntil: 'commit', timeout: 30_000 });

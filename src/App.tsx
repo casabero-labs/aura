@@ -120,9 +120,11 @@ const App: React.FC = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showLab, setShowLab] = useState(false);
+  const [showHome, setShowHome] = useState(!pipelineData.report);
   const [showAuditLog, setShowAuditLog] = useState(false);
   const [showChangelog, setShowChangelog] = useState(false);
   const [showMobileNav, setShowMobileNav] = useState(false);
+  const [brandScrolled, setBrandScrolled] = useState(false);
   const [labBenchmarkResults, setLabBenchmarkResults] = useState<BenchmarkResult[]>([]);
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     const saved = localStorage.getItem('aura_theme') || localStorage.getItem('casabero-theme');
@@ -138,8 +140,16 @@ const App: React.FC = () => {
   useEffect(() => {
     if (pipelineData.report) {
       savePipelineSession(pipelineData);
+      setShowHome(false);
     }
   }, [pipelineData]);
+
+  useEffect(() => {
+    const onScroll = () => setBrandScrolled(window.scrollY > 24);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   // ── AI Config (para settings panel) ──
   const [aiConfig, setAiConfig] = useState<AIConfig>(() => {
@@ -318,9 +328,48 @@ const App: React.FC = () => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
+  const goHome = () => {
+    setShowHome(true);
+    setShowLab(false);
+    setShowAuditLog(false);
+    setShowSettings(false);
+    setShowHelp(false);
+    setShowMobileNav(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const goAudit = () => {
+    setShowHome(false);
+    setShowLab(false);
+    setShowAuditLog(false);
+    setShowSettings(false);
+    setShowHelp(false);
+    setShowMobileNav(false);
+    requestAnimationFrame(() => scrollTo('sistema'));
+  };
+
+  const goLab = () => {
+    setShowHome(false);
+    setShowLab(true);
+    setShowAuditLog(false);
+    setShowSettings(false);
+    setShowHelp(false);
+    setShowMobileNav(false);
+  };
+
+  const goSettings = () => {
+    setShowHome(false);
+    setShowSettings(true);
+    setShowLab(false);
+    setShowAuditLog(false);
+    setShowHelp(false);
+    setShowMobileNav(false);
+  };
+
   const handleDestroySession = () => {
     clearPipelineSession();
     setPipelineData(INITIAL_PIPELINE_DATA);
+    setShowHome(false);
     setHasExported(false);
     setPdfProgressStatus('idle');
     setPdfProgressMsg('');
@@ -344,49 +393,65 @@ const App: React.FC = () => {
       {/* Navigation */}
       <nav className="sys-nav">
         {/* Bloque Izquierdo: Branding */}
-        <div className="nav-brand" onClick={() => { if (hasData) window.location.reload(); }}>
-          <span className="nav-logo">AURA</span>
+        <div className="nav-brand" onClick={goHome} aria-label="Ir al inicio">
+          <span className={`nav-logo ${brandScrolled ? 'nav-logo--hidden' : ''}`}>AURA</span>
+          <span className={`nav-logo-mark ${brandScrolled ? 'nav-logo-mark--visible' : ''}`} aria-hidden="true">
+            <svg className="aura-mark" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.55">
+              <ellipse cx="32" cy="32" rx="24" ry="8.5" />
+              <ellipse cx="32" cy="32" rx="24" ry="8.5" transform="rotate(60 32 32)" />
+              <ellipse cx="32" cy="32" rx="24" ry="8.5" transform="rotate(-60 32 32)" />
+            </svg>
+          </span>
         </div>
 
-        {/* Bloque Central: Navegación de Capas (Escritorio) */}
-        <div className="nav-center-menu">
-          <button
-            className={`nav-menu-item ${!showLab && !showAuditLog && !showSettings ? 'active' : ''}`}
-            onClick={() => { setShowLab(false); setShowAuditLog(false); setShowSettings(false); scrollTo('sistema'); }}
-          >
-            Auditoría
-          </button>
-
-          <button
-            className={`nav-menu-item ${showLab ? 'active' : ''}`}
-            onClick={() => { setShowLab(true); setShowAuditLog(false); setShowSettings(false); }}
-          >
-            Laboratorio
-          </button>
-
-          <button
-            className={`nav-menu-item ${showSettings ? 'active' : ''}`}
-            onClick={() => { setShowSettings(true); setShowLab(false); setShowAuditLog(false); }}
-          >
-            Configuración
-          </button>
-        </div>
-
-        {/* Bloque Derecho: Controles mínimos (Escritorio) */}
-        <div className="nav-system-controls">
-          <label className="theme-toggle" aria-label="Cambiar tema">
-            <input
-              type="checkbox"
-              checked={theme === 'dark'}
-              onChange={(e) => setTheme(e.target.checked ? 'dark' : 'light')}
-            />
-          </label>
-
-          {hasData && (
-            <button className="nav-reset-cta" onClick={() => window.location.reload()}>
-              Nuevo análisis
+        <div className="nav-right-cluster">
+          {/* Bloque Derecho: Navegación de Capas (Escritorio) */}
+          <div className="nav-center-menu">
+            <button
+              className={`nav-menu-item ${showHome ? 'active' : ''}`}
+              onClick={goHome}
+            >
+              Home
             </button>
-          )}
+
+            <button
+              className={`nav-menu-item ${!showHome && !showLab && !showAuditLog && !showSettings ? 'active' : ''}`}
+              onClick={goAudit}
+            >
+              Auditoría
+            </button>
+
+            <button
+              className={`nav-menu-item ${showLab ? 'active' : ''}`}
+              onClick={goLab}
+            >
+              Laboratorio
+            </button>
+
+            <button
+              className={`nav-menu-item ${showSettings ? 'active' : ''}`}
+              onClick={goSettings}
+            >
+              Configuración
+            </button>
+          </div>
+
+          {/* Controles mínimos (Escritorio) */}
+          <div className="nav-system-controls">
+            <label className="theme-toggle" aria-label="Cambiar tema">
+              <input
+                type="checkbox"
+                checked={theme === 'dark'}
+                onChange={(e) => setTheme(e.target.checked ? 'dark' : 'light')}
+              />
+            </label>
+
+            {hasData && (
+              <button className="nav-reset-cta" onClick={() => window.location.reload()}>
+                Nuevo análisis
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Botón Hamburguesa Móvil */}
@@ -399,16 +464,19 @@ const App: React.FC = () => {
 
       {/* Mobile Navigation Menu */}
       <div className={`nav-links ${showMobileNav ? 'nav-links-open' : ''}`}>
-        <button className="nav-link" onClick={() => { setShowLab(false); setShowAuditLog(false); setShowSettings(false); setShowMobileNav(false); scrollTo('sistema'); }}>
+        <button className="nav-link" onClick={goHome}>
+          Home
+        </button>
+        <button className="nav-link" onClick={goAudit}>
           Auditoría
         </button>
-        <button className="nav-link" onClick={() => { setShowLab(true); setShowAuditLog(false); setShowSettings(false); setShowMobileNav(false); }}>
+        <button className="nav-link" onClick={goLab}>
           Laboratorio
         </button>
-        <button className="nav-link" onClick={() => { setShowSettings(true); setShowLab(false); setShowAuditLog(false); setShowMobileNav(false); }}>
+        <button className="nav-link" onClick={goSettings}>
           Configuración
         </button>
-        <button className="nav-link" onClick={() => { setShowAuditLog(true); setShowLab(false); setShowMobileNav(false); }}>
+        <button className="nav-link" onClick={() => { setShowHome(false); setShowAuditLog(true); setShowLab(false); setShowMobileNav(false); }}>
           Trazabilidad
         </button>
         <button className="nav-link" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
@@ -454,15 +522,36 @@ const App: React.FC = () => {
 
       {/* Main Content — only show when not in settings, help, or lab */}
       <main className="sys-main" style={{ display: showLab || showSettings || showHelp ? 'none' : undefined }}>
-        {/* Hero */}
-        <section className="hero" id="sistema">
-          <h1 className="hero-sub">
-            La calidad del dato merece un diagnóstico preciso.
-          </h1>
-          <p className="hero-desc">
-            Auditoría determinista, diagnóstico asistido y limpieza reproducible. Todo en el navegador.
-          </p>
-        </section>
+        {showHome && (
+          <section className="home-hero" id="home">
+            <p className="home-eyebrow">diagnóstico reproducible de datos</p>
+            <h1 className="home-title">AURA</h1>
+            <p className="home-desc">
+              Un entorno local para cargar un CSV, perfilar su calidad, priorizar hallazgos y producir evidencia defendible antes de limpiar o publicar datos.
+            </p>
+            <div className="home-actions">
+              <button className="btn-p btn--lg" onClick={goAudit}>Empezar auditoría</button>
+              <button className="btn-s btn--lg" onClick={goLab}>Abrir laboratorio</button>
+            </div>
+            <div className="home-flow" aria-label="Resumen del proceso AURA">
+              <div className="home-flow-step">
+                <span>01</span>
+                <strong>Perfilar</strong>
+                <p>Lectura del CSV, delimitador, columnas, volumen y señales de riesgo.</p>
+              </div>
+              <div className="home-flow-step">
+                <span>02</span>
+                <strong>Diagnosticar</strong>
+                <p>Reglas deterministas, severidad, evidencia y asistencia del modelo cuando aplica.</p>
+              </div>
+              <div className="home-flow-step">
+                <span>03</span>
+                <strong>Defender</strong>
+                <p>Reporte, hallazgos, script revisable y trazabilidad de decisiones.</p>
+              </div>
+            </div>
+          </section>
+        )}
 
         {sessionDestroyed && (
           <section className="section" style={{ textAlign: 'center' }} data-testid="session-destroyed-msg">
@@ -473,18 +562,22 @@ const App: React.FC = () => {
         )}
 
         {/* Main Pipeline — Phase 1: Upload + Diagnostic */}
-        <MainPipeline
-          aiConfig={aiConfig}
-          aiProvider={aiProvider}
-          onPipelineChange={setPipelineData}
-          onAiConfigChange={setAiConfig}
-          onOpenLab={() => setShowLab(true)}
-          onOpenSettings={() => setShowSettings(true)}
-          onLog={(stage, msg) => { /* logs handled internally by MainPipeline */ }}
-        />
+        {!showHome && (
+          <section id="sistema" className="audit-workspace">
+            <MainPipeline
+              aiConfig={aiConfig}
+              aiProvider={aiProvider}
+              onPipelineChange={setPipelineData}
+              onAiConfigChange={setAiConfig}
+              onOpenLab={goLab}
+              onOpenSettings={goSettings}
+              onLog={(stage, msg) => { /* logs handled internally by MainPipeline */ }}
+            />
+          </section>
+        )}
 
         {/* Export Section */}
-        {report && pipelineState === 'export' && (
+        {!showHome && report && pipelineState === 'export' && (
           <section className="export-closure" id="export-section" data-testid="export-stage">
             <div className="export-closure-header">
               <p className="sec-eye">exportación</p>

@@ -311,7 +311,9 @@ test.describe('AURA QA — Human-first audit (LOOP 07C)', () => {
     log('\n## Stage 7: Return to Auditoría\n');
 
     const heroVisible = await page.getByText(/La calidad del dato merece/i).isVisible().catch(() => false);
-    log(`- Hero text visible (Core restored): ${heroVisible ? 'PASS' : 'FAIL'}`);
+    log(`- Old home hero hidden in audit workspace: ${heroVisible ? 'FAIL' : 'PASS'}`);
+    const exportVisible = await page.locator('[data-testid="export-stage"]').isVisible().catch(() => false);
+    log(`- Audit workspace restored: ${exportVisible ? 'PASS' : 'FAIL'}`);
 
     // ── JS Console Errors ──
     log('\n## JS Console\n');
