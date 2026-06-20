@@ -4,6 +4,7 @@ import GeminiAdvisor from './GeminiAdvisor';
 import ProgressDisclosure from './ProgressDisclosure';
 import ChromeAiStatusPanel from './ChromeAiStatusPanel';
 import DiagnosisContractGuide from './DiagnosisContractGuide';
+import { DiagnosisHeroPanel, DiagnosisProviderPanel, DiagnosisContractPanel, TechnicalEvidencePanel } from './diagnosis';
 import { AIConfig, AIProvider, AuditReport, AuditExecutionEvidence, ProviderMetrics, LocalModelStatus, DiagnosisEvent, ProviderProgressEvent, ProgressDisclosureStatus, InputMode } from '../types';
 import { buildSmartSample, buildAnalysisPrompt } from '../services/providers/prompts';
 import { AVAILABLE_MODELS, LOCAL_MODELS, getLocalModelStatus, markPreloadVerified, clearPreloadVerification, deleteDownloadedModel, getChromeAiDiagnostic } from '../services/aiProvider';
@@ -528,119 +529,57 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
 
   return (
     <>
-      <section className="diagnosis-compact" data-testid="diagnosis-stage">
-        <div className="diagnosis-compact-header">
-          <p className="sec-eye">diagnóstico asistido</p>
-          <h2 className="sec-title">AURA interpreta los hallazgos</h2>
-          <p className="section-note">
-            No enviamos el dataset completo. AURA trabaja con la evidencia estructurada del perfil.
-          </p>
-        </div>
+      <section className="diagnosis-stage-shell" data-testid="diagnosis-stage">
+        <DiagnosisHeroPanel
+          findings={inputSummary.findings}
+          critical={inputSummary.critical}
+          warning={inputSummary.warning}
+          affectedColumns={inputSummary.affectedColumns}
+          hasDiagnosis={hasDiagnosis}
+          isLoading={isLoading}
+          onGenerateDiagnosis={runDiagnosis}
+          onContinue={onContinue}
+        />
 
-        <div className="companion-note">
-          <Brain size={16} />
-          <p>AURA mirará los hallazgos del perfil y propondrá causas probables, prioridades y criterios para limpiar. Si el modelo no está disponible, puedes seguir con un script determinista.</p>
-        </div>
+        <DiagnosisProviderPanel
+          aiConfig={aiConfig}
+          providerAvailable={providerAvailable}
+          chromeAvailability={chromeAvailability}
+          isCheckingChrome={isCheckingChrome}
+          isPreparingChrome={isPreparingChrome}
+          chromeDownloadProgress={chromeDownloadProgress}
+          chromeDownloadMessage={chromeDownloadMessage}
+          onProviderTypeChange={handleProviderTypeChange}
+          onModelChange={handleModelChange}
+          onChromeStatusChange={(uiStatus) => {
+            setProviderAvailable(uiStatus === 'ready');
+            if (uiStatus === 'downloading') {
+              pushEvent('info', 'Chrome está descargando Gemini Nano.');
+              pushEvent('info', 'AURA verificará el estado automáticamente.');
+            }
+            if (uiStatus === 'ready') {
+              pushEvent('success', 'Gemini Nano listo para diagnóstico.');
+            }
+          }}
+          onChromeReady={() => setProviderAvailable(true)}
+          onChromeDownloadProgress={(progress, message) => {
+            setChromeDownloadProgress(progress);
+            setChromeDownloadMessage(message);
+          }}
+          onPrepareChrome={prepareChromeAi}
+          availableModels={availableModels}
+        />
 
-        <div className="stage-decision-summary" data-testid="stage-decision-summary">
-          <div className="stage-summary-item">
-            <span className="stage-summary-label">hallazgos</span>
-            <strong className="stage-summary-value">{inputSummary.findings}</strong>
-          </div>
-          <div className="stage-summary-item">
-            <span className="stage-summary-label">críticos</span>
-            <strong className="stage-summary-value stage-summary-value--critical">{inputSummary.critical}</strong>
-          </div>
-          <div className="stage-summary-item">
-            <span className="stage-summary-label">advertencias</span>
-            <strong className="stage-summary-value stage-summary-value--warning">{inputSummary.warning}</strong>
-          </div>
-        </div>
+        <DiagnosisContractPanel
+          report={report}
+          aiConfig={aiConfig}
+          onInputModeChange={handleInputModeChange}
+        />
 
-        <div className={`privacy-notice ${isCloud ? 'privacy-notice--cloud' : 'privacy-notice--local'}`}>
-          {isCloud ? (
-            <>
-              <Globe size={14} />
-              <div>
-                <strong>Cloud</strong>
-                <p>Se envía el paquete estructurado, no el archivo completo.</p>
-              </div>
-            </>
-          ) : isOllama ? (
-            <>
-              <Server size={14} />
-              <div>
-                <strong>Ollama local</strong>
-                <p>Inferencia en tu máquina. Sin envío externo de datos.</p>
-              </div>
-            </>
-          ) : (
-            <>
-              <Lock size={14} />
-              <div>
-                <strong>{isChrome ? 'Chrome AI' : 'Local'}</strong>
-                <p>Diagnóstico en el navegador. Sin envío de datos.</p>
-              </div>
-            </>
-          )}
-        </div>
-
-        <div className="diagnosis-model-bar">
-          <div className="model-type-toggle" style={{ flex: 'none' }}>
-            <button
-              className={`model-type-btn ${aiConfig.providerType === 'chrome' ? 'active' : ''}`}
-              onClick={() => handleProviderTypeChange('chrome')}
-              title="Chrome AI / Gemini Nano"
-            >
-              Chrome AI
-            </button>
-            <button
-              className={`model-type-btn ${aiConfig.providerType === 'ollama' ? 'active' : ''}`}
-              onClick={() => handleProviderTypeChange('ollama')}
-              title="Ollama local"
-            >
-              Ollama
-            </button>
-            <button
-              className={`model-type-btn ${aiConfig.providerType === 'cloud' ? 'active' : ''}`}
-              onClick={() => handleProviderTypeChange('cloud')}
-            >
-              Cloud
-            </button>
-          </div>
-          {aiConfig.providerType === 'ollama' ? (
-            <input
-              type="text"
-              className="settings-input"
-              value={aiConfig.model}
-              onChange={(e) => handleModelChange(e.target.value)}
-              placeholder="qwen2.5:3b"
-              style={{ flex: 1, minWidth: 120 }}
-            />
-          ) : (
-            <select
-              className="model-select"
-              value={aiConfig.model}
-              onChange={(e) => handleModelChange(e.target.value)}
-            >
-              {availableModels.length === 0 && (
-                <option disabled>Sin modelos disponibles</option>
-              )}
-              {availableModels.map(model => (
-                <option key={model.id} value={model.id}>{model.name}</option>
-              ))}
-            </select>
-          )}
-          <button
-            className="btn-p"
-            onClick={runDiagnosis}
-            disabled={isLoading || providerAvailable === false}
-            title={providerAvailable === false ? 'Proveedor no disponible' : 'Ejecutar diagnóstico asistido'}
-          >
-            <Brain size={14} />
-            {isLoading ? 'Diagnosticando' : hasDiagnosis ? 'Regenerar diagnóstico' : 'Generar diagnóstico'}
-          </button>
-        </div>
+        <TechnicalEvidencePanel
+          report={report}
+          aiConfig={aiConfig}
+        />
 
         {aiConfig.providerType === 'webllm_experimental' && currentModelStatus && (
           <div className="local-model-status" data-testid="local-model-status">

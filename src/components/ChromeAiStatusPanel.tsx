@@ -16,6 +16,7 @@ import {
 } from '../services/chromeModelStatus';
 
 interface ChromeAiStatusPanelProps {
+  compact?: boolean;
   onStatusChange?: (status: UIStatus) => void;
   onReady?: () => void;
   onDownloadProgress?: (progress: number, message: string) => void;
@@ -25,6 +26,7 @@ interface ChromeAiStatusPanelProps {
 const CHROME_INTERNAL_URL = 'chrome://on-device-internals';
 
 export const ChromeAiStatusPanel: React.FC<ChromeAiStatusPanelProps> = ({
+  compact = false,
   onStatusChange,
   onReady,
   onDownloadProgress,
@@ -188,52 +190,83 @@ export const ChromeAiStatusPanel: React.FC<ChromeAiStatusPanelProps> = ({
 
   const renderDownloadingState = () => (
     <div className="chrome-ai-downloading-state">
-      <div className="chrome-ai-status-message">
-        <p><strong>Gemini Nano se está descargando en Chrome.</strong></p>
-        <p>Puedes dejar esta pestaña abierta. AURA verificará el estado automáticamente.</p>
-      </div>
-      
-      {status.downloadProgress !== undefined ? (
-        <div className="chrome-ai-progress-container">
-          <div className="chrome-ai-progress-bar">
-            <div 
-              className="chrome-ai-progress-fill" 
-              style={{ width: `${status.downloadProgress}%` }}
-            />
-          </div>
-          <div className="chrome-ai-progress-info">
-            <span className="chrome-ai-progress-percent">{status.downloadProgress}%</span>
-            {status.downloadTotal !== undefined && status.downloadTotal > 0 && (
-              <span className="chrome-ai-progress-bytes">
-                {formatMB(status.downloadLoaded || 0)} / {formatMB(status.downloadTotal)}
-              </span>
-            )}
-          </div>
-          {status.downloadMessage && (
-            <span className="chrome-ai-progress-message">{status.downloadMessage}</span>
+      {compact ? (
+        <div className="chrome-ai-compact-message">
+          <span>Gemini Nano se está descargando</span>
+          {status.downloadProgress !== undefined ? (
+            <div className="chrome-ai-compact-bar">
+              <div className="chrome-ai-progress-bar">
+                <div className="chrome-ai-progress-fill" style={{ width: `${status.downloadProgress}%` }} />
+              </div>
+              <span>{status.downloadProgress}%</span>
+            </div>
+          ) : (
+            <div className="chrome-ai-progress-bar chrome-ai-progress-bar--indeterminate">
+              <div className="chrome-ai-progress-fill chrome-ai-progress-fill--indeterminate" />
+            </div>
           )}
+          <span className="chrome-ai-compact-note">AURA verificará cada 5s</span>
         </div>
       ) : (
-        <div className="chrome-ai-progress-container">
-          <div className="chrome-ai-progress-bar chrome-ai-progress-bar--indeterminate">
-            <div className="chrome-ai-progress-fill chrome-ai-progress-fill--indeterminate" />
+        <>
+          <div className="chrome-ai-status-message">
+            <p><strong>Gemini Nano se está descargando en Chrome.</strong></p>
+            <p>Puedes dejar esta pestaña abierta. AURA verificará el estado automáticamente.</p>
           </div>
-          <span className="chrome-ai-progress-message">Esperando información de descarga...</span>
-        </div>
+          
+          {status.downloadProgress !== undefined ? (
+            <div className="chrome-ai-progress-container">
+              <div className="chrome-ai-progress-bar">
+                <div 
+                  className="chrome-ai-progress-fill"
+                  style={{ width: `${status.downloadProgress}%` }}
+                />
+              </div>
+              <div className="chrome-ai-progress-info">
+                <span className="chrome-ai-progress-percent">{status.downloadProgress}%</span>
+                {status.downloadTotal !== undefined && status.downloadTotal > 0 && (
+                  <span className="chrome-ai-progress-bytes">
+                    {formatMB(status.downloadLoaded || 0)} / {formatMB(status.downloadTotal)}
+                  </span>
+                )}
+              </div>
+              {status.downloadMessage && (
+                <span className="chrome-ai-progress-message">{status.downloadMessage}</span>
+              )}
+            </div>
+          ) : (
+            <div className="chrome-ai-progress-container">
+              <div className="chrome-ai-progress-bar chrome-ai-progress-bar--indeterminate">
+                <div className="chrome-ai-progress-fill chrome-ai-progress-fill--indeterminate" />
+              </div>
+              <span className="chrome-ai-progress-message">Esperando información de descarga...</span>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
 
   const renderReadyState = () => (
     <div className="chrome-ai-ready-state">
-      <div className="chrome-ai-status-message">
-        <p><strong>Gemini Nano listo para diagnosticar.</strong></p>
-        <p>Diagnóstico local en navegador. No se envía el dataset a servidores externos mientras este modo esté activo.</p>
-      </div>
-      <div className="chrome-ai-ready-indicator">
-        <Lock size={14} />
-        <span>Modo local activo</span>
-      </div>
+      {compact ? (
+        <div className="chrome-ai-compact-message">
+          <CheckCircle size={12} />
+          <span>Gemini Nano listo</span>
+          <span className="chrome-ai-compact-note">Modo local activo</span>
+        </div>
+      ) : (
+        <>
+          <div className="chrome-ai-status-message">
+            <p><strong>Gemini Nano listo para diagnosticar.</strong></p>
+            <p>Diagnóstico local en navegador. No se envía el dataset a servidores externos mientras este modo esté activo.</p>
+          </div>
+          <div className="chrome-ai-ready-indicator">
+            <Lock size={14} />
+            <span>Modo local activo</span>
+          </div>
+        </>
+      )}
     </div>
   );
 
