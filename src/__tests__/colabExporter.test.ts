@@ -7,7 +7,7 @@ const stubParams = {
   approvedScript: 'import pandas as pd\n\ndef clean_dataset(df):\n    df = df.copy()\n    df["City"] = df["City"].str.lower()\n    return df\n',
   auditSummary: {
     score: 79,
-    rowCount: 5000,
+    rowCount: 10048,
     colCount: 7,
     issueCount: 5,
     truncated: true,
@@ -66,16 +66,16 @@ describe('colabExporter', () => {
       expect(allSource).not.toMatch(/"CrimeId".*"160903280"/);
     });
 
-    it('includes truncated preview warning when applicable', () => {
+    it('includes truncated warning when applicable', () => {
       const notebook = buildColabNotebook(stubParams);
       const allSource = notebook.cells.map(c => c.source.join('')).join('\n');
-      expect(allSource).toMatch(/Preview limitado a 5\.000 filas/);
+      expect(allSource).toMatch(/Auditoría truncada/);
     });
 
     it('omits truncated warning when not applicable', () => {
       const notebook = buildColabNotebook({ ...stubParams, auditSummary: { ...stubParams.auditSummary, truncated: false } });
       const allSource = notebook.cells.map(c => c.source.join('')).join('\n');
-      expect(allSource).not.toMatch(/Preview limitado a 5\.000 filas/);
+      expect(allSource).not.toMatch(/Auditoría truncada/);
     });
 
     it('includes dataset metadata in header', () => {
@@ -83,7 +83,7 @@ describe('colabExporter', () => {
       const allSource = notebook.cells.map(c => c.source.join('')).join('\n');
       expect(allSource).toContain('Incidentes_Policiales.csv');
       expect(allSource).toContain('79/100');
-      expect(allSource).toContain('5.000');
+      expect(allSource).toMatch(/10[,.]048/);
     });
   });
 

@@ -64,7 +64,7 @@ const IngestionEvidenceCard: React.FC<IngestionEvidenceCardProps> = ({ evidence 
         <div className="ingestion-metric">
           <Activity size={12} />
           <span className="ingestion-metric-label">Truncado</span>
-          <code className="ingestion-metric-value">{evidence.truncated ? 'Sí (5k preview)' : 'No'}</code>
+          <code className="ingestion-metric-value">{evidence.truncated ? 'Sí' : 'No'}</code>
         </div>
         <div className="ingestion-metric">
           <Clock size={12} />

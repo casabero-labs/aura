@@ -15,7 +15,8 @@
 | Columnas | 7 |
 | Columnas | `Address`, `AddressType`, `CallDateTime`, `City`, `CrimeId`, `Disposition`, `OriginalCrimeTypeName` |
 | Delimitador | `,` (coma) |
-| Preview de app | 5,000 filas (límite fijado en `csvService.ts`) |
+| Parser actual de app | CSV completo por defecto; `preview` solo como parámetro explícito de prueba |
+| Corrida histórica Gemini | 5,000 filas preview |
 
 ### Hecho relevante sobre CrimeId
 
@@ -23,14 +24,14 @@
 - Los 319 valores son exactamente 4 strings: `Handled/Advised`, `Not Recorded`, `Arrest/Citation`, `Gone/Unable to Locate`.
 - Esos 4 strings **coinciden literalmente con vocabulario de `Disposition`**.
 
-### Diferencia entre CSV completo y preview de app
+### Diferencia entre evidencia historica y parser actual
 
-Toda ejecución desde la interfaz de AURA procesa **5,000 filas** (`csvService.ts:preview=5000`). El CSV completo contiene 10,048 filas. Las cifras del motor determinista varían entre ambas cargas:
+La evidencia inicial de interfaz se generó cuando AURA usaba `csvService.ts:preview=5000`. Ese límite fue eliminado: el parser actual procesa el CSV completo por defecto y conserva `preview` solo como parámetro explícito para pruebas controladas.
 
-- **Preview 5,000 filas:** score 79, 8 issues, `truncated=true`.
-- **Full 10,048 filas (simulado):** score 91, 7 issues, `truncated=false`.
+- **Evidencia histórica preview 5,000 filas:** score 79, 8 issues, `truncated=true`.
+- **CSV completo 10,048 filas con parser actual:** score 95, 5 issues, `truncated=false`.
 
-La regla `Contaminación Semántica de ID` usa vocabulario categórico de columnas vecinas; al tener dos filas por cada patrón, los umbrales se satisfacen en ambas cargas.
+La regla `Contaminación Semántica de ID` usa vocabulario categórico de columnas vecinas; el patrón se mantiene en el CSV completo.
 
 ---
 
@@ -77,7 +78,7 @@ Tras implementar la regla `Contaminación Semántica de ID` y corregir los tres 
 | Symbol chaos: skip `isCategoricalTaxonomy` | `auditEngine.ts` | ~585, ~727 |
 | Disguised numbers: skip `isDateTimeLikeColumn` | `auditEngine.ts` | ~630 |
 
-### Issues después de Loop 2 (esperado sobre 5,000 filas)
+### Issues después de Loop 2 (corrida historica sobre 5,000 filas)
 
 | # | Severidad | Regla | Columna | Nota |
 |---|---|---|---|---|
@@ -162,7 +163,7 @@ cd src && npm test -- auditEngine
 # Ejecutar suite completa
 cd src && npm test
 
-# Abrir AURA y cargar el dataset (5,000 filas preview)
+# Abrir AURA y cargar el dataset completo
 cd src && npm run dev
 # → Abrir http://127.0.0.1:3000
 # → Cargar experiments/tests/Incidentes_Policiales.csv

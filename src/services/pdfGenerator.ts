@@ -517,7 +517,7 @@ export const generatePdfReport = (
   drawSectionHeader(`${sectionIndex}. Limitaciones Metodologicas`);
 
   const limitations = [
-    "Auditoria ejecutada en navegador con preview limitado a 5.000 filas. Datasets mayores requieren procesamiento completo fuera de AURA.",
+    "Auditoria ejecutada en navegador sobre las filas cargadas por AURA. Datasets extremadamente grandes pueden requerir procesamiento dedicado fuera del navegador.",
     "La simulación de remediacion opera sobre una copia en memoria del dataset; no modifica el archivo original.",
     "El script de limpieza no se ejecuta dentro de AURA. Debe ejecutarse en un entorno Python externo (local, Colab, Jupyter) bajo supervision humana.",
     "El score de calidad refleja exclusivamente las reglas del motor determinista. No incorpora inferencias no verificables del modelo de lenguaje.",

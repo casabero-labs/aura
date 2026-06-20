@@ -307,7 +307,7 @@ const App: React.FC = () => {
         rowCount: report.rowCount,
         colCount: report.colCount,
         issueCount: report.issues.length,
-        truncated: report.rowCount >= 5000,
+        truncated: auditEvidence?.truncated ?? false,
       },
     });
     downloadTextFile(`aura_colab_${Date.now()}.ipynb`, notebook, 'application/x-ipynb+json;charset=utf-8');

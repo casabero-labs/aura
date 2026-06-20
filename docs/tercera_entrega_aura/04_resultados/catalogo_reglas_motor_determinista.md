@@ -19,7 +19,7 @@
 | Propiedad principal | Reproducibilidad determinista |
 | Métricas empíricas | Ver `docs/tercera_entrega_aura/04_resultados/resultados_motor_determinista.md` |
 | Dependencias externas | Ninguna (TypeScript puro) |
-| Límite de filas | 5.000 (PapaParse preview) |
+| Límite de filas | Sin límite fijo por defecto; PapaParse procesa el CSV completo en navegador. `preview` solo se usa si se solicita explícitamente. |
 | Perfilado de columnas | `src/services/columnProfiler.ts` (Mejora #1) |
 | Scoring compuesto | Tabla de pesos severidad × categoría (Mejora #3) |
 

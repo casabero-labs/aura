@@ -36,7 +36,7 @@ export const buildEvidenceManifest = (params: {
       evidence: auditEvidence
         ? `CSV cargado: ${auditEvidence.fileName ?? 'desconocido'}, ${auditEvidence.rowsProcessed} filas, ${auditEvidence.columnsProcessed} columnas, fingerprint=${auditEvidence.datasetFingerprint}.`
         : 'Sin evidencia de ingestión.',
-      limitations: auditEvidence?.truncated ? ['Dataset truncado a 5000 filas (preview).'] : [],
+      limitations: auditEvidence?.truncated ? ['Dataset truncado durante el parseo; las filas procesadas pueden no cubrir el archivo completo.'] : [],
     },
     {
       id: 'OE2',
@@ -114,7 +114,7 @@ export const buildEvidenceManifest = (params: {
   }
 
   if (auditEvidence?.truncated) {
-    limitations.push('Dataset truncado a 5000 filas (modo preview del navegador).');
+    limitations.push('Dataset truncado durante el parseo; las filas procesadas pueden no cubrir el archivo completo.');
   }
 
   const artifacts: string[] = [];

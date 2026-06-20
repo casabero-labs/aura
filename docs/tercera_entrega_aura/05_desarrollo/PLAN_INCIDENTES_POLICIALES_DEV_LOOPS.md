@@ -11,10 +11,9 @@
 - Source folder: `experiments/tests/`.
 - Dataset: `experiments/tests/Incidentes_Policiales.csv`.
 - Local CSV facts: 10,048 rows, 7 columns.
-- Browser/app facts: `src/services/csvService.ts` uses `preview: 5000`, so the app/PDF run is truncated to 5,000 rows.
+- Browser/app facts: `src/services/csvService.ts` now parses the full CSV by default; `preview` is only available as an explicit optional parameter for controlled tests.
 - Deterministic audit reproduced from code:
-  - Preview 5,000 rows: score 79, 8 issues, `truncated=true`.
-  - Full 10,048 rows: score 91, 7 issues, `truncated=false`.
+  - Full 10,048 rows: score 95, 5 issues, `truncated=false`.
 - Gemini Nano report:
   - Repeats deterministic findings.
   - Treats `CrimeId` as symbols/outliers.
@@ -34,7 +33,7 @@
 1. Do not start Loop 2 until Loop 1 passes unit, build, E2E, and visual/human-flow validation.
 2. Do not add Pyodide or real Python execution in Loop 1.
 3. Do not claim the script was executed if the app only ran deterministic simulation.
-4. Do not compare Gemini Nano against AURA without stating the 5,000-row preview limit.
+4. Do not compare Gemini Nano against AURA without stating whether the evidence came from a historical 5,000-row preview or the current full-CSV parser.
 5. After code changes, run `graphify update .`.
 
 ## Loop 1: AURA-EXPORT-SESSION-01
@@ -645,4 +644,3 @@ Gates obligatorios:
 Stop condition:
 Si falla cualquier gate o si el humano no puede completar el flujo, no abras Loop 2. Reporta el fallo exacto, archivo/linea y siguiente fix minimo.
 ```
-

@@ -17,7 +17,6 @@ function parseLikeBrowser(fileName: string) {
   const parsed = Papa.parse(csvData, {
     header: true,
     skipEmptyLines: true,
-    preview: 5000,
     delimiter: '',
     dynamicTyping: true,
   });

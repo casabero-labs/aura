@@ -18,7 +18,7 @@ Fuente: San Francisco Police Department — portal de datos abiertos.
 
 ## 2. Gemini Nano — Hallazgo
 
-Modelo: `gemini-nano` (Chrome built-in), temperatura 0.1, 5,000 filas preview.
+Modelo: `gemini-nano` (Chrome built-in), temperatura 0.1, corrida histórica con 5,000 filas preview.
 Fuente: `experiments/tests/2. diagnostico gemini reporte pdf.pdf`
 
 | Lo que hizo bien | Lo que omitió |
@@ -38,7 +38,7 @@ Falsos positivos corregidos: CallDateTime ISO como números, Disposition como UR
 
 | Aspecto | Pre-Loop 2 | Post-Loop 2 |
 |---|---|---|
-| Score (5,000 filas) | 79 | ~75 (score empeora por regla nueva) |
+| Score (corrida histórica 5,000 filas) | 79 | ~75 (score empeora por regla nueva) |
 | Falsos positivos | 3 | 0 |
 | Contaminación CrimeId detectada | No | **Sí** |
 | Reglas activas | 8 | 5 |

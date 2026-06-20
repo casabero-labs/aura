@@ -112,7 +112,7 @@ La simulación determinista se conserva como fallback y herramienta de comparaci
 Independientemente de si la ejecución ocurre en Pyodide o en Colab, el contrato de entrada/salida es el mismo:
 
 ### Entrada
-- `csvOriginal`: string con el CSV cargado por el usuario (o primeros 5.000 rows en modo preview).
+- `csvOriginal`: string con el CSV cargado por el usuario completo; `previewRows` solo aplica si el usuario solicita una ejecución parcial controlada.
 - `scriptAprobado`: string con el script Python/Pandas validado y aprobado en etapa HITL.
 - `config`: `{ previewRows?: number, timeoutMs?: number }`.
 

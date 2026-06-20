@@ -16,7 +16,7 @@
 | **Mitigación de alucinaciones** | N/A | N/A | N/A | N/A | ❌ No documentada | ✅ (Copy-Paste, t=0.1, JSON estricto, M4) |
 | **Reporte ejecutivo PDF** | ❌ (JSON/HTML) | ❌ | Dashboard web | ❌ | ❌ | ✅ (jsPDF multi-página) |
 | **Benchmarking multi-modelo** | N/A | N/A | N/A | N/A | ❌ (modelo fijo) | ✅ (intercambio Gemini/Llama) |
-| **Escalabilidad** | ✅ Big Data (Spark) | ❌ (~5.000 filas) | ✅ Cloud-native | ✅ Pipelines | No documentada | 🔶 5.000 filas (preview browser) |
+| **Escalabilidad** | ✅ Big Data (Spark) | ❌ (~5.000 filas) | ✅ Cloud-native | ✅ Pipelines | No documentada | 🔶 CSV completo en navegador; datasets muy grandes requieren entorno dedicado |
 | **Configuración requerida** | Alta (YAML + Python) | Baja (GUI) | Alta (deploy cloud) | Media (YAML) | Media (API key) | **Baja (drag & drop, zero-config)** |
 | **Costo** | Open Source | Open Source | Enterprise ($$$$) | Freemium | Open Source | **Open Source** |
 | **Tipo de usuario objetivo** | Data Engineers | Analistas / Periodistas de datos | Equipos de Data Ops | DevOps / Data Engineers | Data Scientists | **Analistas, científicos de datos, auditores** |

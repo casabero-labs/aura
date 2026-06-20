@@ -49,7 +49,7 @@
 - Benchmark LLM es preliminar hasta que se activen API keys o WebGPU.
 - Ground truth disponible solo para datasets sintético (15 filas) y Titanic (891 filas).
 - Métricas deterministas por regla usan detección binaria (rule fired / not fired), no conteo de filas afectadas.
-- Dataset truncado a 5000 filas en modo preview del navegador (PapaParse).
+- La app procesa el CSV completo por defecto; datasets extremadamente grandes pueden requerir entorno dedicado fuera del navegador.
 - `R24 — Rangos Demográficos Quemados` produce FP en columnas de fecha (regex captura fragmentos ISO).
 
 ---

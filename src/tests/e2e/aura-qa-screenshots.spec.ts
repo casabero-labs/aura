@@ -41,7 +41,7 @@ test.describe('AURA QA — Human-first screenshots', () => {
     const diagnosisBtnEnabled = await diagnosisGenBtn.isEnabled().catch(() => false);
 
     const continueBtn = page.locator('[data-testid="primary-stage-action"]').getByRole('button', { name: /Continuar a propuesta/i });
-    const skipBtn = page.locator('.provider-error-notice, .provider-unavailable-notice').getByRole('button', { name: /Continuar sin diagnóstico/i });
+    const skipBtn = diagnosisStage.getByRole('button', { name: /Continuar sin diagnóstico/i });
 
     if (diagnosisBtnEnabled) {
       await diagnosisGenBtn.click();
@@ -178,7 +178,7 @@ test.describe('AURA QA — Human-first screenshots', () => {
     const diagnosisBtnEnabled4 = await diagnosisGenBtn4.isEnabled().catch(() => false);
 
     const continueBtn4 = page.locator('[data-testid="primary-stage-action"]').getByRole('button', { name: /Continuar a propuesta/i });
-    const skipBtn4 = page.locator('.provider-error-notice, .provider-unavailable-notice').getByRole('button', { name: /Continuar sin diagnóstico/i });
+    const skipBtn4 = diagnosisStage.getByRole('button', { name: /Continuar sin diagnóstico/i });
 
     if (diagnosisBtnEnabled4) {
       await diagnosisGenBtn4.click();

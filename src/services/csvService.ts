@@ -1,14 +1,13 @@
 import Papa from 'papaparse';
 import { CsvParsedData } from '../types';
 
-export const parseCsv = (file: File, previewLimit: number = 5000): Promise<CsvParsedData> => {
+export const parseCsv = (file: File, previewLimit?: number): Promise<CsvParsedData> => {
   return new Promise((resolve, reject) => {
     // PapaParse's "sniffer" is built-in via the delimiter: "" (auto) option.
     // It reads the first chunk to guess the delimiter.
-    Papa.parse(file, {
+    const parseConfig: Papa.ParseConfig = {
       header: true,
       skipEmptyLines: true,
-      preview: previewLimit, // Limit rows for browser performance in this demo
       delimiter: "", // Auto-detect delimiter (Sniffer)
       dynamicTyping: true, // Auto-convert numbers
       worker: true, // Use Web Workers to parse asynchronously and keep the UI fluid
@@ -26,6 +25,12 @@ export const parseCsv = (file: File, previewLimit: number = 5000): Promise<CsvPa
       error: (error: any) => {
         reject(error);
       }
-    });
+    };
+
+    if (typeof previewLimit === 'number' && previewLimit > 0) {
+      parseConfig.preview = previewLimit;
+    }
+
+    Papa.parse(file, parseConfig);
   });
 };

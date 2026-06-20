@@ -51,7 +51,7 @@ Para la segunda entrega, esta tabla debe completarse únicamente con corridas ex
 
 ### Resumen del caso
 
-Se comparó el diagnóstico de Gemini Nano (Chrome built-in) sobre el dataset `Incidentes_Policiales.csv` (5,000 filas preview) contra el motor determinista de AURA antes y después de Loop 2.
+Se comparó el diagnóstico histórico de Gemini Nano (Chrome built-in) sobre el dataset `Incidentes_Policiales.csv` (corrida preview de 5,000 filas) contra el motor determinista de AURA antes y después de Loop 2. La app actual procesa el CSV completo por defecto.
 
 ### Hallazgo principal
 
