@@ -78,7 +78,7 @@ declare global {
 
 export type ChromeAiApiSurface = 'LanguageModel' | 'window.ai.languageModel' | 'window.ai.assistant' | 'none';
 
-export type ChromeAiStatus = 'available' | 'downloadable' | 'downloading' | 'unavailable' | 'error';
+export type ChromeAiStatus = 'available' | 'downloadable' | 'downloading' | 'unavailable' | 'session_start_failed' | 'error';
 
 export interface ChromeAiDiagnostic {
   apiSurface: ChromeAiApiSurface;
@@ -111,7 +111,39 @@ function detectApiSurface(): ChromeAiApiSurface {
   return 'none';
 }
 
-/** Full diagnostic of Chrome AI availability - now uses detectChromeAiAvailability as single source of truth */
+async function smokeTestSession(surface: ChromeAiApiSurface): Promise<{ passed: boolean; error?: string }> {
+  try {
+    let session: { prompt(input: string): Promise<string>; destroy?(): void } | null = null;
+    
+    if (surface === 'LanguageModel') {
+      session = await globalThis.LanguageModel!.create();
+      const response = await session.prompt('Responde solo: OK');
+      session.destroy?.();
+      return { passed: response.includes('OK') };
+    }
+    
+    if (surface === 'window.ai.languageModel') {
+      session = await window.ai!.languageModel!.create();
+      const response = await session.prompt('Responde solo: OK');
+      session.destroy?.();
+      return { passed: response.includes('OK') };
+    }
+    
+    if (surface === 'window.ai.assistant') {
+      const ai = await window.ai!.assistant!();
+      session = await ai.create();
+      const response = await session.prompt('Responde solo: OK');
+      session.destroy?.();
+      return { passed: response.includes('OK') };
+    }
+    
+    return { passed: false, error: 'No API surface' };
+  } catch (e) {
+    return { passed: false, error: (e as Error).message };
+  }
+}
+
+/** Full diagnostic of Chrome AI availability - uses detectChromeAiAvailability as single source of truth */
 export async function getChromeAiDiagnostic(): Promise<ChromeAiDiagnostic> {
   const normalized = await detectChromeAiAvailability();
 
@@ -122,21 +154,16 @@ export async function getChromeAiDiagnostic(): Promise<ChromeAiDiagnostic> {
     'none': 'none',
   };
 
-  const statusMap: Record<NormalizedStatus, ChromeAiStatus> = {
-    'ready': 'available',
-    'downloadable': 'downloadable',
-    'downloading': 'downloading',
-    'unavailable': 'unavailable',
-    'api_missing': 'unavailable',
-    'error': 'error',
-  };
-
+  let finalStatus: ChromeAiStatus;
   let actions: string[] = [];
+  
   switch (normalized.status) {
     case 'ready':
+      finalStatus = 'available';
       actions = ['Puedes generar diagnósticos con Chrome AI.'];
       break;
     case 'downloadable':
+      finalStatus = 'downloadable';
       actions = [
         'Pulsa "Preparar Gemini Nano" para iniciar la descarga.',
         'No cierres esta pestaña durante la descarga.',
@@ -144,10 +171,13 @@ export async function getChromeAiDiagnostic(): Promise<ChromeAiDiagnostic> {
       ];
       break;
     case 'downloading':
+      finalStatus = 'downloading';
       actions = ['Espera a que termine la descarga.'];
       break;
     case 'unavailable':
     case 'api_missing':
+    case 'error':
+      finalStatus = 'unavailable';
       actions = [
         'Verifica que uses Chrome 138 o superior.',
         'Abre chrome://flags y busca "Prompt API" o "Built-in AI".',
@@ -156,18 +186,27 @@ export async function getChromeAiDiagnostic(): Promise<ChromeAiDiagnostic> {
         'Prueba con Ollama o Cloud como alternativa.',
       ];
       break;
-    case 'error':
+    default:
+      finalStatus = 'error';
+      actions = ['Estado desconocido. Reinicia Chrome e intenta de nuevo.'];
+  }
+  
+  if (normalized.status === 'ready' && normalized.apiSurface !== 'none') {
+    const smokeTest = await smokeTestSession(surfaceMap[normalized.apiSurface]);
+    if (!smokeTest.passed) {
+      finalStatus = 'session_start_failed';
       actions = [
+        'Chrome AI fue detectado, pero la sesión falló al iniciar.',
+        'Error: ' + (smokeTest.error || 'desconocido'),
         'Reinicia Chrome e intenta de nuevo.',
-        'Revisa chrome://on-device-internals.',
-        'Prueba con Ollama o Cloud como alternativa.',
+        'Si el problema persiste, prueba con Ollama o Cloud.',
       ];
-      break;
+    }
   }
 
   return {
     apiSurface: surfaceMap[normalized.apiSurface],
-    status: statusMap[normalized.status],
+    status: finalStatus,
     rawAvailability: normalized.availabilityRaw,
     message: normalized.message,
     actions,

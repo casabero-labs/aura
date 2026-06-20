@@ -34,6 +34,11 @@ describe('getChromeAiDiagnostic', () => {
     it('detects globalThis.LanguageModel as apiSurface', async () => {
       (globalThis as any).LanguageModel = {
         availability: vi.fn().mockResolvedValue({ available: 'readily' }),
+        create: vi.fn().mockResolvedValue({
+          prompt: vi.fn().mockResolvedValue('OK'),
+          promptStreaming: vi.fn().mockReturnValue(new ReadableStream()),
+          destroy: vi.fn(),
+        }),
       };
       const result = await getChromeAiDiagnostic();
       expect(result.apiSurface).toBe('LanguageModel');
@@ -44,6 +49,11 @@ describe('getChromeAiDiagnostic', () => {
       (window as any).ai = {
         languageModel: {
           availability: vi.fn().mockResolvedValue({ available: 'readily' }),
+          create: vi.fn().mockResolvedValue({
+            prompt: vi.fn().mockResolvedValue('OK'),
+            promptStreaming: vi.fn().mockReturnValue(new ReadableStream()),
+            destroy: vi.fn(),
+          }),
         },
       };
       const result = await getChromeAiDiagnostic();
@@ -55,6 +65,11 @@ describe('getChromeAiDiagnostic', () => {
       (window as any).ai = {
         assistant: vi.fn().mockResolvedValue({
           capabilities: vi.fn().mockResolvedValue({ available: true, defaultTemperature: 0 }),
+          create: vi.fn().mockResolvedValue({
+            prompt: vi.fn().mockResolvedValue('OK'),
+            promptStreaming: vi.fn().mockReturnValue(new ReadableStream()),
+            destroy: vi.fn(),
+          }),
         }),
       };
       const result = await getChromeAiDiagnostic();
@@ -67,6 +82,11 @@ describe('getChromeAiDiagnostic', () => {
     it('returns status "available" when availability is "readily"', async () => {
       (globalThis as any).LanguageModel = {
         availability: vi.fn().mockResolvedValue({ available: 'readily' }),
+        create: vi.fn().mockResolvedValue({
+          prompt: vi.fn().mockResolvedValue('OK'),
+          promptStreaming: vi.fn().mockReturnValue(new ReadableStream()),
+          destroy: vi.fn(),
+        }),
       };
       const result = await getChromeAiDiagnostic();
       expect(result.status).toBe('available');

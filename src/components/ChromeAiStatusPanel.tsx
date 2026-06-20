@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Brain, Activity, Download, CheckCircle, AlertCircle, FlaskConical, Eye, EyeOff, Copy, ExternalLink, ChevronDown, ChevronRight, Lock, Server, Globe } from 'lucide-react';
 import { NormalizedAvailability } from '../services/chromeAvailability';
 import { 
+  checkChromeModelStatus,
   getChromeModelStatus, 
   startChromeModelPolling, 
   stopChromeModelPolling, 
@@ -71,16 +72,18 @@ export const ChromeAiStatusPanel: React.FC<ChromeAiStatusPanelProps> = ({
 
   const checkStatus = useCallback(async () => {
     setIsChecking(true);
-    const result = await getChromeModelStatus();
+    const result = await checkChromeModelStatus();
     setStatus(result);
     setIsChecking(false);
+    return result;
   }, []);
 
   const handleVerify = useCallback(async () => {
     setIsChecking(true);
-    const result = await getChromeModelStatus();
+    const result = await checkChromeModelStatus();
     setStatus(result);
     setIsChecking(false);
+    return result;
   }, []);
 
   const handlePrepare = useCallback(async () => {
@@ -89,7 +92,7 @@ export const ChromeAiStatusPanel: React.FC<ChromeAiStatusPanelProps> = ({
     setIsPreparing(true);
     setPreparingState('Iniciando descarga de Gemini Nano...');
     
-    startChromeModelPolling((newStatus) => {
+    const pollingCallback = (newStatus: ChromeModelStatus) => {
       setStatus(newStatus);
       
       if (newStatus.uiStatus === 'downloading' && newStatus.downloadProgress !== undefined) {
@@ -101,7 +104,9 @@ export const ChromeAiStatusPanel: React.FC<ChromeAiStatusPanelProps> = ({
         clearDownloadProgress();
         stopChromeModelPolling();
       }
-    });
+    };
+    
+    startChromeModelPolling(pollingCallback);
     
     try {
       await onPrepare();
@@ -111,6 +116,25 @@ export const ChromeAiStatusPanel: React.FC<ChromeAiStatusPanelProps> = ({
       stopChromeModelPolling();
     }
   }, [onPrepare, onDownloadProgress]);
+
+  useEffect(() => {
+    checkChromeModelStatus().then(result => {
+      setStatus(result);
+      if (result.uiStatus === 'downloading') {
+        startChromeModelPolling((newStatus) => {
+          setStatus(newStatus);
+          onStatusChange?.(newStatus.uiStatus);
+          if (newStatus.uiStatus === 'ready') {
+            onReady?.();
+            stopChromeModelPolling();
+          }
+          if (newStatus.downloadProgress !== undefined) {
+            onDownloadProgress?.(newStatus.downloadProgress, newStatus.downloadMessage);
+          }
+        });
+      }
+    });
+  }, []);
 
   const copyInternalUrl = useCallback(() => {
     navigator.clipboard.writeText(CHROME_INTERNAL_URL).then(() => {
