@@ -77,6 +77,9 @@ export const DiagnosisContractGuide: React.FC<DiagnosisContractGuideProps> = ({
   const [showWhatProduces, setShowWhatProduces] = useState(false);
   const [showUserControls, setShowUserControls] = useState(false);
 
+  const aiInputMode: InputMode = aiConfig.inputMode || 'smart_sample';
+  const currentModeInfo = INPUT_MODE_INFO[aiInputMode] || INPUT_MODE_INFO.smart_sample;
+
   const smartSample = useMemo(() => buildSmartSample(report), [report]);
   const diagnosisPrompt = useMemo(
     () => buildAnalysisPrompt(report, aiConfig.promptContract, aiInputMode),
@@ -84,16 +87,13 @@ export const DiagnosisContractGuide: React.FC<DiagnosisContractGuideProps> = ({
   );
   const promptHash = useMemo(() => computePromptHash(diagnosisPrompt), [diagnosisPrompt]);
 
-  const aiInputMode: InputMode = aiConfig.inputMode || 'smart_sample';
-  const currentModeInfo = INPUT_MODE_INFO[aiInputMode];
-
   const inputSummary = useMemo(() => {
     const affectedColumns = new Set(report.issues.map((i) => i.column).filter(Boolean)).size;
     return {
       findings: report.issues.length,
       columns: Object.keys(report.columnStats).length,
       affectedColumns,
-      sampleCount: report.issues.reduce((acc, i) => acc + i.sampleValues.length, 0),
+      sampleCount: report.issues.reduce((acc, i) => acc + (i.sampleValues?.length || 0), 0),
     };
   }, [report]);
 
@@ -200,7 +200,7 @@ export const DiagnosisContractGuide: React.FC<DiagnosisContractGuideProps> = ({
         <details className="contract-guide-section" open={showUserControls} onToggle={() => setShowUserControls(!showUserControls)}>
           <summary className="contract-guide-section-summary">
             {showUserControls ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-            <span>Qué контролирует el usuario</span>
+            <span>Qué controla el usuario</span>
           </summary>
           {showUserControls && (
             <div className="contract-guide-section-content">
