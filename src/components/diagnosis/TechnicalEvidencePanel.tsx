@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { FileCode2, Copy, Download, ChevronDown, ChevronRight, Hash } from 'lucide-react';
 import { AIConfig } from '../../types';
 import { buildSmartSample, buildAnalysisPrompt } from '../../services/providers/prompts';
@@ -7,13 +7,34 @@ import { computePromptHash } from '../../services/llmAuditLog';
 interface TechnicalEvidencePanelProps {
   report: any;
   aiConfig: AIConfig;
+  isOpen?: boolean;
+  onToggle?: (open: boolean) => void;
 }
 
 export const TechnicalEvidencePanel: React.FC<TechnicalEvidencePanelProps> = ({
   report,
   aiConfig,
+  isOpen: externalIsOpen,
+  onToggle,
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
+  const [internalIsOpen, setInternalIsOpen] = useState(false);
+  const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (externalIsOpen === true && panelRef.current) {
+      panelRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [externalIsOpen]);
+
+  const handleToggle = () => {
+    const newState = !isOpen;
+    if (onToggle) {
+      onToggle(newState);
+    } else {
+      setInternalIsOpen(newState);
+    }
+  };
   const [showContext, setShowContext] = useState(true);
   const [showColumns, setShowColumns] = useState(false);
   const [showIssues, setShowIssues] = useState(false);
@@ -45,10 +66,10 @@ export const TechnicalEvidencePanel: React.FC<TechnicalEvidencePanelProps> = ({
   };
 
   return (
-    <div className="technical-evidence-panel">
+    <div className="technical-evidence-panel" ref={panelRef}>
       <button
         className="technical-evidence-toggle"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={handleToggle}
       >
         <FileCode2 size={14} />
         <span>Ver expediente técnico</span>

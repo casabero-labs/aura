@@ -3,7 +3,6 @@ import { Brain, Database, Play, FlaskConical, Lock, Globe, ChevronDown, ChevronR
 import GeminiAdvisor from './GeminiAdvisor';
 import ProgressDisclosure from './ProgressDisclosure';
 import ChromeAiStatusPanel from './ChromeAiStatusPanel';
-import DiagnosisContractGuide from './DiagnosisContractGuide';
 import { DiagnosisHeroPanel, DiagnosisProviderPanel, DiagnosisContractPanel, TechnicalEvidencePanel } from './diagnosis';
 import { AIConfig, AIProvider, AuditReport, AuditExecutionEvidence, ProviderMetrics, LocalModelStatus, DiagnosisEvent, ProviderProgressEvent, ProgressDisclosureStatus, InputMode } from '../types';
 import { buildSmartSample, buildAnalysisPrompt } from '../services/providers/prompts';
@@ -103,6 +102,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
   const [privacyReceipt, setPrivacyReceipt] = useState<PrivacyReceipt | null>(null);
   const [showPrivacyDetails, setShowPrivacyDetails] = useState(false);
   const [networkResult, setNetworkResult] = useState<NetworkGuardResult | null>(null);
+  const [isTechnicalEvidenceOpen, setIsTechnicalEvidenceOpen] = useState(false);
 
   const pushEvent = useCallback((level: DiagnosisEvent['level'], message: string) => {
     const event: DiagnosisEvent = {
@@ -574,11 +574,14 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
           report={report}
           aiConfig={aiConfig}
           onInputModeChange={handleInputModeChange}
+          onOpenTechnicalEvidence={() => setIsTechnicalEvidenceOpen(true)}
         />
 
         <TechnicalEvidencePanel
           report={report}
           aiConfig={aiConfig}
+          isOpen={isTechnicalEvidenceOpen}
+          onToggle={setIsTechnicalEvidenceOpen}
         />
 
         {aiConfig.providerType === 'webllm_experimental' && currentModelStatus && (
@@ -871,12 +874,6 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
               <button className="btn-s btn-sm" onClick={onOpenLab}>Abrir</button>
             </div>
           )}
-
-          <DiagnosisContractGuide
-            report={report}
-            aiConfig={aiConfig}
-            onInputModeChange={handleInputModeChange}
-          />
 
           <div className="smart-sample-section">
             <button
