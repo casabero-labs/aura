@@ -38,6 +38,8 @@ export const TechnicalEvidencePanel: React.FC<TechnicalEvidencePanelProps> = ({
   const [showContext, setShowContext] = useState(true);
   const [showColumns, setShowColumns] = useState(false);
   const [showIssues, setShowIssues] = useState(false);
+  const [showPrompt, setShowPrompt] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const smartSample = useMemo(() => buildSmartSample(report), [report]);
   const diagnosisPrompt = useMemo(
@@ -72,7 +74,7 @@ export const TechnicalEvidencePanel: React.FC<TechnicalEvidencePanelProps> = ({
         onClick={handleToggle}
       >
         <FileCode2 size={14} />
-        <span>Ver expediente técnico</span>
+        <span>Expediente técnico</span>
         {isOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
       </button>
 
@@ -80,7 +82,13 @@ export const TechnicalEvidencePanel: React.FC<TechnicalEvidencePanelProps> = ({
         <div className="technical-evidence-content">
           <div className="technical-evidence-meta">
             <span className="technical-evidence-meta-item">
-              <Hash size={10} /> Hash: {promptHash.substring(0, 12)}...
+              <Hash size={10} /> {promptHash.substring(0, 12)}...
+            </span>
+            <span className="technical-evidence-meta-item">
+              {aiConfig.inputMode}
+            </span>
+            <span className="technical-evidence-meta-item">
+              {aiConfig.providerType}
             </span>
             <span className="technical-evidence-meta-item">
               Filas: {report.rowCount?.toLocaleString()}
@@ -134,6 +142,32 @@ export const TechnicalEvidencePanel: React.FC<TechnicalEvidencePanelProps> = ({
                 <pre className="technical-evidence-pre technical-evidence-pre--scroll">
                   {JSON.stringify(smartSample.detected_issues, null, 2)}
                 </pre>
+              )}
+            </details>
+
+            <details open={showPrompt} onToggle={() => setShowPrompt(!showPrompt)}>
+              <summary>
+                {showPrompt ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                prompt — {diagnosisPrompt.length} chars
+              </summary>
+              {showPrompt && (
+                <pre className="technical-evidence-pre technical-evidence-pre--scroll">
+                  {diagnosisPrompt}
+                </pre>
+              )}
+            </details>
+
+            <details open={showAdvanced} onToggle={() => setShowAdvanced(!showAdvanced)}>
+              <summary>
+                {showAdvanced ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                Depuración avanzada
+              </summary>
+              {showAdvanced && (
+                <div className="technical-evidence-advanced">
+                  <p className="technical-evidence-advanced-note">
+                    Solo para diagnóstico de problemas. No afecta el funcionamiento normal.
+                  </p>
+                </div>
               )}
             </details>
           </div>

@@ -28,12 +28,6 @@ interface DiagnosisStepProps {
   onOpenSettings?: () => void;
 }
 
-type JsonSectionProps = {
-  title: string;
-  children: React.ReactNode;
-  defaultOpen?: boolean;
-};
-
 export const buildDiagnosisInputSummary = (report: AuditReport) => {
   const critical = report.issues.filter((issue) => issue.severity === 'critical').length;
   const warning = report.issues.filter((issue) => issue.severity === 'warning').length;
@@ -45,19 +39,6 @@ export const buildDiagnosisInputSummary = (report: AuditReport) => {
     warning,
     affectedColumns,
   };
-};
-
-const JsonSection: React.FC<JsonSectionProps> = ({ title, children, defaultOpen = false }) => {
-  const [open, setOpen] = useState(defaultOpen);
-  return (
-    <div className="json-section">
-      <button className="json-section-toggle" onClick={() => setOpen(!open)} aria-expanded={open}>
-        <span className={`json-caret ${open ? 'open' : ''}`}>›</span>
-        <span>{title}</span>
-      </button>
-      {open && <div className="json-section-content">{children}</div>}
-    </div>
-  );
 };
 
 const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
@@ -80,8 +61,6 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
   const [normalizedError, setNormalizedError] = useState<NormalizedProviderError | null>(null);
   const [lastMetrics, setLastMetrics] = useState<ProviderMetrics | null>(null);
   const [providerAvailable, setProviderAvailable] = useState<boolean | null>(null);
-  const [showPrompt, setShowPrompt] = useState(false);
-  const [showEvidence, setShowEvidence] = useState(false);
   const [deletingModel, setDeletingModel] = useState<string | null>(null);
   const [currentModelStatus, setCurrentModelStatus] = useState<LocalModelStatus | null>(null);
   const [isCheckingModel, setIsCheckingModel] = useState(false);
@@ -827,108 +806,6 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
           </div>
         )}
       </section>
-
-      <details className="technical-details" data-testid="technical-details">
-        <summary className="technical-details-summary">
-          <ChevronDown size={14} className="technical-details-chevron" />
-          <span>Detalles técnicos</span>
-          <span className="technical-details-hint">modelo, paquete estructurado, contrato y calibración</span>
-        </summary>
-        <div className="technical-details-body">
-
-          {aiConfig.providerType === 'webllm_experimental' && Object.keys(modelStatuses).length > 0 && (
-            <div className="downloaded-models-list">
-              <div className="downloaded-models-header">
-                <HardDrive size={10} />
-                <span>Modelos locales ({Object.keys(modelStatuses).length} evaluados)</span>
-              </div>
-              {Object.entries(modelStatuses).map(([modelId]) => {
-                const modelInfo = LOCAL_MODELS.find(m => m.id === modelId);
-                if (!modelInfo) return null;
-                const status = modelStatuses[modelId];
-                return (
-                  <div key={modelId} className="downloaded-model-item">
-                    <span className="downloaded-model-name">{modelInfo.name}</span>
-                    <span className="downloaded-model-size">{modelInfo.sizeGB} GB</span>
-                    <span className={`downloaded-model-badge downloaded-model-badge--${status?.status || 'unknown'}`}>
-                      {status?.status === 'ready' ? 'Verificado' : status?.status === 'partial' ? 'Parcial' : status?.status === 'not_downloaded' ? 'Sin descargar' : 'Error'}
-                    </span>
-                    <button
-                      className="delete-model-btn"
-                      onClick={() => handleDeleteModel(modelId)}
-                      disabled={deletingModel === modelId || modelId === aiConfig.model}
-                      title={modelId === aiConfig.model ? 'No se puede eliminar el modelo activo' : 'Eliminar modelo'}
-                    >
-                      {deletingModel === modelId ? '...' : <Trash2 size={10} />}
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {onOpenLab && (
-            <div className="lab-cta-strip">
-              <FlaskConical size={14} style={{ color: 'var(--ink3)', flexShrink: 0 }} />
-              <span>Calibrar diagnóstico en Laboratorio</span>
-              <button className="btn-s btn-sm" onClick={onOpenLab}>Abrir</button>
-            </div>
-          )}
-
-          <div className="smart-sample-section">
-            <button
-              className="btn-s btn-sm"
-              onClick={() => setShowEvidence(!showEvidence)}
-            >
-              {showEvidence ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-              {showEvidence ? 'Ocultar paquete estructurado' : 'Ver paquete estructurado'}
-            </button>
-            {showEvidence && (
-              <div className="smart-sample-viewer">
-                <div className="smart-sample-header">
-                  <div className="smart-sample-title">
-                    <FileCode2 size={14} />
-                    <span>PAQUETE ESTRUCTURADO</span>
-                  </div>
-                </div>
-                <div className="smart-sample-body">
-                  <JsonSection title={`context — ${Object.keys(smartSample.context).length} campos`} defaultOpen>
-                    <div className="json-kv">
-                      <span className="json-line"><span className="json-key">"total_rows"</span>: <span className="json-number">{smartSample.context.total_rows}</span>,</span>
-                      <span className="json-line"><span className="json-key">"total_columns"</span>: <span className="json-number">{smartSample.context.total_columns}</span>,</span>
-                      <span className="json-line"><span className="json-key">"detected_delimiter"</span>: <span className="json-string">"{smartSample.context.detected_delimiter}"</span>,</span>
-                      <span className="json-line"><span className="json-key">"quality_score"</span>: <span className="json-number">{smartSample.context.quality_score}</span></span>
-                    </div>
-                  </JsonSection>
-                  <JsonSection title={`columns — ${smartSample.columns.length} columnas`}>
-                    <pre className="json-raw">{JSON.stringify(smartSample.columns, null, 2)}</pre>
-                  </JsonSection>
-                  <JsonSection title={`detected_issues — ${smartSample.detected_issues.length} reglas activadas`}>
-                    <pre className="json-raw">{JSON.stringify(smartSample.detected_issues, null, 2)}</pre>
-                  </JsonSection>
-                </div>
-              </div>
-            )}
-          </div>
-
-        </div>
-      </details>
-
-      {showPrompt && (
-        <div className="prompt-modal" onClick={() => setShowPrompt(false)}>
-          <div className="prompt-modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="prompt-modal-header">
-              <h3>Contrato técnico de interpretación</h3>
-              <button className="prompt-modal-close" onClick={() => setShowPrompt(false)}><X size={14} /></button>
-            </div>
-            <pre className="prompt-modal-body">{diagnosisPrompt}</pre>
-            <div className="prompt-modal-footer">
-              <span>{diagnosisPrompt.length.toLocaleString('es-CO')} chars</span>
-              <span>{computePromptHash(diagnosisPrompt)}</span>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 };

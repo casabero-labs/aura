@@ -92,6 +92,15 @@ interface ImpactLevel {
   label: string;
 }
 
+const IMPACT_LABELS: Record<string, string> = {
+  privacy: 'Privacidad',
+  traceability: 'Trazabilidad',
+  hallucination: 'Alucinación',
+  latency: 'Latencia',
+  depth: 'Profundidad',
+  reproducibility: 'Reproducibilidad',
+};
+
 const IMPACT_CHIPS: Record<InputMode, Record<string, ImpactLevel>> = {
   smart_sample: {
     privacy: { level: 'high', label: 'Alta' },
@@ -229,7 +238,7 @@ export const DiagnosisCognitiveContractCanvas: React.FC<DiagnosisCognitiveContra
       <div className="contract-canvas-impact-strip">
         {Object.entries(impacts).map(([key, impact]) => (
           <div key={key} className={`contract-canvas-impact-chip contract-canvas-impact-chip--${impact.level}`}>
-            <span className="contract-impact-label">{key === 'hallucination' ? 'Alucinación' : key.charAt(0).toUpperCase() + key.slice(1)}</span>
+            <span className="contract-impact-label">{IMPACT_LABELS[key] || key}</span>
             <span className="contract-impact-value">{impact.label}</span>
           </div>
         ))}
