@@ -120,7 +120,7 @@ const App: React.FC = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showLab, setShowLab] = useState(false);
-  const [showHome, setShowHome] = useState(!pipelineData.report);
+  const [showHome, setShowHome] = useState(true);
   const [showAuditLog, setShowAuditLog] = useState(false);
   const [showChangelog, setShowChangelog] = useState(false);
   const [showMobileNav, setShowMobileNav] = useState(false);
@@ -140,7 +140,6 @@ const App: React.FC = () => {
   useEffect(() => {
     if (pipelineData.report) {
       savePipelineSession(pipelineData);
-      setShowHome(false);
     }
   }, [pipelineData]);
 
