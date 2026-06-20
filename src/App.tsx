@@ -773,7 +773,6 @@ const App: React.FC = () => {
       <footer className="sys-footer" style={{ display: showLab || showSettings || showHelp ? 'none' : undefined }}>
         <span className="footer-brand">AURA</span>
         <div className="footer-links">
-          <button className="footer-link" onClick={() => setShowAuditLog(true)}>Trazabilidad</button>
           <button className="footer-link" onClick={() => setShowHelp(true)}>Ayuda</button>
           <button className="footer-link" onClick={() => setShowChangelog(true)}>Historial</button>
         </div>

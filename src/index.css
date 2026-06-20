@@ -7338,6 +7338,15 @@ tr:hover td {
   color: var(--ink);
   margin: 0;
 }
+.changelog-modal .modal-eyebrow {
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink3);
+  margin: 0 0 2px;
+}
 .changelog-modal .modal-close {
   background: none;
   border: none;
@@ -7360,7 +7369,7 @@ tr:hover td {
   padding: var(--space-lg);
 }
 .changelog-entry {
-  padding: var(--space-md) 0;
+  padding: var(--space-lg) 0;
   border-bottom: 1px solid var(--border);
 }
 .changelog-entry:last-child {
@@ -7368,15 +7377,24 @@ tr:hover td {
 }
 .changelog-entry-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  justify-content: space-between;
   gap: var(--space-sm);
-  margin-bottom: var(--space-xs);
+  margin-bottom: var(--space-sm);
 }
 .changelog-date {
   font-family: var(--font-sans);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--ink3);
+}
+.changelog-version {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--ink);
+  margin: 2px 0 0;
 }
 .changelog-tag {
   font-family: var(--font-mono);
@@ -7406,19 +7424,34 @@ tr:hover td {
   line-height: 1.6;
 }
 .changelog-commits {
-  display: flex;
-  gap: var(--space-xs);
-  flex-wrap: wrap;
-  margin-top: var(--space-xs);
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+  margin-top: var(--space-sm);
 }
 .changelog-commit {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: var(--space-sm);
+  align-items: baseline;
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 11px;
   background: var(--surface);
   border: 1px solid var(--border);
-  color: var(--ink3);
-  padding: 1px 5px;
-  border-radius: var(--radius-xs);
+  color: var(--ink2);
+  padding: 7px 9px;
+  border-radius: var(--radius-sm);
+}
+.changelog-commit span {
+  color: var(--ink);
+  font-weight: 600;
+}
+.changelog-commit p {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ink2);
 }
 
 /* ─── IngestionEvidenceCard ─── */
@@ -8978,6 +9011,78 @@ tr:hover td {
   margin-bottom: var(--space-xs);
 }
 
+.help-callout {
+  padding: var(--space-md);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 2px solid var(--ink-soft);
+  border-radius: var(--radius-sm);
+  margin: var(--space-md) 0;
+}
+
+.help-callout strong {
+  display: block;
+  color: var(--ink);
+  font-size: 13px;
+  margin-bottom: var(--space-xs);
+}
+
+.help-callout p {
+  margin: 0;
+}
+
+.help-callout--warning {
+  border-left-color: var(--orange);
+}
+
+.help-checklist {
+  list-style: none;
+  padding-left: 0 !important;
+}
+
+.help-checklist li {
+  position: relative;
+  padding-left: var(--space-lg);
+}
+
+.help-checklist li::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 0.75em;
+  width: 7px;
+  height: 7px;
+  border: 1px solid var(--ink3);
+  border-radius: 50%;
+}
+
+.help-artifact-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.help-artifact-grid > div {
+  padding: var(--space-md);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.help-artifact-grid strong {
+  display: block;
+  color: var(--ink);
+  font-size: 13px;
+  margin-bottom: var(--space-xs);
+}
+
+.help-artifact-grid p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
 .help-flow-list {
   list-style: none;
   padding: 0;
@@ -9132,6 +9237,10 @@ tr:hover td {
     padding: 0 var(--space-md) var(--space-xl);
   }
 
+  .help-artifact-grid {
+    grid-template-columns: 1fr;
+  }
+
   .help-glossary {
     grid-template-columns: 1fr;
   }
@@ -9143,6 +9252,15 @@ tr:hover td {
 
   .help-glossary dt {
     padding-bottom: 0;
+  }
+
+  .changelog-entry-header {
+    flex-direction: column;
+  }
+
+  .changelog-commit {
+    grid-template-columns: 1fr;
+    gap: 2px;
   }
 
   .settings-workspace-header .btn-p {
