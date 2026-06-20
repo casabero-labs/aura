@@ -1,6 +1,6 @@
 import React from 'react';
-import { Lock, Globe, Server, ChevronDown } from 'lucide-react';
-import { AIConfig, InputMode } from '../../types';
+import { Lock, Globe, Server, Cpu } from 'lucide-react';
+import { AIConfig } from '../../types';
 import ChromeAiStatusPanel from '../ChromeAiStatusPanel';
 
 interface DiagnosisProviderPanelProps {
@@ -22,19 +22,19 @@ interface DiagnosisProviderPanelProps {
 
 const PRIVACY_NOTICES: Record<string, { icon: React.ReactNode; title: string; desc: string }> = {
   chrome: {
-    icon: <Lock size={14} />,
+    icon: <Lock size={12} />,
     title: 'Chrome AI',
-    desc: 'Diagnóstico en el navegador. Sin envío de datos.',
+    desc: 'Diagnóstico en navegador. Sin envío de datos.',
   },
   ollama: {
-    icon: <Server size={14} />,
+    icon: <Server size={12} />,
     title: 'Ollama local',
-    desc: 'Inferencia en tu máquina. Sin envío externo de datos.',
+    desc: 'Inferencia en tu máquina.',
   },
   cloud: {
-    icon: <Globe size={14} />,
+    icon: <Globe size={12} />,
     title: 'Cloud',
-    desc: 'Paquete estructurado enviado al proveedor.',
+    desc: 'Paquete enviado al proveedor.',
   },
 };
 
@@ -58,11 +58,13 @@ export const DiagnosisProviderPanel: React.FC<DiagnosisProviderPanelProps> = ({
 
   return (
     <div className="diagnosis-provider-panel">
-      <div className="diagnosis-provider-privacy">
-        {currentPrivacy.icon}
-        <div>
-          <strong>{currentPrivacy.title}</strong>
-          <p>{currentPrivacy.desc}</p>
+      <div className="diagnosis-provider-header">
+        <div className="diagnosis-provider-header-icon">
+          <Cpu size={14} />
+        </div>
+        <div className="diagnosis-provider-header-text">
+          <h4 className="diagnosis-provider-title">Motor de diagnóstico</h4>
+          <p className="diagnosis-provider-desc">Elige dónde se ejecutará la interpretación de los hallazgos.</p>
         </div>
       </div>
 
@@ -111,6 +113,11 @@ export const DiagnosisProviderPanel: React.FC<DiagnosisProviderPanelProps> = ({
             ))}
           </select>
         )}
+      </div>
+
+      <div className="diagnosis-provider-notice">
+        {currentPrivacy.icon}
+        <span>{currentPrivacy.desc}</span>
       </div>
 
       {aiConfig.providerType === 'chrome' && (

@@ -410,6 +410,92 @@ export const ChromeAiStatusPanel: React.FC<ChromeAiStatusPanelProps> = ({
     }
   };
 
+  if (compact) {
+    return (
+      <div className="chrome-ai-status-strip" data-testid="chrome-ai-status-strip">
+        <div className="chrome-ai-status-strip-main">
+          {badge.icon}
+          <span className="chrome-ai-strip-label">
+            {status.uiStatus === 'ready' && 'Gemini Nano listo · Modo local activo'}
+            {status.uiStatus === 'downloading' && 'Gemini Nano descargando...'}
+            {status.uiStatus === 'downloadable' && 'Gemini Nano disponible'}
+            {status.uiStatus === 'preparing' && 'Preparando Gemini Nano...'}
+            {(status.uiStatus === 'idle' || status.uiStatus === 'api_missing' || status.uiStatus === 'unavailable' || status.uiStatus === 'error') && 'Chrome AI'}
+          </span>
+        </div>
+        <button
+          className="btn-s btn-sm chrome-ai-internal-toggle"
+          onClick={() => setShowDetails(!showDetails)}
+        >
+          {showDetails ? <EyeOff size={12} /> : <Eye size={12} />}
+          <span>{showDetails ? 'Ocultar' : 'Estado interno'}</span>
+        </button>
+
+        {showDetails && (
+          <div className="chrome-ai-internal-panel">
+            <div className="chrome-ai-internal-grid">
+              {status.availability && (
+                <>
+                  <div className="chrome-ai-internal-row">
+                    <span>API</span>
+                    <span>{status.availability.apiSurface}</span>
+                  </div>
+                  <div className="chrome-ai-internal-row">
+                    <span>Estado</span>
+                    <span>{status.availability.status}</span>
+                  </div>
+                  {status.availability.availabilityRaw && (
+                    <div className="chrome-ai-internal-row">
+                      <span>Raw</span>
+                      <span className="chrome-ai-raw">{status.availability.availabilityRaw}</span>
+                    </div>
+                  )}
+                  {status.lastChecked && (
+                    <div className="chrome-ai-internal-row">
+                      <span>Verificación</span>
+                      <span>{status.lastChecked.toLocaleTimeString()}</span>
+                    </div>
+                  )}
+                  {status.availability.browserInfo && (
+                    <>
+                      <div className="chrome-ai-internal-row">
+                        <span>Plataforma</span>
+                        <span>{status.availability.browserInfo.platform}</span>
+                      </div>
+                      {status.availability.browserInfo.chromeVersion && (
+                        <div className="chrome-ai-internal-row">
+                          <span>Chrome</span>
+                          <span>{status.availability.browserInfo.chromeVersion}</span>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </>
+              )}
+            </div>
+            <div className="chrome-ai-internal-url-row">
+              <code className="chrome-ai-internal-url">{CHROME_INTERNAL_URL}</code>
+              <button
+                className="btn-s btn-xs"
+                onClick={copyInternalUrl}
+                title="Copiar URL"
+              >
+                {copied ? <CheckCircle size={10} /> : <Copy size={10} />}
+              </button>
+              <button
+                className="btn-s btn-xs"
+                onClick={() => window.open(CHROME_INTERNAL_URL, '_blank')}
+                title="Abrir"
+              >
+                <ExternalLink size={10} />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="chrome-ai-status-panel" data-testid="chrome-ai-status-panel">
       <div className="chrome-ai-status-panel-header">
@@ -428,7 +514,7 @@ export const ChromeAiStatusPanel: React.FC<ChromeAiStatusPanelProps> = ({
       </div>
 
       <div className="chrome-ai-status-panel-footer">
-        <button 
+        <button
           className="chrome-ai-details-toggle"
           onClick={() => setShowDetails(!showDetails)}
         >
@@ -441,7 +527,7 @@ export const ChromeAiStatusPanel: React.FC<ChromeAiStatusPanelProps> = ({
           <div className="chrome-ai-details-content">
             <div className="chrome-ai-url-copy">
               <code className="chrome-ai-internal-url">{CHROME_INTERNAL_URL}</code>
-              <button 
+              <button
                 className="btn-s btn-xs"
                 onClick={copyInternalUrl}
                 title="Copiar URL"
@@ -449,7 +535,7 @@ export const ChromeAiStatusPanel: React.FC<ChromeAiStatusPanelProps> = ({
                 {copied ? <CheckCircle size={10} /> : <Copy size={10} />}
               </button>
             </div>
-            
+
             <p className="chrome-ai-note">
               AURA no puede leer esta página interna, pero puedes abrirla para confirmar el estado de Chrome.
             </p>

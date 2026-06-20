@@ -6671,6 +6671,45 @@ tr:hover td {
   max-width: 240px;
 }
 
+.diagnosis-provider-header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+}
+
+.diagnosis-provider-header-icon {
+  color: var(--ink3);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.diagnosis-provider-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.diagnosis-provider-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0;
+}
+
+.diagnosis-provider-desc {
+  font-size: 12px;
+  color: var(--ink2);
+  margin: 0;
+}
+
+.diagnosis-provider-notice {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ink2);
+}
+
 /* ─── Diagnosis Contract Panel ─── */
 
 .diagnosis-contract-panel {
@@ -7196,6 +7235,57 @@ tr:hover td {
   flex-wrap: wrap;
 }
 
+.technical-disclosure {
+  border: 1px solid var(--border-faint);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.technical-disclosure-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  width: 100%;
+  padding: var(--space-sm);
+  background: var(--bg);
+  border: none;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+}
+
+.technical-disclosure-toggle:hover {
+  background: var(--border-faint);
+}
+
+.technical-disclosure-content {
+  border-top: 1px solid var(--border-faint);
+}
+
+.technical-evidence-pre {
+  margin: 0;
+  padding: var(--space-sm);
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--ink2);
+  background: var(--surface);
+  max-height: 240px;
+  overflow: auto;
+}
+
+.technical-evidence-advanced {
+  padding: var(--space-sm);
+}
+
+.technical-evidence-advanced-note {
+  font-size: 11px;
+  color: var(--ink3);
+  margin: 0;
+  font-style: italic;
+}
+
 /* ─── Segmented Control ─── */
 
 .segmented-control {
@@ -7261,6 +7351,95 @@ tr:hover td {
 .chrome-ai-compact-bar .chrome-ai-progress-bar {
   flex: 1;
   height: 6px;
+}
+
+.chrome-ai-status-strip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-faint);
+}
+
+.chrome-ai-status-strip-main {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  font-size: 12px;
+  color: var(--ink);
+}
+
+.chrome-ai-strip-label {
+  font-weight: 500;
+}
+
+.chrome-ai-internal-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+}
+
+.chrome-ai-internal-panel {
+  width: 100%;
+  padding: var(--space-sm);
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-faint);
+  margin-top: var(--space-xs);
+}
+
+.chrome-ai-internal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px;
+  margin-bottom: var(--space-sm);
+}
+
+.chrome-ai-internal-row {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: 10px;
+}
+
+.chrome-ai-internal-row span:first-child {
+  color: var(--ink3);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.chrome-ai-internal-row span:last-child {
+  color: var(--ink2);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.chrome-ai-raw {
+  word-break: break-all;
+  font-size: 9px !important;
+}
+
+.chrome-ai-internal-url-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding-top: var(--space-xs);
+  border-top: 1px solid var(--border-faint);
+}
+
+.chrome-ai-internal-url {
+  font-size: 10px;
+  color: var(--ink3);
+  font-family: var(--font-mono);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .diagnosis-model-bar {

@@ -1,8 +1,32 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { FileCode2, Copy, Download, ChevronDown, ChevronRight, Hash } from 'lucide-react';
 import { AIConfig } from '../../types';
 import { buildSmartSample, buildAnalysisPrompt } from '../../services/providers/prompts';
 import { computePromptHash } from '../../services/llmAuditLog';
+
+interface DisclosureSectionProps {
+  title: string;
+  isOpen: boolean;
+  onToggle: (open: boolean) => void;
+  children: React.ReactNode;
+}
+
+const DisclosureSection: React.FC<DisclosureSectionProps> = ({ title, isOpen, onToggle, children }) => {
+  return (
+    <div className="technical-disclosure">
+      <button
+        type="button"
+        className="technical-disclosure-toggle"
+        onClick={() => onToggle(!isOpen)}
+        aria-expanded={isOpen}
+      >
+        {isOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+        <span>{title}</span>
+      </button>
+      {isOpen && <div className="technical-disclosure-content">{children}</div>}
+    </div>
+  );
+};
 
 interface TechnicalEvidencePanelProps {
   report: any;
@@ -20,21 +44,25 @@ export const TechnicalEvidencePanel: React.FC<TechnicalEvidencePanelProps> = ({
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
   const panelRef = useRef<HTMLDivElement>(null);
+  const wasOpenRef = useRef(false);
 
   useEffect(() => {
-    if (externalIsOpen === true && panelRef.current) {
-      panelRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    if (isOpen && !wasOpenRef.current && panelRef.current) {
+      requestAnimationFrame(() => {
+        panelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
     }
-  }, [externalIsOpen]);
+    wasOpenRef.current = isOpen;
+  }, [isOpen]);
 
-  const handleToggle = () => {
-    const newState = !isOpen;
+  const handleToggle = useCallback((newState: boolean) => {
     if (onToggle) {
       onToggle(newState);
     } else {
       setInternalIsOpen(newState);
     }
-  };
+  }, [onToggle]);
+
   const [showContext, setShowContext] = useState(true);
   const [showColumns, setShowColumns] = useState(false);
   const [showIssues, setShowIssues] = useState(false);
@@ -71,7 +99,7 @@ export const TechnicalEvidencePanel: React.FC<TechnicalEvidencePanelProps> = ({
     <div className="technical-evidence-panel" ref={panelRef}>
       <button
         className="technical-evidence-toggle"
-        onClick={handleToggle}
+        onClick={() => handleToggle(!isOpen)}
       >
         <FileCode2 size={14} />
         <span>Expediente técnico</span>
@@ -109,67 +137,57 @@ export const TechnicalEvidencePanel: React.FC<TechnicalEvidencePanelProps> = ({
           </p>
 
           <div className="technical-evidence-sections">
-            <details open={showContext} onToggle={() => setShowContext(!showContext)}>
-              <summary>
-                {showContext ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-                context — {Object.keys(smartSample.context || {}).length} campos
-              </summary>
-              {showContext && (
-                <pre className="technical-evidence-pre">
-                  {JSON.stringify(smartSample.context, null, 2)}
-                </pre>
-              )}
-            </details>
+            <DisclosureSection
+              title={`context — ${Object.keys(smartSample.context || {}).length} campos`}
+              isOpen={showContext}
+              onToggle={setShowContext}
+            >
+              <pre className="technical-evidence-pre">
+                {JSON.stringify(smartSample.context, null, 2)}
+              </pre>
+            </DisclosureSection>
 
-            <details open={showColumns} onToggle={() => setShowColumns(!showColumns)}>
-              <summary>
-                {showColumns ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-                columns — {smartSample.columns?.length} columnas
-              </summary>
-              {showColumns && (
-                <pre className="technical-evidence-pre technical-evidence-pre--scroll">
-                  {JSON.stringify(smartSample.columns, null, 2)}
-                </pre>
-              )}
-            </details>
+            <DisclosureSection
+              title={`columns — ${smartSample.columns?.length} columnas`}
+              isOpen={showColumns}
+              onToggle={setShowColumns}
+            >
+              <pre className="technical-evidence-pre technical-evidence-pre--scroll">
+                {JSON.stringify(smartSample.columns, null, 2)}
+              </pre>
+            </DisclosureSection>
 
-            <details open={showIssues} onToggle={() => setShowIssues(!showIssues)}>
-              <summary>
-                {showIssues ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-                detected_issues — {smartSample.detected_issues?.length} reglas
-              </summary>
-              {showIssues && (
-                <pre className="technical-evidence-pre technical-evidence-pre--scroll">
-                  {JSON.stringify(smartSample.detected_issues, null, 2)}
-                </pre>
-              )}
-            </details>
+            <DisclosureSection
+              title={`detected_issues — ${smartSample.detected_issues?.length} reglas`}
+              isOpen={showIssues}
+              onToggle={setShowIssues}
+            >
+              <pre className="technical-evidence-pre technical-evidence-pre--scroll">
+                {JSON.stringify(smartSample.detected_issues, null, 2)}
+              </pre>
+            </DisclosureSection>
 
-            <details open={showPrompt} onToggle={() => setShowPrompt(!showPrompt)}>
-              <summary>
-                {showPrompt ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-                prompt — {diagnosisPrompt.length} chars
-              </summary>
-              {showPrompt && (
-                <pre className="technical-evidence-pre technical-evidence-pre--scroll">
-                  {diagnosisPrompt}
-                </pre>
-              )}
-            </details>
+            <DisclosureSection
+              title={`prompt — ${diagnosisPrompt.length} chars`}
+              isOpen={showPrompt}
+              onToggle={setShowPrompt}
+            >
+              <pre className="technical-evidence-pre technical-evidence-pre--scroll">
+                {diagnosisPrompt}
+              </pre>
+            </DisclosureSection>
 
-            <details open={showAdvanced} onToggle={() => setShowAdvanced(!showAdvanced)}>
-              <summary>
-                {showAdvanced ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-                Depuración avanzada
-              </summary>
-              {showAdvanced && (
-                <div className="technical-evidence-advanced">
-                  <p className="technical-evidence-advanced-note">
-                    Solo para diagnóstico de problemas. No afecta el funcionamiento normal.
-                  </p>
-                </div>
-              )}
-            </details>
+            <DisclosureSection
+              title="Depuración avanzada"
+              isOpen={showAdvanced}
+              onToggle={setShowAdvanced}
+            >
+              <div className="technical-evidence-advanced">
+                <p className="technical-evidence-advanced-note">
+                  Solo para diagnóstico de problemas. No afecta el funcionamiento normal.
+                </p>
+              </div>
+            </DisclosureSection>
           </div>
 
           <div className="technical-evidence-actions">
