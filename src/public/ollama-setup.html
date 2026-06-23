@@ -92,7 +92,7 @@
   <main class="shell">
     <div class="topbar">
       <div class="brand">AURA</div>
-      <a class="back" href="/">Volver a AURA</a>
+      <button class="back" id="back-btn">Volver a AURA</button>
     </div>
 
     <section class="hero">
@@ -486,6 +486,18 @@
 
     renderInstructions();
     bindCopyButtons();
+
+    function getReturnPath() {
+      const params = new URLSearchParams(window.location.search);
+      const raw = params.get('return');
+      if (!raw || !raw.startsWith('/') || raw.startsWith('//')) return '/';
+      return raw;
+    }
+
+    document.getElementById('back-btn').addEventListener('click', () => {
+      localStorage.setItem('aura_ollama_setup_completed', 'true');
+      window.location.assign(getReturnPath());
+    });
   </script>
 </body>
 </html>

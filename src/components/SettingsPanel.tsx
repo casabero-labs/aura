@@ -55,8 +55,21 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
     const [checkingModels, setCheckingModels] = useState<string[]>([]);
 
     useEffect(() => {
-        checkWebGPUSupport().then(setWebGpuSupported);
+        sessionStorage.removeItem('aura_ollama_setup_started');
+        checkWebGPUSupport();
         checkChromeDiagnostic();
+
+        if (config.providerType === 'ollama') {
+            const savedEndpoint = localStorage.getItem('aura_ollama_endpoint');
+            const savedModel = localStorage.getItem('aura_ollama_model');
+            if (savedEndpoint || savedModel) {
+                setLocalConfig(prev => ({
+                    ...prev,
+                    ollamaBaseUrl: savedEndpoint || prev.ollamaBaseUrl,
+                    model: savedModel || prev.model,
+                }));
+            }
+        }
         checkOllamaConnection();
 
         // Show migration notice once
@@ -94,6 +107,30 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
             }
         } catch {
             setOllamaConnected(false);
+        }
+    };
+
+    const isOllamaSetupSession = (): boolean => {
+        return sessionStorage.getItem('aura_ollama_setup_started') === 'true';
+    };
+
+    const handleSelectOllama = () => {
+        const savedEndpoint = localStorage.getItem('aura_ollama_endpoint');
+        const savedModel = localStorage.getItem('aura_ollama_model');
+        const defaults: Partial<AIConfig> = {
+            providerType: 'ollama',
+            model: savedModel || 'qwen2.5:3b',
+            ollamaBaseUrl: savedEndpoint || 'http://127.0.0.1:11434',
+        };
+        const updated: AIConfig = {
+            ...localConfig,
+            ...defaults,
+        };
+        setLocalConfig(updated);
+        onSave(updated);
+        if (ollamaConnected !== true) {
+            sessionStorage.setItem('aura_ollama_setup_started', 'true');
+            window.location.assign('/ollama-setup.html?return=/');
         }
     };
 
@@ -204,9 +241,12 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
     };
 
     const setProviderType = (type: 'chrome' | 'ollama' | 'cloud') => {
+        if (type === 'ollama') {
+            handleSelectOllama();
+            return;
+        }
         const defaults: Record<string, string> = {
             chrome: 'gemini-nano',
-            ollama: 'qwen2.5:3b',
             cloud: 'gemini-2.5-flash',
         };
         setLocalConfig({
@@ -475,9 +515,28 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                                     <div className="settings-status-card settings-status-card--warn">
                                         <AlertTriangle size={14} className="settings-status-icon" />
                                         <div>
-                                            <p>Ollama no responde en {ollamaBaseUrl}. Verifica que Ollama esté abierto.</p>
-                                            <p style={{ fontSize: '12px', marginTop: '4px' }}>
-                                                Si el navegador bloquea la conexión, configura OLLAMA_ORIGINS para permitir el origen de AURA.
+                                            <p><strong>Ollama todavía no está conectado</strong></p>
+                                            <p style={{ fontSize: '13px', marginTop: '4px' }}>
+                                                AURA necesita autorizar este dominio y conectarse con Ollama en tu equipo.
+                                            </p>
+                                            <div style={{ display: 'flex', gap: 'var(--space-sm)', marginTop: 'var(--space-sm)', flexWrap: 'wrap' }}>
+                                                <button
+                                                    className="btn-p btn-sm"
+                                                    onClick={() => window.location.assign('/ollama-setup.html?return=/')}
+                                                    data-testid="ollama-open-setup"
+                                                >
+                                                    Configurar Ollama en este equipo
+                                                </button>
+                                                <button
+                                                    className="btn-s btn-sm"
+                                                    onClick={handleFetchOllamaModels}
+                                                    data-testid="ollama-retry-connection"
+                                                >
+                                                    Volver a intentar
+                                                </button>
+                                            </div>
+                                            <p style={{ fontSize: '11px', color: 'var(--ink3)', marginTop: 'var(--space-sm)' }}>
+                                                La conexión se realiza directamente desde tu navegador hacia Ollama en este equipo. El dataset, los prompts y las respuestas no pasan por el servidor de AURA.
                                             </p>
                                         </div>
                                     </div>

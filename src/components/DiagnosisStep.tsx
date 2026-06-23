@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Brain, Database, Play, FlaskConical, Lock, Globe, ChevronDown, ChevronRight, FileCode2, Trash2, HardDrive, X, AlertTriangle, ShieldAlert, ListChecks, FileJson, FileText, Settings, Activity, CheckCircle, Circle, Clock, AlertCircle, Server, Shield, Eye, EyeOff, Download } from 'lucide-react';
+import { Brain, Database, Play, FlaskConical, Lock, Globe, ChevronDown, ChevronRight, FileCode2, Trash2, HardDrive, X, AlertTriangle, ShieldAlert, ListChecks, FileJson, FileText, Settings, Activity, CheckCircle, Circle, Clock, AlertCircle, Server, Shield, Eye, EyeOff, Download, RefreshCw } from 'lucide-react';
 import GeminiAdvisor from './GeminiAdvisor';
 import ProgressDisclosure from './ProgressDisclosure';
 import ChromeAiStatusPanel from './ChromeAiStatusPanel';
@@ -684,7 +684,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
                 </>
               )}
               {aiConfig.providerType === 'ollama' && (
-                <li>Ollama no responde en {aiConfig.ollamaBaseUrl || 'http://localhost:11434'}. Verifica que Ollama esté abierto y que CORS esté configurado.</li>
+                <li>Ollama todavía no está conectado a AURA. Completa la configuración guiada para este equipo.</li>
               )}
               {aiConfig.providerType === 'webllm_experimental' && (
                 <li>WebGPU o modelo local no disponible. Requiere Chrome/Edge con soporte WebGPU.</li>
@@ -704,6 +704,23 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
                   </button>
                   <button className="btn-s btn-sm" onClick={() => handleProviderTypeChange('cloud')}>
                     <Globe size={12} /> Usar Cloud
+                  </button>
+                </div>
+              )}
+              {aiConfig.providerType === 'ollama' && (
+                <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap', marginBottom: 'var(--space-sm)' }}>
+                  <button
+                    className="btn-p btn-sm"
+                    onClick={() => window.location.assign('/ollama-setup.html?return=/')}
+                    data-testid="ollama-provider-unavailable-setup"
+                  >
+                    <Server size={12} /> Configurar Ollama
+                  </button>
+                  <button className="btn-s btn-sm" onClick={async () => {
+                    const avail = await aiProvider.isAvailable();
+                    setProviderAvailable(avail);
+                  }}>
+                    <RefreshCw size={12} /> Volver a intentar
                   </button>
                 </div>
               )}
