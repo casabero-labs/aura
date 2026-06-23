@@ -1,0 +1,491 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AURA · Configurar Ollama local</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f4f1ea;
+      --surface: #fffdf8;
+      --ink: #171713;
+      --muted: #6d6a61;
+      --line: #d9d3c7;
+      --accent: #171713;
+      --ok: #19703a;
+      --warn: #9a6114;
+      --bad: #a22e25;
+      --soft: #ece7dd;
+      --radius: 18px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #121211;
+        --surface: #1c1c19;
+        --ink: #f2efe8;
+        --muted: #aaa69c;
+        --line: #34332e;
+        --accent: #f2efe8;
+        --soft: #272620;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+    button, select, input { font: inherit; }
+    a { color: inherit; }
+    .shell { max-width: 900px; margin: 0 auto; padding: 32px 20px 64px; }
+    .topbar { display: flex; justify-content: space-between; gap: 16px; align-items: center; margin-bottom: 28px; }
+    .brand { font-weight: 800; letter-spacing: -0.03em; font-size: 20px; }
+    .back { text-decoration: none; color: var(--muted); font-size: 14px; }
+    .hero { margin-bottom: 24px; }
+    .eyebrow { text-transform: uppercase; letter-spacing: .12em; font-size: 11px; font-weight: 800; color: var(--muted); }
+    h1 { font-family: Georgia, serif; font-size: clamp(34px, 6vw, 58px); line-height: .98; margin: 10px 0 14px; letter-spacing: -.04em; }
+    .hero p { color: var(--muted); max-width: 700px; line-height: 1.65; }
+    .privacy { display: flex; gap: 12px; padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); margin: 20px 0; }
+    .privacy strong { display: block; margin-bottom: 4px; }
+    .steps { display: grid; gap: 16px; }
+    .card { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); overflow: hidden; }
+    .card-head { display: flex; gap: 14px; padding: 20px; align-items: flex-start; cursor: pointer; }
+    .step-num { width: 32px; height: 32px; border-radius: 999px; display: grid; place-items: center; background: var(--soft); font-weight: 800; flex: 0 0 auto; }
+    .card-title { flex: 1; }
+    .card-title h2 { margin: 0 0 5px; font-size: 18px; }
+    .card-title p { margin: 0; color: var(--muted); font-size: 14px; }
+    .card-body { display: none; padding: 0 20px 22px 66px; }
+    .card.open .card-body { display: block; }
+    .card.done .step-num { background: rgba(25,112,58,.14); color: var(--ok); }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .field { margin: 16px 0; }
+    .field label { display: block; font-size: 12px; font-weight: 800; margin-bottom: 7px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+    select, input { width: 100%; padding: 12px 14px; border-radius: 11px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
+    .btn { border: 1px solid var(--ink); background: var(--ink); color: var(--bg); padding: 11px 15px; border-radius: 11px; font-weight: 750; cursor: pointer; }
+    .btn.secondary { background: transparent; color: var(--ink); border-color: var(--line); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .cmd { position: relative; margin: 12px 0; border: 1px solid var(--line); background: var(--soft); border-radius: 12px; padding: 14px 48px 14px 14px; overflow-x: auto; }
+    .cmd code { white-space: pre-wrap; overflow-wrap: anywhere; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
+    .copy { position: absolute; right: 8px; top: 8px; border: 0; background: var(--surface); color: var(--ink); border-radius: 8px; padding: 7px 9px; cursor: pointer; }
+    ol { padding-left: 20px; line-height: 1.7; }
+    .notice { border-left: 3px solid var(--warn); background: color-mix(in srgb, var(--warn) 8%, transparent); padding: 12px 14px; border-radius: 8px; margin: 14px 0; font-size: 13px; line-height: 1.55; }
+    .status { margin-top: 16px; border: 1px solid var(--line); border-radius: 13px; padding: 15px; }
+    .status[data-kind="ok"] { border-color: color-mix(in srgb, var(--ok) 45%, var(--line)); }
+    .status[data-kind="warn"] { border-color: color-mix(in srgb, var(--warn) 45%, var(--line)); }
+    .status[data-kind="bad"] { border-color: color-mix(in srgb, var(--bad) 45%, var(--line)); }
+    .status strong { display: block; margin-bottom: 5px; }
+    .status p { margin: 0; color: var(--muted); line-height: 1.55; }
+    .models { margin: 12px 0 0; display: grid; gap: 8px; }
+    .model { display: flex; justify-content: space-between; gap: 12px; padding: 10px 12px; background: var(--soft); border-radius: 10px; font-size: 13px; }
+    .mini { color: var(--muted); font-size: 12px; }
+    .hidden { display: none !important; }
+    .footer { margin-top: 26px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+    @media (max-width: 640px) {
+      .card-body { padding-left: 20px; }
+      .topbar { align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <div class="topbar">
+      <div class="brand">AURA</div>
+      <a class="back" href="/">Volver a AURA</a>
+    </div>
+
+    <section class="hero">
+      <div class="eyebrow">Configuración local guiada</div>
+      <h1>Conecta Ollama<br />sin pelearte con la terminal.</h1>
+      <p>AURA detectará tu sistema operativo y te mostrará solamente los pasos necesarios. La conexión se realiza desde este navegador hacia Ollama en tu equipo.</p>
+    </section>
+
+    <div class="privacy">
+      <div>🔒</div>
+      <div>
+        <strong>Ruta privada: navegador → Ollama local</strong>
+        <span class="mini">El dataset, el prompt y la respuesta no pasan por el servidor de AURA cuando usas Ollama.</span>
+      </div>
+    </div>
+
+    <section class="steps">
+      <article class="card open" id="step-1">
+        <div class="card-head" data-toggle="step-1">
+          <div class="step-num">1</div>
+          <div class="card-title">
+            <h2>Confirmar tu equipo</h2>
+            <p>Ajustaremos las instrucciones a tu sistema y navegador.</p>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="field">
+            <label for="os-select">Sistema operativo</label>
+            <select id="os-select">
+              <option value="windows">Windows 10/11</option>
+              <option value="macos">macOS</option>
+              <option value="linux">Linux</option>
+              <option value="unknown">Otro / no detectado</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Navegador detectado</label>
+            <div id="browser-label" class="status"><strong>Detectando…</strong><p></p></div>
+          </div>
+          <div class="row">
+            <a class="btn secondary" href="https://ollama.com/download" target="_blank" rel="noreferrer">Descargar Ollama</a>
+            <button class="btn" data-next="step-2">Ya tengo Ollama</button>
+          </div>
+        </div>
+      </article>
+
+      <article class="card" id="step-2">
+        <div class="card-head" data-toggle="step-2">
+          <div class="step-num">2</div>
+          <div class="card-title">
+            <h2>Autorizar a AURA</h2>
+            <p>Ollama debe aceptar peticiones desde este dominio.</p>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="field">
+            <label>Origen que se autorizará</label>
+            <input id="origin-value" readonly />
+          </div>
+          <div id="os-instructions"></div>
+          <div class="notice">No uses <code>OLLAMA_ORIGINS=*</code>. AURA genera el origen exacto para mantener la configuración cerrada.</div>
+          <button class="btn" data-next="step-3">Hecho, continuar</button>
+        </div>
+      </article>
+
+      <article class="card" id="step-3">
+        <div class="card-head" data-toggle="step-3">
+          <div class="step-num">3</div>
+          <div class="card-title">
+            <h2>Instalar un modelo</h2>
+            <p>Recomendamos un modelo pequeño para la primera validación.</p>
+          </div>
+        </div>
+        <div class="card-body">
+          <p><strong>Recomendado:</strong> Qwen 2.5 3B. Buen equilibrio entre español, velocidad y consumo.</p>
+          <div class="cmd"><code>ollama pull qwen2.5:3b</code><button class="copy" data-copy="ollama pull qwen2.5:3b">Copiar</button></div>
+          <p class="mini">Equipo con poca memoria:</p>
+          <div class="cmd"><code>ollama pull gemma2:2b</code><button class="copy" data-copy="ollama pull gemma2:2b">Copiar</button></div>
+          <button class="btn" data-next="step-4">Modelo instalado</button>
+        </div>
+      </article>
+
+      <article class="card" id="step-4">
+        <div class="card-head" data-toggle="step-4">
+          <div class="step-num">4</div>
+          <div class="card-title">
+            <h2>Solicitar permiso y conectar</h2>
+            <p>El navegador comprobará Ollama directamente en este equipo.</p>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="notice">Chrome o Edge pueden mostrar un permiso para que <strong id="origin-inline"></strong> se conecte a servicios locales. Pulsa <strong>Permitir</strong>.</div>
+          <div class="field">
+            <label for="endpoint">Endpoint local</label>
+            <input id="endpoint" value="http://127.0.0.1:11434" />
+          </div>
+          <div class="field">
+            <label for="model-select">Modelo para la prueba</label>
+            <select id="model-select"><option value="qwen2.5:3b">qwen2.5:3b</option></select>
+          </div>
+          <div class="row">
+            <button class="btn" id="connect-btn">Solicitar permiso y conectar</button>
+            <button class="btn secondary" id="retry-btn">Volver a intentar</button>
+          </div>
+          <div id="connection-status" class="status" data-kind="warn">
+            <strong>Sin comprobar</strong>
+            <p>Completa los pasos anteriores y pulsa el botón de conexión.</p>
+          </div>
+          <div id="models-wrap" class="hidden">
+            <h3>Modelos encontrados</h3>
+            <div id="models-list" class="models"></div>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <p class="footer">AURA guarda únicamente el sistema elegido, el endpoint y el modelo para facilitar futuras conexiones. No envía la conversación local a su backend.</p>
+  </main>
+
+  <script>
+    const state = {
+      os: localStorage.getItem('aura_ollama_os') || detectOS(),
+      browser: detectBrowser(),
+      origin: window.location.origin,
+      endpoint: localStorage.getItem('aura_ollama_endpoint') || 'http://127.0.0.1:11434',
+      model: localStorage.getItem('aura_ollama_model') || 'qwen2.5:3b',
+    };
+
+    function detectOS() {
+      const platform = navigator.userAgentData?.platform || navigator.platform || '';
+      const ua = navigator.userAgent || '';
+      const value = `${platform} ${ua}`.toLowerCase();
+      if (value.includes('win')) return 'windows';
+      if (value.includes('mac')) return 'macos';
+      if (value.includes('linux') || value.includes('x11')) return 'linux';
+      return 'unknown';
+    }
+
+    function detectBrowser() {
+      const ua = navigator.userAgent || '';
+      if (/Edg\//.test(ua)) return 'Edge';
+      if (/Chrome\//.test(ua) && !/Edg\//.test(ua)) return 'Chrome';
+      if (/Firefox\//.test(ua)) return 'Firefox';
+      if (/Safari\//.test(ua) && !/Chrome\//.test(ua)) return 'Safari';
+      return 'Otro navegador';
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>'"]/g, char => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+      }[char]));
+    }
+
+    function commandBlock(command) {
+      const safe = escapeHtml(command);
+      return `<div class="cmd"><code>${safe}</code><button class="copy" data-copy="${safe}">Copiar</button></div>`;
+    }
+
+    function renderInstructions() {
+      const origin = state.origin;
+      const target = document.getElementById('os-instructions');
+      if (state.os === 'macos') {
+        target.innerHTML = `
+          <ol>
+            <li>Cierra Ollama completamente desde el icono de la barra de menús.</li>
+            <li>Abre Terminal y ejecuta:</li>
+          </ol>
+          ${commandBlock(`launchctl setenv OLLAMA_ORIGINS "${origin}"`)}
+          <ol start="3"><li>Abre Ollama nuevamente desde Aplicaciones.</li></ol>
+          <p class="mini">Si lo ejecutas manualmente:</p>
+          ${commandBlock(`OLLAMA_ORIGINS="${origin}" ollama serve`)}
+        `;
+      } else if (state.os === 'linux') {
+        target.innerHTML = `
+          <ol>
+            <li>Abre el override del servicio:</li>
+          </ol>
+          ${commandBlock('sudo systemctl edit ollama.service')}
+          <p>Pega exactamente:</p>
+          ${commandBlock(`[Service]\nEnvironment="OLLAMA_ORIGINS=${origin}"`)}
+          <p>Aplica los cambios:</p>
+          ${commandBlock('sudo systemctl daemon-reload\nsudo systemctl restart ollama')}
+          <p class="mini">Si ejecutas Ollama manualmente:</p>
+          ${commandBlock(`OLLAMA_ORIGINS="${origin}" ollama serve`)}
+        `;
+      } else if (state.os === 'windows') {
+        target.innerHTML = `
+          <ol>
+            <li>Cierra Ollama desde el icono de la bandeja del sistema.</li>
+            <li>Busca <strong>Variables de entorno</strong> en Windows.</li>
+            <li>Abre <strong>Editar las variables de entorno de tu cuenta</strong>.</li>
+            <li>En Variables de usuario, pulsa <strong>Nueva</strong>.</li>
+            <li>Nombre: <code>OLLAMA_ORIGINS</code></li>
+            <li>Valor: <code>${escapeHtml(origin)}</code></li>
+            <li>Guarda y abre Ollama otra vez.</li>
+          </ol>
+          <p class="mini">Opción PowerShell:</p>
+          ${commandBlock(`setx OLLAMA_ORIGINS "${origin}"`)}
+          <div class="notice">El comando afecta procesos nuevos. Cierra Ollama completamente y vuelve a abrirlo.</div>
+        `;
+      } else {
+        target.innerHTML = `<p>No pudimos detectar el sistema. Selecciona Windows, macOS o Linux arriba para mostrar instrucciones exactas.</p>`;
+      }
+      bindCopyButtons();
+    }
+
+    function bindCopyButtons() {
+      document.querySelectorAll('[data-copy]').forEach(button => {
+        button.onclick = async () => {
+          const text = button.getAttribute('data-copy').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&');
+          try {
+            await navigator.clipboard.writeText(text);
+          } catch {
+            const area = document.createElement('textarea');
+            area.value = text;
+            document.body.appendChild(area);
+            area.select();
+            document.execCommand('copy');
+            area.remove();
+          }
+          const original = button.textContent;
+          button.textContent = 'Copiado';
+          setTimeout(() => button.textContent = original, 1200);
+        };
+      });
+    }
+
+    function openStep(id) {
+      document.querySelectorAll('.card').forEach(card => card.classList.remove('open'));
+      const card = document.getElementById(id);
+      card.classList.add('open');
+      card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function markPreviousDone(id) {
+      const step = Number(id.split('-')[1]);
+      for (let i = 1; i < step; i++) document.getElementById(`step-${i}`).classList.add('done');
+    }
+
+    function setStatus(kind, title, message) {
+      const box = document.getElementById('connection-status');
+      box.dataset.kind = kind;
+      box.innerHTML = `<strong>${escapeHtml(title)}</strong><p>${message}</p>`;
+    }
+
+    function fetchOptions(signal, method = 'GET', body) {
+      return {
+        method,
+        headers: body ? { 'Content-Type': 'application/json' } : undefined,
+        body: body ? JSON.stringify(body) : undefined,
+        signal,
+        targetAddressSpace: 'local',
+      };
+    }
+
+    async function request(url, method = 'GET', body, timeoutMs = 8000) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        return await fetch(url, fetchOptions(controller.signal, method, body));
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    async function connect() {
+      const button = document.getElementById('connect-btn');
+      button.disabled = true;
+      setStatus('warn', 'Solicitando acceso local…', 'El navegador puede mostrar un permiso. Acéptalo para continuar.');
+
+      const typedEndpoint = document.getElementById('endpoint').value.trim().replace(/\/+$/, '');
+      const candidates = [...new Set([typedEndpoint, 'http://127.0.0.1:11434', 'http://localhost:11434'])];
+
+      let lastError = null;
+      for (const endpoint of candidates) {
+        try {
+          const response = await request(`${endpoint}/api/tags`);
+          if (!response.ok) {
+            lastError = new Error(`HTTP ${response.status}`);
+            continue;
+          }
+          const data = await response.json();
+          const models = Array.isArray(data.models) ? data.models : [];
+          state.endpoint = endpoint;
+          localStorage.setItem('aura_ollama_endpoint', endpoint);
+          document.getElementById('endpoint').value = endpoint;
+          renderModels(models);
+
+          if (!models.length) {
+            setStatus('warn', 'Ollama conectado, pero no hay modelos', 'Ejecuta <code>ollama pull qwen2.5:3b</code> y vuelve a intentarlo.');
+            button.disabled = false;
+            return;
+          }
+
+          const selectedModel = document.getElementById('model-select').value;
+          const installed = models.some(model => model.name === selectedModel || model.name?.startsWith(`${selectedModel}:`));
+          if (!installed) {
+            setStatus('warn', 'Modelo no instalado', `Ollama funciona correctamente, pero falta <code>${escapeHtml(selectedModel)}</code>. Ejecuta <code>ollama pull ${escapeHtml(selectedModel)}</code>.`);
+            button.disabled = false;
+            return;
+          }
+
+          setStatus('warn', 'Ollama conectado', 'Servidor y modelo detectados. Ejecutando una prueba mínima…');
+          const chat = await request(`${endpoint}/api/chat`, 'POST', {
+            model: selectedModel,
+            messages: [{ role: 'user', content: 'Responde únicamente: AURA conectada.' }],
+            options: { temperature: 0.1 },
+            stream: false,
+            keep_alive: '10m',
+          }, 60000);
+
+          if (!chat.ok) throw new Error(`Prueba de chat HTTP ${chat.status}`);
+          const result = await chat.json();
+          const answer = result.message?.content?.trim() || 'Respuesta recibida';
+          localStorage.setItem('aura_ollama_model', selectedModel);
+          localStorage.setItem('aura_ollama_last_ready', new Date().toISOString());
+          setStatus('ok', 'Ollama está listo', `Conexión directa navegador → Ollama confirmada. Respuesta: <code>${escapeHtml(answer)}</code>`);
+          document.getElementById('step-4').classList.add('done');
+          button.disabled = false;
+          return;
+        } catch (error) {
+          lastError = error;
+        }
+      }
+
+      const browserHint = ['Chrome', 'Edge'].includes(state.browser)
+        ? 'Revisa el permiso de red local del sitio y confirma que OLLAMA_ORIGINS incluya este dominio.'
+        : 'Prueba con Chrome o Edge, que ofrecen el flujo más claro para permisos de red local.';
+      const reason = lastError?.name === 'AbortError'
+        ? 'La conexión agotó el tiempo de espera.'
+        : 'El navegador no pudo completar la petición local.';
+      setStatus('bad', 'No pudimos conectar con Ollama', `${reason} ${browserHint}<br><br>Comprueba también que Ollama esté abierto y que hayas autorizado <code>${escapeHtml(state.origin)}</code>.`);
+      button.disabled = false;
+    }
+
+    function renderModels(models) {
+      const wrap = document.getElementById('models-wrap');
+      const list = document.getElementById('models-list');
+      const select = document.getElementById('model-select');
+      wrap.classList.remove('hidden');
+      list.innerHTML = models.map(model => {
+        const size = model.size ? `${(model.size / 1e9).toFixed(1)} GB` : '';
+        return `<div class="model"><strong>${escapeHtml(model.name)}</strong><span>${escapeHtml(size)}</span></div>`;
+      }).join('');
+      select.innerHTML = models.map(model => `<option value="${escapeHtml(model.name)}">${escapeHtml(model.name)}</option>`).join('');
+      const preferred = models.find(model => model.name === state.model || model.name?.startsWith(`${state.model}:`));
+      if (preferred) select.value = preferred.name;
+      select.onchange = () => {
+        state.model = select.value;
+        localStorage.setItem('aura_ollama_model', state.model);
+      };
+    }
+
+    document.querySelectorAll('[data-toggle]').forEach(header => {
+      header.addEventListener('click', () => {
+        const id = header.getAttribute('data-toggle');
+        document.getElementById(id).classList.toggle('open');
+      });
+    });
+
+    document.querySelectorAll('[data-next]').forEach(button => {
+      button.addEventListener('click', () => {
+        const id = button.getAttribute('data-next');
+        markPreviousDone(id);
+        openStep(id);
+      });
+    });
+
+    document.getElementById('os-select').value = state.os;
+    document.getElementById('os-select').addEventListener('change', event => {
+      state.os = event.target.value;
+      localStorage.setItem('aura_ollama_os', state.os);
+      renderInstructions();
+    });
+
+    document.getElementById('origin-value').value = state.origin;
+    document.getElementById('origin-inline').textContent = state.origin;
+    document.getElementById('endpoint').value = state.endpoint;
+    document.getElementById('model-select').value = state.model;
+    document.getElementById('connect-btn').addEventListener('click', connect);
+    document.getElementById('retry-btn').addEventListener('click', connect);
+
+    const browserBox = document.getElementById('browser-label');
+    const recommended = ['Chrome', 'Edge'].includes(state.browser);
+    browserBox.dataset.kind = recommended ? 'ok' : 'warn';
+    browserBox.innerHTML = `<strong>${escapeHtml(state.browser)}</strong><p>${recommended ? 'Compatible con el flujo guiado de acceso local.' : 'Intentaremos conectar, pero Chrome o Edge pueden ofrecer mejor compatibilidad.'}</p>`;
+
+    if (!window.isSecureContext) {
+      setStatus('bad', 'Contexto no seguro', 'Abre AURA mediante HTTPS para solicitar acceso a Ollama local.');
+    }
+
+    renderInstructions();
+    bindCopyButtons();
+  </script>
+</body>
+</html>
