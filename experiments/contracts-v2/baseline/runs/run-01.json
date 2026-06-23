@@ -2,60 +2,60 @@
   "runNumber": 1,
   "seed": 101,
   "status": "completed",
-  "startedAt": "2026-06-23T22:05:19.243Z",
+  "startedAt": "2026-06-23T23:00:34.599Z",
   "tasks": {
     "B1": {
       "taskId": "B1-diagnosis",
-      "promptHash": "58f3e834",
-      "responseRaw": "## Estado de ejecución\nEl análisis se ha realizado utilizando los datos proporcionados por el motor determinista AURA. Se han identificado las columnas observadas, sus tipos inferidos y las reglas activadas.\n\n## Hallazgos respaldados por evidencia\n\n1. **Valores Nulos / Vacíos:**\n   - La columna \"Age\" tiene 177 valores nulos.\n   - La columna \"Cabin\" tiene 687 valores nulos, lo que representa aproximadamente el 77.1% de los datos.\n\n2. **Outliers Extremos (IQR 3×):**\n   - La columna \"SibSp\" tiene valores desviados significativos (> 3× del rango intercuartílico), con las muestras más extremas siendo 5, 5 y 8.\n   - La columna \"Fare\" también presenta valores desviados significativos (> 3× del rango intercuartílico), con las muestras más extremas siendo 263, 146.5208 y 263.\n\n3. **Cola Larga Categórica:**\n   - La columna \"Name\" tiene una alta dispersión de categorías con poca concentración en los valores principales. Esto sugiere que la columna podría necesitar agrupación o macro-categorías antes del análisis.\n\n## Hipotesis no validadas\n- No se han inventado columnas, valores ni causas. Las observaciones son respaldadas por las reglas activadas y el conjunto de datos proporcionado.\n- Se ha mencionado que la columna \"Name\" tiene una alta dispersión de categorías, pero no se ha inferido que necesite agrupación o macro-categorías sin evidencia adicional.\n\n## Acciones recomendadas\n1. **Para la columna \"Age\":**\n   - Considerar la imputación de valores para llenar los espacios vacíos.\n   \n2. **Para la columna \"Cabin\":**\n   - Considerar la eliminación o reemplazo de los datos faltantes, dependiendo del contexto y necesidades del análisis.\n\n3. **Para la columna \"SibSp\" y \"Fare\":**\n   - Investigar si estos valores extremos son errores de entrada o representan una característica relevante que requiere tratamiento especial.\n\n4. **Para la columna \"Name\":**\n   - Considerar la agrupación de nombres para reducir la dispersión de categorías, dependiendo del análisis previsto y las necesidades del proyecto.\n\n## Limites de la respuesta\n- Las acciones recomendadas son basadas en los hallazgos proporcionados por el motor determinista AURA y no se han probado o validado con datos adicionales.\n- La implementación de estas acciones podría requerir más contexto sobre el análisis previsto y las necesidades del proyecto.",
+      "promptHash": "4d9610fe",
+      "responseRaw": "## Estado de ejecución\nEl análisis ha sido realizado utilizando los datos proporcionados por el motor determinista AURA. Se han identificado las columnas con problemas y se han documentado las causas probables.\n\n## Hallazgos respaldados por evidencia\n\n1. **Columna: Name**\n   - Regla: Espacios Fantasma (Trim)\n     - Evidencia: Textos con espacios invisibles al inicio/final.\n     - Ejemplos: \"Hewlett, Mrs. (Mary D Kingcome) \", \"Daly, Mr. Peter Denis \"\n   - Regla: Cola Larga Categórica\n     - Evidencia: La columna tiene alta dispersión de categorías y baja concentración en los valores principales.\n     - Ejemplos: \"Braund, Mr. Owen Harris\", \"Cumings, Mrs. John Bradley (Florence Briggs Thayer)\", \"Heikkinen, Miss. Laina\"\n\n2. **Columna: Age**\n   - Regla: Valores Nulos / Vacíos\n     - Evidencia: Faltan datos.\n   - Regla: Outliers Leves (Tukey 1.5×)\n     - Evidencia: Valores desviados entre 1.5× y 3× del rango intercuartílico.\n\n3. **Columna: SibSp**\n   - Regla: Outliers Extremos (IQR 3×)\n     - Evidencia: Valores desviados > 3× del rango intercuartílico.\n     - Ejemplos: 5, 5, 8\n\n4. **Columna: Ticket**\n   - Regla: Outliers Extremos (IQR 3×)\n     - Evidencia: Valores desviados > 3× del rango intercuartílico.\n     - Ejemplos: 3101295, 3101281, 3101278\n\n5. **Columna: Fare**\n   - Regla: Outliers Extremos (IQR 3×)\n     - Evidencia: Valores desviados > 3× del rango intercuartílico.\n     - Ejemplos: 263, 146.5208, 263\n   - Regla: Outliers Leves (Tukey 1.5×)\n     - Evidencia: Valores desviados entre 1.5× y 3× del rango intercuartílico.\n\n6. **Columna: Cabin**\n   - Regla: Valores Nulos / Vacíos\n     - Evidencia: Crítico: 77.1% de datos faltantes.\n     - Ejemplos: No hay ejemplos proporcionados en el JSON, pero se menciona que la columna tiene un alto porcentaje de valores nulos.\n\n## Hipótesis no validadas\n\n- La columna \"Name\" podría necesitar agrupación o macro-categorías antes del análisis debido a su alta dispersión de categorías.\n- La columna \"Cabin\" puede requerir una estrategia para manejar los datos faltantes, como rellenar con valores predeterminados o eliminar la columna.\n\n## Acciones recomendadas\n\n1. **Columna: Name**\n   - Proporcionar un formato estándar para el nombre (por ejemplo, \"Mr. Owen Harris\" en lugar de \"Hewlett, Mrs. (Mary D Kingcome)\")\n   - Agrupar categorías similares o crear macro-categorías.\n\n2. **Columna: Age**\n   - Reemplazar valores nulos con la media o mediana del grupo correspondiente.\n   - Considerar el uso de técnicas como interpolación lineal para llenar los espacios vacíos.\n\n3. **Columna: SibSp**\n   - Tratar los valores extremadamente altos (5, 8) y muy bajos (0) con una estrategia de reemplazo o eliminación.\n   \n4. **Columna: Ticket**\n   - Considerar el uso de técnicas como interpolación lineal para llenar los espacios vacíos.\n\n5. **Columna: Fare**\n   - Tratar valores extremadamente altos (263, 146.5208) con una estrategia de reemplazo o eliminación.\n   \n6. **Columna: Cabin**\n   - Considerar la eliminación de la columna si el porcentaje de datos faltantes es muy alto.\n\n## Limites de la respuesta\n\n- Las acciones recomendadas son basadas en las reglas y evidencias disponibles y pueden requerir ajustes adicionales según el contexto del análisis.\n- La implementación de estas soluciones puede variar dependiendo del objetivo específico del análisis.",
       "metrics": {
         "provider": "Ollama",
         "model": "qwen2.5:3b",
-        "latencyMs": 20029,
-        "firstTokenMs": 20029,
-        "tokensGenerated": 2477,
+        "latencyMs": 35915,
+        "firstTokenMs": 35915,
+        "tokensGenerated": 3354,
         "isLocal": true,
-        "timestamp": "2026-06-23T22:05:39.272Z",
+        "timestamp": "2026-06-23T23:01:10.515Z",
         "tokensSource": "reported",
-        "promptEvalCount": 1863,
-        "evalCount": 614,
-        "promptEvalDuration": 4786176708,
-        "evalDuration": 14954718628,
-        "totalDuration": 20024292458,
-        "loadDuration": 74005833
+        "promptEvalCount": 2312,
+        "evalCount": 1042,
+        "promptEvalDuration": 6213874459,
+        "evalDuration": 26716949409,
+        "totalDuration": 35907653916,
+        "loadDuration": 2598208833
       },
-      "durationMs": 20029,
+      "durationMs": 35916,
       "status": "completed"
     },
     "B1Summary": {
       "taskId": "B1-summary",
-      "responseRaw": "## Resumen operativo para script\n\n### Problemas priorizados:\n1. **Columna \"Cabin\":** Tener en cuenta la eliminación o reemplazo de datos faltantes debido a su alto porcentaje de valores nulos (77.1%).\n2. **Columna \"Age\":** Considerar la imputación de valores para llenar los espacios vacíos.\n3. **Columnas \"SibSp\" y \"Fare\":** Investigar si estos valores extremos son errores de entrada o representan una característica relevante que requiere tratamiento especial.\n\n### Acciones automatizables:\n1. **Para la columna \"Cabin\":**\n   - Eliminar los datos faltantes.\n2. **Para la columna \"Age\":**\n   - Imputar valores utilizando técnicas como media, mediana o interpolación lineal.\n3. **Para las columnas \"SibSp\" y \"Fare\":**\n   - Investigar si estos valores extremos son errores de entrada o representan una característica relevante que requiere tratamiento especial.\n\n### Acciones que requieren HITL:\n4. **Para la columna \"Name\":**\n   - Agrupar nombres para reducir la dispersión de categorías, dependiendo del análisis previsto y las necesidades del proyecto.\n\n### Columnas que NO deben modificarse automaticamente:\n1. **Columna \"Name\":** No se debe modificar ya que no hay evidencia adicional sobre si necesita agrupación o macro-categorías.\n2. **Columnas \"SibSp\" y \"Fare\":** No se deben modificar sin más investigación para determinar si son errores de entrada o representan una característica relevante.\n\n### Riesgos del script:\n- Error en la implementación de las acciones recomendadas sin contexto adecuado sobre el análisis previsto.\n- Falta de validación adicional antes de aplicar las acciones automatizables.",
-      "summaryBrief": "- El análisis se ha realizado utilizando los datos proporcionados por el motor determinista AURA. Se han identificado las columnas observadas, sus tipos inferidos y las reglas activadas.\n- La columna \"Age\" tiene 177 valores nulos.\n- La columna \"Cabin\" tiene 687 valores nulos, lo que representa aproximadamente el 77.1% de los datos.\n- La columna \"SibSp\" tiene valores desviados significativos (  3× del rango intercuartílico), con las muestras más extremas siendo 5, 5 y 8.\n- La columna \"Fare\" también presenta valores desviados significativos (  3× del rango intercuartílico), con las muestras más extremas siendo 263, 146.5208 y 263.\n- La columna \"Name\" tiene una alta dispersión de categorías con poca concentración en los valores principales. Esto sugiere que la columna podría necesitar agrupación o macro categorías antes del análisis.\n- No se han inventado columnas, valores ni causas. Las observaciones son respaldadas por las reglas activadas y el conjunto de datos proporcionado.\n- Se ha mencionado que la columna \"Name\" tiene una alta dispersión de categorías, pero no se ha inferido que necesite agrupación o macro categorías sin evidencia adicional.\n- Acciones recomendadas\n- 1.   Para la columna \"Age\":",
-      "durationMs": 11219,
+      "responseRaw": "## Resumen operativo para script\n\n### Problemas priorizados:\n1. **Columna: Name**: Alta dispersión de categorías y espacios invisibles al inicio/final.\n2. **Columna: Age**: Valores nulos y outliers leves.\n3. **Columna: SibSp**: Valores extremadamente altos y bajos.\n4. **Columna: Ticket**: Valores extremadamente altos y outliers leves.\n5. **Columna: Fare**: Valores extremadamente altos, outliers leves y valores nulos.\n6. **Columna: Cabin**: Alta proporción de datos faltantes.\n\n### Acciones automatizables:\n- **Name**: Reemplazar espacios invisibles con espacios normales en el inicio y final del texto.\n- **Age**: Reemplazar valores nulos con la media o mediana del grupo correspondiente.\n- **SibSp**: Tratar valores extremadamente altos (5, 8) y muy bajos (0) con una estrategia de reemplazo o eliminación.\n- **Ticket**: Considerar el uso de técnicas como interpolación lineal para llenar los espacios vacíos.\n- **Fare**: Tratar valores extremadamente altos (263, 146.5208) con una estrategia de reemplazo o eliminación.\n- **Cabin**: Considerar la eliminación de la columna si el porcentaje de datos faltantes es muy alto.\n\n### Acciones que requieren HITL:\n- No se mencionan acciones específicas que requieran HITL en este diagnostico.\n\n### Columnas que NO deben modificarse automaticamente:\n- **Name**: La reformulación podría afectar la consistencia del análisis.\n- **Cabin**: Considerar su eliminación si el porcentaje de datos faltantes es muy alto.\n\n### Riesgos del script:\n- **Name**: Si no se realiza una reformulación adecuada, puede haber problemas con la identificación y agrupación de nombres.\n- **Age**: Si los valores nulos son reemplazados incorrectamente, podría afectar el análisis demográfico.\n- **SibSp**: Si los valores extremadamente altos o bajos no se tratan correctamente, podrían distorsionar las relaciones familiares.\n- **Ticket**: Si la interpolación lineal no es adecuada, puede causar errores en la identificación de tickets únicos.\n- **Fare**: Si los valores extremadamente altos son tratados incorrectamente (por ejemplo, eliminados), podría afectar el análisis económico.",
+      "summaryBrief": "- El análisis ha sido realizado utilizando los datos proporcionados por el motor determinista AURA. Se han identificado las columnas con problemas y se han documentado las causas probables.\n- 1.   Columna: Name\n- Regla: Espacios Fantasma (Trim)\n- Regla: Cola Larga Categórica\n- Evidencia: La columna tiene alta dispersión de categorías y baja concentración en los valores principales.\n- 2.   Columna: Age\n- Regla: Valores Nulos / Vacíos\n- Regla: Outliers Leves (Tukey 1.5×)\n- 3.   Columna: SibSp\n- Regla: Outliers Extremos (IQR 3×)",
+      "durationMs": 16251,
       "status": "completed"
     },
     "B2": {
       "taskId": "B2-script-generation",
-      "promptHash": "23e8a5d9",
-      "responseRaw": "```python\nimport pandas as pd\nimport numpy as np\n\ndef clean_dataset(df: pd.DataFrame) -> pd.DataFrame:\n    \"\"\"\n    Función que limpia el DataFrame 'df' según las reglas y observaciones del motor determinista AURA.\n    \n    Returns:\n        df_clean (pd.DataFrame): DataFrame limpio con columnas tratadas de acuerdo a las reglas identificadas.\n    \"\"\"\n    # AURA: regla=Valores Nulos / Vacíos, columna=Age\n    df_clean = df.copy()\n    df_clean['Age'].fillna(df_clean['Age'].mean(), inplace=True)\n    \n    # AURA: regla=Cola Larga Categórica, columna=Name\n    df_clean['Name'] = df_clean['Name'].str.split(', ').apply(lambda x: ' '.join(x))\n    \n    return df_clean\n\n# Crear una copia del DataFrame original para no modificarlo directamente\ndf_clean = clean_dataset(df)\nreturn df_clean\n```",
-      "scriptExtracted": "import pandas as pd\nimport numpy as np\n\ndef clean_dataset(df: pd.DataFrame) -> pd.DataFrame:\n    \"\"\"\n    Función que limpia el DataFrame 'df' según las reglas y observaciones del motor determinista AURA.\n    \n    Returns:\n        df_clean (pd.DataFrame): DataFrame limpio con columnas tratadas de acuerdo a las reglas identificadas.\n    \"\"\"\n    # AURA: regla=Valores Nulos / Vacíos, columna=Age\n    df_clean = df.copy()\n    df_clean['Age'].fillna(df_clean['Age'].mean(), inplace=True)\n    \n    # AURA: regla=Cola Larga Categórica, columna=Name\n    df_clean['Name'] = df_clean['Name'].str.split(', ').apply(lambda x: ' '.join(x))\n    \n    return df_clean\n\n# Crear una copia del DataFrame original para no modificarlo directamente\ndf_clean = clean_dataset(df)\nreturn df_clean",
+      "promptHash": "5d6b112a",
+      "responseRaw": "```python\nimport pandas as pd\nimport numpy as np\n\ndef clean_dataset(df: pd.DataFrame) -> pd.DataFrame:\n    \"\"\"\n    Función para limpiar el DataFrame 'df' utilizando reglas de AURA.\n    \n    Returns:\n        pd.DataFrame: DataFrame limpio con columnas procesadas según las reglas de AURA.\n    \"\"\"\n    # AURA: regla=Espacios Fantasma (Trim), columna=Name\n    df['Name'] = df['Name'].str.strip()\n    \n    # AURA: regla=Cola Larga Categórica, columna=Name\n    df.loc[df['Name'].isin(['Hewlett, Mrs. (Mary D Kingcome) ', 'Daly, Mr. Peter Denis ']), 'Name'] = np.nan\n    \n    # AURA: regla=Valores Nulos / Vacíos, columna=Age\n    df['Age'] = df['Age'].fillna(df.groupby('Pclass')['Age'].transform(lambda x: x.fillna(x.median())))\n    \n    # AURA: regla=Outliers Leves (Tukey 1.5×), columna=Age\n    q1_age, q3_age = df['Age'].quantile(0.25), df['Age'].quantile(0.75)\n    iqr_age = q3_age - q1_age\n    df.loc[(df['Age'] < (q1_age - 1.5 * iqr_age)) | (df['Age'] > (q3_age + 1.5 * iqr_age)), 'Age'] = np.nan\n    \n    # AURA: regla=Outliers Extremos (IQR 3×), columna=SibSp\n    q1_sibs, q3_sibs = df['SibSp'].quantile(0.25), df['SibSp'].quantile(0.75)\n    iqr_sibs = q3_sibs - q1_sibs\n    df.loc[(df['SibSp'] < (q1_sibs - 3 * iqr_sibs)) | (df['SibSp'] > (q3_sibs + 3 * iqr_sibs)), 'SibSp'] = np.nan\n    \n    # AURA: regla=Outliers Extremos (IQR 3×), columna=Fare\n    q1_fare, q3_fare = df['Fare'].quantile(0.25), df['Fare'].quantile(0.75)\n    iqr_fare = q3_fare - q1_fare\n    df.loc[(df['Fare'] < (q1_fare - 3 * iqr_fare)) | (df['Fare'] > (q3_fare + 3 * iqr_fare)), 'Fare'] = np.nan\n    \n    # AURA: regla=Valores Nulos / Vacíos, columna=Cabin\n    df.loc[:, 'Cabin'].fillna('N/A', inplace=True)\n    \n    return df\n\n# Ejemplo de uso:\n# df_clean = clean_dataset(df)\n```\n\nEste código define una función `clean_dataset` que aplica las reglas de AURA al DataFrame proporcionado. Las columnas con problemas han sido procesadas según las evidencias y reglas identificadas en el diagnóstico previo. Las soluciones recomendadas se implementan de manera trazable sin modificar o escribir en archivos externos.",
+      "scriptExtracted": "import pandas as pd\nimport numpy as np\n\ndef clean_dataset(df: pd.DataFrame) -> pd.DataFrame:\n    \"\"\"\n    Función para limpiar el DataFrame 'df' utilizando reglas de AURA.\n    \n    Returns:\n        pd.DataFrame: DataFrame limpio con columnas procesadas según las reglas de AURA.\n    \"\"\"\n    # AURA: regla=Espacios Fantasma (Trim), columna=Name\n    df['Name'] = df['Name'].str.strip()\n    \n    # AURA: regla=Cola Larga Categórica, columna=Name\n    df.loc[df['Name'].isin(['Hewlett, Mrs. (Mary D Kingcome) ', 'Daly, Mr. Peter Denis ']), 'Name'] = np.nan\n    \n    # AURA: regla=Valores Nulos / Vacíos, columna=Age\n    df['Age'] = df['Age'].fillna(df.groupby('Pclass')['Age'].transform(lambda x: x.fillna(x.median())))\n    \n    # AURA: regla=Outliers Leves (Tukey 1.5×), columna=Age\n    q1_age, q3_age = df['Age'].quantile(0.25), df['Age'].quantile(0.75)\n    iqr_age = q3_age - q1_age\n    df.loc[(df['Age'] < (q1_age - 1.5 * iqr_age)) | (df['Age'] > (q3_age + 1.5 * iqr_age)), 'Age'] = np.nan\n    \n    # AURA: regla=Outliers Extremos (IQR 3×), columna=SibSp\n    q1_sibs, q3_sibs = df['SibSp'].quantile(0.25), df['SibSp'].quantile(0.75)\n    iqr_sibs = q3_sibs - q1_sibs\n    df.loc[(df['SibSp'] < (q1_sibs - 3 * iqr_sibs)) | (df['SibSp'] > (q3_sibs + 3 * iqr_sibs)), 'SibSp'] = np.nan\n    \n    # AURA: regla=Outliers Extremos (IQR 3×), columna=Fare\n    q1_fare, q3_fare = df['Fare'].quantile(0.25), df['Fare'].quantile(0.75)\n    iqr_fare = q3_fare - q1_fare\n    df.loc[(df['Fare'] < (q1_fare - 3 * iqr_fare)) | (df['Fare'] > (q3_fare + 3 * iqr_fare)), 'Fare'] = np.nan\n    \n    # AURA: regla=Valores Nulos / Vacíos, columna=Cabin\n    df.loc[:, 'Cabin'].fillna('N/A', inplace=True)\n    \n    return df\n\n# Ejemplo de uso:\n# df_clean = clean_dataset(df)",
       "metrics": {
         "provider": "Ollama",
         "model": "qwen2.5:3b",
-        "latencyMs": 68498,
-        "firstTokenMs": 68498,
-        "tokensGenerated": 3180,
+        "latencyMs": 31344,
+        "firstTokenMs": 31344,
+        "tokensGenerated": 4419,
         "isLocal": true,
-        "timestamp": "2026-06-23T22:06:59.005Z",
+        "timestamp": "2026-06-23T23:01:58.112Z",
         "tokensSource": "reported",
-        "promptEvalCount": 2970,
-        "evalCount": 210,
-        "promptEvalDuration": 8536190417,
-        "evalDuration": 7233321087,
-        "totalDuration": 15968235625,
-        "loadDuration": 45527292
+        "promptEvalCount": 3682,
+        "evalCount": 737,
+        "promptEvalDuration": 11285465083,
+        "evalDuration": 19754418374,
+        "totalDuration": 31337916458,
+        "loadDuration": 53859875
       },
-      "durationMs": 68498,
+      "durationMs": 31344,
       "status": "completed"
     },
     "B3": {
@@ -68,16 +68,20 @@
           "inplace_mutation"
         ],
         "coveredIssueIds": [
+          "hygiene-ghost-Name",
+          "semantic-long-tail-Name",
           "integrity-null-Age",
-          "integrity-null-Cabin",
-          "semantic-long-tail-Name"
-        ],
-        "uncoveredIssueIds": [
+          "logic-outlier-tukey-Age",
           "logic-outlier-SibSp",
-          "logic-outlier-Fare"
+          "logic-outlier-tukey-SibSp",
+          "logic-outlier-Ticket",
+          "logic-outlier-Fare",
+          "logic-outlier-tukey-Fare",
+          "integrity-null-Cabin"
         ],
-        "coveragePercentage": 60,
-        "safetyScore": 78,
+        "uncoveredIssueIds": [],
+        "coveragePercentage": 100,
+        "safetyScore": 90,
         "scriptOrigin": "model",
         "hasPandasImport": true,
         "requiresHumanReview": true,
@@ -85,17 +89,17 @@
           "El script contiene operaciones destructivas o mutaciones directas."
         ]
       },
-      "durationMs": 1,
+      "durationMs": 2,
       "status": "completed"
     }
   },
-  "completedAt": "2026-06-23T22:06:59.007Z",
-  "totalDurationMs": 99747,
+  "completedAt": "2026-06-23T23:01:58.116Z",
+  "totalDurationMs": 83513,
   "tokens": {
-    "diagnosis": 2477,
-    "summary": 1153,
-    "script": 3180,
-    "total": 6810
+    "diagnosis": 3354,
+    "summary": 1726,
+    "script": 4419,
+    "total": 9499
   },
   "tokensSource": "reported",
   "ollamaVersion": "0.20.3"

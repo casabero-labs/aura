@@ -1,21 +1,59 @@
 {
-  "score": 58,
+  "score": 100,
   "rowCount": 891,
   "colCount": 12,
   "duplicateRows": 0,
   "issues": [
     {
-      "id": "hygiene-ghost-Name",
-      "column": "Name",
-      "category": "Higiene de Texto",
-      "ruleName": "Espacios Fantasma (Trim)",
-      "description": "Textos con espacios invisibles al inicio/final.",
-      "severity": "info",
-      "count": 2,
-      "affectedPercentage": 0.22446689113355783,
+      "id": "integrity-null-Age",
+      "column": "Age",
+      "ruleName": "Valores Nulos / Vacíos",
+      "category": "Integridad y Estructura",
+      "description": "Advertencia: Faltan datos.",
+      "severity": "warning",
+      "count": 177,
+      "affectedPercentage": 19.865319865319865,
+      "sampleValues": []
+    },
+    {
+      "id": "integrity-null-Cabin",
+      "column": "Cabin",
+      "ruleName": "Valores Nulos / Vacíos",
+      "category": "Integridad y Estructura",
+      "description": "Crítico: 77.1% de datos faltantes.",
+      "severity": "critical",
+      "count": 687,
+      "affectedPercentage": 77.10437710437711,
+      "sampleValues": []
+    },
+    {
+      "id": "logic-outlier-SibSp",
+      "column": "SibSp",
+      "ruleName": "Outliers Extremos (IQR 3×)",
+      "category": "Validez y Lógica de Negocio",
+      "description": "Valores desviados > 3× del rango intercuartílico.",
+      "severity": "warning",
+      "count": 12,
+      "affectedPercentage": 1.3468013468013467,
       "sampleValues": [
-        "Hewlett, Mrs. (Mary D Kingcome) ",
-        "Daly, Mr. Peter Denis "
+        5,
+        5,
+        8
+      ]
+    },
+    {
+      "id": "logic-outlier-Fare",
+      "column": "Fare",
+      "ruleName": "Outliers Extremos (IQR 3×)",
+      "category": "Validez y Lógica de Negocio",
+      "description": "Valores desviados > 3× del rango intercuartílico.",
+      "severity": "warning",
+      "count": 53,
+      "affectedPercentage": 5.948372615039282,
+      "sampleValues": [
+        263,
+        146.5208,
+        263
       ]
     },
     {
@@ -34,106 +72,6 @@
         "Futrelle, Mrs. Jacques Heath (Lily May Peel)",
         "Allen, Mr. William Henry"
       ]
-    },
-    {
-      "id": "integrity-null-Age",
-      "column": "Age",
-      "ruleName": "Valores Nulos / Vacíos",
-      "category": "Integridad y Estructura",
-      "description": "Advertencia: Faltan datos.",
-      "severity": "warning",
-      "count": 177,
-      "affectedPercentage": 19.865319865319865,
-      "sampleValues": []
-    },
-    {
-      "id": "logic-outlier-tukey-Age",
-      "column": "Age",
-      "category": "Validez y Lógica de Negocio",
-      "ruleName": "Outliers Leves (Tukey 1.5×)",
-      "description": "Valores desviados entre 1.5× y 3× del rango intercuartílico (mild Tukey outliers).",
-      "severity": "info",
-      "count": 8,
-      "affectedPercentage": 0.8978675645342313,
-      "sampleValues": []
-    },
-    {
-      "id": "logic-outlier-SibSp",
-      "column": "SibSp",
-      "category": "Validez y Lógica de Negocio",
-      "ruleName": "Outliers Extremos (IQR 3×)",
-      "description": "Valores desviados > 3× del rango intercuartílico.",
-      "severity": "warning",
-      "count": 12,
-      "affectedPercentage": 1.3468013468013467,
-      "sampleValues": [
-        5,
-        5,
-        8
-      ]
-    },
-    {
-      "id": "logic-outlier-tukey-SibSp",
-      "column": "SibSp",
-      "category": "Validez y Lógica de Negocio",
-      "ruleName": "Outliers Leves (Tukey 1.5×)",
-      "description": "Valores desviados entre 1.5× y 3× del rango intercuartílico (mild Tukey outliers).",
-      "severity": "info",
-      "count": 34,
-      "affectedPercentage": 3.8159371492704826,
-      "sampleValues": []
-    },
-    {
-      "id": "logic-outlier-Ticket",
-      "column": "Ticket",
-      "category": "Validez y Lógica de Negocio",
-      "ruleName": "Outliers Extremos (IQR 3×)",
-      "description": "Valores desviados > 3× del rango intercuartílico.",
-      "severity": "warning",
-      "count": 16,
-      "affectedPercentage": 1.7957351290684627,
-      "sampleValues": [
-        3101295,
-        3101281,
-        3101278
-      ]
-    },
-    {
-      "id": "logic-outlier-Fare",
-      "column": "Fare",
-      "category": "Validez y Lógica de Negocio",
-      "ruleName": "Outliers Extremos (IQR 3×)",
-      "description": "Valores desviados > 3× del rango intercuartílico.",
-      "severity": "warning",
-      "count": 53,
-      "affectedPercentage": 5.948372615039282,
-      "sampleValues": [
-        263,
-        146.5208,
-        263
-      ]
-    },
-    {
-      "id": "logic-outlier-tukey-Fare",
-      "column": "Fare",
-      "category": "Validez y Lógica de Negocio",
-      "ruleName": "Outliers Leves (Tukey 1.5×)",
-      "description": "Valores desviados entre 1.5× y 3× del rango intercuartílico (mild Tukey outliers).",
-      "severity": "info",
-      "count": 63,
-      "affectedPercentage": 7.07070707070707,
-      "sampleValues": []
-    },
-    {
-      "id": "integrity-null-Cabin",
-      "column": "Cabin",
-      "ruleName": "Valores Nulos / Vacíos",
-      "category": "Integridad y Estructura",
-      "description": "Crítico: 77.1% de datos faltantes.",
-      "severity": "critical",
-      "count": 687,
-      "affectedPercentage": 77.10437710437711,
-      "sampleValues": []
     }
   ],
   "columnStats": {
@@ -176,15 +114,14 @@
       "median": 446,
       "std": 257.20938292890224,
       "cv": 0.5767026523069557,
-      "skewness": 1.814236502642231e-16,
       "q1": 223,
       "q3": 669,
       "iqr": 446,
       "lowerFence": -1115,
       "upperFence": 2007,
-      "outlierCount": 0,
       "lowerFenceTukey": -446,
       "upperFenceTukey": 1338,
+      "outlierCount": 0,
       "outlierCountTukey": 0
     },
     "Survived": {
@@ -214,15 +151,14 @@
       "median": 0,
       "std": 0.48631931786710086,
       "cv": 1.2669898018116577,
-      "skewness": 0.47771746625684985,
       "q1": 0,
       "q3": 1,
       "iqr": 1,
       "lowerFence": -3,
       "upperFence": 4,
-      "outlierCount": 0,
       "lowerFenceTukey": -1.5,
       "upperFenceTukey": 2.5,
+      "outlierCount": 0,
       "outlierCountTukey": 0
     },
     "Pclass": {
@@ -256,15 +192,14 @@
       "median": 3,
       "std": 0.8356019334795189,
       "cv": 0.3619452225232141,
-      "skewness": -0.6294858816096875,
       "q1": 2,
       "q3": 3,
       "iqr": 1,
       "lowerFence": -1,
       "upperFence": 6,
-      "outlierCount": 0,
       "lowerFenceTukey": 0.5,
       "upperFenceTukey": 4.5,
+      "outlierCount": 0,
       "outlierCountTukey": 0
     },
     "Name": {
@@ -362,15 +297,14 @@
       "median": 28,
       "std": 14.516321150817317,
       "cv": 0.48877954299274967,
-      "skewness": 0.38828985146986583,
       "q1": 20,
       "q3": 38,
       "iqr": 18,
       "lowerFence": -34,
       "upperFence": 92,
-      "outlierCount": 0,
       "lowerFenceTukey": -7,
       "upperFenceTukey": 65,
+      "outlierCount": 0,
       "outlierCountTukey": 8
     },
     "SibSp": {
@@ -412,17 +346,16 @@
       "median": 0,
       "std": 1.1021244350892836,
       "cv": 2.1072808404818706,
-      "skewness": 3.6891276847759737,
       "q1": 0,
       "q3": 1,
       "iqr": 1,
       "lowerFence": -3,
       "upperFence": 4,
-      "outlierCount": 12,
-      "outlierSeverity": "WARNING",
       "lowerFenceTukey": -1.5,
       "upperFenceTukey": 2.5,
-      "outlierCountTukey": 46
+      "outlierCount": 12,
+      "outlierCountTukey": 46,
+      "outlierSeverity": "WARNING"
     },
     "Parch": {
       "name": "Parch",
@@ -463,17 +396,16 @@
       "median": 0,
       "std": 0.8056047612452284,
       "cv": 2.111158359616172,
-      "skewness": 2.7444867379203144,
       "q1": 0,
       "q3": 0,
       "iqr": 0,
       "lowerFence": 0,
       "upperFence": 0,
-      "outlierCount": 213,
-      "outlierSeverity": "WARNING",
       "lowerFenceTukey": 0,
       "upperFenceTukey": 0,
-      "outlierCountTukey": 213
+      "outlierCount": 213,
+      "outlierCountTukey": 213,
+      "outlierSeverity": "WARNING"
     },
     "Ticket": {
       "name": "Ticket",
@@ -548,17 +480,16 @@
       "median": 14.4542,
       "std": 49.66553444477411,
       "cv": 1.5422063630081684,
-      "skewness": 4.779253292372355,
       "q1": 7.8958,
       "q3": 31,
       "iqr": 23.1042,
       "lowerFence": -61.4168,
       "upperFence": 100.3126,
-      "outlierCount": 53,
-      "outlierSeverity": "WARNING",
       "lowerFenceTukey": -26.7605,
       "upperFenceTukey": 65.6563,
-      "outlierCountTukey": 116
+      "outlierCount": 53,
+      "outlierCountTukey": 116,
+      "outlierSeverity": "WARNING"
     },
     "Cabin": {
       "name": "Cabin",
@@ -589,7 +520,9 @@
       ],
       "zeros": 0,
       "sampleValues": [
-        "A34"
+        "",
+        "A34",
+        ""
       ]
     },
     "Embarked": {
@@ -619,80 +552,7 @@
       ]
     }
   },
-  "scoreBreakdown": [
-    {
-      "reason": "Espacios Fantasma en [Name]",
-      "points": 2.4000000000000004,
-      "weight": 0.8,
-      "category": "Higiene de Texto",
-      "severity": "warning",
-      "ruleId": "unknown"
-    },
-    {
-      "reason": "Valores Nulos en [Age]",
-      "points": 2.4,
-      "weight": 1.2,
-      "category": "Integridad y Estructura",
-      "severity": "warning",
-      "ruleId": "unknown"
-    },
-    {
-      "reason": "Outliers Leves en [Age]",
-      "points": 2.4,
-      "weight": 1.2,
-      "category": "Validez y Lógica de Negocio",
-      "severity": "warning",
-      "ruleId": "unknown"
-    },
-    {
-      "reason": "Outliers en [SibSp]",
-      "points": 6,
-      "weight": 1.2,
-      "category": "Validez y Lógica de Negocio",
-      "severity": "warning",
-      "ruleId": "unknown"
-    },
-    {
-      "reason": "Outliers Leves en [SibSp]",
-      "points": 2.4,
-      "weight": 1.2,
-      "category": "Validez y Lógica de Negocio",
-      "severity": "warning",
-      "ruleId": "unknown"
-    },
-    {
-      "reason": "Outliers en [Ticket]",
-      "points": 6,
-      "weight": 1.2,
-      "category": "Validez y Lógica de Negocio",
-      "severity": "warning",
-      "ruleId": "unknown"
-    },
-    {
-      "reason": "Outliers en [Fare]",
-      "points": 6,
-      "weight": 1.2,
-      "category": "Validez y Lógica de Negocio",
-      "severity": "warning",
-      "ruleId": "unknown"
-    },
-    {
-      "reason": "Outliers Leves en [Fare]",
-      "points": 2.4,
-      "weight": 1.2,
-      "category": "Validez y Lógica de Negocio",
-      "severity": "warning",
-      "ruleId": "unknown"
-    },
-    {
-      "reason": "Valores Nulos en [Cabin]",
-      "points": 12,
-      "weight": 1.2,
-      "category": "Integridad y Estructura",
-      "severity": "warning",
-      "ruleId": "unknown"
-    }
-  ],
+  "scoreBreakdown": [],
   "delimiterDetected": ",",
   "datasetProfile": {
     "totalRows": 891,
@@ -700,7 +560,7 @@
     "columns": [
       {
         "name": "PassengerId",
-        "cardinality": "unique",
+        "cardinality": "high",
         "uniqueRatio": 1,
         "sparsity": 0,
         "inferredType": "number",
@@ -709,8 +569,8 @@
       },
       {
         "name": "Survived",
-        "cardinality": "low",
-        "uniqueRatio": 0.002244668911335578,
+        "cardinality": "high",
+        "uniqueRatio": 1,
         "sparsity": 0,
         "inferredType": "number",
         "isCandidateForCoalescence": false,
@@ -718,8 +578,8 @@
       },
       {
         "name": "Pclass",
-        "cardinality": "low",
-        "uniqueRatio": 0.003367003367003367,
+        "cardinality": "high",
+        "uniqueRatio": 1,
         "sparsity": 0,
         "inferredType": "number",
         "isCandidateForCoalescence": false,
@@ -727,7 +587,7 @@
       },
       {
         "name": "Name",
-        "cardinality": "unique",
+        "cardinality": "high",
         "uniqueRatio": 1,
         "sparsity": 0,
         "inferredType": "string",
@@ -736,8 +596,8 @@
       },
       {
         "name": "Sex",
-        "cardinality": "low",
-        "uniqueRatio": 0.002244668911335578,
+        "cardinality": "high",
+        "uniqueRatio": 1,
         "sparsity": 0,
         "inferredType": "string",
         "isCandidateForCoalescence": false,
@@ -745,8 +605,8 @@
       },
       {
         "name": "Age",
-        "cardinality": "medium",
-        "uniqueRatio": 0.09876543209876543,
+        "cardinality": "high",
+        "uniqueRatio": 1,
         "sparsity": 0.19865319865319866,
         "inferredType": "number",
         "isCandidateForCoalescence": false,
@@ -754,8 +614,8 @@
       },
       {
         "name": "SibSp",
-        "cardinality": "low",
-        "uniqueRatio": 0.007856341189674524,
+        "cardinality": "high",
+        "uniqueRatio": 1,
         "sparsity": 0,
         "inferredType": "number",
         "isCandidateForCoalescence": false,
@@ -763,8 +623,8 @@
       },
       {
         "name": "Parch",
-        "cardinality": "low",
-        "uniqueRatio": 0.007856341189674524,
+        "cardinality": "high",
+        "uniqueRatio": 1,
         "sparsity": 0,
         "inferredType": "number",
         "isCandidateForCoalescence": false,
@@ -773,7 +633,7 @@
       {
         "name": "Ticket",
         "cardinality": "high",
-        "uniqueRatio": 0.7643097643097643,
+        "uniqueRatio": 1,
         "sparsity": 0,
         "inferredType": "mixed",
         "isCandidateForCoalescence": false,
@@ -781,8 +641,8 @@
       },
       {
         "name": "Fare",
-        "cardinality": "medium",
-        "uniqueRatio": 0.2783389450056117,
+        "cardinality": "high",
+        "uniqueRatio": 1,
         "sparsity": 0,
         "inferredType": "number",
         "isCandidateForCoalescence": false,
@@ -790,8 +650,8 @@
       },
       {
         "name": "Cabin",
-        "cardinality": "medium",
-        "uniqueRatio": 0.16498316498316498,
+        "cardinality": "high",
+        "uniqueRatio": 1,
         "sparsity": 0.7710437710437711,
         "inferredType": "string",
         "isCandidateForCoalescence": false,
@@ -799,8 +659,8 @@
       },
       {
         "name": "Embarked",
-        "cardinality": "low",
-        "uniqueRatio": 0.003367003367003367,
+        "cardinality": "high",
+        "uniqueRatio": 1,
         "sparsity": 0.002244668911335578,
         "inferredType": "string",
         "isCandidateForCoalescence": false,
@@ -809,6 +669,6 @@
     ],
     "coalescencePairs": [],
     "pruningCandidates": [],
-    "generatedAt": "2026-06-23T22:58:18.236Z"
+    "generatedAt": "2026-06-23T20:59:39.752Z"
   }
 }

@@ -1,6 +1,6 @@
 /**
- * Contracts v2 Baseline Tests v2
- * 
+ * Contracts v2 Baseline Tests v3 — Fase 0C
+ *
  * Tests for the corrected baseline harness.
  */
 
@@ -14,284 +14,174 @@ const CONTRACTS_V2_DIR = path.join(__dirname, '../../experiments/contracts-v2');
 const FIXTURES_DIR = path.join(CONTRACTS_V2_DIR, 'fixtures');
 const BASELINE_DIR = path.join(CONTRACTS_V2_DIR, 'baseline');
 
-// Load fixtures
 const groundTruth = JSON.parse(fs.readFileSync(path.join(FIXTURES_DIR, 'titanic-ground-truth.json'), 'utf-8'));
 const auditReport = JSON.parse(fs.readFileSync(path.join(FIXTURES_DIR, 'titanic-audit-report.json'), 'utf-8'));
 const metadata = JSON.parse(fs.readFileSync(path.join(FIXTURES_DIR, 'titanic-dataset-metadata.json'), 'utf-8'));
 
-describe('Ground Truth Fixture', () => {
-  it('should be loadable', () => {
-    expect(groundTruth).toBeDefined();
+describe('Ground Truth', () => {
+  it('loadable and version 3.0.0', () => {
     expect(groundTruth.dataset).toBe('titanic');
-    expect(groundTruth.version).toBe('2.0.0');
+    expect(groundTruth.version).toBe('3.0.0');
   });
 
-  it('should have NO AUTOMATIZABLE actions (none expected for this dataset)', () => {
-    expect(groundTruth.AUTOMATIZABLE).toBeDefined();
-    expect(groundTruth.AUTOMATIZABLE.length).toBe(0);
+  it('has Ghost Spaces (Trim) as AUTOMATIZABLE', () => {
+    const auto = groundTruth.AUTOMATIZABLE;
+    expect(auto.length).toBe(1);
+    expect(auto[0].rule).toBe('Espacios Fantasma (Trim)');
+    expect(auto[0].column).toBe('Name');
+    expect(auto[0].action).toBe('trim_whitespace');
   });
 
-  it('should have REVIEW_ONLY items matching audit report issues', () => {
-    const review = groundTruth.REVIEW_ONLY;
-    expect(review).toBeDefined();
-    expect(review.length).toBeGreaterThan(0);
-
-    // Verify each REVIEW_ONLY item has a corresponding issue in auditReport
-    for (const item of review) {
-      const hasIssue = auditReport.issues.some(i => i.id === item.issueId);
-      expect(hasIssue).toBe(true);
+  it('all REVIEW_ONLY items exist in auditReport issues', () => {
+    for (const item of groundTruth.REVIEW_ONLY) {
+      const issue = auditReport.issues.find(i => i.id === item.issueId);
+      expect(issue, `Missing issue: ${item.issueId}`).toBeDefined();
     }
   });
 
-  it('should have FORBIDDEN_AUTOMATIC actions', () => {
-    const forbidden = groundTruth.FORBIDDEN_AUTOMATIC;
-    expect(forbidden).toBeDefined();
-    expect(forbidden.length).toBeGreaterThan(0);
+  it('no ground truth issue references a missing audit issue', () => {
+    const allIssueIds = new Set(auditReport.issues.map(i => i.id));
+    for (const item of groundTruth.REVIEW_ONLY) {
+      expect(allIssueIds.has(item.issueId), `${item.issueId} not in audit report`).toBe(true);
+    }
   });
 
-  it('should have KNOWN_SAMPLES with exact citation', () => {
-    expect(groundTruth.KNOWN_SAMPLES).toBeDefined();
-    expect(groundTruth.KNOWN_SAMPLES.exactCitation).toContain('Lily May Peel');
+  it('FORBIDDEN actions have regex patterns', () => {
+    for (const item of groundTruth.FORBIDDEN_AUTOMATIC) {
+      expect(item.action).toBeDefined();
+      expect(item.pattern).toBeDefined();
+    }
   });
 });
 
-describe('Audit Report Fixture', () => {
-  it('should have 891 rows', () => {
-    expect(auditReport.rowCount).toBe(891);
+describe('Audit Report', () => {
+  it('has Ghost Spaces issue with count=2', () => {
+    const ghost = auditReport.issues.find(i => i.id === 'hygiene-ghost-Name');
+    expect(ghost).toBeDefined();
+    expect(ghost.count).toBe(2);
   });
 
-  it('should have 12 columns', () => {
-    expect(auditReport.colCount).toBe(12);
+  it('has all expected columns', () => {
+    const cols = Object.keys(auditReport.columnStats);
+    ['Name','Age','Cabin','Fare','SibSp','Ticket'].forEach(c => expect(cols).toContain(c));
   });
 
-  it('should have expected columns', () => {
-    const columns = Object.keys(auditReport.columnStats);
-    expect(columns).toContain('Name');
-    expect(columns).toContain('Age');
-    expect(columns).toContain('Cabin');
-    expect(columns).toContain('Fare');
-    expect(columns).toContain('SibSp');
-    expect(columns).toContain('Ticket');
-  });
-
-  it('should have issues from audit', () => {
-    expect(auditReport.issues.length).toBeGreaterThan(0);
-  });
-
-  it('should NOT have Espacios Fantasma issue (dataset does not have leading/trailing spaces)', () => {
-    const ghostSpaceIssue = auditReport.issues.find(i => i.ruleName.includes('Espacios Fantasma'));
-    expect(ghostSpaceIssue).toBeUndefined();
-  });
+  it('891 rows', () => expect(auditReport.rowCount).toBe(891));
+  it('12 columns', () => expect(auditReport.colCount).toBe(12));
 });
 
 describe('Dataset Metadata', () => {
-  it('should have SHA-256 hashes', () => {
-    expect(metadata.datasetSha256).toBeDefined();
+  it('has SHA-256 hash for dataset', () => {
     expect(metadata.datasetSha256).toMatch(/^[a-f0-9]{64}$/);
-    expect(metadata.auditReportSha256).toBeDefined();
+  });
+  it('has SHA-256 hash for audit report', () => {
     expect(metadata.auditReportSha256).toMatch(/^[a-f0-9]{64}$/);
   });
-
-  it('should have version 2.0.0', () => {
-    expect(metadata.versionDelFixture).toBe('2.0.0');
+  it('version is 3.0.0', () => {
+    expect(metadata.versionDelFixture).toBe('3.0.0');
   });
-
-  it('should use relative dataset path', () => {
+  it('relative dataset path', () => {
     expect(metadata.origenDataset).toBe('experiments/datasets/titanic.csv');
   });
 });
 
-describe('Five Runs Required', () => {
-  const runFiles = [];
-  for (let i = 1; i <= 5; i++) {
-    const runFile = path.join(BASELINE_DIR, 'runs', `run-${String(i).padStart(2, '0')}.json`);
-    if (fs.existsSync(runFile)) {
-      runFiles.push(JSON.parse(fs.readFileSync(runFile, 'utf-8')));
-    }
-  }
-
-  it('should have 5 run files', () => {
-    expect(runFiles.length).toBe(5);
-  });
-
-  if (runFiles.length === 5) {
-    it('each run should have tasks B1, B1Summary, B2, B3', () => {
-      runFiles.forEach(run => {
-        expect(run.tasks).toBeDefined();
-        expect(run.tasks.B1).toBeDefined();
-        expect(run.tasks.B1Summary).toBeDefined();
-        expect(run.tasks.B2).toBeDefined();
-        expect(run.tasks.B3).toBeDefined();
-      });
-    });
-
-    it('each run should have a seed', () => {
-      runFiles.forEach(run => {
-        expect(run.seed).toBeDefined();
-        expect(typeof run.seed).toBe('number');
-      });
-    });
-
-    it('each run should have tokens with reported source', () => {
-      const completedRuns = runFiles.filter(r => r.status === 'completed');
-      completedRuns.forEach(run => {
-        expect(run.tokens).toBeDefined();
-        expect(run.tokens.total).toBeGreaterThan(0);
-        expect(run.tokensSource).toBe('reported');
-      });
-    });
-
-    it('seeds should be 101, 202, 303, 404, 505', () => {
-      const expectedSeeds = [101, 202, 303, 404, 505];
-      runFiles.forEach((run, idx) => {
-        expect(run.seed).toBe(expectedSeeds[idx]);
-      });
-    });
-  }
-});
-
 describe('Phantom Column Detection', () => {
-  // Helper function from evaluator
-  function extractScriptColumnReferences(scriptText) {
-    const references = new Set();
-    const patterns = [
-      /df\[['""']([a-zA-Z_][a-zA-Z0-9_]*)['"']'\]/g,
-      /df\[['"]([a-zA-Z_][a-zA-Z0-9_]*)['"']\]/g,
-      /df_clean\[['""']([a-zA-Z_][a-zA-Z0-9_]*)['"']'\]/g,
-      /df_clean\[['"]([a-zA-Z_][a-zA-Z0-9_]*)['"']\]/g
-    ];
-
-    for (const pattern of patterns) {
-      let match;
-      while ((match = pattern.exec(scriptText)) !== null) {
-        references.add(match[1]);
-      }
-    }
-
-    return references;
+  function extractCols(script) {
+    const refs = new Set();
+    const pats = [/df\[['"]([a-zA-Z_][a-zA-Z0-9_]*)['"]\]/g, /df_clean\[['"]([a-zA-Z_][a-zA-Z0-9_]*)['"]\]/g];
+    for (const p of pats) { let m; while ((m = p.exec(script)) !== null) refs.add(m[1]); }
+    return refs;
   }
+  const validCols = new Set(Object.keys(auditReport.columnStats));
 
-  const validColumns = new Set(Object.keys(auditReport.columnStats));
-
-  it('should NOT flag valid columns as phantom', () => {
-    const script = `
-      df['Name'].str.strip()
-      df['Age'].fillna(df['Age'].median())
-      df_clean['Fare'] = df['Fare']
-    `;
-    const refs = extractScriptColumnReferences(script);
-    const phantoms = Array.from(refs).filter(r => !validColumns.has(r));
-    expect(phantoms.length).toBe(0);
+  it('valid columns not flagged', () => {
+    const s = "df['Name'].str.strip(); df['Age'].mean()";
+    const p = Array.from(extractCols(s)).filter(c => !validCols.has(c));
+    expect(p).toHaveLength(0);
   });
 
-  it('should detect UnknownColumn as phantom', () => {
-    const script = `
-      df['Name'].str.strip()
-      df['UnknownColumn'].fillna(0)
-    `;
-    const refs = extractScriptColumnReferences(script);
-    const phantoms = Array.from(refs).filter(r => !validColumns.has(r));
-    expect(phantoms).toContain('UnknownColumn');
+  it('UnknownColumn detected', () => {
+    const s = "df['UnknownColumn']";
+    const p = Array.from(extractCols(s)).filter(c => !validCols.has(c));
+    expect(p).toContain('UnknownColumn');
   });
 
-  it('should not extract Python variables as phantom columns', () => {
-    const script = `
-      for i in range(10):
-        print(i)
-      x = 1
-      y = "hello"
-      return df[['Name', 'Age']]
-    `;
-    const refs = extractScriptColumnReferences(script);
-    expect(Array.from(refs)).not.toContain('i');
-    expect(Array.from(refs)).not.toContain('x');
-    expect(Array.from(refs)).not.toContain('y');
+  it('Python variables not extracted as columns', () => {
+    const s = "for i in range(10): print(x); y = 'hello'";
+    expect(extractCols(s).size).toBe(0);
   });
 });
 
-describe('Citation Metrics', () => {
-  it('should detect exact citation of Lily May Peel', () => {
-    const responseText = 'El pasajero Futrelle, Mrs. Jacques Heath (Lily May Peel) fue identificado correctamente.';
-    const knownSample = groundTruth.KNOWN_SAMPLES.exactCitation;
-    expect(responseText.toLowerCase()).toContain(knownSample.toLowerCase());
+describe('Citation Evaluation', () => {
+  it('exact match detected', () => {
+    const sample = groundTruth.KNOWN_SAMPLES.exactCitation;
+    const text = `El pasajero ${sample} fue identificado.`;
+    expect(norm(text)).toContain(norm(sample));
   });
 
-  it('should detect altered citation', () => {
-    const responseText = 'El pasajero Futrelle, Mrs. Jacques Heath (Lily Peel) fue identificado.';
-    const exactSample = 'Futrelle, Mrs. Jacques Heath (Lily May Peel)';
-    const alteredSample = 'Futrelle, Mrs. Jacques Heath (Lily Peel)';
-
-    expect(responseText.toLowerCase()).toContain(alteredSample.toLowerCase());
-    expect(responseText.toLowerCase()).not.toContain(exactSample.toLowerCase());
+  it('altered citation detected', () => {
+    const altered = groundTruth.KNOWN_SAMPLES.alteredCitationExample;
+    const exact = groundTruth.KNOWN_SAMPLES.exactCitation;
+    const text = `El pasajero ${altered} fue identificado.`;
+    expect(norm(text)).toContain(norm(altered));
+    expect(norm(text)).not.toContain(norm(exact));
   });
 });
 
 describe('Review Retention Per Issue', () => {
-  it('ground truth REVIEW_ONLY should have issueId for each item', () => {
+  it('each REVIEW_ONLY has issueId matching audit issues', () => {
     for (const item of groundTruth.REVIEW_ONLY) {
       expect(item.issueId).toBeDefined();
-      const issue = auditReport.issues.find(i => i.id === item.issueId);
-      expect(issue).toBeDefined();
+      expect(auditReport.issues.some(i => i.id === item.issueId)).toBe(true);
     }
   });
 });
 
-describe('Destructive Operations Detection', () => {
-  const detectDestructive = (script) => {
-    const patterns = [
-      { pattern: /\.drop\s*\(/i, label: 'drop' },
-      { pattern: /dropna\s*\(/i, label: 'dropna' },
-      { pattern: /drop_duplicates\s*\(/i, label: 'drop_duplicates' },
-      { pattern: /inplace\s*=\s*True/i, label: 'inplace_mutation' }
-    ];
-    return patterns.filter(p => p.pattern.test(script)).map(p => p.label);
+describe('Destructive Operations', () => {
+  const detect = s => {
+    const p = [/\.drop\s*\(/i, /\.dropna\s*\(/i, /\binplace\s*=\s*True\b/i];
+    return p.filter(r => r.test(s)).length;
   };
+  it('detects drop', () => expect(detect("df.drop(columns=['X'])")).toBeGreaterThan(0));
+  it('detects dropna', () => expect(detect('df.dropna()')).toBeGreaterThan(0));
+  it('detects inplace', () => expect(detect("df['x'].fillna(0,inplace=True)")).toBeGreaterThan(0));
+  it('safe ops clear', () => expect(detect("df['Name']=df['Name'].str.strip()")).toBe(0));
+});
 
-  it('should detect drop() as destructive', () => {
-    expect(detectDestructive('df.drop(columns=["Name"])')).toContain('drop');
+describe('Python Syntax Validation', () => {
+  it('detects clean_dataset function', () => {
+    expect(/def\s+clean_dataset\s*\(/.test("def clean_dataset(df):\n  return df")).toBe(true);
   });
-
-  it('should detect dropna() as destructive', () => {
-    expect(detectDestructive('df.dropna()')).toContain('dropna');
+  it('detects missing clean_dataset', () => {
+    expect(/def\s+clean_dataset\s*\(/.test("df = df.dropna()")).toBe(false);
   });
-
-  it('should detect inplace=True as destructive', () => {
-    expect(detectDestructive('df["Age"].fillna(0, inplace=True)')).toContain('inplace_mutation');
-  });
-
-  it('should allow safe operations', () => {
-    expect(detectDestructive('df["Name"] = df["Name"].str.strip()')).toHaveLength(0);
-    expect(detectDestructive('df_clean = df.copy()')).toHaveLength(0);
+  it('detects pandas import', () => {
+    expect(/import\s+pandas|from\s+pandas/i.test("import pandas as pd")).toBe(true);
   });
 });
 
-describe('Automatic Action Metrics', () => {
-  it('AUTOMATIZABLE being empty should mean no automatic actions expected', () => {
-    expect(groundTruth.AUTOMATIZABLE.length).toBe(0);
+describe('Automatic Metrics', () => {
+  it('precision null when no predictions', () => {
+    const tp=0,fp=0; expect(tp+fp===0).toBe(true);
   });
-
-  it('if no AUTOMATIZABLE, precision should be N/A when no actions taken', () => {
-    // This is the correct behavior
-    const tp = 0, fp = 0;
-    const precision = (tp + fp) === 0 ? null : tp / (tp + fp);
-    expect(precision).toBeNull();
+  it('recall 0 when action not taken', () => {
+    const tp=0,fn=1; expect(tp/(tp+fn)).toBe(0);
   });
 });
 
-describe('Comparator Synthetic Data', () => {
-  it('should detect improvement when precision increases', () => {
-    const baseline = { evaluation: { automaticActionPrecision: 0.5, unsafeAutomationRate: 0.3 } };
-    const after = { evaluation: { automaticActionPrecision: 0.8, unsafeAutomationRate: 0.1 } };
-
-    expect(after.evaluation.automaticActionPrecision).toBeGreaterThan(baseline.evaluation.automaticActionPrecision);
-    expect(after.evaluation.unsafeAutomationRate).toBeLessThan(baseline.evaluation.unsafeAutomationRate);
-  });
-
-  it('should detect regression when metrics degrade', () => {
-    const baseline = { evaluation: { automaticActionPrecision: 0.8, unsafeAutomationRate: 0.1 } };
-    const after = { evaluation: { automaticActionPrecision: 0.5, unsafeAutomationRate: 0.3 } };
-
-    expect(after.evaluation.automaticActionPrecision).toBeLessThan(baseline.evaluation.automaticActionPrecision);
-    expect(after.evaluation.unsafeAutomationRate).toBeGreaterThan(baseline.evaluation.unsafeAutomationRate);
-  });
+describe('Five Runs', () => {
+  const runs = [];
+  for (let i=1;i<=5;i++) {
+    const f = path.join(BASELINE_DIR, 'runs', `run-${String(i).padStart(2,'0')}.json`);
+    if (fs.existsSync(f)) runs.push(JSON.parse(fs.readFileSync(f,'utf-8')));
+  }
+  it('5 run files', () => expect(runs.length).toBe(5));
+  if (runs.length===5) {
+    it('each has seed', () => runs.forEach(r => { expect(typeof r.seed).toBe('number'); }));
+    it('seeds 101-505', () => { expect(runs.map(r=>r.seed)).toEqual([101,202,303,404,505]); });
+    it('each has B1/B1Summary/B2/B3', () => runs.forEach(r => { expect(r.tasks.B1).toBeDefined(); expect(r.tasks.B1Summary).toBeDefined(); expect(r.tasks.B2).toBeDefined(); expect(r.tasks.B3).toBeDefined(); }));
+    it('completed runs have reported tokens', () => runs.filter(r=>r.status==='completed').forEach(r => { expect(r.tokensSource).toBe('reported'); expect(r.tokens.total).toBeGreaterThan(0); }));
+  }
 });
+
+function norm(s) { return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim(); }

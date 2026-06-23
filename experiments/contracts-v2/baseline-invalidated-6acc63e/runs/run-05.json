@@ -1,0 +1,102 @@
+{
+  "runNumber": 5,
+  "seed": 505,
+  "status": "completed",
+  "startedAt": "2026-06-23T22:02:21.095Z",
+  "tasks": {
+    "B1": {
+      "taskId": "B1-diagnosis",
+      "promptHash": "58f3e834",
+      "responseRaw": "## Estado de ejecución\nEl análisis se ha realizado utilizando los datos proporcionados por el motor determinista AURA. Se han identificado las columnas con problemas según las reglas establecidas.\n\n## Hallazgos respaldados por evidencia\n\n1. **Valores Nulos / Vacíos:**\n   - La columna \"Age\" tiene 177 valores nulos, lo que representa un 20% de los datos faltantes.\n   - La columna \"Cabin\" tiene 687 valores nulos, lo que representa aproximadamente el 77.1% de los datos faltantes.\n\n2. **Outliers Extremos (IQR 3×):**\n   - La columna \"SibSp\" tiene valores desviados en comparación con el rango intercuartílico.\n   - La columna \"Fare\" también presenta valores desviados en comparación con el rango intercuartílico.\n\n3. **Cola Larga Categórica:**\n   - La columna \"Name\" tiene una alta dispersión de categorías y baja concentración en los valores principales, lo que sugiere la necesidad de agrupar o crear macro-categorías antes del análisis.\n\n## Hipotesis no validadas\n- No se han inventado columnas, valores ni relaciones. Se han utilizado solo las columnas observadas.\n- Las inferencias son basadas en el contenido disponible y no se han hecho suposiciones sobre datos que no están presentes en los datos proporcionados.\n\n## Acciones recomendadas\n\n1. **Llenar Valores Nulos:**\n   - Para la columna \"Age\", se podría considerar usar técnicas de imputación, como promediar o medir el valor medio de esta columna.\n   - Para la columna \"Cabin\", se podría considerar eliminar las filas con valores nulos si no hay suficiente información para llenarlos.\n\n2. **Eliminar Valores Outliers:**\n   - Se podrían eliminar los registros con valores desviados en la columna \"SibSp\" y \"Fare\".\n\n3. **Agrupar o Crear Macro-categorías:**\n   - Para la columna \"Name\", se podría considerar agrupar nombres que sean muy similares, por ejemplo, todos los nombres que terminen con \"Mr.\", \"Mrs.\" o \"Miss.\"\n\n## Limites de la respuesta\n- Las acciones recomendadas son basadas en las reglas establecidas y el contenido disponible.\n- No se han generado scripts Python para implementar estas acciones.",
+      "metrics": {
+        "provider": "Ollama",
+        "model": "qwen2.5:3b",
+        "latencyMs": 18743,
+        "firstTokenMs": 18743,
+        "tokensGenerated": 2405,
+        "isLocal": true,
+        "timestamp": "2026-06-23T22:02:39.838Z",
+        "tokensSource": "reported",
+        "promptEvalCount": 1863,
+        "evalCount": 542,
+        "promptEvalDuration": 4916037208,
+        "evalDuration": 13572694877,
+        "totalDuration": 18740910791,
+        "loadDuration": 49220916
+      },
+      "durationMs": 18743,
+      "status": "completed"
+    },
+    "B1Summary": {
+      "taskId": "B1-summary",
+      "responseRaw": "## Resumen operativo para script\n\n### Problemas priorizados:\n1. **Valores Nulos:**\n   - Llenar valores nulos en la columna \"Age\" (20% de datos faltantes).\n   - Eliminar filas con valores nulos en la columna \"Cabin\" si no hay suficiente información para llenarlos.\n\n2. **Outliers Extremos:**\n   - Eliminar registros con valores desviados en la columna \"SibSp\".\n   - Eliminar registros con valores desviados en la columna \"Fare\".\n\n3. **Cola Larga Categórica:**\n   - Agrupar nombres que sean muy similares en la columna \"Name\" (por ejemplo, todos los nombres que terminen con \"Mr.\", \"Mrs.\" o \"Miss.\").\n\n### Acciones automatizables:\n- Llenar valores nulos en la columna \"Age\".\n- Eliminar filas con valores nulos en la columna \"Cabin\".\n- Eliminar registros con valores desviados en la columna \"SibSp\".\n- Eliminar registros con valores desviados en la columna \"Fare\".\n- Agrupar nombres que sean muy similares en la columna \"Name\".\n\n### Acciones que requieren HITL:\n- No se mencionan acciones específicas que requieran HITL (Human-in-the-loop) en este diagnostico.\n\n### Columnas que NO deben modificarse automaticamente:\n- Las columnas no están mencionadas como columnas que NO deben modificarse automáticamente. Sin embargo, si hay columnas con información importante o sensibles que no se debe modificar, estas deberían ser identificadas explícitamente.\n\n### Riesgos del script:\n- **Riesgo de pérdida de datos:** Si se eliminan filas con valores nulos en \"Cabin\", podría haber una pérdida significativa de datos.\n- **Riesgo de distorsión de la distribución:** La agrupación de nombres puede alterar la representatividad de los datos si no se hace adecuadamente.",
+      "summaryBrief": "- El análisis se ha realizado utilizando los datos proporcionados por el motor determinista AURA. Se han identificado las columnas con problemas según las reglas establecidas.\n- La columna \"Age\" tiene 177 valores nulos, lo que representa un 20% de los datos faltantes.\n- La columna \"Cabin\" tiene 687 valores nulos, lo que representa aproximadamente el 77.1% de los datos faltantes.\n- La columna \"SibSp\" tiene valores desviados en comparación con el rango intercuartílico.\n- La columna \"Fare\" también presenta valores desviados en comparación con el rango intercuartílico.\n- La columna \"Name\" tiene una alta dispersión de categorías y baja concentración en los valores principales, lo que sugiere la necesidad de agrupar o crear macro categorías antes del análisis.\n- No se han inventado columnas, valores ni relaciones. Se han utilizado solo las columnas observadas.\n- Acciones recomendadas\n- Para la columna \"Age\", se podría considerar usar técnicas de imputación, como promediar o medir el valor medio de esta columna.\n- Para la columna \"Cabin\", se podría considerar eliminar las filas con valores nulos si no hay suficiente información para llenarlos.",
+      "durationMs": 11784,
+      "status": "completed"
+    },
+    "B2": {
+      "taskId": "B2-script-generation",
+      "promptHash": "1e5bddf3",
+      "responseRaw": "```python\nimport pandas as pd\nimport numpy as np\n\ndef clean_dataset(df: pd.DataFrame) -> pd.DataFrame:\n    \"\"\"\n    Función que limpia el DataFrame proporcionado según las reglas establecidas por AURA.\n    \n    Returns:\n        pd.DataFrame: El DataFrame limpio.\n    \"\"\"\n    # AURA: regla=Valores Nulos / Vacíos, columna=Age\n    df_clean = df.copy()\n    for i in range(df.shape[0]):\n        if not np.isnan(df_clean.loc[i, 'Age']):\n            continue\n        # AURA: regla=Cola Larga Categórica, columna=Name\n        name_parts = df_clean.loc[i, 'Name'].split(', ')\n        surname = name_parts[-1]\n        gender = None\n        \n        if 'Mr.' in name_parts:\n            gender = 'male'\n        elif 'Mrs.' in name_parts:\n            gender = 'female'\n        \n        # AURA: regla=Outliers Extremos (IQR 3×), columna=SibSp\n        if df_clean.loc[i, 'SibSp'] > 5:\n            df_clean.loc[i, 'SibSp'] = np.nan\n        \n        # AURA: regla=Outliers Extremos (IQR 3×), columna=Fare\n        if df_clean.loc[i, 'Fare'] > 263:\n            df_clean.loc[i, 'Fare'] = np.nan\n    \n    # AURA: regla=Valores Nulos / Vacíos, columna=Cabin\n    df_clean.dropna(subset=['Cabin'], inplace=True)\n    \n    return df_clean\n\n# Llenar valores nulos en la columna \"Age\"\ndf_clean = clean_dataset(df)\n\nreturn df_clean\n```",
+      "scriptExtracted": "import pandas as pd\nimport numpy as np\n\ndef clean_dataset(df: pd.DataFrame) -> pd.DataFrame:\n    \"\"\"\n    Función que limpia el DataFrame proporcionado según las reglas establecidas por AURA.\n    \n    Returns:\n        pd.DataFrame: El DataFrame limpio.\n    \"\"\"\n    # AURA: regla=Valores Nulos / Vacíos, columna=Age\n    df_clean = df.copy()\n    for i in range(df.shape[0]):\n        if not np.isnan(df_clean.loc[i, 'Age']):\n            continue\n        # AURA: regla=Cola Larga Categórica, columna=Name\n        name_parts = df_clean.loc[i, 'Name'].split(', ')\n        surname = name_parts[-1]\n        gender = None\n        \n        if 'Mr.' in name_parts:\n            gender = 'male'\n        elif 'Mrs.' in name_parts:\n            gender = 'female'\n        \n        # AURA: regla=Outliers Extremos (IQR 3×), columna=SibSp\n        if df_clean.loc[i, 'SibSp'] > 5:\n            df_clean.loc[i, 'SibSp'] = np.nan\n        \n        # AURA: regla=Outliers Extremos (IQR 3×), columna=Fare\n        if df_clean.loc[i, 'Fare'] > 263:\n            df_clean.loc[i, 'Fare'] = np.nan\n    \n    # AURA: regla=Valores Nulos / Vacíos, columna=Cabin\n    df_clean.dropna(subset=['Cabin'], inplace=True)\n    \n    return df_clean\n\n# Llenar valores nulos en la columna \"Age\"\ndf_clean = clean_dataset(df)\n\nreturn df_clean",
+      "metrics": {
+        "provider": "Ollama",
+        "model": "qwen2.5:3b",
+        "latencyMs": 17916,
+        "firstTokenMs": 17916,
+        "tokensGenerated": 3233,
+        "isLocal": true,
+        "timestamp": "2026-06-23T22:03:09.539Z",
+        "tokensSource": "reported",
+        "promptEvalCount": 2858,
+        "evalCount": 375,
+        "promptEvalDuration": 8212735709,
+        "evalDuration": 9533536873,
+        "totalDuration": 17913074292,
+        "loadDuration": 43322667
+      },
+      "durationMs": 17916,
+      "status": "completed"
+    },
+    "B3": {
+      "taskId": "B3-validation",
+      "validationResult": {
+        "valid": false,
+        "hasScript": true,
+        "invalidColumns": [],
+        "destructiveOperations": [
+          "dropna",
+          "inplace_mutation"
+        ],
+        "coveredIssueIds": [
+          "integrity-null-Age",
+          "integrity-null-Cabin",
+          "logic-outlier-SibSp",
+          "logic-outlier-Fare",
+          "semantic-long-tail-Name"
+        ],
+        "uncoveredIssueIds": [],
+        "coveragePercentage": 100,
+        "safetyScore": 80,
+        "scriptOrigin": "model",
+        "hasPandasImport": true,
+        "requiresHumanReview": true,
+        "warnings": [
+          "El script contiene operaciones destructivas o mutaciones directas."
+        ]
+      },
+      "durationMs": 0,
+      "status": "completed"
+    }
+  },
+  "completedAt": "2026-06-23T22:03:09.539Z",
+  "totalDurationMs": 48443,
+  "tokens": {
+    "diagnosis": 2405,
+    "summary": 1106,
+    "script": 3233,
+    "total": 6744
+  },
+  "tokensSource": "reported",
+  "ollamaVersion": "0.20.3"
+}

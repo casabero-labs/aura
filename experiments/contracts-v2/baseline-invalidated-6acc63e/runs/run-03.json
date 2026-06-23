@@ -1,0 +1,102 @@
+{
+  "runNumber": 3,
+  "seed": 303,
+  "status": "completed",
+  "startedAt": "2026-06-23T22:09:41.681Z",
+  "tasks": {
+    "B1": {
+      "taskId": "B1-diagnosis",
+      "promptHash": "58f3e834",
+      "responseRaw": "## Estado de ejecución\nEl análisis se ha realizado utilizando los datos proporcionados por el motor determinista AURA. Se han identificado las columnas con problemas y se han documentado las causas probables basadas en la evidencia disponible.\n\n## Hallazgos respaldados por evidencia\n\n1. **Columna: Age**\n   - Regla: Valores Nulos / Vacíos\n   - Evidencia: Faltan datos.\n   - Salida recomendada: Se requiere una estrategia para manejar los valores nulos en la columna \"Age\".\n\n2. **Columna: Cabin**\n   - Regla: Valores Nulos / Vacíos\n   - Evidencia: 77.1% de datos faltantes.\n   - Salida recomendada: Se requiere una estrategia para manejar los valores nulos en la columna \"Cabin\".\n\n3. **Columna: SibSp**\n   - Regla: Outliers Extremos (IQR 3×)\n   - Evidencia: Valores desviados > 3× del rango intercuartílico.\n   - Salida recomendada: Se requiere una estrategia para manejar los valores extremadamente altos en la columna \"SibSp\".\n\n4. **Columna: Fare**\n   - Regla: Outliers Extremos (IQR 3×)\n   - Evidencia: Valores desviados > 3× del rango intercuartílico.\n   - Salida recomendada: Se requiere una estrategia para manejar los valores extremadamente altos en la columna \"Fare\".\n\n5. **Columna: Name**\n   - Regla: Cola Larga Categórica\n   - Evidencia: Alta dispersión de categorías y baja concentración en los valores principales.\n   - Salida recomendada: Se requiere una estrategia para agrupar o crear macro-categorías en la columna \"Name\".\n\n## Hipotesis no validadas\n\n- **Columna: Sex**\n  - Regla: Valores Nulos / Vacíos\n  - Evidencia: No hay valores nulos.\n  - Salida recomendada: No se requiere una estrategia para manejar los valores nulos en la columna \"Sex\".\n\n## Acciones recomendadas\n\n1. **Manejo de Valores Nulos**\n   - Para la columna \"Age\", considerar la imputación con datos previos o usar técnicas como interpolación lineal.\n   - Para la columna \"Cabin\", considerar la eliminación de filas completas o utilizar técnicas de imputación.\n\n2. **Manejo de Valores Extremos**\n   - Para la columna \"SibSp\", considerar el uso de valores medias o medianas para reemplazar los extremos.\n   - Para la columna \"Fare\", considerar el uso de valores medias o medianas para reemplazar los extremos.\n\n3. **Agrupación de Categorías en Name**\n   - Crear macro-categorías basadas en patrones recurrentes en las categorías individuales.\n\n## Limites de la respuesta\n\n- Esta solución se basa en la evidencia disponible y no considera otros factores como el contexto histórico del conjunto de datos o reglas específicas de negocio.\n- Las soluciones propuestas pueden requerir validación adicional antes de su implementación.",
+      "metrics": {
+        "provider": "Ollama",
+        "model": "qwen2.5:3b",
+        "latencyMs": 30478,
+        "firstTokenMs": 30478,
+        "tokensGenerated": 2597,
+        "isLocal": true,
+        "timestamp": "2026-06-23T22:10:12.159Z",
+        "tokensSource": "reported",
+        "promptEvalCount": 1863,
+        "evalCount": 734,
+        "promptEvalDuration": 5506199250,
+        "evalDuration": 24448377089,
+        "totalDuration": 30473061625,
+        "loadDuration": 45635625
+      },
+      "durationMs": 30478,
+      "status": "completed"
+    },
+    "B1Summary": {
+      "taskId": "B1-summary",
+      "responseRaw": "## Resumen operativo para script\n\n### Problemas priorizados:\n1. **Columna: Age**: Falta de datos significativa que requiere estrategia de manejo.\n2. **Columna: Cabin**: Alta cantidad de valores nulos que requieren estrategia de manejo.\n3. **Columna: SibSp**: Valores extremadamente altos que requieren estrategia de manejo.\n4. **Columna: Fare**: Valores extremadamente altos que requieren estrategia de manejo.\n5. **Columna: Name**: Alta dispersión de categorías con baja concentración en valores principales, requerirá agrupación.\n\n### Acciones automatizables:\n1. **Age**: Imputar datos previos o usar interpolación lineal.\n2. **Cabin**: Eliminar filas completas o utilizar imputación.\n3. **SibSp**: Reemplazar extremos con valores medias o medianas.\n4. **Fare**: Reemplazar extremos con valores medias o medianas.\n5. **Name**: Agrupar macro-categorías basadas en patrones recurrentes.\n\n### Acciones que requieren HITL:\n- No se mencionan acciones específicas que requieran HITL (Human-in-the-loop) para este diagnostico.\n\n### Columnas que NO deben modificarse automaticamente:\n- No se menciona ninguna columna específica que no debe modificarse automáticamente.\n\n### Riesgos del script:\n- **Riesgo de pérdida de información**: Si los valores nulos son eliminados sin una estrategia adecuada, podría causar pérdida de datos importantes.\n- **Riesgo de sesgo**: La agrupación en la columna \"Name\" puede introducir sesgo si no se toman medidas para garantizar que las macro-categorías representen correctamente los patrones individuales.\n- **Riesgo de errores técnicos**: Las técnicas de imputación y reemplazo deben implementarse con cuidado para evitar errores en la manipulación de datos.",
+      "summaryBrief": "- El análisis se ha realizado utilizando los datos proporcionados por el motor determinista AURA. Se han identificado las columnas con problemas y se han documentado las causas probables basadas en la evidencia disponible.\n- 1.   Columna: Age\n- Regla: Valores Nulos / Vacíos\n- Salida recomendada: Se requiere una estrategia para manejar los valores nulos en la columna \"Age\".\n- 2.   Columna: Cabin\n- Regla: Valores Nulos / Vacíos\n- Salida recomendada: Se requiere una estrategia para manejar los valores nulos en la columna \"Cabin\".\n- 3.   Columna: SibSp\n- Regla: Outliers Extremos (IQR 3×)\n- Salida recomendada: Se requiere una estrategia para manejar los valores extremadamente altos en la columna \"SibSp\".",
+      "durationMs": 19980,
+      "status": "completed"
+    },
+    "B2": {
+      "taskId": "B2-script-generation",
+      "promptHash": "fb4291a",
+      "responseRaw": "```python\nimport pandas as pd\nimport numpy as np\n\ndef clean_dataset(df: pd.DataFrame) -> pd.DataFrame:\n    \"\"\"\n    Función para limpiar el DataFrame 'df' utilizando reglas de AURA.\n    \n    Returns:\n        pd.DataFrame: DataFrame limpio con las columnas y filas correspondientes.\n    \"\"\"\n    # AURA: regla=Valores Nulos / Vacíos, columna=Age\n    df_clean = df.copy()\n    df_clean['Age'].fillna(df_clean['Age'].mean(), inplace=True)\n    \n    # AURA: regla=Valores Nulos / Vacíos, columna=Cabin\n    df_clean['Cabin'].fillna('Unknown', inplace=True)\n    \n    # AURA: regla=Outliers Extremos (IQR 3×), columna=SibSp\n    Q1_SibSp = df_clean['SibSp'].quantile(0.25)\n    Q3_SibSp = df_clean['SibSp'].quantile(0.75)\n    IQR_SibSp = Q3_SibSp - Q1_SibSp\n    \n    df_clean.loc[(df_clean['SibSp'] < (Q1_SibSp - 3 * IQR_SibSp)) | \n                 (df_clean['SibSp'] > (Q3_SibSp + 3 * IQR_SibSp)), 'SibSp'] = np.nan\n    \n    # AURA: regla=Outliers Extremos (IQR 3×), columna=Fare\n    Q1_Fare = df_clean['Fare'].quantile(0.25)\n    Q3_Fare = df_clean['Fare'].quantile(0.75)\n    IQR_Fare = Q3_Fare - Q1_Fare\n    \n    df_clean.loc[(df_clean['Fare'] < (Q1_Fare - 3 * IQR_Fare)) | \n                 (df_clean['Fare'] > (Q3_Fare + 3 * IQR_Fare)), 'Fare'] = np.nan\n\n    return df_clean\n```\n\nEste script limpia el DataFrame utilizando las reglas de AURA proporcionadas. Se han aplicado estrategias para manejar los valores nulos en la columna \"Age\" y \"Cabin\", así como para manejar los valores extremos en las columnas \"SibSp\" y \"Fare\". Las columnas que no se mencionan son conservadas sin cambios, respetando el principio de privacidad local-first.",
+      "scriptExtracted": "import pandas as pd\nimport numpy as np\n\ndef clean_dataset(df: pd.DataFrame) -> pd.DataFrame:\n    \"\"\"\n    Función para limpiar el DataFrame 'df' utilizando reglas de AURA.\n    \n    Returns:\n        pd.DataFrame: DataFrame limpio con las columnas y filas correspondientes.\n    \"\"\"\n    # AURA: regla=Valores Nulos / Vacíos, columna=Age\n    df_clean = df.copy()\n    df_clean['Age'].fillna(df_clean['Age'].mean(), inplace=True)\n    \n    # AURA: regla=Valores Nulos / Vacíos, columna=Cabin\n    df_clean['Cabin'].fillna('Unknown', inplace=True)\n    \n    # AURA: regla=Outliers Extremos (IQR 3×), columna=SibSp\n    Q1_SibSp = df_clean['SibSp'].quantile(0.25)\n    Q3_SibSp = df_clean['SibSp'].quantile(0.75)\n    IQR_SibSp = Q3_SibSp - Q1_SibSp\n    \n    df_clean.loc[(df_clean['SibSp'] < (Q1_SibSp - 3 * IQR_SibSp)) | \n                 (df_clean['SibSp'] > (Q3_SibSp + 3 * IQR_SibSp)), 'SibSp'] = np.nan\n    \n    # AURA: regla=Outliers Extremos (IQR 3×), columna=Fare\n    Q1_Fare = df_clean['Fare'].quantile(0.25)\n    Q3_Fare = df_clean['Fare'].quantile(0.75)\n    IQR_Fare = Q3_Fare - Q1_Fare\n    \n    df_clean.loc[(df_clean['Fare'] < (Q1_Fare - 3 * IQR_Fare)) | \n                 (df_clean['Fare'] > (Q3_Fare + 3 * IQR_Fare)), 'Fare'] = np.nan\n\n    return df_clean",
+      "metrics": {
+        "provider": "Ollama",
+        "model": "qwen2.5:3b",
+        "latencyMs": 49192,
+        "firstTokenMs": 49192,
+        "tokensGenerated": 3505,
+        "isLocal": true,
+        "timestamp": "2026-06-23T22:11:21.333Z",
+        "tokensSource": "reported",
+        "promptEvalCount": 2964,
+        "evalCount": 541,
+        "promptEvalDuration": 14875099126,
+        "evalDuration": 34074063950,
+        "totalDuration": 49185952083,
+        "loadDuration": 45789125
+      },
+      "durationMs": 49193,
+      "status": "completed"
+    },
+    "B3": {
+      "taskId": "B3-validation",
+      "validationResult": {
+        "valid": false,
+        "hasScript": true,
+        "invalidColumns": [],
+        "destructiveOperations": [
+          "inplace_mutation"
+        ],
+        "coveredIssueIds": [
+          "integrity-null-Age",
+          "integrity-null-Cabin",
+          "logic-outlier-SibSp",
+          "logic-outlier-Fare"
+        ],
+        "uncoveredIssueIds": [
+          "semantic-long-tail-Name"
+        ],
+        "coveragePercentage": 80,
+        "safetyScore": 84,
+        "scriptOrigin": "model",
+        "hasPandasImport": true,
+        "requiresHumanReview": true,
+        "warnings": [
+          "El script contiene operaciones destructivas o mutaciones directas."
+        ]
+      },
+      "durationMs": 1,
+      "status": "completed"
+    }
+  },
+  "completedAt": "2026-06-23T22:11:21.334Z",
+  "totalDurationMs": 99652,
+  "tokens": {
+    "diagnosis": 2597,
+    "summary": 1296,
+    "script": 3505,
+    "total": 7398
+  },
+  "tokensSource": "reported",
+  "ollamaVersion": "0.20.3"
+}

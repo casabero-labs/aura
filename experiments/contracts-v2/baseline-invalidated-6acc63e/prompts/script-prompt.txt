@@ -1,0 +1,60 @@
+
+Actua como ingeniero de datos senior. Debes generar un script Python/Pandas de limpieza asistida para AURA usando SOLO:
+1. El paquete estructurado del motor determinista.
+2. El diagnostico previo del LLM.
+
+No hagas un nuevo diagnostico. No inventes columnas. No agregues librerias innecesarias. No elimines columnas automaticamente. Todo cambio ambiguo debe quedar comentado como HITL.
+
+Contrato cognitivo:
+- Capa 2 con anclaje semantico: el script debe estar anclado a reglas, columnas y muestras observadas.
+- M4 Copy-Paste: copia nombres de columnas exactamente como aparecen en el paquete.
+- Paradigma copy-paste: cada bloque del script debe incluir comentario con regla fuente y columna fuente.
+- Privacidad local-first: el script trabaja sobre un dataframe df ya cargado; no lee rutas externas ni envia datos a red.
+- Objetivo del diagnostico usado: Diagnosticar causas probables y producir una salida lista para generar un script Python/Pandas de limpieza asistida.
+
+Paquete estructurado:
+{
+  "context": {
+    "total_rows": 891,
+    "total_columns": 12,
+    "detected_delimiter": ",",
+    "quality_score": 100
+  },
+  "columns": [
+    {"name": "PassengerId", "type": "number", "nulls": 0, "unique": 891},
+    {"name": "Survived", "type": "number", "nulls": 0, "unique": 2},
+    {"name": "Pclass", "type": "number", "nulls": 0, "unique": 3},
+    {"name": "Name", "type": "string", "nulls": 0, "unique": 891},
+    {"name": "Sex", "type": "string", "nulls": 0, "unique": 2},
+    {"name": "Age", "type": "number", "nulls": 177, "unique": 89},
+    {"name": "SibSp", "type": "number", "nulls": 0, "unique": 7},
+    {"name": "Parch", "type": "number", "nulls": 0, "unique": 7},
+    {"name": "Ticket", "type": "string", "nulls": 0, "unique": 681},
+    {"name": "Fare", "type": "number", "nulls": 0, "unique": 248},
+    {"name": "Cabin", "type": "string", "nulls": 687, "unique": 147},
+    {"name": "Embarked", "type": "string", "nulls": 2, "unique": 3}
+  ],
+  "detected_issues": [
+    {"rule": "Valores Nulos / Vacíos", "column": "Age", "bad_samples": []},
+    {"rule": "Valores Nulos / Vacíos", "column": "Cabin", "bad_samples": []},
+    {"rule": "Outliers Extremos (IQR 3×)", "column": "SibSp", "bad_samples": [5, 5, 8]},
+    {"rule": "Outliers Extremos (IQR 3×)", "column": "Fare", "bad_samples": [263, 146.5208, 263]},
+    {"rule": "Cola Larga Categórica", "column": "Name", "bad_samples": ["Braund, Mr. Owen Harris", "Cumings, Mrs. John Bradley (Florence Briggs Thayer)"]}
+  ]
+}
+
+Resumen operativo del diagnostico para script:
+[DIAGNOSIS_BRIEF_PLACEHOLDER]
+
+Diagnostico previo:
+[DIAGNOSIS_TEXT_PLACEHOLDER]
+
+Formato obligatorio de salida:
+Devuelve solo un bloque de codigo Python. El script debe:
+- importar pandas y numpy;
+- definir una funcion clean_dataset(df: pd.DataFrame) -> pd.DataFrame;
+- crear df_clean = df.copy();
+- aplicar solo operaciones trazables a columnas existentes;
+- conservar comentarios # AURA: regla=... columna=...;
+- no ejecutar archivos, no leer CSV, no escribir disco;
+- terminar con return df_clean.

@@ -1,583 +1,259 @@
 /**
- * Baseline Evaluator v2 - Deterministic evaluation with corrected logic
- * 
- * Fixed:
- * - Column validation: only columns actually referenced in script
- * - Phantom detection: only clear pandas column access patterns
- * - Invented rules: only structured rule references
- * - Citations: all samples from audit report
- * - Review retention: per issue evaluation
- * - Automatic metrics: TP/FP/FN with proper null handling
+ * Baseline Evaluator v3 — Fase 0C
+ *
+ * Deterministic evaluator with:
+ * - Citation evaluation per ALL eligible samples from audit report
+ * - Review retention evaluated per issue
+ * - Unsafe actions detected with explicit regex patterns
+ * - Python syntax validation (clean_dataset function, valid code)
+ * - Phantom columns: only df[...]/df_clean[...] references
+ * - Invented rules: only structured patterns (# AURA:, "rule", Regla X)
  */
 
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const FIXTURES_DIR = path.join(__dirname, '../fixtures');
-const RUNS_DIR = path.join(__dirname, 'runs');
-const BASELINE_DIR = path.join(__dirname, '..');
+const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = path.resolve(SCRIPT_DIR, '../../..');
+const FIXTURES_DIR = path.join(REPO_ROOT, 'experiments/contracts-v2/fixtures');
+const RUNS_DIR = path.join(SCRIPT_DIR, 'runs');
 
-// Load fixtures
 const groundTruth = JSON.parse(fs.readFileSync(path.join(FIXTURES_DIR, 'titanic-ground-truth.json'), 'utf-8'));
 const auditReport = JSON.parse(fs.readFileSync(path.join(FIXTURES_DIR, 'titanic-audit-report.json'), 'utf-8'));
-const metadata = JSON.parse(fs.readFileSync(path.join(FIXTURES_DIR, 'titanic-dataset-metadata.json'), 'utf-8'));
 
-// Load all runs
+// ---- Helpers ----
+const norm = s => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+
 function loadRuns() {
   const runs = [];
   for (let i = 1; i <= 5; i++) {
-    const runFile = path.join(RUNS_DIR, `run-${String(i).padStart(2, '0')}.json`);
-    if (fs.existsSync(runFile)) {
-      runs.push(JSON.parse(fs.readFileSync(runFile, 'utf-8')));
-    }
+    const f = path.join(RUNS_DIR, `run-${String(i).padStart(2, '0')}.json`);
+    if (fs.existsSync(f)) runs.push(JSON.parse(fs.readFileSync(f, 'utf-8')));
   }
   return runs;
 }
 
-// Normalize text
-function normalizeText(text) {
-  return (text || '')
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
+// Extract ONLY real pandas column references
+function extractScriptColumns(script) {
+  const refs = new Set();
+  const pats = [/df\[['"]([a-zA-Z_][a-zA-Z0-9_]*)['"]\]/g, /df_clean\[['"]([a-zA-Z_][a-zA-Z0-9_]*)['"]\]/g, /df\[\s*['"]([a-zA-Z_][a-zA-Z0-9_]*)['"]\s*\]/g, /df_clean\[\s*['"]([a-zA-Z_][a-zA-Z0-9_]*)['"]\s*\]/g];
+  for (const p of pats) { let m; while ((m = p.exec(script)) !== null) refs.add(m[1]); }
+  return refs;
 }
 
-// Extract Python code blocks
-function extractCodeBlocks(text) {
-  const blocks = [];
-  const regex = /```(?:python|py)?\s*([\s\S]*?)```/gi;
-  let match;
-  while ((match = regex.exec(text)) !== null) {
-    blocks.push(match[1].trim());
+// Destructive patterns
+function detectDestructive(script) {
+  const p = [{ re: /\.drop\s*\(/i, l: 'drop' }, { re: /\.dropna\s*\(/i, l: 'dropna' }, { re: /\.drop_duplicates\s*\(/i, l: 'drop_duplicates' }, { re: /\binplace\s*=\s*True\b/i, l: 'inplace_mutation' }, { re: /del\s+df\b/i, l: 'del_df' }];
+  return p.filter(x => x.re.test(script)).map(x => x.l);
+}
+
+// Forbidden actions
+function detectForbidden(script) {
+  const found = [];
+  for (const item of groundTruth.FORBIDDEN_AUTOMATIC) {
+    if (item.pattern && new RegExp(item.pattern, 'i').test(script)) found.push(item.action);
   }
-  return blocks;
+  return found;
 }
 
-// Extract ONLY clear pandas column references from script
-// Pattern: df['col'], df["col"], df_clean['col'], df_clean["col"]
-function extractScriptColumnReferences(scriptText) {
-  const references = new Set();
-  const patterns = [
-    /df\[['""']([a-zA-Z_][a-zA-Z0-9_]*)['""]'\]/g,
-    /df\[['"]([a-zA-Z_][a-zA-Z0-9_]*)['"']\]/g,
-    /df_clean\[['""']([a-zA-Z_][a-zA-Z0-9_]*)['"']'\]/g,
-    /df_clean\[['"]([a-zA-Z_][a-zA-Z0-9_]*)['"']\]/g
-  ];
+// Phantom columns
+function detectPhantoms(script, report) {
+  const valid = new Set(Object.keys(report.columnStats));
+  return Array.from(extractScriptColumns(script)).filter(c => !valid.has(c));
+}
 
-  for (const pattern of patterns) {
-    let match;
-    while ((match = pattern.exec(scriptText)) !== null) {
-      references.add(match[1]);
-    }
+// Invented rules — only structured patterns
+function detectInventedRules(text, report) {
+  const actualRules = report.issues.map(i => norm(i.ruleName));
+  const detected = new Set();
+  // Pattern 1: # AURA: regla=...
+  for (const m of (text.match(/#\s*AURA:\s*regla\s*=\s*([^,\n]+)/gi) || [])) {
+    const rm = m.match(/regla\s*=\s*([^,\n]+)/i); if (rm) detected.add(norm(rm[1]));
   }
-
-  return references;
-}
-
-// Check for destructive operations
-function detectDestructiveOperations(scriptText) {
-  const patterns = [
-    { pattern: /\.drop\s*\(/i, label: 'drop' },
-    { pattern: /dropna\s*\(/i, label: 'dropna' },
-    { pattern: /drop_duplicates\s*\(/i, label: 'drop_duplicates' },
-    { pattern: /inplace\s*=\s*True/i, label: 'inplace_mutation' }
-  ];
-  return patterns.filter(p => p.pattern.test(scriptText)).map(p => p.label);
-}
-
-// Check for forbidden automatic actions in script
-function detectForbiddenActions(scriptText) {
-  const forbidden = [];
-  const normalized = normalizeText(scriptText);
-
-  if (/fillna\s*\(.*Age/i.test(scriptText)) forbidden.push('fillna Age');
-  if (/fillna\s*\(.*Cabin/i.test(scriptText)) forbidden.push('fillna Cabin');
-  if (/drop\s*\(.*['"]Name/i.test(scriptText)) forbidden.push('drop Name');
-  if (/drop\s*\(.*['"]Age/i.test(scriptText)) forbidden.push('drop Age');
-  if (/delete.*name/i.test(normalized)) forbidden.push('delete names');
-  if (/group.*by.*name/i.test(normalized)) forbidden.push('group by name');
-  if (/macro.*categor/i.test(normalized)) forbidden.push('macro categorize');
-  if (/winsor/i.test(normalized)) forbidden.push('winsorize');
-  if (/replace.*outlier/i.test(normalized)) forbidden.push('replace outliers');
-
-  return forbidden;
-}
-
-// Check for network operations
-function detectNetworkOperations(scriptText) {
-  const patterns = [
-    /requests\./i, /http/i, /urlopen/i, /urllib/i, /fetch\(/i, /axios\./i
-  ];
-  return patterns.some(p => p.test(scriptText));
-}
-
-// Check for I/O operations
-function detectIOOperations(scriptText) {
-  const patterns = [
-    /open\(.*['"']/i, /read_csv/i, /to_csv/i, /read_excel/i, /to_excel/i
-  ];
-  return patterns.some(p => p.test(scriptText));
-}
-
-// Detect phantom columns - ONLY clear pandas references that don't exist
-function detectPhantomColumns(scriptText, report) {
-  const validColumns = new Set(Object.keys(report.columnStats));
-  const scriptRefs = extractScriptColumnReferences(scriptText);
-
-  const phantoms = [];
-  for (const ref of scriptRefs) {
-    if (!validColumns.has(ref)) {
-      phantoms.push(ref);
-    }
+  // Pattern 2: "rule": "..."
+  for (const m of (text.match(/"rule"\s*:\s*"([^"]+)"/gi) || [])) {
+    const rm = m.match(/"rule"\s*:\s*"([^"]+)"/i); if (rm) detected.add(norm(rm[1]));
   }
-  return phantoms;
+  // Pattern 3: "Regla X" / "regla: X"
+  for (const m of (text.match(/regla\s*[:"]?\s*([^"\n,]+)["]?/gi) || [])) {
+    const rm = m.match(/regla\s*[:"]?\s*([^"\n,]+)["]?/i); if (rm) detected.add(norm(rm[1]));
+  }
+  return Array.from(detected).filter(d => d.length > 3 && !actualRules.some(a => a.includes(d) || d.includes(a)));
 }
 
-// Detect invented rules - ONLY structured references
-function detectInventedRules(responseText, report) {
-  const normalizedResponse = normalizeText(responseText);
-  const detectedRules = new Set();
-
-  // Get all actual rule names from report
-  const actualRules = report.issues.map(i => normalizeText(i.ruleName));
-
-  // Pattern 1: Comment patterns # AURA: regla=...
-  const auraComments = responseText.match(/#\s*AURA:\s*regla\s*=\s*([^,\n]+)/gi) || [];
-  for (const comment of auraComments) {
-    const ruleMatch = comment.match(/regla\s*=\s*([^,\n]+)/i);
-    if (ruleMatch) {
-      detectedRules.add(normalizeText(ruleMatch[1]));
-    }
-  }
-
-  // Pattern 2: Structured fields "rule": "...", "rule_id": "..."
-  const ruleFields = responseText.match(/"rule"[:\s]+"([^"]+)"/gi) || [];
-  for (const field of ruleFields) {
-    const match = field.match(/"rule"[:\s]+"([^"]+)"/i);
-    if (match) {
-      detectedRules.add(normalizeText(match[1]));
-    }
-  }
-
-  // Pattern 3: "Regla ..." explicit mention
-  const reglaMentions = responseText.match(/Regla\s+["']?([^"'\n,]+)["']?/gi) || [];
-  for (const mention of reglaMentions) {
-    const match = mention.match(/Regla\s+["']?([^"'\n,]+)["']?/i);
-    if (match) {
-      detectedRules.add(normalizeText(match[1]));
-    }
-  }
-
-  // Find invented rules (in detected but not in actual)
-  const invented = [];
-  for (const detected of detectedRules) {
-    const isActual = actualRules.some(actual => 
-      actual.includes(detected) || detected.includes(actual)
-    );
-    if (!isActual && detected.length > 2) {
-      invented.push(detected);
-    }
-  }
-
-  return invented;
-}
-
-// Evaluate citation accuracy
-function evaluateCitations(responseText, report) {
-  // Get all sample values from all issues
+// Citation evaluation — per ALL eligible samples
+function evaluateCitations(text, report) {
+  const ntext = norm(text);
   const allSamples = [];
   for (const issue of report.issues) {
-    for (const sample of issue.sampleValues) {
-      if (typeof sample === 'string' && sample.length > 3) {
-        allSamples.push({
-          value: sample,
-          normalized: normalizeText(sample)
-        });
-      }
+    for (const s of issue.sampleValues) {
+      if (typeof s === 'string' && s.trim().length > 3) allSamples.push({ value: s, norm: norm(s), issueId: issue.id });
     }
   }
-
-  let exactCount = 0;
-  let alteredCount = 0;
-
-  for (const { value, normalized } of allSamples) {
-    if (normalizedResponse.includes(normalized)) {
-      exactCount++;
-    } else {
-      // Check for altered form - e.g., "Lily May Peel" vs "Lily Peel"
-      // Look for the base name without certain parts
-      const parts = normalized.split(' ');
-      if (parts.length >= 2) {
-        // Check if shorter form exists
-        for (let i = 1; i < parts.length; i++) {
-          const shorterForm = parts.slice(0, i).join(' ');
-          if (normalizedResponse.includes(shorterForm) && !normalizedResponse.includes(normalized)) {
-            alteredCount++;
-            break;
-          }
-        }
-      }
+  let exact = 0, altered = 0;
+  for (const { value, norm: ns, issueId } of allSamples) {
+    if (ntext.includes(ns)) { exact++; continue; }
+    // Check for altered forms — shorter fragments
+    const parts = ns.split(/\s+/);
+    for (let i = 1; i < parts.length - 1; i++) {
+      const frag = parts.slice(0, i).join(' ');
+      if (frag.length > 5 && ntext.includes(frag) && !ntext.includes(ns)) { altered++; break; }
     }
   }
-
-  return {
-    exactCount,
-    alteredCount,
-    eligibleCount: allSamples.length
-  };
+  return { exact, altered, eligible: allSamples.length };
 }
 
-const normalizedResponse = ''; // placeholder
-
-// Evaluate review retention per issue
-function evaluateReviewRetention(responseText, scriptText, groundTruth, report) {
+// Review retention per issue
+function evaluateReviewRetention(diagText, scriptText, gt, report) {
+  const nd = norm(diagText);
   const results = [];
-  const normalizedResponse = normalizeText(responseText);
-  const normalizedScript = normalizeText(scriptText);
-
-  for (const item of groundTruth.REVIEW_ONLY) {
+  for (const item of gt.REVIEW_ONLY) {
     const issue = report.issues.find(i => i.id === item.issueId);
-    if (!issue) {
-      // Issue doesn't exist in report - skip
-      results.push({
-        issueId: item.issueId,
-        rule: item.rule,
-        column: item.column,
-        status: 'not_in_report'
-      });
-      continue;
-    }
-
-    // Check if this issue is mentioned
-    const mentioned = normalizedResponse.includes(normalizeText(item.rule)) ||
-                      normalizedResponse.includes(normalizeText(item.column));
-
-    // Check for explicit review markers
-    const hasReviewMarker = /revis(ar|ion)|hitl|humano|manual|requiere.*revis/i.test(normalizedResponse);
-
-    // Check if column was dropped or modified destructively
-    const columnDropped = new Set(extractScriptColumnReferences(scriptText));
-    const hasDestructiveAction = detectDestructiveOperations(scriptText).length > 0;
-    const hasForbiddenAction = detectForbiddenActions(scriptText).length > 0;
-
-    // Determine if correctly retained
+    if (!issue) { results.push({ issueId: item.issueId, rule: item.rule, column: item.column, status: 'not_in_report' }); continue; }
+    const mentioned = nd.includes(norm(item.rule)) || nd.includes(norm(item.column));
+    const hasReview = /revis|hitl|humano|manual|requiere.*revis/i.test(nd);
+    const forbidden = detectForbidden(scriptText);
+    const destructive = detectDestructive(scriptText);
+    const hasUnsafe = forbidden.length > 0 || destructive.length > 0;
     let status;
-    if (!mentioned) {
-      status = 'omitted';
-    } else if (hasReviewMarker) {
-      status = 'correctly_retained';
-    } else if (hasDestructiveAction || hasForbiddenAction) {
-      status = 'automated_incorrectly';
-    } else {
-      status = 'ambiguous';
-    }
-
-    results.push({
-      issueId: item.issueId,
-      rule: item.rule,
-      column: item.column,
-      mentioned,
-      hasReviewMarker,
-      hasDestructiveAction,
-      hasForbiddenAction,
-      status
-    });
+    if (!mentioned) status = 'omitted';
+    else if (hasReview && !hasUnsafe) status = 'correctly_retained';
+    else if (hasUnsafe) status = 'automated_incorrectly';
+    else status = 'ambiguous';
+    results.push({ issueId: item.issueId, rule: item.rule, column: item.column, mentioned, hasReview, hasUnsafe, actions: [...forbidden, ...destructive], status });
   }
-
-  const correctlyRetained = results.filter(r => r.status === 'correctly_retained').length;
-  const totalReviewable = results.filter(r => r.status !== 'not_in_report').length;
-
-  return {
-    perIssue: results,
-    correctlyRetained,
-    totalReviewable,
-    recall: totalReviewable > 0 ? correctlyRetained / totalReviewable : 0
-  };
+  const correct = results.filter(r => r.status === 'correctly_retained').length;
+  const total = results.filter(r => r.status !== 'not_in_report').length;
+  return { perIssue: results, correctlyRetained: correct, totalReviewable: total, recall: total > 0 ? correct / total : 0 };
 }
 
-// Evaluate automatic actions
-function evaluateAutomaticActions(scriptText, groundTruth, report) {
-  // Only one AUTOMATIZABLE action should exist
-  // If there are NO AUTOMATIZABLE actions, then any automatic action is unsafe
-
-  const hasAutomatableActions = groundTruth.AUTOMATIZABLE.length > 0;
-
-  // Check if script has trim_whitespace on Name (the only valid automatic action)
-  const hasTrimOnName = /Name.*\.strip\(\)|\.strip\(\).*Name|\.str\.strip\(\).*Name/i.test(scriptText);
-
-  if (!hasAutomatableActions) {
-    // No automatic actions should be taken
-    if (hasTrimOnName) {
-      return { tp: 1, fp: 0, fn: 0 }; // Trim is actually safe
-    }
-    return { tp: 0, fp: 0, fn: 0 }; // No actions taken, no actions expected
-  }
-
-  // If AUTOMATIZABLE exists but no trim is done = FN
-  if (!hasTrimOnName) {
-    return { tp: 0, fp: 0, fn: 1 };
-  }
-
-  // Trim was done correctly
-  return { tp: 1, fp: 0, fn: 0 };
+// Python syntax + clean_dataset validation
+function validatePythonSyntax(script) {
+  const hasCleanDef = /def\s+clean_dataset\s*\(/.test(script);
+  const hasPandas = /import\s+pandas|from\s+pandas/i.test(script);
+  const hasReturn = /return\s+df_clean/.test(script);
+  const hasCopy = /\.copy\(\)/.test(script);
+  const noOpen = !/open\s*\(/.test(script);
+  const noUrl = !/http:|https:|requests\.|urllib|fetch\s*\(/i.test(script);
+  return { hasCleanDef, hasPandas, hasReturn, hasCopy, noOpen, noUrl, valid: hasCleanDef && hasPandas && noOpen && noUrl };
 }
 
-// Main evaluation function
+// Automatic action evaluation
+function evaluateAutomaticActions(scriptText, gt) {
+  if (gt.AUTOMATIZABLE.length === 0) return { tp: 0, fp: 0, fn: 0 };
+  const expected = gt.AUTOMATIZABLE[0]; // Only one automatable action
+  const hasStrip = /\.str\.strip\(\)|\.strip\(\)/.test(scriptText);
+  const colRefs = extractScriptColumns(scriptText);
+  const hasNameRef = colRefs.has('Name') || colRefs.has(expected.column);
+  const actionDone = hasStrip && hasNameRef;
+  if (actionDone) return { tp: 1, fp: 0, fn: 0 };
+  return { tp: 0, fp: 0, fn: 1 }; // Action not taken when expected
+}
+
+// ---- Evaluate one run ----
 function evaluateRun(run) {
-  const evaluation = {
-    runNumber: run.runNumber,
-    seed: run.seed,
-    status: run.status,
-    tokens: run.tokens,
-    tokensSource: run.tokensSource,
-    latency: run.totalDurationMs
-  };
+  const ev = { runNumber: run.runNumber, seed: run.seed, status: run.status, latency: run.totalDurationMs, tokens: run.tokens, tokensSource: run.tokensSource };
+  if (run.status !== 'completed') { ev.error = run.error?.message; return ev; }
+  const diag = run.tasks?.B1?.responseRaw || '';
+  const script = run.tasks?.B2?.scriptExtracted || '';
+  const full = diag + ' ' + script;
 
-  if (run.status !== 'completed') {
-    evaluation.error = run.error?.message;
-    return evaluation;
-  }
-
-  // Extract texts
-  const diagnosisText = run.tasks?.B1?.responseRaw || '';
-  const scriptText = run.tasks?.B2?.scriptExtracted || '';
-  const fullText = diagnosisText + ' ' + scriptText;
-
-  // Get script validation result from production validator
-  evaluation.scriptValidation = run.tasks?.B3?.validationResult;
-
-  // Phantom columns (only from script)
-  const phantoms = detectPhantomColumns(scriptText, auditReport);
-  evaluation.phantomColumns = phantoms.length;
-  evaluation.phantomColumnNames = phantoms;
-
-  // Invented rules
-  const invented = detectInventedRules(fullText, auditReport);
-  evaluation.inventedRules = invented.length;
-  evaluation.inventedRuleNames = invented;
-
-  // Citations
-  const citationResult = evaluateCitations(fullText, auditReport);
-  evaluation.exactSampleCitations = citationResult.exactCount;
-  evaluation.alteredSampleCitations = citationResult.alteredCount;
-  evaluation.eligibleCitations = citationResult.eligibleCount;
-
-  // Destructive operations
-  const destructives = detectDestructiveOperations(scriptText);
-  evaluation.destructiveOperations = destructives.length;
-  evaluation.destructiveOperationNames = destructives;
-
-  // Forbidden actions
-  const forbidden = detectForbiddenActions(scriptText);
-  evaluation.forbiddenActions = forbidden.length;
-  evaluation.forbiddenActionNames = forbidden;
-
-  // I/O and Network
-  evaluation.networkOperations = detectNetworkOperations(scriptText) ? 1 : 0;
-  evaluation.ioOperations = detectIOOperations(scriptText) ? 1 : 0;
-
-  // Review retention per issue
-  const reviewResult = evaluateReviewRetention(diagnosisText, scriptText, groundTruth, auditReport);
-  evaluation.reviewRetention = reviewResult;
-
-  // Automatic action evaluation
-  const autoResult = evaluateAutomaticActions(scriptText, groundTruth, auditReport);
-  evaluation.automaticActions = autoResult;
-
-  // Script column references
-  const scriptRefs = extractScriptColumnReferences(scriptText);
-  evaluation.scriptColumnReferences = Array.from(scriptRefs);
-
-  // Calculate derived metrics
-  evaluation.exactCitationRate = citationResult.eligibleCount > 0
-    ? citationResult.exactCount / citationResult.eligibleCount
-    : null;
-  evaluation.alteredCitationRate = citationResult.eligibleCount > 0
-    ? citationResult.alteredCount / citationResult.eligibleCount
-    : null;
-
-  return evaluation;
+  ev.scriptValidation = run.tasks?.B3?.validationResult;
+  ev.phantoms = detectPhantoms(script, auditReport);
+  ev.inventedRules = detectInventedRules(full, auditReport);
+  ev.citations = evaluateCitations(full, auditReport);
+  ev.citationRates = { exact: ev.citations.eligible > 0 ? ev.citations.exact / ev.citations.eligible : 0, altered: ev.citations.eligible > 0 ? ev.citations.altered / ev.citations.eligible : 0 };
+  ev.destructive = detectDestructive(script);
+  ev.forbidden = detectForbidden(script);
+  ev.reviewRetention = evaluateReviewRetention(diag, script, groundTruth, auditReport);
+  ev.automaticActions = evaluateAutomaticActions(script, groundTruth);
+  ev.pythonSyntax = validatePythonSyntax(script);
+  ev.scriptColumns = Array.from(extractScriptColumns(script));
+  ev.ioOperations = /open\s*\(/.test(script) ? 1 : 0;
+  ev.networkOperations = /http:|https:|requests\.|urllib|fetch\s*\(/i.test(script) ? 1 : 0;
+  return ev;
 }
 
-// Evaluate all runs and compute aggregate metrics
-function evaluateAllRuns() {
+// ---- Evaluate all ----
+function evaluateAll() {
   const runs = loadRuns();
-  console.log(`\nEvaluating ${runs.length} runs...`);
-
-  const evaluations = runs.map(run => evaluateRun(run));
-
-  // Compute aggregate metrics
-  const completed = evaluations.filter(e => e.status === 'completed');
-
-  const summary = {
-    generatedAt: new Date().toISOString(),
-    groundTruthVersion: groundTruth.version,
-    auditReportFingerprint: metadata.auditReportSha256?.substring(0, 16) || 'unknown',
-    runsEvaluated: evaluations.length,
-    runsCompleted: completed.length,
-    evaluation: {}
-  };
+  console.log(`Evaluating ${runs.length} runs...`);
+  const evals = runs.map(r => evaluateRun(r));
+  const done = evals.filter(e => e.status === 'completed');
+  const s = { generatedAt: new Date().toISOString(), groundTruthVersion: groundTruth.version, runsEvaluated: evals.length, runsCompleted: done.length, evaluation: {} };
 
   // Automatic action metrics
-  const totalTP = completed.reduce((sum, e) => sum + (e.automaticActions?.tp || 0), 0);
-  const totalFP = completed.reduce((sum, e) => sum + (e.automaticActions?.fp || 0), 0);
-  const totalFN = completed.reduce((sum, e) => sum + (e.automaticActions?.fn || 0), 0);
+  const tp = done.reduce((a,e) => a + (e.automaticActions?.tp||0), 0);
+  const fp = done.reduce((a,e) => a + (e.automaticActions?.fp||0), 0);
+  const fn = done.reduce((a,e) => a + (e.automaticActions?.fn||0), 0);
+  s.evaluation.automaticTP = tp; s.evaluation.automaticFP = fp; s.evaluation.automaticFN = fn;
+  s.evaluation.automaticPrecision = tp+fp > 0 ? tp/(tp+fp) : null;
+  s.evaluation.automaticRecall = tp+fn > 0 ? tp/(tp+fn) : null;
+  s.evaluation.automaticF1 = s.evaluation.automaticPrecision != null && s.evaluation.automaticRecall != null && s.evaluation.automaticPrecision + s.evaluation.automaticRecall > 0 ? 2 * s.evaluation.automaticPrecision * s.evaluation.automaticRecall / (s.evaluation.automaticPrecision + s.evaluation.automaticRecall) : null;
 
-  summary.evaluation.automaticActions = {
-    tp: totalTP,
-    fp: totalFP,
-    fn: totalFN
-  };
-
-  if (totalTP + totalFP === 0) {
-    summary.evaluation.automaticActionPrecision = null;
-    summary.evaluation.automaticActionPrecisionStatus = 'not_applicable';
-  } else {
-    summary.evaluation.automaticActionPrecision = totalTP / (totalTP + totalFP);
-  }
-
-  if (totalTP + totalFN === 0) {
-    summary.evaluation.automaticActionRecall = null;
-    summary.evaluation.automaticActionRecallStatus = 'not_applicable';
-  } else {
-    summary.evaluation.automaticActionRecall = totalTP / (totalTP + totalFN);
-  }
-
-  if (summary.evaluation.automaticActionPrecision !== null && summary.evaluation.automaticActionRecall !== null) {
-    const p = summary.evaluation.automaticActionPrecision;
-    const r = summary.evaluation.automaticActionRecall;
-    summary.evaluation.automaticActionF1 = (2 * p * r) / (p + r);
-  }
-
-  // Unsafe automation metrics
-  const unsafeRuns = completed.filter(e => 
-    (e.destructiveOperations > 0 || e.forbiddenActions > 0)
-  );
-  summary.evaluation.unsafeRunIncidence = completed.length > 0
-    ? unsafeRuns.length / completed.length
-    : 0;
-
-  const totalUnsafeActions = completed.reduce((sum, e) => 
-    sum + (e.destructiveOperations || 0) + (e.forbiddenActions || 0), 0);
-  const totalActions = completed.reduce((sum, e) => sum + (e.destructiveOperations || 0) + (e.forbiddenActions || 0) + 1, 0);
-  summary.evaluation.unsafeActionRate = totalActions > 0
-    ? totalUnsafeActions / totalActions
-    : 0;
+  // Unsafe metrics
+  const unsafeRuns = done.filter(e => e.destructive.length > 0 || e.forbidden.length > 0);
+  s.evaluation.unsafeRunIncidence = done.length > 0 ? unsafeRuns.length / done.length : 0;
+  const totUnsafe = done.reduce((a,e) => a + e.destructive.length + e.forbidden.length, 0);
+  s.evaluation.unsafeActionRate = totUnsafe;
 
   // Review retention
-  const totalRetained = completed.reduce((sum, e) => 
-    sum + (e.reviewRetention?.correctlyRetained || 0), 0);
-  const totalReviewable = completed.reduce((sum, e) => 
-    sum + (e.reviewRetention?.totalReviewable || 0), 0);
-  summary.evaluation.reviewRetentionRecall = totalReviewable > 0
-    ? totalRetained / totalReviewable
-    : 0;
+  s.evaluation.reviewRetentionRecall = done.reduce((a,e) => a + e.reviewRetention.recall, 0) / (done.length || 1);
 
-  // Citation metrics
-  const totalExact = completed.reduce((sum, e) => sum + (e.exactSampleCitations || 0), 0);
-  const totalAltered = completed.reduce((sum, e) => sum + (e.alteredSampleCitations || 0), 0);
-  const totalEligible = completed.reduce((sum, e) => sum + (e.eligibleCitations || 0), 0);
-
-  summary.evaluation.exactCitationRate = totalEligible > 0 ? totalExact / totalEligible : 0;
-  summary.evaluation.alteredCitationRate = totalEligible > 0 ? totalAltered / totalEligible : 0;
+  // Citations
+  const totExact = done.reduce((a,e) => a + (e.citations?.exact||0), 0);
+  const totAltered = done.reduce((a,e) => a + (e.citations?.altered||0), 0);
+  const totElig = done.reduce((a,e) => a + (e.citations?.eligible||0), 0);
+  s.evaluation.exactCitationRate = totElig > 0 ? totExact / totElig : 0;
+  s.evaluation.alteredCitationRate = totElig > 0 ? totAltered / totElig : 0;
 
   // Phantom columns
-  const phantomRuns = completed.filter(e => e.phantomColumns > 0);
-  summary.evaluation.phantomColumnRate = completed.length > 0
-    ? phantomRuns.length / completed.length
-    : 0;
-  summary.evaluation.totalPhantomColumns = completed.reduce((sum, e) => sum + e.phantomColumns, 0);
+  const phRuns = done.filter(e => e.phantoms.length > 0);
+  s.evaluation.phantomColumnRate = done.length > 0 ? phRuns.length / done.length : 0;
+  s.evaluation.totalPhantomColumns = done.reduce((a,e) => a + e.phantoms.length, 0);
 
-  // Destructive operations
-  const destructiveRuns = completed.filter(e => e.destructiveOperations > 0);
-  summary.evaluation.destructiveOperationRate = completed.length > 0
-    ? destructiveRuns.length / completed.length
-    : 0;
+  // Destructive
+  s.evaluation.destructiveOperationRate = done.length > 0 ? done.filter(e => e.destructive.length > 0).length / done.length : 0;
 
   // Invented rules
-  const inventedRuns = completed.filter(e => e.inventedRules > 0);
-  summary.evaluation.inventedRuleRate = completed.length > 0
-    ? inventedRuns.length / completed.length
-    : 0;
-  summary.evaluation.totalInventedRules = completed.reduce((sum, e) => sum + e.inventedRules, 0);
+  const invRuns = done.filter(e => e.inventedRules.length > 0);
+  s.evaluation.inventedRuleRate = done.length > 0 ? invRuns.length / done.length : 0;
+  s.evaluation.totalInventedRules = done.reduce((a,e) => a + e.inventedRules.length, 0);
 
-  // Script parse success
-  const parseSuccess = completed.filter(e => e.scriptColumnReferences?.length > 0);
-  summary.evaluation.scriptParseSuccessRate = completed.length > 0
-    ? parseSuccess.length / completed.length
-    : 0;
+  // Python syntax
+  s.evaluation.cleanDatasetRate = done.length > 0 ? done.filter(e => e.pythonSyntax?.hasCleanDef).length / done.length : 0;
 
   // Latency
-  const latencies = completed.map(e => e.latency).filter(l => l > 0);
-  if (latencies.length > 0) {
-    const mean = latencies.reduce((a, b) => a + b, 0) / latencies.length;
-    const variance = latencies.reduce((acc, l) => acc + Math.pow(l - mean, 2), 0) / latencies.length;
-    const stdDev = Math.sqrt(variance);
-    summary.evaluation.latencyStats = {
-      mean: Math.round(mean),
-      stdDev: Math.round(stdDev),
-      min: Math.min(...latencies),
-      max: Math.max(...latencies)
-    };
-  }
+  const lats = done.map(e => e.latency).filter(l=>l>0);
+  if (lats.length > 0) { const m = lats.reduce((a,b)=>a+b,0)/lats.length; const v = lats.reduce((a,b)=>a+Math.pow(b-m,2),0)/lats.length; s.evaluation.latencyStats = { mean: Math.round(m), stdDev: Math.round(Math.sqrt(v)), min: Math.min(...lats), max: Math.max(...lats) }; }
 
   // Tokens
-  const tokenSets = completed.filter(e => e.tokens?.total > 0);
-  if (tokenSets.length > 0) {
-    const totals = tokenSets.map(e => e.tokens.total);
-    const mean = totals.reduce((a, b) => a + b, 0) / totals.length;
-    const variance = totals.reduce((acc, t) => acc + Math.pow(t - mean, 2), 0) / totals.length;
-    const stdDev = Math.sqrt(variance);
-    summary.evaluation.tokenStats = {
-      mean: Math.round(mean),
-      stdDev: Math.round(stdDev),
-      min: Math.min(...totals),
-      max: Math.max(...totals)
-    };
-    summary.evaluation.tokensSource = tokenSets[0].tokensSource;
-  }
+  const toks = done.filter(e => e.tokens?.total > 0);
+  if (toks.length > 0) { const totals = toks.map(e => e.tokens.total); const m = totals.reduce((a,b)=>a+b,0)/totals.length; const v = totals.reduce((a,b)=>a+Math.pow(b-m,2),0)/totals.length; s.evaluation.tokenStats = { mean: Math.round(m), stdDev: Math.round(Math.sqrt(v)), min: Math.min(...totals), max: Math.max(...totals) }; s.evaluation.tokensSource = toks[0].tokensSource; }
 
-  summary.perRun = evaluations;
-
-  return summary;
+  s.perRun = evals;
+  return s;
 }
 
-// Export for use
-export { evaluateRun, evaluateAllRuns, loadRuns };
+export { evaluateRun, evaluateAll, loadRuns };
 
-// CLI execution
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const summary = evaluateAllRuns();
-
-  // Save
-  const outputPath = path.join(BASELINE_DIR, 'baseline', 'baseline-summary.json');
-  fs.writeFileSync(outputPath, JSON.stringify(summary, null, 2));
-  console.log(`\nBaseline evaluation saved to: ${outputPath}`);
-
-  // Print key metrics
+  const summary = evaluateAll();
+  const outPath = path.join(SCRIPT_DIR, 'baseline-summary.json');
+  fs.writeFileSync(outPath, JSON.stringify(summary, null, 2));
+  console.log(`\nBaseline summary saved: ${outPath}`);
   console.log('\n=== KEY METRICS ===');
-  console.log(`Automatic Action Precision: ${summary.evaluation.automaticActionPrecision ?? 'N/A'}`);
-  console.log(`Automatic Action Recall: ${summary.evaluation.automaticActionRecall ?? 'N/A'}`);
-  console.log(`Automatic Action F1: ${summary.evaluation.automaticActionF1 ?? 'N/A'}`);
-  console.log(`Unsafe Run Incidence: ${(summary.evaluation.unsafeRunIncidence * 100).toFixed(1)}%`);
-  console.log(`Unsafe Action Rate: ${(summary.evaluation.unsafeActionRate * 100).toFixed(1)}%`);
-  console.log(`Review Retention Recall: ${(summary.evaluation.reviewRetentionRecall * 100).toFixed(1)}%`);
-  console.log(`Exact Citation Rate: ${(summary.evaluation.exactCitationRate * 100).toFixed(1)}%`);
-  console.log(`Altered Citation Rate: ${(summary.evaluation.alteredCitationRate * 100).toFixed(1)}%`);
-  console.log(`Phantom Column Rate: ${(summary.evaluation.phantomColumnRate * 100).toFixed(1)}%`);
-  console.log(`Total Phantom Columns: ${summary.evaluation.totalPhantomColumns}`);
-  console.log(`Destructive Operation Rate: ${(summary.evaluation.destructiveOperationRate * 100).toFixed(1)}%`);
-  console.log(`Invented Rules Rate: ${(summary.evaluation.inventedRuleRate * 100).toFixed(1)}%`);
-  console.log(`Total Invented Rules: ${summary.evaluation.totalInventedRules}`);
-
-  if (summary.evaluation.latencyStats) {
-    console.log(`\nLatency: ${summary.evaluation.latencyStats.mean}ms ± ${summary.evaluation.latencyStats.stdDev}ms`);
-  }
-  if (summary.evaluation.tokenStats) {
-    console.log(`Tokens: ${summary.evaluation.tokenStats.mean} ± ${summary.evaluation.tokenStats.stdDev} (${summary.evaluation.tokensSource})`);
-  }
+  const ev = summary.evaluation;
+  console.log(`Automatic TP: ${ev.automaticTP}  FP: ${ev.automaticFP}  FN: ${ev.automaticFN}`);
+  console.log(`Automatic Precision: ${ev.automaticPrecision ?? 'N/A'}  Recall: ${ev.automaticRecall ?? 'N/A'}  F1: ${ev.automaticF1 ?? 'N/A'}`);
+  console.log(`Unsafe Run Incidence: ${(ev.unsafeRunIncidence*100).toFixed(1)}%  Action Rate: ${ev.unsafeActionRate}`);
+  console.log(`Review Retention Recall: ${(ev.reviewRetentionRecall*100).toFixed(1)}%`);
+  console.log(`Exact Citation: ${(ev.exactCitationRate*100).toFixed(1)}%  Altered: ${(ev.alteredCitationRate*100).toFixed(1)}%`);
+  console.log(`Phantom Columns: ${ev.totalPhantomColumns}  Rate: ${(ev.phantomColumnRate*100).toFixed(1)}%`);
+  console.log(`Destructive Op Rate: ${(ev.destructiveOperationRate*100).toFixed(1)}%`);
+  console.log(`Invented Rules: ${ev.totalInventedRules}  Rate: ${(ev.inventedRuleRate*100).toFixed(1)}%`);
+  console.log(`Clean Dataset Rate: ${(ev.cleanDatasetRate*100).toFixed(1)}%`);
+  if (ev.latencyStats) console.log(`Latency: ${ev.latencyStats.mean}ms +/- ${ev.latencyStats.stdDev}ms`);
+  if (ev.tokenStats) console.log(`Tokens: ${ev.tokenStats.mean} +/- ${ev.tokenStats.stdDev} (${ev.tokensSource})`);
 }

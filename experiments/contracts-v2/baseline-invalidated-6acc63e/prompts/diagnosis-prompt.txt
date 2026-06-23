@@ -1,0 +1,51 @@
+Actua como revisor tecnico de calidad de datos. Explica la evidencia disponible de forma reproducible.
+
+Objetivo: Diagnosticar causas probables y producir una salida lista para generar un script Python/Pandas de limpieza asistida.
+
+Recibiras un resumen JSON del motor determinista de AURA con columnas observadas, tipos inferidos y reglas activadas. No tienes acceso al CSV completo.
+
+JSON observado:
+{
+  "context": {
+    "total_rows": 891,
+    "total_columns": 12,
+    "detected_delimiter": ",",
+    "quality_score": 100
+  },
+  "columns": [
+    {"name": "PassengerId", "type": "number", "nulls": 0, "unique": 891, "top_values": [1, 2, 3], "sample_values": [1, 446, 891]},
+    {"name": "Survived", "type": "number", "nulls": 0, "unique": 2, "top_values": [0, 1], "sample_values": [0, 1]},
+    {"name": "Pclass", "type": "number", "nulls": 0, "unique": 3, "top_values": [3, 1, 2], "sample_values": [3, 1]},
+    {"name": "Name", "type": "string", "nulls": 0, "unique": 891, "top_values": ["Braund, Mr. Owen Harris", "Cumings, Mrs. John Bradley (Florence Briggs Thayer)"], "sample_values": ["Braund, Mr. Owen Harris", "Cumings, Mrs. John Bradley (Florence Briggs Thayer)", "Heikkinen, Miss. Laina"]},
+    {"name": "Sex", "type": "string", "nulls": 0, "unique": 2, "top_values": ["male", "female"], "sample_values": ["male", "female"]},
+    {"name": "Age", "type": "number", "nulls": 177, "unique": 89, "top_values": [24, 22, 28], "sample_values": [22, 38, 26]},
+    {"name": "SibSp", "type": "number", "nulls": 0, "unique": 7, "top_values": [0, 1, 2], "sample_values": [1, 1, 0]},
+    {"name": "Parch", "type": "number", "nulls": 0, "unique": 7, "top_values": [0, 1, 2], "sample_values": [0, 0, 0]},
+    {"name": "Ticket", "type": "string", "nulls": 0, "unique": 681, "top_values": ["CA. 2313", "1601", "347082"], "sample_values": ["A/5 21171", "PC 17599", "STON/O2. 3101282"]},
+    {"name": "Fare", "type": "number", "nulls": 0, "unique": 248, "top_values": [8.05, 13, 7.25], "sample_values": [7.25, 71.2833, 7.925]},
+    {"name": "Cabin", "type": "string", "nulls": 687, "unique": 147, "top_values": ["G6", "C23 C25 C27", "B96 B98"], "sample_values": [null, "C85", null]},
+    {"name": "Embarked", "type": "string", "nulls": 2, "unique": 3, "top_values": ["S", "C", "Q"], "sample_values": ["S", "C", "S"]}
+  ],
+  "detected_issues": [
+    {"rule": "Valores Nulos / Vacíos", "category": "Integridad y Estructura", "column": "Age", "details": "Advertencia: Faltan datos.", "bad_samples": []},
+    {"rule": "Valores Nulos / Vacíos", "category": "Integridad y Estructura", "column": "Cabin", "details": "Crítico: 77.1% de datos faltantes.", "bad_samples": []},
+    {"rule": "Outliers Extremos (IQR 3×)", "category": "Validez y Lógica de Negocio", "column": "SibSp", "details": "Valores desviados > 3× del rango intercuartílico.", "bad_samples": [5, 5, 8]},
+    {"rule": "Outliers Extremos (IQR 3×)", "category": "Validez y Lógica de Negocio", "column": "Fare", "details": "Valores desviados > 3× del rango intercuartílico.", "bad_samples": [263, 146.5208, 263]},
+    {"rule": "Cola Larga Categórica", "category": "Semántica y Seguridad", "column": "Name", "details": "La columna tiene alta dispersión de categorías y baja concentración en los valores principales.", "bad_samples": ["Braund, Mr. Owen Harris", "Cumings, Mrs. John Bradley (Florence Briggs Thayer)", "Heikkinen, Miss. Laina"]}
+  ]
+}
+
+Reglas de honestidad:
+- No inventes columnas, valores, relaciones ni causas.
+- Cita la regla determinista, la columna y la evidencia disponible.
+- Si haces una inferencia de dominio, etiquetala como "Hipotesis no validada".
+- No generes script Python en esta respuesta.
+
+Formato:
+## Estado de ejecucion
+## Hallazgos respaldados por evidencia
+## Hipotesis no validadas
+## Acciones recomendadas
+## Limites de la respuesta
+
+Responde en espanol, tono sobrio y verificable.

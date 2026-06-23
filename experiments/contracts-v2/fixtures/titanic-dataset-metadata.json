@@ -2,13 +2,19 @@
   "nombre": "titanic",
   "filas": 891,
   "columnas": 12,
-  "fingerprint": "fp_4a437fde",
+  "fingerprint": "fp_4a437fde05fe",
   "datasetSha256": "4a437fde05fe5264e1701a7387ac6fb75393772ba38bb2c9c566405af5af4bd7",
-  "auditReportSha256": "1eeeda82a4a4e47e4b4a44f14f1684b2ef632ddd6933ade4337e3f72f4e1d7bb",
-  "fechaDeGeneracion": "2026-06-23T22:08:00.000Z",
-  "commitSha": "working-tree",
-  "versionDelFixture": "2.0.0",
+  "auditReportSha256": "64aeff90f8ca5ce24407e72e45653b9f0c20409e8e249e5b701991b40f6b6879",
+  "fechaDeGeneracion": "2026-06-23T22:58:18.251Z",
+  "commitSha": "unknown",
+  "versionDelFixture": "3.0.0",
   "origenDataset": "experiments/datasets/titanic.csv",
-  "motor": "auditEngine.ts runAudit",
-  "nota": "Generado usando código productivo real"
+  "motor": "auditEngine.ts runAudit + PapaParse (production config)",
+  "parserConfig": {
+    "header": true,
+    "dynamicTyping": true,
+    "skipEmptyLines": true,
+    "delimiter": ""
+  },
+  "nota": "Fase 0C — parsing identico a csvService.ts productivo"
 }
