@@ -578,7 +578,7 @@
 
     // ─── Full connect / diagnose ───────────────────────────────────────────────
 
-    async function connect() {
+    async function runOllamaDiagnostic() {
       const button = document.getElementById('connect-btn');
       button.disabled = true;
       hideDiagHelp();
@@ -753,76 +753,6 @@
       return msgs[diag.state] || msgs.unknown;
     }
 
-    async function connect() {
-      const button = document.getElementById('connect-btn');
-      button.disabled = true;
-      setStatus('warn', 'Solicitando acceso local…', 'El navegador puede mostrar un permiso. Acéptalo para continuar.');
-
-      const typedEndpoint = document.getElementById('endpoint').value.trim().replace(/\/+$/, '');
-      const candidates = [...new Set([typedEndpoint, 'http://127.0.0.1:11434', 'http://localhost:11434'])];
-
-      let lastError = null;
-      for (const endpoint of candidates) {
-        try {
-          const response = await request(`${endpoint}/api/tags`);
-          if (!response.ok) {
-            lastError = new Error(`HTTP ${response.status}`);
-            continue;
-          }
-          const data = await response.json();
-          const models = Array.isArray(data.models) ? data.models : [];
-          state.endpoint = endpoint;
-          localStorage.setItem('aura_ollama_endpoint', endpoint);
-          document.getElementById('endpoint').value = endpoint;
-          renderModels(models);
-
-          if (!models.length) {
-            setStatus('warn', 'Ollama conectado, pero no hay modelos', 'Ejecuta <code>ollama pull qwen2.5:3b</code> y vuelve a intentarlo.');
-            button.disabled = false;
-            return;
-          }
-
-          const selectedModel = document.getElementById('model-select').value;
-          const installed = models.some(model => model.name === selectedModel || model.name?.startsWith(`${selectedModel}:`));
-          if (!installed) {
-            setStatus('warn', 'Modelo no instalado', `Ollama funciona correctamente, pero falta <code>${escapeHtml(selectedModel)}</code>. Ejecuta <code>ollama pull ${escapeHtml(selectedModel)}</code>.`);
-            button.disabled = false;
-            return;
-          }
-
-          setStatus('warn', 'Ollama conectado', 'Servidor y modelo detectados. Ejecutando una prueba mínima…');
-          const chat = await request(`${endpoint}/api/chat`, 'POST', {
-            model: selectedModel,
-            messages: [{ role: 'user', content: 'Responde únicamente: AURA conectada.' }],
-            options: { temperature: 0.1 },
-            stream: false,
-            keep_alive: '10m',
-          }, 60000);
-
-          if (!chat.ok) throw new Error(`Prueba de chat HTTP ${chat.status}`);
-          const result = await chat.json();
-          const answer = result.message?.content?.trim() || 'Respuesta recibida';
-          localStorage.setItem('aura_ollama_model', selectedModel);
-          localStorage.setItem('aura_ollama_last_ready', new Date().toISOString());
-          setStatus('ok', 'Ollama está listo', `Conexión directa navegador → Ollama confirmada. Respuesta: <code>${escapeHtml(answer)}</code>`);
-          document.getElementById('step-4').classList.add('done');
-          button.disabled = false;
-          return;
-        } catch (error) {
-          lastError = error;
-        }
-      }
-
-      const browserHint = ['Chrome', 'Edge'].includes(state.browser)
-        ? 'Revisa el permiso de red local del sitio y confirma que OLLAMA_ORIGINS incluya este dominio.'
-        : 'Prueba con Chrome o Edge, que ofrecen el flujo más claro para permisos de red local.';
-      const reason = lastError?.name === 'AbortError'
-        ? 'La conexión agotó el tiempo de espera.'
-        : 'El navegador no pudo completar la petición local.';
-      setStatus('bad', 'No pudimos conectar con Ollama', `${reason} ${browserHint}<br><br>Comprueba también que Ollama esté abierto y que hayas autorizado <code>${escapeHtml(state.origin)}</code>.`);
-      button.disabled = false;
-    }
-
     function renderModels(models) {
       const wrap = document.getElementById('models-wrap');
       const list = document.getElementById('models-list');
@@ -867,8 +797,8 @@
     document.getElementById('origin-inline').textContent = state.origin;
     document.getElementById('endpoint').value = state.endpoint;
     document.getElementById('model-select').value = state.model;
-    document.getElementById('connect-btn').addEventListener('click', connect);
-    document.getElementById('retry-btn').addEventListener('click', connect);
+    document.getElementById('connect-btn').addEventListener('click', runOllamaDiagnostic);
+    document.getElementById('retry-btn').addEventListener('click', runOllamaDiagnostic);
 
     const browserBox = document.getElementById('browser-label');
     const recommended = ['Chrome', 'Edge'].includes(state.browser);
