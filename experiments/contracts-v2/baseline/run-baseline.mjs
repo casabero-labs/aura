@@ -1,15 +1,22 @@
 /**
- * Baseline Runner - Executes 5 repetitions of the AURA contract evaluation
+ * Baseline Runner v2 - Uses production code with fixed validation
  * 
- * This script runs the full pipeline (B1-B4) using the current production prompts
- * and captures all responses for baseline comparison with future Contratos v2.
+ * Uses actual production imports:
+ * - buildSmartSample, buildAnalysisPrompt, etc. from prompts.ts
+ * - validateCleaningScript from scriptValidationService.ts
  */
 
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import crypto from 'crypto';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// Absolute paths
+const ROOT_DIR = '/Users/casabero/Documents/GitHub/aura';
+const FIXTURES_DIR = path.join(ROOT_DIR, 'experiments/contracts-v2/fixtures');
+const BASELINE_DIR = path.join(ROOT_DIR, 'experiments/contracts-v2/baseline');
+const RUNS_DIR = path.join(BASELINE_DIR, 'runs');
+const DATASET_PATH = path.join(ROOT_DIR, 'experiments/datasets/titanic.csv');
 
 // Configuration
 const CONFIG = {
@@ -19,23 +26,31 @@ const CONFIG = {
   temperature: 0.1,
   keepAlive: '10m',
   repetitions: 5,
-  timeout: 120000
+  seeds: [101, 202, 303, 404, 505]
 };
 
 const OLLAMA_API_CHAT = `${CONFIG.endpoint}/api/chat`;
-const FIXTURES_DIR = path.join(__dirname, '../fixtures');
-const BASELINE_DIR = path.join(__dirname, '../baseline');
-const RUNS_DIR = path.join(BASELINE_DIR, 'runs');
-const PROMPTS_DIR = path.join(BASELINE_DIR, 'prompts');
 
 // Ensure directories exist
 fs.mkdirSync(RUNS_DIR, { recursive: true });
 
+// Import production code using dynamic import with absolute paths
+const { runAudit } = await import(path.join(ROOT_DIR, 'src/services/auditEngine.ts'));
+const {
+  buildSmartSample,
+  buildAnalysisPrompt,
+  buildDiagnosisSummaryPrompt,
+  buildScriptPrompt,
+  extractPythonScript
+} = await import(path.join(ROOT_DIR, 'src/services/providers/prompts.ts'));
+const { validateCleaningScript } = await import(path.join(ROOT_DIR, 'src/services/scriptValidationService.ts'));
+
 // Load fixtures
 const auditReport = JSON.parse(fs.readFileSync(path.join(FIXTURES_DIR, 'titanic-audit-report.json'), 'utf-8'));
 const groundTruth = JSON.parse(fs.readFileSync(path.join(FIXTURES_DIR, 'titanic-ground-truth.json'), 'utf-8'));
+const metadata = JSON.parse(fs.readFileSync(path.join(FIXTURES_DIR, 'titanic-dataset-metadata.json'), 'utf-8'));
 
-// Simple hash function
+// Simple hash function for prompts
 function simpleHash(str) {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -46,81 +61,79 @@ function simpleHash(str) {
   return Math.abs(hash).toString(16);
 }
 
-// Build smart sample (same as prompts.ts)
-function buildSmartSample(report) {
-  return {
-    context: {
-      total_rows: report.rowCount,
-      total_columns: report.colCount,
-      detected_delimiter: report.delimiterDetected,
-      quality_score: report.score
-    },
-    columns: Object.values(report.columnStats).map(c => ({
-      name: c.name,
-      type: c.inferredType,
-      nulls: c.nullCount,
-      unique: c.uniqueCount,
-      top_values: c.topFreq?.map(t => t.value),
-      sample_values: c.sampleValues
-    })),
-    detected_issues: report.issues.map(i => ({
-      rule: i.ruleName,
-      category: i.category,
-      column: i.column,
-      details: i.description,
-      bad_samples: i.sampleValues.slice(0, 3)
-    }))
+// SHA-256 hash
+function sha256(str) {
+  return crypto.createHash('sha256').update(str).digest('hex');
+}
+
+// Call Ollama API with real token counting
+async function callOllama(prompt, seed = null) {
+  const startTime = performance.now();
+  let fullText = '';
+
+  const body = {
+    model: CONFIG.model,
+    messages: [{ role: 'user', content: prompt }],
+    options: { temperature: CONFIG.temperature },
+    keep_alive: CONFIG.keepAlive,
+    stream: false
   };
+
+  if (seed !== null) {
+    body.options.seed = seed;
+  }
+
+  try {
+    const response = await fetch(OLLAMA_API_CHAT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Ollama error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    fullText = data.message?.content || '';
+    const totalTime = performance.now() - startTime;
+
+    // Extract real token counts from Ollama response
+    const tokens = {
+      promptEvalCount: data.prompt_eval_count || null,
+      evalCount: data.eval_count || null,
+      promptEvalDuration: data.prompt_eval_duration || null,
+      evalDuration: data.eval_duration || null,
+      totalDuration: data.total_duration || null,
+      loadDuration: data.load_duration || null
+    };
+
+    // Determine if we have real token data
+    const hasRealTokens = tokens.promptEvalCount !== null && tokens.evalCount !== null;
+    const totalTokens = hasRealTokens 
+      ? tokens.promptEvalCount + tokens.evalCount 
+      : Math.round(fullText.length / 4);
+
+    return {
+      text: fullText,
+      metrics: {
+        provider: 'Ollama',
+        model: CONFIG.model,
+        latencyMs: Math.round(totalTime),
+        firstTokenMs: Math.round(totalTime),
+        tokensGenerated: totalTokens,
+        isLocal: true,
+        timestamp: new Date().toISOString(),
+        tokensSource: hasRealTokens ? 'reported' : 'estimated',
+        ...tokens
+      }
+    };
+  } catch (error) {
+    throw error;
+  }
 }
 
-// Build diagnosis prompt (same as prompts.ts)
-function buildDiagnosisPrompt(report) {
-  const jsonSummary = buildSmartSample(report);
-  const json_data = JSON.stringify(jsonSummary, null, 2);
-  return `Actua como revisor tecnico de calidad de datos. Explica la evidencia disponible de forma reproducible.
-
-Objetivo: Diagnosticar causas probables y producir una salida lista para generar un script Python/Pandas de limpieza asistida.
-
-Recibiras un resumen JSON del motor determinista de AURA con columnas observadas, tipos inferidos y reglas activadas. No tienes acceso al CSV completo.
-
-JSON observado:
-${json_data}
-
-Reglas de honestidad:
-- No inventes columnas, valores, relaciones ni causas.
-- Cita la regla determinista, la columna y la evidencia disponible.
-- Si haces una inferencia de dominio, etiquetala como "Hipotesis no validada".
-- No generes script Python en esta respuesta.
-
-Formato:
-## Estado de ejecucion
-## Hallazgos respaldados por evidencia
-## Hipotesis no validadas
-## Acciones recomendadas
-## Limites de la respuesta
-
-Responde en espanol, tono sobrio y verificable.`;
-}
-
-// Build diagnosis summary prompt (same as prompts.ts)
-function buildDiagnosisSummaryPrompt(diagnosisText) {
-  return `Resume el siguiente diagnostico de calidad de datos para alimentar un generador de script Python/Pandas.
-
-No agregues problemas nuevos. No inventes columnas. Extrae solo decisiones operativas utiles para script.
-
-Formato obligatorio:
-## Resumen operativo para script
-- Problemas priorizados:
-- Acciones automatizables:
-- Acciones que requieren HITL:
-- Columnas que NO deben modificarse automaticamente:
-- Riesgos del script:
-
-Diagnostico:
-${diagnosisText}`;
-}
-
-// Build diagnosis brief (same as prompts.ts)
+// Build diagnosis brief (from prompts.ts)
 function buildDiagnosisScriptBrief(diagnosisText) {
   const cleaned = diagnosisText
     .replace(/```[\s\S]*?```/g, '')
@@ -139,208 +152,35 @@ function buildDiagnosisScriptBrief(diagnosisText) {
     : '- No hay diagnostico operativo disponible.';
 }
 
-// Build script prompt (same as prompts.ts)
-function buildScriptPrompt(report, diagnosisText, diagnosisBrief) {
-  const jsonSummary = buildSmartSample(report);
-  return `
-Actua como ingeniero de datos senior. Debes generar un script Python/Pandas de limpieza asistida para AURA usando SOLO:
-1. El paquete estructurado del motor determinista.
-2. El diagnostico previo del LLM.
-
-No hagas un nuevo diagnostico. No inventes columnas. No agregues librerias innecesarias. No elimines columnas automaticamente. Todo cambio ambiguo debe quedar comentado como HITL.
-
-Contrato cognitivo:
-- Capa 2 con anclaje semantico: el script debe estar anclado a reglas, columnas y muestras observadas.
-- M4 Copy-Paste: copia nombres de columnas exactamente como aparecen en el paquete.
-- Paradigma copy-paste: cada bloque del script debe incluir comentario con regla fuente y columna fuente.
-- Privacidad local-first: el script trabaja sobre un dataframe df ya cargado; no lee rutas externas ni envia datos a red.
-- Objetivo del diagnostico usado: Diagnosticar causas probables y producir una salida lista para generar un script Python/Pandas de limpieza asistida.
-
-Paquete estructurado:
-${JSON.stringify(jsonSummary, null, 2)}
-
-Resumen operativo del diagnostico para script:
-${diagnosisBrief || buildDiagnosisScriptBrief(diagnosisText)}
-
-Diagnostico previo:
-${diagnosisText || 'No hay diagnostico previo disponible.'}
-
-Formato obligatorio de salida:
-Devuelve solo un bloque de codigo Python. El script debe:
-- importar pandas y numpy;
-- definir una funcion clean_dataset(df: pd.DataFrame) -> pd.DataFrame;
-- crear df_clean = df.copy();
-- aplicar solo operaciones trazables a columnas existentes;
-- conservar comentarios # AURA: regla=... columna=...;
-- no ejecutar archivos, no leer CSV, no escribir disco;
-- terminar con return df_clean.
-`;
-}
-
-// Extract Python script from response
-function extractPythonScript(text) {
-  const fenced = text.match(/```(?:python|py)?\s*([\s\S]*?)```/i);
-  const candidate = fenced ? fenced[1] : text;
-  const start = candidate.indexOf('import ');
-  return (start >= 0 ? candidate.slice(start) : candidate).trim();
-}
-
-// Validate cleaning script (simplified from scriptValidationService.ts)
-function validateCleaningScript(script, report) {
-  const DESTRUCTIVE_PATTERNS = [
-    { pattern: /\.drop\s*\(/i, label: 'drop' },
-    { pattern: /dropna\s*\(/i, label: 'dropna' },
-    { pattern: /drop_duplicates\s*\(/i, label: 'drop_duplicates' },
-    { pattern: /del\s+df\[/i, label: 'delete_column' },
-    { pattern: /inplace\s*=\s*True/i, label: 'inplace_mutation' },
-  ];
-
-  const hasScript = Boolean(script?.trim());
-  if (!hasScript) {
-    return {
-      valid: false,
-      hasScript: false,
-      invalidColumns: [],
-      destructiveOperations: [],
-      coveredIssueIds: [],
-      uncoveredIssueIds: report.issues.map(i => i.id),
-      coveragePercentage: 0,
-      safetyScore: 0,
-      scriptOrigin: 'model',
-      hasPandasImport: false,
-      requiresHumanReview: true,
-      warnings: ['No se genero script Python/Pandas.']
-    };
-  }
-
-  const scriptText = script || '';
-  const validColumns = Object.keys(report.columnStats);
-  const invalidColumns = validColumns.filter(col => {
-    const regex = new RegExp(`['"\`]${col}['"\`]`, 'i');
-    return !regex.test(scriptText) && !scriptText.includes(col);
-  });
-
-  const destructiveOperations = DESTRUCTIVE_PATTERNS
-    .filter(({ pattern }) => pattern.test(scriptText))
-    .map(({ label }) => label);
-
-  const hasPandasImport = scriptText.includes('import pandas') || scriptText.includes('pd.');
-
-  const coveredIssueIds = report.issues
-    .filter(issue => {
-      if (!issue.column) return false;
-      const colRegex = new RegExp(`['"\`]${issue.column}['"\`]`, 'i');
-      const ruleRegex = new RegExp(issue.ruleName, 'i');
-      return colRegex.test(scriptText) || ruleRegex.test(scriptText);
-    })
-    .map(issue => issue.id);
-
-  const coveragePercentage = report.issues.length > 0
-    ? Math.round((coveredIssueIds.length / report.issues.length) * 100)
-    : 100;
-
-  const columnScore = invalidColumns.length === 0 ? 30 : Math.max(0, 30 - invalidColumns.length * 10);
-  const coverageScore = report.issues.length > 0
-    ? Math.round((coveredIssueIds.length / report.issues.length) * 30)
-    : 30;
-  const destructiveScore = destructiveOperations.length === 0 ? 25 : Math.max(0, 25 - destructiveOperations.length * 10);
-  const pandasScore = hasPandasImport ? 15 : 0;
-  const safetyScore = Math.max(0, Math.min(100, columnScore + coverageScore + destructiveScore + pandasScore));
-
-  return {
-    valid: invalidColumns.length === 0 && coveredIssueIds.length > 0 && destructiveOperations.length === 0,
-    hasScript: true,
-    invalidColumns,
-    destructiveOperations,
-    coveredIssueIds,
-    uncoveredIssueIds: report.issues.filter(i => !coveredIssueIds.includes(i.id)).map(i => i.id),
-    coveragePercentage,
-    safetyScore,
-    scriptOrigin: 'model',
-    hasPandasImport,
-    requiresHumanReview: destructiveOperations.length > 0 || safetyScore < 60,
-    warnings: [
-      ...(!hasPandasImport ? ['El script no evidencia uso de Pandas.'] : []),
-      ...(destructiveOperations.length > 0 ? ['El script contiene operaciones destructivas o mutaciones directas.'] : []),
-      ...(invalidColumns.length > 0 ? ['El script referencia columnas que no existen en el AuditReport.'] : []),
-    ]
-  };
-}
-
-// Call Ollama API
-async function callOllama(prompt, timeout = CONFIG.timeout) {
-  const startTime = performance.now();
-  let fullText = '';
-  let firstTokenTime = 0;
-
-  try {
-    const response = await fetch(OLLAMA_API_CHAT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: CONFIG.model,
-        messages: [{ role: 'user', content: prompt }],
-        options: { temperature: CONFIG.temperature },
-        keep_alive: CONFIG.keepAlive,
-        stream: false
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`Ollama error: ${response.status} ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    fullText = data.message?.content || '';
-    const totalTime = performance.now() - startTime;
-
-    return {
-      text: fullText,
-      metrics: {
-        provider: 'Ollama',
-        model: CONFIG.model,
-        latencyMs: Math.round(totalTime),
-        firstTokenMs: Math.round(totalTime),
-        tokensGenerated: Math.round(fullText.length / 4),
-        isLocal: true,
-        timestamp: new Date().toISOString()
-      }
-    };
-  } catch (error) {
-    throw error;
-  }
-}
-
 // Run single execution
-async function runSingleExecution(runNumber) {
-  console.log(`\n=== Run ${runNumber} ===`);
+async function runSingleExecution(runNumber, seed) {
+  console.log(`\n=== Run ${runNumber} (seed=${seed}) ===`);
   const runResult = {
     runNumber,
+    seed,
     status: 'running',
     startedAt: new Date().toISOString(),
     tasks: {}
   };
 
-  const timings = {
-    B1: {},
-    B2: {},
-    B3: {}
-  };
+  const timings = { B1: {}, B1Summary: {}, B2: {}, B3: {} };
 
   try {
-    // B1 - Diagnosis
+    // B1 - Diagnosis using production prompt builder
     console.log(`  [B1] Running diagnosis...`);
-    const diagnosisPrompt = buildDiagnosisPrompt(auditReport);
+    const diagnosisPrompt = buildAnalysisPrompt(auditReport);
     const diagnosisStart = performance.now();
-    const diagnosisResponse = await callOllama(diagnosisPrompt);
+    const diagnosisResponse = await callOllama(diagnosisPrompt, seed);
     const diagnosisEnd = performance.now();
-    
-    timings.B1.prompt = diagnosisPrompt;
-    timings.B1.promptHash = simpleHash(diagnosisPrompt);
-    timings.B1.responseRaw = diagnosisResponse.text;
-    timings.B1.metrics = diagnosisResponse.metrics;
-    timings.B1.durationMs = Math.round(diagnosisEnd - diagnosisStart);
-    timings.B1.status = 'completed';
+
+    timings.B1 = {
+      prompt: diagnosisPrompt,
+      promptHash: simpleHash(diagnosisPrompt),
+      responseRaw: diagnosisResponse.text,
+      metrics: diagnosisResponse.metrics,
+      durationMs: Math.round(diagnosisEnd - diagnosisStart),
+      status: 'completed'
+    };
 
     runResult.tasks.B1 = {
       taskId: 'B1-diagnosis',
@@ -351,43 +191,49 @@ async function runSingleExecution(runNumber) {
       status: 'completed'
     };
 
-    console.log(`  [B1] Done - ${timings.B1.durationMs}ms`);
+    console.log(`  [B1] Done - ${timings.B1.durationMs}ms, tokens=${diagnosisResponse.metrics.tokensGenerated}`);
 
-    // B1-Summary - Diagnosis summary
+    // B1-Summary
     console.log(`  [B1-Summary] Building diagnosis summary...`);
     const summaryPrompt = buildDiagnosisSummaryPrompt(diagnosisResponse.text);
     const summaryStart = performance.now();
-    const summaryResponse = await callOllama(summaryPrompt);
+    const summaryResponse = await callOllama(summaryPrompt, seed);
     const summaryEnd = performance.now();
 
     const summaryBrief = buildDiagnosisScriptBrief(diagnosisResponse.text);
-    timings.B1.summaryPrompt = summaryPrompt;
-    timings.B1.summaryResponseRaw = summaryResponse.text;
-    timings.B1.summaryDurationMs = Math.round(summaryEnd - summaryStart);
-
-    runResult.tasks['B1-Summary'] = {
-      taskId: 'B1-summary',
+    timings.B1Summary = {
+      prompt: summaryPrompt,
       responseRaw: summaryResponse.text,
       summaryBrief,
-      durationMs: timings.B1.summaryDurationMs,
+      durationMs: Math.round(summaryEnd - summaryStart),
       status: 'completed'
     };
 
-    console.log(`  [B1-Summary] Done - ${timings.B1.summaryDurationMs}ms`);
+    runResult.tasks.B1Summary = {
+      taskId: 'B1-summary',
+      responseRaw: summaryResponse.text,
+      summaryBrief,
+      durationMs: timings.B1Summary.durationMs,
+      status: 'completed'
+    };
 
-    // B2 - Script Generation
+    console.log(`  [B1-Summary] Done - ${timings.B1Summary.durationMs}ms`);
+
+    // B2 - Script Generation using production prompt builder
     console.log(`  [B2] Generating script...`);
     const scriptPrompt = buildScriptPrompt(auditReport, diagnosisResponse.text, summaryBrief);
     const scriptStart = performance.now();
-    const scriptResponse = await callOllama(scriptPrompt);
+    const scriptResponse = await callOllama(scriptPrompt, seed);
     const scriptEnd = performance.now();
 
-    timings.B2.prompt = scriptPrompt;
-    timings.B2.promptHash = simpleHash(scriptPrompt);
-    timings.B2.responseRaw = scriptResponse.text;
-    timings.B2.metrics = scriptResponse.metrics;
-    timings.B2.durationMs = Math.round(scriptEnd - scriptStart);
-    timings.B2.status = 'completed';
+    timings.B2 = {
+      prompt: scriptPrompt,
+      promptHash: simpleHash(scriptPrompt),
+      responseRaw: scriptResponse.text,
+      metrics: scriptResponse.metrics,
+      durationMs: Math.round(scriptEnd - scriptStart),
+      status: 'completed'
+    };
 
     const extractedScript = extractPythonScript(scriptResponse.text);
 
@@ -401,16 +247,18 @@ async function runSingleExecution(runNumber) {
       status: 'completed'
     };
 
-    console.log(`  [B2] Done - ${timings.B2.durationMs}ms`);
+    console.log(`  [B2] Done - ${timings.B2.durationMs}ms, tokens=${scriptResponse.metrics.tokensGenerated}`);
 
-    // B3 - Script Validation
+    // B3 - Script Validation using production validator
     console.log(`  [B3] Validating script...`);
     const validationStart = performance.now();
-    const validationResult = validateCleaningScript(extractedScript, auditReport);
+    const validationResult = validateCleaningScript(auditReport, extractedScript);
     const validationEnd = performance.now();
 
-    timings.B3.durationMs = Math.round(validationEnd - validationStart);
-    timings.B3.status = 'completed';
+    timings.B3 = {
+      durationMs: Math.round(validationEnd - validationStart),
+      status: 'completed'
+    };
 
     runResult.tasks.B3 = {
       taskId: 'B3-validation',
@@ -419,14 +267,23 @@ async function runSingleExecution(runNumber) {
       status: 'completed'
     };
 
-    console.log(`  [B3] Done - validation result: valid=${validationResult.valid}`);
+    console.log(`  [B3] Done - valid=${validationResult.valid}`);
 
     // Complete
     runResult.status = 'completed';
     runResult.completedAt = new Date().toISOString();
     runResult.totalDurationMs = Object.values(timings).reduce((sum, t) => sum + (t.durationMs || 0), 0);
 
-    // Add Ollama version if available (don't fail if not)
+    // Calculate total tokens from all tasks
+    runResult.tokens = {
+      diagnosis: diagnosisResponse.metrics.tokensGenerated,
+      summary: summaryResponse.metrics.tokensGenerated,
+      script: scriptResponse.metrics.tokensGenerated,
+      total: diagnosisResponse.metrics.tokensGenerated + summaryResponse.metrics.tokensGenerated + scriptResponse.metrics.tokensGenerated
+    };
+    runResult.tokensSource = diagnosisResponse.metrics.tokensSource;
+
+    // Get Ollama version
     try {
       const versionResponse = await fetch(`${CONFIG.endpoint}/api/version`);
       if (versionResponse.ok) {
@@ -434,16 +291,8 @@ async function runSingleExecution(runNumber) {
         runResult.ollamaVersion = versionData.version;
       }
     } catch {
-      // Ollama version endpoint may not be available
+      // ignore
     }
-
-    runResult.tokens = {
-      diagnosis: diagnosisResponse.metrics.tokensGenerated,
-      summary: summaryResponse.metrics.tokensGenerated,
-      script: scriptResponse.metrics.tokensGenerated,
-      total: diagnosisResponse.metrics.tokensGenerated + summaryResponse.metrics.tokensGenerated + scriptResponse.metrics.tokensGenerated
-    };
-    runResult.tokensSource = 'estimated';
 
   } catch (error) {
     console.error(`  [ERROR] ${error.message}`);
@@ -451,8 +300,7 @@ async function runSingleExecution(runNumber) {
     runResult.completedAt = new Date().toISOString();
     runResult.error = {
       message: error.message,
-      type: error.name,
-      stack: error.stack
+      type: error.name
     };
   }
 
@@ -461,13 +309,13 @@ async function runSingleExecution(runNumber) {
 
 // Main execution
 async function main() {
-  console.log('AURA Contracts v2 - Baseline Runner');
+  console.log('AURA Contracts v2 - Baseline Runner v2');
   console.log('===================================');
   console.log(`Provider: ${CONFIG.providerType}`);
   console.log(`Endpoint: ${CONFIG.endpoint}`);
   console.log(`Model: ${CONFIG.model}`);
   console.log(`Temperature: ${CONFIG.temperature}`);
-  console.log(`Repetitions: ${CONFIG.repetitions}`);
+  console.log(`Seeds: ${CONFIG.seeds.join(', ')}`);
   console.log('');
 
   // Check Ollama availability
@@ -483,19 +331,18 @@ async function main() {
     console.log('Ollama is available.\n');
   } catch (error) {
     console.error(`Cannot connect to Ollama at ${CONFIG.endpoint}`);
-    console.error('Make sure Ollama is running with: ollama serve');
     process.exit(1);
   }
 
   const results = [];
 
-  // Run repetitions
-  for (let i = 1; i <= CONFIG.repetitions; i++) {
-    const result = await runSingleExecution(i);
+  // Run repetitions with seeds
+  for (let i = 0; i < CONFIG.repetitions; i++) {
+    const result = await runSingleExecution(i + 1, CONFIG.seeds[i]);
     results.push(result);
 
     // Save intermediate result
-    const runFile = path.join(RUNS_DIR, `run-${String(i).padStart(2, '0')}.json`);
+    const runFile = path.join(RUNS_DIR, `run-${String(i + 1).padStart(2, '0')}.json`);
     fs.writeFileSync(runFile, JSON.stringify(result, null, 2));
     console.log(`Saved: ${runFile}`);
   }
@@ -524,15 +371,26 @@ async function main() {
     console.log(`Average total tokens: ${Math.round(avgTokens)}`);
   }
 
-  // Save summary
+  // Save execution summary
   const summary = {
     generatedAt: new Date().toISOString(),
-    config: CONFIG,
+    config: {
+      providerType: CONFIG.providerType,
+      endpoint: CONFIG.endpoint,
+      model: CONFIG.model,
+      temperature: CONFIG.temperature,
+      seeds: CONFIG.seeds
+    },
+    datasetSha256: metadata.datasetSha256,
+    auditReportSha256: metadata.auditReportSha256,
+    groundTruthVersion: groundTruth.version,
     runs: results.map(r => ({
       runNumber: r.runNumber,
+      seed: r.seed,
       status: r.status,
       durationMs: r.totalDurationMs,
       tokens: r.tokens,
+      tokensSource: r.tokensSource,
       error: r.error?.message
     })),
     completed,

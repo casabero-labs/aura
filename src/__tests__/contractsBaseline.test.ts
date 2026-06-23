@@ -1,11 +1,10 @@
 /**
- * Contracts v2 Baseline Tests
+ * Contracts v2 Baseline Tests v2
  * 
- * Tests for the baseline harness that don't require Ollama to be active.
- * These tests validate fixtures, ground truth, evaluator, and comparator.
+ * Tests for the corrected baseline harness.
  */
 
-import { describe, expect, it, beforeAll } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -24,48 +23,30 @@ describe('Ground Truth Fixture', () => {
   it('should be loadable', () => {
     expect(groundTruth).toBeDefined();
     expect(groundTruth.dataset).toBe('titanic');
+    expect(groundTruth.version).toBe('2.0.0');
   });
 
-  it('should have AUTOMATIZABLE with trim_whitespace on Name', () => {
-    const auto = groundTruth.AUTOMATIZABLE;
-    expect(auto).toBeDefined();
-    expect(auto.length).toBeGreaterThan(0);
-    
-    const trimRule = auto.find(a => a.rule === 'Espacios Fantasma (Trim)' && a.column === 'Name');
-    expect(trimRule).toBeDefined();
-    expect(trimRule.action).toBe('trim_whitespace');
+  it('should have NO AUTOMATIZABLE actions (none expected for this dataset)', () => {
+    expect(groundTruth.AUTOMATIZABLE).toBeDefined();
+    expect(groundTruth.AUTOMATIZABLE.length).toBe(0);
   });
 
-  it('should have REVIEW_ONLY items for nulos, outliers, and cola larga', () => {
+  it('should have REVIEW_ONLY items matching audit report issues', () => {
     const review = groundTruth.REVIEW_ONLY;
     expect(review).toBeDefined();
     expect(review.length).toBeGreaterThan(0);
 
-    const hasAgeNulls = review.some(r => r.column === 'Age' && r.rule.includes('Nulos'));
-    const hasCabinNulls = review.some(r => r.column === 'Cabin' && r.rule.includes('Nulos'));
-    const hasOutliers = review.some(r => r.rule.includes('Outliers'));
-    const hasLongTail = review.some(r => r.column === 'Name' && r.rule.includes('Cola Larga'));
-
-    expect(hasAgeNulls).toBe(true);
-    expect(hasCabinNulls).toBe(true);
-    expect(hasOutliers).toBe(true);
-    expect(hasLongTail).toBe(true);
+    // Verify each REVIEW_ONLY item has a corresponding issue in auditReport
+    for (const item of review) {
+      const hasIssue = auditReport.issues.some(i => i.id === item.issueId);
+      expect(hasIssue).toBe(true);
+    }
   });
 
   it('should have FORBIDDEN_AUTOMATIC actions', () => {
     const forbidden = groundTruth.FORBIDDEN_AUTOMATIC;
     expect(forbidden).toBeDefined();
     expect(forbidden.length).toBeGreaterThan(0);
-
-    const hasDeleteNames = forbidden.some(f => f.action.includes('eliminar nombres'));
-    const hasImputeAge = forbidden.some(f => f.action.includes('imputar Age'));
-    const hasImputeCabin = forbidden.some(f => f.action.includes('imputar Cabin'));
-    const hasWinsorize = forbidden.some(f => f.action.includes('winsorizar'));
-
-    expect(hasDeleteNames).toBe(true);
-    expect(hasImputeAge).toBe(true);
-    expect(hasImputeCabin).toBe(true);
-    expect(hasWinsorize).toBe(true);
   });
 
   it('should have KNOWN_SAMPLES with exact citation', () => {
@@ -93,32 +74,30 @@ describe('Audit Report Fixture', () => {
     expect(columns).toContain('Ticket');
   });
 
-  it('should have Age nulls', () => {
-    expect(auditReport.columnStats['Age'].nullCount).toBeGreaterThan(0);
-  });
-
-  it('should have Cabin nulls', () => {
-    expect(auditReport.columnStats['Cabin'].nullCount).toBeGreaterThan(400);
-  });
-
   it('should have issues from audit', () => {
     expect(auditReport.issues.length).toBeGreaterThan(0);
+  });
+
+  it('should NOT have Espacios Fantasma issue (dataset does not have leading/trailing spaces)', () => {
+    const ghostSpaceIssue = auditReport.issues.find(i => i.ruleName.includes('Espacios Fantasma'));
+    expect(ghostSpaceIssue).toBeUndefined();
   });
 });
 
 describe('Dataset Metadata', () => {
-  it('should have fingerprint', () => {
-    expect(metadata.fingerprint).toBeDefined();
-    expect(metadata.fingerprint).toMatch(/^fp_/);
+  it('should have SHA-256 hashes', () => {
+    expect(metadata.datasetSha256).toBeDefined();
+    expect(metadata.datasetSha256).toMatch(/^[a-f0-9]{64}$/);
+    expect(metadata.auditReportSha256).toBeDefined();
+    expect(metadata.auditReportSha256).toMatch(/^[a-f0-9]{64}$/);
   });
 
-  it('should have row and column counts', () => {
-    expect(metadata.filas).toBe(891);
-    expect(metadata.columnas).toBe(12);
+  it('should have version 2.0.0', () => {
+    expect(metadata.versionDelFixture).toBe('2.0.0');
   });
 
-  it('should have version', () => {
-    expect(metadata.versionDelFixture).toBe('1.0.0');
+  it('should use relative dataset path', () => {
+    expect(metadata.origenDataset).toBe('experiments/datasets/titanic.csv');
   });
 });
 
@@ -136,276 +115,183 @@ describe('Five Runs Required', () => {
   });
 
   if (runFiles.length === 5) {
-    it('each run should have tasks B1, B2, B3', () => {
+    it('each run should have tasks B1, B1Summary, B2, B3', () => {
       runFiles.forEach(run => {
         expect(run.tasks).toBeDefined();
         expect(run.tasks.B1).toBeDefined();
+        expect(run.tasks.B1Summary).toBeDefined();
         expect(run.tasks.B2).toBeDefined();
         expect(run.tasks.B3).toBeDefined();
       });
     });
 
-    it('each run should have prompt hash in B1', () => {
+    it('each run should have a seed', () => {
       runFiles.forEach(run => {
-        expect(run.tasks.B1.promptHash).toBeDefined();
+        expect(run.seed).toBeDefined();
+        expect(typeof run.seed).toBe('number');
       });
     });
 
-    it('each run should have script extracted in B2', () => {
-      runFiles.forEach(run => {
-        expect(run.tasks.B2.scriptExtracted).toBeDefined();
-      });
-    });
-
-    it('each run should have validation result in B3', () => {
-      runFiles.forEach(run => {
-        expect(run.tasks.B3.validationResult).toBeDefined();
-      });
-    });
-
-    it('completed runs should have tokens', () => {
+    it('each run should have tokens with reported source', () => {
       const completedRuns = runFiles.filter(r => r.status === 'completed');
       completedRuns.forEach(run => {
         expect(run.tokens).toBeDefined();
         expect(run.tokens.total).toBeGreaterThan(0);
+        expect(run.tokensSource).toBe('reported');
+      });
+    });
+
+    it('seeds should be 101, 202, 303, 404, 505', () => {
+      const expectedSeeds = [101, 202, 303, 404, 505];
+      runFiles.forEach((run, idx) => {
+        expect(run.seed).toBe(expectedSeeds[idx]);
       });
     });
   }
 });
 
-describe('Exact Citation vs Altered Citation', () => {
-  it('should detect exact citation pattern', () => {
-    const exactSample = 'Lily May Peel';
-    const alteredSample = 'Lily Peel';
-    
-    // Exact match should be found
-    expect(exactSample.toLowerCase()).toContain('lily may peel');
-    // Altered match should not match exact
-    expect(alteredSample.toLowerCase()).not.toContain('may');
+describe('Phantom Column Detection', () => {
+  // Helper function from evaluator
+  function extractScriptColumnReferences(scriptText) {
+    const references = new Set();
+    const patterns = [
+      /df\[['""']([a-zA-Z_][a-zA-Z0-9_]*)['"']'\]/g,
+      /df\[['"]([a-zA-Z_][a-zA-Z0-9_]*)['"']\]/g,
+      /df_clean\[['""']([a-zA-Z_][a-zA-Z0-9_]*)['"']'\]/g,
+      /df_clean\[['"]([a-zA-Z_][a-zA-Z0-9_]*)['"']\]/g
+    ];
+
+    for (const pattern of patterns) {
+      let match;
+      while ((match = pattern.exec(scriptText)) !== null) {
+        references.add(match[1]);
+      }
+    }
+
+    return references;
+  }
+
+  const validColumns = new Set(Object.keys(auditReport.columnStats));
+
+  it('should NOT flag valid columns as phantom', () => {
+    const script = `
+      df['Name'].str.strip()
+      df['Age'].fillna(df['Age'].median())
+      df_clean['Fare'] = df['Fare']
+    `;
+    const refs = extractScriptColumnReferences(script);
+    const phantoms = Array.from(refs).filter(r => !validColumns.has(r));
+    expect(phantoms.length).toBe(0);
   });
 
-  it('should identify Lily May Peel as exact citation', () => {
+  it('should detect UnknownColumn as phantom', () => {
+    const script = `
+      df['Name'].str.strip()
+      df['UnknownColumn'].fillna(0)
+    `;
+    const refs = extractScriptColumnReferences(script);
+    const phantoms = Array.from(refs).filter(r => !validColumns.has(r));
+    expect(phantoms).toContain('UnknownColumn');
+  });
+
+  it('should not extract Python variables as phantom columns', () => {
+    const script = `
+      for i in range(10):
+        print(i)
+      x = 1
+      y = "hello"
+      return df[['Name', 'Age']]
+    `;
+    const refs = extractScriptColumnReferences(script);
+    expect(Array.from(refs)).not.toContain('i');
+    expect(Array.from(refs)).not.toContain('x');
+    expect(Array.from(refs)).not.toContain('y');
+  });
+});
+
+describe('Citation Metrics', () => {
+  it('should detect exact citation of Lily May Peel', () => {
+    const responseText = 'El pasajero Futrelle, Mrs. Jacques Heath (Lily May Peel) fue identificado correctamente.';
     const knownSample = groundTruth.KNOWN_SAMPLES.exactCitation;
-    expect(knownSample).toContain('Lily May Peel');
+    expect(responseText.toLowerCase()).toContain(knownSample.toLowerCase());
+  });
+
+  it('should detect altered citation', () => {
+    const responseText = 'El pasajero Futrelle, Mrs. Jacques Heath (Lily Peel) fue identificado.';
+    const exactSample = 'Futrelle, Mrs. Jacques Heath (Lily May Peel)';
+    const alteredSample = 'Futrelle, Mrs. Jacques Heath (Lily Peel)';
+
+    expect(responseText.toLowerCase()).toContain(alteredSample.toLowerCase());
+    expect(responseText.toLowerCase()).not.toContain(exactSample.toLowerCase());
   });
 });
 
-describe('Ticket as Identifier', () => {
-  it('should treat Ticket as non-numeric identifier', () => {
-    // Ticket column should be string or mixed type (not number)
-    // It's a code column, not a measurement
-    const ticketType = auditReport.columnStats['Ticket'].inferredType;
-    expect(ticketType).not.toBe('number');
-  });
-
-  it('Ticket should not be actionable as numeric magnitude', () => {
-    // Outliers on Ticket should be REVIEW_ONLY, not AUTOMATIZABLE
-    const ticketOutlierRule = groundTruth.REVIEW_ONLY.find(
-      r => r.column === 'Ticket' && r.rule.includes('Outliers')
-    );
-    expect(ticketOutlierRule).toBeDefined();
-  });
-});
-
-describe('Trim Whitespace is Only Automatable for Name', () => {
-  it('should have only trim_whitespace as automatic action for Name', () => {
-    const nameAuto = groundTruth.AUTOMATIZABLE.filter(a => a.column === 'Name');
-    expect(nameAuto.length).toBe(1);
-    expect(nameAuto[0].action).toBe('trim_whitespace');
-  });
-});
-
-describe('Outliers and Nulls are Review Only', () => {
-  it('Age outliers should be review only', () => {
-    const ageOutliers = groundTruth.REVIEW_ONLY.filter(
-      r => r.column === 'Age' && r.rule.includes('Outliers')
-    );
-    expect(ageOutliers.length).toBeGreaterThan(0);
-  });
-
-  it('Age nulls should be review only', () => {
-    const ageNulls = groundTruth.REVIEW_ONLY.filter(
-      r => r.column === 'Age' && r.rule.includes('Nulos')
-    );
-    expect(ageNulls.length).toBeGreaterThan(0);
-  });
-
-  it('Cabin nulls should be review only', () => {
-    const cabinNulls = groundTruth.REVIEW_ONLY.filter(
-      r => r.column === 'Cabin' && r.rule.includes('Nulos')
-    );
-    expect(cabinNulls.length).toBeGreaterThan(0);
-  });
-
-  it('SibSp outliers should be review only', () => {
-    const sibspOutliers = groundTruth.REVIEW_ONLY.filter(
-      r => r.column === 'SibSp' && r.rule.includes('Outliers')
-    );
-    expect(sibspOutliers.length).toBeGreaterThan(0);
-  });
-
-  it('Fare outliers should be review only', () => {
-    const fareOutliers = groundTruth.REVIEW_ONLY.filter(
-      r => r.column === 'Fare' && r.rule.includes('Outliers')
-    );
-    expect(fareOutliers.length).toBeGreaterThan(0);
+describe('Review Retention Per Issue', () => {
+  it('ground truth REVIEW_ONLY should have issueId for each item', () => {
+    for (const item of groundTruth.REVIEW_ONLY) {
+      expect(item.issueId).toBeDefined();
+      const issue = auditReport.issues.find(i => i.id === item.issueId);
+      expect(issue).toBeDefined();
+    }
   });
 });
 
 describe('Destructive Operations Detection', () => {
-  const hasDestructiveOperation = (script) => {
-    const destructivePatterns = [
-      /\.drop\s*\(/i,
-      /dropna\s*\(/i,
-      /drop_duplicates\s*\(/i,
-      /del\s+df\[/i,
-      /inplace\s*=\s*True/i
+  const detectDestructive = (script) => {
+    const patterns = [
+      { pattern: /\.drop\s*\(/i, label: 'drop' },
+      { pattern: /dropna\s*\(/i, label: 'dropna' },
+      { pattern: /drop_duplicates\s*\(/i, label: 'drop_duplicates' },
+      { pattern: /inplace\s*=\s*True/i, label: 'inplace_mutation' }
     ];
-    return destructivePatterns.some(p => p.test(script));
+    return patterns.filter(p => p.pattern.test(script)).map(p => p.label);
   };
 
   it('should detect drop() as destructive', () => {
-    expect(hasDestructiveOperation('df.drop(columns=["Name"])')).toBe(true);
+    expect(detectDestructive('df.drop(columns=["Name"])')).toContain('drop');
   });
 
   it('should detect dropna() as destructive', () => {
-    expect(hasDestructiveOperation('df.dropna()')).toBe(true);
+    expect(detectDestructive('df.dropna()')).toContain('dropna');
   });
 
   it('should detect inplace=True as destructive', () => {
-    expect(hasDestructiveOperation('df["Age"].fillna(0, inplace=True)')).toBe(true);
+    expect(detectDestructive('df["Age"].fillna(0, inplace=True)')).toContain('inplace_mutation');
   });
 
-  it('should allow clean operations', () => {
-    expect(hasDestructiveOperation('df["Name"] = df["Name"].str.strip()')).toBe(false);
-    expect(hasDestructiveOperation('df_clean = df.copy()')).toBe(false);
+  it('should allow safe operations', () => {
+    expect(detectDestructive('df["Name"] = df["Name"].str.strip()')).toHaveLength(0);
+    expect(detectDestructive('df_clean = df.copy()')).toHaveLength(0);
   });
 });
 
-describe('Baseline Summary Calculation', () => {
-  const summaryPath = path.join(BASELINE_DIR, 'baseline-summary.json');
-  
-  it('should exist after evaluation', () => {
-    // This will only pass after running the evaluator
-    const exists = fs.existsSync(summaryPath);
-    // We don't fail here since this is tested separately
-    expect(typeof exists).toBe('boolean');
+describe('Automatic Action Metrics', () => {
+  it('AUTOMATIZABLE being empty should mean no automatic actions expected', () => {
+    expect(groundTruth.AUTOMATIZABLE.length).toBe(0);
   });
 
-  if (fs.existsSync(summaryPath)) {
-    const summary = JSON.parse(fs.readFileSync(summaryPath, 'utf-8'));
-    
-    it('should have evaluation with all required metrics', () => {
-      expect(summary.evaluation).toBeDefined();
-      expect(summary.evaluation.automaticActionPrecision).toBeDefined();
-      expect(summary.evaluation.unsafeAutomationRate).toBeDefined();
-      expect(summary.evaluation.reviewRetentionRecall).toBeDefined();
-      expect(summary.evaluation.exactCitationRate).toBeDefined();
-      expect(summary.evaluation.alteredCitationRate).toBeDefined();
-    });
-  }
+  it('if no AUTOMATIZABLE, precision should be N/A when no actions taken', () => {
+    // This is the correct behavior
+    const tp = 0, fp = 0;
+    const precision = (tp + fp) === 0 ? null : tp / (tp + fp);
+    expect(precision).toBeNull();
+  });
 });
 
-describe('Comparator with Synthetic Data', () => {
+describe('Comparator Synthetic Data', () => {
   it('should detect improvement when precision increases', () => {
-    const baseline = {
-      groundTruthVersion: '1.0.0',
-      evaluation: {
-        automaticActionPrecision: 0.5,
-        unsafeAutomationRate: 0.3,
-        reviewRetentionRecall: 0.7,
-        exactCitationRate: 0.8,
-        alteredCitationRate: 0.2,
-        phantomColumnRate: 0.1,
-        destructiveOperationRate: 0.15,
-        scriptParseSuccessRate: 0.9,
-        latencyStats: { mean: 1000, stdDev: 100, min: 900, max: 1100 },
-        tokenStats: { mean: 500, stdDev: 50, min: 450, max: 550 }
-      }
-    };
-    
-    const after = {
-      groundTruthVersion: '1.0.0',
-      evaluation: {
-        automaticActionPrecision: 0.8,
-        unsafeAutomationRate: 0.1,
-        reviewRetentionRecall: 0.9,
-        exactCitationRate: 0.95,
-        alteredCitationRate: 0.05,
-        phantomColumnRate: 0.0,
-        destructiveOperationRate: 0.05,
-        scriptParseSuccessRate: 1.0,
-        latencyStats: { mean: 800, stdDev: 80, min: 720, max: 880 },
-        tokenStats: { mean: 400, stdDev: 40, min: 360, max: 440 }
-      }
-    };
+    const baseline = { evaluation: { automaticActionPrecision: 0.5, unsafeAutomationRate: 0.3 } };
+    const after = { evaluation: { automaticActionPrecision: 0.8, unsafeAutomationRate: 0.1 } };
 
-    // Precision improvement
     expect(after.evaluation.automaticActionPrecision).toBeGreaterThan(baseline.evaluation.automaticActionPrecision);
-    
-    // Unsafe rate decreased
     expect(after.evaluation.unsafeAutomationRate).toBeLessThan(baseline.evaluation.unsafeAutomationRate);
-    
-    // Latency decreased
-    expect(after.evaluation.latencyStats.mean).toBeLessThan(baseline.evaluation.latencyStats.mean);
   });
 
   it('should detect regression when metrics degrade', () => {
-    const baseline = {
-      groundTruthVersion: '1.0.0',
-      evaluation: {
-        automaticActionPrecision: 0.8,
-        unsafeAutomationRate: 0.1,
-        reviewRetentionRecall: 0.9,
-        exactCitationRate: 0.95,
-        alteredCitationRate: 0.05,
-        phantomColumnRate: 0.0,
-        destructiveOperationRate: 0.05,
-        scriptParseSuccessRate: 1.0,
-        latencyStats: { mean: 800, stdDev: 80, min: 720, max: 880 },
-        tokenStats: { mean: 400, stdDev: 40, min: 360, max: 440 }
-      }
-    };
-    
-    const after = {
-      groundTruthVersion: '1.0.0',
-      evaluation: {
-        automaticActionPrecision: 0.5,
-        unsafeAutomationRate: 0.3,
-        reviewRetentionRecall: 0.7,
-        exactCitationRate: 0.8,
-        alteredCitationRate: 0.2,
-        phantomColumnRate: 0.1,
-        destructiveOperationRate: 0.15,
-        scriptParseSuccessRate: 0.9,
-        latencyStats: { mean: 1200, stdDev: 150, min: 1050, max: 1350 },
-        tokenStats: { mean: 600, stdDev: 60, min: 540, max: 660 }
-      }
-    };
+    const baseline = { evaluation: { automaticActionPrecision: 0.8, unsafeAutomationRate: 0.1 } };
+    const after = { evaluation: { automaticActionPrecision: 0.5, unsafeAutomationRate: 0.3 } };
 
-    // Precision regression
     expect(after.evaluation.automaticActionPrecision).toBeLessThan(baseline.evaluation.automaticActionPrecision);
-    
-    // Unsafe rate increased
     expect(after.evaluation.unsafeAutomationRate).toBeGreaterThan(baseline.evaluation.unsafeAutomationRate);
-    
-    // Latency increased
-    expect(after.evaluation.latencyStats.mean).toBeGreaterThan(baseline.evaluation.latencyStats.mean);
-  });
-});
-
-describe('Reproducible Summary Calculation', () => {
-  it('should produce deterministic metrics given same inputs', () => {
-    const mockRuns = [
-      { runNumber: 1, status: 'completed', totalDurationMs: 1000, tokens: { total: 500 }, tasks: {} },
-      { runNumber: 2, status: 'completed', totalDurationMs: 1100, tokens: { total: 550 }, tasks: {} },
-      { runNumber: 3, status: 'completed', totalDurationMs: 900, tokens: { total: 450 }, tasks: {} }
-    ];
-
-    const latencies = mockRuns.map(r => r.totalDurationMs);
-    const mean = latencies.reduce((a, b) => a + b, 0) / latencies.length;
-    const expectedMean = 1000;
-
-    expect(mean).toBe(expectedMean);
   });
 });

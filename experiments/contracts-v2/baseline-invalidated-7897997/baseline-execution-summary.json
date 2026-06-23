@@ -1,0 +1,71 @@
+{
+  "generatedAt": "2026-06-23T21:31:06.981Z",
+  "config": {
+    "providerType": "ollama",
+    "endpoint": "http://127.0.0.1:11434",
+    "model": "qwen2.5:3b",
+    "temperature": 0.1,
+    "keepAlive": "10m",
+    "repetitions": 5,
+    "timeout": 120000
+  },
+  "runs": [
+    {
+      "runNumber": 1,
+      "status": "completed",
+      "durationMs": 95617,
+      "tokens": {
+        "diagnosis": 617,
+        "summary": 565,
+        "script": 553,
+        "total": 1735
+      }
+    },
+    {
+      "runNumber": 2,
+      "status": "completed",
+      "durationMs": 41394,
+      "tokens": {
+        "diagnosis": 674,
+        "summary": 428,
+        "script": 219,
+        "total": 1321
+      }
+    },
+    {
+      "runNumber": 3,
+      "status": "completed",
+      "durationMs": 91961,
+      "tokens": {
+        "diagnosis": 634,
+        "summary": 406,
+        "script": 465,
+        "total": 1505
+      }
+    },
+    {
+      "runNumber": 4,
+      "status": "completed",
+      "durationMs": 97565,
+      "tokens": {
+        "diagnosis": 582,
+        "summary": 247,
+        "script": 517,
+        "total": 1346
+      }
+    },
+    {
+      "runNumber": 5,
+      "status": "completed",
+      "durationMs": 102761,
+      "tokens": {
+        "diagnosis": 586,
+        "summary": 434,
+        "script": 528,
+        "total": 1548
+      }
+    }
+  ],
+  "completed": 5,
+  "failed": 0
+}
