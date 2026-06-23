@@ -1,7 +1,8 @@
 /**
- * Contracts v2 Baseline Tests v3 — Fase 0C
+ * Contracts v2 Baseline Tests v4 — Fase 0D
  *
- * Tests for the corrected baseline harness.
+ * High-level tests for the corrected baseline harness.
+ * For detailed evaluator unit tests, see contractsBaselineEvaluator.test.ts.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -19,9 +20,9 @@ const auditReport = JSON.parse(fs.readFileSync(path.join(FIXTURES_DIR, 'titanic-
 const metadata = JSON.parse(fs.readFileSync(path.join(FIXTURES_DIR, 'titanic-dataset-metadata.json'), 'utf-8'));
 
 describe('Ground Truth', () => {
-  it('loadable and version 3.0.0', () => {
+  it('loadable and version 4.0.0', () => {
     expect(groundTruth.dataset).toBe('titanic');
-    expect(groundTruth.version).toBe('3.0.0');
+    expect(groundTruth.version).toBe('4.0.0');
   });
 
   it('has Ghost Spaces (Trim) as AUTOMATIZABLE', () => {
@@ -77,8 +78,8 @@ describe('Dataset Metadata', () => {
   it('has SHA-256 hash for audit report', () => {
     expect(metadata.auditReportSha256).toMatch(/^[a-f0-9]{64}$/);
   });
-  it('version is 3.0.0', () => {
-    expect(metadata.versionDelFixture).toBe('3.0.0');
+  it('version is 4.0.0', () => {
+    expect(metadata.versionDelFixture).toBe('4.0.0');
   });
   it('relative dataset path', () => {
     expect(metadata.origenDataset).toBe('experiments/datasets/titanic.csv');

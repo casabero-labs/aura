@@ -1,7 +1,7 @@
 {
   "dataset": "titanic",
-  "version": "3.0.0",
-  "description": "Ground truth for Titanic - Fase 0C. Ghost Spaces detected via production PapaParse parsing.",
+  "version": "4.0.0",
+  "description": "Ground truth for Titanic - Fase 0D. AST-based action extraction. No normalization on citations.",
   "AUTOMATIZABLE": [
     {
       "rule": "Espacios Fantasma (Trim)",

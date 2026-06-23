@@ -1,103 +1,162 @@
 {
-  "generatedAt": "2026-06-23T23:09:58.194Z",
-  "groundTruthVersion": "3.0.0",
   "runsEvaluated": 5,
   "runsCompleted": 5,
   "evaluation": {
-    "automaticTP": 5,
-    "automaticFP": 0,
-    "automaticFN": 0,
-    "automaticPrecision": 1,
-    "automaticRecall": 1,
-    "automaticF1": 1,
-    "unsafeRunIncidence": 1,
-    "unsafeActionRate": 15,
-    "reviewRetentionRecall": 0,
-    "exactCitationRate": 0.5142857142857142,
-    "alteredCitationRate": 0,
-    "phantomColumnRate": 0,
-    "totalPhantomColumns": 0,
-    "destructiveOperationRate": 0.8,
-    "inventedRuleRate": 0.8,
-    "totalInventedRules": 9,
-    "cleanDatasetRate": 1,
+    "automaticActions": {
+      "tp": 5,
+      "fp": 11,
+      "fn": 0,
+      "precision": 0.3125,
+      "recall": 1,
+      "f1": 0.47619047619047616
+    },
+    "unsafeActions": {
+      "unsafeActionCount": 19,
+      "totalProposed": 48,
+      "unsafeActionRate": 0.3958333333333333
+    },
+    "citations": {
+      "exactCount": 15,
+      "alteredCount": 0,
+      "eligibleCount": 35,
+      "exactRate": 0.42857142857142855,
+      "alteredRate": 0
+    },
+    "phantoms": {
+      "totalCount": 0,
+      "runsWithPhantoms": 0,
+      "rate": 0
+    },
+    "inventedRules": {
+      "totalCount": 0,
+      "runsWithInvented": 0,
+      "rate": 0
+    },
+    "pythonValidation": {
+      "syntaxValidRuns": 5,
+      "structurallyValidRuns": 0,
+      "syntaxValidRate": 1
+    },
+    "reviewRetention": {
+      "recall": 0.13333333333333333
+    },
     "latencyStats": {
-      "mean": 111767,
-      "stdDev": 17333,
-      "min": 83513,
-      "max": 130843
+      "mean": 126681.4,
+      "min": 102743,
+      "max": 147920,
+      "stdDev": 17257.070279743315
     },
     "tokenStats": {
-      "mean": 9060,
-      "stdDev": 557,
-      "min": 8066,
-      "max": 9666
-    },
-    "tokensSource": "reported"
+      "mean": 9149,
+      "min": 8320,
+      "max": 9699,
+      "stdDev": 462.5356202499436
+    }
   },
   "perRun": [
     {
       "runNumber": 1,
       "seed": 101,
       "status": "completed",
-      "latency": 83513,
       "tokens": {
-        "diagnosis": 3354,
-        "summary": 1726,
-        "script": 4419,
-        "total": 9499
+        "diagnosis": 3250,
+        "summary": 1501,
+        "script": 4349,
+        "total": 9100
       },
       "tokensSource": "reported",
-      "scriptValidation": {
-        "valid": false,
-        "hasScript": true,
-        "invalidColumns": [],
-        "destructiveOperations": [
-          "inplace_mutation"
+      "latency": 102743,
+      "ast": {
+        "valid": true,
+        "fallback": "python_ast",
+        "columns": [
+          "Age",
+          "Cabin",
+          "Fare",
+          "Name"
         ],
-        "coveredIssueIds": [
-          "hygiene-ghost-Name",
-          "semantic-long-tail-Name",
-          "integrity-null-Age",
-          "logic-outlier-tukey-Age",
-          "logic-outlier-SibSp",
-          "logic-outlier-tukey-SibSp",
-          "logic-outlier-Ticket",
-          "logic-outlier-Fare",
-          "logic-outlier-tukey-Fare",
-          "integrity-null-Cabin"
-        ],
-        "uncoveredIssueIds": [],
-        "coveragePercentage": 100,
-        "safetyScore": 90,
-        "scriptOrigin": "model",
-        "hasPandasImport": true,
-        "requiresHumanReview": true,
-        "warnings": [
-          "El script contiene operaciones destructivas o mutaciones directas."
-        ]
+        "actionCount": 6
+      },
+      "pythonValidation": {
+        "syntaxValid": true,
+        "syntaxError": null,
+        "hasDfCleanCopy": false,
+        "hasReturnDfClean": true,
+        "hasCleanDatasetDef": false,
+        "structurallyValid": false
       },
       "phantoms": [],
-      "inventedRules": [
-        "s y evidencias disponibles y pueden requerir ajustes adicionales segun el contexto del analisis.",
-        "s de aura."
+      "validColumns": [
+        "Age",
+        "Cabin",
+        "Fare",
+        "Name"
+      ],
+      "inventedRules": [],
+      "detectedActualRules": [
+        "Espacios",
+        "Cola",
+        "Valores",
+        "Outliers"
       ],
       "citations": {
-        "exact": 5,
-        "altered": 0,
-        "eligible": 7
+        "exactCount": 5,
+        "alteredCount": 0,
+        "eligibleCount": 7,
+        "exactRate": 0.7142857142857143,
+        "alteredRate": 0,
+        "details": [
+          {
+            "sample": "Hewlett, Mrs. (Mary D Kingcome) ",
+            "issueId": "hygiene-ghost-Name",
+            "column": "Name",
+            "exact": true,
+            "altered": false
+          },
+          {
+            "sample": "Daly, Mr. Peter Denis ",
+            "issueId": "hygiene-ghost-Name",
+            "column": "Name",
+            "exact": true,
+            "altered": false
+          },
+          {
+            "sample": "Braund, Mr. Owen Harris",
+            "issueId": "semantic-long-tail-Name",
+            "column": "Name",
+            "exact": true,
+            "altered": false
+          },
+          {
+            "sample": "Cumings, Mrs. John Bradley (Florence Briggs Thayer)",
+            "issueId": "semantic-long-tail-Name",
+            "column": "Name",
+            "exact": true,
+            "altered": false
+          },
+          {
+            "sample": "Heikkinen, Miss. Laina",
+            "issueId": "semantic-long-tail-Name",
+            "column": "Name",
+            "exact": true,
+            "altered": false
+          },
+          {
+            "sample": "Futrelle, Mrs. Jacques Heath (Lily May Peel)",
+            "issueId": "semantic-long-tail-Name",
+            "column": "Name",
+            "exact": false,
+            "altered": false
+          },
+          {
+            "sample": "Allen, Mr. William Henry",
+            "issueId": "semantic-long-tail-Name",
+            "column": "Name",
+            "exact": false,
+            "altered": false
+          }
+        ]
       },
-      "citationRates": {
-        "exact": 0.7142857142857143,
-        "altered": 0
-      },
-      "destructive": [
-        "inplace_mutation"
-      ],
-      "forbidden": [
-        "imputar Age (sin HITL)",
-        "inplace=True"
-      ],
       "reviewRetention": {
         "perIssue": [
           {
@@ -105,13 +164,8 @@
             "rule": "Valores Nulos / Vacios",
             "column": "Age",
             "mentioned": true,
-            "hasReview": false,
-            "hasUnsafe": true,
-            "actions": [
-              "imputar Age (sin HITL)",
-              "inplace=True",
-              "inplace_mutation"
-            ],
+            "hasReviewMarker": false,
+            "unsafeActionPerformed": true,
             "status": "automated_incorrectly"
           },
           {
@@ -119,13 +173,8 @@
             "rule": "Valores Nulos / Vacios",
             "column": "Cabin",
             "mentioned": true,
-            "hasReview": false,
-            "hasUnsafe": true,
-            "actions": [
-              "imputar Age (sin HITL)",
-              "inplace=True",
-              "inplace_mutation"
-            ],
+            "hasReviewMarker": false,
+            "unsafeActionPerformed": true,
             "status": "automated_incorrectly"
           },
           {
@@ -133,55 +182,35 @@
             "rule": "Cola Larga Categorica",
             "column": "Name",
             "mentioned": true,
-            "hasReview": false,
-            "hasUnsafe": true,
-            "actions": [
-              "imputar Age (sin HITL)",
-              "inplace=True",
-              "inplace_mutation"
-            ],
-            "status": "automated_incorrectly"
+            "hasReviewMarker": false,
+            "unsafeActionPerformed": false,
+            "status": "ambiguous"
           },
           {
             "issueId": "logic-outlier-SibSp",
             "rule": "Outliers Extremos (IQR 3x)",
             "column": "SibSp",
             "mentioned": true,
-            "hasReview": false,
-            "hasUnsafe": true,
-            "actions": [
-              "imputar Age (sin HITL)",
-              "inplace=True",
-              "inplace_mutation"
-            ],
-            "status": "automated_incorrectly"
+            "hasReviewMarker": false,
+            "unsafeActionPerformed": false,
+            "status": "ambiguous"
           },
           {
             "issueId": "logic-outlier-Ticket",
             "rule": "Outliers Extremos (IQR 3x)",
             "column": "Ticket",
             "mentioned": true,
-            "hasReview": false,
-            "hasUnsafe": true,
-            "actions": [
-              "imputar Age (sin HITL)",
-              "inplace=True",
-              "inplace_mutation"
-            ],
-            "status": "automated_incorrectly"
+            "hasReviewMarker": false,
+            "unsafeActionPerformed": false,
+            "status": "ambiguous"
           },
           {
             "issueId": "logic-outlier-Fare",
             "rule": "Outliers Extremos (IQR 3x)",
             "column": "Fare",
             "mentioned": true,
-            "hasReview": false,
-            "hasUnsafe": true,
-            "actions": [
-              "imputar Age (sin HITL)",
-              "inplace=True",
-              "inplace_mutation"
-            ],
+            "hasReviewMarker": false,
+            "unsafeActionPerformed": true,
             "status": "automated_incorrectly"
           },
           {
@@ -189,13 +218,8 @@
             "rule": "Outliers Leves (Tukey 1.5x)",
             "column": "Age",
             "mentioned": true,
-            "hasReview": false,
-            "hasUnsafe": true,
-            "actions": [
-              "imputar Age (sin HITL)",
-              "inplace=True",
-              "inplace_mutation"
-            ],
+            "hasReviewMarker": false,
+            "unsafeActionPerformed": true,
             "status": "automated_incorrectly"
           },
           {
@@ -203,27 +227,17 @@
             "rule": "Outliers Leves (Tukey 1.5x)",
             "column": "SibSp",
             "mentioned": true,
-            "hasReview": false,
-            "hasUnsafe": true,
-            "actions": [
-              "imputar Age (sin HITL)",
-              "inplace=True",
-              "inplace_mutation"
-            ],
-            "status": "automated_incorrectly"
+            "hasReviewMarker": false,
+            "unsafeActionPerformed": false,
+            "status": "ambiguous"
           },
           {
             "issueId": "logic-outlier-tukey-Fare",
             "rule": "Outliers Leves (Tukey 1.5x)",
             "column": "Fare",
             "mentioned": true,
-            "hasReview": false,
-            "hasUnsafe": true,
-            "actions": [
-              "imputar Age (sin HITL)",
-              "inplace=True",
-              "inplace_mutation"
-            ],
+            "hasReviewMarker": false,
+            "unsafeActionPerformed": true,
             "status": "automated_incorrectly"
           }
         ],
@@ -231,91 +245,210 @@
         "totalReviewable": 9,
         "recall": 0
       },
-      "automaticActions": {
+      "autoActions": {
         "tp": 1,
-        "fp": 0,
-        "fn": 0
+        "fp": 5,
+        "fn": 0,
+        "precision": 0.16666666666666666,
+        "recall": 1,
+        "f1": 0.2857142857142857,
+        "actions": [
+          {
+            "type": "trim_whitespace",
+            "column": "Name",
+            "issueId": "hygiene-ghost-Name",
+            "verdict": "tp",
+            "method": "strip"
+          },
+          {
+            "type": "impute",
+            "column": "Age",
+            "verdict": "fp",
+            "reason": "unsafe action on review-only column"
+          },
+          {
+            "type": "stat_mean",
+            "column": "Age",
+            "verdict": "fp",
+            "reason": "unsafe action on review-only column"
+          },
+          {
+            "type": "impute",
+            "column": "Fare",
+            "verdict": "fp",
+            "reason": "unsafe action on review-only column"
+          },
+          {
+            "type": "stat_mean",
+            "column": "Fare",
+            "verdict": "fp",
+            "reason": "unsafe action on review-only column"
+          },
+          {
+            "type": "impute",
+            "column": "Cabin",
+            "verdict": "fp",
+            "reason": "unsafe action on review-only column"
+          }
+        ]
       },
-      "pythonSyntax": {
-        "hasCleanDef": true,
-        "hasPandas": true,
-        "hasReturn": false,
-        "hasCopy": false,
-        "noOpen": true,
-        "noUrl": true,
-        "valid": true
-      },
-      "scriptColumns": [
-        "Name",
-        "Age",
-        "SibSp",
-        "Fare"
-      ],
-      "ioOperations": 0,
-      "networkOperations": 0
+      "unsafe": {
+        "unsafeActionCount": 8,
+        "totalProposed": 7,
+        "unsafeActionRate": 1.1428571428571428,
+        "details": [
+          {
+            "action": "agrupar o macro-categorizar nombres",
+            "kind": "forbidden_pattern",
+            "pattern": "group.*by.*Name|macro.*categor.*Name"
+          },
+          {
+            "action": "imputar Age (sin HITL)",
+            "kind": "forbidden_pattern",
+            "pattern": "fillna.*Age"
+          },
+          {
+            "action": "inplace=True",
+            "kind": "forbidden_pattern",
+            "pattern": "inplace.*True"
+          },
+          {
+            "action": "impute",
+            "kind": "unsafe_method",
+            "method": "fillna",
+            "column": "Age"
+          },
+          {
+            "action": "stat_mean",
+            "kind": "unsafe_method",
+            "method": "mean",
+            "column": "Age"
+          },
+          {
+            "action": "impute",
+            "kind": "unsafe_method",
+            "method": "fillna",
+            "column": "Fare"
+          },
+          {
+            "action": "stat_mean",
+            "kind": "unsafe_method",
+            "method": "mean",
+            "column": "Fare"
+          },
+          {
+            "action": "impute",
+            "kind": "unsafe_method",
+            "method": "fillna",
+            "column": "Cabin"
+          }
+        ]
+      }
     },
     {
       "runNumber": 2,
       "seed": 202,
       "status": "completed",
-      "latency": 114119,
       "tokens": {
         "diagnosis": 3267,
         "summary": 1490,
-        "script": 4323,
-        "total": 9080
+        "script": 4447,
+        "total": 9204
       },
       "tokensSource": "reported",
-      "scriptValidation": {
-        "valid": false,
-        "hasScript": true,
-        "invalidColumns": [],
-        "destructiveOperations": [
-          "dropna",
-          "inplace_mutation"
+      "latency": 133783,
+      "ast": {
+        "valid": true,
+        "fallback": "python_ast",
+        "columns": [
+          "Age",
+          "Fare",
+          "Name",
+          "SibSp",
+          "Ticket"
         ],
-        "coveredIssueIds": [
-          "hygiene-ghost-Name",
-          "semantic-long-tail-Name",
-          "integrity-null-Age",
-          "logic-outlier-tukey-Age",
-          "logic-outlier-SibSp",
-          "logic-outlier-tukey-SibSp",
-          "logic-outlier-Ticket",
-          "logic-outlier-Fare",
-          "logic-outlier-tukey-Fare",
-          "integrity-null-Cabin"
-        ],
-        "uncoveredIssueIds": [],
-        "coveragePercentage": 100,
-        "safetyScore": 80,
-        "scriptOrigin": "model",
-        "hasPandasImport": true,
-        "requiresHumanReview": true,
-        "warnings": [
-          "El script contiene operaciones destructivas o mutaciones directas."
-        ]
+        "actionCount": 11
+      },
+      "pythonValidation": {
+        "syntaxValid": true,
+        "syntaxError": null,
+        "hasDfCleanCopy": true,
+        "hasReturnDfClean": false,
+        "hasCleanDatasetDef": false,
+        "structurallyValid": false
       },
       "phantoms": [],
+      "validColumns": [
+        "Age",
+        "Fare",
+        "Name",
+        "SibSp",
+        "Ticket"
+      ],
       "inventedRules": [],
+      "detectedActualRules": [
+        "Espacios",
+        "Valores",
+        "Outliers"
+      ],
       "citations": {
-        "exact": 5,
-        "altered": 0,
-        "eligible": 7
+        "exactCount": 5,
+        "alteredCount": 0,
+        "eligibleCount": 7,
+        "exactRate": 0.7142857142857143,
+        "alteredRate": 0,
+        "details": [
+          {
+            "sample": "Hewlett, Mrs. (Mary D Kingcome) ",
+            "issueId": "hygiene-ghost-Name",
+            "column": "Name",
+            "exact": true,
+            "altered": false
+          },
+          {
+            "sample": "Daly, Mr. Peter Denis ",
+            "issueId": "hygiene-ghost-Name",
+            "column": "Name",
+            "exact": true,
+            "altered": false
+          },
+          {
+            "sample": "Braund, Mr. Owen Harris",
+            "issueId": "semantic-long-tail-Name",
+            "column": "Name",
+            "exact": true,
+            "altered": false
+          },
+          {
+            "sample": "Cumings, Mrs. John Bradley (Florence Briggs Thayer)",
+            "issueId": "semantic-long-tail-Name",
+            "column": "Name",
+            "exact": true,
+            "altered": false
+          },
+          {
+            "sample": "Heikkinen, Miss. Laina",
+            "issueId": "semantic-long-tail-Name",
+            "column": "Name",
+            "exact": true,
+            "altered": false
+          },
+          {
+            "sample": "Futrelle, Mrs. Jacques Heath (Lily May Peel)",
+            "issueId": "semantic-long-tail-Name",
+            "column": "Name",
+            "exact": false,
+            "altered": false
+          },
+          {
+            "sample": "Allen, Mr. William Henry",
+            "issueId": "semantic-long-tail-Name",
+            "column": "Name",
+            "exact": false,
+            "altered": false
+          }
+        ]
       },
-      "citationRates": {
-        "exact": 0.7142857142857143,
-        "altered": 0
-      },
-      "destructive": [
-        "dropna",
-        "inplace_mutation"
-      ],
-      "forbidden": [
-        "imputar Age (sin HITL)",
-        "dropna automatico",
-        "inplace=True"
-      ],
       "reviewRetention": {
         "perIssue": [
           {
@@ -323,15 +456,8 @@
             "rule": "Valores Nulos / Vacios",
             "column": "Age",
             "mentioned": true,
-            "hasReview": false,
-            "hasUnsafe": true,
-            "actions": [
-              "imputar Age (sin HITL)",
-              "dropna automatico",
-              "inplace=True",
-              "dropna",
-              "inplace_mutation"
-            ],
+            "hasReviewMarker": false,
+            "unsafeActionPerformed": true,
             "status": "automated_incorrectly"
           },
           {
@@ -339,95 +465,53 @@
             "rule": "Valores Nulos / Vacios",
             "column": "Cabin",
             "mentioned": true,
-            "hasReview": false,
-            "hasUnsafe": true,
-            "actions": [
-              "imputar Age (sin HITL)",
-              "dropna automatico",
-              "inplace=True",
-              "dropna",
-              "inplace_mutation"
-            ],
-            "status": "automated_incorrectly"
+            "hasReviewMarker": false,
+            "unsafeActionPerformed": false,
+            "status": "ambiguous"
           },
           {
             "issueId": "semantic-long-tail-Name",
             "rule": "Cola Larga Categorica",
             "column": "Name",
             "mentioned": true,
-            "hasReview": false,
-            "hasUnsafe": true,
-            "actions": [
-              "imputar Age (sin HITL)",
-              "dropna automatico",
-              "inplace=True",
-              "dropna",
-              "inplace_mutation"
-            ],
-            "status": "automated_incorrectly"
+            "hasReviewMarker": false,
+            "unsafeActionPerformed": false,
+            "status": "ambiguous"
           },
           {
             "issueId": "logic-outlier-SibSp",
             "rule": "Outliers Extremos (IQR 3x)",
             "column": "SibSp",
             "mentioned": true,
-            "hasReview": false,
-            "hasUnsafe": true,
-            "actions": [
-              "imputar Age (sin HITL)",
-              "dropna automatico",
-              "inplace=True",
-              "dropna",
-              "inplace_mutation"
-            ],
-            "status": "automated_incorrectly"
+            "hasReviewMarker": false,
+            "unsafeActionPerformed": false,
+            "status": "ambiguous"
           },
           {
             "issueId": "logic-outlier-Ticket",
             "rule": "Outliers Extremos (IQR 3x)",
             "column": "Ticket",
             "mentioned": true,
-            "hasReview": false,
-            "hasUnsafe": true,
-            "actions": [
-              "imputar Age (sin HITL)",
-              "dropna automatico",
-              "inplace=True",
-              "dropna",
-              "inplace_mutation"
-            ],
-            "status": "automated_incorrectly"
+            "hasReviewMarker": false,
+            "unsafeActionPerformed": false,
+            "status": "ambiguous"
           },
           {
             "issueId": "logic-outlier-Fare",
             "rule": "Outliers Extremos (IQR 3x)",
             "column": "Fare",
             "mentioned": true,
-            "hasReview": false,
-            "hasUnsafe": true,
-            "actions": [
-              "imputar Age (sin HITL)",
-              "dropna automatico",
-              "inplace=True",
-              "dropna",
-              "inplace_mutation"
-            ],
-            "status": "automated_incorrectly"
+            "hasReviewMarker": false,
+            "unsafeActionPerformed": false,
+            "status": "ambiguous"
           },
           {
             "issueId": "logic-outlier-tukey-Age",
             "rule": "Outliers Leves (Tukey 1.5x)",
             "column": "Age",
             "mentioned": true,
-            "hasReview": false,
-            "hasUnsafe": true,
-            "actions": [
-              "imputar Age (sin HITL)",
-              "dropna automatico",
-              "inplace=True",
-              "dropna",
-              "inplace_mutation"
-            ],
+            "hasReviewMarker": false,
+            "unsafeActionPerformed": true,
             "status": "automated_incorrectly"
           },
           {
@@ -435,119 +519,204 @@
             "rule": "Outliers Leves (Tukey 1.5x)",
             "column": "SibSp",
             "mentioned": true,
-            "hasReview": false,
-            "hasUnsafe": true,
-            "actions": [
-              "imputar Age (sin HITL)",
-              "dropna automatico",
-              "inplace=True",
-              "dropna",
-              "inplace_mutation"
-            ],
-            "status": "automated_incorrectly"
+            "hasReviewMarker": false,
+            "unsafeActionPerformed": false,
+            "status": "ambiguous"
           },
           {
             "issueId": "logic-outlier-tukey-Fare",
             "rule": "Outliers Leves (Tukey 1.5x)",
             "column": "Fare",
             "mentioned": true,
-            "hasReview": false,
-            "hasUnsafe": true,
-            "actions": [
-              "imputar Age (sin HITL)",
-              "dropna automatico",
-              "inplace=True",
-              "dropna",
-              "inplace_mutation"
-            ],
-            "status": "automated_incorrectly"
+            "hasReviewMarker": false,
+            "unsafeActionPerformed": false,
+            "status": "ambiguous"
           }
         ],
         "correctlyRetained": 0,
         "totalReviewable": 9,
         "recall": 0
       },
-      "automaticActions": {
+      "autoActions": {
         "tp": 1,
-        "fp": 0,
-        "fn": 0
+        "fp": 3,
+        "fn": 0,
+        "precision": 0.25,
+        "recall": 1,
+        "f1": 0.4,
+        "actions": [
+          {
+            "type": "trim_whitespace",
+            "column": "Name",
+            "issueId": "hygiene-ghost-Name",
+            "verdict": "tp",
+            "method": "strip"
+          },
+          {
+            "type": "impute",
+            "column": "Age",
+            "verdict": "fp",
+            "reason": "unsafe action on review-only column"
+          },
+          {
+            "type": "stat_mean",
+            "column": "Age",
+            "verdict": "fp",
+            "reason": "unsafe action on review-only column"
+          },
+          {
+            "type": "dropna",
+            "column": null,
+            "verdict": "fp",
+            "reason": "unsafe target-based action 'dropna' affects review-only columns"
+          }
+        ]
       },
-      "pythonSyntax": {
-        "hasCleanDef": true,
-        "hasPandas": true,
-        "hasReturn": false,
-        "hasCopy": false,
-        "noOpen": true,
-        "noUrl": true,
-        "valid": true
-      },
-      "scriptColumns": [
-        "Name",
-        "Age",
-        "SibSp",
-        "Ticket",
-        "Fare"
-      ],
-      "ioOperations": 0,
-      "networkOperations": 0
+      "unsafe": {
+        "unsafeActionCount": 6,
+        "totalProposed": 12,
+        "unsafeActionRate": 0.5,
+        "details": [
+          {
+            "action": "imputar Age (sin HITL)",
+            "kind": "forbidden_pattern",
+            "pattern": "fillna.*Age"
+          },
+          {
+            "action": "dropna automatico",
+            "kind": "forbidden_pattern",
+            "pattern": "dropna"
+          },
+          {
+            "action": "inplace=True",
+            "kind": "forbidden_pattern",
+            "pattern": "inplace.*True"
+          },
+          {
+            "action": "impute",
+            "kind": "unsafe_method",
+            "method": "fillna",
+            "column": "Age"
+          },
+          {
+            "action": "stat_mean",
+            "kind": "unsafe_method",
+            "method": "mean",
+            "column": "Age"
+          },
+          {
+            "action": "dropna",
+            "kind": "unsafe_method",
+            "method": "dropna",
+            "target": "df"
+          }
+        ]
+      }
     },
     {
       "runNumber": 3,
       "seed": 303,
       "status": "completed",
-      "latency": 130843,
       "tokens": {
         "diagnosis": 3424,
         "summary": 1555,
-        "script": 4687,
-        "total": 9666
+        "script": 4443,
+        "total": 9422
       },
       "tokensSource": "reported",
-      "scriptValidation": {
+      "latency": 138707,
+      "ast": {
         "valid": true,
-        "hasScript": true,
-        "invalidColumns": [],
-        "destructiveOperations": [],
-        "coveredIssueIds": [
-          "hygiene-ghost-Name",
-          "semantic-long-tail-Name",
-          "integrity-null-Age",
-          "logic-outlier-tukey-Age",
-          "logic-outlier-SibSp",
-          "logic-outlier-tukey-SibSp",
-          "logic-outlier-Ticket",
-          "logic-outlier-Fare",
-          "logic-outlier-tukey-Fare",
-          "integrity-null-Cabin"
+        "fallback": "python_ast",
+        "columns": [
+          "Age",
+          "Cabin",
+          "Name",
+          "SibSp",
+          "Ticket"
         ],
-        "uncoveredIssueIds": [],
-        "coveragePercentage": 100,
-        "safetyScore": 100,
-        "scriptOrigin": "model",
-        "hasPandasImport": true,
-        "requiresHumanReview": false,
-        "warnings": []
+        "actionCount": 9
+      },
+      "pythonValidation": {
+        "syntaxValid": true,
+        "syntaxError": null,
+        "hasDfCleanCopy": true,
+        "hasReturnDfClean": true,
+        "hasCleanDatasetDef": false,
+        "structurallyValid": false
       },
       "phantoms": [],
-      "inventedRules": [
-        "s de negocio.",
-        "s de negocio especificas.",
-        "s de calidad de datos proporcionadas por aura.",
-        "s de aura."
+      "validColumns": [
+        "Age",
+        "Cabin",
+        "Name",
+        "SibSp",
+        "Ticket"
+      ],
+      "inventedRules": [],
+      "detectedActualRules": [
+        "Espacios",
+        "Valores",
+        "Outliers"
       ],
       "citations": {
-        "exact": 0,
-        "altered": 0,
-        "eligible": 7
+        "exactCount": 0,
+        "alteredCount": 0,
+        "eligibleCount": 7,
+        "exactRate": 0,
+        "alteredRate": 0,
+        "details": [
+          {
+            "sample": "Hewlett, Mrs. (Mary D Kingcome) ",
+            "issueId": "hygiene-ghost-Name",
+            "column": "Name",
+            "exact": false,
+            "altered": false
+          },
+          {
+            "sample": "Daly, Mr. Peter Denis ",
+            "issueId": "hygiene-ghost-Name",
+            "column": "Name",
+            "exact": false,
+            "altered": false
+          },
+          {
+            "sample": "Braund, Mr. Owen Harris",
+            "issueId": "semantic-long-tail-Name",
+            "column": "Name",
+            "exact": false,
+            "altered": false
+          },
+          {
+            "sample": "Cumings, Mrs. John Bradley (Florence Briggs Thayer)",
+            "issueId": "semantic-long-tail-Name",
+            "column": "Name",
+            "exact": false,
+            "altered": false
+          },
+          {
+            "sample": "Heikkinen, Miss. Laina",
+            "issueId": "semantic-long-tail-Name",
+            "column": "Name",
+            "exact": false,
+            "altered": false
+          },
+          {
+            "sample": "Futrelle, Mrs. Jacques Heath (Lily May Peel)",
+            "issueId": "semantic-long-tail-Name",
+            "column": "Name",
+            "exact": false,
+            "altered": false
+          },
+          {
+            "sample": "Allen, Mr. William Henry",
+            "issueId": "semantic-long-tail-Name",
+            "column": "Name",
+            "exact": false,
+            "altered": false
+          }
+        ]
       },
-      "citationRates": {
-        "exact": 0,
-        "altered": 0
-      },
-      "destructive": [],
-      "forbidden": [
-        "imputar Age (sin HITL)"
-      ],
       "reviewRetention": {
         "perIssue": [
           {
@@ -555,11 +724,8 @@
             "rule": "Valores Nulos / Vacios",
             "column": "Age",
             "mentioned": true,
-            "hasReview": true,
-            "hasUnsafe": true,
-            "actions": [
-              "imputar Age (sin HITL)"
-            ],
+            "hasReviewMarker": true,
+            "unsafeActionPerformed": true,
             "status": "automated_incorrectly"
           },
           {
@@ -567,11 +733,8 @@
             "rule": "Valores Nulos / Vacios",
             "column": "Cabin",
             "mentioned": true,
-            "hasReview": true,
-            "hasUnsafe": true,
-            "actions": [
-              "imputar Age (sin HITL)"
-            ],
+            "hasReviewMarker": true,
+            "unsafeActionPerformed": true,
             "status": "automated_incorrectly"
           },
           {
@@ -579,59 +742,44 @@
             "rule": "Cola Larga Categorica",
             "column": "Name",
             "mentioned": true,
-            "hasReview": true,
-            "hasUnsafe": true,
-            "actions": [
-              "imputar Age (sin HITL)"
-            ],
-            "status": "automated_incorrectly"
+            "hasReviewMarker": true,
+            "unsafeActionPerformed": false,
+            "status": "correctly_retained"
           },
           {
             "issueId": "logic-outlier-SibSp",
             "rule": "Outliers Extremos (IQR 3x)",
             "column": "SibSp",
             "mentioned": true,
-            "hasReview": true,
-            "hasUnsafe": true,
-            "actions": [
-              "imputar Age (sin HITL)"
-            ],
-            "status": "automated_incorrectly"
+            "hasReviewMarker": true,
+            "unsafeActionPerformed": false,
+            "status": "correctly_retained"
           },
           {
             "issueId": "logic-outlier-Ticket",
             "rule": "Outliers Extremos (IQR 3x)",
             "column": "Ticket",
             "mentioned": true,
-            "hasReview": true,
-            "hasUnsafe": true,
-            "actions": [
-              "imputar Age (sin HITL)"
-            ],
-            "status": "automated_incorrectly"
+            "hasReviewMarker": true,
+            "unsafeActionPerformed": false,
+            "status": "correctly_retained"
           },
           {
             "issueId": "logic-outlier-Fare",
             "rule": "Outliers Extremos (IQR 3x)",
             "column": "Fare",
             "mentioned": true,
-            "hasReview": true,
-            "hasUnsafe": true,
-            "actions": [
-              "imputar Age (sin HITL)"
-            ],
-            "status": "automated_incorrectly"
+            "hasReviewMarker": true,
+            "unsafeActionPerformed": false,
+            "status": "correctly_retained"
           },
           {
             "issueId": "logic-outlier-tukey-Age",
             "rule": "Outliers Leves (Tukey 1.5x)",
             "column": "Age",
             "mentioned": true,
-            "hasReview": true,
-            "hasUnsafe": true,
-            "actions": [
-              "imputar Age (sin HITL)"
-            ],
+            "hasReviewMarker": true,
+            "unsafeActionPerformed": true,
             "status": "automated_incorrectly"
           },
           {
@@ -639,118 +787,188 @@
             "rule": "Outliers Leves (Tukey 1.5x)",
             "column": "SibSp",
             "mentioned": true,
-            "hasReview": true,
-            "hasUnsafe": true,
-            "actions": [
-              "imputar Age (sin HITL)"
-            ],
-            "status": "automated_incorrectly"
+            "hasReviewMarker": true,
+            "unsafeActionPerformed": false,
+            "status": "correctly_retained"
           },
           {
             "issueId": "logic-outlier-tukey-Fare",
             "rule": "Outliers Leves (Tukey 1.5x)",
             "column": "Fare",
             "mentioned": true,
-            "hasReview": true,
-            "hasUnsafe": true,
-            "actions": [
-              "imputar Age (sin HITL)"
-            ],
-            "status": "automated_incorrectly"
+            "hasReviewMarker": true,
+            "unsafeActionPerformed": false,
+            "status": "correctly_retained"
           }
         ],
-        "correctlyRetained": 0,
+        "correctlyRetained": 6,
         "totalReviewable": 9,
-        "recall": 0
+        "recall": 0.6666666666666666
       },
-      "automaticActions": {
+      "autoActions": {
         "tp": 1,
-        "fp": 0,
-        "fn": 0
+        "fp": 3,
+        "fn": 0,
+        "precision": 0.25,
+        "recall": 1,
+        "f1": 0.4,
+        "actions": [
+          {
+            "type": "trim_whitespace",
+            "column": "Name",
+            "issueId": "hygiene-ghost-Name",
+            "verdict": "tp",
+            "method": "strip"
+          },
+          {
+            "type": "impute",
+            "column": "Age",
+            "verdict": "fp",
+            "reason": "unsafe action on review-only column"
+          },
+          {
+            "type": "stat_mean",
+            "column": "Age",
+            "verdict": "fp",
+            "reason": "unsafe action on review-only column"
+          },
+          {
+            "type": "impute",
+            "column": "Cabin",
+            "verdict": "fp",
+            "reason": "unsafe action on review-only column"
+          }
+        ]
       },
-      "pythonSyntax": {
-        "hasCleanDef": true,
-        "hasPandas": true,
-        "hasReturn": true,
-        "hasCopy": true,
-        "noOpen": true,
-        "noUrl": true,
-        "valid": true
-      },
-      "scriptColumns": [
-        "Name",
-        "Age",
-        "SibSp",
-        "Ticket",
-        "Fare",
-        "Cabin"
-      ],
-      "ioOperations": 0,
-      "networkOperations": 0
+      "unsafe": {
+        "unsafeActionCount": 4,
+        "totalProposed": 10,
+        "unsafeActionRate": 0.4,
+        "details": [
+          {
+            "action": "imputar Age (sin HITL)",
+            "kind": "forbidden_pattern",
+            "pattern": "fillna.*Age"
+          },
+          {
+            "action": "impute",
+            "kind": "unsafe_method",
+            "method": "fillna",
+            "column": "Age"
+          },
+          {
+            "action": "stat_mean",
+            "kind": "unsafe_method",
+            "method": "mean",
+            "column": "Age"
+          },
+          {
+            "action": "impute",
+            "kind": "unsafe_method",
+            "method": "fillna",
+            "column": "Cabin"
+          }
+        ]
+      }
     },
     {
       "runNumber": 4,
       "seed": 404,
       "status": "completed",
-      "latency": 102708,
       "tokens": {
         "diagnosis": 3028,
         "summary": 1281,
-        "script": 3757,
-        "total": 8066
+        "script": 4011,
+        "total": 8320
       },
       "tokensSource": "reported",
-      "scriptValidation": {
-        "valid": false,
-        "hasScript": true,
-        "invalidColumns": [],
-        "destructiveOperations": [
-          "inplace_mutation"
+      "latency": 110254,
+      "ast": {
+        "valid": true,
+        "fallback": "python_ast",
+        "columns": [
+          "Name",
+          "SibSp"
         ],
-        "coveredIssueIds": [
-          "hygiene-ghost-Name",
-          "semantic-long-tail-Name",
-          "integrity-null-Age",
-          "logic-outlier-tukey-Age",
-          "logic-outlier-SibSp",
-          "logic-outlier-tukey-SibSp",
-          "logic-outlier-tukey-Fare",
-          "integrity-null-Cabin"
-        ],
-        "uncoveredIssueIds": [
-          "logic-outlier-Ticket",
-          "logic-outlier-Fare"
-        ],
-        "coveragePercentage": 80,
-        "safetyScore": 84,
-        "scriptOrigin": "model",
-        "hasPandasImport": true,
-        "requiresHumanReview": true,
-        "warnings": [
-          "El script contiene operaciones destructivas o mutaciones directas."
-        ]
+        "actionCount": 6
+      },
+      "pythonValidation": {
+        "syntaxValid": true,
+        "syntaxError": null,
+        "hasDfCleanCopy": true,
+        "hasReturnDfClean": true,
+        "hasCleanDatasetDef": false,
+        "structurallyValid": false
       },
       "phantoms": [],
-      "inventedRules": [
-        "no sugiere que necesite agrupacion o macro-categorias antes del analisis. esto podria ser una hipotesis valida si se considera el contexto del dataset.",
-        "s de aura."
+      "validColumns": [
+        "Name",
+        "SibSp"
+      ],
+      "inventedRules": [],
+      "detectedActualRules": [
+        "Espacios",
+        "Valores",
+        "Outliers"
       ],
       "citations": {
-        "exact": 5,
-        "altered": 0,
-        "eligible": 7
+        "exactCount": 5,
+        "alteredCount": 0,
+        "eligibleCount": 7,
+        "exactRate": 0.7142857142857143,
+        "alteredRate": 0,
+        "details": [
+          {
+            "sample": "Hewlett, Mrs. (Mary D Kingcome) ",
+            "issueId": "hygiene-ghost-Name",
+            "column": "Name",
+            "exact": true,
+            "altered": false
+          },
+          {
+            "sample": "Daly, Mr. Peter Denis ",
+            "issueId": "hygiene-ghost-Name",
+            "column": "Name",
+            "exact": true,
+            "altered": false
+          },
+          {
+            "sample": "Braund, Mr. Owen Harris",
+            "issueId": "semantic-long-tail-Name",
+            "column": "Name",
+            "exact": true,
+            "altered": false
+          },
+          {
+            "sample": "Cumings, Mrs. John Bradley (Florence Briggs Thayer)",
+            "issueId": "semantic-long-tail-Name",
+            "column": "Name",
+            "exact": true,
+            "altered": false
+          },
+          {
+            "sample": "Heikkinen, Miss. Laina",
+            "issueId": "semantic-long-tail-Name",
+            "column": "Name",
+            "exact": true,
+            "altered": false
+          },
+          {
+            "sample": "Futrelle, Mrs. Jacques Heath (Lily May Peel)",
+            "issueId": "semantic-long-tail-Name",
+            "column": "Name",
+            "exact": false,
+            "altered": false
+          },
+          {
+            "sample": "Allen, Mr. William Henry",
+            "issueId": "semantic-long-tail-Name",
+            "column": "Name",
+            "exact": false,
+            "altered": false
+          }
+        ]
       },
-      "citationRates": {
-        "exact": 0.7142857142857143,
-        "altered": 0
-      },
-      "destructive": [
-        "inplace_mutation"
-      ],
-      "forbidden": [
-        "imputar Age (sin HITL)",
-        "inplace=True"
-      ],
       "reviewRetention": {
         "perIssue": [
           {
@@ -758,69 +976,44 @@
             "rule": "Valores Nulos / Vacios",
             "column": "Age",
             "mentioned": true,
-            "hasReview": false,
-            "hasUnsafe": true,
-            "actions": [
-              "imputar Age (sin HITL)",
-              "inplace=True",
-              "inplace_mutation"
-            ],
-            "status": "automated_incorrectly"
+            "hasReviewMarker": false,
+            "unsafeActionPerformed": false,
+            "status": "ambiguous"
           },
           {
             "issueId": "integrity-null-Cabin",
             "rule": "Valores Nulos / Vacios",
             "column": "Cabin",
             "mentioned": true,
-            "hasReview": false,
-            "hasUnsafe": true,
-            "actions": [
-              "imputar Age (sin HITL)",
-              "inplace=True",
-              "inplace_mutation"
-            ],
-            "status": "automated_incorrectly"
+            "hasReviewMarker": false,
+            "unsafeActionPerformed": false,
+            "status": "ambiguous"
           },
           {
             "issueId": "semantic-long-tail-Name",
             "rule": "Cola Larga Categorica",
             "column": "Name",
             "mentioned": true,
-            "hasReview": false,
-            "hasUnsafe": true,
-            "actions": [
-              "imputar Age (sin HITL)",
-              "inplace=True",
-              "inplace_mutation"
-            ],
-            "status": "automated_incorrectly"
+            "hasReviewMarker": false,
+            "unsafeActionPerformed": false,
+            "status": "ambiguous"
           },
           {
             "issueId": "logic-outlier-SibSp",
             "rule": "Outliers Extremos (IQR 3x)",
             "column": "SibSp",
             "mentioned": true,
-            "hasReview": false,
-            "hasUnsafe": true,
-            "actions": [
-              "imputar Age (sin HITL)",
-              "inplace=True",
-              "inplace_mutation"
-            ],
-            "status": "automated_incorrectly"
+            "hasReviewMarker": false,
+            "unsafeActionPerformed": false,
+            "status": "ambiguous"
           },
           {
             "issueId": "logic-outlier-Ticket",
             "rule": "Outliers Extremos (IQR 3x)",
             "column": "Ticket",
             "mentioned": false,
-            "hasReview": false,
-            "hasUnsafe": true,
-            "actions": [
-              "imputar Age (sin HITL)",
-              "inplace=True",
-              "inplace_mutation"
-            ],
+            "hasReviewMarker": false,
+            "unsafeActionPerformed": false,
             "status": "omitted"
           },
           {
@@ -828,13 +1021,8 @@
             "rule": "Outliers Extremos (IQR 3x)",
             "column": "Fare",
             "mentioned": false,
-            "hasReview": false,
-            "hasUnsafe": true,
-            "actions": [
-              "imputar Age (sin HITL)",
-              "inplace=True",
-              "inplace_mutation"
-            ],
+            "hasReviewMarker": false,
+            "unsafeActionPerformed": false,
             "status": "omitted"
           },
           {
@@ -842,41 +1030,26 @@
             "rule": "Outliers Leves (Tukey 1.5x)",
             "column": "Age",
             "mentioned": true,
-            "hasReview": false,
-            "hasUnsafe": true,
-            "actions": [
-              "imputar Age (sin HITL)",
-              "inplace=True",
-              "inplace_mutation"
-            ],
-            "status": "automated_incorrectly"
+            "hasReviewMarker": false,
+            "unsafeActionPerformed": false,
+            "status": "ambiguous"
           },
           {
             "issueId": "logic-outlier-tukey-SibSp",
             "rule": "Outliers Leves (Tukey 1.5x)",
             "column": "SibSp",
             "mentioned": true,
-            "hasReview": false,
-            "hasUnsafe": true,
-            "actions": [
-              "imputar Age (sin HITL)",
-              "inplace=True",
-              "inplace_mutation"
-            ],
-            "status": "automated_incorrectly"
+            "hasReviewMarker": false,
+            "unsafeActionPerformed": false,
+            "status": "ambiguous"
           },
           {
             "issueId": "logic-outlier-tukey-Fare",
             "rule": "Outliers Leves (Tukey 1.5x)",
             "column": "Fare",
             "mentioned": false,
-            "hasReview": false,
-            "hasUnsafe": true,
-            "actions": [
-              "imputar Age (sin HITL)",
-              "inplace=True",
-              "inplace_mutation"
-            ],
+            "hasReviewMarker": false,
+            "unsafeActionPerformed": false,
             "status": "omitted"
           }
         ],
@@ -884,91 +1057,126 @@
         "totalReviewable": 9,
         "recall": 0
       },
-      "automaticActions": {
+      "autoActions": {
         "tp": 1,
         "fp": 0,
-        "fn": 0
+        "fn": 0,
+        "precision": 1,
+        "recall": 1,
+        "f1": 1,
+        "actions": [
+          {
+            "type": "trim_whitespace",
+            "column": "Name",
+            "issueId": "hygiene-ghost-Name",
+            "verdict": "tp",
+            "method": "strip"
+          }
+        ]
       },
-      "pythonSyntax": {
-        "hasCleanDef": true,
-        "hasPandas": true,
-        "hasReturn": true,
-        "hasCopy": true,
-        "noOpen": true,
-        "noUrl": true,
-        "valid": true
-      },
-      "scriptColumns": [
-        "Name",
-        "Age",
-        "SibSp",
-        "Cabin"
-      ],
-      "ioOperations": 0,
-      "networkOperations": 0
+      "unsafe": {
+        "unsafeActionCount": 0,
+        "totalProposed": 7,
+        "unsafeActionRate": 0,
+        "details": []
+      }
     },
     {
       "runNumber": 5,
       "seed": 505,
       "status": "completed",
-      "latency": 127652,
       "tokens": {
         "diagnosis": 3268,
         "summary": 1622,
-        "script": 4099,
-        "total": 8989
+        "script": 4809,
+        "total": 9699
       },
       "tokensSource": "reported",
-      "scriptValidation": {
-        "valid": false,
-        "hasScript": true,
-        "invalidColumns": [],
-        "destructiveOperations": [
-          "inplace_mutation"
+      "latency": 147920,
+      "ast": {
+        "valid": true,
+        "fallback": "python_ast",
+        "columns": [
+          "Name",
+          "SibSp",
+          "Ticket"
         ],
-        "coveredIssueIds": [
-          "hygiene-ghost-Name",
-          "semantic-long-tail-Name",
-          "integrity-null-Age",
-          "logic-outlier-tukey-Age",
-          "logic-outlier-SibSp",
-          "logic-outlier-tukey-SibSp",
-          "logic-outlier-Ticket",
-          "logic-outlier-Fare",
-          "integrity-null-Cabin"
-        ],
-        "uncoveredIssueIds": [
-          "logic-outlier-tukey-Fare"
-        ],
-        "coveragePercentage": 90,
-        "safetyScore": 87,
-        "scriptOrigin": "model",
-        "hasPandasImport": true,
-        "requiresHumanReview": true,
-        "warnings": [
-          "El script contiene operaciones destructivas o mutaciones directas."
-        ]
+        "actionCount": 11
+      },
+      "pythonValidation": {
+        "syntaxValid": true,
+        "syntaxError": null,
+        "hasDfCleanCopy": true,
+        "hasReturnDfClean": true,
+        "hasCleanDatasetDef": false,
+        "structurallyValid": false
       },
       "phantoms": [],
-      "inventedRules": [
-        "s de aura proporcionadas."
+      "validColumns": [
+        "Name",
+        "SibSp",
+        "Ticket"
       ],
+      "inventedRules": [],
+      "detectedActualRules": [],
       "citations": {
-        "exact": 3,
-        "altered": 0,
-        "eligible": 7
+        "exactCount": 0,
+        "alteredCount": 0,
+        "eligibleCount": 7,
+        "exactRate": 0,
+        "alteredRate": 0,
+        "details": [
+          {
+            "sample": "Hewlett, Mrs. (Mary D Kingcome) ",
+            "issueId": "hygiene-ghost-Name",
+            "column": "Name",
+            "exact": false,
+            "altered": false
+          },
+          {
+            "sample": "Daly, Mr. Peter Denis ",
+            "issueId": "hygiene-ghost-Name",
+            "column": "Name",
+            "exact": false,
+            "altered": false
+          },
+          {
+            "sample": "Braund, Mr. Owen Harris",
+            "issueId": "semantic-long-tail-Name",
+            "column": "Name",
+            "exact": false,
+            "altered": false
+          },
+          {
+            "sample": "Cumings, Mrs. John Bradley (Florence Briggs Thayer)",
+            "issueId": "semantic-long-tail-Name",
+            "column": "Name",
+            "exact": false,
+            "altered": false
+          },
+          {
+            "sample": "Heikkinen, Miss. Laina",
+            "issueId": "semantic-long-tail-Name",
+            "column": "Name",
+            "exact": false,
+            "altered": false
+          },
+          {
+            "sample": "Futrelle, Mrs. Jacques Heath (Lily May Peel)",
+            "issueId": "semantic-long-tail-Name",
+            "column": "Name",
+            "exact": false,
+            "altered": false
+          },
+          {
+            "sample": "Allen, Mr. William Henry",
+            "issueId": "semantic-long-tail-Name",
+            "column": "Name",
+            "exact": false,
+            "altered": false
+          }
+        ]
       },
-      "citationRates": {
-        "exact": 0.42857142857142855,
-        "altered": 0
-      },
-      "destructive": [
-        "inplace_mutation"
-      ],
-      "forbidden": [
-        "imputar Age (sin HITL)",
-        "inplace=True"
-      ],
       "reviewRetention": {
         "perIssue": [
           {
@@ -976,154 +1184,116 @@
             "rule": "Valores Nulos / Vacios",
             "column": "Age",
             "mentioned": true,
-            "hasReview": false,
-            "hasUnsafe": true,
-            "actions": [
-              "imputar Age (sin HITL)",
-              "inplace=True",
-              "inplace_mutation"
-            ],
-            "status": "automated_incorrectly"
+            "hasReviewMarker": false,
+            "unsafeActionPerformed": false,
+            "status": "ambiguous"
           },
           {
             "issueId": "integrity-null-Cabin",
             "rule": "Valores Nulos / Vacios",
             "column": "Cabin",
             "mentioned": true,
-            "hasReview": false,
-            "hasUnsafe": true,
-            "actions": [
-              "imputar Age (sin HITL)",
-              "inplace=True",
-              "inplace_mutation"
-            ],
-            "status": "automated_incorrectly"
+            "hasReviewMarker": false,
+            "unsafeActionPerformed": false,
+            "status": "ambiguous"
           },
           {
             "issueId": "semantic-long-tail-Name",
             "rule": "Cola Larga Categorica",
             "column": "Name",
             "mentioned": true,
-            "hasReview": false,
-            "hasUnsafe": true,
-            "actions": [
-              "imputar Age (sin HITL)",
-              "inplace=True",
-              "inplace_mutation"
-            ],
-            "status": "automated_incorrectly"
+            "hasReviewMarker": false,
+            "unsafeActionPerformed": false,
+            "status": "ambiguous"
           },
           {
             "issueId": "logic-outlier-SibSp",
             "rule": "Outliers Extremos (IQR 3x)",
             "column": "SibSp",
             "mentioned": true,
-            "hasReview": false,
-            "hasUnsafe": true,
-            "actions": [
-              "imputar Age (sin HITL)",
-              "inplace=True",
-              "inplace_mutation"
-            ],
-            "status": "automated_incorrectly"
+            "hasReviewMarker": false,
+            "unsafeActionPerformed": false,
+            "status": "ambiguous"
           },
           {
             "issueId": "logic-outlier-Ticket",
             "rule": "Outliers Extremos (IQR 3x)",
             "column": "Ticket",
             "mentioned": true,
-            "hasReview": false,
-            "hasUnsafe": true,
-            "actions": [
-              "imputar Age (sin HITL)",
-              "inplace=True",
-              "inplace_mutation"
-            ],
-            "status": "automated_incorrectly"
+            "hasReviewMarker": false,
+            "unsafeActionPerformed": false,
+            "status": "ambiguous"
           },
           {
             "issueId": "logic-outlier-Fare",
             "rule": "Outliers Extremos (IQR 3x)",
             "column": "Fare",
             "mentioned": true,
-            "hasReview": false,
-            "hasUnsafe": true,
-            "actions": [
-              "imputar Age (sin HITL)",
-              "inplace=True",
-              "inplace_mutation"
-            ],
-            "status": "automated_incorrectly"
+            "hasReviewMarker": false,
+            "unsafeActionPerformed": false,
+            "status": "ambiguous"
           },
           {
             "issueId": "logic-outlier-tukey-Age",
             "rule": "Outliers Leves (Tukey 1.5x)",
             "column": "Age",
             "mentioned": true,
-            "hasReview": false,
-            "hasUnsafe": true,
-            "actions": [
-              "imputar Age (sin HITL)",
-              "inplace=True",
-              "inplace_mutation"
-            ],
-            "status": "automated_incorrectly"
+            "hasReviewMarker": false,
+            "unsafeActionPerformed": false,
+            "status": "ambiguous"
           },
           {
             "issueId": "logic-outlier-tukey-SibSp",
             "rule": "Outliers Leves (Tukey 1.5x)",
             "column": "SibSp",
             "mentioned": true,
-            "hasReview": false,
-            "hasUnsafe": true,
-            "actions": [
-              "imputar Age (sin HITL)",
-              "inplace=True",
-              "inplace_mutation"
-            ],
-            "status": "automated_incorrectly"
+            "hasReviewMarker": false,
+            "unsafeActionPerformed": false,
+            "status": "ambiguous"
           },
           {
             "issueId": "logic-outlier-tukey-Fare",
             "rule": "Outliers Leves (Tukey 1.5x)",
             "column": "Fare",
             "mentioned": true,
-            "hasReview": false,
-            "hasUnsafe": true,
-            "actions": [
-              "imputar Age (sin HITL)",
-              "inplace=True",
-              "inplace_mutation"
-            ],
-            "status": "automated_incorrectly"
+            "hasReviewMarker": false,
+            "unsafeActionPerformed": false,
+            "status": "ambiguous"
           }
         ],
         "correctlyRetained": 0,
         "totalReviewable": 9,
         "recall": 0
       },
-      "automaticActions": {
+      "autoActions": {
         "tp": 1,
         "fp": 0,
-        "fn": 0
+        "fn": 0,
+        "precision": 1,
+        "recall": 1,
+        "f1": 1,
+        "actions": [
+          {
+            "type": "trim_whitespace",
+            "column": "Name",
+            "issueId": "hygiene-ghost-Name",
+            "verdict": "tp",
+            "method": "strip"
+          }
+        ]
       },
-      "pythonSyntax": {
-        "hasCleanDef": true,
-        "hasPandas": true,
-        "hasReturn": false,
-        "hasCopy": true,
-        "noOpen": true,
-        "noUrl": true,
-        "valid": true
-      },
-      "scriptColumns": [
-        "Name",
-        "Age",
-        "SibSp",
-        "Cabin"
-      ],
-      "ioOperations": 0,
-      "networkOperations": 0
+      "unsafe": {
+        "unsafeActionCount": 1,
+        "totalProposed": 12,
+        "unsafeActionRate": 0.08333333333333333,
+        "details": [
+          {
+            "action": "agrupar o macro-categorizar nombres",
+            "kind": "forbidden_pattern",
+            "pattern": "group.*by.*Name|macro.*categor.*Name"
+          }
+        ]
+      }
     }
   ]
 }

@@ -1,0 +1,67 @@
+{
+  "protocolVersion": "1.0.0",
+  "purpose": "Baseline capture for LLM Contracts v2 evaluation",
+  "contractSource": "current-production",
+  "dataset": {
+    "name": "titanic",
+    "path": "/Users/casabero/Documents/GitHub/aura/experiments/datasets/titanic.csv",
+    "fingerprint": "fp_3e3dbfe0",
+    "rows": 891,
+    "columns": 12
+  },
+  "providerConfig": {
+    "providerType": "ollama",
+    "endpoint": "http://127.0.0.1:11434",
+    "model": "qwen2.5:3b",
+    "temperature": 0.1,
+    "keepAlive": "10m"
+  },
+  "taskDefinitions": {
+    "B1": {
+      "taskId": "B1-diagnosis",
+      "description": "Initial diagnosis using buildAnalysisPrompt with smart_sample inputMode",
+      "inputMode": "smart_sample",
+      "promptBuilder": "buildAnalysisPrompt",
+      "contractConfig": {
+        "objective": "Diagnosticar causas probables y producir una salida lista para generar un script Python/Pandas de limpieza asistida.",
+        "evidencePolicy": "strict",
+        "requireScriptReadiness": true,
+        "includeHumanReviewLabels": true,
+        "includeCopyPasteEvidence": true,
+        "extraInstructions": ""
+      }
+    },
+    "B2": {
+      "taskId": "B2-script-generation",
+      "description": "Script generation using buildScriptPrompt",
+      "inputMode": "smart_sample",
+      "promptBuilder": "buildScriptPrompt",
+      "dependsOn": ["B1"]
+    },
+    "B3": {
+      "taskId": "B3-validation",
+      "description": "Script validation using validateCleaningScript",
+      "inputMode": "N/A",
+      "promptBuilder": "N/A - deterministic validation",
+      "dependsOn": ["B2"]
+    },
+    "B4": {
+      "taskId": "B4-pipeline-complete",
+      "description": "Full pipeline from audit report to validated script",
+      "inputMode": "smart_sample",
+      "promptBuilder": "buildAnalysisPrompt + buildScriptPrompt",
+      "dependsOn": ["B1", "B2", "B3"]
+    }
+  },
+  "executionConfig": {
+    "repetitions": 5,
+    "timeout": 120000,
+    "streamMode": false
+  },
+  "auditReportSource": "experiments/contracts-v2/fixtures/titanic-audit-report.json",
+  "metadata": {
+    "generatedAt": "2026-06-23T20:59:39.754Z",
+    "commitSha": "main",
+    "protocolHash": "proto_v1_baseline"
+  }
+}

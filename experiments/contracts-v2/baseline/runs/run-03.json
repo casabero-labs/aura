@@ -2,7 +2,7 @@
   "runNumber": 3,
   "seed": 303,
   "status": "completed",
-  "startedAt": "2026-06-23T23:03:52.238Z",
+  "startedAt": "2026-06-23T23:50:08.354Z",
   "tasks": {
     "B1": {
       "taskId": "B1-diagnosis",
@@ -11,51 +11,70 @@
       "metrics": {
         "provider": "Ollama",
         "model": "qwen2.5:3b",
-        "latencyMs": 60779,
-        "firstTokenMs": 60779,
+        "latencyMs": 69966,
+        "firstTokenMs": 69966,
         "tokensGenerated": 3424,
         "isLocal": true,
-        "timestamp": "2026-06-23T23:04:53.018Z",
+        "timestamp": "2026-06-23T23:51:18.319Z",
         "tokensSource": "reported",
         "promptEvalCount": 2312,
         "evalCount": 1112,
-        "promptEvalDuration": 12107175418,
-        "evalDuration": 48055090921,
-        "totalDuration": 60774052458,
-        "loadDuration": 130070333
+        "promptEvalDuration": 13591776333,
+        "evalDuration": 55727219543,
+        "totalDuration": 69950790750,
+        "loadDuration": 135406875
       },
-      "durationMs": 60779,
+      "durationMs": 69966,
       "status": "completed"
     },
     "B1Summary": {
       "taskId": "B1-summary",
       "responseRaw": "## Resumen operativo para script\n\n### Problemas priorizados:\n1. **Espacios Fantasma (Trim) en la columna \"Name\"**\n2. **Valores Nulos en la columna \"Age\"**\n3. **Outliers Extremos en la columna \"SibSp\"**\n4. **Outliers Extremos en la columna \"Ticket\"**\n\n### Acciones automatizables:\n- Llenar los espacios invisibles en la columna \"Name\".\n- Llenar los valores nulos en la columna \"Age\".\n- Eliminar o reemplazar los outliers en la columna \"SibSp\".\n- Eliminar o reemplazar los outliers en la columna \"Ticket\".\n\n### Acciones que requieren HITL:\n- Agrupar o macro-categorizar la columna \"Name\" (requiere revisión con expertos en el dominio).\n- Llenar los valores nulos en la columna \"Cabin\" (puede ser útil llenar con una cadena única como 'N/A').\n\n### Columnas que NO deben modificarse automaticamente:\n- No se recomienda modificar las columnas \"Name\", \"Age\", \"SibSp\", y \"Ticket\".\n\n### Riesgos del script:\n- Error en la implementación de agrupaciones o macro-categorías para la columna \"Name\" si no se revisa con expertos en el dominio.\n- Sesgos potenciales si los outliers son eliminados sin considerar su relevancia en el análisis.",
-      "summaryBrief": "- 1.   Espacios Fantasma (Trim) en la columna \"Name\"\n- Regla: Espacios Fantasma (Trim)\n- Columna: Name\n- 2.   Cola Larga Categórica en la columna \"Name\"\n- Regla: Cola Larga Categórica\n- Columna: Name\n- Evidencia: La columna tiene una alta dispersión de categorías con pocos valores únicos, lo que sugiere que podría necesitar agrupación o macro categorías antes del análisis.\n- 3.   Valores Nulos en la columna \"Age\"\n- Regla: Valores Nulos / Vacíos\n- Columna: Age",
-      "durationMs": 16088,
+      "operativeBrief": "## Resumen operativo para script\n\n### Problemas priorizados:\n1. **Espacios Fantasma (Trim) en la columna \"Name\"**\n2. **Valores Nulos en la columna \"Age\"**\n3. **Outliers Extremos en la columna \"SibSp\"**\n4. **Outliers Extremos en la columna \"Ticket\"**\n\n### Acciones automatizables:\n- Llenar los espacios invisibles en la columna \"Name\".\n- Llenar los valores nulos en la columna \"Age\".\n- Eliminar o reemplazar los outliers en la columna \"SibSp\".\n- Eliminar o reemplazar los outliers en la columna \"Ticket\".\n\n### Acciones que requieren HITL:\n- Agrupar o macro-categorizar la columna \"Name\" (requiere revisión con expertos en el dominio).\n- Llenar los valores nulos en la columna \"Cabin\" (puede ser útil llenar con una cadena única como 'N/A').\n\n### Columnas que NO deben modificarse automaticamente:\n- No se recomienda modificar las columnas \"Name\", \"Age\", \"SibSp\", y \"Ticket\".\n\n### Riesgos del script:\n- Error en la implementación de agrupaciones o macro-categorías para la columna \"Name\" si no se revisa con expertos en el dominio.\n- Sesgos potenciales si los outliers son eliminados sin considerar su relevancia en el análisis.",
+      "operativeBriefUsed": true,
+      "operativeBriefHash": "1bd1abd9",
+      "durationMs": 24073,
+      "metrics": {
+        "provider": "Ollama",
+        "model": "qwen2.5:3b",
+        "latencyMs": 24073,
+        "firstTokenMs": 24073,
+        "tokensGenerated": 1555,
+        "isLocal": true,
+        "timestamp": "2026-06-23T23:51:42.392Z",
+        "tokensSource": "reported",
+        "promptEvalCount": 1243,
+        "evalCount": 312,
+        "promptEvalDuration": 7238422792,
+        "evalDuration": 16502224677,
+        "totalDuration": 24065291042,
+        "loadDuration": 55038959
+      },
+      "error": null,
       "status": "completed"
     },
     "B2": {
       "taskId": "B2-script-generation",
-      "promptHash": "3a9fabc1",
-      "responseRaw": "```python\nimport pandas as pd\nimport numpy as np\n\ndef clean_dataset(df: pd.DataFrame) -> pd.DataFrame:\n    \"\"\"\n    Función para limpiar el DataFrame 'df' utilizando reglas de calidad de datos proporcionadas por AURA.\n    \n    Returns:\n        pd.DataFrame: El DataFrame limpio con columnas tratadas según las reglas de AURA.\n    \"\"\"\n    \n    # AURA: regla=Espacios Fantasma (Trim) columna=Name\n    df_clean = df.copy()\n    df_clean['Name'] = df_clean['Name'].str.strip()\n\n    # AURA: regla=Cola Larga Categórica columna=Name\n    df_clean['Name'] = df_clean['Name'].apply(lambda x: 'Other' if len(x.split()) < 3 else x)\n    \n    # AURA: regla=Valores Nulos / Vacíos columna=Age\n    df_clean['Age'] = df_clean['Age'].fillna(df_clean['Age'].mean())\n    \n    # AURA: regla=Outliers Leves (Tukey 1.5×) columna=Age\n    q1_age, q3_age = df_clean['Age'].quantile(0.25), df_clean['Age'].quantile(0.75)\n    iqr_age = q3_age - q1_age\n    lower_bound_age, upper_bound_age = q1_age - 1.5 * iqr_age, q3_age + 1.5 * iqr_age\n    df_clean.loc[(df_clean['Age'] < lower_bound_age) | (df_clean['Age'] > upper_bound_age), 'Age'] = np.nan\n    \n    # AURA: regla=Outliers Extremos (IQR 3×) columna=SibSp\n    q1_sibs, q3_sibs = df_clean['SibSp'].quantile(0.25), df_clean['SibSp'].quantile(0.75)\n    iqr_sibs = q3_sibs - q1_sibs\n    lower_bound_sibs, upper_bound_sibs = q1_sibs - 3 * iqr_sibs, q3_sibs + 3 * iqr_sibs\n    df_clean.loc[(df_clean['SibSp'] < lower_bound_sibs) | (df_clean['SibSp'] > upper_bound_sibs), 'SibSp'] = np.nan\n    \n    # AURA: regla=Outliers Extremos (IQR 3×) columna=Ticket\n    q1_ticket, q3_ticket = df_clean['Ticket'].quantile(0.25), df_clean['Ticket'].quantile(0.75)\n    iqr_ticket = q3_ticket - q1_ticket\n    lower_bound_ticket, upper_bound_ticket = q1_ticket - 3 * iqr_ticket, q3_ticket + 3 * iqr_ticket\n    df_clean.loc[(df_clean['Ticket'] < lower_bound_ticket) | (df_clean['Ticket'] > upper_bound_ticket), 'Ticket'] = np.nan\n    \n    # AURA: regla=Outliers Leves (Tukey 1.5×) columna=Fare\n    q1_fare, q3_fare = df_clean['Fare'].quantile(0.25), df_clean['Fare'].quantile(0.75)\n    iqr_fare = q3_fare - q1_fare\n    lower_bound_fare, upper_bound_fare = q1_fare - 1.5 * iqr_fare, q3_fare + 1.5 * iqr_fare\n    df_clean.loc[(df_clean['Fare'] < lower_bound_fare) | (df_clean['Fare'] > upper_bound_fare), 'Fare'] = np.nan\n    \n    # AURA: regla=Valores Nulos / Vacíos columna=Cabin\n    df_clean['Cabin'] = df_clean['Cabin'].fillna('N/A')\n    \n    return df_clean\n\n# Example usage:\n# df_cleaned = clean_dataset(df)\n```\n\nEste código proporciona una función `clean_dataset` que aplica las reglas de AURA para limpiar el DataFrame. Las columnas se tratan según las reglas especificadas, y los cambios son conservados en un nuevo DataFrame `df_clean`. El proceso no modifica directamente el DataFrame original; en su lugar, crea un nuevo DataFrame con las modificaciones necesarias.",
-      "scriptExtracted": "import pandas as pd\nimport numpy as np\n\ndef clean_dataset(df: pd.DataFrame) -> pd.DataFrame:\n    \"\"\"\n    Función para limpiar el DataFrame 'df' utilizando reglas de calidad de datos proporcionadas por AURA.\n    \n    Returns:\n        pd.DataFrame: El DataFrame limpio con columnas tratadas según las reglas de AURA.\n    \"\"\"\n    \n    # AURA: regla=Espacios Fantasma (Trim) columna=Name\n    df_clean = df.copy()\n    df_clean['Name'] = df_clean['Name'].str.strip()\n\n    # AURA: regla=Cola Larga Categórica columna=Name\n    df_clean['Name'] = df_clean['Name'].apply(lambda x: 'Other' if len(x.split()) < 3 else x)\n    \n    # AURA: regla=Valores Nulos / Vacíos columna=Age\n    df_clean['Age'] = df_clean['Age'].fillna(df_clean['Age'].mean())\n    \n    # AURA: regla=Outliers Leves (Tukey 1.5×) columna=Age\n    q1_age, q3_age = df_clean['Age'].quantile(0.25), df_clean['Age'].quantile(0.75)\n    iqr_age = q3_age - q1_age\n    lower_bound_age, upper_bound_age = q1_age - 1.5 * iqr_age, q3_age + 1.5 * iqr_age\n    df_clean.loc[(df_clean['Age'] < lower_bound_age) | (df_clean['Age'] > upper_bound_age), 'Age'] = np.nan\n    \n    # AURA: regla=Outliers Extremos (IQR 3×) columna=SibSp\n    q1_sibs, q3_sibs = df_clean['SibSp'].quantile(0.25), df_clean['SibSp'].quantile(0.75)\n    iqr_sibs = q3_sibs - q1_sibs\n    lower_bound_sibs, upper_bound_sibs = q1_sibs - 3 * iqr_sibs, q3_sibs + 3 * iqr_sibs\n    df_clean.loc[(df_clean['SibSp'] < lower_bound_sibs) | (df_clean['SibSp'] > upper_bound_sibs), 'SibSp'] = np.nan\n    \n    # AURA: regla=Outliers Extremos (IQR 3×) columna=Ticket\n    q1_ticket, q3_ticket = df_clean['Ticket'].quantile(0.25), df_clean['Ticket'].quantile(0.75)\n    iqr_ticket = q3_ticket - q1_ticket\n    lower_bound_ticket, upper_bound_ticket = q1_ticket - 3 * iqr_ticket, q3_ticket + 3 * iqr_ticket\n    df_clean.loc[(df_clean['Ticket'] < lower_bound_ticket) | (df_clean['Ticket'] > upper_bound_ticket), 'Ticket'] = np.nan\n    \n    # AURA: regla=Outliers Leves (Tukey 1.5×) columna=Fare\n    q1_fare, q3_fare = df_clean['Fare'].quantile(0.25), df_clean['Fare'].quantile(0.75)\n    iqr_fare = q3_fare - q1_fare\n    lower_bound_fare, upper_bound_fare = q1_fare - 1.5 * iqr_fare, q3_fare + 1.5 * iqr_fare\n    df_clean.loc[(df_clean['Fare'] < lower_bound_fare) | (df_clean['Fare'] > upper_bound_fare), 'Fare'] = np.nan\n    \n    # AURA: regla=Valores Nulos / Vacíos columna=Cabin\n    df_clean['Cabin'] = df_clean['Cabin'].fillna('N/A')\n    \n    return df_clean\n\n# Example usage:\n# df_cleaned = clean_dataset(df)",
+      "promptHash": "7b744579",
+      "responseRaw": "```python\nimport pandas as pd\nimport numpy as np\n\ndef clean_dataset(df: pd.DataFrame) -> pd.DataFrame:\n    \"\"\"\n    Función para limpiar el DataFrame 'df' utilizando reglas de calidad de datos previamente identificadas.\n    \n    Returns:\n        df_clean (pd.DataFrame): DataFrame con columnas limpiadas según las reglas establecidas.\n    \"\"\"\n    \n    # AURA: regla=Espacios Fantasma (Trim), columna=Name\n    df_clean = df.copy()\n    df_clean['Name'] = df_clean['Name'].str.strip()\n\n    # AURA: regla=Valores Nulos / Vacíos, columna=Age\n    df_clean['Age'] = df_clean['Age'].fillna(df_clean['Age'].mean())\n\n    # AURA: regla=Outliers Extremos (IQR 3×), columna=SibSp\n    q1_SibSp = df_clean['SibSp'].quantile(0.25)\n    q3_SibSp = df_clean['SibSp'].quantile(0.75)\n    iqr_SibSp = q3_SibSp - q1_SibSp\n    lower_bound_SibSp, upper_bound_SibSp = q1_SibSp - 1.5 * iqr_SibSp, q3_SibSp + 1.5 * iqr_SibSp\n    df_clean.loc[(df_clean['SibSp'] < lower_bound_SibSp) | (df_clean['SibSp'] > upper_bound_SibSp), 'SibSp'] = np.nan\n\n    # AURA: regla=Outliers Extremos (IQR 3×), columna=Ticket\n    q1_Ticket = df_clean['Ticket'].quantile(0.25)\n    q3_Ticket = df_clean['Ticket'].quantile(0.75)\n    iqr_Ticket = q3_Ticket - q1_Ticket\n    lower_bound_Ticket, upper_bound_Ticket = q1_Ticket - 1.5 * iqr_Ticket, q3_Ticket + 1.5 * iqr_Ticket\n    df_clean.loc[(df_clean['Ticket'] < lower_bound_Ticket) | (df_clean['Ticket'] > upper_bound_Ticket), 'Ticket'] = np.nan\n\n    # AURA: regla=Valores Nulos / Vacíos, columna=Cabin\n    df_clean['Cabin'] = df_clean['Cabin'].fillna('N/A')\n\n    return df_clean\n```",
+      "scriptExtracted": "import pandas as pd\nimport numpy as np\n\ndef clean_dataset(df: pd.DataFrame) -> pd.DataFrame:\n    \"\"\"\n    Función para limpiar el DataFrame 'df' utilizando reglas de calidad de datos previamente identificadas.\n    \n    Returns:\n        df_clean (pd.DataFrame): DataFrame con columnas limpiadas según las reglas establecidas.\n    \"\"\"\n    \n    # AURA: regla=Espacios Fantasma (Trim), columna=Name\n    df_clean = df.copy()\n    df_clean['Name'] = df_clean['Name'].str.strip()\n\n    # AURA: regla=Valores Nulos / Vacíos, columna=Age\n    df_clean['Age'] = df_clean['Age'].fillna(df_clean['Age'].mean())\n\n    # AURA: regla=Outliers Extremos (IQR 3×), columna=SibSp\n    q1_SibSp = df_clean['SibSp'].quantile(0.25)\n    q3_SibSp = df_clean['SibSp'].quantile(0.75)\n    iqr_SibSp = q3_SibSp - q1_SibSp\n    lower_bound_SibSp, upper_bound_SibSp = q1_SibSp - 1.5 * iqr_SibSp, q3_SibSp + 1.5 * iqr_SibSp\n    df_clean.loc[(df_clean['SibSp'] < lower_bound_SibSp) | (df_clean['SibSp'] > upper_bound_SibSp), 'SibSp'] = np.nan\n\n    # AURA: regla=Outliers Extremos (IQR 3×), columna=Ticket\n    q1_Ticket = df_clean['Ticket'].quantile(0.25)\n    q3_Ticket = df_clean['Ticket'].quantile(0.75)\n    iqr_Ticket = q3_Ticket - q1_Ticket\n    lower_bound_Ticket, upper_bound_Ticket = q1_Ticket - 1.5 * iqr_Ticket, q3_Ticket + 1.5 * iqr_Ticket\n    df_clean.loc[(df_clean['Ticket'] < lower_bound_Ticket) | (df_clean['Ticket'] > upper_bound_Ticket), 'Ticket'] = np.nan\n\n    # AURA: regla=Valores Nulos / Vacíos, columna=Cabin\n    df_clean['Cabin'] = df_clean['Cabin'].fillna('N/A')\n\n    return df_clean",
       "metrics": {
         "provider": "Ollama",
         "model": "qwen2.5:3b",
-        "latencyMs": 53976,
-        "firstTokenMs": 53976,
-        "tokensGenerated": 4687,
+        "latencyMs": 44667,
+        "firstTokenMs": 44667,
+        "tokensGenerated": 4443,
         "isLocal": true,
-        "timestamp": "2026-06-23T23:06:03.082Z",
+        "timestamp": "2026-06-23T23:52:27.058Z",
         "tokensSource": "reported",
-        "promptEvalCount": 3736,
-        "evalCount": 951,
-        "promptEvalDuration": 16126516624,
-        "evalDuration": 37478190290,
-        "totalDuration": 53971065625,
-        "loadDuration": 45042625
+        "promptEvalCount": 3899,
+        "evalCount": 544,
+        "promptEvalDuration": 21378171794,
+        "evalDuration": 23033125677,
+        "totalDuration": 44660625208,
+        "loadDuration": 63211583
       },
-      "durationMs": 53976,
+      "durationMs": 44667,
       "status": "completed"
     },
     "B3": {
@@ -74,28 +93,29 @@
           "logic-outlier-tukey-SibSp",
           "logic-outlier-Ticket",
           "logic-outlier-Fare",
-          "logic-outlier-tukey-Fare",
           "integrity-null-Cabin"
         ],
-        "uncoveredIssueIds": [],
-        "coveragePercentage": 100,
-        "safetyScore": 100,
+        "uncoveredIssueIds": [
+          "logic-outlier-tukey-Fare"
+        ],
+        "coveragePercentage": 90,
+        "safetyScore": 97,
         "scriptOrigin": "model",
         "hasPandasImport": true,
         "requiresHumanReview": false,
         "warnings": []
       },
-      "durationMs": 0,
+      "durationMs": 1,
       "status": "completed"
     }
   },
-  "completedAt": "2026-06-23T23:06:03.083Z",
-  "totalDurationMs": 130843,
+  "completedAt": "2026-06-23T23:52:27.059Z",
+  "totalDurationMs": 138707,
   "tokens": {
     "diagnosis": 3424,
     "summary": 1555,
-    "script": 4687,
-    "total": 9666
+    "script": 4443,
+    "total": 9422
   },
   "tokensSource": "reported",
   "ollamaVersion": "0.20.3"

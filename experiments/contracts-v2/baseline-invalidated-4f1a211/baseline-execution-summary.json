@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-23T23:56:45.242Z",
+  "generatedAt": "2026-06-23T23:09:53.434Z",
   "config": {
     "providerType": "ollama",
     "endpoint": "http://127.0.0.1:11434",
@@ -17,81 +17,74 @@
     "timeoutPerCall": 120000
   },
   "datasetSha256": "4a437fde05fe5264e1701a7387ac6fb75393772ba38bb2c9c566405af5af4bd7",
-  "auditReportSha256": "e2aa10cec323b2ecafd3c5ba9c607bec4b9de7cf336395b8c191d4eb772a2bd5",
-  "gitSha": "4f1a2113cbe27083918d02ae35881a6cd5a566b5",
+  "auditReportSha256": "64aeff90f8ca5ce24407e72e45653b9f0c20409e8e249e5b701991b40f6b6879",
+  "gitSha": "6acc63ee7bdcfb1626de22ab8dee690a50f02ea5",
   "ollamaVersion": "0.20.3",
-  "executionSha256": "449625d7599bd03b40549d4e8645e5ddf540dee32b490133f09a91b8e8e1ea83",
-  "datasetPath": "experiments/datasets/titanic.csv",
   "runs": [
     {
       "runNumber": 1,
       "seed": 101,
       "status": "completed",
-      "durationMs": 102743,
+      "durationMs": 83513,
       "tokens": {
-        "diagnosis": 3250,
-        "summary": 1501,
-        "script": 4349,
-        "total": 9100
+        "diagnosis": 3354,
+        "summary": 1726,
+        "script": 4419,
+        "total": 9499
       },
-      "tokensSource": "reported",
-      "summaryUsed": true
+      "tokensSource": "reported"
     },
     {
       "runNumber": 2,
       "seed": 202,
       "status": "completed",
-      "durationMs": 133783,
+      "durationMs": 114119,
       "tokens": {
         "diagnosis": 3267,
         "summary": 1490,
-        "script": 4447,
-        "total": 9204
+        "script": 4323,
+        "total": 9080
       },
-      "tokensSource": "reported",
-      "summaryUsed": true
+      "tokensSource": "reported"
     },
     {
       "runNumber": 3,
       "seed": 303,
       "status": "completed",
-      "durationMs": 138707,
+      "durationMs": 130843,
       "tokens": {
         "diagnosis": 3424,
         "summary": 1555,
-        "script": 4443,
-        "total": 9422
+        "script": 4687,
+        "total": 9666
       },
-      "tokensSource": "reported",
-      "summaryUsed": true
+      "tokensSource": "reported"
     },
     {
       "runNumber": 4,
       "seed": 404,
       "status": "completed",
-      "durationMs": 110254,
+      "durationMs": 102708,
       "tokens": {
         "diagnosis": 3028,
         "summary": 1281,
-        "script": 4011,
-        "total": 8320
+        "script": 3757,
+        "total": 8066
       },
-      "tokensSource": "reported",
-      "summaryUsed": true
+      "tokensSource": "reported"
     },
     {
       "runNumber": 5,
       "seed": 505,
       "status": "completed",
-      "durationMs": 147920,
+      "durationMs": 127652,
       "tokens": {
         "diagnosis": 3268,
         "summary": 1622,
-        "script": 4809,
-        "total": 9699
+        "script": 4099,
+        "total": 8989
       },
-      "tokensSource": "reported",
-      "summaryUsed": true
+      "tokensSource": "reported"
     }
   ],
   "completed": 5,

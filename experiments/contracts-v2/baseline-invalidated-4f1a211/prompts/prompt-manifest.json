@@ -1,0 +1,55 @@
+{
+  "manifestVersion": "1.0.0",
+  "prompts": [
+    {
+      "name": "diagnosis-prompt",
+      "file": "diagnosis-prompt.txt",
+      "builder": "buildAnalysisPrompt",
+      "inputMode": "smart_sample",
+      "contractConfig": {
+        "objective": "Diagnosticar causas probables y producir una salida lista para generar un script Python/Pandas de limpieza asistida.",
+        "evidencePolicy": "strict",
+        "requireScriptReadiness": true,
+        "includeHumanReviewLabels": true,
+        "includeCopyPasteEvidence": true,
+        "extraInstructions": ""
+      },
+      "hash": "diag_v1_smart_sample",
+      "characters": 2847,
+      "estimatedTokens": 710,
+      "timestamp": "2026-06-23T20:59:39.754Z"
+    },
+    {
+      "name": "diagnosis-summary-prompt",
+      "file": "diagnosis-summary-prompt.txt",
+      "builder": "buildDiagnosisSummaryPrompt",
+      "inputMode": "N/A",
+      "contractConfig": {},
+      "hash": "summary_v1",
+      "characters": 398,
+      "estimatedTokens": 100,
+      "timestamp": "2026-06-23T20:59:39.754Z"
+    },
+    {
+      "name": "script-prompt",
+      "file": "script-prompt.txt",
+      "builder": "buildScriptPrompt",
+      "inputMode": "smart_sample",
+      "contractConfig": {
+        "objective": "Diagnosticar causas probables y producir una salida lista para generar un script Python/Pandas de limpieza asistida.",
+        "evidencePolicy": "strict",
+        "requireScriptReadiness": true,
+        "includeHumanReviewLabels": true,
+        "includeCopyPasteEvidence": true,
+        "extraInstructions": ""
+      },
+      "hash": "script_v1_smart_sample",
+      "characters": 2543,
+      "estimatedTokens": 635,
+      "timestamp": "2026-06-23T20:59:39.754Z"
+    }
+  ],
+  "contractSource": "current-production",
+  "commitSha": "main",
+  "protocolHash": "proto_v1_baseline"
+}
