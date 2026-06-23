@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "ollama:validate": "node scripts/validate-ollama.mjs",
     "start": "vite preview --host 0.0.0.0 --port ${PORT:-3000}",
     "preview": "vite preview --host 0.0.0.0 --port ${PORT:-3000}",
     "test": "vitest run",

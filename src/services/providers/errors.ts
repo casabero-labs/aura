@@ -12,7 +12,7 @@ export interface NormalizedProviderError {
   recommendedActions: string[];
   technicalMessage: string;
   evidenceStatus: 'attempted_failed';
-  category: 'cache_network' | 'webgpu_unsupported' | 'model_download' | 'quota_storage' | 'api_key' | 'chrome_api_missing' | 'chrome_model_download_required' | 'chrome_model_download_failed' | 'chrome_incompatible' | 'chrome_user_activation_required' | 'generic';
+  category: 'cache_network' | 'webgpu_unsupported' | 'model_download' | 'quota_storage' | 'api_key' | 'ollama_unavailable' | 'chrome_api_missing' | 'chrome_model_download_required' | 'chrome_model_download_failed' | 'chrome_incompatible' | 'chrome_user_activation_required' | 'generic';
 }
 
 /**
@@ -33,6 +33,7 @@ export function normalizeAiProviderError(
   const rawMessage = error instanceof Error ? error.message : String(error);
   const rawStack = error instanceof Error ? error.stack : '';
   const technicalMessage = rawStack ? `${rawMessage}\n${rawStack}` : rawMessage;
+  const lowerRawMessage = rawMessage.toLowerCase();
 
   // Cache/Network error (most common WebLLM issue)
   if (rawMessage.includes('Cache.add()') && rawMessage.includes('network error')) {
@@ -71,6 +72,27 @@ export function normalizeAiProviderError(
       technicalMessage,
       evidenceStatus: 'attempted_failed',
       category: 'webgpu_unsupported',
+    };
+  }
+
+  if (
+    lowerRawMessage.includes('ollama') ||
+    rawMessage.includes('localhost:11434') ||
+    rawMessage.includes('127.0.0.1:11434')
+  ) {
+    return {
+      title: 'Ollama local no disponible',
+      message: 'AURA no pudo comunicarse con Ollama local. El servidor debe estar abierto en localhost:11434 y el modelo seleccionado debe estar descargado.',
+      cause: rawMessage,
+      recommendedActions: [
+        'Arranca Ollama con ollama serve o brew services start ollama',
+        'Verifica la conexión con curl http://localhost:11434/api/tags',
+        'Descarga el modelo recomendado con ollama pull qwen2.5:3b',
+        'Si usas Vite en navegador, permite el origen con OLLAMA_ORIGINS',
+      ],
+      technicalMessage,
+      evidenceStatus: 'attempted_failed',
+      category: 'ollama_unavailable',
     };
   }
 

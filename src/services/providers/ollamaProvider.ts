@@ -19,6 +19,7 @@ export interface OllamaModel {
 
 const DEFAULT_BASE_URL = 'http://localhost:11434';
 const DEFAULT_MODEL = 'qwen2.5:3b';
+const DEFAULT_KEEP_ALIVE = '10m';
 
 export const OLLAMA_SUGGESTED_MODELS = [
   'qwen2.5:3b',
@@ -76,7 +77,7 @@ export class OllamaProvider implements AIProvider {
     const response = await fetch(`${this.baseUrl}/api/pull`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: model, stream: true }),
+      body: JSON.stringify({ model, stream: true }),
     });
 
     if (!response.ok) {
@@ -104,6 +105,8 @@ export class OllamaProvider implements AIProvider {
           if (event.total && event.completed) {
             const pct = Math.round((event.completed / event.total) * 100);
             onProgress?.(pct, event.status || `Descargando ${model}...`);
+          } else if (event.status) {
+            onProgress?.(event.status === 'success' ? 100 : 0, event.status);
           }
         } catch {
           // skip malformed lines
@@ -123,6 +126,8 @@ export class OllamaProvider implements AIProvider {
         body: JSON.stringify({
           model: this.model,
           messages: [{ role: 'user', content: prompt }],
+          options: { temperature: this.temperature },
+          keep_alive: DEFAULT_KEEP_ALIVE,
           stream: false,
         }),
       });
@@ -191,6 +196,8 @@ export class OllamaProvider implements AIProvider {
         body: JSON.stringify({
           model: this.model,
           messages: [{ role: 'user', content: prompt }],
+          options: { temperature: this.temperature },
+          keep_alive: DEFAULT_KEEP_ALIVE,
           stream: true,
         }),
       });
@@ -273,6 +280,8 @@ export class OllamaProvider implements AIProvider {
         body: JSON.stringify({
           model: this.model,
           messages: [{ role: 'user', content: prompt }],
+          options: { temperature: this.temperature },
+          keep_alive: DEFAULT_KEEP_ALIVE,
           stream: true,
         }),
       });
@@ -339,6 +348,8 @@ export class OllamaProvider implements AIProvider {
       body: JSON.stringify({
         model: this.model,
         messages: [{ role: 'user', content: prompt }],
+        options: { temperature: this.temperature },
+        keep_alive: DEFAULT_KEEP_ALIVE,
         stream: false,
       }),
     });
@@ -391,6 +402,8 @@ export class OllamaProvider implements AIProvider {
       body: JSON.stringify({
         model: this.model,
         messages: [{ role: 'user', content: prompt }],
+        options: { temperature: this.temperature },
+        keep_alive: DEFAULT_KEEP_ALIVE,
         stream: true,
       }),
     });

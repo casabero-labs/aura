@@ -80,6 +80,25 @@ describe('normalizeAiProviderError', () => {
     });
   });
 
+  describe('Ollama errors', () => {
+    it('normalizes unavailable Ollama server errors', () => {
+      const error = new Error('Ollama no responde en http://localhost:11434');
+      const result = normalizeAiProviderError(error, baseConfig);
+
+      expect(result.title).toBe('Ollama local no disponible');
+      expect(result.category).toBe('ollama_unavailable');
+      expect(result.recommendedActions.some(a => a.includes('ollama pull qwen2.5:3b'))).toBe(true);
+    });
+
+    it('normalizes localhost connection failures for Ollama config', () => {
+      const error = new Error('Failed to fetch http://127.0.0.1:11434/api/tags');
+      const result = normalizeAiProviderError(error, baseConfig);
+
+      expect(result.category).toBe('ollama_unavailable');
+      expect(result.message).toContain('localhost:11434');
+    });
+  });
+
   describe('Storage/Quota errors', () => {
     it('normalizes QuotaExceeded error', () => {
       const error = new Error('QuotaExceededError: Quota exceeded');

@@ -41,15 +41,18 @@ Objetivo: no declarar benchmark formal sin evidencia.
 
 Tareas:
 
-1. Seleccionar proveedor disponible: Gemini/Groq/DeepSeek/Ollama/WebLLM/Chrome AI.
-2. Ejecutar comparacion `smart_sample` vs `prompt_libre`.
-3. Registrar estado de cada corrida: `attempted_failed`, `preliminary_valid` o `formal_valid`.
-4. Exportar JSON y tabla.
+1. Camino local actual: preparar Ollama con `qwen2.5:3b` siguiendo `05_desarrollo/GUIA_OLLAMA_QWEN_VALIDACION.md`.
+2. Ejecutar `npm run ollama:validate` desde `src`.
+3. Seleccionar proveedor disponible en AURA: preferir Ollama; usar Gemini/Groq/DeepSeek/Chrome AI solo como alternativa documentada.
+4. Ejecutar comparacion `smart_sample` vs `prompt_libre`.
+5. Registrar estado de cada corrida: `attempted_failed`, `preliminary_valid` o `formal_valid`.
+6. Exportar JSON y tabla.
 
 Criterio de cierre:
 
 - si no hay proveedor, documentar `attempted_failed`;
-- si hay proveedor, guardar export y tabla;
+- si Ollama responde y `qwen2.5:3b` genera respuesta, registrar como maximo `preliminary_valid` hasta completar protocolo formal;
+- si hay proveedor validado, guardar export y tabla;
 - no afirmar modelo ganador sin corridas `formal_valid`.
 
 ## Prioridad 4 - Evidencia HITL y delta de salud
