@@ -82,6 +82,28 @@
     .mini { color: var(--muted); font-size: 12px; }
     .hidden { display: none !important; }
     .footer { margin-top: 26px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+    .diagnostic-steps { margin-top: 16px; display: grid; gap: 8px; }
+    .diag-step { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); font-size: 13px; }
+    .diag-step-icon { width: 18px; height: 18px; border-radius: 50%; flex: 0 0 auto; display: grid; place-items: center; font-size: 10px; margin-top: 1px; }
+    .diag-step[data-status="pending"] { opacity: .5; }
+    .diag-step[data-status="pending"] .diag-step-icon { background: var(--soft); }
+    .diag-step[data-status="testing"] .diag-step-icon { background: var(--warn); color: white; animation: pulse 1s infinite; }
+    .diag-step[data-status="success"] .diag-step-icon { background: var(--ok); color: white; }
+    .diag-step[data-status="warning"] .diag-step-icon { background: var(--warn); color: white; }
+    .diag-step[data-status="error"] .diag-step-icon { background: var(--bad); color: white; }
+    .diag-step-body { flex: 1; }
+    .diag-step-label { font-weight: 700; margin-bottom: 2px; }
+    .diag-step-msg { color: var(--muted); font-size: 12px; }
+    .diag-step-msg.error { color: var(--bad); }
+    .diag-step-msg.warning { color: var(--warn); }
+    .diag-summary { margin-top: 14px; padding: 12px 14px; border-radius: 10px; font-size: 13px; line-height: 1.6; }
+    .diag-summary.ok { border: 1px solid color-mix(in srgb, var(--ok) 45%, var(--line)); background: color-mix(in srgb, var(--ok) 8%, var(--surface)); }
+    .diag-summary.warn { border: 1px solid color-mix(in srgb, var(--warn) 45%, var(--line)); background: color-mix(in srgb, var(--warn) 8%, var(--surface)); }
+    .diag-summary.bad { border: 1px solid color-mix(in srgb, var(--bad) 45%, var(--line)); background: color-mix(in srgb, var(--bad) 8%, var(--surface)); }
+    .curl-box { margin: 14px 0; }
+    .curl-box .cmd { margin: 8px 0; }
+    .actions-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .5; } }
     @media (max-width: 640px) {
       .card-body { padding-left: 20px; }
       .topbar { align-items: flex-start; }
@@ -197,6 +219,55 @@
             <button class="btn" id="connect-btn">Solicitar permiso y conectar</button>
             <button class="btn secondary" id="retry-btn">Volver a intentar</button>
           </div>
+
+          <div id="diag-wrap" class="diagnostic-steps hidden">
+            <div class="diag-step" id="ds-https" data-status="pending">
+              <div class="diag-step-icon"></div>
+              <div class="diag-step-body"><div class="diag-step-label">Contexto HTTPS</div><div class="diag-step-msg"></div></div>
+            </div>
+            <div class="diag-step" id="ds-endpoint" data-status="pending">
+              <div class="diag-step-icon"></div>
+              <div class="diag-step-body"><div class="diag-step-label">Endpoint</div><div class="diag-step-msg"></div></div>
+            </div>
+            <div class="diag-step" id="ds-tags" data-status="pending">
+              <div class="diag-step-icon"></div>
+              <div class="diag-step-body"><div class="diag-step-label">Respuesta de /api/tags</div><div class="diag-step-msg"></div></div>
+            </div>
+            <div class="diag-step" id="ds-cors" data-status="pending">
+              <div class="diag-step-icon"></div>
+              <div class="diag-step-body"><div class="diag-step-label">CORS</div><div class="diag-step-msg"></div></div>
+            </div>
+            <div class="diag-step" id="ds-model" data-status="pending">
+              <div class="diag-step-icon"></div>
+              <div class="diag-step-body"><div class="diag-step-label">Modelo instalado</div><div class="diag-step-msg"></div></div>
+            </div>
+            <div class="diag-step" id="ds-chat" data-status="pending">
+              <div class="diag-step-icon"></div>
+              <div class="diag-step-body"><div class="diag-step-label">Respuesta de /api/chat</div><div class="diag-step-msg"></div></div>
+            </div>
+          </div>
+
+          <div id="diag-summary" class="diag-summary hidden"></div>
+
+          <div id="diag-help" class="hidden" style="margin-top: 16px;">
+            <div id="diag-curl"></div>
+            <div id="diag-env"></div>
+          </div>
+
+          <div id="diag-copy-row" class="hidden actions-row" style="margin-top: 12px;">
+            <button class="btn secondary" id="copy-diag-btn">Copiar diagnóstico</button>
+          </div>
+
+          <div id="diag-chrome-permission" class="hidden" style="margin-top: 14px;">
+            <div class="notice">Si usas Chrome o Edge, es posible que el navegador bloquee el acceso a la red local sin tu permiso explícito:</div>
+            <ol style="font-size: 13px; line-height: 1.7; margin-top: 8px; padding-left: 20px;">
+              <li>Haz clic en el icono de candado o en los controles del sitio (izquierda de la barra de direcciones).</li>
+              <li>Selecciona <strong>Configuración del sitio</strong> o <strong>Permisos del sitio</strong>.</li>
+              <li>Busca <strong>Acceso a la red local</strong> y selecciona <strong>Permitir</strong>.</li>
+              <li>Recarga esta página y vuelve a intentar.</li>
+            </ol>
+          </div>
+
           <div id="connection-status" class="status" data-kind="warn">
             <strong>Sin comprobar</strong>
             <p>Completa los pasos anteriores y pulsa el botón de conexión.</p>
@@ -338,24 +409,348 @@
       box.innerHTML = `<strong>${escapeHtml(title)}</strong><p>${message}</p>`;
     }
 
-    function fetchOptions(signal, method = 'GET', body) {
-      return {
-        method,
-        headers: body ? { 'Content-Type': 'application/json' } : undefined,
-        body: body ? JSON.stringify(body) : undefined,
-        signal,
-        targetAddressSpace: 'local',
+    // ─── Endpoint classification ───────────────────────────────────────────────
+
+    function classifyHost(host) {
+      const h = host.toLowerCase();
+      if (h === 'localhost' || h === '127.0.0.1' || h === '::1' || h === '[::1]') return 'loopback';
+      const m = /^(\d+)\.(\d+)\.(\d+)\.(\d+)$/.exec(h);
+      if (m) {
+        const b1 = +m[1], b2 = +m[2];
+        if (b1 === 10) return 'private_lan';
+        if (b1 === 172 && b2 >= 16 && b2 <= 31) return 'private_lan';
+        if (b1 === 192 && b2 === 168) return 'private_lan';
+      }
+      return 'public';
+    }
+
+    function isLoopback(url) {
+      try { return classifyHost(new URL(url).hostname) === 'loopback'; } catch { return false; }
+    }
+
+    function isPrivateLan(url) {
+      try { return classifyHost(new URL(url).hostname) === 'private_lan'; } catch { return false; }
+    }
+
+    // ─── Feature detection for targetAddressSpace ────────────────────────────────
+
+    let _supportsTargetAddressSpace = null;
+    function supportsTargetAddressSpace() {
+      if (_supportsTargetAddressSpace !== null) return _supportsTargetAddressSpace;
+      try {
+        const r = new Request('http://127.0.0.1/', { targetAddressSpace: 'loopback' });
+        _supportsTargetAddressSpace = r.targetAddressSpace === 'loopback';
+      } catch { _supportsTargetAddressSpace = false; }
+      return _supportsTargetAddressSpace;
+    }
+
+    // ─── Build fetch options with correct strategy ──────────────────────────────
+
+    function buildFetchInit(endpoint, options = {}) {
+      const { method = 'GET', headers, body, signal } = options;
+      const cls = classifyHost(new URL(endpoint).hostname);
+      const init = { method, headers, signal };
+      if (body) { init.body = JSON.stringify(body); init.headers = { 'Content-Type': 'application/json', ...headers }; }
+      else if (headers) init.headers = headers;
+      if (supportsTargetAddressSpace() && cls === 'private_lan') {
+        init.targetAddressSpace = 'local';
+      }
+      return init;
+    }
+
+    // ─── Individual fetch with error classification ────────────────────────────
+
+    async function attemptFetch(url, options = {}, timeoutMs = 8000) {
+      const start = performance.now();
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+      let response, fetchErr;
+      try {
+        const init = buildFetchInit(url, { signal: ctrl.signal, ...options });
+        response = await fetch(url, init);
+      } catch (e) { fetchErr = e; }
+      finally { clearTimeout(timer); }
+      const dur = Math.round(performance.now() - start);
+      if (!response) {
+        const name = fetchErr?.name || 'Error';
+        const msg = fetchErr?.message || String(fetchErr);
+        let state = 'ollama_unreachable';
+        if (name === 'AbortError') state = 'timeout';
+        else if (msg.toLowerCase().includes('mixed content')) state = 'mixed_content_blocked';
+        else if (msg.includes('Failed to fetch') || name === 'TypeError') state = 'cors_probable';
+        return { ok: false, dur, err: { name, msg }, state, isTimeout: state === 'timeout' };
+      }
+      return { ok: response.ok, status: response.status, dur, state: response.ok ? 'ready' : 'ollama_unreachable' };
+    }
+
+    // ─── no-cors probe ─────────────────────────────────────────────────────────
+
+    async function probeNoCors(url, timeoutMs = 5000) {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+      try {
+        const r = await fetch(url, { method: 'GET', mode: 'no-cors', signal: ctrl.signal });
+        clearTimeout(timer);
+        return { ok: true, opaque: r.type === 'opaque' };
+      } catch { clearTimeout(timer); return { ok: false, opaque: false }; }
+    }
+
+    // ─── Diagnostic step UI ───────────────────────────────────────────────────
+
+    function showDiagWrap(show) {
+      document.getElementById('diag-wrap').classList.toggle('hidden', !show);
+    }
+
+    function resetDiagSteps() {
+      ['ds-https','ds-endpoint','ds-tags','ds-cors','ds-model','ds-chat'].forEach(id => {
+        const el = document.getElementById(id);
+        el.dataset.status = 'pending';
+        el.querySelector('.diag-step-msg').textContent = '';
+        el.querySelector('.diag-step-msg').className = 'diag-step-msg';
+      });
+    }
+
+    function setDiagStep(id, status, message) {
+      const el = document.getElementById(id);
+      el.dataset.status = status;
+      const msgEl = el.querySelector('.diag-step-msg');
+      msgEl.textContent = message || '';
+      msgEl.className = 'diag-step-msg' + (status === 'error' ? ' error' : status === 'warning' ? ' warning' : '');
+    }
+
+    function showDiagSummary(className, html) {
+      const el = document.getElementById('diag-summary');
+      el.className = 'diag-summary ' + className;
+      el.innerHTML = html;
+      el.classList.remove('hidden');
+    }
+
+    function hideDiagHelp() {
+      document.getElementById('diag-help').classList.add('hidden');
+      document.getElementById('diag-chrome-permission').classList.add('hidden');
+    }
+
+    function showDiagHelp(state, endpoint) {
+      hideDiagHelp();
+      const help = document.getElementById('diag-help');
+      help.classList.remove('hidden');
+      const origin = state.origin;
+      const parsed = new URL(endpoint);
+      const host = parsed.host;
+
+      if (state.state === 'cors_probable' || state.state === 'ollama_unreachable') {
+        const curl = `curl -i \\\n  -H "Origin: ${origin}" \\\n  http://${host}/api/tags`;
+        document.getElementById('diag-curl').innerHTML = `<p style="font-size:13px;margin-bottom:6px;">Desde tu terminal, ejecuta:</p><div class="cmd"><code>${escapeHtml(curl)}</code></div><p style="font-size:12px;color:var(--muted);margin-top:8px;">- Si ves JSON sin Access-Control-Allow-Origin → CORS no configurado en OLLAMA_ORIGINS.<br>- Si conecta pero no responde → Ollama está apagado.<br>- Si vez Access-Control-Allow-Origin con tu origen → CORS OK, problema de Chrome.</p>`;
+
+        let envCmd = '';
+        if (state.os === 'macos') envCmd = `launchctl getenv OLLAMA_ORIGINS\n# Esperado: ${origin}`;
+        else if (state.os === 'linux') envCmd = `systemctl show ollama --property=Environment\n# Esperado: OLLAMA_ORIGINS=${origin}`;
+        else if (state.os === 'windows') envCmd = `[Environment]::GetEnvironmentVariable("OLLAMA_ORIGINS", "User")\n# Esperado: ${origin}`;
+        if (envCmd) document.getElementById('diag-env').innerHTML = `<p style="font-size:13px;margin:12px 0 6px;">Verifica la variable OLLAMA_ORIGINS:</p><div class="cmd"><code>${escapeHtml(envCmd)}</code></div>`;
+      }
+
+      if (state.browser === 'Chrome' || state.browser === 'Edge') {
+        document.getElementById('diag-chrome-permission').classList.remove('hidden');
+      }
+    }
+
+    function showCopyDiagBtn(state) {
+      document.getElementById('diag-copy-row').classList.remove('hidden');
+      document.getElementById('copy-diag-btn').onclick = () => {
+        const lines = [
+          '=== AURA · Ollama Diagnostic ===',
+          `Date: ${new Date().toISOString()}`,
+          `Origin: ${state.origin}`,
+          `Endpoint: ${state.endpoint}`,
+          `Model: ${state.model}`,
+          `State: ${state.state}`,
+          `Browser: ${state.browser} ${state.browserVersion}`,
+          `Secure Context: ${state.isSecureContext}`,
+          `Duration: ${state.durationMs}ms`,
+          state.err ? `Error: ${state.err.name}: ${state.err.msg}` : '',
+        ].filter(Boolean).join('\n');
+        navigator.clipboard?.writeText(lines).catch(() => {});
+        const btn = document.getElementById('copy-diag-btn');
+        btn.textContent = 'Copiado';
+        setTimeout(() => btn.textContent = 'Copiar diagnóstico', 1500);
       };
     }
 
-    async function request(url, method = 'GET', body, timeoutMs = 8000) {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), timeoutMs);
-      try {
-        return await fetch(url, fetchOptions(controller.signal, method, body));
-      } finally {
-        clearTimeout(timer);
+    // ─── Full connect / diagnose ───────────────────────────────────────────────
+
+    async function connect() {
+      const button = document.getElementById('connect-btn');
+      button.disabled = true;
+      hideDiagHelp();
+      document.getElementById('diag-summary').classList.add('hidden');
+      document.getElementById('diag-copy-row').classList.add('hidden');
+      resetDiagSteps();
+      showDiagWrap(true);
+      setStatus('warn', 'Diagnosticando…', 'Espera unos segundos.');
+
+      const endpoint = document.getElementById('endpoint').value.trim().replace(/\/$/, '');
+      const model = document.getElementById('model-select').value;
+      const origin = state.origin;
+      const browser = state.browser;
+
+      const diagState = {
+        state: 'unknown',
+        endpoint,
+        model,
+        origin,
+        browser,
+        browserVersion: navigator.userAgent.match(/(?:Chrome|Edge|Firefox|Safari)\/(\d+)/)?.[1] || '0',
+        isSecureContext: window.isSecureContext,
+        durationMs: 0,
+        err: null,
+      };
+
+      // Step 1: HTTPS context
+      setDiagStep('ds-https', 'testing', '');
+      await delay(100);
+      if (!window.isSecureContext) {
+        setDiagStep('ds-https', 'error', 'AURA debe abrirse via HTTPS para acceder a Ollama local.');
+        diagState.state = 'mixed_content_blocked';
+        showDiagSummary('bad', '<strong>Contexto no seguro.</strong> Abre AURA mediante HTTPS para solicitar acceso a Ollama local.');
+        button.disabled = false;
+        return;
       }
+      setDiagStep('ds-https', 'success', 'Contexto seguro detectado.');
+
+      // Step 2: endpoint classification
+      setDiagStep('ds-endpoint', 'testing', '');
+      await delay(100);
+      if (isLoopback(endpoint)) {
+        setDiagStep('ds-endpoint', 'success', `Loopback: ${endpoint}`);
+      } else if (isPrivateLan(endpoint)) {
+        setDiagStep('ds-endpoint', 'success', `LAN privada: ${endpoint}`);
+      } else {
+        setDiagStep('ds-endpoint', 'error', `Usa http://127.0.0.1:11434 o http://localhost:11434`);
+        diagState.state = 'endpoint_invalid';
+        showDiagSummary('bad', `<strong>Endpoint inválido.</strong> Usa <code>http://127.0.0.1:11434</code> o <code>http://localhost:11434</code>.`);
+        button.disabled = false;
+        return;
+      }
+
+      // Step 3: /api/tags
+      const tagsUrl = `${endpoint}/api/tags`;
+      setDiagStep('ds-tags', 'testing', '');
+      const tagsRes = await attemptFetch(tagsUrl, { method: 'GET' }, 8000);
+      diagState.durationMs += tagsRes.dur;
+
+      if (!tagsRes.ok) {
+        diagState.state = tagsRes.state;
+        diagState.err = tagsRes.err;
+        setDiagStep('ds-tags', 'error', `${tagsRes.err?.msg || 'Error'} (${tagsRes.dur}ms)`);
+        setDiagStep('ds-cors', 'testing', 'Probando sin CORS...');
+        const noCors = await probeNoCors(tagsUrl);
+        if (noCors.responded && noCors.opaque) {
+          setDiagStep('ds-cors', 'error', 'Servidor responde pero CORS bloquea. Configura OLLAMA_ORIGINS.');
+          diagState.state = 'cors_probable';
+        } else if (noCors.responded && !noCors.opaque) {
+          setDiagStep('ds-cors', 'warning', 'Servidor responde sin CORS. Problema de permisos de Chrome.');
+        } else {
+          setDiagStep('ds-cors', 'error', 'Servidor no responde. Verifica que Ollama esté abierto.');
+        }
+        showDiagSummary('bad', buildFailMessage(diagState, tagsRes));
+        showDiagHelp(diagState, endpoint);
+        showCopyDiagBtn(diagState);
+        button.disabled = false;
+        return;
+      }
+      setDiagStep('ds-tags', 'success', `HTTP ${tagsRes.status} — Ollama responde (${tagsRes.dur}ms)`);
+      setDiagStep('ds-cors', 'success', 'CORS OK.');
+
+      // Step 4: check models
+      let models = [];
+      try {
+        const data = await (await fetch(tagsUrl)).json();
+        models = Array.isArray(data.models) ? data.models : [];
+        renderModels(models);
+      } catch { }
+
+      const installedModel = models.find(m => m.name === model || m.name.startsWith(`${model}:`));
+      setDiagStep('ds-model', 'testing', '');
+      if (!installedModel) {
+        setDiagStep('ds-model', 'warning', `Modelo ${model} no instalado. Ejecuta: ollama pull ${model}`);
+        diagState.state = 'model_missing';
+        state.model = models[0]?.name || model;
+        document.getElementById('model-select').value = state.model;
+        localStorage.setItem('aura_ollama_model', state.model);
+        showDiagSummary('warn', `<strong>Modelo no instalado.</strong> ${model} no está disponible. Selecciona otro modelo o ejecuta <code>ollama pull ${model}</code>.`);
+        showCopyDiagBtn(diagState);
+        button.disabled = false;
+        return;
+      }
+      setDiagStep('ds-model', 'success', `${installedModel.name} instalado (${((installedModel.size || 0)/1e9).toFixed(1)} GB)`);
+
+      // Step 5: /api/chat
+      setDiagStep('ds-chat', 'testing', '');
+      const chatUrl = `${endpoint}/api/chat`;
+      const chatRes = await attemptFetch(chatUrl, {
+        method: 'POST',
+        body: {
+          model: state.model,
+          messages: [{ role: 'user', content: 'AURA test' }],
+          options: { temperature: 0.1 },
+          stream: false,
+          keep_alive: '10m',
+        },
+      }, 60000);
+      diagState.durationMs += chatRes.dur;
+
+      if (!chatRes.ok) {
+        setDiagStep('ds-chat', 'error', `${chatRes.err?.msg || 'Error'} (${chatRes.dur}ms)`);
+        diagState.state = 'chat_failed';
+        diagState.err = chatRes.err;
+        showDiagSummary('bad', `<strong>Chat falló.</strong> ${chatRes.err?.msg || 'No se pudo completar la prueba.'}`);
+        showCopyDiagBtn(diagState);
+        button.disabled = false;
+        return;
+      }
+
+      let chatContent = '';
+      try {
+        const chatData = await (await fetch(chatUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: state.model,
+            messages: [{ role: 'user', content: 'AURA test' }],
+            options: { temperature: 0.1 },
+            stream: false,
+            keep_alive: '10m',
+          }),
+        })).json();
+        chatContent = chatData.message?.content || '';
+      } catch { }
+
+      setDiagStep('ds-chat', 'success', `Respuesta: ${chatContent.slice(0, 50)}`);
+
+      // All good
+      state.endpoint = endpoint;
+      state.model = state.model;
+      localStorage.setItem('aura_ollama_endpoint', endpoint);
+      localStorage.setItem('aura_ollama_model', state.model);
+      localStorage.setItem('aura_ollama_last_ready', new Date().toISOString());
+      showDiagSummary('ok', `<strong>Ollama conectado.</strong> Respuesta: <code>${escapeHtml(chatContent.slice(0, 80))}</code><br>Duración total: ${diagState.durationMs}ms.`);
+      document.getElementById('step-4').classList.add('done');
+      showCopyDiagBtn(diagState);
+      button.disabled = false;
+    }
+
+    function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+    function buildFailMessage(diag, res) {
+      const msgs = {
+        ollama_unreachable: `<strong>Ollama no reachable.</strong> Verifica que Ollama esté abierto en ${diag.endpoint}.`,
+        cors_probable: `<strong>CORS probable.</strong> Ollama responde, pero no permite peticiones desde ${diag.origin}. Configura OLLAMA_ORIGINS.`,
+        timeout: `<strong>Timeout.</strong> La conexión tardó más de 8 segundos. Verifica que Ollama esté abierto.`,
+        mixed_content_blocked: `<strong>Mixed content bloqueado.</strong> HTTPS no puede conectar a HTTP. Abre AURA via HTTP o configura HTTPS para Ollama.`,
+        endpoint_invalid: `<strong>Endpoint inválido.</strong> Usa <code>http://127.0.0.1:11434</code>.`,
+        unknown: `<strong>Error desconocido.</strong> ${res?.err?.msg || 'No se pudo conectar.'}`,
+      };
+      return msgs[diag.state] || msgs.unknown;
     }
 
     async function connect() {
