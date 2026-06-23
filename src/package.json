@@ -11,7 +11,10 @@
     "preview": "vite preview --host 0.0.0.0 --port ${PORT:-3000}",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "contracts:baseline": "node ../experiments/contracts-v2/baseline/run-baseline.mjs",
+    "contracts:evaluate": "node ../experiments/contracts-v2/baseline/evaluate-baseline.mjs",
+    "contracts:compare": "node ../experiments/contracts-v2/compare-baseline.mjs"
   },
   "dependencies": {
     "@google/genai": "^1.30.0",

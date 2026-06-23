@@ -1,0 +1,674 @@
+{
+  "score": 100,
+  "rowCount": 891,
+  "colCount": 12,
+  "duplicateRows": 0,
+  "issues": [
+    {
+      "id": "integrity-null-Age",
+      "column": "Age",
+      "ruleName": "Valores Nulos / Vacíos",
+      "category": "Integridad y Estructura",
+      "description": "Advertencia: Faltan datos.",
+      "severity": "warning",
+      "count": 177,
+      "affectedPercentage": 19.865319865319865,
+      "sampleValues": []
+    },
+    {
+      "id": "integrity-null-Cabin",
+      "column": "Cabin",
+      "ruleName": "Valores Nulos / Vacíos",
+      "category": "Integridad y Estructura",
+      "description": "Crítico: 77.1% de datos faltantes.",
+      "severity": "critical",
+      "count": 687,
+      "affectedPercentage": 77.10437710437711,
+      "sampleValues": []
+    },
+    {
+      "id": "logic-outlier-SibSp",
+      "column": "SibSp",
+      "ruleName": "Outliers Extremos (IQR 3×)",
+      "category": "Validez y Lógica de Negocio",
+      "description": "Valores desviados > 3× del rango intercuartílico.",
+      "severity": "warning",
+      "count": 12,
+      "affectedPercentage": 1.3468013468013467,
+      "sampleValues": [
+        5,
+        5,
+        8
+      ]
+    },
+    {
+      "id": "logic-outlier-Fare",
+      "column": "Fare",
+      "ruleName": "Outliers Extremos (IQR 3×)",
+      "category": "Validez y Lógica de Negocio",
+      "description": "Valores desviados > 3× del rango intercuartílico.",
+      "severity": "warning",
+      "count": 53,
+      "affectedPercentage": 5.948372615039282,
+      "sampleValues": [
+        263,
+        146.5208,
+        263
+      ]
+    },
+    {
+      "id": "semantic-long-tail-Name",
+      "column": "Name",
+      "category": "Semántica y Seguridad",
+      "ruleName": "Cola Larga Categórica",
+      "description": "La columna tiene alta dispersión de categorías y baja concentración en los valores principales. Puede necesitar agrupación o macro-categorías antes del análisis.",
+      "severity": "info",
+      "count": 891,
+      "affectedPercentage": 100,
+      "sampleValues": [
+        "Braund, Mr. Owen Harris",
+        "Cumings, Mrs. John Bradley (Florence Briggs Thayer)",
+        "Heikkinen, Miss. Laina",
+        "Futrelle, Mrs. Jacques Heath (Lily May Peel)",
+        "Allen, Mr. William Henry"
+      ]
+    }
+  ],
+  "columnStats": {
+    "PassengerId": {
+      "name": "PassengerId",
+      "inferredType": "number",
+      "nullCount": 0,
+      "uniqueCount": 891,
+      "topFreq": [
+        {
+          "value": "1",
+          "count": 1
+        },
+        {
+          "value": "2",
+          "count": 1
+        },
+        {
+          "value": "3",
+          "count": 1
+        },
+        {
+          "value": "4",
+          "count": 1
+        },
+        {
+          "value": "5",
+          "count": 1
+        }
+      ],
+      "zeros": 0,
+      "sampleValues": [
+        1,
+        446,
+        891
+      ],
+      "min": 1,
+      "max": 891,
+      "mean": 446,
+      "median": 446,
+      "std": 257.20938292890224,
+      "cv": 0.5767026523069557,
+      "q1": 223,
+      "q3": 669,
+      "iqr": 446,
+      "lowerFence": -1115,
+      "upperFence": 2007,
+      "lowerFenceTukey": -446,
+      "upperFenceTukey": 1338,
+      "outlierCount": 0,
+      "outlierCountTukey": 0
+    },
+    "Survived": {
+      "name": "Survived",
+      "inferredType": "number",
+      "nullCount": 0,
+      "uniqueCount": 2,
+      "topFreq": [
+        {
+          "value": "0",
+          "count": 549
+        },
+        {
+          "value": "1",
+          "count": 342
+        }
+      ],
+      "zeros": 549,
+      "sampleValues": [
+        0,
+        1,
+        0
+      ],
+      "min": 0,
+      "max": 1,
+      "mean": 0.3838383838383838,
+      "median": 0,
+      "std": 0.48631931786710086,
+      "cv": 1.2669898018116577,
+      "q1": 0,
+      "q3": 1,
+      "iqr": 1,
+      "lowerFence": -3,
+      "upperFence": 4,
+      "lowerFenceTukey": -1.5,
+      "upperFenceTukey": 2.5,
+      "outlierCount": 0,
+      "outlierCountTukey": 0
+    },
+    "Pclass": {
+      "name": "Pclass",
+      "inferredType": "number",
+      "nullCount": 0,
+      "uniqueCount": 3,
+      "topFreq": [
+        {
+          "value": "3",
+          "count": 491
+        },
+        {
+          "value": "1",
+          "count": 216
+        },
+        {
+          "value": "2",
+          "count": 184
+        }
+      ],
+      "zeros": 0,
+      "sampleValues": [
+        3,
+        1,
+        3
+      ],
+      "min": 1,
+      "max": 3,
+      "mean": 2.308641975308642,
+      "median": 3,
+      "std": 0.8356019334795189,
+      "cv": 0.3619452225232141,
+      "q1": 2,
+      "q3": 3,
+      "iqr": 1,
+      "lowerFence": -1,
+      "upperFence": 6,
+      "lowerFenceTukey": 0.5,
+      "upperFenceTukey": 4.5,
+      "outlierCount": 0,
+      "outlierCountTukey": 0
+    },
+    "Name": {
+      "name": "Name",
+      "inferredType": "string",
+      "nullCount": 0,
+      "uniqueCount": 891,
+      "topFreq": [
+        {
+          "value": "Braund, Mr. Owen Harris",
+          "count": 1
+        },
+        {
+          "value": "Cumings, Mrs. John Bradley (Florence Briggs Thayer)",
+          "count": 1
+        },
+        {
+          "value": "Heikkinen, Miss. Laina",
+          "count": 1
+        },
+        {
+          "value": "Futrelle, Mrs. Jacques Heath (Lily May Peel)",
+          "count": 1
+        },
+        {
+          "value": "Allen, Mr. William Henry",
+          "count": 1
+        }
+      ],
+      "zeros": 0,
+      "sampleValues": [
+        "Braund, Mr. Owen Harris",
+        "Dodge, Master. Washington",
+        "Dooley, Mr. Patrick"
+      ]
+    },
+    "Sex": {
+      "name": "Sex",
+      "inferredType": "string",
+      "nullCount": 0,
+      "uniqueCount": 2,
+      "topFreq": [
+        {
+          "value": "male",
+          "count": 577
+        },
+        {
+          "value": "female",
+          "count": 314
+        }
+      ],
+      "zeros": 0,
+      "sampleValues": [
+        "male",
+        "male",
+        "male"
+      ]
+    },
+    "Age": {
+      "name": "Age",
+      "inferredType": "number",
+      "nullCount": 177,
+      "uniqueCount": 88,
+      "topFreq": [
+        {
+          "value": "24",
+          "count": 30
+        },
+        {
+          "value": "22",
+          "count": 27
+        },
+        {
+          "value": "18",
+          "count": 26
+        },
+        {
+          "value": "28",
+          "count": 25
+        },
+        {
+          "value": "19",
+          "count": 25
+        }
+      ],
+      "zeros": 0,
+      "sampleValues": [
+        22,
+        4,
+        32
+      ],
+      "min": 0.42,
+      "max": 80,
+      "mean": 29.69911764705882,
+      "median": 28,
+      "std": 14.516321150817317,
+      "cv": 0.48877954299274967,
+      "q1": 20,
+      "q3": 38,
+      "iqr": 18,
+      "lowerFence": -34,
+      "upperFence": 92,
+      "lowerFenceTukey": -7,
+      "upperFenceTukey": 65,
+      "outlierCount": 0,
+      "outlierCountTukey": 8
+    },
+    "SibSp": {
+      "name": "SibSp",
+      "inferredType": "number",
+      "nullCount": 0,
+      "uniqueCount": 7,
+      "topFreq": [
+        {
+          "value": "0",
+          "count": 608
+        },
+        {
+          "value": "1",
+          "count": 209
+        },
+        {
+          "value": "2",
+          "count": 28
+        },
+        {
+          "value": "4",
+          "count": 18
+        },
+        {
+          "value": "3",
+          "count": 16
+        }
+      ],
+      "zeros": 608,
+      "sampleValues": [
+        1,
+        0,
+        0
+      ],
+      "min": 0,
+      "max": 8,
+      "mean": 0.5230078563411896,
+      "median": 0,
+      "std": 1.1021244350892836,
+      "cv": 2.1072808404818706,
+      "q1": 0,
+      "q3": 1,
+      "iqr": 1,
+      "lowerFence": -3,
+      "upperFence": 4,
+      "lowerFenceTukey": -1.5,
+      "upperFenceTukey": 2.5,
+      "outlierCount": 12,
+      "outlierCountTukey": 46,
+      "outlierSeverity": "WARNING"
+    },
+    "Parch": {
+      "name": "Parch",
+      "inferredType": "number",
+      "nullCount": 0,
+      "uniqueCount": 7,
+      "topFreq": [
+        {
+          "value": "0",
+          "count": 678
+        },
+        {
+          "value": "1",
+          "count": 118
+        },
+        {
+          "value": "2",
+          "count": 80
+        },
+        {
+          "value": "5",
+          "count": 5
+        },
+        {
+          "value": "3",
+          "count": 5
+        }
+      ],
+      "zeros": 678,
+      "sampleValues": [
+        0,
+        2,
+        0
+      ],
+      "min": 0,
+      "max": 6,
+      "mean": 0.38159371492704824,
+      "median": 0,
+      "std": 0.8056047612452284,
+      "cv": 2.111158359616172,
+      "q1": 0,
+      "q3": 0,
+      "iqr": 0,
+      "lowerFence": 0,
+      "upperFence": 0,
+      "lowerFenceTukey": 0,
+      "upperFenceTukey": 0,
+      "outlierCount": 213,
+      "outlierCountTukey": 213,
+      "outlierSeverity": "WARNING"
+    },
+    "Ticket": {
+      "name": "Ticket",
+      "inferredType": "mixed",
+      "nullCount": 0,
+      "uniqueCount": 681,
+      "topFreq": [
+        {
+          "value": "347082",
+          "count": 7
+        },
+        {
+          "value": "1601",
+          "count": 7
+        },
+        {
+          "value": "CA. 2343",
+          "count": 7
+        },
+        {
+          "value": "3101295",
+          "count": 6
+        },
+        {
+          "value": "CA 2144",
+          "count": 6
+        }
+      ],
+      "zeros": 0,
+      "sampleValues": [
+        "A/5 21171",
+        33638,
+        370376
+      ]
+    },
+    "Fare": {
+      "name": "Fare",
+      "inferredType": "number",
+      "nullCount": 0,
+      "uniqueCount": 248,
+      "topFreq": [
+        {
+          "value": "8.05",
+          "count": 43
+        },
+        {
+          "value": "13",
+          "count": 42
+        },
+        {
+          "value": "7.8958",
+          "count": 38
+        },
+        {
+          "value": "7.75",
+          "count": 34
+        },
+        {
+          "value": "26",
+          "count": 31
+        }
+      ],
+      "zeros": 15,
+      "sampleValues": [
+        7.25,
+        81.8583,
+        7.75
+      ],
+      "min": 0,
+      "max": 512.3292,
+      "mean": 32.2042079685746,
+      "median": 14.4542,
+      "std": 49.66553444477411,
+      "cv": 1.5422063630081684,
+      "q1": 7.8958,
+      "q3": 31,
+      "iqr": 23.1042,
+      "lowerFence": -61.4168,
+      "upperFence": 100.3126,
+      "lowerFenceTukey": -26.7605,
+      "upperFenceTukey": 65.6563,
+      "outlierCount": 53,
+      "outlierCountTukey": 116,
+      "outlierSeverity": "WARNING"
+    },
+    "Cabin": {
+      "name": "Cabin",
+      "inferredType": "string",
+      "nullCount": 687,
+      "uniqueCount": 147,
+      "topFreq": [
+        {
+          "value": "G6",
+          "count": 4
+        },
+        {
+          "value": "C23 C25 C27",
+          "count": 4
+        },
+        {
+          "value": "B96 B98",
+          "count": 4
+        },
+        {
+          "value": "F33",
+          "count": 3
+        },
+        {
+          "value": "E101",
+          "count": 3
+        }
+      ],
+      "zeros": 0,
+      "sampleValues": [
+        "",
+        "A34",
+        ""
+      ]
+    },
+    "Embarked": {
+      "name": "Embarked",
+      "inferredType": "string",
+      "nullCount": 2,
+      "uniqueCount": 3,
+      "topFreq": [
+        {
+          "value": "S",
+          "count": 644
+        },
+        {
+          "value": "C",
+          "count": 168
+        },
+        {
+          "value": "Q",
+          "count": 77
+        }
+      ],
+      "zeros": 0,
+      "sampleValues": [
+        "S",
+        "S",
+        "Q"
+      ]
+    }
+  },
+  "scoreBreakdown": [],
+  "delimiterDetected": ",",
+  "datasetProfile": {
+    "totalRows": 891,
+    "totalColumns": 12,
+    "columns": [
+      {
+        "name": "PassengerId",
+        "cardinality": "high",
+        "uniqueRatio": 1,
+        "sparsity": 0,
+        "inferredType": "number",
+        "isCandidateForCoalescence": false,
+        "pruneRecommendation": "keep"
+      },
+      {
+        "name": "Survived",
+        "cardinality": "high",
+        "uniqueRatio": 1,
+        "sparsity": 0,
+        "inferredType": "number",
+        "isCandidateForCoalescence": false,
+        "pruneRecommendation": "keep"
+      },
+      {
+        "name": "Pclass",
+        "cardinality": "high",
+        "uniqueRatio": 1,
+        "sparsity": 0,
+        "inferredType": "number",
+        "isCandidateForCoalescence": false,
+        "pruneRecommendation": "keep"
+      },
+      {
+        "name": "Name",
+        "cardinality": "high",
+        "uniqueRatio": 1,
+        "sparsity": 0,
+        "inferredType": "string",
+        "isCandidateForCoalescence": false,
+        "pruneRecommendation": "keep"
+      },
+      {
+        "name": "Sex",
+        "cardinality": "high",
+        "uniqueRatio": 1,
+        "sparsity": 0,
+        "inferredType": "string",
+        "isCandidateForCoalescence": false,
+        "pruneRecommendation": "keep"
+      },
+      {
+        "name": "Age",
+        "cardinality": "high",
+        "uniqueRatio": 1,
+        "sparsity": 0.19865319865319866,
+        "inferredType": "number",
+        "isCandidateForCoalescence": false,
+        "pruneRecommendation": "keep"
+      },
+      {
+        "name": "SibSp",
+        "cardinality": "high",
+        "uniqueRatio": 1,
+        "sparsity": 0,
+        "inferredType": "number",
+        "isCandidateForCoalescence": false,
+        "pruneRecommendation": "keep"
+      },
+      {
+        "name": "Parch",
+        "cardinality": "high",
+        "uniqueRatio": 1,
+        "sparsity": 0,
+        "inferredType": "number",
+        "isCandidateForCoalescence": false,
+        "pruneRecommendation": "keep"
+      },
+      {
+        "name": "Ticket",
+        "cardinality": "high",
+        "uniqueRatio": 1,
+        "sparsity": 0,
+        "inferredType": "mixed",
+        "isCandidateForCoalescence": false,
+        "pruneRecommendation": "keep"
+      },
+      {
+        "name": "Fare",
+        "cardinality": "high",
+        "uniqueRatio": 1,
+        "sparsity": 0,
+        "inferredType": "number",
+        "isCandidateForCoalescence": false,
+        "pruneRecommendation": "keep"
+      },
+      {
+        "name": "Cabin",
+        "cardinality": "high",
+        "uniqueRatio": 1,
+        "sparsity": 0.7710437710437711,
+        "inferredType": "string",
+        "isCandidateForCoalescence": false,
+        "pruneRecommendation": "keep"
+      },
+      {
+        "name": "Embarked",
+        "cardinality": "high",
+        "uniqueRatio": 1,
+        "sparsity": 0.002244668911335578,
+        "inferredType": "string",
+        "isCandidateForCoalescence": false,
+        "pruneRecommendation": "keep"
+      }
+    ],
+    "coalescencePairs": [],
+    "pruningCandidates": [],
+    "generatedAt": "2026-06-23T20:59:39.752Z"
+  }
+}

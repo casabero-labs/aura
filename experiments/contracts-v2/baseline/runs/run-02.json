@@ -1,0 +1,99 @@
+{
+  "runNumber": 2,
+  "status": "completed",
+  "startedAt": "2026-06-23T21:24:06.698Z",
+  "tasks": {
+    "B1": {
+      "taskId": "B1-diagnosis",
+      "promptHash": "58f3e834",
+      "responseRaw": "## Estado de ejecución\nEl análisis se ha realizado utilizando los datos proporcionados por el motor determinista AURA. Se han identificado las columnas con problemas según las reglas establecidas.\n\n## Hallazgos respaldados por evidencia\n\n1. **Valores Nulos / Vacíos:**\n   - La columna \"Age\" tiene 177 valores nulos, lo que representa un 20% de los datos faltantes.\n   - La columna \"Cabin\" tiene 687 valores nulos, lo que equivale a aproximadamente el 77.1% de los datos faltantes.\n\n2. **Outliers Extremos (IQR 3×):**\n   - La columna \"SibSp\" tiene valores desviados significativos (> 3× del rango intercuartílico), con las muestras más extremas siendo 5, 5 y 8.\n   - La columna \"Fare\" también presenta valores desviados significativos (> 3× del rango intercuartílico), con las muestras más extremas siendo 263, 146.5208 y 263.\n\n3. **Cola Larga Categórica:**\n   - La columna \"Name\" tiene una alta dispersión de categorías con valores principales como \"Mr.\", \"Mrs.\", \"Miss.\" y otros nombres específicos.\n   - Se sugiere que esta columna podría beneficiarse de un proceso de agrupación o creación de macro-categorías antes del análisis.\n\n## Hipótesis no validadas\n- No se han inventado columnas, valores ni relaciones. Solo se han citado las columnas y reglas establecidas por el motor determinista AURA.\n- Se ha mencionado que la columna \"Name\" tiene una alta dispersión de categorías, pero no se ha sugerido un proceso específico para agrupar estas categorías sin tener acceso al CSV completo.\n\n## Acciones recomendadas\n1. **Llenar valores nulos en la columna \"Age\":**\n   - Se recomienda utilizar técnicas como interpolación o reemplazo con el valor medio de la columna si se tienen datos faltantes.\n   \n2. **Eliminar o llenar valores nulos en la columna \"Cabin\":**\n   - Si no hay información relevante sobre las cabinas, se podría considerar eliminar estas filas o rellenar los valores faltantes con un valor representativo.\n\n3. **Tratar outliers en la columna \"SibSp\" y \"Fare\":**\n   - Se pueden aplicar técnicas de limpieza para manejar estos valores extremos, como reemplazarlos con el valor medio o mediana de la columna.\n   \n4. **Agrupar la columna \"Name\":**\n   - Podría ser útil crear una nueva columna que agrupe los nombres en categorías más grandes (por ejemplo, \"Mr.\", \"Mrs.\", \"Miss.\") para reducir la dispersión de valores.\n\n## Limites de la respuesta\n- No se ha generado ningún script Python/Pandas. Solo se han proporcionado recomendaciones basadas en las columnas y reglas establecidas por el motor determinista AURA.\n- La implementación de estas acciones debe realizarse con acceso al CSV completo, ya que solo se tiene información sobre las columnas observadas y los tipos inferidos.",
+      "metrics": {
+        "provider": "Ollama",
+        "model": "qwen2.5:3b",
+        "latencyMs": 24003,
+        "firstTokenMs": 24003,
+        "tokensGenerated": 674,
+        "isLocal": true,
+        "timestamp": "2026-06-23T21:24:30.706Z"
+      },
+      "durationMs": 24003,
+      "status": "completed"
+    },
+    "B1-Summary": {
+      "taskId": "B1-summary",
+      "responseRaw": "## Resumen operativo para script\n\n### Problemas priorizados:\n1. **Valores Nulos en \"Age\"**: 20% de datos faltantes.\n2. **Valores Nulos en \"Cabin\"**: 77.1% de datos faltantes.\n3. **Outliers en \"SibSp\"**: Valores extremos (5, 5, 8).\n4. **Outliers en \"Fare\"**: Valores extremos (263, 146.5208, 263).\n\n### Acciones automatizables:\n- **Llenar valores nulos en \"Age\"** utilizando técnicas como interpolación o reemplazo con el valor medio.\n- **Eliminar o llenar valores nulos en \"Cabin\"**: Si no hay información relevante sobre las cabinas, se podría considerar eliminar estas filas o rellenar los valores faltantes con un valor representativo.\n- **Tratar outliers en \"SibSp\" y \"Fare\"**: Aplicar técnicas de limpieza para manejar estos valores extremos, como reemplazarlos con el valor medio o mediana de la columna.\n- **Agrupar la columna \"Name\"**: Crear una nueva columna que agrupe los nombres en categorías más grandes (por ejemplo, \"Mr.\", \"Mrs.\", \"Miss.\").\n\n### Acciones que requieren HITL:\n- No se han identificado acciones específicas que requieran HITL en este diagnostico.\n\n### Columnas que NO deben modificarse automaticamente:\n- **Columna \"Name\"**: Se sugiere mantener la columna tal cual, ya que no hay información adicional para agrupar las categorías sin tener acceso al CSV completo.\n\n### Riesgos del script:\n- **Riesgo de pérdida de datos**: Si se eliminan filas con valores nulos en \"Cabin\", podría haber una pérdida significativa de datos.\n- **Riesgo de distorsión de la distribución de datos**: Si se reemplazan los outliers, puede afectar la representatividad del conjunto de datos.\n\n---\n\nEste resumen proporciona un esquema claro para implementar las acciones sugeridas en un script Python/Pandas.",
+      "summaryBrief": "- El análisis se ha realizado utilizando los datos proporcionados por el motor determinista AURA. Se han identificado las columnas con problemas según las reglas establecidas.\n- La columna \"Age\" tiene 177 valores nulos, lo que representa un 20% de los datos faltantes.\n- La columna \"Cabin\" tiene 687 valores nulos, lo que equivale a aproximadamente el 77.1% de los datos faltantes.\n- La columna \"SibSp\" tiene valores desviados significativos (  3× del rango intercuartílico), con las muestras más extremas siendo 5, 5 y 8.\n- La columna \"Fare\" también presenta valores desviados significativos (  3× del rango intercuartílico), con las muestras más extremas siendo 263, 146.5208 y 263.\n- La columna \"Name\" tiene una alta dispersión de categorías con valores principales como \"Mr.\", \"Mrs.\", \"Miss.\" y otros nombres específicos.\n- Se sugiere que esta columna podría beneficiarse de un proceso de agrupación o creación de macro categorías antes del análisis.\n- No se han inventado columnas, valores ni relaciones. Solo se han citado las columnas y reglas establecidas por el motor determinista AURA.\n- Se ha mencionado que la columna \"Name\" tiene una alta dispersión de categorías, pero no se ha sugerido un proceso específico para agrupar estas categorías sin tener acceso al CSV completo.\n- Acciones recomendadas",
+      "durationMs": 14153,
+      "status": "completed"
+    },
+    "B2": {
+      "taskId": "B2-script-generation",
+      "promptHash": "1507c173",
+      "responseRaw": "```python\nimport pandas as pd\nimport numpy as np\n\ndef clean_dataset(df: pd.DataFrame) -> pd.DataFrame:\n    \"\"\"\n    Función que limpia el DataFrame 'df' según las reglas establecidas por AURA.\n    \n    Returns:\n        pd.DataFrame: DataFrame limpio con columnas y filas correspondientes a las observadas en el contexto de AURA.\n    \"\"\"\n    # AURA: regla=Valores Nulos / Vacíos, columna=Age\n    df_clean = df.copy()\n    df_clean['Age'].fillna(df_clean['Age'].mean(), inplace=True)\n    \n    # AURA: regla=Cola Larga Categórica, columna=Name\n    df_clean['Name'] = df_clean['Name'].str.split(', ').apply(lambda x: ' '.join(x[:2]))\n    \n    # AURA: regla=Valores Nulos / Vacíos, columna=Cabin\n    df_clean.dropna(subset=['Cabin'], inplace=True)\n    \n    return df_clean\n\n# Definición de la función para retornar el DataFrame limpio\ndf_clean = clean_dataset(df)\n\nreturn df_clean\n```",
+      "scriptExtracted": "import pandas as pd\nimport numpy as np\n\ndef clean_dataset(df: pd.DataFrame) -> pd.DataFrame:\n    \"\"\"\n    Función que limpia el DataFrame 'df' según las reglas establecidas por AURA.\n    \n    Returns:\n        pd.DataFrame: DataFrame limpio con columnas y filas correspondientes a las observadas en el contexto de AURA.\n    \"\"\"\n    # AURA: regla=Valores Nulos / Vacíos, columna=Age\n    df_clean = df.copy()\n    df_clean['Age'].fillna(df_clean['Age'].mean(), inplace=True)\n    \n    # AURA: regla=Cola Larga Categórica, columna=Name\n    df_clean['Name'] = df_clean['Name'].str.split(', ').apply(lambda x: ' '.join(x[:2]))\n    \n    # AURA: regla=Valores Nulos / Vacíos, columna=Cabin\n    df_clean.dropna(subset=['Cabin'], inplace=True)\n    \n    return df_clean\n\n# Definición de la función para retornar el DataFrame limpio\ndf_clean = clean_dataset(df)\n\nreturn df_clean",
+      "metrics": {
+        "provider": "Ollama",
+        "model": "qwen2.5:3b",
+        "latencyMs": 17390,
+        "firstTokenMs": 17390,
+        "tokensGenerated": 219,
+        "isLocal": true,
+        "timestamp": "2026-06-23T21:25:02.250Z"
+      },
+      "durationMs": 17390,
+      "status": "completed"
+    },
+    "B3": {
+      "taskId": "B3-validation",
+      "validationResult": {
+        "valid": false,
+        "hasScript": true,
+        "invalidColumns": [
+          "PassengerId",
+          "Survived",
+          "Pclass",
+          "Sex",
+          "SibSp",
+          "Parch",
+          "Ticket",
+          "Fare",
+          "Embarked"
+        ],
+        "destructiveOperations": [
+          "dropna",
+          "inplace_mutation"
+        ],
+        "coveredIssueIds": [
+          "integrity-null-Age",
+          "integrity-null-Cabin",
+          "semantic-long-tail-Name"
+        ],
+        "uncoveredIssueIds": [
+          "logic-outlier-SibSp",
+          "logic-outlier-Fare"
+        ],
+        "coveragePercentage": 60,
+        "safetyScore": 38,
+        "scriptOrigin": "model",
+        "hasPandasImport": true,
+        "requiresHumanReview": true,
+        "warnings": [
+          "El script contiene operaciones destructivas o mutaciones directas.",
+          "El script referencia columnas que no existen en el AuditReport."
+        ]
+      },
+      "durationMs": 1,
+      "status": "completed"
+    }
+  },
+  "completedAt": "2026-06-23T21:25:02.251Z",
+  "totalDurationMs": 41394,
+  "ollamaVersion": "0.20.3",
+  "tokens": {
+    "diagnosis": 674,
+    "summary": 428,
+    "script": 219,
+    "total": 1321
+  },
+  "tokensSource": "estimated"
+}

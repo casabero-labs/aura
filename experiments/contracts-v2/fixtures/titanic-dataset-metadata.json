@@ -1,0 +1,10 @@
+{
+  "nombre": "titanic",
+  "filas": 891,
+  "columnas": 12,
+  "fingerprint": "fp_3e3dbfe0",
+  "fechaDeGeneracion": "2026-06-23T20:59:39.754Z",
+  "commitSha": "ref: refs/heads/main",
+  "versionDelFixture": "1.0.0",
+  "origenDataset": "https://raw.githubusercontent.com/datasciencedojo/datasets/master/titanic.csv"
+}
