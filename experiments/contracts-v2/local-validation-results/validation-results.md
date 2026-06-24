@@ -1,6 +1,6 @@
 # Contracts v2 — Local Dataset Validation
 
-**Generated:** 2026-06-24T02:08:51.477Z
+**Generated:** 2026-06-24T03:16:32.272Z
 **Datasets dir:** /Users/casabero/Documents/GitHub/aura/experiments/datasets
 
 | Status | Count |
@@ -50,19 +50,19 @@
 - **Rows:** 48842 × **Cols:** 15
 - **Issues:** 12
 - **Duplicate columns:** 0
-- **Duration:** 3221ms
+- **Duration:** 3287ms
 
 | Level | Budget | Size | Samples | Columns | Issues | Trunc | PII Leaks |
 |-------|--------|------|---------|---------|--------|-------|-----------|
-| local_full_default | | 13.9KB | 15 | 15 | 12 | 0 | 0 |
-| local_full_reduced | | 7.3KB | 0 | 5 | 7 | 8 | 0 |
-| local_full_tight | — | — | — | — | — | — | Cannot reduce envelope to 4000 chars (actual: 5254) |
-| cloud_minimized_default | | 14.5KB | 15 | 15 | 12 | 0 | 0 |
-| cloud_minimized_reduced | | 7.0KB | 0 | 5 | 7 | 8 | 0 |
-| cloud_minimized_tight | — | — | — | — | — | — | Cannot reduce envelope to 4000 chars (actual: 5828) |
-| cloud_no_samples_default | | 11.8KB | 0 | 15 | 12 | 0 | 0 |
-| cloud_no_samples_reduced | | 6.9KB | 0 | 5 | 7 | 3 | 0 |
-| cloud_no_samples_tight | — | — | — | — | — | — | Cannot reduce envelope to 4000 chars (actual: 5109) |
+| local_full_default | | 14.3KB | 15 | 15 | 12 | 0 | 0 |
+| local_full_reduced | | 7.6KB | 0 | 5 | 7 | 8 | 0 |
+| local_full_tight | — | — | — | — | — | — | Cannot reduce envelope to 4000 chars (actual: 5469) |
+| cloud_minimized_default | | 14.9KB | 15 | 15 | 12 | 0 | 0 |
+| cloud_minimized_reduced | | 7.2KB | 0 | 5 | 7 | 8 | 0 |
+| cloud_minimized_tight | — | — | — | — | — | — | Cannot reduce envelope to 4000 chars (actual: 6043) |
+| cloud_no_samples_default | | 12.2KB | 0 | 15 | 12 | 0 | 0 |
+| cloud_no_samples_reduced | | 7.2KB | 0 | 5 | 7 | 3 | 0 |
+| cloud_no_samples_tight | — | — | — | — | — | — | Cannot reduce envelope to 4000 chars (actual: 5324) |
 
 ## ✅ synthetic_ground_truth.csv
 
@@ -72,19 +72,19 @@
 - **Rows:** 15 × **Cols:** 9
 - **Issues:** 16
 - **Duplicate columns:** 0
-- **Duration:** 7ms
+- **Duration:** 5ms
 
 | Level | Budget | Size | Samples | Columns | Issues | Trunc | PII Leaks |
 |-------|--------|------|---------|---------|--------|-------|-----------|
-| local_full_default | | 14.4KB | 18 | 9 | 16 | 1 | 0 |
-| local_full_reduced | | 7.5KB | 0 | 5 | 10 | 8 | 0 |
-| local_full_tight | — | — | — | — | — | — | Cannot reduce envelope to 4000 chars (actual: 5509) |
-| cloud_minimized_default | | 15.0KB | 18 | 9 | 16 | 1 | 0 |
-| cloud_minimized_reduced | — | — | — | — | — | — | Cannot reduce envelope to 8000 chars (actual: 8221) |
-| cloud_minimized_tight | — | — | — | — | — | — | Cannot reduce envelope to 4000 chars (actual: 6083) |
-| cloud_no_samples_default | | 11.1KB | 0 | 9 | 16 | 1 | 0 |
-| cloud_no_samples_reduced | | 7.1KB | 0 | 5 | 10 | 3 | 0 |
-| cloud_no_samples_tight | — | — | — | — | — | — | Cannot reduce envelope to 4000 chars (actual: 5364) |
+| local_full_default | | 15.0KB | 18 | 9 | 16 | 1 | 0 |
+| local_full_reduced | — | — | — | — | — | — | Cannot reduce envelope to 8000 chars (actual: 8010) |
+| local_full_tight | — | — | — | — | — | — | Cannot reduce envelope to 4000 chars (actual: 5726) |
+| cloud_minimized_default | | 15.5KB | 18 | 9 | 16 | 1 | 0 |
+| cloud_minimized_reduced | — | — | — | — | — | — | Cannot reduce envelope to 8000 chars (actual: 8584) |
+| cloud_minimized_tight | — | — | — | — | — | — | Cannot reduce envelope to 4000 chars (actual: 6300) |
+| cloud_no_samples_default | | 11.7KB | 0 | 9 | 16 | 1 | 0 |
+| cloud_no_samples_reduced | | 7.4KB | 0 | 5 | 10 | 3 | 0 |
+| cloud_no_samples_tight | — | — | — | — | — | — | Cannot reduce envelope to 4000 chars (actual: 5581) |
 
 ## ✅ titanic.csv
 
@@ -98,12 +98,12 @@
 
 | Level | Budget | Size | Samples | Columns | Issues | Trunc | PII Leaks |
 |-------|--------|------|---------|---------|--------|-------|-----------|
-| local_full_default | | 14.5KB | 15 | 12 | 10 | 2 | 0 |
-| local_full_reduced | | 6.5KB | 4 | 5 | 2 | 5 | 0 |
+| local_full_default | | 14.7KB | 15 | 12 | 10 | 2 | 0 |
+| local_full_reduced | | 6.6KB | 4 | 5 | 2 | 5 | 0 |
 | local_full_tight | | 3.7KB | 0 | 3 | 0 | 4 | 0 |
-| cloud_minimized_default | | 15.0KB | 15 | 12 | 10 | 2 | 0 |
+| cloud_minimized_default | | 15.2KB | 15 | 12 | 10 | 2 | 0 |
 | cloud_minimized_reduced | | 7.1KB | 4 | 5 | 2 | 5 | 0 |
 | cloud_minimized_tight | | 3.7KB | 0 | 3 | 0 | 4 | 0 |
-| cloud_no_samples_default | | 10.1KB | 0 | 12 | 10 | 2 | 0 |
+| cloud_no_samples_default | | 10.3KB | 0 | 12 | 10 | 2 | 0 |
 | cloud_no_samples_reduced | | 5.2KB | 0 | 5 | 2 | 3 | 0 |
 | cloud_no_samples_tight | | 3.7KB | 0 | 3 | 0 | 2 | 0 |

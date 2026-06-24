@@ -11,6 +11,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
+import { execSync } from 'node:child_process';
 
 const require = createRequire(import.meta.url);
 const Papa = require('papaparse');
@@ -57,10 +58,22 @@ const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 const { runAudit } = await import(path.resolve(REPO_ROOT, 'src/services/auditEngine.ts'));
 const { _buildEvidenceEnvelopeV2 } = await import(path.resolve(REPO_ROOT, 'src/contracts/llm/evidenceEnvelopeV2.ts'));
 
+// ── Provenance metadata ──
+function sha256(filePath) {
+  return createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
+}
+
+const auditEngineSha256 = sha256(path.resolve(REPO_ROOT, 'src/services/auditEngine.ts'));
+const contractsV2Sha256 = sha256(path.resolve(__dirname, 'run-local-dataset-validation.mjs'));
+const commitSha = execSync('git rev-parse HEAD', { cwd: REPO_ROOT }).toString().trim();
+
 // ── Results store ──
 const results = {
   harnessVersion: '1.0.0',
   generatedAt: new Date().toISOString(),
+  commitSha,
+  auditEngineSha256,
+  contractsV2Sha256,
   datasetsDir: DATASETS_DIR,
   summary: { total: 0, passed: 0, failed: 0, unsupported: 0 },
   files: [],

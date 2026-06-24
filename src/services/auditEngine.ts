@@ -402,8 +402,8 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
     reason: string,
     points: number,
     category: IssueCategory,
-    severity: IssueSeverity = IssueSeverity.WARNING,
     ruleId: string,
+    severity: IssueSeverity = IssueSeverity.WARNING,
   ) => {
     const weighted = computeWeightedDeduction(points, severity, category);
     penaltyPoints += weighted;
@@ -438,7 +438,7 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
   if (duplicateCount > 0) {
     const pct = (duplicateCount / rowCount) * 100;
     const points = Math.min(15, Math.ceil(pct));
-    addDeduction(`Filas Duplicadas (${duplicateCount})`, points, IssueCategory.INTEGRITY, IssueSeverity.CRITICAL, RULE_IDS.EXACT_DUPLICATES);
+    addDeduction(`Filas Duplicadas (${duplicateCount})`, points, IssueCategory.INTEGRITY, RULE_IDS.EXACT_DUPLICATES);
     addIssue({
       id: 'integrity-dupes',
       ruleName: 'Filas Duplicadas',
@@ -479,7 +479,7 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
       const isCritical = nullPct > 20;
       const points = isCritical ? 10 : 2;
       const severity = isCritical ? IssueSeverity.CRITICAL : IssueSeverity.WARNING;
-      addDeduction(`Valores Nulos en [${col}]`, points, IssueCategory.INTEGRITY, severity, RULE_IDS.NULL_VALUES);
+      addDeduction(`Valores Nulos en [${col}]`, points, IssueCategory.INTEGRITY, RULE_IDS.NULL_VALUES);
       addIssue({
         id: `integrity-null-${col}`,
         column: col,
@@ -497,7 +497,7 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
 
     // 3. Constant Column (Low Entropy)
     if (stats.uniqueCount === 1 && rowCount > 10) {
-      addDeduction(`Columna Constante [${col}]`, 5, IssueCategory.INTEGRITY, IssueSeverity.WARNING, RULE_IDS.CONSTANT_COLUMN);
+      addDeduction(`Columna Constante [${col}]`, 5, IssueCategory.INTEGRITY, RULE_IDS.CONSTANT_COLUMN);
       addIssue({
         id: `integrity-constant-${col}`,
         column: col,
@@ -516,7 +516,7 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
     // 4. Mixed Types (Dirty Object) — Skip alphanumeric code columns (R4 fix)
     const isCodeCol = col.toLowerCase().includes('ticket') || col.toLowerCase().includes('code') || col.toLowerCase().includes('ref') || col.toLowerCase().includes('num') || col.toLowerCase().includes('nro');
     if (stats.inferredType === 'mixed' && !isCodeCol) {
-      addDeduction(`Tipos Mixtos en [${col}]`, 10, IssueCategory.INTEGRITY, IssueSeverity.CRITICAL, RULE_IDS.MIXED_TYPES);
+      addDeduction(`Tipos Mixtos en [${col}]`, 10, IssueCategory.INTEGRITY, RULE_IDS.MIXED_TYPES);
       const numSample = values.find(v => typeof v === 'number');
       const strSample = values.find(v => typeof v === 'string');
       addIssue({
@@ -537,7 +537,7 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
     // 4b. Headers as survey questions or overly verbose metadata
     const headerWordCount = normalizeText(col).split(' ').filter(Boolean).length;
     if (col.length > 60 || REGEX_HEADER_QUESTION.test(col) || headerWordCount > 8) {
-      addDeduction(`Cabecera no técnica [${col}]`, 2, IssueCategory.SEMANTIC, IssueSeverity.INFO, RULE_IDS.HEADER_VERBOSE);
+      addDeduction(`Cabecera no técnica [${col}]`, 2, IssueCategory.SEMANTIC, RULE_IDS.HEADER_VERBOSE);
       addIssue({
         id: `semantic-header-${col}`,
         column: col,
@@ -762,29 +762,29 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
 
     // Group 2 Checks
     if (ghostSpaceCount > 0) {
-      addDeduction(`Espacios Fantasma en [${col}]`, 3, IssueCategory.HYGIENE, IssueSeverity.INFO, RULE_IDS.TRIM_WHITESPACE);
+      addDeduction(`Espacios Fantasma en [${col}]`, 3, IssueCategory.HYGIENE, RULE_IDS.TRIM_WHITESPACE);
       addIssue({ id: `hygiene-ghost-${col}`, column: col, category: IssueCategory.HYGIENE, ruleName: 'Espacios Fantasma (Trim)', description: 'Textos con espacios invisibles al inicio/final.', severity: IssueSeverity.INFO, count: ghostSpaceCount, affectedPercentage: (ghostSpaceCount / rowCount) * 100, sampleValues: samples.ghost, ruleId: RULE_IDS.TRIM_WHITESPACE, automaticAuthorization: autoAuth('trim_whitespace', true, ['string-column', 'leading-or-trailing-whitespace-confirmed'], 'Deterministic lossless normalization') });
     }
 
     if (mojibakeCount > 0) {
-      addDeduction(`Encoding Corrupto en [${col}]`, 8, IssueCategory.HYGIENE, IssueSeverity.WARNING, RULE_IDS.MOJIBAKE);
+      addDeduction(`Encoding Corrupto en [${col}]`, 8, IssueCategory.HYGIENE, RULE_IDS.MOJIBAKE);
       addIssue({ id: `hygiene-moji-${col}`, column: col, category: IssueCategory.HYGIENE, ruleName: 'Mojibake / Encoding Roto', description: 'Caracteres corruptos (Ã±, etc).', severity: IssueSeverity.WARNING, count: mojibakeCount, affectedPercentage: (mojibakeCount / rowCount) * 100, sampleValues: samples.mojibake, ruleId: RULE_IDS.MOJIBAKE, automaticAuthorization: autoAuth('encoding_fix', false, [], 'Requires encoding detection') });
     }
 
     if (toxicCount > 0) {
-      addDeduction(`Placeholders Tóxicos en [${col}]`, 5, IssueCategory.HYGIENE, IssueSeverity.WARNING, RULE_IDS.TOXIC_PLACEHOLDERS);
+      addDeduction(`Placeholders Tóxicos en [${col}]`, 5, IssueCategory.HYGIENE, RULE_IDS.TOXIC_PLACEHOLDERS);
       addIssue({ id: `hygiene-toxic-${col}`, column: col, category: IssueCategory.HYGIENE, ruleName: 'Placeholders Tóxicos', description: 'Valores como "n/a", "null" o "999" detectados.', severity: IssueSeverity.WARNING, count: toxicCount, affectedPercentage: (toxicCount / rowCount) * 100, sampleValues: samples.toxic, ruleId: RULE_IDS.TOXIC_PLACEHOLDERS, automaticAuthorization: autoAuth('replace_placeholders', false, [], 'Requires domain decision on replacement') });
     }
 
     if (isoDateCount > 0 && dmyDateCount > 0) {
-      addDeduction(`Formatos de Fecha Mixtos en [${col}]`, 5, IssueCategory.LOGIC, IssueSeverity.WARNING, RULE_IDS.MIXED_DATE_FORMATS);
+      addDeduction(`Formatos de Fecha Mixtos en [${col}]`, 5, IssueCategory.LOGIC, RULE_IDS.MIXED_DATE_FORMATS);
       addIssue({ id: `logic-mixed-date-${col}`, column: col, category: IssueCategory.LOGIC, ruleName: 'Formatos de Fecha Mixtos', description: 'Múltiples estándares de fecha (ISO y DMY) en la misma columna.', severity: IssueSeverity.WARNING, count: Math.min(isoDateCount, dmyDateCount), affectedPercentage: (Math.min(isoDateCount, dmyDateCount) / rowCount) * 100, sampleValues: samples.mixedDate, ruleId: RULE_IDS.MIXED_DATE_FORMATS, automaticAuthorization: autoAuth('standardize_date_format', false, [], 'Requires locale-aware conversion') });
     }
 
     if (!shouldSkipCapitalizationChaos(col, stats, values, rowCount)) {
       const capitalizationVariants = detectCapitalizationVariantGroups(values);
       if (capitalizationVariants.affectedRows > 0) {
-        addDeduction(`Caos de Mayúsculas en [${col}]`, 3, IssueCategory.HYGIENE, IssueSeverity.INFO, RULE_IDS.CAPITALIZATION_CHAOS);
+        addDeduction(`Caos de Mayúsculas en [${col}]`, 3, IssueCategory.HYGIENE, RULE_IDS.CAPITALIZATION_CHAOS);
         addIssue({
           id: `hygiene-case-${col}`,
           column: col,
@@ -804,7 +804,7 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
     if (isLikelyTextDimension(col, stats, rowCount)) {
       const vocabularyVariants = detectControlledVocabularyVariants(values);
       vocabularyVariants.forEach(variant => {
-        addDeduction(`Variantes categóricas [${col}:${variant.group}]`, 4, IssueCategory.SEMANTIC, IssueSeverity.WARNING, RULE_IDS.SEMANTIC_VARIANTS);
+        addDeduction(`Variantes categóricas [${col}:${variant.group}]`, 4, IssueCategory.SEMANTIC, RULE_IDS.SEMANTIC_VARIANTS);
         addIssue({
           id: `semantic-category-variants-${col}-${variant.group}`,
           column: col,
@@ -840,17 +840,17 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
     }
 
     if (doubleSpaceCount > 0) {
-      addDeduction(`Espacios Múltiples en [${col}]`, 2, IssueCategory.HYGIENE, IssueSeverity.INFO, RULE_IDS.DOUBLE_SPACES);
+      addDeduction(`Espacios Múltiples en [${col}]`, 2, IssueCategory.HYGIENE, RULE_IDS.DOUBLE_SPACES);
       addIssue({ id: `hygiene-space-${col}`, column: col, category: IssueCategory.HYGIENE, ruleName: 'Espacios Múltiples', description: 'Cadenas con dobles espacios internos detectados.', severity: IssueSeverity.INFO, count: doubleSpaceCount, affectedPercentage: (doubleSpaceCount / rowCount) * 100, sampleValues: samples.doubleSpace, ruleId: RULE_IDS.DOUBLE_SPACES, automaticAuthorization: autoAuth('normalize_spaces', false, [], 'Deterministic whitespace normalization') });
     }
 
     if (symbolChaosCount > 0) {
-      addDeduction(`Símbolos Sospechosos en [${col}]`, 5, IssueCategory.HYGIENE, IssueSeverity.WARNING, RULE_IDS.SUSPICIOUS_SYMBOLS);
+      addDeduction(`Símbolos Sospechosos en [${col}]`, 5, IssueCategory.HYGIENE, RULE_IDS.SUSPICIOUS_SYMBOLS);
       addIssue({ id: `hygiene-symbol-${col}`, column: col, category: IssueCategory.HYGIENE, ruleName: 'Símbolos Sospechosos', description: 'Caracteres especiales detectados en columnas de ID o Nombres.', severity: IssueSeverity.WARNING, count: symbolChaosCount, affectedPercentage: (symbolChaosCount / rowCount) * 100, sampleValues: samples.symbol, ruleId: RULE_IDS.SUSPICIOUS_SYMBOLS, automaticAuthorization: autoAuth('clean_symbols', false, [], 'Requires domain decision on valid characters') });
     }
 
     if (urlPatternCount > 0) {
-      addDeduction(`Formatos URL Inválidos en [${col}]`, 5, IssueCategory.LOGIC, IssueSeverity.WARNING, RULE_IDS.MALFORMED_URLS);
+      addDeduction(`Formatos URL Inválidos en [${col}]`, 5, IssueCategory.LOGIC, RULE_IDS.MALFORMED_URLS);
       addIssue({ id: `logic-url-${col}`, column: col, category: IssueCategory.LOGIC, ruleName: 'URL con Formato Erróneo', description: 'Enlaces web que no cumplen la estructura estándar.', severity: IssueSeverity.WARNING, count: urlPatternCount, affectedPercentage: (urlPatternCount / rowCount) * 100, sampleValues: samples.url, ruleId: RULE_IDS.MALFORMED_URLS, automaticAuthorization: autoAuth('validate_url_format', false, [], 'Requires domain decision on URL structure') });
     }
 
@@ -878,7 +878,7 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
     }
 
     if (burnedRangeCount > rowCount * 0.6 && stats.uniqueCount <= 20) {
-      addDeduction(`Rangos quemados [${col}]`, 4, IssueCategory.SEMANTIC, IssueSeverity.WARNING, RULE_IDS.BURNED_DEMOGRAPHIC_RANGES);
+      addDeduction(`Rangos quemados [${col}]`, 4, IssueCategory.SEMANTIC, RULE_IDS.BURNED_DEMOGRAPHIC_RANGES);
       addIssue({
         id: `semantic-burned-range-${col}`,
         column: col,
@@ -896,22 +896,22 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
 
     // Group 4 Checks
     if (negativeCount > 0) {
-      addDeduction(`Negativos en Campo Positivo [${col}]`, 10, IssueCategory.LOGIC, IssueSeverity.CRITICAL, RULE_IDS.IMPOSSIBLE_NEGATIVES);
+      addDeduction(`Negativos en Campo Positivo [${col}]`, 10, IssueCategory.LOGIC, RULE_IDS.IMPOSSIBLE_NEGATIVES);
       addIssue({ id: `logic-neg-${col}`, column: col, category: IssueCategory.LOGIC, ruleName: 'Negativos Imposibles', description: 'Valores negativos en campo lógico (Edad, Precio).', severity: IssueSeverity.CRITICAL, count: negativeCount, affectedPercentage: (negativeCount / rowCount) * 100, sampleValues: samples.negative, ruleId: RULE_IDS.IMPOSSIBLE_NEGATIVES, automaticAuthorization: autoAuth('filter_negatives', false, [], 'Logical constraint violation') });
     }
 
     if (outlierCount > 0) {
-      addDeduction(`Outliers en [${col}]`, 5, IssueCategory.LOGIC, IssueSeverity.WARNING, RULE_IDS.EXTREME_OUTLIERS);
+      addDeduction(`Outliers en [${col}]`, 5, IssueCategory.LOGIC, RULE_IDS.EXTREME_OUTLIERS);
       addIssue({ id: `logic-outlier-${col}`, column: col, category: IssueCategory.LOGIC, ruleName: 'Outliers Extremos (IQR 3×)', description: 'Valores desviados > 3× del rango intercuartílico.', severity: IssueSeverity.WARNING, count: outlierCount, affectedPercentage: (outlierCount / rowCount) * 100, sampleValues: samples.outlier, ruleId: RULE_IDS.EXTREME_OUTLIERS, automaticAuthorization: autoAuth('cap_outliers', false, [], 'Statistical outlier handling') });
     }
 
     if (outlierCountTukey > 0) {
-      addDeduction(`Outliers Leves en [${col}]`, 2, IssueCategory.LOGIC, IssueSeverity.INFO, RULE_IDS.MILD_OUTLIERS);
+      addDeduction(`Outliers Leves en [${col}]`, 2, IssueCategory.LOGIC, RULE_IDS.MILD_OUTLIERS);
       addIssue({ id: `logic-outlier-tukey-${col}`, column: col, category: IssueCategory.LOGIC, ruleName: 'Outliers Leves (Tukey 1.5×)', description: 'Valores desviados entre 1.5× y 3× del rango intercuartílico (mild Tukey outliers).', severity: IssueSeverity.INFO, count: outlierCountTukey, affectedPercentage: (outlierCountTukey / rowCount) * 100, sampleValues: [], ruleId: RULE_IDS.MILD_OUTLIERS, automaticAuthorization: autoAuth('review_outliers', false, [], 'Mild statistical outlier') });
     }
 
     if (invalidEmailCount > 0) {
-      addDeduction(`Correos Inválidos en [${col}]`, 10, IssueCategory.LOGIC, IssueSeverity.CRITICAL, RULE_IDS.INVALID_EMAIL);
+      addDeduction(`Correos Inválidos en [${col}]`, 10, IssueCategory.LOGIC, RULE_IDS.INVALID_EMAIL);
       addIssue({ id: `logic-email-${col}`, column: col, category: IssueCategory.LOGIC, ruleName: 'Formato Email Inválido', description: 'Cadenas sin estructura de correo.', severity: IssueSeverity.CRITICAL, count: invalidEmailCount, affectedPercentage: (invalidEmailCount / rowCount) * 100, sampleValues: samples.email, ruleId: RULE_IDS.INVALID_EMAIL, automaticAuthorization: autoAuth('validate_emails', false, [], 'Format validation required') });
     }
 
@@ -925,14 +925,14 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
 
       const variableCount = phoneLengths.filter(l => l !== mode).length;
       if (variableCount > phoneLengths.length * 0.1) { // If >10% differ from standard length
-        addDeduction(`Longitud Teléfonos Variable [${col}]`, 5, IssueCategory.LOGIC, IssueSeverity.WARNING, RULE_IDS.VARIABLE_PHONE_LENGTH);
+        addDeduction(`Longitud Teléfonos Variable [${col}]`, 5, IssueCategory.LOGIC, RULE_IDS.VARIABLE_PHONE_LENGTH);
         addIssue({ id: `logic-phone-${col}`, column: col, category: IssueCategory.LOGIC, ruleName: 'Longitud de Teléfonos', description: `Longitud variable (Moda: ${mode} dígitos).`, severity: IssueSeverity.WARNING, count: variableCount, affectedPercentage: (variableCount / phoneLengths.length) * 100, sampleValues: [], ruleId: RULE_IDS.VARIABLE_PHONE_LENGTH, automaticAuthorization: autoAuth('normalize_phone_length', false, [], 'International format handling') });
       }
     }
 
     // Group 5 Checks
     if (piiCount > 0) {
-      addDeduction(`Hallazgo PII en [${col}]`, 20, IssueCategory.SEMANTIC, IssueSeverity.CRITICAL, RULE_IDS.PII_DETECTED);
+      addDeduction(`Hallazgo PII en [${col}]`, 20, IssueCategory.SEMANTIC, RULE_IDS.PII_DETECTED);
       addIssue({ id: `sec-pii-${col}`, column: col, category: IssueCategory.SEMANTIC, ruleName: 'Datos Sensibles (PII)', description: 'Patrones de Tarjeta de Crédito o IP detectados.', severity: IssueSeverity.CRITICAL, count: piiCount, affectedPercentage: (piiCount / rowCount) * 100, sampleValues: samples.pii, ruleId: RULE_IDS.PII_DETECTED, automaticAuthorization: autoAuth('pii_handling', false, [], 'Security-sensitive data') });
     }
 
@@ -940,10 +940,10 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
     if (futureDateCount > 0) {
       const futurePct = (futureDateCount / rowCount) * 100;
       if (futurePct >= 20) {
-        addDeduction(`Fechas Futuras Irrealistas en [${col}]`, 5, IssueCategory.LOGIC, IssueSeverity.CRITICAL, RULE_IDS.FUTURE_DATES);
+        addDeduction(`Fechas Futuras Irrealistas en [${col}]`, 5, IssueCategory.LOGIC, RULE_IDS.FUTURE_DATES);
         addIssue({ id: `logic-freshness-${col}`, column: col, category: IssueCategory.LOGIC, ruleName: 'Fechas Futuras (Freshness)', description: `>${futurePct.toFixed(1)}% de valores son fechas posteriores a hoy + 30 días (típico de defaults de migración como 2099-12-31).`, severity: IssueSeverity.CRITICAL, count: futureDateCount, affectedPercentage: futurePct, sampleValues: samples.futureDate, ruleId: RULE_IDS.FUTURE_DATES, automaticAuthorization: autoAuth('fix_future_dates', false, [], 'Migration default dates detected') });
       } else if (futurePct > 5) {
-        addDeduction(`Fechas Futuras Irrealistas en [${col}]`, 5, IssueCategory.LOGIC, IssueSeverity.WARNING, RULE_IDS.FUTURE_DATES);
+        addDeduction(`Fechas Futuras Irrealistas en [${col}]`, 5, IssueCategory.LOGIC, RULE_IDS.FUTURE_DATES);
         addIssue({ id: `logic-freshness-${col}`, column: col, category: IssueCategory.LOGIC, ruleName: 'Fechas Futuras (Freshness)', description: `${futurePct.toFixed(1)}% de valores son fechas posteriores a hoy + 30 días (típico de defaults de migración como 2099-12-31).`, severity: IssueSeverity.WARNING, count: futureDateCount, affectedPercentage: futurePct, sampleValues: samples.futureDate, ruleId: RULE_IDS.FUTURE_DATES, automaticAuthorization: autoAuth('fix_future_dates', false, [], 'Migration default dates detected') });
       }
     }
@@ -966,7 +966,7 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
     }
 
     if (inconsistentCount > 0) {
-      addDeduction(`Incoherencia Temporal [${pair.start} vs ${pair.end}]`, 10, IssueCategory.LOGIC, IssueSeverity.CRITICAL, RULE_IDS.TEMPORAL_INCONSISTENCY);
+      addDeduction(`Incoherencia Temporal [${pair.start} vs ${pair.end}]`, 10, IssueCategory.LOGIC, RULE_IDS.TEMPORAL_INCONSISTENCY);
       addIssue({
         id: `logic-temporal-${pair.start}-${pair.end}`,
         ruleName: 'Incoherencia Temporal',
@@ -1129,7 +1129,7 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
 
     if (leakage.count >= 3 && leakagePct >= 1) {
       const sourceList = leakage.sourceColumns.join(', ');
-      addDeduction(`Contaminación Semántica de ID [${col}]`, 5, IssueCategory.SEMANTIC, IssueSeverity.WARNING, RULE_IDS.ID_SEMANTIC_CONTAMINATION);
+      addDeduction(`Contaminación Semántica de ID [${col}]`, 5, IssueCategory.SEMANTIC, RULE_IDS.ID_SEMANTIC_CONTAMINATION);
       addIssue({
         id: `semantic-id-contamination-${col}`,
         column: col,

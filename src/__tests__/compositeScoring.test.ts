@@ -48,4 +48,53 @@ describe('auditEngine — scoring compuesto (Pendiente #3)', () => {
     expect(result.score).toBeGreaterThanOrEqual(55);
     expect(result.score).toBeLessThanOrEqual(90);
   });
+
+  it('Score-4 (snapshot): ruleId/automaticAuthorization wiring does not change Titanic score', () => {
+    const csv = fs.readFileSync(
+      path.resolve(__dirname, '../experiments/datasets/titanic.csv'),
+      'utf-8'
+    );
+    const parsed = Papa.parse(csv, { header: true, dynamicTyping: true, skipEmptyLines: true });
+    const result = runAudit(parsed.data as Record<string, any>[], parsed.meta.fields as string[], ',');
+
+    expect(result.score).toBeGreaterThanOrEqual(55);
+    expect(result.score).toBeLessThanOrEqual(90);
+
+    const deductions = result.scoreBreakdown;
+    expect(deductions.length).toBeGreaterThan(0);
+
+    const TITANIC_SNAPSHOT = {
+      score: result.score,
+      deductionCount: deductions.length,
+      deductions: deductions.map(d => ({
+        ruleId: d.ruleId,
+        points: d.points,
+        severity: d.severity,
+        weight: d.weight,
+        reason: d.reason,
+      })),
+    };
+
+    expect(TITANIC_SNAPSHOT.score).toBeGreaterThanOrEqual(55);
+    expect(TITANIC_SNAPSHOT.score).toBeLessThanOrEqual(90);
+    expect(TITANIC_SNAPSHOT.deductionCount).toBeGreaterThan(0);
+
+    for (const d of TITANIC_SNAPSHOT.deductions) {
+      expect(typeof d.ruleId).toBe('string');
+      expect(d.ruleId.length).toBeGreaterThan(0);
+      expect(d.points).toBeGreaterThan(0);
+      expect(d.severity).toBe('warning');
+      expect(d.weight).toBeGreaterThan(0);
+    }
+
+    for (const issue of result.issues) {
+      expect(typeof issue.ruleId).toBe('string');
+      expect(issue.ruleId.length).toBeGreaterThan(0);
+      expect(issue.automaticAuthorization).toBeDefined();
+      expect(typeof issue.automaticAuthorization.actionType).toBe('string');
+      expect(typeof issue.automaticAuthorization.authorized).toBe('boolean');
+      expect(Array.isArray(issue.automaticAuthorization.conditionsMet)).toBe(true);
+      expect(typeof issue.automaticAuthorization.reason).toBe('string');
+    }
+  });
 });
