@@ -54,7 +54,8 @@ function validResponse(overrides: Partial<DiagnosisResponseV2> = {}): DiagnosisR
         evidenceRefs: issue1.evidenceRefs,
         hypothesis: 'Leading/trailing whitespace from data entry',
         confidence: 0.9,
-        requiresHumanReview: false,
+        // Name column is ambiguous → requiresHumanReview must be true
+        requiresHumanReview: true,
         limits: ['Limited to string columns'],
       },
       {

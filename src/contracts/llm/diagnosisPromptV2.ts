@@ -258,6 +258,7 @@ function buildUserPayload(
       `   count: ${iss.count}`,
       `   affectedPercentage: ${iss.affectedPercentage}`,
       `   ruleName: "${iss.ruleName}"`,
+      `   description: "${iss.description}"`,
       `   evidenceRefs: [${iss.evidenceRefs.map(r => `"${r}"`).join(', ')}]`,
     ].join('\n');
   }).join('\n\n');
@@ -268,7 +269,42 @@ function buildUserPayload(
     return `${i + 1}. columnId: "${col.columnId}" name: "${col.name}"${dup}${amb}`;
   }).join('\n');
 
+  // Build column stats summary (relevant stats only, no sensitive values)
+  const columnStatsSummary = Object.values(envelope.columnStats || {}).slice(0, 20).map((cs, i) => {
+    const col = envelope.columns[i];
+    return [
+      `${col?.name || 'unknown'}: type=${cs.inferredType || 'unknown'}, distinct=${cs.distinctCount ?? 0}, nulls=${cs.nullCount ?? 0} (${((cs.nullPercentage ?? 0)).toFixed(1)}%)`,
+    ].join('');
+  }).join('\n');
+
   const maxConf = options?.maxConfidence ?? 1;
+
+  // Build UNTRUSTED_DATA block — structured evidence for the model
+  // Includes: evidence samples (filtered by privacy level), issue descriptions, stats, truncation manifest
+  const untrustedData = {
+    truncationManifest: envelope.truncationManifest,
+    columnCount,
+    rowCount,
+    issues: envelope.issues.map(iss => {
+      const col = envelope.columns.find(c => c.columnId === iss.columnId);
+      const evidence = envelope.evidence.samples.filter(s => s.issueId === iss.issueId);
+      return {
+        issueId: iss.issueId,
+        description: iss.description,
+        ruleName: iss.ruleName,
+        count: iss.count,
+        affectedPercentage: iss.affectedPercentage,
+        scope: iss.scope,
+        columnName: col?.name ?? null,
+        evidenceSamples: evidence.slice(0, 5).map(s => ({
+          ref: s.sampleRef,
+          values: s.values,
+        })),
+        severity: iss.severity,
+        actionability: iss.actionability,
+      };
+    }),
+  };
 
   return `=== EVIDENCE ENVELOPE ===
 envelopeRef: ${evidenceEnvelopeRef}
@@ -283,6 +319,9 @@ ${columnsSummary}
 === DETECTED ISSUES (${issueCount}) ===
 ${issuesSummary}
 
+=== UNTRUSTED_DATA ===
+${JSON.stringify(untrustedData, null, 2)}
+
 === TASK ===
 For each issue above, produce a DiagnosisIssueV2 and a corresponding DiagnosisBlockV2.
 
@@ -290,7 +329,7 @@ Rules:
 - evidenceEnvelopeRef MUST be exactly: ${evidenceEnvelopeRef}
 - responseId: use a unique short identifier
 - confidence: a number between 0 and ${maxConf} reflecting your certainty in the diagnosis
-- requiresHumanReview: true if actionability is "review_only", authorized is false, or evidence is absent
+- requiresHumanReview: true if actionability is "review_only", authorized is false, evidence is absent, or column is ambiguous/duplicated
 - hypothesis: a concise explanation of what might cause this issue (max 500 chars)
 - limits: list any diagnostic limitations (max ${Math.min(10, envelope.issues.length)} items each)
 - observation: factual summary from the evidence (max 1000 chars)

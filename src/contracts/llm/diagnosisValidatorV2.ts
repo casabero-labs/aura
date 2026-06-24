@@ -80,15 +80,16 @@ function requiresReviewFromEnvelope(
   },
   columnRegistry: Map<string, { isAmbiguous: boolean; isDuplicate: boolean }>,
 ): boolean {
+  // Ambiguous or duplicate column ALWAYS requires review — checked FIRST before any other rule
+  if (envelopeIssue.columnId) {
+    const col = columnRegistry.get(envelopeIssue.columnId);
+    if (col?.isAmbiguous || col?.isDuplicate) return true;
+  }
   if (envelopeIssue.actionability === 'review_only') return true;
   if (envelopeIssue.actionability === 'auto_safe' && !envelopeIssue.automaticAuthorization.authorized) return true;
   if (envelopeIssue.actionability === 'not_actionable') return false;
   if (envelopeIssue.actionability === 'auto_safe' && envelopeIssue.automaticAuthorization.authorized) return false;
   // Unknown actionability → requires review
-  if (envelopeIssue.columnId) {
-    const col = columnRegistry.get(envelopeIssue.columnId);
-    if (col?.isAmbiguous || col?.isDuplicate) return true;
-  }
   return true;
 }
 
@@ -100,13 +101,22 @@ function validateValueAgainstSchema(
   path: string,
   errors: ValidationErrorV2[],
 ): void {
-  const schemaType = schema.type as string;
+  const schemaType = schema.type;
   const schemaEnum = schema.enum as string[] | undefined;
   const schemaMin = schema.minimum as number | undefined;
   const schemaMax = schema.maximum as number | undefined;
   const schemaMinLen = schema.minLength as number | undefined;
   const schemaMaxLen = schema.maxLength as number | undefined;
   const schemaMaxItems = schema.maxItems as number | undefined;
+
+  // Handle union types like ["string", "null"]
+  if (Array.isArray(schemaType)) {
+    const actualType = value === null ? 'null' : typeof value;
+    if (!schemaType.includes(actualType)) {
+      errors.push(err(path, `Expected ${schemaType.join(' | ')}, got ${actualType}`, value));
+    }
+    return;
+  }
 
   // Type check
   let actualType = typeof value;
@@ -242,7 +252,13 @@ function validateAgainstSchema(response: unknown): ValidationErrorV2[] {
   const issues = obj.issues as unknown[];
   if (Array.isArray(issues)) {
     for (let i = 0; i < issues.length; i++) {
-      validateObjectAgainstSchema(issues[i] as Record<string, unknown>, {
+      const issueItem = issues[i];
+      // Safe guard: skip non-object items (null, string, number, array)
+      if (typeof issueItem !== 'object' || issueItem === null || Array.isArray(issueItem)) {
+        errors.push(err(`issues[${i}]`, 'Issue must be an object', issueItem));
+        continue;
+      }
+      validateObjectAgainstSchema(issueItem as Record<string, unknown>, {
         type: 'object',
         additionalProperties: false,
         required: ['issueId', 'evidenceRefs', 'hypothesis', 'confidence', 'requiresHumanReview', 'limits'],
@@ -256,7 +272,7 @@ function validateAgainstSchema(response: unknown): ValidationErrorV2[] {
         },
       }, `issues[${i}]`, errors, ['issueId', 'evidenceRefs', 'hypothesis', 'confidence', 'requiresHumanReview', 'limits']);
 
-      const issue = issues[i] as Record<string, unknown>;
+      const issue = issueItem as Record<string, unknown>;
       // Validate evidenceRefs items
       const evidenceRefs = issue.evidenceRefs as unknown[];
       if (Array.isArray(evidenceRefs)) {
@@ -278,7 +294,13 @@ function validateAgainstSchema(response: unknown): ValidationErrorV2[] {
   const blocks = obj.diagnosisBlocks as unknown[];
   if (Array.isArray(blocks)) {
     for (let i = 0; i < blocks.length; i++) {
-      validateObjectAgainstSchema(blocks[i] as Record<string, unknown>, {
+      const blockItem = blocks[i];
+      // Safe guard: skip non-object items (null, string, number, array)
+      if (typeof blockItem !== 'object' || blockItem === null || Array.isArray(blockItem)) {
+        errors.push(err(`diagnosisBlocks[${i}]`, 'DiagnosisBlock must be an object', blockItem));
+        continue;
+      }
+      validateObjectAgainstSchema(blockItem as Record<string, unknown>, {
         type: 'object',
         additionalProperties: false,
         required: ['issueId', 'ruleId', 'columnId', 'scope', 'observation', 'recommendation'],
@@ -292,7 +314,7 @@ function validateAgainstSchema(response: unknown): ValidationErrorV2[] {
         },
       }, `diagnosisBlocks[${i}]`, errors, ['issueId', 'ruleId', 'columnId', 'scope', 'observation', 'recommendation']);
 
-      const block = blocks[i] as Record<string, unknown>;
+      const block = blockItem as Record<string, unknown>;
       // Validate observation and recommendation strings
       validateValueAgainstSchema(block.observation as string, { type: 'string', maxLength: 1000 }, `diagnosisBlocks[${i}].observation`, errors);
       validateValueAgainstSchema(block.recommendation as string, { type: 'string', maxLength: 1000 }, `diagnosisBlocks[${i}].recommendation`, errors);
@@ -369,9 +391,14 @@ export function validateDiagnosisResponseV2(
     errors.push(err('limitations', 'Must be an array', response.limitations));
   }
 
-  // 7. generatedAt
+  // 7. generatedAt — must be a valid ISO 8601 timestamp
   if (!response.generatedAt || typeof response.generatedAt !== 'string') {
     errors.push(err('generatedAt', 'Must be a non-empty string', response.generatedAt));
+  } else {
+    const date = new Date(response.generatedAt);
+    if (isNaN(date.getTime())) {
+      errors.push(err('generatedAt', 'Must be a valid ISO 8601 timestamp', response.generatedAt));
+    }
   }
 
   if (errors.length > 0) return fail(errors);

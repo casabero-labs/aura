@@ -1,9 +1,10 @@
 {
   "harnessVersion": "1.0.0",
-  "generatedAt": "2026-06-24T03:48:56.640Z",
-  "commitSha": "3100473b02c388bf592053def46573db156a4c6d",
+  "generatedAt": "2026-06-24T04:08:28.552Z",
+  "commitSha": "6f56749d8f9f24e8d5078f6c5d152f55a65ef306",
+  "sourceTreeDirty": true,
   "auditEngineSha256": "3ee341a49e5ebc42ccf3bb6cb2e9e39d350dc476f9cb159decba5d45a678c6a0",
-  "contractsV2Sha256": "fbcec780b3c49092fad38c90ce439cda294a4e319f86c8dbd377f2a2621eb74a",
+  "contractsV2Sha256": "4ebc93c16802e78e0b8c8c769d045a25022cf49b678f4b43ad1a03849fe0911a",
   "datasetsDir": "/Users/casabero/Documents/GitHub/aura/experiments/datasets",
   "summary": {
     "total": 6,
@@ -117,7 +118,7 @@
       },
       "privacyViolations": 0,
       "truncations": 8,
-      "durationMs": 3124,
+      "durationMs": 3173,
       "error": null
     },
     {
@@ -300,7 +301,7 @@
       },
       "privacyViolations": 0,
       "truncations": 5,
-      "durationMs": 28,
+      "durationMs": 29,
       "error": null
     }
   ],
@@ -310,40 +311,43 @@
       {
         "file": "adult_income.csv",
         "envelopeRef": "env:f07ef4abfc74b42fe8892c38ea58b499d97e0599085689e49b39451c8c3108b8",
-        "promptHash": "9a896129f0c2c48f589b380910a343c438b26e5d16e9ac5d1b3dd36c7b8741fd",
+        "promptHash": "d50543813de4da60d5540899eea6b83ccb2758c47b0bc4a77f5208c36e2342d2",
         "promptHashStable": true,
         "issueCount": 12,
         "blockCount": 12,
         "validation": {
-          "valid": false,
-          "errorCount": 1,
-          "warningCount": 0
+          "valid": true,
+          "errorCount": 0,
+          "warningCount": 0,
+          "errors": []
         }
       },
       {
         "file": "synthetic_ground_truth.csv",
         "envelopeRef": "env:3bf6a954f893456f74d0079ecee263aa079cd1991dec13f6918819de3abfa259",
-        "promptHash": "4d05e71a9864cc762ad9ed5911e234947aa14b4312b8169197f5d4a5c53f7134",
+        "promptHash": "0d313a2c9bcf9e16360334eacb02747d178386633b4180d8ced37d2ee9d20a0e",
         "promptHashStable": true,
         "issueCount": 16,
         "blockCount": 16,
         "validation": {
-          "valid": false,
-          "errorCount": 1,
-          "warningCount": 0
+          "valid": true,
+          "errorCount": 0,
+          "warningCount": 0,
+          "errors": []
         }
       },
       {
         "file": "titanic.csv",
         "envelopeRef": "env:588ceb40984e5bbbbd00a2017e6f5af6c5464e5c603be7a7c4fb5294fc9e3b40",
-        "promptHash": "4d0d9ef11d04a8124f2d9ff291c217e09750ecad446e96db904e2cdca3634e7f",
+        "promptHash": "d958a672113eb2979a42acb2fa213bf089d967a8cd5058240a07f49572528451",
         "promptHashStable": true,
         "issueCount": 10,
         "blockCount": 10,
         "validation": {
           "valid": true,
           "errorCount": 0,
-          "warningCount": 0
+          "warningCount": 0,
+          "errors": []
         }
       }
     ]

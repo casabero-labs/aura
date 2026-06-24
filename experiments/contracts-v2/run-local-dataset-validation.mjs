@@ -66,14 +66,30 @@ function sha256(filePath) {
 }
 
 const auditEngineSha256 = sha256(path.resolve(REPO_ROOT, 'src/services/auditEngine.ts'));
-const contractsV2Sha256 = sha256(path.resolve(__dirname, 'run-local-dataset-validation.mjs'));
+// Hash all Contracts v2 module files for accurate provenance
+const v2Modules = [
+  'src/contracts/llm/diagnosisPromptV2.ts',
+  'src/contracts/llm/diagnosisParserV2.ts',
+  'src/contracts/llm/diagnosisValidatorV2.ts',
+  'src/contracts/llm/diagnosisPipelineV2.ts',
+  'src/contracts/llm/diagnosisV2Errors.ts',
+  'src/contracts/llm/types.ts',
+  'src/contracts/llm/index.ts',
+].map(f => path.resolve(REPO_ROOT, f)).filter(f => fs.existsSync(f));
+
+// Sort for deterministic order
+v2Modules.sort();
+const v2ModuleContent = v2Modules.map(f => sha256(f)).join('');
+const contractsV2Sha256 = createHash('sha256').update(v2ModuleContent).digest('hex');
 const commitSha = execSync('git rev-parse HEAD', { cwd: REPO_ROOT }).toString().trim();
+const sourceTreeDirty = execSync('git status --porcelain', { cwd: REPO_ROOT }).toString().trim().length > 0;
 
 // ── Results store ──
 const results = {
   harnessVersion: '1.0.0',
   generatedAt: new Date().toISOString(),
   commitSha,
+  sourceTreeDirty,
   auditEngineSha256,
   contractsV2Sha256,
   datasetsDir: DATASETS_DIR,
@@ -305,6 +321,8 @@ async function validateFile(filename) {
     }
 
     // ── Diagnosis fixture (deterministic, no model call) ──
+    let diagValid = false;
+    let diagErrors = [];
     try {
       const diagEnvelope = _buildEvidenceEnvelopeV2(reportInput, {
         privacyLevel: 'local_full',
@@ -326,7 +344,11 @@ async function validateFile(filename) {
         evidenceRefs: iss.evidenceRefs || [],
         hypothesis: `Automatically generated from ${iss.ruleName || iss.ruleId}`,
         confidence: 0.5,
-        requiresHumanReview: iss.actionability === 'review_only' || !iss.automaticAuthorization?.authorized,
+        // requiresHumanReview=true when: review_only, unauthorized, empty evidenceRefs, or column ambiguous/duplicate
+        requiresHumanReview: iss.actionability === 'review_only'
+          || !iss.automaticAuthorization?.authorized
+          || !(iss.evidenceRefs && iss.evidenceRefs.length > 0)
+          || (iss.columnId && diagEnvelope.columns.find(c => c.columnId === iss.columnId && (c.isAmbiguous || c.isDuplicate)) !== undefined),
         limits: ['Deterministic fixture — no model inference applied'],
       }));
 
@@ -352,6 +374,8 @@ async function validateFile(filename) {
 
       // Validate the fixture against its own envelope
       const validation = validateDiagnosisResponseV2(diagnosisFixture, diagEnvelope);
+      diagValid = validation.valid;
+      diagErrors = validation.errors.map(e => ({ path: e.path, message: e.message }));
 
       results.diagnosis.fixtures.push({
         file: record.file,
@@ -360,16 +384,23 @@ async function validateFile(filename) {
         promptHashStable: promptPackage.promptHash === promptPackage2.promptHash,
         issueCount: diagIssues.length,
         blockCount: diagBlocks.length,
-        validation: { valid: validation.valid, errorCount: validation.errors.length, warningCount: validation.warnings.length },
+        validation: {
+          valid: validation.valid,
+          errorCount: validation.errors.length,
+          warningCount: validation.warnings.length,
+          errors: diagErrors,
+        },
       });
     } catch (diagErr) {
+      diagValid = false;
+      diagErrors = [{ path: '', message: `Diagnosis fixture generation failed: ${diagErr.message}` }];
       results.diagnosis.fixtures.push({
         file: record.file,
         error: `Diagnosis fixture generation failed: ${diagErr.message}`,
       });
     }
 
-    // Determine overall status
+    // Determine overall status — includes diagnosis validity
     // BUDGET_UNSATISFIABLE on tight budgets is expected, not a failure
     const entries = Object.entries(record.envelopes);
     const nonTightErrors = entries.filter(([key, e]) =>
@@ -379,8 +410,9 @@ async function validateFile(filename) {
       !e.valid && e.code === 'BUDGET_UNSATISFIABLE'
     ).length;
 
-    if (nonTightErrors.length > 0) {
+    if (nonTightErrors.length > 0 || !diagValid) {
       record.status = 'FAIL';
+      if (!diagValid) record.diagnosisError = diagErrors[0]?.message ?? 'Invalid diagnosis fixture';
     } else if (tightBudgetOnly > 0 && entries.some(([k, e]) => e.valid)) {
       record.status = 'PASS'; // tight budget failures are informational
     } else {

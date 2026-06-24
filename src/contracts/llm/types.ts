@@ -321,6 +321,7 @@ export type DiagnosisErrorCode =
   | 'DIAGNOSIS_ENVELOPE_MISMATCH'
   | 'DIAGNOSIS_REVIEW_DOWNGRADE'
   | 'DIAGNOSIS_EXECUTABLE_CONTENT'
+  | 'DIAGNOSIS_ADAPTER_ERROR'
   | 'CONTRACTS_V2_DISABLED';
 
 export interface DiagnosisError {

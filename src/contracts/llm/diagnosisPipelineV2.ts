@@ -4,7 +4,7 @@
  * Provider-neutral: receives a DiagnosisPromptPackageV2 and an adapter,
  * executes the full pipeline, and returns a validated DiagnosisResponseV2.
  *
- * CONTRACTS_V2_ENABLED=false → throws CONTRACTS_V2_DISABLED
+ * CONTRACTS_V2_ENABLED=false → CONTRACTS_V2_DISABLED
  * Adapter must return raw string (provider output)
  * Raw response is NEVER returned as valid diagnosis
  */
@@ -16,7 +16,7 @@ import type {
 } from './types';
 import { parseDiagnosisResponseV2, type DiagnosisParseOutcome } from './diagnosisParserV2';
 import { validateDiagnosisResponseV2 } from './diagnosisValidatorV2';
-import { DiagnosisErrors } from './diagnosisV2Errors';
+import { isContractsV2Enabled } from './contractRegistry';
 
 /**
  * Provider adapter interface — returns raw model output as string.
@@ -33,7 +33,6 @@ export type DiagnosisAdapter = (
 export interface DiagnosisPipelineResult {
   success: true;
   response: DiagnosisResponseV2;
-  parseErrors?: DiagnosisParseOutcome['success'] extends false ? DiagnosisParseOutcome : never;
 }
 
 export interface DiagnosisPipelineFailure {
@@ -66,6 +65,15 @@ export async function runDiagnosisPipeline(
   promptPackage: DiagnosisPromptPackageV2,
   adapter: DiagnosisAdapter,
 ): Promise<DiagnosisPipelineOutcome> {
+  if (!isContractsV2Enabled()) {
+    return failure(
+      'CONTRACTS_V2_DISABLED',
+      'Contracts v2 is not enabled',
+      '',
+      'Set CONTRACTS_V2_ENABLED=true to use Diagnosis v2 pipeline',
+    );
+  }
+
   // 1. Invoke provider adapter
   let raw: string;
   try {
@@ -101,16 +109,22 @@ export async function runDiagnosisPipeline(
   }
 
   // 3. Validate — reference checks, schema, HITL, coherence, coverage
-  const validation = validateDiagnosisResponseV2(parsed.response, envelope);
+  // Wrap in try/catch to handle any unexpected exceptions from validator
+  let validation;
+  try {
+    validation = validateDiagnosisResponseV2(parsed.response, envelope);
+  } catch (err) {
+    return failure(
+      'DIAGNOSIS_SCHEMA_INVALID',
+      'Validator threw an unexpected error',
+      '',
+      err instanceof Error ? err.message : String(err),
+    );
+  }
+
   if (!validation.valid) {
     const firstError = validation.errors[0];
-    let code = 'DIAGNOSIS_SCHEMA_INVALID';
-    if (firstError.message.includes('ENVELOPE_MISMATCH')) code = 'DIAGNOSIS_ENVELOPE_MISMATCH';
-    else if (firstError.message.includes('executable')) code = 'DIAGNOSIS_EXECUTABLE_CONTENT';
-    else if (firstError.message.includes('requires human review')) code = 'DIAGNOSIS_REVIEW_DOWNGRADE';
-    else if (firstError.message.includes('does not exist') || firstError.message.includes('unknown')) code = 'DIAGNOSIS_REFERENCE_INVALID';
-    else if (firstError.message.includes('additionalProperties')) code = 'DIAGNOSIS_SCHEMA_INVALID';
-    else if (firstError.message.includes('Must be') || firstError.message.includes('Exceeds') || firstError.message.includes('Duplicate')) code = 'DIAGNOSIS_SCHEMA_INVALID';
+    const code = mapErrorToCode(firstError);
 
     return {
       success: false,
@@ -124,6 +138,35 @@ export async function runDiagnosisPipeline(
   }
 
   return { success: true, response: parsed.response };
+}
+
+/**
+ * Map a ValidationErrorV2 to a typed DiagnosisErrorCode.
+ * Uses path + code prefix pattern matching rather than word-search.
+ */
+function mapErrorToCode(error: { path: string; message: string }): string {
+  const { path, message } = error;
+
+  if (path === 'evidenceEnvelopeRef' || message.includes('ENVELOPE_MISMATCH')) {
+    return 'DIAGNOSIS_ENVELOPE_MISMATCH';
+  }
+  if (message.includes('executable') || message.includes('Executable')) {
+    return 'DIAGNOSIS_EXECUTABLE_CONTENT';
+  }
+  if (message.includes('review') || message.includes('Review') || message.includes('requiresHumanReview')) {
+    return 'DIAGNOSIS_REVIEW_DOWNGRADE';
+  }
+  if (message.includes('does not exist') || message.includes('unknown') || message.includes('orphan')) {
+    return 'DIAGNOSIS_REFERENCE_INVALID';
+  }
+  if (path.startsWith('issues[') || path.startsWith('diagnosisBlocks[') || path.startsWith('limitations[')) {
+    return 'DIAGNOSIS_SCHEMA_INVALID';
+  }
+  if (message.includes('Must be') || message.includes('Exceeds') || message.includes('Duplicate') || message.includes('Missing')) {
+    return 'DIAGNOSIS_SCHEMA_INVALID';
+  }
+
+  return 'DIAGNOSIS_SCHEMA_INVALID';
 }
 
 /**
