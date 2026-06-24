@@ -135,3 +135,14 @@ export {
   Errors as DiagnosisErrors,
   diagnosisError,
 } from './diagnosisV2Errors';
+
+export {
+  runDiagnosisPipeline,
+  diagnoseWithV2,
+} from './diagnosisPipelineV2';
+export type {
+  DiagnosisAdapter,
+  DiagnosisPipelineResult,
+  DiagnosisPipelineFailure,
+  DiagnosisPipelineOutcome,
+} from './diagnosisPipelineV2';

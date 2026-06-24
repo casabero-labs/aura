@@ -1,7 +1,7 @@
 {
   "harnessVersion": "1.0.0",
-  "generatedAt": "2026-06-24T03:31:01.128Z",
-  "commitSha": "5a4d1c023cbaa6336d6e741a53b1ec256bec3aed",
+  "generatedAt": "2026-06-24T03:48:56.640Z",
+  "commitSha": "3100473b02c388bf592053def46573db156a4c6d",
   "auditEngineSha256": "3ee341a49e5ebc42ccf3bb6cb2e9e39d350dc476f9cb159decba5d45a678c6a0",
   "contractsV2Sha256": "fbcec780b3c49092fad38c90ce439cda294a4e319f86c8dbd377f2a2621eb74a",
   "datasetsDir": "/Users/casabero/Documents/GitHub/aura/experiments/datasets",
@@ -117,7 +117,7 @@
       },
       "privacyViolations": 0,
       "truncations": 8,
-      "durationMs": 3132,
+      "durationMs": 3124,
       "error": null
     },
     {
@@ -201,7 +201,7 @@
       },
       "privacyViolations": 0,
       "truncations": 3,
-      "durationMs": 9,
+      "durationMs": 10,
       "error": null
     },
     {
@@ -300,7 +300,7 @@
       },
       "privacyViolations": 0,
       "truncations": 5,
-      "durationMs": 32,
+      "durationMs": 28,
       "error": null
     }
   ],
@@ -315,8 +315,8 @@
         "issueCount": 12,
         "blockCount": 12,
         "validation": {
-          "valid": true,
-          "errorCount": 0,
+          "valid": false,
+          "errorCount": 1,
           "warningCount": 0
         }
       },
@@ -328,8 +328,8 @@
         "issueCount": 16,
         "blockCount": 16,
         "validation": {
-          "valid": true,
-          "errorCount": 0,
+          "valid": false,
+          "errorCount": 1,
           "warningCount": 0
         }
       },

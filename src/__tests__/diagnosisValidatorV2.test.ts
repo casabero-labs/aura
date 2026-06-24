@@ -9,6 +9,7 @@ import { validateDiagnosisResponseV2 } from '../contracts/llm/diagnosisValidator
 import { _buildEvidenceEnvelopeV2 } from '../contracts/llm/evidenceEnvelopeV2';
 import type { AuditReportInput } from '../contracts/llm/evidenceEnvelopeV2';
 import type { DiagnosisResponseV2 } from '../contracts/llm/types';
+import { buildEnvelopeRef } from '../contracts/llm/diagnosisPromptV2';
 
 // ── Fixtures ──
 const opts = (overrides: Record<string, unknown> = {}) => ({
@@ -32,12 +33,13 @@ const minimalReport: AuditReportInput = {
 };
 
 const envelope = _buildEvidenceEnvelopeV2(minimalReport, opts({ privacyLevel: 'local_full' }));
-const envRef = 'env:test123';
+const envRef = buildEnvelopeRef(envelope);
 
 // Get the actual envelope issue IDs and column IDs for valid references
 const issue1 = envelope.issues[0];
 const issue2 = envelope.issues[1];
 const col1 = envelope.columns.find(c => c.name === 'Name')!;
+const col2 = envelope.columns.find(c => c.name === 'Age')!;
 const validEvRef = issue1.evidenceRefs[0] || issue2.evidenceRefs[0];
 
 function validResponse(overrides: Partial<DiagnosisResponseV2> = {}): DiagnosisResponseV2 {
@@ -68,16 +70,16 @@ function validResponse(overrides: Partial<DiagnosisResponseV2> = {}): DiagnosisR
       {
         issueId: issue1.issueId,
         ruleId: issue1.ruleId,
-        columnId: col1.columnId,
-        scope: 'column',
+        columnId: issue1.columnId,
+        scope: issue1.scope,
         observation: '2 values have whitespace',
         recommendation: 'Consider trimming at ingestion',
       },
       {
         issueId: issue2.issueId,
         ruleId: issue2.ruleId,
-        columnId: null,
-        scope: 'dataset',
+        columnId: issue2.columnId,
+        scope: issue2.scope,
         observation: '177 null values in Age column',
         recommendation: 'Investigate data collection process',
       },
@@ -216,26 +218,45 @@ describe('validateDiagnosisResponseV2 — confidence', () => {
   });
 
   it('accepts confidence 0', () => {
-    const resp = validResponse({
+    // Create a minimal envelope with only one issue for this specific test
+    const singleIssueReport: AuditReportInput = {
+      score: 90, rowCount: 50, colCount: 2, duplicateRows: 0, delimiterDetected: ',',
+      issues: [
+        { id: 'only-issue', column: 'Name', category: 'Higiene', ruleName: 'Trim', description: 'spaces', severity: 'info', count: 1, affectedPercentage: 2, sampleValues: ['x'], ruleId: 'rule:trim-whitespace', automaticAuthorization: { actionType: 'trim_whitespace', authorized: true, conditionsMet: [], reason: 'ok' } },
+      ],
+      columnStats: { Name: { inferredType: 'string', semanticType: 'name', distinctCount: 1, nullCount: 0, nullPercentage: 0, topValues: [], stats: {} } },
+      datasetProfile: { columns: [{ name: 'Name' }] },
+    };
+    const singleEnv = _buildEvidenceEnvelopeV2(singleIssueReport, opts({ privacyLevel: 'local_full' }));
+    const singleIssue = singleEnv.issues[0];
+    const singleEnvRef = buildEnvelopeRef(singleEnv);
+
+    const resp: DiagnosisResponseV2 = {
+      contractId: 'aura.diagnosis.v2',
+      contractVersion: '2.0.0',
+      evidenceEnvelopeRef: singleEnvRef,
+      responseId: 'diag-001',
       issues: [{
-        issueId: issue1.issueId,
-        evidenceRefs: [],
+        issueId: singleIssue.issueId,
+        evidenceRefs: singleIssue.evidenceRefs,
         hypothesis: 'x',
         confidence: 0,
         requiresHumanReview: true,
         limits: [],
       }],
       diagnosisBlocks: [{
-        issueId: issue1.issueId,
-        ruleId: issue1.ruleId,
-        columnId: null,
-        scope: 'dataset',
+        issueId: singleIssue.issueId,
+        ruleId: singleIssue.ruleId,
+        columnId: singleIssue.columnId,
+        scope: singleIssue.scope,
         observation: 'x',
         recommendation: 'x',
       }],
-    });
-    const result = validateDiagnosisResponseV2(resp, envelope);
-    // confidence 0 is valid; requiresHumanReview=true meets requirement
+      limitations: [],
+      generatedAt: new Date().toISOString(),
+    };
+    const result = validateDiagnosisResponseV2(resp, singleEnv);
+    // confidence 0 is valid; requiresHumanReview=true meets requirement; exact coverage satisfied
     expect(result.valid).toBe(true);
   });
 });
@@ -320,13 +341,277 @@ describe('validateDiagnosisResponseV2 — orphaned blocks', () => {
       diagnosisBlocks: [{
         issueId: 'some-orphan-id',
         ruleId: issue1.ruleId,
-        columnId: null,
-        scope: 'dataset',
+        columnId: issue1.columnId,
+        scope: issue1.scope,
         observation: 'x',
         recommendation: 'x',
       }],
     });
     const result = validateDiagnosisResponseV2(resp, envelope);
     expect(result.valid).toBe(false);
+  });
+});
+
+// ── Phase 2B: Enforcement Tests ──
+
+describe('validateDiagnosisResponseV2 — schema enforcement (additionalProperties: false)', () => {
+  it('rejects additional top-level field', () => {
+    const resp = { ...validResponse(), extraField: 'not allowed' } as any;
+    const result = validateDiagnosisResponseV2(resp, envelope);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some(e => e.message.includes('additionalProperties'))).toBe(true);
+  });
+
+  it('rejects additional field in issues item', () => {
+    const resp = validResponse({
+      issues: [{
+        issueId: issue1.issueId,
+        evidenceRefs: issue1.evidenceRefs,
+        hypothesis: 'x',
+        confidence: 0.5,
+        requiresHumanReview: false,
+        limits: [],
+        extraIssueField: 'forbidden',
+      } as any],
+    });
+    const result = validateDiagnosisResponseV2(resp, envelope);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some(e => e.message.includes('additionalProperties'))).toBe(true);
+  });
+
+  it('rejects additional field in diagnosisBlocks item', () => {
+    const resp = validResponse({
+      diagnosisBlocks: [{
+        issueId: issue1.issueId,
+        ruleId: issue1.ruleId,
+        columnId: issue1.columnId,
+        scope: issue1.scope,
+        observation: 'x',
+        recommendation: 'x',
+        extraBlockField: 'forbidden',
+      } as any],
+    });
+    const result = validateDiagnosisResponseV2(resp, envelope);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some(e => e.message.includes('additionalProperties'))).toBe(true);
+  });
+
+  it('rejects wrong type for string field', () => {
+    const resp = validResponse({ responseId: 12345 as any });
+    const result = validateDiagnosisResponseV2(resp, envelope);
+    expect(result.valid).toBe(false);
+  });
+
+  it('rejects string exceeding maxLength', () => {
+    const resp = validResponse({ responseId: 'a'.repeat(200) });
+    const result = validateDiagnosisResponseV2(resp, envelope);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some(e => e.message.includes('maxLength'))).toBe(true);
+  });
+
+  it('rejects array exceeding maxItems', () => {
+    const resp = validResponse({ issues: Array.from({ length: 60 }, (_, i) => ({
+      issueId: `extra-${i}`,
+      evidenceRefs: [],
+      hypothesis: 'x',
+      confidence: 0.5,
+      requiresHumanReview: true,
+      limits: [],
+    })) } as any);
+    const result = validateDiagnosisResponseV2(resp, envelope);
+    expect(result.valid).toBe(false);
+  });
+});
+
+describe('validateDiagnosisResponseV2 — block coherence (must match envelope issue)', () => {
+  it('rejects block with ruleId from different issue', () => {
+    const resp = validResponse({
+      diagnosisBlocks: [{
+        issueId: issue1.issueId,
+        ruleId: issue2.ruleId, // wrong ruleId (from issue2, not issue1)
+        columnId: issue1.columnId,
+        scope: issue1.scope,
+        observation: 'x',
+        recommendation: 'x',
+      }],
+    });
+    const result = validateDiagnosisResponseV2(resp, envelope);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some(e => e.message.includes('ruleId does not match'))).toBe(true);
+  });
+
+  it('rejects block with columnId from different issue', () => {
+    // Both issues are column-scoped in this envelope
+    if (issue1.scope !== 'column' || issue2.scope !== 'column') return;
+    const resp = validResponse({
+      diagnosisBlocks: [{
+        issueId: issue1.issueId,
+        ruleId: issue1.ruleId,
+        columnId: issue2.columnId, // wrong columnId (from issue2, not issue1)
+        scope: issue1.scope,
+        observation: 'x',
+        recommendation: 'x',
+      }],
+    });
+    const result = validateDiagnosisResponseV2(resp, envelope);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some(e => e.message.includes('columnId does not match'))).toBe(true);
+  });
+
+  it('rejects block with wrong scope', () => {
+    if (issue1.scope !== 'column') return;
+    const resp = validResponse({
+      diagnosisBlocks: [{
+        issueId: issue1.issueId,
+        ruleId: issue1.ruleId,
+        columnId: issue1.columnId,
+        scope: 'dataset', // wrong scope (issue1 is column-scoped)
+        observation: 'x',
+        recommendation: 'x',
+      }],
+    });
+    const result = validateDiagnosisResponseV2(resp, envelope);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some(e => e.message.includes('scope does not match'))).toBe(true);
+  });
+});
+
+describe('validateDiagnosisResponseV2 — exact coverage', () => {
+  it('rejects missing issue (envelope issue without diagnosis issue)', () => {
+    const resp = validResponse({
+      issues: [{
+        issueId: issue1.issueId,
+        evidenceRefs: issue1.evidenceRefs,
+        hypothesis: 'x',
+        confidence: 0.5,
+        requiresHumanReview: false,
+        limits: [],
+      }], // issue2 is missing!
+      diagnosisBlocks: [
+        { issueId: issue1.issueId, ruleId: issue1.ruleId, columnId: issue1.columnId, scope: issue1.scope, observation: 'x', recommendation: 'x' },
+        { issueId: issue2.issueId, ruleId: issue2.ruleId, columnId: issue2.columnId, scope: issue2.scope, observation: 'x', recommendation: 'x' },
+      ],
+    });
+    const result = validateDiagnosisResponseV2(resp, envelope);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some(e => e.message.includes('no corresponding DiagnosisIssueV2'))).toBe(true);
+  });
+
+  it('rejects missing block (envelope issue without diagnosis block)', () => {
+    const resp = validResponse({
+      issues: [
+        { issueId: issue1.issueId, evidenceRefs: issue1.evidenceRefs, hypothesis: 'x', confidence: 0.5, requiresHumanReview: false, limits: [] },
+        { issueId: issue2.issueId, evidenceRefs: issue2.evidenceRefs, hypothesis: 'x', confidence: 0.5, requiresHumanReview: true, limits: [] },
+      ], // only block for issue1, issue2 block is missing!
+      diagnosisBlocks: [
+        { issueId: issue1.issueId, ruleId: issue1.ruleId, columnId: issue1.columnId, scope: issue1.scope, observation: 'x', recommendation: 'x' },
+      ],
+    });
+    const result = validateDiagnosisResponseV2(resp, envelope);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some(e => e.message.includes('no corresponding DiagnosisBlockV2'))).toBe(true);
+  });
+
+  it('rejects duplicate blocks for same issue', () => {
+    const resp = validResponse({
+      diagnosisBlocks: [
+        { issueId: issue1.issueId, ruleId: issue1.ruleId, columnId: issue1.columnId, scope: issue1.scope, observation: 'x', recommendation: 'x' },
+        { issueId: issue1.issueId, ruleId: issue1.ruleId, columnId: issue1.columnId, scope: issue1.scope, observation: 'y', recommendation: 'y' }, // duplicate
+        { issueId: issue2.issueId, ruleId: issue2.ruleId, columnId: issue2.columnId, scope: issue2.scope, observation: 'x', recommendation: 'x' },
+      ],
+    });
+    const result = validateDiagnosisResponseV2(resp, envelope);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some(e => e.message.includes('exactly one required'))).toBe(true);
+  });
+
+  it('accepts valid exact coverage (one issue + one block per envelope issue)', () => {
+    const result = validateDiagnosisResponseV2(validResponse(), envelope);
+    expect(result.valid).toBe(true);
+    expect(result.errors).toHaveLength(0);
+  });
+});
+
+describe('validateDiagnosisResponseV2 — HITL enforcement', () => {
+  it('rejects empty evidenceRefs + requiresHumanReview=false', () => {
+    const resp = validResponse({
+      issues: [{
+        issueId: issue1.issueId,
+        evidenceRefs: [],
+        hypothesis: 'x',
+        confidence: 0.5,
+        requiresHumanReview: false, // must be true when no evidence
+        limits: [],
+      }],
+    });
+    const result = validateDiagnosisResponseV2(resp, envelope);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some(e => e.message.includes('no evidenceRefs'))).toBe(true);
+  });
+
+  it('accepts empty evidenceRefs with requiresHumanReview=true', () => {
+    const resp = validResponse({
+      issues: [{
+        issueId: issue1.issueId,
+        evidenceRefs: [],
+        hypothesis: 'x',
+        confidence: 0.5,
+        requiresHumanReview: true,
+        limits: [],
+      }],
+    });
+    const result = validateDiagnosisResponseV2(resp, envelope);
+    // Should pass (other constraints may still fail if coverage is broken, but this specific check passes)
+    const noEvidenceError = result.errors.filter(e => e.message.includes('no evidenceRefs'));
+    expect(noEvidenceError.length).toBe(0);
+  });
+});
+
+describe('validateDiagnosisResponseV2 — limits executable content', () => {
+  it('rejects import os in limits array', () => {
+    const resp = validResponse({
+      issues: [{
+        issueId: issue1.issueId,
+        evidenceRefs: issue1.evidenceRefs,
+        hypothesis: 'x',
+        confidence: 0.5,
+        requiresHumanReview: false,
+        limits: ['import os; os.system("rm -rf /")'],
+      }],
+    });
+    const result = validateDiagnosisResponseV2(resp, envelope);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some(e => e.message.includes('executable'))).toBe(true);
+  });
+
+  it('rejects pandas in limits', () => {
+    const resp = validResponse({
+      issues: [{
+        issueId: issue1.issueId,
+        evidenceRefs: issue1.evidenceRefs,
+        hypothesis: 'x',
+        confidence: 0.5,
+        requiresHumanReview: false,
+        limits: ['Use df.dropna() to clean'],
+      }],
+    });
+    const result = validateDiagnosisResponseV2(resp, envelope);
+    expect(result.valid).toBe(false);
+  });
+});
+
+describe('validateDiagnosisResponseV2 — envelope ref exact match', () => {
+  it('rejects mismatched evidenceEnvelopeRef', () => {
+    const resp = validResponse({ evidenceEnvelopeRef: 'env:wrong-ref-not-matching' });
+    const result = validateDiagnosisResponseV2(resp, envelope);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some(e => e.message.includes('ENVELOPE_MISMATCH'))).toBe(true);
+  });
+
+  it('accepts matching evidenceEnvelopeRef', () => {
+    const resp = validResponse({ evidenceEnvelopeRef: envRef });
+    const result = validateDiagnosisResponseV2(resp, envelope);
+    const refErrors = result.errors.filter(e => e.path === 'evidenceEnvelopeRef');
+    expect(refErrors).toHaveLength(0);
   });
 });

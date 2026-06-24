@@ -160,11 +160,16 @@ describe('Evidence envelope ref mismatch', () => {
   it('validator rejects wrong envelopeRef', () => {
     const diag = diagnosisFixture({ evidenceEnvelopeRef: 'env:wrong-hash' });
     const result = validateDiagnosisResponseV2(diag, envelope);
-    // Note: the validator doesn't enforce the exact ref (that's caller's job),
-    // but it does validate the ref is a non-empty string
-    expect(result.valid).toBe(true); // validator only checks ref is present
-    // The caller should compare the ref against buildEnvelopeRef(envelope)
-    expect(diag.evidenceEnvelopeRef).not.toBe(envRef);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some(e => e.message.includes('ENVELOPE_MISMATCH'))).toBe(true);
+  });
+
+  it('validator rejects correct envelopeRef', () => {
+    const diag = diagnosisFixture({ evidenceEnvelopeRef: envRef });
+    const result = validateDiagnosisResponseV2(diag, envelope);
+    // If other issues cause failure, the ref itself is valid
+    const refErrors = result.errors.filter(e => e.path === 'evidenceEnvelopeRef');
+    expect(refErrors).toHaveLength(0);
   });
 });
 
@@ -230,10 +235,46 @@ describe('Review downgrade protection', () => {
   });
 
   it('auto_safe with authorized=true allows requiresHumanReview=false', () => {
-    // baseReport already has authorized: true for exact-duplicates
+    // baseReport has authorized: true for exact-duplicates
     const diag = diagnosisFixture({ issues: [diagnosisFixture().issues[0]] });
     const result = validateDiagnosisResponseV2(diag, envelope);
-    expect(result.valid).toBe(true);
+    // exact coverage: issue1 must have exactly one block (issue1's block)
+    // The fixture has blocks for both issues; we need to also trim blocks
+    // Use a single-issue envelope instead
+    const singleIssueReport: AuditReportInput = {
+      score: 90, rowCount: 50, colCount: 2, duplicateRows: 0, delimiterDetected: ',',
+      issues: [{ id: 'only-issue', column: undefined, category: 'Integridad', ruleName: 'Exact Duplicates', description: 'duplicates', severity: 'warning', count: 5, affectedPercentage: 10, sampleValues: ['row_1', 'row_2', 'row_3'], ruleId: 'rule:exact-duplicates', automaticAuthorization: { actionType: 'drop_exact_duplicates', authorized: true, conditionsMet: [], reason: 'Deterministic' } }],
+      columnStats: {},
+      datasetProfile: { columns: [{ name: 'id' }] },
+    };
+    const singleEnv = _buildEvidenceEnvelopeV2(singleIssueReport, opts({ privacyLevel: 'local_full' }));
+    const singleIssue = singleEnv.issues[0];
+    const diag2 = {
+      contractId: 'aura.diagnosis.v2',
+      contractVersion: '2.0.0',
+      evidenceEnvelopeRef: buildEnvelopeRef(singleEnv),
+      responseId: 'diag-001',
+      issues: [{
+        issueId: singleIssue.issueId,
+        evidenceRefs: singleIssue.evidenceRefs,
+        hypothesis: 'Duplicate rows',
+        confidence: 0.9,
+        requiresHumanReview: false, // auto_safe authorized=true
+        limits: [],
+      }],
+      diagnosisBlocks: [{
+        issueId: singleIssue.issueId,
+        ruleId: singleIssue.ruleId,
+        columnId: null,
+        scope: 'dataset',
+        observation: '5 duplicate rows',
+        recommendation: 'Review deduplication strategy',
+      }],
+      limitations: [],
+      generatedAt: new Date().toISOString(),
+    };
+    const result2 = validateDiagnosisResponseV2(diag2, singleEnv);
+    expect(result2.valid).toBe(true);
   });
 });
 
