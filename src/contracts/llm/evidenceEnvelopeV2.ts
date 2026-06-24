@@ -73,7 +73,7 @@ interface DeductionRef {
  * Map engine deduction reason → stable ruleId + actionability.
  * NO heuristic ruleName.includes() fallback. BANNED.
  */
-function deduceActionability(deduction: DeductionRef, duplicateRows: number): { actionability: Actionability; ruleId: string; scope: IssueScope } {
+function deduceActionability(deduction: DeductionRef): { actionability: Actionability; ruleId: string; scope: IssueScope } {
   const reason = deduction.reason;
   const cat = deduction.category;
 
@@ -82,13 +82,9 @@ function deduceActionability(deduction: DeductionRef, duplicateRows: number): { 
     ? deduction.ruleId
     : `rule:${sha256short(reason, 8)}`;
 
-  // drop_exact_duplicates: auto_safe ONLY with explicit AuditReport authorization
-  // Authorization = duplicateRows > 0 AND deduction present in scoreBreakdown
+  // drop_exact_duplicates: classified, authorization handled at call site
   if (/filas?\s*duplicadas|exact\s*duplicates?/i.test(reason)) {
-    if (duplicateRows > 0) {
-      return { actionability: 'auto_safe', ruleId, scope: 'dataset' };
-    }
-    return { actionability: 'review_only', ruleId, scope: 'dataset' };
+    return { actionability: 'auto_safe', ruleId, scope: 'dataset' };
   }
 
   // Whitespace trimming = auto_safe
@@ -244,16 +240,20 @@ export function _buildEvidenceEnvelopeV2(
       columnId = colRef.columnId;
     }
 
-    // Actionability via deduction ruleId from engine
+    // Actionability via engine ruleId
     let actionability: Actionability = 'review_only';
     let ruleId = `rule:${sha256short(issue.ruleName, 8)}`;
     let effectiveScope = scope;
+    const automaticAuthorization = {
+      actionType: 'none',
+      authorized: false,
+      conditionsMet: [] as string[],
+      reason: 'No authorization found',
+    };
 
     if (deductionMap.size > 0) {
-      // Try exact match first
       let deduction = deductionMap.get(issue.description) || deductionMap.get(issue.ruleName);
 
-      // Try column-aware match: deduction reason contains column name
       if (!deduction && issue.column) {
         for (const d of report.scoreBreakdown!) {
           if (d.reason.includes(issue.column)) {
@@ -269,20 +269,34 @@ export function _buildEvidenceEnvelopeV2(
       }
 
       if (deduction) {
-        const result = deduceActionability(deduction, report.duplicateRows);
+        const result = deduceActionability(deduction);
         actionability = result.actionability;
         ruleId = result.ruleId;
         effectiveScope = result.scope;
+
+        // auto_safe only with explicit authorization
+        if (actionability === 'auto_safe') {
+          const isDupes = /filas?\s*duplicadas|exact\s*duplicates?/i.test(deduction.reason);
+          const isWhitespace = /espacios\s*fantasma|trim|whitespace/i.test(deduction.reason);
+
+          if (isDupes && report.duplicateRows > 0) {
+            automaticAuthorization.actionType = 'drop_exact_duplicates';
+            automaticAuthorization.authorized = true;
+            automaticAuthorization.conditionsMet = ['duplicateRows > 0', 'scoreBreakdown confirms exact duplicates'];
+            automaticAuthorization.reason = 'Exact duplicates detected and authorized for automatic removal';
+          } else if (isWhitespace) {
+            automaticAuthorization.actionType = 'trim_whitespace';
+            automaticAuthorization.authorized = true;
+            automaticAuthorization.conditionsMet = ['column is text', 'trim is lossless for whitespace'];
+            automaticAuthorization.reason = 'Whitespace trimming is safe for text columns';
+          } else {
+            // Unknown rule requesting auto_safe → deny
+            actionability = 'review_only';
+            automaticAuthorization.authorized = false;
+            automaticAuthorization.reason = 'No explicit authorization for this action type';
+          }
+        }
       }
-    } else {
-      // No scoreBreakdown — use deduction from reason (test compat)
-      const fallback = deduceActionability(
-        { reason: issue.ruleName, category: issue.category, ruleId: 'unknown' },
-        report.duplicateRows,
-      );
-      actionability = fallback.actionability;
-      ruleId = fallback.ruleId;
-      effectiveScope = fallback.scope;
     }
 
     candidateIssues.push({
@@ -297,6 +311,7 @@ export function _buildEvidenceEnvelopeV2(
       affectedPercentage: issue.affectedPercentage,
       evidenceRefs: [],
       actionability,
+      automaticAuthorization,
     });
   }
 

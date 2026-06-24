@@ -3,8 +3,8 @@
  * Uses _buildEvidenceEnvelopeV2 (internal, no gate).
  */
 
-import { describe, it, expect } from 'vitest';
-import { _buildEvidenceEnvelopeV2 } from '../contracts/llm/evidenceEnvelopeV2';
+import { describe, it, expect, afterAll } from 'vitest';
+import { _buildEvidenceEnvelopeV2, ContractsV2Error } from '../contracts/llm/evidenceEnvelopeV2';
 import type { AuditReportInput } from '../contracts/llm/evidenceEnvelopeV2';
 import {
   buildColumnRegistry,
@@ -23,7 +23,8 @@ import {
 import { buildTokenBudget, enforceCharacterBudget, createTruncationManifest } from '../contracts/llm/tokenBudget';
 import { validateEnvelope, validatePrivacyCompliance } from '../contracts/llm/validators';
 import { REGISTRY, validateAgainstContract } from '../contracts/llm/contractRegistry';
-import { sha256hex, sha256short, KNOWN_VECTORS } from '../contracts/llm/hash';
+import { sha256hex, sha256short, KNOWN_VECTORS, setForcePureJS } from '../contracts/llm/hash';
+import * as ContractsV2 from '../contracts/llm/index';
 
 const opts = (overrides: Record<string, unknown> = {}) => ({
   privacyLevel: 'local_full' as const,
@@ -172,6 +173,121 @@ describe('_buildEvidenceEnvelopeV2', () => {
       expect(minimized.length).toBeGreaterThan(0);
     }
   });
+
+// ── Barrel exports coverage ──
+describe('Contracts v2 barrel exports', () => {
+  it('exports all public functions', () => {
+    expect(typeof ContractsV2.buildColumnRegistry).toBe('function');
+    expect(typeof ContractsV2.resolveColumn).toBe('function');
+    expect(typeof ContractsV2.buildPrivacyPolicy).toBe('function');
+    expect(typeof ContractsV2.buildTokenBudget).toBe('function');
+    expect(typeof ContractsV2.buildEvidenceEnvelopeV2).toBe('function');
+    expect(typeof ContractsV2.validateEnvelope).toBe('function');
+    expect(typeof ContractsV2.validateIssue).toBe('function');
+    expect(typeof ContractsV2.getContract).toBe('function');
+    expect(typeof ContractsV2.listContracts).toBe('function');
+    expect(typeof ContractsV2.isContractsV2Enabled).toBe('function');
+    expect(typeof ContractsV2.sha256hex).toBe('function');
+    expect(typeof ContractsV2.setForcePureJS).toBe('function');
+    expect(typeof ContractsV2.parsePrivacyLevel).toBe('function');
+  });
+
+  it('does NOT export _buildEvidenceEnvelopeV2 in public barrel', () => {
+    expect((ContractsV2 as any)._buildEvidenceEnvelopeV2).toBeUndefined();
+  });
+
+  it('REGISTRY has 4 contracts', () => {
+    expect(Object.keys(ContractsV2.REGISTRY)).toHaveLength(4);
+  });
+});
+
+// ── SHA Pure-JS dual backend ──
+describe('SHA-256 dual backend', () => {
+  const vectors = Object.entries(KNOWN_VECTORS);
+
+  it('Node backend matches known vectors', () => {
+    setForcePureJS(false);
+    for (const [input, expected] of vectors) {
+      expect(sha256hex(input)).toBe(expected);
+    }
+  });
+
+  it('Pure-JS backend matches known vectors', () => {
+    setForcePureJS(true);
+    for (const [input, expected] of vectors) {
+      expect(sha256hex(input)).toBe(expected);
+    }
+  });
+
+  it('Both backends produce identical results', () => {
+    setForcePureJS(false);
+    const nodeHashes = vectors.map(([input]) => sha256hex(input));
+    setForcePureJS(true);
+    const jsHashes = vectors.map(([input]) => sha256hex(input));
+    expect(nodeHashes).toEqual(jsHashes);
+  });
+
+  afterAll(() => {
+    setForcePureJS(false); // reset
+  });
+});
+
+// ── Automatic authorization ──
+describe('Automatic authorization', () => {
+  const dupReport: AuditReportInput = {
+    score: 75, rowCount: 50, colCount: 3, duplicateRows: 5, delimiterDetected: ',',
+    issues: [{
+      id: 'dup-rows', column: undefined, category: 'INTEGRITY', ruleName: 'Exact Duplicates',
+      description: 'Filas Duplicadas (5)', severity: 'warning', count: 5, affectedPercentage: 10, sampleValues: [],
+    }],
+    datasetProfile: { columns: [{ name: 'A' }, { name: 'B' }, { name: 'C' }] },
+    scoreBreakdown: [
+      { reason: 'Filas Duplicadas (5)', points: 2, category: 'INTEGRITY', severity: 'WARNING', ruleId: 'rule:dup' },
+    ],
+  };
+
+  it('duplicates have auto_safe with authorized=true when duplicateRows>0', () => {
+    const e = _buildEvidenceEnvelopeV2(dupReport, opts());
+    const dup = e.issues.find(i => i.issueId === 'dup-rows');
+    expect(dup).toBeDefined();
+    expect(dup!.actionability).toBe('auto_safe');
+    expect(dup!.automaticAuthorization.authorized).toBe(true);
+    expect(dup!.automaticAuthorization.actionType).toBe('drop_exact_duplicates');
+  });
+
+  const dupReportNoRows: AuditReportInput = {
+    ...dupReport, duplicateRows: 0,
+    scoreBreakdown: [],
+    issues: [{ ...dupReport.issues[0], description: 'Filas Duplicadas (0)' }],
+  };
+
+  it('duplicates without duplicateRows are review_only', () => {
+    const e = _buildEvidenceEnvelopeV2(dupReportNoRows, opts());
+    const dup = e.issues.find(i => i.issueId === 'dup-rows');
+    expect(dup!.actionability).toBe('review_only');
+    expect(dup!.automaticAuthorization.authorized).toBe(false);
+  });
+});
+
+// ── RuleId from engine ──
+describe('Engine ruleId integration', () => {
+  it('evidence envelope issues carry engine ruleId when scoreBreakdown present', () => {
+    const e = _buildEvidenceEnvelopeV2(minimalReport, opts());
+    for (const issue of e.issues) {
+      expect(issue.ruleId).toMatch(/^rule:/);
+    }
+  });
+
+  it('unknown rules default to review_only', () => {
+    const report: AuditReportInput = {
+      score: 100, rowCount: 10, colCount: 2, duplicateRows: 0, delimiterDetected: ',',
+      issues: [{ id: 'x', column: 'A', category: 'TEST', ruleName: 'Some Unknown Rule', description: 'unknown', severity: 'info', count: 1, affectedPercentage: 10, sampleValues: [] }],
+      datasetProfile: { columns: [{ name: 'A' }, { name: 'B' }] },
+    };
+    const e = _buildEvidenceEnvelopeV2(report, opts());
+    expect(e.issues[0].actionability).toBe('review_only');
+  });
+});
   it('cloud_no_samples: empty samples + topValues', () => {
     const e = _buildEvidenceEnvelopeV2(minimalReport, opts({ privacyLevel: 'cloud_no_samples' }));
     expect(e.evidence.samples).toHaveLength(0);

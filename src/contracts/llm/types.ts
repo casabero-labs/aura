@@ -119,9 +119,17 @@ export interface EvidenceIssueV2 {
   affectedPercentage: number;
   evidenceRefs: string[];
   actionability: Actionability;
+  automaticAuthorization: AutomaticAuthorization;
 }
 
 export type Actionability = 'auto_safe' | 'review_only' | 'not_actionable';
+
+export interface AutomaticAuthorization {
+  actionType: string;
+  authorized: boolean;
+  conditionsMet: string[];
+  reason: string;
+}
 
 export interface ActionabilityRule {
   ruleId: string;

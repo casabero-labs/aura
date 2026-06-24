@@ -1,13 +1,46 @@
 # Contracts v2 — Local Dataset Validation
 
-**Generated:** 2026-06-24T01:55:08.536Z
+**Generated:** 2026-06-24T02:08:51.477Z
 **Datasets dir:** /Users/casabero/Documents/GitHub/aura/experiments/datasets
 
 | Status | Count |
 |--------|-------|
 | PASS | 3 |
 | FAIL | 0 |
-| UNSUPPORTED | 0 |
+| UNSUPPORTED | 3 |
+
+## ⚠️ .DS_Store
+
+- **Status:** UNSUPPORTED
+- **SHA-256:** `N/A`
+- **Size:** N/A
+- **Rows:** 0 × **Cols:** 0
+- **Issues:** 0
+- **Duplicate columns:** 0
+- **Duration:** 0ms
+- **Error:** Unsupported extension: (none)
+
+## ⚠️ README.md
+
+- **Status:** UNSUPPORTED
+- **SHA-256:** `N/A`
+- **Size:** N/A
+- **Rows:** 0 × **Cols:** 0
+- **Issues:** 0
+- **Duplicate columns:** 0
+- **Duration:** 0ms
+- **Error:** Unsupported extension: .md
+
+## ⚠️ synthetic_ground_truth.json
+
+- **Status:** UNSUPPORTED
+- **SHA-256:** `N/A`
+- **Size:** N/A
+- **Rows:** 0 × **Cols:** 0
+- **Issues:** 0
+- **Duplicate columns:** 0
+- **Duration:** 0ms
+- **Error:** Unsupported extension: .json
 
 ## ✅ adult_income.csv
 
@@ -17,19 +50,19 @@
 - **Rows:** 48842 × **Cols:** 15
 - **Issues:** 12
 - **Duplicate columns:** 0
-- **Duration:** 3246ms
+- **Duration:** 3221ms
 
 | Level | Budget | Size | Samples | Columns | Issues | Trunc | PII Leaks |
 |-------|--------|------|---------|---------|--------|-------|-----------|
-| local_full_default | | 15.5KB | 15 | 15 | 12 | 0 | 0 |
-| local_full_reduced | | 7.8KB | 4 | 5 | 7 | 8 | 0 |
-| local_full_tight | — | — | — | — | — | — | Cannot reduce envelope to 4000 chars (actual: 4617) |
-| cloud_minimized_default | | 12.9KB | 15 | 15 | 12 | 0 | 0 |
-| cloud_minimized_reduced | | 7.7KB | 4 | 5 | 7 | 8 | 0 |
-| cloud_minimized_tight | — | — | — | — | — | — | Cannot reduce envelope to 4000 chars (actual: 5191) |
-| cloud_no_samples_default | | 10.2KB | 0 | 15 | 12 | 0 | 0 |
-| cloud_no_samples_reduced | | 6.1KB | 0 | 5 | 7 | 3 | 0 |
-| cloud_no_samples_tight | — | — | — | — | — | — | Cannot reduce envelope to 4000 chars (actual: 4472) |
+| local_full_default | | 13.9KB | 15 | 15 | 12 | 0 | 0 |
+| local_full_reduced | | 7.3KB | 0 | 5 | 7 | 8 | 0 |
+| local_full_tight | — | — | — | — | — | — | Cannot reduce envelope to 4000 chars (actual: 5254) |
+| cloud_minimized_default | | 14.5KB | 15 | 15 | 12 | 0 | 0 |
+| cloud_minimized_reduced | | 7.0KB | 0 | 5 | 7 | 8 | 0 |
+| cloud_minimized_tight | — | — | — | — | — | — | Cannot reduce envelope to 4000 chars (actual: 5828) |
+| cloud_no_samples_default | | 11.8KB | 0 | 15 | 12 | 0 | 0 |
+| cloud_no_samples_reduced | | 6.9KB | 0 | 5 | 7 | 3 | 0 |
+| cloud_no_samples_tight | — | — | — | — | — | — | Cannot reduce envelope to 4000 chars (actual: 5109) |
 
 ## ✅ synthetic_ground_truth.csv
 
@@ -39,19 +72,19 @@
 - **Rows:** 15 × **Cols:** 9
 - **Issues:** 16
 - **Duplicate columns:** 0
-- **Duration:** 8ms
+- **Duration:** 7ms
 
 | Level | Budget | Size | Samples | Columns | Issues | Trunc | PII Leaks |
 |-------|--------|------|---------|---------|--------|-------|-----------|
-| local_full_default | | 15.2KB | 18 | 9 | 16 | 1 | 0 |
-| local_full_reduced | | 7.2KB | 0 | 5 | 10 | 8 | 0 |
-| local_full_tight | — | — | — | — | — | — | Cannot reduce envelope to 4000 chars (actual: 4866) |
-| cloud_minimized_default | | 13.0KB | 18 | 9 | 16 | 1 | 0 |
-| cloud_minimized_reduced | | 7.7KB | 0 | 5 | 10 | 8 | 0 |
-| cloud_minimized_tight | — | — | — | — | — | — | Cannot reduce envelope to 4000 chars (actual: 5440) |
-| cloud_no_samples_default | | 9.2KB | 0 | 9 | 16 | 1 | 0 |
-| cloud_no_samples_reduced | | 6.8KB | 0 | 5 | 10 | 3 | 0 |
-| cloud_no_samples_tight | — | — | — | — | — | — | Cannot reduce envelope to 4000 chars (actual: 4721) |
+| local_full_default | | 14.4KB | 18 | 9 | 16 | 1 | 0 |
+| local_full_reduced | | 7.5KB | 0 | 5 | 10 | 8 | 0 |
+| local_full_tight | — | — | — | — | — | — | Cannot reduce envelope to 4000 chars (actual: 5509) |
+| cloud_minimized_default | | 15.0KB | 18 | 9 | 16 | 1 | 0 |
+| cloud_minimized_reduced | — | — | — | — | — | — | Cannot reduce envelope to 8000 chars (actual: 8221) |
+| cloud_minimized_tight | — | — | — | — | — | — | Cannot reduce envelope to 4000 chars (actual: 6083) |
+| cloud_no_samples_default | | 11.1KB | 0 | 9 | 16 | 1 | 0 |
+| cloud_no_samples_reduced | | 7.1KB | 0 | 5 | 10 | 3 | 0 |
+| cloud_no_samples_tight | — | — | — | — | — | — | Cannot reduce envelope to 4000 chars (actual: 5364) |
 
 ## ✅ titanic.csv
 
@@ -61,16 +94,16 @@
 - **Rows:** 891 × **Cols:** 12
 - **Issues:** 10
 - **Duplicate columns:** 0
-- **Duration:** 31ms
+- **Duration:** 30ms
 
 | Level | Budget | Size | Samples | Columns | Issues | Trunc | PII Leaks |
 |-------|--------|------|---------|---------|--------|-------|-----------|
-| local_full_default | | 13.0KB | 15 | 12 | 10 | 2 | 0 |
-| local_full_reduced | | 6.1KB | 4 | 5 | 2 | 5 | 0 |
-| local_full_tight | | 3.9KB | 0 | 3 | 0 | 4 | 0 |
-| cloud_minimized_default | | 13.6KB | 15 | 12 | 10 | 2 | 0 |
-| cloud_minimized_reduced | | 6.7KB | 4 | 5 | 2 | 5 | 0 |
+| local_full_default | | 14.5KB | 15 | 12 | 10 | 2 | 0 |
+| local_full_reduced | | 6.5KB | 4 | 5 | 2 | 5 | 0 |
+| local_full_tight | | 3.7KB | 0 | 3 | 0 | 4 | 0 |
+| cloud_minimized_default | | 15.0KB | 15 | 12 | 10 | 2 | 0 |
+| cloud_minimized_reduced | | 7.1KB | 4 | 5 | 2 | 5 | 0 |
 | cloud_minimized_tight | | 3.7KB | 0 | 3 | 0 | 4 | 0 |
-| cloud_no_samples_default | | 8.6KB | 0 | 12 | 10 | 2 | 0 |
-| cloud_no_samples_reduced | | 4.8KB | 0 | 5 | 2 | 3 | 0 |
-| cloud_no_samples_tight | | 3.6KB | 0 | 3 | 0 | 2 | 0 |
+| cloud_no_samples_default | | 10.1KB | 0 | 12 | 10 | 2 | 0 |
+| cloud_no_samples_reduced | | 5.2KB | 0 | 5 | 2 | 3 | 0 |
+| cloud_no_samples_tight | | 3.7KB | 0 | 3 | 0 | 2 | 0 |

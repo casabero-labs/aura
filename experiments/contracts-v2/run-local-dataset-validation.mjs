@@ -20,10 +20,27 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, '../..');
 const RESULTS_DIR = path.resolve(__dirname, 'local-validation-results');
 
-// Resolve datasets dir
-const DATASETS_DIR = process.env.AURA_DATASETS_DIR
-  || path.resolve(REPO_ROOT, 'experiments/datasets')
-  || '/Users/casabero/Documents/GitHub/aura/experiments/datasets';
+// Resolve datasets dir — check existence in order
+function resolveDatasetsDir() {
+  const candidates = [
+    { env: 'AURA_DATASETS_DIR', path: process.env.AURA_DATASETS_DIR },
+    { env: 'relative', path: path.resolve(REPO_ROOT, 'experiments/datasets') },
+    { env: 'fallback', path: '/Users/casabero/Documents/GitHub/aura/experiments/datasets' },
+  ];
+
+  for (const c of candidates) {
+    if (c.path && fs.existsSync(c.path)) {
+      return c.path;
+    }
+  }
+
+  throw new Error(
+    'No datasets directory found. Checked:\n' +
+    candidates.map(c => `  - ${c.env}: ${c.path || '(not set)'}`).join('\n')
+  );
+}
+
+const DATASETS_DIR = resolveDatasetsDir();
 
 const PRIVACY_LEVELS = ['local_full', 'cloud_minimized', 'cloud_no_samples'];
 
@@ -58,17 +75,40 @@ async function main() {
     process.exit(1);
   }
 
-  const entries = fs.readdirSync(DATASETS_DIR).filter(f => {
-    const ext = path.extname(f).toLowerCase();
+  const allEntries = fs.readdirSync(DATASETS_DIR);
+  const unsupportedFiles = [];
+  const entries = allEntries.filter(f => {
     const fullPath = path.join(DATASETS_DIR, f);
-    const stat = fs.statSync(fullPath);
-    if (!stat.isFile()) return false;
-    if (!SUPPORTED_EXTENSIONS.includes(ext)) return false;
-    if (stat.size > MAX_FILE_SIZE) return false;
-    return true;
+    try {
+      const stat = fs.statSync(fullPath);
+      if (!stat.isFile()) return false;
+      const ext = path.extname(f).toLowerCase();
+      if (!SUPPORTED_EXTENSIONS.includes(ext)) {
+        unsupportedFiles.push({ file: f, cause: `Unsupported extension: ${ext || '(none)'}` });
+        return false;
+      }
+      if (stat.size > MAX_FILE_SIZE) {
+        unsupportedFiles.push({ file: f, cause: `File too large: ${(stat.size / 1024 / 1024).toFixed(1)}MB > ${MAX_FILE_SIZE / 1024 / 1024}MB` });
+        return false;
+      }
+      return true;
+    } catch (err) {
+      unsupportedFiles.push({ file: f, cause: `Error reading: ${err.message}` });
+      return false;
+    }
   });
 
-  console.log(`[validate-local] Found ${entries.length} compatible files`);
+  // Register unsupported files
+  for (const uf of unsupportedFiles) {
+    results.files.push({
+      file: uf.file,
+      path: path.join(DATASETS_DIR, uf.file),
+      status: 'UNSUPPORTED',
+      error: uf.cause,
+    });
+  }
+
+  console.log(`[validate-local] Found ${entries.length} compatible, ${unsupportedFiles.length} unsupported`);
 
   for (const file of entries.sort()) {
     await validateFile(file);
@@ -313,18 +353,18 @@ function generateMarkdown(results) {
     lines.push(`## ${icon} ${file.file}`);
     lines.push('');
     lines.push(`- **Status:** ${file.status}`);
-    lines.push(`- **SHA-256:** \`${file.sha256}\``);
-    lines.push(`- **Size:** ${formatBytes(file.sizeBytes)}`);
-    lines.push(`- **Rows:** ${file.rowCount} × **Cols:** ${file.colCount}`);
-    lines.push(`- **Issues:** ${file.issuesCount}`);
-    lines.push(`- **Duplicate columns:** ${file.duplicateColumns}`);
-    lines.push(`- **Duration:** ${file.durationMs}ms`);
+    lines.push(`- **SHA-256:** \`${file.sha256 || 'N/A'}\``);
+    lines.push(`- **Size:** ${file.sizeBytes ? formatBytes(file.sizeBytes) : 'N/A'}`);
+    lines.push(`- **Rows:** ${file.rowCount || 0} × **Cols:** ${file.colCount || 0}`);
+    lines.push(`- **Issues:** ${file.issuesCount || 0}`);
+    lines.push(`- **Duplicate columns:** ${file.duplicateColumns || 0}`);
+    lines.push(`- **Duration:** ${file.durationMs || 0}ms`);
 
     if (file.error) {
       lines.push(`- **Error:** ${file.error}`);
     }
 
-    if (Object.keys(file.envelopes).length > 0) {
+    if (file.envelopes && Object.keys(file.envelopes).length > 0) {
       lines.push('');
       lines.push('| Level | Budget | Size | Samples | Columns | Issues | Trunc | PII Leaks |');
       lines.push('|-------|--------|------|---------|---------|--------|-------|-----------|');

@@ -9,6 +9,10 @@ let _sha256: HashFn | null = null;
 
 function getSha256(): HashFn {
   if (_sha256) return _sha256;
+  if (FORCE_PURE_JS) {
+    _sha256 = jsSha256hex;
+    return _sha256;
+  }
   try {
     const { createHash } = require('node:crypto') as typeof import('node:crypto');
     _sha256 = (input: string) => createHash('sha256').update(input).digest('hex');
@@ -17,6 +21,14 @@ function getSha256(): HashFn {
     _sha256 = jsSha256hex;
     return _sha256;
   }
+}
+
+/** Force pure-JS backend (for testing determinism across platforms). */
+let FORCE_PURE_JS = false;
+
+export function setForcePureJS(force: boolean): void {
+  FORCE_PURE_JS = force;
+  _sha256 = force ? jsSha256hex : null;
 }
 
 export function sha256hex(input: string): string {

@@ -1,14 +1,32 @@
 {
   "harnessVersion": "1.0.0",
-  "generatedAt": "2026-06-24T01:55:08.536Z",
+  "generatedAt": "2026-06-24T02:08:51.477Z",
   "datasetsDir": "/Users/casabero/Documents/GitHub/aura/experiments/datasets",
   "summary": {
-    "total": 3,
+    "total": 6,
     "passed": 3,
     "failed": 0,
-    "unsupported": 0
+    "unsupported": 3
   },
   "files": [
+    {
+      "file": ".DS_Store",
+      "path": "/Users/casabero/Documents/GitHub/aura/experiments/datasets/.DS_Store",
+      "status": "UNSUPPORTED",
+      "error": "Unsupported extension: (none)"
+    },
+    {
+      "file": "README.md",
+      "path": "/Users/casabero/Documents/GitHub/aura/experiments/datasets/README.md",
+      "status": "UNSUPPORTED",
+      "error": "Unsupported extension: .md"
+    },
+    {
+      "file": "synthetic_ground_truth.json",
+      "path": "/Users/casabero/Documents/GitHub/aura/experiments/datasets/synthetic_ground_truth.json",
+      "status": "UNSUPPORTED",
+      "error": "Unsupported extension: .json"
+    },
     {
       "file": "adult_income.csv",
       "path": "/Users/casabero/Documents/GitHub/aura/experiments/datasets/adult_income.csv",
@@ -22,7 +40,7 @@
       "invalidReferences": 0,
       "envelopes": {
         "local_full_default": {
-          "size": 15915,
+          "size": 14230,
           "samples": 15,
           "columns": 15,
           "issues": 12,
@@ -31,8 +49,8 @@
           "valid": true
         },
         "local_full_reduced": {
-          "size": 7965,
-          "samples": 4,
+          "size": 7519,
+          "samples": 0,
           "columns": 5,
           "issues": 7,
           "truncations": 8,
@@ -40,13 +58,13 @@
           "valid": true
         },
         "local_full_tight": {
-          "error": "Cannot reduce envelope to 4000 chars (actual: 4617)",
+          "error": "Cannot reduce envelope to 4000 chars (actual: 5254)",
           "code": "BUDGET_UNSATISFIABLE",
           "valid": false,
           "note": "Budget too tight for this dataset"
         },
         "cloud_minimized_default": {
-          "size": 13217,
+          "size": 14804,
           "samples": 15,
           "columns": 15,
           "issues": 12,
@@ -55,8 +73,8 @@
           "valid": true
         },
         "cloud_minimized_reduced": {
-          "size": 7841,
-          "samples": 4,
+          "size": 7142,
+          "samples": 0,
           "columns": 5,
           "issues": 7,
           "truncations": 8,
@@ -64,13 +82,13 @@
           "valid": true
         },
         "cloud_minimized_tight": {
-          "error": "Cannot reduce envelope to 4000 chars (actual: 5191)",
+          "error": "Cannot reduce envelope to 4000 chars (actual: 5828)",
           "code": "BUDGET_UNSATISFIABLE",
           "valid": false,
           "note": "Budget too tight for this dataset"
         },
         "cloud_no_samples_default": {
-          "size": 10481,
+          "size": 12068,
           "samples": 0,
           "columns": 15,
           "issues": 12,
@@ -79,7 +97,7 @@
           "valid": true
         },
         "cloud_no_samples_reduced": {
-          "size": 6199,
+          "size": 7092,
           "samples": 0,
           "columns": 5,
           "issues": 7,
@@ -88,7 +106,7 @@
           "valid": true
         },
         "cloud_no_samples_tight": {
-          "error": "Cannot reduce envelope to 4000 chars (actual: 4472)",
+          "error": "Cannot reduce envelope to 4000 chars (actual: 5109)",
           "code": "BUDGET_UNSATISFIABLE",
           "valid": false,
           "note": "Budget too tight for this dataset"
@@ -96,7 +114,7 @@
       },
       "privacyViolations": 0,
       "truncations": 8,
-      "durationMs": 3246,
+      "durationMs": 3221,
       "error": null
     },
     {
@@ -112,7 +130,7 @@
       "invalidReferences": 0,
       "envelopes": {
         "local_full_default": {
-          "size": 15544,
+          "size": 14774,
           "samples": 18,
           "columns": 9,
           "issues": 16,
@@ -121,7 +139,7 @@
           "valid": true
         },
         "local_full_reduced": {
-          "size": 7356,
+          "size": 7647,
           "samples": 0,
           "columns": 5,
           "issues": 10,
@@ -130,13 +148,13 @@
           "valid": true
         },
         "local_full_tight": {
-          "error": "Cannot reduce envelope to 4000 chars (actual: 4866)",
+          "error": "Cannot reduce envelope to 4000 chars (actual: 5509)",
           "code": "BUDGET_UNSATISFIABLE",
           "valid": false,
           "note": "Budget too tight for this dataset"
         },
         "cloud_minimized_default": {
-          "size": 13328,
+          "size": 15348,
           "samples": 18,
           "columns": 9,
           "issues": 16,
@@ -145,22 +163,19 @@
           "valid": true
         },
         "cloud_minimized_reduced": {
-          "size": 7930,
-          "samples": 0,
-          "columns": 5,
-          "issues": 10,
-          "truncations": 8,
-          "privacyViolations": 0,
-          "valid": true
+          "error": "Cannot reduce envelope to 8000 chars (actual: 8221)",
+          "code": "BUDGET_UNSATISFIABLE",
+          "valid": false,
+          "note": "Budget too tight for this dataset"
         },
         "cloud_minimized_tight": {
-          "error": "Cannot reduce envelope to 4000 chars (actual: 5440)",
+          "error": "Cannot reduce envelope to 4000 chars (actual: 6083)",
           "code": "BUDGET_UNSATISFIABLE",
           "valid": false,
           "note": "Budget too tight for this dataset"
         },
         "cloud_no_samples_default": {
-          "size": 9371,
+          "size": 11391,
           "samples": 0,
           "columns": 9,
           "issues": 16,
@@ -169,7 +184,7 @@
           "valid": true
         },
         "cloud_no_samples_reduced": {
-          "size": 6929,
+          "size": 7220,
           "samples": 0,
           "columns": 5,
           "issues": 10,
@@ -178,7 +193,7 @@
           "valid": true
         },
         "cloud_no_samples_tight": {
-          "error": "Cannot reduce envelope to 4000 chars (actual: 4721)",
+          "error": "Cannot reduce envelope to 4000 chars (actual: 5364)",
           "code": "BUDGET_UNSATISFIABLE",
           "valid": false,
           "note": "Budget too tight for this dataset"
@@ -186,7 +201,7 @@
       },
       "privacyViolations": 0,
       "truncations": 8,
-      "durationMs": 8,
+      "durationMs": 7,
       "error": null
     },
     {
@@ -202,7 +217,7 @@
       "invalidReferences": 0,
       "envelopes": {
         "local_full_default": {
-          "size": 13353,
+          "size": 14797,
           "samples": 15,
           "columns": 12,
           "issues": 10,
@@ -211,7 +226,7 @@
           "valid": true
         },
         "local_full_reduced": {
-          "size": 6296,
+          "size": 6684,
           "samples": 4,
           "columns": 5,
           "issues": 2,
@@ -220,7 +235,7 @@
           "valid": true
         },
         "local_full_tight": {
-          "size": 3975,
+          "size": 3771,
           "samples": 0,
           "columns": 3,
           "issues": 0,
@@ -229,7 +244,7 @@
           "valid": true
         },
         "cloud_minimized_default": {
-          "size": 13927,
+          "size": 15371,
           "samples": 15,
           "columns": 12,
           "issues": 10,
@@ -238,7 +253,7 @@
           "valid": true
         },
         "cloud_minimized_reduced": {
-          "size": 6870,
+          "size": 7258,
           "samples": 4,
           "columns": 5,
           "issues": 2,
@@ -247,7 +262,7 @@
           "valid": true
         },
         "cloud_minimized_tight": {
-          "size": 3754,
+          "size": 3789,
           "samples": 0,
           "columns": 3,
           "issues": 0,
@@ -256,7 +271,7 @@
           "valid": true
         },
         "cloud_no_samples_default": {
-          "size": 8854,
+          "size": 10298,
           "samples": 0,
           "columns": 12,
           "issues": 10,
@@ -265,7 +280,7 @@
           "valid": true
         },
         "cloud_no_samples_reduced": {
-          "size": 4920,
+          "size": 5308,
           "samples": 0,
           "columns": 5,
           "issues": 2,
@@ -274,7 +289,7 @@
           "valid": true
         },
         "cloud_no_samples_tight": {
-          "size": 3732,
+          "size": 3767,
           "samples": 0,
           "columns": 3,
           "issues": 0,
@@ -285,7 +300,7 @@
       },
       "privacyViolations": 0,
       "truncations": 5,
-      "durationMs": 31,
+      "durationMs": 30,
       "error": null
     }
   ]

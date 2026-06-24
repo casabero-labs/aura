@@ -27,6 +27,7 @@ export interface QualityIssue {
   id: string;
   column?: string;
   ruleName: string;
+  ruleId: string;
   category: IssueCategory;
   description: string;
   severity: IssueSeverity;

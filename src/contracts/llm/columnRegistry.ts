@@ -66,7 +66,7 @@ export function buildColumnRegistry(columnNames: string[]): ColumnRef[] {
       name,
       position: i,
       duplicateOrdinal: dupOrd,
-      pythonLiteral: `_c[${JSON.stringify(name)}]`,
+      pythonLiteral: `_c[${JSON.stringify(columnId)}]`,
       isAmbiguous: isAmbiguous(name),
       isDuplicate: multiple,
       isReservedWord: isReservedWord(name),
