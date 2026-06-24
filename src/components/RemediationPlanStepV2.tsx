@@ -1,0 +1,231 @@
+/**
+ * Remediation Plan Step v2 — Deterministic, no AI.
+ *
+ * This component does NOT import or evaluate any AI functions:
+ * - buildScriptPrompt
+ * - buildDiagnosisSummaryPrompt
+ * - extractPythonScript
+ * - buildDeterministicCleaningScript
+ * - aiProvider.generateText
+ *
+ * The v2 path is completely isolated from AI imports at the module level.
+ */
+import React, { useCallback, useState, useEffect } from 'react';
+import { ArrowRight, CheckCircle2, ShieldCheck, AlertTriangle, Ban } from 'lucide-react';
+import { AuditReport } from '../types';
+import {
+  buildRemediationPlanV2,
+  validateRemediationPlanV2,
+  approveRemediationActionV2,
+  rejectRemediationActionV2,
+  resetRemediationActionV2,
+} from '../contracts/llm';
+import type { DiagnosisExecutionResult, RemediationPlanV2 } from '../contracts/llm';
+
+interface RemediationPlanStepV2Props {
+  report: AuditReport;
+  structuredDiagnosis?: DiagnosisExecutionResult | null;
+  remediationPlan?: RemediationPlanV2 | null;
+  onRemediationPlanChange?: (plan: RemediationPlanV2) => void;
+  onContinue: () => void;
+}
+
+const RemediationPlanStepV2: React.FC<RemediationPlanStepV2Props> = ({
+  report,
+  structuredDiagnosis,
+  remediationPlan,
+  onRemediationPlanChange,
+  onContinue,
+}) => {
+  const [v2Plan, setV2Plan] = useState<RemediationPlanV2 | null>(remediationPlan ?? null);
+  const [v2PlanError, setV2PlanError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (remediationPlan) {
+      // Restored plan — validate against current structuredDiagnosis
+      if (!structuredDiagnosis?.remediationContext) {
+        setV2PlanError('No remediationContext available — cannot restore plan');
+        return;
+      }
+      const validation = validateRemediationPlanV2(remediationPlan, structuredDiagnosis);
+      if (!validation.valid) {
+        setV2PlanError(`Restored plan invalid: ${validation.errors.map(e => e.message).join('; ')}`);
+        setV2Plan(null);
+        return;
+      }
+      setV2Plan(remediationPlan);
+      setV2PlanError(null);
+      return;
+    }
+
+    // Build new plan
+    if (!structuredDiagnosis?.remediationContext) {
+      setV2PlanError('remediationContext not available in structuredDiagnosis');
+      return;
+    }
+    try {
+      const plan = buildRemediationPlanV2(structuredDiagnosis);
+      const validation = validateRemediationPlanV2(plan, structuredDiagnosis);
+      if (!validation.valid) {
+        setV2PlanError(`Plan validation failed: ${validation.errors.map(e => e.message).join('; ')}`);
+        return;
+      }
+      setV2Plan(plan);
+      setV2PlanError(null);
+      onRemediationPlanChange?.(plan);
+    } catch (e) {
+      setV2PlanError(`Error building remediation plan: ${(e as Error).message}`);
+    }
+  }, [structuredDiagnosis, remediationPlan]);
+
+  const handleApprove = useCallback((actionId: string) => {
+    if (!v2Plan) return;
+    const result = approveRemediationActionV2(v2Plan, actionId);
+    if (result.success) {
+      setV2Plan(result.plan);
+      onRemediationPlanChange?.(result.plan);
+    }
+  }, [v2Plan, onRemediationPlanChange]);
+
+  const handleReject = useCallback((actionId: string) => {
+    if (!v2Plan) return;
+    const result = rejectRemediationActionV2(v2Plan, actionId);
+    if (result.success) {
+      setV2Plan(result.plan);
+      onRemediationPlanChange?.(result.plan);
+    }
+  }, [v2Plan, onRemediationPlanChange]);
+
+  const handleReset = useCallback((actionId: string) => {
+    if (!v2Plan) return;
+    const result = resetRemediationActionV2(v2Plan, actionId);
+    if (result.success) {
+      setV2Plan(result.plan);
+      onRemediationPlanChange?.(result.plan);
+    }
+  }, [v2Plan, onRemediationPlanChange]);
+
+  if (v2PlanError) {
+    return (
+      <section className="section" data-testid="remediation-stage">
+        <header className="section-header">
+          <div>
+            <p className="sec-eye">remediación estructurada v2</p>
+            <h2 className="sec-title">Plan de remediación determinista</h2>
+          </div>
+        </header>
+        <div className="provider-error-notice" style={{ marginBottom: 'var(--space-md)' }}>
+          <AlertTriangle size={14} style={{ color: 'var(--error)' }} />
+          <span>{v2PlanError}</span>
+        </div>
+      </section>
+    );
+  }
+
+  if (!v2Plan) {
+    return (
+      <section className="section" data-testid="remediation-stage">
+        <header className="section-header">
+          <div>
+            <p className="sec-eye">remediación estructurada v2</p>
+            <h2 className="sec-title">Plan de remediación determinista</h2>
+          </div>
+        </header>
+        <p className="section-note">Construyendo plan de remediación determinista...</p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="section" data-testid="remediation-stage">
+      <header className="section-header">
+        <div>
+          <p className="sec-eye">remediación estructurada v2</p>
+          <h2 className="sec-title">Plan de remediación determinista</h2>
+        </div>
+      </header>
+      <p className="section-note">
+        Plan estructurado listo. La generación determinista del script se realizará en la siguiente fase.
+      </p>
+
+      <div className="stage-decision-summary" style={{ marginBottom: 'var(--space-md)' }}>
+        <div className="stage-summary-item">
+          <span className="stage-summary-label">acciones</span>
+          <strong className="stage-summary-value">{v2Plan.plan.length}</strong>
+        </div>
+        <div className="stage-summary-item">
+          <span className="stage-summary-label">auto-safe</span>
+          <strong className="stage-summary-value">{v2Plan.plan.filter(a => a.actionability === 'auto_safe').length}</strong>
+        </div>
+        <div className="stage-summary-item">
+          <span className="stage-summary-label">review</span>
+          <strong className="stage-summary-value">{v2Plan.plan.filter(a => a.actionability === 'review_only').length}</strong>
+        </div>
+        <div className="stage-summary-item">
+          <span className="stage-summary-label">exclusiones</span>
+          <strong className="stage-summary-value">{v2Plan.exclusions.length}</strong>
+        </div>
+      </div>
+
+      {v2Plan.plan.map((action, i) => (
+        <div key={action.actionId} className="stage-result" style={{ marginBottom: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <h4 style={{ fontSize: '13px', fontWeight: 600, margin: 0 }}>
+                {i + 1}. [{action.actionType}] {action.ruleId}
+                {action.columnId ? ` → ${action.columnId}` : ' (dataset)'}
+              </h4>
+              <div style={{ fontSize: '11px', color: 'var(--ink3)', marginTop: '2px' }}>
+                {action.actionability === 'auto_safe' ? '✓ Automático' : action.actionability === 'review_only' ? '⚠️ Revisión requerida' : 'No accionable'} · {action.evidenceRefs.length} evidencias
+              </div>
+              <div style={{ fontSize: '10px', color: 'var(--ink3)', fontFamily: 'monospace', marginTop: '2px' }}>
+                {action.actionId}
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+              {action.approvalStatus === 'pending' && (
+                <>
+                  <button className="btn-s btn-sm" onClick={() => handleApprove(action.actionId)} style={{ background: 'var(--success-bg)', color: 'var(--success-fg)' }}>
+                    <CheckCircle2 size={12} /> Aprobar
+                  </button>
+                  <button className="btn-s btn-sm" onClick={() => handleReject(action.actionId)} style={{ background: 'var(--error-bg)', color: 'var(--error-fg)' }}>
+                    <AlertTriangle size={12} /> Rechazar
+                  </button>
+                </>
+              )}
+              {action.approvalStatus === 'approved' && (
+                <button className="btn-s btn-sm" onClick={() => handleReset(action.actionId)} style={{ background: 'var(--success-bg)', color: 'var(--success-fg)' }}>
+                  <ShieldCheck size={12} /> Aprobado
+                </button>
+              )}
+              {action.approvalStatus === 'rejected' && (
+                <button className="btn-s btn-sm" onClick={() => handleReset(action.actionId)} style={{ background: 'var(--error-bg)', color: 'var(--error-fg)' }}>
+                  <Ban size={12} /> Rechazado
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      ))}
+
+      {v2Plan.exclusions.length > 0 && (
+        <div style={{ marginTop: 'var(--space-md)', padding: '10px', background: 'var(--surface2)', borderRadius: '6px' }}>
+          <h4 style={{ fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>Exclusiones (not_actionable)</h4>
+          {v2Plan.exclusions.map(ex => (
+            <div key={ex.issueId} style={{ fontSize: '11px', color: 'var(--ink3)' }}>
+              {ex.issueId}: {ex.reason}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="evidence-options" data-testid="primary-stage-action" style={{ marginTop: 'var(--space-lg)' }}>
+        <button className="btn-p btn-sm" onClick={onContinue}>
+          Continuar a revisión <ArrowRight size={12} />
+        </button>
+      </div>
+    </section>
+  );
+};
+
+export default RemediationPlanStepV2;

@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import FileUpload from './FileUpload';
 import PipelineProgress from './PipelineProgress';
 import ProgressDisclosure from './ProgressDisclosure';
@@ -14,6 +14,7 @@ import { validateCleaningScript } from '../services/scriptValidationService';
 import { AIConfig, AIProvider, AuditReport, AuditExecutionEvidence, BenchmarkResult, DeterministicValidationReport, HealthDelta, ImprovementRun, ProviderMetrics, ScriptValidationResult, ProgressDisclosureStatus } from '../types';
 import type { DiagnosisExecutionResult } from '../contracts/llm';
 import type { RemediationPlanV2 } from '../contracts/llm';
+import { validateRemediationPlanV2, isContractsV2Enabled } from '../contracts/llm';
 
 export type PipelineState = 'upload' | 'profile' | 'diagnosis' | 'script' | 'review' | 'export';
 
@@ -92,6 +93,60 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, onLog
       structuredDiagnosis,
       remediationPlan,
       benchmarkResults, improvementRun, scriptValidation, deterministicValidation, logs]);
+
+  // ── Plan lifecycle: clear on new diagnosis, validate restored plan ──
+  const prevDiagnosisRef = useRef<string | null>(null);
+  const prevEnvelopeRef = useRef<string | null>(null);
+  useEffect(() => {
+    const currentDiagRef = structuredDiagnosis?.diagnosis?.issues
+      ? `diag:${structuredDiagnosis.diagnosis.evidenceEnvelopeRef}`
+      : null;
+    const currentEnvelopeRef = structuredDiagnosis?.evidenceEnvelopeRef ?? null;
+
+    if (!structuredDiagnosis) {
+      // No diagnosis — clear plan
+      if (remediationPlan !== null) {
+        setRemediationPlan(null);
+      }
+      prevDiagnosisRef.current = null;
+      prevEnvelopeRef.current = null;
+      return;
+    }
+
+    const isV2 = isContractsV2Enabled();
+    if (!isV2) return;
+
+    // Check if this is a new diagnosis (different envelopeRef or diagnosisRef)
+    const isNewDiagnosis =
+      prevEnvelopeRef.current !== currentEnvelopeRef ||
+      prevDiagnosisRef.current !== currentDiagRef;
+
+    if (isNewDiagnosis) {
+      // New diagnosis — clear old remediationPlan
+      if (remediationPlan !== null) {
+        setRemediationPlan(null);
+        addLog('remediation.plan.cleared :: new structuredDiagnosis arrived');
+      }
+      prevDiagnosisRef.current = currentDiagRef;
+      prevEnvelopeRef.current = currentEnvelopeRef;
+      return;
+    }
+
+    // Same diagnosis: validate restored plan
+    if (remediationPlan && structuredDiagnosis) {
+      if (!structuredDiagnosis.remediationContext) {
+        // Old session without context — cannot restore v2 plan
+        setRemediationPlan(null);
+        addLog('remediation.plan.migration :: session without remediationContext — plan discarded, please regenerate');
+        return;
+      }
+      const validation = validateRemediationPlanV2(remediationPlan, structuredDiagnosis);
+      if (!validation.valid) {
+        setRemediationPlan(null);
+        addLog(`remediation.plan.invalid :: ${validation.errors.map(e => e.message).join('; ')}`);
+      }
+    }
+  }, [structuredDiagnosis]);
 
   const addLog = (msg: string) => {
     const time = new Date().toLocaleTimeString('es-CO', {

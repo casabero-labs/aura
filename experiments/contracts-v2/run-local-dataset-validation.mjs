@@ -59,6 +59,10 @@ const { runAudit } = await import(path.resolve(REPO_ROOT, 'src/services/auditEng
 const { _buildEvidenceEnvelopeV2 } = await import(path.resolve(REPO_ROOT, 'src/contracts/llm/evidenceEnvelopeV2.ts'));
 const { buildDiagnosisPromptV2, buildEnvelopeRef } = await import(path.resolve(REPO_ROOT, 'src/contracts/llm/diagnosisPromptV2.ts'));
 const { validateDiagnosisResponseV2 } = await import(path.resolve(REPO_ROOT, 'src/contracts/llm/diagnosisValidatorV2.ts'));
+const { buildRemediationContext } = await import(path.resolve(REPO_ROOT, 'src/contracts/llm/remediationContextV2.ts'));
+const { buildRemediationPlanV2, buildRemediationPlanId } = await import(path.resolve(REPO_ROOT, 'src/contracts/llm/remediationBuilderV2.ts'));
+const { validateRemediationPlanV2 } = await import(path.resolve(REPO_ROOT, 'src/contracts/llm/remediationValidatorV2.ts'));
+const { sha256hex } = await import(path.resolve(REPO_ROOT, 'src/contracts/llm/hash.ts'));
 
 // ── Provenance metadata ──
 function sha256(filePath) {
@@ -75,6 +79,12 @@ const v2Modules = [
   'src/contracts/llm/diagnosisV2Errors.ts',
   'src/contracts/llm/types.ts',
   'src/contracts/llm/index.ts',
+  'src/contracts/llm/remediationBuilderV2.ts',
+  'src/contracts/llm/remediationValidatorV2.ts',
+  'src/contracts/llm/remediationContextV2.ts',
+  'src/contracts/llm/remediationApprovalV2.ts',
+  'src/contracts/llm/remediationPolicyV2.ts',
+  'src/contracts/llm/hash.ts',
 ].map(f => path.resolve(REPO_ROOT, f)).filter(f => fs.existsSync(f));
 
 // Sort for deterministic order
@@ -86,7 +96,7 @@ const sourceTreeDirty = execSync('git status --porcelain', { cwd: REPO_ROOT }).t
 
 // ── Results store ──
 const results = {
-  harnessVersion: '1.0.0',
+  harnessVersion: '1.1.0',
   generatedAt: new Date().toISOString(),
   commitSha,
   sourceTreeDirty,
@@ -96,6 +106,7 @@ const results = {
   summary: { total: 0, passed: 0, failed: 0, unsupported: 0 },
   files: [],
   diagnosis: { promptHashStable: true, fixtures: [] },
+  remediation: { plansBuilt: 0, plansValid: 0, planHashStable: true, unsafeUpgrades: 0, invalidReferences: 0 },
 };
 
 // ── Main ──
@@ -168,8 +179,19 @@ async function main() {
   console.log(`PASS:  ${results.summary.passed}`);
   console.log(`FAIL:  ${results.summary.failed}`);
   console.log(`UNSUPPORTED: ${results.summary.unsupported}`);
+  console.log(`\n=== REMEDIATION (Phase 3) ===`);
+  console.log(`Plans built: ${results.remediation.plansBuilt}`);
+  console.log(`Plans valid: ${results.remediation.plansValid}`);
+  console.log(`planHashStable: ${results.remediation.planHashStable}`);
+  console.log(`unsafeUpgrades: ${results.remediation.unsafeUpgrades}`);
+  console.log(`invalidReferences: ${results.remediation.invalidReferences}`);
 
-  process.exit(results.summary.failed > 0 ? 1 : 0);
+  const globalFail = results.summary.failed > 0
+    || !results.remediation.planHashStable
+    || results.remediation.invalidReferences > 0
+    || results.remediation.unsafeUpgrades > 0;
+
+  process.exit(globalFail ? 1 : 0);
 }
 
 // ── Per-file validation ──
@@ -193,6 +215,7 @@ async function validateFile(filename) {
     truncations: 0,
     durationMs: 0,
     error: null,
+    remediation: null,
   };
 
   try {
@@ -400,7 +423,134 @@ async function validateFile(filename) {
       });
     }
 
-    // Determine overall status — includes diagnosis validity
+    // ── Phase 3: Remediation Plan v2 ──
+    let remediationData = null;
+    try {
+      // Build envelope for local_full (deterministic, no model call)
+      const remEnvelope = _buildEvidenceEnvelopeV2(reportInput, {
+        privacyLevel: 'local_full',
+        datasetSha256: record.sha256,
+        delimiter,
+      });
+      const remPromptPkg = buildDiagnosisPromptV2(remEnvelope);
+      const remEnvelopeRef = buildEnvelopeRef(remEnvelope);
+
+      // Build diagnosis fixture (mirrors envelope issues)
+      const remDiagIssues = (remEnvelope.issues || []).map(iss => ({
+        issueId: iss.issueId,
+        evidenceRefs: iss.evidenceRefs || [],
+        hypothesis: `Auto-generated from ${iss.ruleName || iss.ruleId}`,
+        confidence: 0.5,
+        requiresHumanReview: iss.actionability === 'review_only'
+          || !iss.automaticAuthorization?.authorized
+          || !(iss.evidenceRefs && iss.evidenceRefs.length > 0)
+          || (iss.columnId && remEnvelope.columns.find(c => c.columnId === iss.columnId && (c.isAmbiguous || c.isDuplicate)) !== undefined),
+        limits: ['Deterministic fixture — no LLM'],
+      }));
+
+      const remDiagBlocks = (remEnvelope.issues || []).map(iss => ({
+        issueId: iss.issueId,
+        ruleId: iss.ruleId,
+        columnId: iss.columnId || null,
+        scope: iss.scope || 'column',
+        observation: `${iss.ruleName || iss.ruleId}: ${iss.count} affected`,
+        recommendation: 'Review this issue',
+      }));
+
+      const remDiagnosisFixture = {
+        contractId: 'aura.diagnosis.v2',
+        contractVersion: '2.0.0',
+        evidenceEnvelopeRef: remEnvelopeRef,
+        responseId: `diag-fixture-${record.file.replace(/[^a-zA-Z0-9]/g, '-').slice(0, 60)}`,
+        issues: remDiagIssues,
+        diagnosisBlocks: remDiagBlocks,
+        limitations: ['Deterministic diagnosis fixture — no LLM inference performed'],
+        generatedAt: new Date().toISOString(),
+      };
+
+      // Build remediation context
+      const remCtx = buildRemediationContext(remEnvelope);
+      remCtx.evidenceEnvelopeRef = remPromptPkg.evidenceEnvelopeRef;
+      remCtx.datasetFingerprint = record.sha256;
+
+      // Build DiagnosisExecutionResult with remediationContext
+      const remExecResult = {
+        version: 2,
+        diagnosis: remDiagnosisFixture,
+        metrics: { latencyMs: 0, tokensGenerated: 0, model: 'fixture', provider: 'test', isLocal: true },
+        promptHash: remPromptPkg.promptHash,
+        evidenceEnvelopeRef: remPromptPkg.evidenceEnvelopeRef,
+        promptVersion: '1',
+        rawResponseHash: 'r-rem',
+        remediationContext: remCtx,
+      };
+
+      // Build plan
+      const remPlan = buildRemediationPlanV2(remExecResult);
+
+      // Verify planId stability
+      const remPlan2 = buildRemediationPlanV2(remExecResult);
+      const planHashStable = remPlan.planId === remPlan2.planId;
+      if (!planHashStable) results.remediation.planHashStable = false;
+
+      // Validate plan
+      const remValidation = validateRemediationPlanV2(remPlan, remExecResult);
+
+      // Compute plan hash (stable, excluding approvalStatus)
+      const planStableJson = JSON.stringify(remPlan.plan.map(a => {
+        const { approvalStatus, ...rest } = a;
+        return rest;
+      }).sort((a, b) => a.actionId.localeCompare(b.actionId)));
+      const planHash = createHash('sha256').update(planStableJson).digest('hex').slice(0, 16);
+
+      // Count actionability categories
+      const autoSafeCount = remPlan.plan.filter(a => a.actionability === 'auto_safe').length;
+      const reviewOnlyCount = remPlan.plan.filter(a => a.actionability === 'review_only').length;
+      const notActionableCount = remPlan.exclusions.length;
+      const pendingCount = remPlan.plan.filter(a => a.approvalStatus === 'pending').length;
+
+      // Count unsafe upgrades and invalid references from validation
+      const unsafeUpgrades = remValidation.errors.filter(e => e.code === 'REMEDIATION_ACTIONABILITY_UPGRADE').length;
+      const invalidRefs = remValidation.errors.filter(e =>
+        e.code === 'REMEDIATION_REFERENCE_INVALID' ||
+        e.code === 'REMEDIATION_ACTION_ID_INVALID'
+      ).length;
+
+      if (unsafeUpgrades > 0) results.remediation.unsafeUpgrades += unsafeUpgrades;
+      if (invalidRefs > 0) results.remediation.invalidReferences += invalidRefs;
+
+      results.remediation.plansBuilt += 1;
+      if (remValidation.valid) results.remediation.plansValid += 1;
+
+      remediationData = {
+        diagnosisRef: remPlan.diagnosisRef,
+        planId: remPlan.planId,
+        planHash,
+        planHashStable,
+        totalActions: remPlan.plan.length,
+        autoSafeCount,
+        reviewOnlyCount,
+        notActionableCount,
+        pendingCount,
+        exclusionCount: remPlan.exclusions.length,
+        invalidReferences: invalidRefs,
+        unsafeUpgrades,
+        validation: {
+          valid: remValidation.valid,
+          errorCount: remValidation.errors.length,
+          errors: remValidation.errors.map(e => ({ code: e.code, path: e.path, message: e.message })),
+        },
+      };
+    } catch (remErr) {
+      remediationData = {
+        error: `Remediation plan build failed: ${remErr.message}`,
+        validation: { valid: false, errorCount: 1, errors: [{ code: 'BUILD_ERROR', path: '', message: remErr.message }] },
+      };
+    }
+
+    record.remediation = remediationData;
+
+    // Determine overall status — includes diagnosis AND remediation validity
     // BUDGET_UNSATISFIABLE on tight budgets is expected, not a failure
     const entries = Object.entries(record.envelopes);
     const nonTightErrors = entries.filter(([key, e]) =>
@@ -410,7 +560,23 @@ async function validateFile(filename) {
       !e.valid && e.code === 'BUDGET_UNSATISFIABLE'
     ).length;
 
-    if (nonTightErrors.length > 0 || !diagValid) {
+    const remValid = remediationData?.validation?.valid ?? false;
+    const remUnsafe = (remediationData?.unsafeUpgrades ?? 0) > 0;
+    const remInvalidRefs = (remediationData?.invalidReferences ?? 0) > 0;
+    const remPlanHashStable = remediationData?.planHashStable ?? false;
+    const remHasError = !!remediationData?.error;
+
+    // FAIL conditions: envelope errors, diagnosis invalid, remediation invalid, unsafe upgrades, invalid refs, hash unstable
+    const failConditions =
+      nonTightErrors.length > 0 ||
+      !diagValid ||
+      !remValid ||
+      remUnsafe ||
+      remInvalidRefs ||
+      !remPlanHashStable ||
+      remHasError;
+
+    if (failConditions) {
       record.status = 'FAIL';
       if (!diagValid) record.diagnosisError = diagErrors[0]?.message ?? 'Invalid diagnosis fixture';
     } else if (tightBudgetOnly > 0 && entries.some(([k, e]) => e.valid)) {
@@ -462,6 +628,16 @@ function generateMarkdown(results) {
   lines.push(`| FAIL | ${results.summary.failed} |`);
   lines.push(`| UNSUPPORTED | ${results.summary.unsupported} |`);
   lines.push('');
+  lines.push(`## Remediation (Phase 3)`);
+  lines.push('');
+  lines.push(`| Metric | Value |`);
+  lines.push(`|--------|-------|`);
+  lines.push(`| Plans built | ${results.remediation.plansBuilt} |`);
+  lines.push(`| Plans valid | ${results.remediation.plansValid} |`);
+  lines.push(`| planHashStable | ${results.remediation.planHashStable} |`);
+  lines.push(`| unsafeUpgrades | ${results.remediation.unsafeUpgrades} |`);
+  lines.push(`| invalidReferences | ${results.remediation.invalidReferences} |`);
+  lines.push('');
 
   for (const file of results.files) {
     const icon = file.status === 'PASS' ? '✅' : file.status === 'FAIL' ? '❌' : '⚠️';
@@ -493,6 +669,28 @@ function generateMarkdown(results) {
         }
       }
     }
+
+    if (file.remediation) {
+      const rem = file.remediation;
+      lines.push('');
+      lines.push(`**Remediation Plan:** ${rem.error ? '❌ ' + rem.error : '✅ Valid'}`);
+      if (!rem.error) {
+        lines.push(`- **planId:** \`${rem.planId}\``);
+        lines.push(`- **planHash:** \`${rem.planHash}\` (stable: ${rem.planHashStable})`);
+        lines.push(`- **Actions:** ${rem.totalActions} total · ${rem.autoSafeCount} auto_safe · ${rem.reviewOnlyCount} review_only`);
+        lines.push(`- **Exclusions:** ${rem.exclusionCount} not_actionable`);
+        lines.push(`- **Pending:** ${rem.pendingCount}`);
+        lines.push(`- **unsafeUpgrades:** ${rem.unsafeUpgrades}`);
+        lines.push(`- **invalidReferences:** ${rem.invalidReferences}`);
+        lines.push(`- **validation:** ${rem.validation?.valid ? '✅ PASS' : '❌ FAIL'} (${rem.validation?.errorCount ?? 0} errors)`);
+        if (rem.validation?.errors?.length > 0) {
+          for (const err of rem.validation.errors) {
+            lines.push(`  - \`${err.code}\` @ ${err.path}: ${err.message}`);
+          }
+        }
+      }
+    }
+
     lines.push('');
   }
 

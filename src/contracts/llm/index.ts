@@ -176,6 +176,7 @@ export {
 
 export {
   buildRemediationPlanV2,
+  buildRemediationPlanId,
 } from './remediationBuilderV2';
 
 export {

@@ -120,17 +120,15 @@ function buildActionId(
   return `act:${sha256short(hash)}`;
 }
 
-// ── PlanId: plan:<sha256(canonical plan fields, excluding HITL) ──
-
-function buildPlanId(
+export function buildRemediationPlanId(
   diagnosisRef: string,
   evidenceEnvelopeRef: string,
   datasetFingerprint: string,
-  actions: RemediationActionV2[],
+  plan: RemediationActionV2[],
   actionabilityMap: Record<string, Actionability>,
   exclusions: Array<{ issueId: string; reason: 'not_actionable' }>,
 ): string {
-  const planWithoutHitl = actions
+  const planWithoutHitl = plan
     .map(a => {
       const { approvalStatus, ...rest } = a;
       return rest;
@@ -215,7 +213,7 @@ export function buildRemediationPlanV2(
     });
   }
 
-  const planId = buildPlanId(diagnosisRef, ctx.evidenceEnvelopeRef, ctx.datasetFingerprint, actions, actionabilityMap, exclusions);
+  const planId = buildRemediationPlanId(diagnosisRef, ctx.evidenceEnvelopeRef, ctx.datasetFingerprint, actions, actionabilityMap, exclusions);
 
   return {
     contractId: 'aura.remediation.v2',

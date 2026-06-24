@@ -85,13 +85,18 @@ export const REGISTRY: Record<ContractId, ContractMetadata> = {
     version: TARGET_VERSION,
     taskType: 'remediation',
     schema: schema(
-      ['contractId', 'contractVersion', 'diagnosisRef', 'plan', 'actionabilityMap'],
+      ['contractId', 'contractVersion', 'planId', 'diagnosisRef', 'evidenceEnvelopeRef', 'datasetFingerprint', 'plan', 'actionabilityMap', 'exclusions', 'generatedAt'],
       {
         contractId: { type: 'string', enum: ['aura.remediation.v2'] },
         contractVersion: { type: 'string', enum: ['2.0.0'] },
+        planId: { type: 'string' },
         diagnosisRef: { type: 'string' },
+        evidenceEnvelopeRef: { type: 'string' },
+        datasetFingerprint: { type: 'string' },
         plan: { type: 'array' },
         actionabilityMap: { type: 'object' },
+        exclusions: { type: 'array' },
+        generatedAt: { type: 'string' },
       }
     ),
     createdAt: FIXED_CREATED_AT,
