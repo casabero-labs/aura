@@ -1,7 +1,7 @@
 {
   "harnessVersion": "1.0.0",
-  "generatedAt": "2026-06-24T16:26:31.546Z",
-  "commitSha": "284ab00ec47b1f9e92653d9a52bd157754ea5105",
+  "generatedAt": "2026-06-24T18:07:15.059Z",
+  "commitSha": "61501e9c9e28541b0f3542da39a65c113906b8e6",
   "sourceTreeDirty": true,
   "auditEngineSha256": "3ee341a49e5ebc42ccf3bb6cb2e9e39d350dc476f9cb159decba5d45a678c6a0",
   "contractsV2Sha256": "08555aca8d700ecc09fc2aab8405e140b85570b3d9b431b8b37f1d2ff1e015f1",
@@ -118,7 +118,7 @@
       },
       "privacyViolations": 0,
       "truncations": 8,
-      "durationMs": 3117,
+      "durationMs": 3093,
       "error": null
     },
     {
