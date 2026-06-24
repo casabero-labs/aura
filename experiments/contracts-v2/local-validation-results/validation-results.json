@@ -1,0 +1,292 @@
+{
+  "harnessVersion": "1.0.0",
+  "generatedAt": "2026-06-24T01:55:08.536Z",
+  "datasetsDir": "/Users/casabero/Documents/GitHub/aura/experiments/datasets",
+  "summary": {
+    "total": 3,
+    "passed": 3,
+    "failed": 0,
+    "unsupported": 0
+  },
+  "files": [
+    {
+      "file": "adult_income.csv",
+      "path": "/Users/casabero/Documents/GitHub/aura/experiments/datasets/adult_income.csv",
+      "status": "PASS",
+      "sha256": "23f713bb0be77e6b98690e1b91795e237686a71ee3ca72f5c9890214e011d21f",
+      "sizeBytes": 5277521,
+      "rowCount": 48842,
+      "colCount": 15,
+      "issuesCount": 12,
+      "duplicateColumns": 0,
+      "invalidReferences": 0,
+      "envelopes": {
+        "local_full_default": {
+          "size": 15915,
+          "samples": 15,
+          "columns": 15,
+          "issues": 12,
+          "truncations": 0,
+          "privacyViolations": 0,
+          "valid": true
+        },
+        "local_full_reduced": {
+          "size": 7965,
+          "samples": 4,
+          "columns": 5,
+          "issues": 7,
+          "truncations": 8,
+          "privacyViolations": 0,
+          "valid": true
+        },
+        "local_full_tight": {
+          "error": "Cannot reduce envelope to 4000 chars (actual: 4617)",
+          "code": "BUDGET_UNSATISFIABLE",
+          "valid": false,
+          "note": "Budget too tight for this dataset"
+        },
+        "cloud_minimized_default": {
+          "size": 13217,
+          "samples": 15,
+          "columns": 15,
+          "issues": 12,
+          "truncations": 0,
+          "privacyViolations": 0,
+          "valid": true
+        },
+        "cloud_minimized_reduced": {
+          "size": 7841,
+          "samples": 4,
+          "columns": 5,
+          "issues": 7,
+          "truncations": 8,
+          "privacyViolations": 0,
+          "valid": true
+        },
+        "cloud_minimized_tight": {
+          "error": "Cannot reduce envelope to 4000 chars (actual: 5191)",
+          "code": "BUDGET_UNSATISFIABLE",
+          "valid": false,
+          "note": "Budget too tight for this dataset"
+        },
+        "cloud_no_samples_default": {
+          "size": 10481,
+          "samples": 0,
+          "columns": 15,
+          "issues": 12,
+          "truncations": 0,
+          "privacyViolations": 0,
+          "valid": true
+        },
+        "cloud_no_samples_reduced": {
+          "size": 6199,
+          "samples": 0,
+          "columns": 5,
+          "issues": 7,
+          "truncations": 3,
+          "privacyViolations": 0,
+          "valid": true
+        },
+        "cloud_no_samples_tight": {
+          "error": "Cannot reduce envelope to 4000 chars (actual: 4472)",
+          "code": "BUDGET_UNSATISFIABLE",
+          "valid": false,
+          "note": "Budget too tight for this dataset"
+        }
+      },
+      "privacyViolations": 0,
+      "truncations": 8,
+      "durationMs": 3246,
+      "error": null
+    },
+    {
+      "file": "synthetic_ground_truth.csv",
+      "path": "/Users/casabero/Documents/GitHub/aura/experiments/datasets/synthetic_ground_truth.csv",
+      "status": "PASS",
+      "sha256": "4e7d358f2141c6463146417a66f1c2312c7c3cdf6a39005780c92b061ff7ac49",
+      "sizeBytes": 1300,
+      "rowCount": 15,
+      "colCount": 9,
+      "issuesCount": 16,
+      "duplicateColumns": 0,
+      "invalidReferences": 0,
+      "envelopes": {
+        "local_full_default": {
+          "size": 15544,
+          "samples": 18,
+          "columns": 9,
+          "issues": 16,
+          "truncations": 1,
+          "privacyViolations": 0,
+          "valid": true
+        },
+        "local_full_reduced": {
+          "size": 7356,
+          "samples": 0,
+          "columns": 5,
+          "issues": 10,
+          "truncations": 8,
+          "privacyViolations": 0,
+          "valid": true
+        },
+        "local_full_tight": {
+          "error": "Cannot reduce envelope to 4000 chars (actual: 4866)",
+          "code": "BUDGET_UNSATISFIABLE",
+          "valid": false,
+          "note": "Budget too tight for this dataset"
+        },
+        "cloud_minimized_default": {
+          "size": 13328,
+          "samples": 18,
+          "columns": 9,
+          "issues": 16,
+          "truncations": 1,
+          "privacyViolations": 0,
+          "valid": true
+        },
+        "cloud_minimized_reduced": {
+          "size": 7930,
+          "samples": 0,
+          "columns": 5,
+          "issues": 10,
+          "truncations": 8,
+          "privacyViolations": 0,
+          "valid": true
+        },
+        "cloud_minimized_tight": {
+          "error": "Cannot reduce envelope to 4000 chars (actual: 5440)",
+          "code": "BUDGET_UNSATISFIABLE",
+          "valid": false,
+          "note": "Budget too tight for this dataset"
+        },
+        "cloud_no_samples_default": {
+          "size": 9371,
+          "samples": 0,
+          "columns": 9,
+          "issues": 16,
+          "truncations": 1,
+          "privacyViolations": 0,
+          "valid": true
+        },
+        "cloud_no_samples_reduced": {
+          "size": 6929,
+          "samples": 0,
+          "columns": 5,
+          "issues": 10,
+          "truncations": 3,
+          "privacyViolations": 0,
+          "valid": true
+        },
+        "cloud_no_samples_tight": {
+          "error": "Cannot reduce envelope to 4000 chars (actual: 4721)",
+          "code": "BUDGET_UNSATISFIABLE",
+          "valid": false,
+          "note": "Budget too tight for this dataset"
+        }
+      },
+      "privacyViolations": 0,
+      "truncations": 8,
+      "durationMs": 8,
+      "error": null
+    },
+    {
+      "file": "titanic.csv",
+      "path": "/Users/casabero/Documents/GitHub/aura/experiments/datasets/titanic.csv",
+      "status": "PASS",
+      "sha256": "4a437fde05fe5264e1701a7387ac6fb75393772ba38bb2c9c566405af5af4bd7",
+      "sizeBytes": 60302,
+      "rowCount": 891,
+      "colCount": 12,
+      "issuesCount": 10,
+      "duplicateColumns": 0,
+      "invalidReferences": 0,
+      "envelopes": {
+        "local_full_default": {
+          "size": 13353,
+          "samples": 15,
+          "columns": 12,
+          "issues": 10,
+          "truncations": 2,
+          "privacyViolations": 0,
+          "valid": true
+        },
+        "local_full_reduced": {
+          "size": 6296,
+          "samples": 4,
+          "columns": 5,
+          "issues": 2,
+          "truncations": 5,
+          "privacyViolations": 0,
+          "valid": true
+        },
+        "local_full_tight": {
+          "size": 3975,
+          "samples": 0,
+          "columns": 3,
+          "issues": 0,
+          "truncations": 4,
+          "privacyViolations": 0,
+          "valid": true
+        },
+        "cloud_minimized_default": {
+          "size": 13927,
+          "samples": 15,
+          "columns": 12,
+          "issues": 10,
+          "truncations": 2,
+          "privacyViolations": 0,
+          "valid": true
+        },
+        "cloud_minimized_reduced": {
+          "size": 6870,
+          "samples": 4,
+          "columns": 5,
+          "issues": 2,
+          "truncations": 5,
+          "privacyViolations": 0,
+          "valid": true
+        },
+        "cloud_minimized_tight": {
+          "size": 3754,
+          "samples": 0,
+          "columns": 3,
+          "issues": 0,
+          "truncations": 4,
+          "privacyViolations": 0,
+          "valid": true
+        },
+        "cloud_no_samples_default": {
+          "size": 8854,
+          "samples": 0,
+          "columns": 12,
+          "issues": 10,
+          "truncations": 2,
+          "privacyViolations": 0,
+          "valid": true
+        },
+        "cloud_no_samples_reduced": {
+          "size": 4920,
+          "samples": 0,
+          "columns": 5,
+          "issues": 2,
+          "truncations": 3,
+          "privacyViolations": 0,
+          "valid": true
+        },
+        "cloud_no_samples_tight": {
+          "size": 3732,
+          "samples": 0,
+          "columns": 3,
+          "issues": 0,
+          "truncations": 2,
+          "privacyViolations": 0,
+          "valid": true
+        }
+      },
+      "privacyViolations": 0,
+      "truncations": 5,
+      "durationMs": 31,
+      "error": null
+    }
+  ]
+}

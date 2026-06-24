@@ -3,7 +3,7 @@
  * Barrel export. All behind CONTRACTS_V2_ENABLED gate.
  */
 
-export { sha256hex, sha256short } from './hash';
+export { sha256hex, sha256short, KNOWN_VECTORS } from './hash';
 
 export type {
   ContractId,
@@ -68,6 +68,7 @@ export {
 } from './contractRegistry';
 
 export {
+  _buildEvidenceEnvelopeV2,
   buildEvidenceEnvelopeV2,
 } from './evidenceEnvelopeV2';
 export type { AuditReportInput } from './evidenceEnvelopeV2';

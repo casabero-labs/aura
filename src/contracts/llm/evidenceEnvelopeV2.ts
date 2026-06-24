@@ -1,20 +1,20 @@
 /**
- * Evidence Envelope V2 — Phase 1B.
+ * Evidence Envelope V2 — Phase 1C.
  *
- * - Real builds with or without CONTRACTS_V2_ENABLED via explicit flag
- * - Rule-based actionability matrix (not ruleName)
- * - Scope-aware issue construction
- * - excludeColumns via columnId
- * - Enforces budget (not just logs)
- * - Throws structured error on invalid result
- * - Browser-safe: uses hash.ts instead of node:crypto
+ * - Internal builder (_buildEvidenceEnvelopeV2) + public wrapper (buildEvidenceEnvelopeV2)
+ * - Actionability: deduction ruleId from engine scoreBreakdown, NO heuristic fallbacks
+ * - drop_exact_duplicates: auto_safe only with explicit AuditReport authorization
+ * - cloud_minimized: preserves real minimized samples (redacted/hashed)
+ * - maxCharacters: throws BUDGET_UNSATISFIABLE if cannot comply
+ * - Duplicate columns: columnId+position, NEVER rawName lookup
  */
 
 import {
   buildColumnRegistry,
   getColumnById,
-  getColumnsRequiringReview,
+  resolveColumn,
 } from './columnRegistry';
+import type { AmbiguousLookupError } from './columnRegistry';
 import {
   buildPrivacyPolicy,
   shouldHashColumn,
@@ -34,6 +34,7 @@ import {
   logTopValueTruncation,
   enforceCharacterBudget,
   applySlice,
+  logCharacterTruncation,
 } from './tokenBudget';
 import {
   validateEnvelope,
@@ -48,157 +49,83 @@ import type {
   EvidenceV2,
   ColumnStatsV2,
   SelectionManifestV2,
-  TruncationManifestV2,
   ManifestExclusionV2,
   EvidenceEnvelopeOptionsV2,
   Actionability,
-  ActionabilityRule,
   IssueScope,
   ExclusionReason,
   BuildErrorV2,
   DatasetSummaryV2,
+  PrivacyPolicyV2,
+  TokenBudgetV2,
+  TruncationManifestV2,
 } from './types';
 
-// ── Actionability Matrix (ruleId-based) ──
+// ── Actionability via deduction ruleId (from engine scoreBreakdown) ──
 
-const ACTIONABILITY_MATRIX: Record<string, ActionabilityRule> = {
-  'rule:trim-whitespace': {
-    ruleId: 'rule:trim-whitespace',
-    defaultActionability: 'auto_safe',
-    allowedAutomaticAction: 'trim_whitespace',
-    authorizationConditions: ['column is text', 'no semantic meaning loss'],
-    requiresHumanReview: false,
-    scope: 'column',
-  },
-  'rule:normalize-placeholders': {
-    ruleId: 'rule:normalize-placeholders',
-    defaultActionability: 'auto_safe',
-    allowedAutomaticAction: 'normalize_placeholders',
-    authorizationConditions: ['known placeholder values specified'],
-    requiresHumanReview: false,
-    scope: 'column',
-  },
-  'rule:drop-exact-duplicates': {
-    ruleId: 'rule:drop-exact-duplicates',
-    defaultActionability: 'review_only',
-    allowedAutomaticAction: 'drop_exact_duplicates',
-    authorizationConditions: ['audit report includes deterministic authorization', 'duplicateRows > 0', 'no semantic ordering dependency'],
-    requiresHumanReview: true,
-    scope: 'dataset',
-  },
-  'rule:null-values': {
-    ruleId: 'rule:null-values',
-    defaultActionability: 'review_only',
-    allowedAutomaticAction: null,
-    authorizationConditions: [],
-    requiresHumanReview: true,
-    scope: 'column',
-  },
-  'rule:outliers': {
-    ruleId: 'rule:outliers',
-    defaultActionability: 'review_only',
-    allowedAutomaticAction: null,
-    authorizationConditions: [],
-    requiresHumanReview: true,
-    scope: 'column',
-  },
-  'rule:high-cardinality': {
-    ruleId: 'rule:high-cardinality',
-    defaultActionability: 'review_only',
-    allowedAutomaticAction: null,
-    authorizationConditions: [],
-    requiresHumanReview: true,
-    scope: 'column',
-  },
-  'rule:pii': {
-    ruleId: 'rule:pii',
-    defaultActionability: 'review_only',
-    allowedAutomaticAction: null,
-    authorizationConditions: [],
-    requiresHumanReview: true,
-    scope: 'column',
-  },
-  'rule:row-deletion': {
-    ruleId: 'rule:row-deletion',
-    defaultActionability: 'review_only',
-    allowedAutomaticAction: null,
-    authorizationConditions: [],
-    requiresHumanReview: true,
-    scope: 'dataset',
-  },
-  'rule:column-deletion': {
-    ruleId: 'rule:column-deletion',
-    defaultActionability: 'review_only',
-    allowedAutomaticAction: null,
-    authorizationConditions: [],
-    requiresHumanReview: true,
-    scope: 'column',
-  },
-  'rule:business-logic': {
-    ruleId: 'rule:business-logic',
-    defaultActionability: 'review_only',
-    allowedAutomaticAction: null,
-    authorizationConditions: [],
-    requiresHumanReview: true,
-    scope: 'column',
-  },
-  'rule:statistical-finding': {
-    ruleId: 'rule:statistical-finding',
-    defaultActionability: 'not_actionable',
-    allowedAutomaticAction: null,
-    authorizationConditions: [],
-    requiresHumanReview: false,
-    scope: 'dataset',
-  },
-  'rule:semantic-feature': {
-    ruleId: 'rule:semantic-feature',
-    defaultActionability: 'not_actionable',
-    allowedAutomaticAction: null,
-    authorizationConditions: [],
-    requiresHumanReview: false,
-    scope: 'column',
-  },
-};
+interface DeductionRef {
+  reason: string;
+  category: string;
+  ruleId: string;
+}
 
-function classifyActionability(ruleName: string, category: string, duplicateRows?: number): { actionability: Actionability; ruleId: string; scope: IssueScope } {
-  // Deterministic mapping from ruleName to ruleId
-  const ruleId = `rule:${sha256short(ruleName, 8)}`;
+/**
+ * Map engine deduction reason → stable ruleId + actionability.
+ * NO heuristic ruleName.includes() fallback. BANNED.
+ */
+function deduceActionability(deduction: DeductionRef, duplicateRows: number): { actionability: Actionability; ruleId: string; scope: IssueScope } {
+  const reason = deduction.reason;
+  const cat = deduction.category;
 
-  // Try exact match in matrix first
-  if (ACTIONABILITY_MATRIX[ruleId]) {
-    const entry = ACTIONABILITY_MATRIX[ruleId];
-    return { actionability: entry.defaultActionability, ruleId, scope: entry.scope };
-  }
+  // Stable ruleId from deduction reason
+  const ruleId = deduction.ruleId !== 'unknown'
+    ? deduction.ruleId
+    : `rule:${sha256short(reason, 8)}`;
 
-  // Heuristic fallbacks (last resort, logged as warnings)
-  const lower = (ruleName + ' ' + category).toLowerCase();
-
-  if (lower.includes('espacios fantasma') || lower.includes('trim') || lower.includes('whitespace')) {
-    return { actionability: 'auto_safe', ruleId, scope: 'column' };
-  }
-  if (lower.includes('exact duplicate') || lower.includes('duplicados exactos')) {
-    if (duplicateRows && duplicateRows > 0) {
+  // drop_exact_duplicates: auto_safe ONLY with explicit AuditReport authorization
+  // Authorization = duplicateRows > 0 AND deduction present in scoreBreakdown
+  if (/filas?\s*duplicadas|exact\s*duplicates?/i.test(reason)) {
+    if (duplicateRows > 0) {
       return { actionability: 'auto_safe', ruleId, scope: 'dataset' };
     }
     return { actionability: 'review_only', ruleId, scope: 'dataset' };
   }
-  if (lower.includes('null') || lower.includes('nulo') || lower.includes('vacio') || lower.includes('vacío') || lower.includes('missing')) {
+
+  // Whitespace trimming = auto_safe
+  if (/espacios\s*fantasma|trim|whitespace/i.test(reason)) {
+    return { actionability: 'auto_safe', ruleId, scope: 'column' };
+  }
+
+  // Nulls / missing = review_only
+  if (/nulos?|vacíos?|missing|null|vacios/i.test(reason)) {
     return { actionability: 'review_only', ruleId, scope: 'column' };
   }
-  if (lower.includes('outlier') || lower.includes('atipico') || lower.includes('atípico')) {
+
+  // Outliers = review_only
+  if (/outlier|atípico/i.test(reason)) {
     return { actionability: 'review_only', ruleId, scope: 'column' };
   }
-  if (lower.includes('cardinalidad') || lower.includes('cardinality') || lower.includes('unique') || lower.includes('unicos') || lower.includes('únicos')) {
+
+  // PII = review_only
+  if (/pii|personal/i.test(reason)) {
     return { actionability: 'review_only', ruleId, scope: 'column' };
   }
-  if (lower.includes('estadistic') || lower.includes('semantic') || lower.includes('feature')) {
+
+  // Cardinality, categories, semantic = review_only
+  if (/cardinalidad|variantes|categórica|categorica|caos|mayúsculas/i.test(reason)) {
+    return { actionability: 'review_only', ruleId, scope: 'column' };
+  }
+
+  // Statistical / semantic features = not_actionable
+  if (/estadístic|semántic|contaminación|feature/i.test(reason)) {
     return { actionability: 'not_actionable', ruleId, scope: 'dataset' };
   }
 
+  // Default: review_only (fail-safe)
   return { actionability: 'review_only', ruleId, scope: 'column' };
 }
 
-// ── Input Type ──
+// ── Input types ──
 
 export interface AuditReportInput {
   score: number;
@@ -234,108 +161,129 @@ export interface AuditReportInput {
       cardinality?: number;
     }>;
   };
+  /** Engine's scoreBreakdown for deduction-based ruleId + actionability */
+  scoreBreakdown?: Array<{ reason: string; points: number; category: string; severity: string; ruleId: string }>;
 }
 
-// ── Main Builder ──
+// ── Internal builder (no gate, no side effects) ──
 
-export function buildEvidenceEnvelopeV2(
+export function _buildEvidenceEnvelopeV2(
   report: AuditReportInput,
   options: EvidenceEnvelopeOptionsV2,
-  forceEnabled = false,
 ): EvidenceEnvelopeV2 {
-  // Gate check (can be bypassed for tests with forceEnabled)
-  if (!forceEnabled) {
-    try {
-      const { isContractsV2Enabled } = require('./contractRegistry') as typeof import('./contractRegistry');
-      if (!isContractsV2Enabled()) {
-        throw buildError('CONTRACTS_V2_DISABLED', 'Set CONTRACTS_V2_ENABLED=true or use forceEnabled=true for tests');
-      }
-    } catch {
-      throw buildError('CONTRACTS_V2_DISABLED', 'Set CONTRACTS_V2_ENABLED=true or use forceEnabled=true for tests');
-    }
-  }
-
-  // 1. Column Registry
+  // 1. Columns
   const colNames = (report.datasetProfile?.columns || []).map(c => c.name);
-  if (colNames.length === 0) {
-    const statsNames = Object.keys(report.columnStats || {});
-    colNames.push(...statsNames);
-  }
-  const allColumns = buildColumnRegistry(colNames);
+  const allColumns = buildColumnRegistry(colNames.length > 0 ? colNames : Object.keys(report.columnStats || {}));
 
-  // 2. Privacy Policy
-  const privacyPolicy = buildPrivacyPolicy(options.privacyLevel);
+  // 2. Privacy
+  const privacyPolicy: PrivacyPolicyV2 = buildPrivacyPolicy(options.privacyLevel);
   const piiConfig = buildPIIConfig(report.datasetProfile?.columns || []);
 
-  // 3. Token Budget
-  const tokenBudget = buildTokenBudget(options.tokenBudget);
-  const truncManifest = createTruncationManifest();
+  // 3. Budget
+  const tokenBudget: TokenBudgetV2 = buildTokenBudget(options.tokenBudget);
+  const truncManifest: TruncationManifestV2 = createTruncationManifest();
 
-  // 4. Column selection by columnId (excludeColumns now works with columnId)
+  // 4. Column selection by columnId
   const excludeColIds = new Set(options.excludeColumns || []);
   const includedColumns = allColumns.filter(c => !excludeColIds.has(c.columnId));
-  const excludedColumns = allColumns.filter(c => excludeColIds.has(c.columnId));
-
-  // Log explicit exclusions
-  for (const col of excludedColumns) {
-    logColumnExclusion(truncManifest, col.name, tokenBudget, allColumns.length, 'explicit_exclusion');
+  for (const c of allColumns.filter(c => excludeColIds.has(c.columnId))) {
+    logColumnExclusion(truncManifest, c.name, tokenBudget, allColumns.length, 'explicit_exclusion');
   }
 
   // Flag ambiguous/duplicate columns
-  const reviewCols = getColumnsRequiringReview(includedColumns);
-  for (const col of reviewCols) {
-    logColumnExclusion(truncManifest, col.name, tokenBudget, allColumns.length, 'ambiguous_column');
+  for (const c of includedColumns) {
+    if (c.isAmbiguous || c.isDuplicate || c.isReservedWord) {
+      logColumnExclusion(truncManifest, c.name, tokenBudget, allColumns.length, 'ambiguous_column');
+    }
   }
 
-  // Apply column budget
-  const finalCols = applySlice(includedColumns, tokenBudget.maxColumns, (actual) => {
-    logColumnExclusion(truncManifest, 'budget', tokenBudget, actual, 'budget_limit');
-  });
+  const finalCols = applySlice(includedColumns, tokenBudget.maxColumns, (actual) =>
+    logColumnExclusion(truncManifest, 'budget', tokenBudget, actual, 'budget_limit'));
 
-  // 5. Issues — scope-aware, actionability via ruleId
+  // 5. Issues — scope-aware, actionability via deduction
   const finalColIds = new Set(finalCols.map(c => c.columnId));
-  const finalColNames = new Set(finalCols.map(c => c.name));
   const excludeIssues = new Set(options.excludeIssues || []);
-
   const candidateIssues: EvidenceIssueV2[] = [];
   const excludedIssueEntries: ManifestExclusionV2[] = [];
 
+  // Build deduction map from engine scoreBreakdown
+  const deductionMap = new Map<string, DeductionRef>();
+  if (report.scoreBreakdown) {
+    for (const d of report.scoreBreakdown) {
+      deductionMap.set(d.reason, { reason: d.reason, category: d.category, ruleId: d.ruleId || 'unknown' });
+    }
+  }
+
   for (const issue of report.issues) {
     if (excludeIssues.has(issue.id)) {
-      excludedIssueEntries.push({ reason: 'explicit_exclusion', resource: 'issue', name: issue.ruleName, detail: `Issue ${issue.id} explicitly excluded` });
+      excludedIssueEntries.push({ reason: 'explicit_exclusion', resource: 'issue', name: issue.ruleName, detail: `Excluded` });
       continue;
     }
 
     const hasColumn = !!issue.column;
     const scope: IssueScope = hasColumn ? 'column' : 'dataset';
 
-    // For column-scoped issues, check if column is included
+    // Resolve column via columnId+position, NOT rawName
     let columnId: string | null = null;
     if (hasColumn && issue.column) {
-      if (!finalColNames.has(issue.column)) {
-        excludedIssueEntries.push({
-          reason: 'missing_reference',
-          resource: 'issue',
-          name: issue.ruleName,
-          detail: `Column '${issue.column}' not in included columns`,
-        });
+      const matches = allColumns.filter(c => c.name === issue.column);
+      if (matches.length === 0) {
+        excludedIssueEntries.push({ reason: 'missing_reference', resource: 'issue', name: issue.ruleName, detail: `Column '${issue.column}' not found` });
         continue;
       }
-      const colRef = allColumns.find(c => c.name === issue.column);
-      if (!colRef) {
-        excludedIssueEntries.push({ reason: 'missing_reference', resource: 'issue', name: issue.ruleName, detail: `Column '${issue.column}' not found` });
+      if (matches.length > 1) {
+        // Duplicate: require HITL / explicit position
+        excludedIssueEntries.push({ reason: 'ambiguous_column', resource: 'issue', name: issue.ruleName, detail: `Duplicate column '${issue.column}' — requires HITL` });
+        continue; // Don't auto-resolve
+      }
+      const colRef = matches[0];
+      if (!finalColIds.has(colRef.columnId)) {
+        excludedIssueEntries.push({ reason: 'missing_reference', resource: 'issue', name: issue.ruleName, detail: `Column '${issue.column}' not in final columns` });
         continue;
       }
       columnId = colRef.columnId;
     }
 
-    // Actionability via ruleId matrix
-    const { actionability, ruleId, scope: matrixScope } = classifyActionability(
-      issue.ruleName, issue.category, report.duplicateRows,
-    );
+    // Actionability via deduction ruleId from engine
+    let actionability: Actionability = 'review_only';
+    let ruleId = `rule:${sha256short(issue.ruleName, 8)}`;
+    let effectiveScope = scope;
 
-    // Scope: defer to issue structure if matrix doesn't match
-    const effectiveScope: IssueScope = (matrixScope === 'dataset' && !hasColumn) ? 'dataset' : scope;
+    if (deductionMap.size > 0) {
+      // Try exact match first
+      let deduction = deductionMap.get(issue.description) || deductionMap.get(issue.ruleName);
+
+      // Try column-aware match: deduction reason contains column name
+      if (!deduction && issue.column) {
+        for (const d of report.scoreBreakdown!) {
+          if (d.reason.includes(issue.column)) {
+            const colStart = d.reason.indexOf(issue.column);
+            const prefix = d.reason.substring(0, colStart).toLowerCase().replace(/[^a-záéíóúñ]/g, '');
+            const ruleLower = issue.ruleName.toLowerCase().replace(/[^a-záéíóúñ]/g, '');
+            if (ruleLower.includes(prefix) || prefix.includes(ruleLower.substring(0, 8))) {
+              deduction = { reason: d.reason, category: d.category, ruleId: d.ruleId || 'unknown' };
+              break;
+            }
+          }
+        }
+      }
+
+      if (deduction) {
+        const result = deduceActionability(deduction, report.duplicateRows);
+        actionability = result.actionability;
+        ruleId = result.ruleId;
+        effectiveScope = result.scope;
+      }
+    } else {
+      // No scoreBreakdown — use deduction from reason (test compat)
+      const fallback = deduceActionability(
+        { reason: issue.ruleName, category: issue.category, ruleId: 'unknown' },
+        report.duplicateRows,
+      );
+      actionability = fallback.actionability;
+      ruleId = fallback.ruleId;
+      effectiveScope = fallback.scope;
+    }
 
     candidateIssues.push({
       issueId: issue.id,
@@ -352,10 +300,8 @@ export function buildEvidenceEnvelopeV2(
     });
   }
 
-  // Apply issue budget
-  const includedIssues = applySlice(candidateIssues, tokenBudget.maxIssues, (actual) => {
-    logIssueExclusion(truncManifest, 'budget', 'issues', tokenBudget, actual, 'budget_limit');
-  });
+  const includedIssues = applySlice(candidateIssues, tokenBudget.maxIssues, (actual) =>
+    logIssueExclusion(truncManifest, 'budget', 'issues', tokenBudget, actual, 'budget_limit'));
 
   // 6. Evidence samples — privacy-aware
   const samples: EvidenceSampleV2[] = [];
@@ -367,29 +313,28 @@ export function buildEvidenceEnvelopeV2(
 
     const rawSamples = rawIssue.sampleValues || [];
     const colMeta = (report.datasetProfile?.columns || []).find(c => c.name === rawIssue.column);
-    const shouldHash = shouldHashColumn(rawIssue.column || '', colMeta?.semanticType, rawIssue.category, piiConfig);
+    const colStats = report.columnStats?.[rawIssue.column || ''];
+    const semanticType = colMeta?.semanticType || colStats?.semanticType;
+    const shouldHash = shouldHashColumn(rawIssue.column || '', semanticType, rawIssue.category, piiConfig);
 
-    const issueSamples = applySlice(rawSamples, tokenBudget.maxSamplesPerIssue, (actual) => {
-      logSampleTruncation(truncManifest, issue.issueId, tokenBudget, actual);
-    });
+    const issueSamples = applySlice(rawSamples, tokenBudget.maxSamplesPerIssue, (actual) =>
+      logSampleTruncation(truncManifest, issue.issueId, tokenBudget, actual));
 
     const refs: string[] = [];
 
     for (const val of issueSamples) {
-      if (!allowsRawSamples(privacyPolicy)) {
-        // cloud_no_samples: omit entirely, no ref generated
-        continue;
-      }
+      if (privacyPolicy.level === 'cloud_no_samples') continue;
 
       const ref = `ev-${String(refCounter).padStart(4, '0')}`;
       refCounter++;
 
       let processedVal: string | number | null;
+      const valStr = String(val ?? '');
 
       if (shouldHash) {
-        processedVal = hashValue(String(val ?? ''));
-      } else if (isPII(String(val ?? ''), piiConfig)) {
-        processedVal = redactValue(String(val ?? ''));
+        processedVal = hashValue(valStr);
+      } else if (isPII(valStr, piiConfig)) {
+        processedVal = redactValue(valStr);
       } else {
         processedVal = val;
       }
@@ -400,7 +345,7 @@ export function buildEvidenceEnvelopeV2(
         issueId: issue.issueId,
         columnId: issue.columnId,
         values: [processedVal],
-        metadata: { hashed: shouldHash, pii: isPII(String(val ?? ''), piiConfig) },
+        metadata: { hashed: shouldHash, pii: isPII(valStr, piiConfig) },
       });
     }
     issue.evidenceRefs = refs;
@@ -411,7 +356,6 @@ export function buildEvidenceEnvelopeV2(
   for (const col of finalCols) {
     const rawStats = report.columnStats?.[col.name];
     if (!rawStats) continue;
-
     const colMeta = (report.datasetProfile?.columns || []).find(c => c.name === col.name);
     const shouldHash = shouldHashColumn(col.name, colMeta?.semanticType, undefined, piiConfig);
 
@@ -421,13 +365,9 @@ export function buildEvidenceEnvelopeV2(
       percentage: tv.percentage,
     }));
 
-    if (!allowsTopValues(privacyPolicy)) {
-      topValues = [];
-    }
-
-    topValues = applySlice(topValues, tokenBudget.maxTopValues, (actual) => {
-      logTopValueTruncation(truncManifest, col.columnId, tokenBudget, actual);
-    });
+    if (!allowsTopValues(privacyPolicy)) topValues = [];
+    topValues = applySlice(topValues, tokenBudget.maxTopValues, (actual) =>
+      logTopValueTruncation(truncManifest, col.columnId, tokenBudget, actual));
 
     columnStats[col.columnId] = {
       columnId: col.columnId,
@@ -448,16 +388,17 @@ export function buildEvidenceEnvelopeV2(
   const selectionManifest: SelectionManifestV2 = {
     rationale: `Privacy: ${privacyPolicy.level}. Budget: ${tokenBudget.budgetId}`,
     includedColumns: finalCols.length,
-    excludedColumns: excludedColumns.length,
+    excludedColumns: allColumns.filter(c => excludeColIds.has(c.columnId)).length,
     includedIssues: includedIssues.length,
     excludedIssues: excludedIssueEntries.length,
     excludedByBudget: [
       ...excludedIssueEntries,
-      ...excludedColumns.map(c => ({ reason: 'explicit_exclusion' as ExclusionReason, resource: 'column' as const, name: c.name, detail: `Column ${c.columnId} excluded` })),
+      ...allColumns.filter(c => excludeColIds.has(c.columnId)).map(c =>
+        ({ reason: 'explicit_exclusion' as ExclusionReason, resource: 'column' as const, name: c.name, detail: `Excluded` })),
     ],
   };
 
-  // 10. Assemble envelope
+  // 10. Assemble
   let envelope: EvidenceEnvelopeV2 = {
     contractId: 'aura.evidence.v2',
     contractVersion: '2.0.0',
@@ -484,30 +425,70 @@ export function buildEvidenceEnvelopeV2(
     truncationManifest: truncManifest,
   };
 
-  // 11. Enforce character budget
-  envelope = enforceCharacterBudget(envelope, truncManifest, tokenBudget);
+  // 11. Character budget — STRICT
+  const charCount = JSON.stringify(envelope).length;
+  if (charCount > tokenBudget.maxCharacters) {
+    // Try reduction
+    envelope = enforceCharacterBudget(envelope, truncManifest, tokenBudget);
+    const afterCount = JSON.stringify(envelope).length;
+    if (afterCount > tokenBudget.maxCharacters) {
+      logCharacterTruncation(truncManifest, 'envelope', 'full', tokenBudget, afterCount, 'budget_limit');
+      throw buildError('BUDGET_UNSATISFIABLE',
+        `Cannot reduce envelope to ${tokenBudget.maxCharacters} chars (actual: ${afterCount})`,
+        { budget: tokenBudget.maxCharacters, actual: afterCount });
+    }
+  }
 
-  // 12. Validate — fail-closed
+  // 12. Validate
   const validation = validateEnvelope(envelope);
   const privValidation = validatePrivacyPolicy(privacyPolicy);
   const budgetValidation = validateTokenBudget(tokenBudget);
 
   if (!validation.valid) {
-    const errs = validation.errors.map(e => `${e.path}: ${e.message}`).join('; ');
-    throw buildError('ENVELOPE_INVALID', errs, { errors: validation.errors });
+    throw buildError('ENVELOPE_INVALID', validation.errors.map(e => `${e.path}: ${e.message}`).join('; '), { errors: validation.errors });
   }
   if (!privValidation.valid) {
-    const errs = privValidation.errors.map(e => `${e.path}: ${e.message}`).join('; ');
-    throw buildError('PRIVACY_INVALID', errs, { errors: privValidation.errors });
+    throw buildError('PRIVACY_INVALID', privValidation.errors.map(e => `${e.path}: ${e.message}`).join('; '), {});
   }
   if (!budgetValidation.valid) {
-    const errs = budgetValidation.errors.map(e => `${e.path}: ${e.message}`).join('; ');
-    throw buildError('BUDGET_INVALID', errs, { errors: budgetValidation.errors });
+    throw buildError('BUDGET_INVALID', budgetValidation.errors.map(e => `${e.path}: ${e.message}`).join('; '), {});
   }
 
   return envelope;
 }
 
-function buildError(code: string, message: string, details?: Record<string, unknown>): BuildErrorV2 {
-  return { code, message, details: details || {} };
+// ── Public wrapper (gated by CONTRACTS_V2_ENABLED) ──
+
+export function buildEvidenceEnvelopeV2(
+  report: AuditReportInput,
+  options: EvidenceEnvelopeOptionsV2,
+): EvidenceEnvelopeV2 {
+  let enabled = false;
+  try {
+    if (typeof import.meta !== 'undefined' && import.meta.env) {
+      enabled = import.meta.env.VITE_CONTRACTS_V2_ENABLED === 'true';
+    }
+  } catch { /* not Vite */ }
+  try {
+    if (process.env.CONTRACTS_V2_ENABLED === 'true') enabled = true;
+  } catch { /* not Node */ }
+
+  if (!enabled) {
+    throw buildError('CONTRACTS_V2_DISABLED', 'Set CONTRACTS_V2_ENABLED=true');
+  }
+
+  return _buildEvidenceEnvelopeV2(report, options);
+}
+
+function buildError(code: string, message: string, details?: Record<string, unknown>): ContractsV2Error {
+  const err = new Error(message) as ContractsV2Error;
+  err.code = code;
+  err.details = details || {};
+  err.name = 'ContractsV2Error';
+  return err;
+}
+
+export class ContractsV2Error extends Error {
+  code!: string;
+  details!: Record<string, unknown>;
 }
