@@ -1,10 +1,10 @@
 {
   "harnessVersion": "1.0.0",
-  "generatedAt": "2026-06-24T04:08:28.552Z",
-  "commitSha": "6f56749d8f9f24e8d5078f6c5d152f55a65ef306",
+  "generatedAt": "2026-06-24T16:26:31.546Z",
+  "commitSha": "284ab00ec47b1f9e92653d9a52bd157754ea5105",
   "sourceTreeDirty": true,
   "auditEngineSha256": "3ee341a49e5ebc42ccf3bb6cb2e9e39d350dc476f9cb159decba5d45a678c6a0",
-  "contractsV2Sha256": "4ebc93c16802e78e0b8c8c769d045a25022cf49b678f4b43ad1a03849fe0911a",
+  "contractsV2Sha256": "08555aca8d700ecc09fc2aab8405e140b85570b3d9b431b8b37f1d2ff1e015f1",
   "datasetsDir": "/Users/casabero/Documents/GitHub/aura/experiments/datasets",
   "summary": {
     "total": 6,
@@ -44,7 +44,7 @@
       "invalidReferences": 0,
       "envelopes": {
         "local_full_default": {
-          "size": 14636,
+          "size": 15546,
           "samples": 15,
           "columns": 15,
           "issues": 12,
@@ -53,7 +53,7 @@
           "valid": true
         },
         "local_full_reduced": {
-          "size": 7770,
+          "size": 7383,
           "samples": 0,
           "columns": 5,
           "issues": 7,
@@ -62,14 +62,14 @@
           "valid": true
         },
         "local_full_tight": {
-          "error": "Cannot reduce envelope to 4000 chars (actual: 5469)",
+          "error": "Cannot reduce envelope to 4000 chars (actual: 5835)",
           "code": "BUDGET_UNSATISFIABLE",
           "valid": false,
           "note": "Budget too tight for this dataset"
         },
         "cloud_minimized_default": {
-          "size": 15210,
-          "samples": 15,
+          "size": 13681,
+          "samples": 0,
           "columns": 15,
           "issues": 12,
           "truncations": 0,
@@ -77,7 +77,7 @@
           "valid": true
         },
         "cloud_minimized_reduced": {
-          "size": 7393,
+          "size": 7957,
           "samples": 0,
           "columns": 5,
           "issues": 7,
@@ -86,13 +86,13 @@
           "valid": true
         },
         "cloud_minimized_tight": {
-          "error": "Cannot reduce envelope to 4000 chars (actual: 6043)",
+          "error": "Cannot reduce envelope to 4000 chars (actual: 6409)",
           "code": "BUDGET_UNSATISFIABLE",
           "valid": false,
           "note": "Budget too tight for this dataset"
         },
         "cloud_no_samples_default": {
-          "size": 12474,
+          "size": 13384,
           "samples": 0,
           "columns": 15,
           "issues": 12,
@@ -101,7 +101,7 @@
           "valid": true
         },
         "cloud_no_samples_reduced": {
-          "size": 7343,
+          "size": 7907,
           "samples": 0,
           "columns": 5,
           "issues": 7,
@@ -110,7 +110,7 @@
           "valid": true
         },
         "cloud_no_samples_tight": {
-          "error": "Cannot reduce envelope to 4000 chars (actual: 5324)",
+          "error": "Cannot reduce envelope to 4000 chars (actual: 5690)",
           "code": "BUDGET_UNSATISFIABLE",
           "valid": false,
           "note": "Budget too tight for this dataset"
@@ -118,7 +118,7 @@
       },
       "privacyViolations": 0,
       "truncations": 8,
-      "durationMs": 3173,
+      "durationMs": 3117,
       "error": null
     },
     {
@@ -134,8 +134,8 @@
       "invalidReferences": 0,
       "envelopes": {
         "local_full_default": {
-          "size": 15326,
-          "samples": 18,
+          "size": 12725,
+          "samples": 0,
           "columns": 9,
           "issues": 16,
           "truncations": 1,
@@ -143,20 +143,20 @@
           "valid": true
         },
         "local_full_reduced": {
-          "error": "Cannot reduce envelope to 8000 chars (actual: 8010)",
+          "error": "Cannot reduce envelope to 8000 chars (actual: 8611)",
           "code": "BUDGET_UNSATISFIABLE",
           "valid": false,
           "note": "Budget too tight for this dataset"
         },
         "local_full_tight": {
-          "error": "Cannot reduce envelope to 4000 chars (actual: 5726)",
+          "error": "Cannot reduce envelope to 4000 chars (actual: 6017)",
           "code": "BUDGET_UNSATISFIABLE",
           "valid": false,
           "note": "Budget too tight for this dataset"
         },
         "cloud_minimized_default": {
-          "size": 15900,
-          "samples": 18,
+          "size": 13299,
+          "samples": 0,
           "columns": 9,
           "issues": 16,
           "truncations": 1,
@@ -164,19 +164,19 @@
           "valid": true
         },
         "cloud_minimized_reduced": {
-          "error": "Cannot reduce envelope to 8000 chars (actual: 8584)",
+          "error": "Cannot reduce envelope to 8000 chars (actual: 9185)",
           "code": "BUDGET_UNSATISFIABLE",
           "valid": false,
           "note": "Budget too tight for this dataset"
         },
         "cloud_minimized_tight": {
-          "error": "Cannot reduce envelope to 4000 chars (actual: 6300)",
+          "error": "Cannot reduce envelope to 4000 chars (actual: 6591)",
           "code": "BUDGET_UNSATISFIABLE",
           "valid": false,
           "note": "Budget too tight for this dataset"
         },
         "cloud_no_samples_default": {
-          "size": 11943,
+          "size": 13002,
           "samples": 0,
           "columns": 9,
           "issues": 16,
@@ -185,23 +185,20 @@
           "valid": true
         },
         "cloud_no_samples_reduced": {
-          "size": 7583,
-          "samples": 0,
-          "columns": 5,
-          "issues": 10,
-          "truncations": 3,
-          "privacyViolations": 0,
-          "valid": true
+          "error": "Cannot reduce envelope to 8000 chars (actual: 8184)",
+          "code": "BUDGET_UNSATISFIABLE",
+          "valid": false,
+          "note": "Budget too tight for this dataset"
         },
         "cloud_no_samples_tight": {
-          "error": "Cannot reduce envelope to 4000 chars (actual: 5581)",
+          "error": "Cannot reduce envelope to 4000 chars (actual: 5872)",
           "code": "BUDGET_UNSATISFIABLE",
           "valid": false,
           "note": "Budget too tight for this dataset"
         }
       },
       "privacyViolations": 0,
-      "truncations": 3,
+      "truncations": 1,
       "durationMs": 10,
       "error": null
     },
@@ -218,7 +215,7 @@
       "invalidReferences": 0,
       "envelopes": {
         "local_full_default": {
-          "size": 15030,
+          "size": 15861,
           "samples": 15,
           "columns": 12,
           "issues": 10,
@@ -227,7 +224,7 @@
           "valid": true
         },
         "local_full_reduced": {
-          "size": 6739,
+          "size": 6981,
           "samples": 4,
           "columns": 5,
           "issues": 2,
@@ -245,7 +242,7 @@
           "valid": true
         },
         "cloud_minimized_default": {
-          "size": 15604,
+          "size": 14222,
           "samples": 15,
           "columns": 12,
           "issues": 10,
@@ -254,7 +251,7 @@
           "valid": true
         },
         "cloud_minimized_reduced": {
-          "size": 7313,
+          "size": 7555,
           "samples": 4,
           "columns": 5,
           "issues": 2,
@@ -272,7 +269,7 @@
           "valid": true
         },
         "cloud_no_samples_default": {
-          "size": 10531,
+          "size": 11362,
           "samples": 0,
           "columns": 12,
           "issues": 10,
@@ -281,7 +278,7 @@
           "valid": true
         },
         "cloud_no_samples_reduced": {
-          "size": 5363,
+          "size": 5605,
           "samples": 0,
           "columns": 5,
           "issues": 2,
@@ -301,7 +298,7 @@
       },
       "privacyViolations": 0,
       "truncations": 5,
-      "durationMs": 29,
+      "durationMs": 30,
       "error": null
     }
   ],
@@ -310,8 +307,8 @@
     "fixtures": [
       {
         "file": "adult_income.csv",
-        "envelopeRef": "env:f07ef4abfc74b42fe8892c38ea58b499d97e0599085689e49b39451c8c3108b8",
-        "promptHash": "d50543813de4da60d5540899eea6b83ccb2758c47b0bc4a77f5208c36e2342d2",
+        "envelopeRef": "env:c4c0123f981521736555e20d17e1066df062e7b95b092e662df20257fce6958d",
+        "promptHash": "1581ef62d8cad2c830895d9c0fb0ab2a050e60ee604406edd2f0d87deb93f48a",
         "promptHashStable": true,
         "issueCount": 12,
         "blockCount": 12,
@@ -324,8 +321,8 @@
       },
       {
         "file": "synthetic_ground_truth.csv",
-        "envelopeRef": "env:3bf6a954f893456f74d0079ecee263aa079cd1991dec13f6918819de3abfa259",
-        "promptHash": "0d313a2c9bcf9e16360334eacb02747d178386633b4180d8ced37d2ee9d20a0e",
+        "envelopeRef": "env:8052eb7d0b6957d96294e83a33e6d586ee983986b18acd9731a0c75f16adde97",
+        "promptHash": "66b842128fa7fd5197be0f870b77988240dc1164af55de1d11c521e58c1cc5fd",
         "promptHashStable": true,
         "issueCount": 16,
         "blockCount": 16,
@@ -338,8 +335,8 @@
       },
       {
         "file": "titanic.csv",
-        "envelopeRef": "env:588ceb40984e5bbbbd00a2017e6f5af6c5464e5c603be7a7c4fb5294fc9e3b40",
-        "promptHash": "d958a672113eb2979a42acb2fa213bf089d967a8cd5058240a07f49572528451",
+        "envelopeRef": "env:276d58a368cb9aeafdc79348a59a45b6cef3fa2db1d6db1fc4e9d8713be7a8d8",
+        "promptHash": "075a8dd18469cdd29adc41657a85c10d001b46825970b7ebc09c30315f782a7a",
         "promptHashStable": true,
         "issueCount": 10,
         "blockCount": 10,
