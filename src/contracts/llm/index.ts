@@ -147,3 +147,13 @@ export type {
   DiagnosisPipelineFailure,
   DiagnosisPipelineOutcome,
 } from './diagnosisPipelineV2';
+
+export {
+  runStructuredDiagnosis,
+} from './diagnosisSelector';
+export type {
+  StructuredDiagnosisResult,
+  StructuredDiagnosisFailure,
+  StructuredDiagnosisOutcome,
+  DiagnosisExecutionResult,
+} from './diagnosisSelector';

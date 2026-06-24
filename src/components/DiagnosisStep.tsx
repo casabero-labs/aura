@@ -12,6 +12,7 @@ import { normalizeAiProviderError, NormalizedProviderError } from '../services/p
 import { detectChromeAiAvailability, NormalizedAvailability } from '../services/chromeAvailability';
 import { startNetworkMonitoring, stopNetworkMonitoring, NetworkGuardResult } from '../services/networkGuard';
 import { generateQuickReceipt, PrivacyReceipt } from '../services/privacyReceipt';
+import { runStructuredDiagnosis, isContractsV2Enabled, type DiagnosisExecutionResult } from '../contracts/llm';
 
 interface DiagnosisStepProps {
   report: AuditReport;
@@ -21,6 +22,7 @@ interface DiagnosisStepProps {
   analysisText: string;
   onAiConfigChange: (config: AIConfig) => void;
   onAnalysisComplete: (analysis: string) => void;
+  onStructuredDiagnosisComplete?: (result: DiagnosisExecutionResult) => void;
   onMetrics?: (metrics: ProviderMetrics) => void;
   onLog?: (stage: string, msg: string) => void;
   onContinue: () => void;
@@ -49,6 +51,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
   analysisText,
   onAiConfigChange,
   onAnalysisComplete,
+  onStructuredDiagnosisComplete,
   onMetrics,
   onLog,
   onContinue,
@@ -71,6 +74,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
   const [progressValue, setProgressValue] = useState<number | undefined>(undefined);
   const [progressStep, setProgressStep] = useState<string>('');
   const [progressIndeterminate, setProgressIndeterminate] = useState(false);
+  const [structuredDiagnosis, setStructuredDiagnosis] = useState<DiagnosisExecutionResult | null>(null);
   
   // Chrome AI guided UX states
   const [chromeAvailability, setChromeAvailability] = useState<NormalizedAvailability | null>(null);
@@ -365,55 +369,126 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
     onLog?.('diagnosis', `Iniciando diagnóstico con ${aiConfig.model} (${aiConfig.providerType})`);
 
     try {
-      if (aiConfig.providerType === 'webllm_experimental') {
-        pushEvent('info', 'Verificando proveedor local (WebGPU)...');
-        setProgressStep('Descargando o cargando modelo local');
-      } else if (aiConfig.providerType === 'ollama') {
-        pushEvent('info', 'Verificando conexión con Ollama...');
-        setProgressStep('Conectando con Ollama local');
-      } else if (aiConfig.providerType === 'chrome') {
-        pushEvent('info', 'Verificando disponibilidad de Chrome AI...');
-        setProgressStep('Preparando Chrome AI / Gemini Nano');
-        
-        // Start network monitoring for privacy receipt
-        startNetworkMonitoring();
-      } else {
-        pushEvent('info', `Verificando conexión con proveedor cloud (${aiConfig.cloudProvider || 'API'})...`);
-        setProgressStep('Verificando proveedor cloud');
-      }
+      if (isContractsV2Enabled()) {
+        pushEvent('info', 'Iniciando Diagnosis v2 (contrato estructurado)...');
+        setProgressStep('Preparando Diagnosis v2');
 
-      let text: string;
-      let metrics: ProviderMetrics;
-
-      if (aiProvider.generateTextWithProgress) {
-        const result = await aiProvider.generateTextWithProgress(prompt, (event: ProviderProgressEvent) => {
-          if (event.progress !== undefined) {
-            setProgressIndeterminate(false);
-            setProgressValue(event.progress);
-          }
-          setProgressStep(event.message);
-          pushEvent(
-            event.stage === 'error' ? 'error' :
-            event.stage === 'completed' ? 'success' : 'info',
-            event.message
-          );
+        const v2Result = await runStructuredDiagnosis(report as any, {
+          provider: aiProvider,
+          auditEvidence: auditEvidence ? { datasetFingerprint: auditEvidence.datasetFingerprint } : null,
+          onProgress: (event) => {
+            pushEvent(event.type === 'chunk' ? 'info' : 'info', event.text);
+          },
         });
-        text = result.text;
-        metrics = result.metrics;
-      } else {
-        pushEvent('info', 'Enviando paquete estructurado al modelo.');
-        pushEvent('info', 'Esperando respuesta...');
-        setProgressStep('Generando diagnóstico');
-        const result = await aiProvider.generateText(prompt);
-        text = result.text;
-        metrics = result.metrics;
-      }
 
-      finalText = text;
-      setDraftAnalysis(text);
-      setLastMetrics(metrics);
-      onMetrics?.(metrics);
-      onAnalysisComplete(finalText);
+        if (!v2Result.success) {
+          const v2Failure = v2Result as { success: false; code: string; message: string; path: string; details: Record<string, unknown> };
+          const normalized = normalizeAiProviderError(new Error(v2Failure.message), aiConfig);
+          setError(v2Failure.message);
+          setNormalizedError(normalized);
+          pushEvent('error', `Diagnosis v2 fallido: ${v2Failure.code}`);
+          setProgressStatus('error');
+          setProgressStep(`Error: ${v2Failure.code}`);
+          recordLlmCall({
+            callType: 'diagnosis',
+            providerType: aiConfig.providerType as 'local' | 'cloud' | 'chrome' | 'ollama',
+            provider: aiConfig.providerType === 'webllm_experimental' ? 'WebLLM' : aiConfig.providerType === 'ollama' ? 'Ollama' : aiConfig.providerType === 'chrome' ? 'Chrome AI' : (aiConfig.cloudProvider || 'Cloud'),
+            model: aiConfig.model,
+            temperature: aiConfig.temperature,
+            promptHash: '',
+            promptText: '',
+            inputJsonHash: computeInputHash(report),
+            promptLength: 0,
+            inputColumnCount: report.colCount,
+            inputIssueCount: report.issues.length,
+            rowCount: report.rowCount,
+            colCount: report.colCount,
+            datasetFingerprint: auditEvidence?.datasetFingerprint || '',
+            responseLength: 0,
+            latencyMs: (v2Failure.details?.latencyMs as number) ?? 0,
+            tokensGenerated: 0,
+            status: 'error',
+            error: v2Failure.message,
+          });
+        } else {
+          setStructuredDiagnosis(v2Result.result);
+          setLastMetrics(v2Result.result.metrics as ProviderMetrics);
+          onMetrics?.(v2Result.result.metrics as ProviderMetrics);
+          onStructuredDiagnosisComplete?.(v2Result.result);
+          pushEvent('success', `Diagnosis v2 completado · ${v2Result.result.metrics.tokensGenerated} tokens · ${(v2Result.result.metrics.latencyMs / 1000).toFixed(1)}s`);
+          setProgressStatus('success');
+          setProgressStep(`Diagnosis v2 completado · ${(v2Result.result.metrics.latencyMs / 1000).toFixed(1)}s`);
+          recordLlmCall({
+            callType: 'diagnosis',
+            providerType: aiConfig.providerType as 'local' | 'cloud' | 'chrome' | 'ollama',
+            provider: aiConfig.providerType === 'webllm_experimental' ? 'WebLLM' : aiConfig.providerType === 'ollama' ? 'Ollama' : aiConfig.providerType === 'chrome' ? 'Chrome AI' : (aiConfig.cloudProvider || 'Cloud'),
+            model: v2Result.result.metrics.model,
+            temperature: aiConfig.temperature,
+            promptHash: v2Result.result.promptHash,
+            promptText: '',
+            inputJsonHash: computeInputHash(report),
+            promptLength: 0,
+            inputColumnCount: report.colCount,
+            inputIssueCount: report.issues.length,
+            rowCount: report.rowCount,
+            colCount: report.colCount,
+            datasetFingerprint: auditEvidence?.datasetFingerprint || '',
+            responseLength: 0,
+            latencyMs: v2Result.result.metrics.latencyMs,
+            tokensGenerated: v2Result.result.metrics.tokensGenerated,
+            status: 'completed',
+          });
+        }
+      } else {
+        if (aiConfig.providerType === 'webllm_experimental') {
+          pushEvent('info', 'Verificando proveedor local (WebGPU)...');
+          setProgressStep('Descargando o cargando modelo local');
+        } else if (aiConfig.providerType === 'ollama') {
+          pushEvent('info', 'Verificando conexión con Ollama...');
+          setProgressStep('Conectando con Ollama local');
+        } else if (aiConfig.providerType === 'chrome') {
+          pushEvent('info', 'Verificando disponibilidad de Chrome AI...');
+          setProgressStep('Preparando Chrome AI / Gemini Nano');
+
+          // Start network monitoring for privacy receipt
+          startNetworkMonitoring();
+        } else {
+          pushEvent('info', `Verificando conexión con proveedor cloud (${aiConfig.cloudProvider || 'API'})...`);
+          setProgressStep('Verificando proveedor cloud');
+        }
+
+        let text: string;
+        let metrics: ProviderMetrics;
+
+        if (aiProvider.generateTextWithProgress) {
+          const result = await aiProvider.generateTextWithProgress(prompt, (event: ProviderProgressEvent) => {
+            if (event.progress !== undefined) {
+              setProgressIndeterminate(false);
+              setProgressValue(event.progress);
+            }
+            setProgressStep(event.message);
+            pushEvent(
+              event.stage === 'error' ? 'error' :
+              event.stage === 'completed' ? 'success' : 'info',
+              event.message
+            );
+          });
+          text = result.text;
+          metrics = result.metrics;
+        } else {
+          pushEvent('info', 'Enviando paquete estructurado al modelo.');
+          pushEvent('info', 'Esperando respuesta...');
+          setProgressStep('Generando diagnóstico');
+          const result = await aiProvider.generateText(prompt);
+          text = result.text;
+          metrics = result.metrics;
+        }
+
+        finalText = text;
+        setDraftAnalysis(text);
+        setLastMetrics(metrics);
+        onMetrics?.(metrics);
+        onAnalysisComplete(finalText);
 
       // Generate privacy receipt for Chrome AI
       if (aiConfig.providerType === 'chrome') {
@@ -464,6 +539,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
         tokensGenerated: metrics.tokensGenerated,
         status: 'completed',
       });
+      }
     } catch (err: any) {
       const normalized = normalizeAiProviderError(err, aiConfig);
       setError(normalized.message);
@@ -499,7 +575,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [aiConfig.model, aiConfig.providerType, aiConfig.cloudProvider, aiConfig.temperature, aiProvider, isLoading, onAnalysisComplete, onLog, onMetrics, report, auditEvidence, diagnosisPrompt, pushEvent]);
+  }, [aiConfig.model, aiConfig.providerType, aiConfig.cloudProvider, aiConfig.temperature, aiProvider, isLoading, onAnalysisComplete, onStructuredDiagnosisComplete, onLog, onMetrics, report, auditEvidence, diagnosisPrompt, pushEvent]);
 
   const isCloud = aiConfig.providerType === 'cloud';
   const isOllama = aiConfig.providerType === 'ollama';

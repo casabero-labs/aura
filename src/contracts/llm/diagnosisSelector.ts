@@ -1,31 +1,28 @@
 import type { AuditReportInput } from './evidenceEnvelopeV2';
 import type { AIProvider, ProviderMetrics } from '../../types';
-import type { PrivacyLevel } from './types';
 import type {
   EvidenceEnvelopeOptionsV2 as EnvOptions,
   DiagnosisPromptOptionsV2,
-  DiagnosisPipelineOutcome,
   DiagnosisPromptPackageV2,
   DiagnosisExecutionResult,
+  DiagnosisErrorCode,
+  DiagnosisPipelineFailure,
 } from './index';
 import {
   buildEvidenceEnvelopeV2,
   buildDiagnosisPromptV2,
   runDiagnosisPipeline,
-  isContractsV2Enabled,
 } from './index';
+import { isContractsV2Enabled } from './contractRegistry';
 import { sha256hex } from './hash';
 import { AIProviderDiagnosisAdapter } from '../../services/providers/diagnosisAdapter';
 
-export { isContractsV2Enabled } from './index';
+export { isContractsV2Enabled } from './contractRegistry';
 
-export type DiagnosisProviderType = 'local' | 'cloud' | 'ollama' | 'chrome' | 'webllm_experimental';
-
-function derivePrivacyLevel(providerType: DiagnosisProviderType): PrivacyLevel {
+function derivePrivacyLevel(providerType: AIProvider['type']): PrivacyLevel {
   switch (providerType) {
     case 'local':
     case 'ollama':
-    case 'webllm_experimental':
     case 'chrome':
       return 'local_full';
     case 'cloud':
@@ -34,13 +31,15 @@ function derivePrivacyLevel(providerType: DiagnosisProviderType): PrivacyLevel {
   }
 }
 
+type PrivacyLevel = 'local_full' | 'cloud_minimized' | 'cloud_no_samples';
+
 export interface DiagnosisSelectorOptions {
   provider: AIProvider;
-  providerType: DiagnosisProviderType;
-  auditEvidence?: { datasetFingerprint: string } | null;
+  auditEvidence: { datasetFingerprint: string } | null;
   envelopeOptions?: Partial<Omit<EnvOptions, 'datasetSha256' | 'delimiter'>> & { datasetSha256?: string; delimiter?: string };
   promptOptions?: Partial<DiagnosisPromptOptionsV2>;
   maxConfidence?: number;
+  onProgress?: (event: { type: 'chunk'; text: string }) => void;
 }
 
 export interface StructuredDiagnosisResult {
@@ -50,10 +49,10 @@ export interface StructuredDiagnosisResult {
 
 export interface StructuredDiagnosisFailure {
   success: false;
-  code: string;
+  code: DiagnosisErrorCode;
   message: string;
   path: string;
-  details: unknown;
+  details: Record<string, unknown>;
 }
 
 export type StructuredDiagnosisOutcome = StructuredDiagnosisResult | StructuredDiagnosisFailure;
@@ -72,12 +71,20 @@ export async function runStructuredDiagnosis(
     };
   }
 
-  const privacyLevel = options.envelopeOptions?.privacyLevel ?? derivePrivacyLevel(options.providerType);
+  const datasetFingerprint = options.auditEvidence?.datasetFingerprint;
+  if (!datasetFingerprint) {
+    return {
+      success: false,
+      code: 'DIAGNOSIS_ADAPTER_ERROR',
+      message: 'auditEvidence.datasetFingerprint is required for v2 diagnosis',
+      path: 'auditEvidence',
+      details: { reason: 'missing_fingerprint' },
+    };
+  }
 
-  const datasetSha256 = options.auditEvidence?.datasetFingerprint
-    ?? options.envelopeOptions?.datasetSha256
-    ?? '0000000000000000000000000000000000000000000000000000000000000000';
+  const privacyLevel: PrivacyLevel = options.envelopeOptions?.privacyLevel ?? derivePrivacyLevel(options.provider.type);
 
+  const datasetSha256 = options.envelopeOptions?.datasetSha256 ?? datasetFingerprint;
   const delimiter = options.envelopeOptions?.delimiter ?? report.delimiterDetected;
 
   const envelopeOptions: EnvOptions = {
@@ -104,7 +111,9 @@ export async function runStructuredDiagnosis(
 
   const pipelineAdapter = async (_pkg: DiagnosisPromptPackageV2): Promise<string> => {
     const fullPrompt = promptPackage.systemInstruction + '\n\n' + promptPackage.userPayload;
-    const { text, metrics } = await adapter.diagnose(fullPrompt);
+    const { text, metrics } = await adapter.diagnoseWithProgress(fullPrompt, (event) => {
+      options.onProgress?.(event);
+    });
     capturedMetrics = metrics;
     rawResponseHash = sha256hex(text);
     return text;
@@ -113,13 +122,13 @@ export async function runStructuredDiagnosis(
   const outcome = await runDiagnosisPipeline(envelope, promptPackage, pipelineAdapter);
 
   if (!outcome.success) {
-    const failure = outcome as DiagnosisPipelineOutcome & { success: false };
+    const failure = outcome as DiagnosisPipelineFailure;
     return {
       success: false,
       code: failure.code,
       message: failure.message,
       path: failure.path,
-      details: failure.details,
+      details: sanitizeDetails(failure.details),
     };
   }
 
@@ -151,4 +160,30 @@ export async function runStructuredDiagnosis(
   };
 
   return { success: true, result };
+}
+
+function sanitizeDetails(details: unknown): Record<string, unknown> {
+  if (!details || typeof details !== 'object') return {};
+  const sanitized: Record<string, unknown> = {};
+  const d = details as Record<string, unknown>;
+  for (const [key, value] of Object.entries(d)) {
+    if (key === 'validationErrors' && Array.isArray(value)) {
+      sanitized[key] = value.map((e: unknown) => {
+        if (e && typeof e === 'object') {
+          const err = e as Record<string, unknown>;
+          return {
+            code: err.code,
+            path: err.path,
+            message: err.message,
+          };
+        }
+        return e;
+      });
+    } else if (key === 'value' || key === 'rawResponse') {
+      continue;
+    } else {
+      sanitized[key] = value;
+    }
+  }
+  return sanitized;
 }
