@@ -5,8 +5,9 @@
   "fingerprint": "fp_4a437fde05fe",
   "datasetSha256": "4a437fde05fe5264e1701a7387ac6fb75393772ba38bb2c9c566405af5af4bd7",
   "auditReportSha256": "e2aa10cec323b2ecafd3c5ba9c607bec4b9de7cf336395b8c191d4eb772a2bd5",
-  "fechaDeGeneracion": "2026-06-23T23:41:01.380Z",
-  "commitSha": "4f1a2113cbe27083918d02ae35881a6cd5a566b5",
+  "fechaDeGeneracion": "2026-06-24T01:38:00Z",
+  "runsCommitSha": "4f1a2113cbe27083918d02ae35881a6cd5a566b5",
+  "evaluatorCommitSha": "0387905f0a3c06b0a275666e58b0782615feeec4",
   "versionDelFixture": "4.0.0",
   "origenDataset": "experiments/datasets/titanic.csv",
   "motor": "auditEngine.ts runAudit + PapaParse (production config)",
@@ -16,5 +17,5 @@
     "skipEmptyLines": true,
     "delimiter": ""
   },
-  "nota": "Fase 0D — parsing identico a csvService.ts productivo, sin rutas absolutas"
+  "nota": "Fase 0E — evaluator rewritten with canonical actions, deduplication, compile validation, per-issue review retention"
 }

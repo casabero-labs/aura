@@ -16,7 +16,7 @@
  * @returns {{phantoms: Array<string>, valid: Array<string>}}
  */
 export function detectPhantomColumns(ast, auditReport) {
-  const validColumns = new Set(Object.keys(auditReport.columnStats));
+  const validColumns = new Set(Object.keys(auditReport.columnStats || {}));
   const extracted = ast.columns || [];
 
   const phantoms = [];

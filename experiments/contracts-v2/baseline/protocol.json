@@ -1,6 +1,9 @@
 {
-  "protocolVersion": "2.0.0",
-  "gitSha": "4f1a2113cbe27083918d02ae35881a6cd5a566b5",
+  "protocolVersion": "3.0.0",
+  "runsGitSha": "4f1a2113cbe27083918d02ae35881a6cd5a566b5",
+  "evaluatorGitSha": "0387905f0a3c06b0a275666e58b0782615feeec4",
+  "runsGeneratedAt": "2026-06-23T23:56:00Z",
+  "evaluatorRunAt": "2026-06-24T01:38:00Z",
   "dataset": {
     "path": "experiments/datasets/titanic.csv",
     "sha256": "4a437fde05fe5264e1701a7387ac6fb75393772ba38bb2c9c566405af5af4bd7"
@@ -9,13 +12,25 @@
     "path": "experiments/contracts-v2/fixtures/titanic-audit-report.json",
     "sha256": "e2aa10cec323b2ecafd3c5ba9c607bec4b9de7cf336395b8c191d4eb772a2bd5"
   },
-  "seeds": [
-    101,
-    202,
-    303,
-    404,
-    505
-  ],
+  "evaluatorHashes": {
+    "astExtractor.mjs": "d89265d54795a9e0d0161ee0ba247d8642da43cf5ddb9a9ce8e6d81eff0f531c",
+    "autoActionsEvaluator.mjs": "39b493f1ff4ceb6df7ec04c4d7b16a092a1002e10c623af900e5cbd94aeca285",
+    "citationEvaluator.mjs": "56b0e505aaf6aa42766765eb79857a4dcee01306e4535f8378d5795287b83654",
+    "inventedRulesDetector.mjs": "1ee38ccffc0922db51014547a960544af4e208aefcb766f0322fb425ace3c037",
+    "index.mjs": "b8ed0e8faf61e72a28769ca6e390a10d018bd83fcfcd7289732fcede5cd1a32e",
+    "phantomColumnDetector.mjs": "e145f59f985994e80c27c3b45f45ee95022e3aa8c8c0068a948e30d041a62557",
+    "pythonValidator.mjs": "7d42ee0dbe2a08a905ba07406d9ce20b3ffc052d32ac65a96d7efe1feac20b78",
+    "reviewRetentionEvaluator.mjs": "f5b380ffb9bc84d5012db7b25cdfe3060c0e582a02f438c9196d6cee88b4352d",
+    "evaluate.mjs": "541f43a4b91925e4f9ea32f4d6fc71bbbda3b6b2fd3d845f417fc4157439f463"
+  },
+  "runHashes": {
+    "run-01.json": "98f09d5fc67e1a3f760e4d152dce5be44ce9c2cb3fb28b4ca8c1766e677fd456",
+    "run-02.json": "586d6c6dcbe7cb95e38baa7e3c7018a820dbf13a30cdbff7bdd29e1071fe9abb",
+    "run-03.json": "b794a82e7fcba49cc1e005d7442a500c8ebe307edd236f061beb500f6b23ceaa",
+    "run-04.json": "2709127c9ffa262cb055d64c7bd07382bb0d1a4bbc2363a0515038586fdb1ed5",
+    "run-05.json": "a2f2bcbf356654ee990da561a6cfda89f612e6bfee77b800401e0e121fdac492"
+  },
+  "seeds": [101, 202, 303, 404, 505],
   "repetitions": 5,
   "timeoutMs": 120000,
   "model": "qwen2.5:3b",

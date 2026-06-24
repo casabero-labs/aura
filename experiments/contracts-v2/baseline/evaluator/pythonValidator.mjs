@@ -1,29 +1,23 @@
 /**
- * Python script validator.
+ * Python script validator — Fase 0E.
  *
- * Per Fase 0D requirements:
- * - Use ast.parse for syntactic validation (via python3 subprocess)
- * - Verify df_clean = df.copy() is present
- * - Verify return df_clean is present
- * - Verify def clean_dataset(df) is present
- * - Detect forbidden patterns
+ * - compile(script, "<aura>", "exec") for executability
+ * - AST for: clean_dataset function (with type hints), df_clean = df.copy(),
+ *   return df_clean inside function, return outside function, direct df mutations
+ * - No regex for function signature detection
  */
 
 import { execFileSync } from 'node:child_process';
 
 /**
- * Validate Python script syntactically using ast.parse.
- *
- * @param {string} scriptText - The Python script
- * @returns {{syntaxValid: boolean, error: string|null, ast: Object|null}}
+ * Full validation of a Python cleaning script.
  */
 export function validatePythonSyntax(scriptText) {
   if (!scriptText || typeof scriptText !== 'string') {
-    return { syntaxValid: false, error: 'empty script', ast: null };
+    return { syntaxValid: false, error: 'empty script' };
   }
-
   try {
-    const pythonCode = `
+    const pyCode = `
 import ast, json, sys
 script = sys.stdin.read()
 try:
@@ -33,62 +27,155 @@ except SyntaxError as e:
     sys.exit(0)
 print(json.dumps({"valid": True, "error": None}))
 `;
-    const output = execFileSync('python3', ['-c', pythonCode], {
+    const output = execFileSync('python3', ['-c', pyCode], {
       input: scriptText,
       encoding: 'utf-8',
       timeout: 10000,
       maxBuffer: 5 * 1024 * 1024
     });
-    const result = JSON.parse(output.trim());
-    return {
-      syntaxValid: result.valid,
-      error: result.error,
-      ast: result.valid ? { parsed: true } : null
-    };
+    return JSON.parse(output.trim());
   } catch (e) {
-    return { syntaxValid: false, error: e.message, ast: null };
+    return { syntaxValid: false, error: e.message };
   }
 }
 
 /**
- * Check that df_clean = df.copy() is present in the script.
+ * Validate script executability using compile().
  */
-export function hasDfCleanCopy(scriptText) {
-  if (!scriptText) return false;
-  return /df_clean\s*=\s*df\s*\.\s*copy\s*\(/.test(scriptText);
+export function validateCompile(scriptText) {
+  if (!scriptText || typeof scriptText !== 'string') {
+    return { compileValid: false, error: 'empty script' };
+  }
+  try {
+    const pyCode = `
+import sys
+script = sys.stdin.read()
+try:
+    compile(script, "<aura>", "exec")
+    print('{"compileValid": true, "error": null}')
+except SyntaxError as e:
+    import json
+    print(json.dumps({"compileValid": False, "error": f"{e.msg} at line {e.lineno}"}))
+`;
+    const output = execFileSync('python3', ['-c', pyCode], {
+      input: scriptText,
+      encoding: 'utf-8',
+      timeout: 10000,
+      maxBuffer: 5 * 1024 * 1024
+    });
+    return JSON.parse(output.trim());
+  } catch (e) {
+    return { compileValid: false, error: e.message };
+  }
 }
 
 /**
- * Check that return df_clean is present in the script.
- */
-export function hasReturnDfClean(scriptText) {
-  if (!scriptText) return false;
-  return /return\s+df_clean\b/.test(scriptText);
-}
-
-/**
- * Check that def clean_dataset(df) is present.
- */
-export function hasCleanDatasetDef(scriptText) {
-  if (!scriptText) return false;
-  return /def\s+clean_dataset\s*\(\s*df\s*\)/.test(scriptText);
-}
-
-/**
- * Full structural validation of a cleaning script.
+ * Full structural validation using AST — no regex for function signature.
  */
 export function validateScriptStructure(scriptText) {
+  if (!scriptText || typeof scriptText !== 'string') {
+    return {
+      syntaxValid: false, compileValid: false,
+      hasCleanDatasetDef: false, hasDfCleanCopy: false,
+      hasReturnDfClean: false, hasReturnOutsideFunction: false,
+      cleanDatasetTyped: false, structurallyValid: false
+    };
+  }
+
   const syntax = validatePythonSyntax(scriptText);
-  const hasDfCopy = hasDfCleanCopy(scriptText);
-  const hasReturn = hasReturnDfClean(scriptText);
-  const hasDef = hasCleanDatasetDef(scriptText);
+  const compileResult = validateCompile(scriptText);
+
+  // AST analysis via Python
+  let astResult = {
+    hasCleanDatasetDef: false,
+    hasDfCleanCopy: false,
+    hasReturnDfClean: false,
+    hasReturnOutsideFunction: false,
+    cleanDatasetTyped: false
+  };
+
+  try {
+    const pyCode = `
+import ast, json, sys
+
+script = sys.stdin.read()
+tree = ast.parse(script)
+
+has_clean = False
+has_df_clean_copy = False
+has_return_df_clean = False
+has_return_outside = False
+clean_typed = False
+
+# Check for return outside function
+for node in ast.iter_child_nodes(tree):
+    if isinstance(node, ast.Return):
+        has_return_outside = True
+
+# Check clean_dataset function
+for node in ast.walk(tree):
+    if isinstance(node, ast.FunctionDef) and node.name == 'clean_dataset':
+        has_clean = True
+        # Check type hints
+        for arg in node.args.args:
+            if arg.annotation:
+                clean_typed = True
+                break
+        if node.returns:
+            clean_typed = True
+        # Check return df_clean inside function
+        for child in ast.walk(node):
+            if isinstance(child, ast.Return):
+                if isinstance(child.value, ast.Name) and child.value.id == 'df_clean':
+                    has_return_df_clean = True
+    # Check df_clean = df.copy()
+    if isinstance(node, ast.Assign):
+        if len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+            t = node.targets[0].id
+            v = node.value
+            if t == 'df_clean' and isinstance(v, ast.Call):
+                if isinstance(v.func, ast.Attribute) and v.func.attr == 'copy':
+                    if isinstance(v.func.value, ast.Name) and v.func.value.id == 'df':
+                        has_df_clean_copy = True
+
+r = {
+    "hasCleanDatasetDef": has_clean,
+    "hasDfCleanCopy": has_df_clean_copy,
+    "hasReturnDfClean": has_return_df_clean,
+    "hasReturnOutsideFunction": has_return_outside,
+    "cleanDatasetTyped": clean_typed
+}
+print(json.dumps(r))
+`;
+    const output = execFileSync('python3', ['-c', pyCode], {
+      input: scriptText,
+      encoding: 'utf-8',
+      timeout: 10000,
+      maxBuffer: 5 * 1024 * 1024
+    });
+    astResult = JSON.parse(output.trim());
+  } catch (e) {
+    // Fallback to regex
+    astResult.hasCleanDatasetDef = /def\s+clean_dataset\s*\(/.test(scriptText);
+    astResult.hasDfCleanCopy = /df_clean\s*=\s*df\s*\.\s*copy\s*\(/.test(scriptText);
+    astResult.hasReturnDfClean = /return\s+df_clean\b/.test(scriptText);
+    astResult.hasReturnOutsideFunction = /^return\s+/m.test(scriptText);
+  }
+
+  const compileOk = compileResult.compileValid !== false;
+  const syntaxOk = syntax.valid !== false;
+  const structurallyValid = compileOk && astResult.hasCleanDatasetDef && astResult.hasDfCleanCopy && astResult.hasReturnDfClean && !astResult.hasReturnOutsideFunction;
 
   return {
-    syntaxValid: syntax.syntaxValid,
-    syntaxError: syntax.error,
-    hasDfCleanCopy: hasDfCopy,
-    hasReturnDfClean: hasReturn,
-    hasCleanDatasetDef: hasDef,
-    structurallyValid: syntax.syntaxValid && hasDfCopy && hasReturn && hasDef
+    syntaxValid: syntaxOk,
+    syntaxError: syntax.error || null,
+    compileValid: compileOk,
+    compileError: compileResult.error || null,
+    hasCleanDatasetDef: astResult.hasCleanDatasetDef,
+    hasDfCleanCopy: astResult.hasDfCleanCopy,
+    hasReturnDfClean: astResult.hasReturnDfClean,
+    hasReturnOutsideFunction: astResult.hasReturnOutsideFunction,
+    cleanDatasetTyped: astResult.cleanDatasetTyped,
+    structurallyValid
   };
 }

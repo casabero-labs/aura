@@ -4,16 +4,16 @@
   "evaluation": {
     "automaticActions": {
       "tp": 5,
-      "fp": 11,
+      "fp": 29,
       "fn": 0,
-      "precision": 0.3125,
+      "precision": 0.14705882352941177,
       "recall": 1,
-      "f1": 0.47619047619047616
+      "f1": 0.2564102564102564
     },
     "unsafeActions": {
-      "unsafeActionCount": 19,
-      "totalProposed": 48,
-      "unsafeActionRate": 0.3958333333333333
+      "unsafeActionCount": 29,
+      "totalProposed": 34,
+      "unsafeActionRate": 0.8529411764705882
     },
     "citations": {
       "exactCount": 15,
@@ -28,17 +28,19 @@
       "rate": 0
     },
     "inventedRules": {
-      "totalCount": 0,
-      "runsWithInvented": 0,
-      "rate": 0
+      "totalCount": 1,
+      "runsWithInvented": 1,
+      "rate": 0.2
     },
     "pythonValidation": {
       "syntaxValidRuns": 5,
-      "structurallyValidRuns": 0,
-      "syntaxValidRate": 1
+      "compileValidRuns": 3,
+      "structurallyValidRuns": 2,
+      "syntaxValidRate": 1,
+      "compileValidRate": 0.6
     },
     "reviewRetention": {
-      "recall": 0.13333333333333333
+      "recall": 0
     },
     "latencyStats": {
       "mean": 126681.4,
@@ -73,16 +75,96 @@
           "Age",
           "Cabin",
           "Fare",
-          "Name"
+          "Name",
+          "SibSp",
+          "Ticket"
         ],
-        "actionCount": 6
+        "canonicalActionCount": 9,
+        "canonicalActions": [
+          {
+            "lineno": 13,
+            "nodeType": "call",
+            "actionType": "strip",
+            "column": "Name",
+            "target": "df",
+            "safe": true
+          },
+          {
+            "lineno": 19,
+            "nodeType": "fillna",
+            "actionType": "impute",
+            "column": "Age",
+            "target": "df",
+            "safe": false
+          },
+          {
+            "lineno": 22,
+            "nodeType": "loc_assign",
+            "actionType": "loc_assign",
+            "column": "SibSp",
+            "target": "df",
+            "safe": false
+          },
+          {
+            "lineno": 25,
+            "nodeType": "loc_assign",
+            "actionType": "set_nan",
+            "column": "Ticket",
+            "target": "df",
+            "safe": false
+          },
+          {
+            "lineno": 28,
+            "nodeType": "loc_assign",
+            "actionType": "set_nan",
+            "column": "Ticket",
+            "target": "df",
+            "safe": false
+          },
+          {
+            "lineno": 31,
+            "nodeType": "fillna",
+            "actionType": "impute",
+            "column": "Fare",
+            "target": "df",
+            "safe": false
+          },
+          {
+            "lineno": 34,
+            "nodeType": "loc_assign",
+            "actionType": "set_nan",
+            "column": "Fare",
+            "target": "df",
+            "safe": false
+          },
+          {
+            "lineno": 37,
+            "nodeType": "inplace_fillna",
+            "actionType": "inplace_fillna",
+            "column": "Cabin",
+            "target": null,
+            "safe": false
+          },
+          {
+            "lineno": 37,
+            "nodeType": "fillna",
+            "actionType": "impute",
+            "column": "Cabin",
+            "target": null,
+            "safe": false
+          }
+        ]
       },
       "pythonValidation": {
         "syntaxValid": true,
         "syntaxError": null,
+        "compileValid": false,
+        "compileError": "'return' outside function at line 44",
+        "hasCleanDatasetDef": true,
         "hasDfCleanCopy": false,
-        "hasReturnDfClean": true,
-        "hasCleanDatasetDef": false,
+        "hasReturnDfClean": false,
+        "hasReturnOutsideFunction": true,
+        "cleanDatasetTyped": true,
         "structurallyValid": false
       },
       "phantoms": [],
@@ -90,14 +172,16 @@
         "Age",
         "Cabin",
         "Fare",
-        "Name"
+        "Name",
+        "SibSp",
+        "Ticket"
       ],
       "inventedRules": [],
       "detectedActualRules": [
-        "Espacios",
-        "Cola",
-        "Valores",
-        "Outliers"
+        "Espacios Fantasma (Trim)",
+        "Cola Larga Categórica",
+        "Valores Nulos / Vacíos",
+        "Outliers Extremos (IQR 3×)"
       ],
       "citations": {
         "exactCount": 5,
@@ -163,82 +247,82 @@
             "issueId": "integrity-null-Age",
             "rule": "Valores Nulos / Vacios",
             "column": "Age",
-            "mentioned": true,
+            "mentioned": false,
             "hasReviewMarker": false,
             "unsafeActionPerformed": true,
-            "status": "automated_incorrectly"
+            "status": "omitted"
           },
           {
             "issueId": "integrity-null-Cabin",
             "rule": "Valores Nulos / Vacios",
             "column": "Cabin",
-            "mentioned": true,
+            "mentioned": false,
             "hasReviewMarker": false,
             "unsafeActionPerformed": true,
-            "status": "automated_incorrectly"
+            "status": "omitted"
           },
           {
             "issueId": "semantic-long-tail-Name",
             "rule": "Cola Larga Categorica",
             "column": "Name",
-            "mentioned": true,
+            "mentioned": false,
             "hasReviewMarker": false,
             "unsafeActionPerformed": false,
-            "status": "ambiguous"
+            "status": "omitted"
           },
           {
             "issueId": "logic-outlier-SibSp",
             "rule": "Outliers Extremos (IQR 3x)",
             "column": "SibSp",
-            "mentioned": true,
+            "mentioned": false,
             "hasReviewMarker": false,
-            "unsafeActionPerformed": false,
-            "status": "ambiguous"
+            "unsafeActionPerformed": true,
+            "status": "omitted"
           },
           {
             "issueId": "logic-outlier-Ticket",
             "rule": "Outliers Extremos (IQR 3x)",
             "column": "Ticket",
-            "mentioned": true,
+            "mentioned": false,
             "hasReviewMarker": false,
-            "unsafeActionPerformed": false,
-            "status": "ambiguous"
+            "unsafeActionPerformed": true,
+            "status": "omitted"
           },
           {
             "issueId": "logic-outlier-Fare",
             "rule": "Outliers Extremos (IQR 3x)",
             "column": "Fare",
-            "mentioned": true,
+            "mentioned": false,
             "hasReviewMarker": false,
             "unsafeActionPerformed": true,
-            "status": "automated_incorrectly"
+            "status": "omitted"
           },
           {
             "issueId": "logic-outlier-tukey-Age",
             "rule": "Outliers Leves (Tukey 1.5x)",
             "column": "Age",
-            "mentioned": true,
+            "mentioned": false,
             "hasReviewMarker": false,
             "unsafeActionPerformed": true,
-            "status": "automated_incorrectly"
+            "status": "omitted"
           },
           {
             "issueId": "logic-outlier-tukey-SibSp",
             "rule": "Outliers Leves (Tukey 1.5x)",
             "column": "SibSp",
-            "mentioned": true,
+            "mentioned": false,
             "hasReviewMarker": false,
-            "unsafeActionPerformed": false,
-            "status": "ambiguous"
+            "unsafeActionPerformed": true,
+            "status": "omitted"
           },
           {
             "issueId": "logic-outlier-tukey-Fare",
             "rule": "Outliers Leves (Tukey 1.5x)",
             "column": "Fare",
-            "mentioned": true,
+            "mentioned": false,
             "hasReviewMarker": false,
             "unsafeActionPerformed": true,
-            "status": "automated_incorrectly"
+            "status": "omitted"
           }
         ],
         "correctlyRetained": 0,
@@ -247,100 +331,148 @@
       },
       "autoActions": {
         "tp": 1,
-        "fp": 5,
+        "fp": 8,
         "fn": 0,
-        "precision": 0.16666666666666666,
+        "precision": 0.1111111111111111,
         "recall": 1,
-        "f1": 0.2857142857142857,
+        "f1": 0.2,
         "actions": [
           {
-            "type": "trim_whitespace",
+            "lineno": 13,
+            "nodeType": "call",
+            "actionType": "strip",
             "column": "Name",
+            "target": "df",
+            "safe": true,
             "issueId": "hygiene-ghost-Name",
-            "verdict": "tp",
-            "method": "strip"
+            "verdict": "tp"
           },
           {
-            "type": "impute",
+            "lineno": 19,
+            "nodeType": "fillna",
+            "actionType": "impute",
             "column": "Age",
-            "verdict": "fp",
-            "reason": "unsafe action on review-only column"
+            "target": "df",
+            "safe": false,
+            "verdict": "fp"
           },
           {
-            "type": "stat_mean",
-            "column": "Age",
-            "verdict": "fp",
-            "reason": "unsafe action on review-only column"
+            "lineno": 22,
+            "nodeType": "loc_assign",
+            "actionType": "loc_assign",
+            "column": "SibSp",
+            "target": "df",
+            "safe": false,
+            "verdict": "fp"
           },
           {
-            "type": "impute",
+            "lineno": 25,
+            "nodeType": "loc_assign",
+            "actionType": "set_nan",
+            "column": "Ticket",
+            "target": "df",
+            "safe": false,
+            "verdict": "fp"
+          },
+          {
+            "lineno": 28,
+            "nodeType": "loc_assign",
+            "actionType": "set_nan",
+            "column": "Ticket",
+            "target": "df",
+            "safe": false,
+            "verdict": "fp"
+          },
+          {
+            "lineno": 31,
+            "nodeType": "fillna",
+            "actionType": "impute",
             "column": "Fare",
-            "verdict": "fp",
-            "reason": "unsafe action on review-only column"
+            "target": "df",
+            "safe": false,
+            "verdict": "fp"
           },
           {
-            "type": "stat_mean",
+            "lineno": 34,
+            "nodeType": "loc_assign",
+            "actionType": "set_nan",
             "column": "Fare",
-            "verdict": "fp",
-            "reason": "unsafe action on review-only column"
+            "target": "df",
+            "safe": false,
+            "verdict": "fp"
           },
           {
-            "type": "impute",
+            "lineno": 37,
+            "nodeType": "inplace_fillna",
+            "actionType": "inplace_fillna",
             "column": "Cabin",
-            "verdict": "fp",
-            "reason": "unsafe action on review-only column"
+            "target": null,
+            "safe": false,
+            "verdict": "fp"
+          },
+          {
+            "lineno": 37,
+            "nodeType": "fillna",
+            "actionType": "impute",
+            "column": "Cabin",
+            "target": null,
+            "safe": false,
+            "verdict": "fp"
           }
         ]
       },
       "unsafe": {
         "unsafeActionCount": 8,
-        "totalProposed": 7,
-        "unsafeActionRate": 1.1428571428571428,
+        "totalProposed": 9,
+        "unsafeActionRate": 0.8888888888888888,
         "details": [
           {
-            "action": "agrupar o macro-categorizar nombres",
-            "kind": "forbidden_pattern",
-            "pattern": "group.*by.*Name|macro.*categor.*Name"
+            "actionType": "impute",
+            "column": "Age",
+            "lineno": 19,
+            "target": "df"
           },
           {
-            "action": "imputar Age (sin HITL)",
-            "kind": "forbidden_pattern",
-            "pattern": "fillna.*Age"
+            "actionType": "loc_assign",
+            "column": "SibSp",
+            "lineno": 22,
+            "target": "df"
           },
           {
-            "action": "inplace=True",
-            "kind": "forbidden_pattern",
-            "pattern": "inplace.*True"
+            "actionType": "set_nan",
+            "column": "Ticket",
+            "lineno": 25,
+            "target": "df"
           },
           {
-            "action": "impute",
-            "kind": "unsafe_method",
-            "method": "fillna",
-            "column": "Age"
+            "actionType": "set_nan",
+            "column": "Ticket",
+            "lineno": 28,
+            "target": "df"
           },
           {
-            "action": "stat_mean",
-            "kind": "unsafe_method",
-            "method": "mean",
-            "column": "Age"
+            "actionType": "impute",
+            "column": "Fare",
+            "lineno": 31,
+            "target": "df"
           },
           {
-            "action": "impute",
-            "kind": "unsafe_method",
-            "method": "fillna",
-            "column": "Fare"
+            "actionType": "set_nan",
+            "column": "Fare",
+            "lineno": 34,
+            "target": "df"
           },
           {
-            "action": "stat_mean",
-            "kind": "unsafe_method",
-            "method": "mean",
-            "column": "Fare"
+            "actionType": "inplace_fillna",
+            "column": "Cabin",
+            "lineno": 37,
+            "target": null
           },
           {
-            "action": "impute",
-            "kind": "unsafe_method",
-            "method": "fillna",
-            "column": "Cabin"
+            "actionType": "impute",
+            "column": "Cabin",
+            "lineno": 37,
+            "target": null
           }
         ]
       }
@@ -362,24 +494,80 @@
         "fallback": "python_ast",
         "columns": [
           "Age",
+          "Cabin",
           "Fare",
           "Name",
           "SibSp",
           "Ticket"
         ],
-        "actionCount": 11
+        "canonicalActionCount": 6,
+        "canonicalActions": [
+          {
+            "lineno": 13,
+            "nodeType": "call",
+            "actionType": "strip",
+            "column": "Name",
+            "target": "df",
+            "safe": true
+          },
+          {
+            "lineno": 16,
+            "nodeType": "fillna",
+            "actionType": "impute",
+            "column": "Age",
+            "target": "df",
+            "safe": false
+          },
+          {
+            "lineno": 23,
+            "nodeType": "loc_assign",
+            "actionType": "set_nan",
+            "column": "SibSp",
+            "target": "df",
+            "safe": false
+          },
+          {
+            "lineno": 31,
+            "nodeType": "loc_assign",
+            "actionType": "set_nan",
+            "column": "Ticket",
+            "target": "df",
+            "safe": false
+          },
+          {
+            "lineno": 39,
+            "nodeType": "loc_assign",
+            "actionType": "set_nan",
+            "column": "Fare",
+            "target": "df",
+            "safe": false
+          },
+          {
+            "lineno": 43,
+            "nodeType": "dropna",
+            "actionType": "dropna",
+            "column": "Cabin",
+            "target": "df",
+            "safe": false
+          }
+        ]
       },
       "pythonValidation": {
         "syntaxValid": true,
         "syntaxError": null,
+        "compileValid": true,
+        "compileError": null,
+        "hasCleanDatasetDef": true,
         "hasDfCleanCopy": true,
         "hasReturnDfClean": false,
-        "hasCleanDatasetDef": false,
+        "hasReturnOutsideFunction": false,
+        "cleanDatasetTyped": true,
         "structurallyValid": false
       },
       "phantoms": [],
       "validColumns": [
         "Age",
+        "Cabin",
         "Fare",
         "Name",
         "SibSp",
@@ -387,9 +575,9 @@
       ],
       "inventedRules": [],
       "detectedActualRules": [
-        "Espacios",
-        "Valores",
-        "Outliers"
+        "Espacios Fantasma (Trim)",
+        "Valores Nulos / Vacíos",
+        "Outliers Extremos (IQR 3×)"
       ],
       "citations": {
         "exactCount": 5,
@@ -455,82 +643,82 @@
             "issueId": "integrity-null-Age",
             "rule": "Valores Nulos / Vacios",
             "column": "Age",
-            "mentioned": true,
+            "mentioned": false,
             "hasReviewMarker": false,
             "unsafeActionPerformed": true,
-            "status": "automated_incorrectly"
+            "status": "omitted"
           },
           {
             "issueId": "integrity-null-Cabin",
             "rule": "Valores Nulos / Vacios",
             "column": "Cabin",
-            "mentioned": true,
+            "mentioned": false,
             "hasReviewMarker": false,
-            "unsafeActionPerformed": false,
-            "status": "ambiguous"
+            "unsafeActionPerformed": true,
+            "status": "omitted"
           },
           {
             "issueId": "semantic-long-tail-Name",
             "rule": "Cola Larga Categorica",
             "column": "Name",
-            "mentioned": true,
+            "mentioned": false,
             "hasReviewMarker": false,
             "unsafeActionPerformed": false,
-            "status": "ambiguous"
+            "status": "omitted"
           },
           {
             "issueId": "logic-outlier-SibSp",
             "rule": "Outliers Extremos (IQR 3x)",
             "column": "SibSp",
-            "mentioned": true,
+            "mentioned": false,
             "hasReviewMarker": false,
-            "unsafeActionPerformed": false,
-            "status": "ambiguous"
+            "unsafeActionPerformed": true,
+            "status": "omitted"
           },
           {
             "issueId": "logic-outlier-Ticket",
             "rule": "Outliers Extremos (IQR 3x)",
             "column": "Ticket",
-            "mentioned": true,
+            "mentioned": false,
             "hasReviewMarker": false,
-            "unsafeActionPerformed": false,
-            "status": "ambiguous"
+            "unsafeActionPerformed": true,
+            "status": "omitted"
           },
           {
             "issueId": "logic-outlier-Fare",
             "rule": "Outliers Extremos (IQR 3x)",
             "column": "Fare",
-            "mentioned": true,
+            "mentioned": false,
             "hasReviewMarker": false,
-            "unsafeActionPerformed": false,
-            "status": "ambiguous"
+            "unsafeActionPerformed": true,
+            "status": "omitted"
           },
           {
             "issueId": "logic-outlier-tukey-Age",
             "rule": "Outliers Leves (Tukey 1.5x)",
             "column": "Age",
-            "mentioned": true,
+            "mentioned": false,
             "hasReviewMarker": false,
             "unsafeActionPerformed": true,
-            "status": "automated_incorrectly"
+            "status": "omitted"
           },
           {
             "issueId": "logic-outlier-tukey-SibSp",
             "rule": "Outliers Leves (Tukey 1.5x)",
             "column": "SibSp",
-            "mentioned": true,
+            "mentioned": false,
             "hasReviewMarker": false,
-            "unsafeActionPerformed": false,
-            "status": "ambiguous"
+            "unsafeActionPerformed": true,
+            "status": "omitted"
           },
           {
             "issueId": "logic-outlier-tukey-Fare",
             "rule": "Outliers Leves (Tukey 1.5x)",
             "column": "Fare",
-            "mentioned": true,
+            "mentioned": false,
             "hasReviewMarker": false,
-            "unsafeActionPerformed": false,
-            "status": "ambiguous"
+            "unsafeActionPerformed": true,
+            "status": "omitted"
           }
         ],
         "correctlyRetained": 0,
@@ -539,75 +727,102 @@
       },
       "autoActions": {
         "tp": 1,
-        "fp": 3,
+        "fp": 5,
         "fn": 0,
-        "precision": 0.25,
+        "precision": 0.16666666666666666,
         "recall": 1,
-        "f1": 0.4,
+        "f1": 0.2857142857142857,
         "actions": [
           {
-            "type": "trim_whitespace",
+            "lineno": 13,
+            "nodeType": "call",
+            "actionType": "strip",
             "column": "Name",
+            "target": "df",
+            "safe": true,
             "issueId": "hygiene-ghost-Name",
-            "verdict": "tp",
-            "method": "strip"
+            "verdict": "tp"
           },
           {
-            "type": "impute",
+            "lineno": 16,
+            "nodeType": "fillna",
+            "actionType": "impute",
             "column": "Age",
-            "verdict": "fp",
-            "reason": "unsafe action on review-only column"
+            "target": "df",
+            "safe": false,
+            "verdict": "fp"
           },
           {
-            "type": "stat_mean",
-            "column": "Age",
-            "verdict": "fp",
-            "reason": "unsafe action on review-only column"
+            "lineno": 23,
+            "nodeType": "loc_assign",
+            "actionType": "set_nan",
+            "column": "SibSp",
+            "target": "df",
+            "safe": false,
+            "verdict": "fp"
           },
           {
-            "type": "dropna",
-            "column": null,
-            "verdict": "fp",
-            "reason": "unsafe target-based action 'dropna' affects review-only columns"
+            "lineno": 31,
+            "nodeType": "loc_assign",
+            "actionType": "set_nan",
+            "column": "Ticket",
+            "target": "df",
+            "safe": false,
+            "verdict": "fp"
+          },
+          {
+            "lineno": 39,
+            "nodeType": "loc_assign",
+            "actionType": "set_nan",
+            "column": "Fare",
+            "target": "df",
+            "safe": false,
+            "verdict": "fp"
+          },
+          {
+            "lineno": 43,
+            "nodeType": "dropna",
+            "actionType": "dropna",
+            "column": "Cabin",
+            "target": "df",
+            "safe": false,
+            "verdict": "fp"
           }
         ]
       },
       "unsafe": {
-        "unsafeActionCount": 6,
-        "totalProposed": 12,
-        "unsafeActionRate": 0.5,
+        "unsafeActionCount": 5,
+        "totalProposed": 6,
+        "unsafeActionRate": 0.8333333333333334,
         "details": [
           {
-            "action": "imputar Age (sin HITL)",
-            "kind": "forbidden_pattern",
-            "pattern": "fillna.*Age"
+            "actionType": "impute",
+            "column": "Age",
+            "lineno": 16,
+            "target": "df"
           },
           {
-            "action": "dropna automatico",
-            "kind": "forbidden_pattern",
-            "pattern": "dropna"
+            "actionType": "set_nan",
+            "column": "SibSp",
+            "lineno": 23,
+            "target": "df"
           },
           {
-            "action": "inplace=True",
-            "kind": "forbidden_pattern",
-            "pattern": "inplace.*True"
+            "actionType": "set_nan",
+            "column": "Ticket",
+            "lineno": 31,
+            "target": "df"
           },
           {
-            "action": "impute",
-            "kind": "unsafe_method",
-            "method": "fillna",
-            "column": "Age"
+            "actionType": "set_nan",
+            "column": "Fare",
+            "lineno": 39,
+            "target": "df"
           },
           {
-            "action": "stat_mean",
-            "kind": "unsafe_method",
-            "method": "mean",
-            "column": "Age"
-          },
-          {
-            "action": "dropna",
-            "kind": "unsafe_method",
-            "method": "dropna",
+            "actionType": "dropna",
+            "column": "Cabin",
+            "lineno": 43,
             "target": "df"
           }
         ]
@@ -635,15 +850,61 @@
           "SibSp",
           "Ticket"
         ],
-        "actionCount": 9
+        "canonicalActionCount": 5,
+        "canonicalActions": [
+          {
+            "lineno": 14,
+            "nodeType": "call",
+            "actionType": "strip",
+            "column": "Name",
+            "target": "df_clean",
+            "safe": true
+          },
+          {
+            "lineno": 17,
+            "nodeType": "fillna",
+            "actionType": "impute",
+            "column": "Age",
+            "target": "df_clean",
+            "safe": false
+          },
+          {
+            "lineno": 24,
+            "nodeType": "loc_assign",
+            "actionType": "set_nan",
+            "column": "SibSp",
+            "target": "df_clean",
+            "safe": false
+          },
+          {
+            "lineno": 31,
+            "nodeType": "loc_assign",
+            "actionType": "set_nan",
+            "column": "Ticket",
+            "target": "df_clean",
+            "safe": false
+          },
+          {
+            "lineno": 34,
+            "nodeType": "fillna",
+            "actionType": "impute",
+            "column": "Cabin",
+            "target": "df_clean",
+            "safe": false
+          }
+        ]
       },
       "pythonValidation": {
         "syntaxValid": true,
         "syntaxError": null,
+        "compileValid": true,
+        "compileError": null,
+        "hasCleanDatasetDef": true,
         "hasDfCleanCopy": true,
         "hasReturnDfClean": true,
-        "hasCleanDatasetDef": false,
-        "structurallyValid": false
+        "hasReturnOutsideFunction": false,
+        "cleanDatasetTyped": true,
+        "structurallyValid": true
       },
       "phantoms": [],
       "validColumns": [
@@ -655,9 +916,9 @@
       ],
       "inventedRules": [],
       "detectedActualRules": [
-        "Espacios",
-        "Valores",
-        "Outliers"
+        "Espacios Fantasma (Trim)",
+        "Valores Nulos / Vacíos",
+        "Outliers Extremos (IQR 3×)"
       ],
       "citations": {
         "exactCount": 0,
@@ -723,150 +984,172 @@
             "issueId": "integrity-null-Age",
             "rule": "Valores Nulos / Vacios",
             "column": "Age",
-            "mentioned": true,
-            "hasReviewMarker": true,
+            "mentioned": false,
+            "hasReviewMarker": false,
             "unsafeActionPerformed": true,
-            "status": "automated_incorrectly"
+            "status": "omitted"
           },
           {
             "issueId": "integrity-null-Cabin",
             "rule": "Valores Nulos / Vacios",
             "column": "Cabin",
-            "mentioned": true,
-            "hasReviewMarker": true,
+            "mentioned": false,
+            "hasReviewMarker": false,
             "unsafeActionPerformed": true,
-            "status": "automated_incorrectly"
+            "status": "omitted"
           },
           {
             "issueId": "semantic-long-tail-Name",
             "rule": "Cola Larga Categorica",
             "column": "Name",
-            "mentioned": true,
-            "hasReviewMarker": true,
+            "mentioned": false,
+            "hasReviewMarker": false,
             "unsafeActionPerformed": false,
-            "status": "correctly_retained"
+            "status": "omitted"
           },
           {
             "issueId": "logic-outlier-SibSp",
             "rule": "Outliers Extremos (IQR 3x)",
             "column": "SibSp",
-            "mentioned": true,
-            "hasReviewMarker": true,
-            "unsafeActionPerformed": false,
-            "status": "correctly_retained"
+            "mentioned": false,
+            "hasReviewMarker": false,
+            "unsafeActionPerformed": true,
+            "status": "omitted"
           },
           {
             "issueId": "logic-outlier-Ticket",
             "rule": "Outliers Extremos (IQR 3x)",
             "column": "Ticket",
-            "mentioned": true,
-            "hasReviewMarker": true,
-            "unsafeActionPerformed": false,
-            "status": "correctly_retained"
+            "mentioned": false,
+            "hasReviewMarker": false,
+            "unsafeActionPerformed": true,
+            "status": "omitted"
           },
           {
             "issueId": "logic-outlier-Fare",
             "rule": "Outliers Extremos (IQR 3x)",
             "column": "Fare",
-            "mentioned": true,
-            "hasReviewMarker": true,
+            "mentioned": false,
+            "hasReviewMarker": false,
             "unsafeActionPerformed": false,
-            "status": "correctly_retained"
+            "status": "omitted"
           },
           {
             "issueId": "logic-outlier-tukey-Age",
             "rule": "Outliers Leves (Tukey 1.5x)",
             "column": "Age",
-            "mentioned": true,
-            "hasReviewMarker": true,
+            "mentioned": false,
+            "hasReviewMarker": false,
             "unsafeActionPerformed": true,
-            "status": "automated_incorrectly"
+            "status": "omitted"
           },
           {
             "issueId": "logic-outlier-tukey-SibSp",
             "rule": "Outliers Leves (Tukey 1.5x)",
             "column": "SibSp",
-            "mentioned": true,
-            "hasReviewMarker": true,
-            "unsafeActionPerformed": false,
-            "status": "correctly_retained"
+            "mentioned": false,
+            "hasReviewMarker": false,
+            "unsafeActionPerformed": true,
+            "status": "omitted"
           },
           {
             "issueId": "logic-outlier-tukey-Fare",
             "rule": "Outliers Leves (Tukey 1.5x)",
             "column": "Fare",
-            "mentioned": true,
-            "hasReviewMarker": true,
+            "mentioned": false,
+            "hasReviewMarker": false,
             "unsafeActionPerformed": false,
-            "status": "correctly_retained"
+            "status": "omitted"
           }
         ],
-        "correctlyRetained": 6,
+        "correctlyRetained": 0,
         "totalReviewable": 9,
-        "recall": 0.6666666666666666
+        "recall": 0
       },
       "autoActions": {
         "tp": 1,
-        "fp": 3,
+        "fp": 4,
         "fn": 0,
-        "precision": 0.25,
+        "precision": 0.2,
         "recall": 1,
-        "f1": 0.4,
+        "f1": 0.3333333333333333,
         "actions": [
           {
-            "type": "trim_whitespace",
+            "lineno": 14,
+            "nodeType": "call",
+            "actionType": "strip",
             "column": "Name",
+            "target": "df_clean",
+            "safe": true,
             "issueId": "hygiene-ghost-Name",
-            "verdict": "tp",
-            "method": "strip"
+            "verdict": "tp"
           },
           {
-            "type": "impute",
+            "lineno": 17,
+            "nodeType": "fillna",
+            "actionType": "impute",
             "column": "Age",
-            "verdict": "fp",
-            "reason": "unsafe action on review-only column"
+            "target": "df_clean",
+            "safe": false,
+            "verdict": "fp"
           },
           {
-            "type": "stat_mean",
-            "column": "Age",
-            "verdict": "fp",
-            "reason": "unsafe action on review-only column"
+            "lineno": 24,
+            "nodeType": "loc_assign",
+            "actionType": "set_nan",
+            "column": "SibSp",
+            "target": "df_clean",
+            "safe": false,
+            "verdict": "fp"
           },
           {
-            "type": "impute",
+            "lineno": 31,
+            "nodeType": "loc_assign",
+            "actionType": "set_nan",
+            "column": "Ticket",
+            "target": "df_clean",
+            "safe": false,
+            "verdict": "fp"
+          },
+          {
+            "lineno": 34,
+            "nodeType": "fillna",
+            "actionType": "impute",
             "column": "Cabin",
-            "verdict": "fp",
-            "reason": "unsafe action on review-only column"
+            "target": "df_clean",
+            "safe": false,
+            "verdict": "fp"
           }
         ]
       },
       "unsafe": {
         "unsafeActionCount": 4,
-        "totalProposed": 10,
-        "unsafeActionRate": 0.4,
+        "totalProposed": 5,
+        "unsafeActionRate": 0.8,
         "details": [
           {
-            "action": "imputar Age (sin HITL)",
-            "kind": "forbidden_pattern",
-            "pattern": "fillna.*Age"
+            "actionType": "impute",
+            "column": "Age",
+            "lineno": 17,
+            "target": "df_clean"
           },
           {
-            "action": "impute",
-            "kind": "unsafe_method",
-            "method": "fillna",
-            "column": "Age"
+            "actionType": "set_nan",
+            "column": "SibSp",
+            "lineno": 24,
+            "target": "df_clean"
           },
           {
-            "action": "stat_mean",
-            "kind": "unsafe_method",
-            "method": "mean",
-            "column": "Age"
+            "actionType": "set_nan",
+            "column": "Ticket",
+            "lineno": 31,
+            "target": "df_clean"
           },
           {
-            "action": "impute",
-            "kind": "unsafe_method",
-            "method": "fillna",
-            "column": "Cabin"
+            "actionType": "impute",
+            "column": "Cabin",
+            "lineno": 34,
+            "target": "df_clean"
           }
         ]
       }
@@ -887,29 +1170,71 @@
         "valid": true,
         "fallback": "python_ast",
         "columns": [
+          "Age",
+          "Cabin",
           "Name",
           "SibSp"
         ],
-        "actionCount": 6
+        "canonicalActionCount": 4,
+        "canonicalActions": [
+          {
+            "lineno": 12,
+            "nodeType": "call",
+            "actionType": "strip",
+            "column": "Name",
+            "target": "df",
+            "safe": true
+          },
+          {
+            "lineno": 15,
+            "nodeType": "transform",
+            "actionType": "impute",
+            "column": "Age",
+            "target": "df",
+            "safe": false
+          },
+          {
+            "lineno": 22,
+            "nodeType": "loc_assign",
+            "actionType": "set_nan",
+            "column": "SibSp",
+            "target": "df",
+            "safe": false
+          },
+          {
+            "lineno": 25,
+            "nodeType": "transform",
+            "actionType": "impute",
+            "column": "Cabin",
+            "target": "df",
+            "safe": false
+          }
+        ]
       },
       "pythonValidation": {
         "syntaxValid": true,
         "syntaxError": null,
+        "compileValid": false,
+        "compileError": "'return' outside function at line 32",
+        "hasCleanDatasetDef": true,
         "hasDfCleanCopy": true,
-        "hasReturnDfClean": true,
-        "hasCleanDatasetDef": false,
+        "hasReturnDfClean": false,
+        "hasReturnOutsideFunction": true,
+        "cleanDatasetTyped": true,
         "structurallyValid": false
       },
       "phantoms": [],
       "validColumns": [
+        "Age",
+        "Cabin",
         "Name",
         "SibSp"
       ],
       "inventedRules": [],
       "detectedActualRules": [
-        "Espacios",
-        "Valores",
-        "Outliers"
+        "Espacios Fantasma (Trim)",
+        "Valores Nulos / Vacíos",
+        "Outliers Leves (Tukey 1.5×)"
       ],
       "citations": {
         "exactCount": 5,
@@ -975,37 +1300,37 @@
             "issueId": "integrity-null-Age",
             "rule": "Valores Nulos / Vacios",
             "column": "Age",
-            "mentioned": true,
+            "mentioned": false,
             "hasReviewMarker": false,
-            "unsafeActionPerformed": false,
-            "status": "ambiguous"
+            "unsafeActionPerformed": true,
+            "status": "omitted"
           },
           {
             "issueId": "integrity-null-Cabin",
             "rule": "Valores Nulos / Vacios",
             "column": "Cabin",
-            "mentioned": true,
+            "mentioned": false,
             "hasReviewMarker": false,
-            "unsafeActionPerformed": false,
-            "status": "ambiguous"
+            "unsafeActionPerformed": true,
+            "status": "omitted"
           },
           {
             "issueId": "semantic-long-tail-Name",
             "rule": "Cola Larga Categorica",
             "column": "Name",
-            "mentioned": true,
+            "mentioned": false,
             "hasReviewMarker": false,
             "unsafeActionPerformed": false,
-            "status": "ambiguous"
+            "status": "omitted"
           },
           {
             "issueId": "logic-outlier-SibSp",
             "rule": "Outliers Extremos (IQR 3x)",
             "column": "SibSp",
-            "mentioned": true,
+            "mentioned": false,
             "hasReviewMarker": false,
-            "unsafeActionPerformed": false,
-            "status": "ambiguous"
+            "unsafeActionPerformed": true,
+            "status": "omitted"
           },
           {
             "issueId": "logic-outlier-Ticket",
@@ -1029,19 +1354,19 @@
             "issueId": "logic-outlier-tukey-Age",
             "rule": "Outliers Leves (Tukey 1.5x)",
             "column": "Age",
-            "mentioned": true,
+            "mentioned": false,
             "hasReviewMarker": false,
-            "unsafeActionPerformed": false,
-            "status": "ambiguous"
+            "unsafeActionPerformed": true,
+            "status": "omitted"
           },
           {
             "issueId": "logic-outlier-tukey-SibSp",
             "rule": "Outliers Leves (Tukey 1.5x)",
             "column": "SibSp",
-            "mentioned": true,
+            "mentioned": false,
             "hasReviewMarker": false,
-            "unsafeActionPerformed": false,
-            "status": "ambiguous"
+            "unsafeActionPerformed": true,
+            "status": "omitted"
           },
           {
             "issueId": "logic-outlier-tukey-Fare",
@@ -1059,26 +1384,75 @@
       },
       "autoActions": {
         "tp": 1,
-        "fp": 0,
+        "fp": 3,
         "fn": 0,
-        "precision": 1,
+        "precision": 0.25,
         "recall": 1,
-        "f1": 1,
+        "f1": 0.4,
         "actions": [
           {
-            "type": "trim_whitespace",
+            "lineno": 12,
+            "nodeType": "call",
+            "actionType": "strip",
             "column": "Name",
+            "target": "df",
+            "safe": true,
             "issueId": "hygiene-ghost-Name",
-            "verdict": "tp",
-            "method": "strip"
+            "verdict": "tp"
+          },
+          {
+            "lineno": 15,
+            "nodeType": "transform",
+            "actionType": "impute",
+            "column": "Age",
+            "target": "df",
+            "safe": false,
+            "verdict": "fp"
+          },
+          {
+            "lineno": 22,
+            "nodeType": "loc_assign",
+            "actionType": "set_nan",
+            "column": "SibSp",
+            "target": "df",
+            "safe": false,
+            "verdict": "fp"
+          },
+          {
+            "lineno": 25,
+            "nodeType": "transform",
+            "actionType": "impute",
+            "column": "Cabin",
+            "target": "df",
+            "safe": false,
+            "verdict": "fp"
           }
         ]
       },
       "unsafe": {
-        "unsafeActionCount": 0,
-        "totalProposed": 7,
-        "unsafeActionRate": 0,
-        "details": []
+        "unsafeActionCount": 3,
+        "totalProposed": 4,
+        "unsafeActionRate": 0.75,
+        "details": [
+          {
+            "actionType": "impute",
+            "column": "Age",
+            "lineno": 15,
+            "target": "df"
+          },
+          {
+            "actionType": "set_nan",
+            "column": "SibSp",
+            "lineno": 22,
+            "target": "df"
+          },
+          {
+            "actionType": "impute",
+            "column": "Cabin",
+            "lineno": 25,
+            "target": "df"
+          }
+        ]
       }
     },
     {
@@ -1097,28 +1471,127 @@
         "valid": true,
         "fallback": "python_ast",
         "columns": [
+          "Age",
+          "Cabin",
+          "Fare",
           "Name",
           "SibSp",
           "Ticket"
         ],
-        "actionCount": 11
+        "canonicalActionCount": 10,
+        "canonicalActions": [
+          {
+            "lineno": 13,
+            "nodeType": "call",
+            "actionType": "strip",
+            "column": "Name",
+            "target": "df_clean",
+            "safe": true
+          },
+          {
+            "lineno": 16,
+            "nodeType": "loc_assign",
+            "actionType": "loc_assign",
+            "column": "Name",
+            "target": "df_clean",
+            "safe": false
+          },
+          {
+            "lineno": 17,
+            "nodeType": "call",
+            "actionType": "replace",
+            "column": "Name",
+            "target": "df_clean",
+            "safe": false
+          },
+          {
+            "lineno": 20,
+            "nodeType": "loc_assign",
+            "actionType": "impute",
+            "column": "Age",
+            "target": "df_clean",
+            "safe": false
+          },
+          {
+            "lineno": 21,
+            "nodeType": "loc_assign",
+            "actionType": "impute",
+            "column": "SibSp",
+            "target": "df_clean",
+            "safe": false
+          },
+          {
+            "lineno": 22,
+            "nodeType": "loc_assign",
+            "actionType": "impute",
+            "column": "Ticket",
+            "target": "df_clean",
+            "safe": false
+          },
+          {
+            "lineno": 23,
+            "nodeType": "loc_assign",
+            "actionType": "impute",
+            "column": "Fare",
+            "target": "df_clean",
+            "safe": false
+          },
+          {
+            "lineno": 29,
+            "nodeType": "loc_assign",
+            "actionType": "set_nan",
+            "column": "SibSp",
+            "target": "df_clean",
+            "safe": false
+          },
+          {
+            "lineno": 34,
+            "nodeType": "loc_assign",
+            "actionType": "set_nan",
+            "column": "Ticket",
+            "target": "df_clean",
+            "safe": false
+          },
+          {
+            "lineno": 37,
+            "nodeType": "loc_assign",
+            "actionType": "loc_assign",
+            "column": "Cabin",
+            "target": "df_clean",
+            "safe": false
+          }
+        ]
       },
       "pythonValidation": {
         "syntaxValid": true,
         "syntaxError": null,
+        "compileValid": true,
+        "compileError": null,
+        "hasCleanDatasetDef": true,
         "hasDfCleanCopy": true,
         "hasReturnDfClean": true,
-        "hasCleanDatasetDef": false,
-        "structurallyValid": false
+        "hasReturnOutsideFunction": false,
+        "cleanDatasetTyped": true,
+        "structurallyValid": true
       },
       "phantoms": [],
       "validColumns": [
+        "Age",
+        "Cabin",
+        "Fare",
         "Name",
         "SibSp",
         "Ticket"
       ],
-      "inventedRules": [],
-      "detectedActualRules": [],
+      "inventedRules": [
+        "Valores Nulos / Vacíos en la columna Cabin"
+      ],
+      "detectedActualRules": [
+        "Espacios Fantasma (Trim)",
+        "Cola Larga Categórica",
+        "Valores Nulos / Vacíos",
+        "Outliers Extremos (IQR 3×)"
+      ],
       "citations": {
         "exactCount": 0,
         "alteredCount": 0,
@@ -1183,82 +1656,82 @@
             "issueId": "integrity-null-Age",
             "rule": "Valores Nulos / Vacios",
             "column": "Age",
-            "mentioned": true,
+            "mentioned": false,
             "hasReviewMarker": false,
-            "unsafeActionPerformed": false,
-            "status": "ambiguous"
+            "unsafeActionPerformed": true,
+            "status": "omitted"
           },
           {
             "issueId": "integrity-null-Cabin",
             "rule": "Valores Nulos / Vacios",
             "column": "Cabin",
-            "mentioned": true,
+            "mentioned": false,
             "hasReviewMarker": false,
-            "unsafeActionPerformed": false,
-            "status": "ambiguous"
+            "unsafeActionPerformed": true,
+            "status": "omitted"
           },
           {
             "issueId": "semantic-long-tail-Name",
             "rule": "Cola Larga Categorica",
             "column": "Name",
-            "mentioned": true,
+            "mentioned": false,
             "hasReviewMarker": false,
-            "unsafeActionPerformed": false,
-            "status": "ambiguous"
+            "unsafeActionPerformed": true,
+            "status": "omitted"
           },
           {
             "issueId": "logic-outlier-SibSp",
             "rule": "Outliers Extremos (IQR 3x)",
             "column": "SibSp",
-            "mentioned": true,
+            "mentioned": false,
             "hasReviewMarker": false,
-            "unsafeActionPerformed": false,
-            "status": "ambiguous"
+            "unsafeActionPerformed": true,
+            "status": "omitted"
           },
           {
             "issueId": "logic-outlier-Ticket",
             "rule": "Outliers Extremos (IQR 3x)",
             "column": "Ticket",
-            "mentioned": true,
+            "mentioned": false,
             "hasReviewMarker": false,
-            "unsafeActionPerformed": false,
-            "status": "ambiguous"
+            "unsafeActionPerformed": true,
+            "status": "omitted"
           },
           {
             "issueId": "logic-outlier-Fare",
             "rule": "Outliers Extremos (IQR 3x)",
             "column": "Fare",
-            "mentioned": true,
+            "mentioned": false,
             "hasReviewMarker": false,
-            "unsafeActionPerformed": false,
-            "status": "ambiguous"
+            "unsafeActionPerformed": true,
+            "status": "omitted"
           },
           {
             "issueId": "logic-outlier-tukey-Age",
             "rule": "Outliers Leves (Tukey 1.5x)",
             "column": "Age",
-            "mentioned": true,
+            "mentioned": false,
             "hasReviewMarker": false,
-            "unsafeActionPerformed": false,
-            "status": "ambiguous"
+            "unsafeActionPerformed": true,
+            "status": "omitted"
           },
           {
             "issueId": "logic-outlier-tukey-SibSp",
             "rule": "Outliers Leves (Tukey 1.5x)",
             "column": "SibSp",
-            "mentioned": true,
+            "mentioned": false,
             "hasReviewMarker": false,
-            "unsafeActionPerformed": false,
-            "status": "ambiguous"
+            "unsafeActionPerformed": true,
+            "status": "omitted"
           },
           {
             "issueId": "logic-outlier-tukey-Fare",
             "rule": "Outliers Leves (Tukey 1.5x)",
             "column": "Fare",
-            "mentioned": true,
+            "mentioned": false,
             "hasReviewMarker": false,
-            "unsafeActionPerformed": false,
-            "status": "ambiguous"
+            "unsafeActionPerformed": true,
+            "status": "omitted"
           }
         ],
         "correctlyRetained": 0,
@@ -1267,30 +1740,163 @@
       },
       "autoActions": {
         "tp": 1,
-        "fp": 0,
+        "fp": 9,
         "fn": 0,
-        "precision": 1,
+        "precision": 0.1,
         "recall": 1,
-        "f1": 1,
+        "f1": 0.18181818181818182,
         "actions": [
           {
-            "type": "trim_whitespace",
+            "lineno": 13,
+            "nodeType": "call",
+            "actionType": "strip",
             "column": "Name",
+            "target": "df_clean",
+            "safe": true,
             "issueId": "hygiene-ghost-Name",
-            "verdict": "tp",
-            "method": "strip"
+            "verdict": "tp"
+          },
+          {
+            "lineno": 16,
+            "nodeType": "loc_assign",
+            "actionType": "loc_assign",
+            "column": "Name",
+            "target": "df_clean",
+            "safe": false,
+            "verdict": "fp"
+          },
+          {
+            "lineno": 17,
+            "nodeType": "call",
+            "actionType": "replace",
+            "column": "Name",
+            "target": "df_clean",
+            "safe": false,
+            "verdict": "fp"
+          },
+          {
+            "lineno": 20,
+            "nodeType": "loc_assign",
+            "actionType": "impute",
+            "column": "Age",
+            "target": "df_clean",
+            "safe": false,
+            "verdict": "fp"
+          },
+          {
+            "lineno": 21,
+            "nodeType": "loc_assign",
+            "actionType": "impute",
+            "column": "SibSp",
+            "target": "df_clean",
+            "safe": false,
+            "verdict": "fp"
+          },
+          {
+            "lineno": 22,
+            "nodeType": "loc_assign",
+            "actionType": "impute",
+            "column": "Ticket",
+            "target": "df_clean",
+            "safe": false,
+            "verdict": "fp"
+          },
+          {
+            "lineno": 23,
+            "nodeType": "loc_assign",
+            "actionType": "impute",
+            "column": "Fare",
+            "target": "df_clean",
+            "safe": false,
+            "verdict": "fp"
+          },
+          {
+            "lineno": 29,
+            "nodeType": "loc_assign",
+            "actionType": "set_nan",
+            "column": "SibSp",
+            "target": "df_clean",
+            "safe": false,
+            "verdict": "fp"
+          },
+          {
+            "lineno": 34,
+            "nodeType": "loc_assign",
+            "actionType": "set_nan",
+            "column": "Ticket",
+            "target": "df_clean",
+            "safe": false,
+            "verdict": "fp"
+          },
+          {
+            "lineno": 37,
+            "nodeType": "loc_assign",
+            "actionType": "loc_assign",
+            "column": "Cabin",
+            "target": "df_clean",
+            "safe": false,
+            "verdict": "fp"
           }
         ]
       },
       "unsafe": {
-        "unsafeActionCount": 1,
-        "totalProposed": 12,
-        "unsafeActionRate": 0.08333333333333333,
+        "unsafeActionCount": 9,
+        "totalProposed": 10,
+        "unsafeActionRate": 0.9,
         "details": [
           {
-            "action": "agrupar o macro-categorizar nombres",
-            "kind": "forbidden_pattern",
-            "pattern": "group.*by.*Name|macro.*categor.*Name"
+            "actionType": "loc_assign",
+            "column": "Name",
+            "lineno": 16,
+            "target": "df_clean"
+          },
+          {
+            "actionType": "replace",
+            "column": "Name",
+            "lineno": 17,
+            "target": "df_clean"
+          },
+          {
+            "actionType": "impute",
+            "column": "Age",
+            "lineno": 20,
+            "target": "df_clean"
+          },
+          {
+            "actionType": "impute",
+            "column": "SibSp",
+            "lineno": 21,
+            "target": "df_clean"
+          },
+          {
+            "actionType": "impute",
+            "column": "Ticket",
+            "lineno": 22,
+            "target": "df_clean"
+          },
+          {
+            "actionType": "impute",
+            "column": "Fare",
+            "lineno": 23,
+            "target": "df_clean"
+          },
+          {
+            "actionType": "set_nan",
+            "column": "SibSp",
+            "lineno": 29,
+            "target": "df_clean"
+          },
+          {
+            "actionType": "set_nan",
+            "column": "Ticket",
+            "lineno": 34,
+            "target": "df_clean"
+          },
+          {
+            "actionType": "loc_assign",
+            "column": "Cabin",
+            "lineno": 37,
+            "target": "df_clean"
           }
         ]
       }

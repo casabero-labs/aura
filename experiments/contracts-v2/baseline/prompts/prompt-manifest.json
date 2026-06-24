@@ -1,55 +1,28 @@
 {
-  "manifestVersion": "1.0.0",
+  "manifestVersion": "2.0.0",
   "prompts": [
     {
       "name": "diagnosis-prompt",
       "file": "diagnosis-prompt.txt",
       "builder": "buildAnalysisPrompt",
       "inputMode": "smart_sample",
-      "contractConfig": {
-        "objective": "Diagnosticar causas probables y producir una salida lista para generar un script Python/Pandas de limpieza asistida.",
-        "evidencePolicy": "strict",
-        "requireScriptReadiness": true,
-        "includeHumanReviewLabels": true,
-        "includeCopyPasteEvidence": true,
-        "extraInstructions": ""
-      },
-      "hash": "diag_v1_smart_sample",
-      "characters": 2847,
-      "estimatedTokens": 710,
-      "timestamp": "2026-06-23T20:59:39.754Z"
+      "sha256": "722cba5ad9ab6d3ee9e57aa5b0d633d18ebd866db1ecc24e7ed0ed5682e84117"
     },
     {
       "name": "diagnosis-summary-prompt",
       "file": "diagnosis-summary-prompt.txt",
       "builder": "buildDiagnosisSummaryPrompt",
       "inputMode": "N/A",
-      "contractConfig": {},
-      "hash": "summary_v1",
-      "characters": 398,
-      "estimatedTokens": 100,
-      "timestamp": "2026-06-23T20:59:39.754Z"
+      "sha256": "44b3b1fc4e30aa966d790d903360092087697f0fccc61de97370dbbfc3cf99ac"
     },
     {
       "name": "script-prompt",
       "file": "script-prompt.txt",
       "builder": "buildScriptPrompt",
       "inputMode": "smart_sample",
-      "contractConfig": {
-        "objective": "Diagnosticar causas probables y producir una salida lista para generar un script Python/Pandas de limpieza asistida.",
-        "evidencePolicy": "strict",
-        "requireScriptReadiness": true,
-        "includeHumanReviewLabels": true,
-        "includeCopyPasteEvidence": true,
-        "extraInstructions": ""
-      },
-      "hash": "script_v1_smart_sample",
-      "characters": 2543,
-      "estimatedTokens": 635,
-      "timestamp": "2026-06-23T20:59:39.754Z"
+      "sha256": "184eb4146957f1220cddd7ea52a4186b945be1df0264a37d29e5f53b09f921da"
     }
   ],
-  "contractSource": "current-production",
-  "commitSha": "main",
-  "protocolHash": "proto_v1_baseline"
+  "commitSha": "0387905f0a3c06b0a275666e58b0782615feeec4",
+  "evaluatorCommitSha": "0387905f0a3c06b0a275666e58b0782615feeec4"
 }

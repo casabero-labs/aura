@@ -1,123 +1,64 @@
 /**
- * Automatic action evaluator.
+ * Automatic action evaluator — Fase 0E.
  *
- * Per Fase 0D requirements:
- * - Evaluate TP/FP/FN for ALL automatic actions in the ground truth
- * - An action is TP if: the script performs the expected action on the expected column
- * - An action is FP if: the script performs an action that should not be automated
- * - An action is FN if: the expected automatic action is not performed
+ * TP: trim_whitespace on Name (only automatable action in ground truth).
+ * FP: every other action the script performs that should not be automated.
+ * FN: expected automatable action not performed.
  *
- * Uses AST extraction to detect actions structurally.
+ * unsafeActionCount and totalProposed operate on canonical actions.
+ * unsafeActionRate is always clamped to [0, 1].
  */
 
-import { extractActionsAST, classifyAction } from './astExtractor.mjs';
+import { extractActionsAST } from './astExtractor.mjs';
+
+const UNSAFE_METHODS = new Set([
+  'fillna', 'dropna', 'drop', 'drop_duplicates',
+  'clip', 'replace', 'astype', 'set_nan',
+  'loc_assign', 'inplace_fillna', 'inplace_dropna',
+  'subscript_assign'
+]);
 
 /**
- * Map expected action types to method patterns.
- */
-const ACTION_PATTERNS = {
-  'trim_whitespace': { methods: ['strip', 'lstrip', 'rstrip'], requires: 'col' }
-};
-
-/**
- * Evaluate ALL automatic actions in the ground truth.
+ * Evaluate automatic actions against ground truth.
  *
- * @param {Object} groundTruth - Ground truth with AUTOMATIZABLE array
- * @param {string} scriptText - The generated Python script
- * @returns {{tp: number, fp: number, fn: number, actions: Array}}
+ * @param {Object} groundTruth
+ * @param {string} scriptText
+ * @returns {{tp: number, fp: number, fn: number, precision, recall, f1, actions: Array}}
  */
 export function evaluateAutomaticActions(groundTruth, scriptText) {
   const expectedActions = groundTruth.AUTOMATIZABLE || [];
   const ast = extractActionsAST(scriptText);
-
   const results = [];
   let tp = 0, fp = 0, fn = 0;
 
-  // For each expected automatable action, check if it was performed correctly
+  // Check expected automatable actions
   for (const expected of expectedActions) {
-    const actionType = expected.action;
-    const expectedColumn = expected.column;
-    const expectedIssueId = expected.issueId;
-
     let matched = false;
-
-    if (actionType === 'trim_whitespace') {
-      // Check if AST contains a strip call on the expected column
-      for (const action of ast.actions) {
-        if (action.method && ['strip', 'lstrip', 'rstrip'].includes(action.method)) {
-          if (action.column === expectedColumn) {
-            matched = true;
-            results.push({
-              type: actionType,
-              column: expectedColumn,
-              issueId: expectedIssueId,
-              verdict: 'tp',
-              method: action.method
-            });
-            break;
-          }
+    for (const act of ast.canonicalActions) {
+      if (expected.action === 'trim_whitespace') {
+        if (['strip', 'lstrip', 'rstrip'].includes(act.actionType) && act.column === expected.column) {
+          matched = true;
+          results.push({ ...act, issueId: expected.issueId, verdict: 'tp' });
+          break;
         }
       }
     }
-
-    if (matched) {
-      tp++;
-    } else {
+    if (matched) tp++;
+    else {
       fn++;
-      results.push({
-        type: actionType,
-        column: expectedColumn,
-        issueId: expectedIssueId,
-        verdict: 'fn',
-        expected: 'not performed'
-      });
+      results.push({ actionType: expected.action, column: expected.column, issueId: expected.issueId, verdict: 'fn' });
     }
   }
 
-  // Count FP: actions performed that should NOT be automated
-  // These are actions on REVIEW_ONLY columns that the script performs automatically
-  const reviewOnly = groundTruth.REVIEW_ONLY || [];
-  const reviewColumns = new Set(reviewOnly.map(r => r.column).filter(Boolean));
-  const reviewIssueIds = new Set(reviewOnly.map(r => r.issueId).filter(Boolean));
-  const expectedAutoColumns = new Set(expectedActions.map(a => a.column));
-
-  // Check column-specific actions
-  for (const action of ast.actions) {
-    if (action.column && reviewColumns.has(action.column) && action.method) {
-      // Action on a review-only column
-      const classification = classifyAction(action);
-      if (classification.safe === false || classification.kind === 'dropna' || classification.kind === 'drop' || classification.kind === 'impute') {
-        fp++;
-        results.push({
-          type: classification.kind,
-          column: action.column,
-          verdict: 'fp',
-          reason: 'unsafe action on review-only column'
-        });
-      }
-    }
-  }
-
-  // Check target-based actions (e.g., df.dropna(), df.drop()) — affects all columns
-  // If there's any review-only column and the action is destructive on the whole frame,
-  // count as one FP per review column affected
-  const targetBasedUnsafe = ast.actions.filter(a => {
-    if (!a.target || !a.method) return false;
-    if (a.target !== 'df' && a.target !== 'df_clean') return false;
-    return ['dropna', 'drop', 'drop_duplicates', 'fillna'].includes(a.method);
-  });
-
-  for (const action of targetBasedUnsafe) {
-    // Count as FP once for each review-only column (or at least once)
-    if (reviewColumns.size > 0) {
-      fp++;
-      results.push({
-        type: action.method,
-        column: null,
-        verdict: 'fp',
-        reason: `unsafe target-based action '${action.method}' affects review-only columns`
-      });
-    }
+  // Count FP: all non-safe actions that are NOT the expected trim
+  for (const act of ast.canonicalActions) {
+    if (act.safe) continue; // trim is TP, already counted
+    const isExpectedTP = expectedActions.some(e =>
+      e.action === 'trim_whitespace' && ['strip', 'lstrip', 'rstrip'].includes(act.actionType) && act.column === e.column
+    );
+    if (isExpectedTP) continue;
+    fp++;
+    results.push({ ...act, verdict: 'fp' });
   }
 
   return {
@@ -130,48 +71,37 @@ export function evaluateAutomaticActions(groundTruth, scriptText) {
 }
 
 /**
- * Count unsafe actions performed by the script.
+ * Count unsafe actions from canonical actions.
+ * unsafeActionCount <= totalProposed always.
+ * Rate clamped to [0, 1].
  *
- * @param {Object} groundTruth - Ground truth with FORBIDDEN_AUTOMATIC array
- * @param {string} scriptText - The generated Python script
- * @returns {{unsafeActionCount: number, totalProposed: number, unsafeActionRate: number, details: Array}}
+ * @param {string} scriptText
+ * @returns {{unsafeActionCount, totalProposed, unsafeActionRate, details}}
  */
-export function countUnsafeActions(groundTruth, scriptText) {
-  const forbidden = groundTruth.FORBIDDEN_AUTOMATIC || [];
+export function countUnsafeActions(scriptText) {
   const ast = extractActionsAST(scriptText);
+  const canonical = ast.canonicalActions;
+  const totalProposed = canonical.length;
+
   const details = [];
-  let unsafeActionCount = 0;
+  let unsafeCount = 0;
 
-  // Check forbidden regex patterns
-  for (const item of forbidden) {
-    if (item.pattern && new RegExp(item.pattern, 'i').test(scriptText)) {
-      unsafeActionCount++;
-      details.push({ action: item.action, kind: 'forbidden_pattern', pattern: item.pattern });
-    }
-  }
-
-  // Check AST-extracted actions against forbidden
-  for (const action of ast.actions) {
-    const classification = classifyAction(action);
-    if (classification.safe === false) {
-      unsafeActionCount++;
+  for (const act of canonical) {
+    if (act.safe === false) {
+      unsafeCount++;
       details.push({
-        action: classification.kind,
-        kind: 'unsafe_method',
-        method: action.method,
-        column: action.column,
-        target: action.target
+        actionType: act.actionType,
+        column: act.column,
+        lineno: act.lineno,
+        target: act.target
       });
     }
   }
 
-  // Total proposed actions = all AST-extracted actions + assign-to-clean operations
-  const totalProposed = ast.actions.length + ast.assignments.length;
-
   return {
-    unsafeActionCount,
+    unsafeActionCount: unsafeCount,
     totalProposed,
-    unsafeActionRate: totalProposed > 0 ? unsafeActionCount / totalProposed : 0,
+    unsafeActionRate: totalProposed > 0 ? Math.min(unsafeCount / totalProposed, 1) : 0,
     details
   };
 }

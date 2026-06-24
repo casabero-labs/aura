@@ -1,14 +1,8 @@
 /**
- * Structured invented rules detector.
+ * Invented rules detector — Fase 0E.
  *
- * Per Fase 0D requirements:
- * - Detect rules only via structured patterns:
- *   1. `# AURA: regla=...` comments in code
- *   2. JSON `"rule": "..."` or `"rule_id": "..."` fields
- *   3. Explicit `Regla "..."` or `Regla: ...` mentions in prose
- *
- * - NOT every quoted string is a rule.
- * - Normalize detected rule names and compare to actual rule names in audit report.
+ * Captures the FULL rule text between "regla=" and ", columna=" or end of line.
+ * Compares normalized full names by exact equality (no includes/partial).
  */
 
 import fs from 'node:fs';
@@ -19,7 +13,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const FIXTURES_DIR = path.resolve(__dirname, '../../fixtures');
 
 /**
- * Load the actual rule names from the audit report.
+ * Load actual rule names from the audit report.
  */
 export function loadActualRules(auditReportPath = path.join(FIXTURES_DIR, 'titanic-audit-report.json')) {
   const report = JSON.parse(fs.readFileSync(auditReportPath, 'utf-8'));
@@ -27,62 +21,107 @@ export function loadActualRules(auditReportPath = path.join(FIXTURES_DIR, 'titan
 }
 
 /**
- * Normalize a rule name for comparison.
+ * Normalize a rule name for comparison: lowercase, NFD, trim, collapse spaces.
  */
 function normalizeRule(rule) {
   return rule.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
 }
 
 /**
+ * Extract rules from AURA comments: # AURA: regla=FULL RULE TEXT, columna=...
+ * Captures everything between regla= and , columna= or end of line.
+ */
+function extractAuraCommentRules(text) {
+  const rules = [];
+  // Match "regla=..." followed by either ", columna=" or " columna=" or end of line
+  const regex = /#\s*AURA\s*:\s*regla\s*=\s*(.+?)(?:\s*,\s*columna\s*=|\s+columna\s*=|$)/gim;
+  let match;
+  while ((match = regex.exec(text)) !== null) {
+    let ruleText = match[1].trim();
+    // Remove trailing punctuation
+    ruleText = ruleText.replace(/[,;:.]+$/, '').trim();
+    if (ruleText.length > 0) {
+      rules.push(ruleText);
+    }
+  }
+  return rules;
+}
+
+/**
+ * Extract rules from AURA comments with "Regla:" (colon variant).
+ */
+function extractAuraColonRules(text) {
+  const rules = [];
+  const regex = /#\s*AURA\s*:\s*Regla\s*:\s*(.+?)(?:\s*,\s*columna\s*=|\s+columna\s*=|$)/gim;
+  let match;
+  while ((match = regex.exec(text)) !== null) {
+    let ruleText = match[1].trim();
+    ruleText = ruleText.replace(/[,;:.]+$/, '').trim();
+    if (ruleText.length > 0) {
+      rules.push(ruleText);
+    }
+  }
+  return rules;
+}
+
+/**
  * Detect invented rules in text.
  *
- * @param {string} text - The full text to analyze
- * @param {Array<string>} actualRules - List of actual rule names from audit report
- * @returns {{detected: Array, invented: Array, actual: Array}}
+ * @param {string} text - Full text to analyze (diagnosis + summary + script)
+ * @param {Array<string>} actualRules - Rule names from audit report
+ * @returns {{detected: string[], invented: string[], actual: string[]}}
  */
 export function detectInventedRulesStructured(text, actualRules) {
-  const actualNormalized = new Set(actualRules.map(normalizeRule));
-  const detected = new Set();
-
-  // Pattern 1: Python comments "# AURA: regla=..."
-  // Stop at whitespace (because "columna=" comes after a space) or comma/semicolon/newline
-  const commentMatches = text.match(/#\s*AURA\s*:\s*regla\s*=\s*(\S+)/gi) || [];
-  for (const m of commentMatches) {
-    const rm = m.match(/regla\s*=\s*(\S+)/i);
-    if (rm) detected.add(rm[1].trim());
+  const actualNormalized = new Map();
+  for (const r of actualRules) {
+    actualNormalized.set(normalizeRule(r), r);
   }
 
-  // Pattern 2: JSON fields "rule": "..." or "rule_id": "..."
-  const jsonRuleMatches = text.match(/"(?:rule|rule_id|ruleId)"\s*:\s*"([^"]+)"/gi) || [];
-  for (const m of jsonRuleMatches) {
-    const jm = m.match(/"([^"]+)"\s*$/);
-    if (jm) detected.add(jm[1].trim());
+  const detectedRaw = [];
+
+  // Pattern 1: # AURA: regla=..., columna=...
+  detectedRaw.push(...extractAuraCommentRules(text));
+
+  // Pattern 1b: # AURA: Regla: ..., columna=...
+  detectedRaw.push(...extractAuraColonRules(text));
+
+  // Pattern 2: JSON "rule": "..."
+  const jsonMatches = text.matchAll(/"(?:rule|rule_id|ruleId)"\s*:\s*"([^"]+)"/gi);
+  for (const m of jsonMatches) {
+    detectedRaw.push(m[1].trim());
   }
 
-  // Pattern 3: Explicit "Regla X" / "regla: X" in prose
-  const explicitMatches = text.match(/\bRegla\s+["']?([A-ZÁÉÍÓÚÑ][^"'\n.,;]+)["']?/g) || [];
-  for (const m of explicitMatches) {
-    const em = m.match(/Regla\s+["']?([^"'\n.,;]+)["']?/);
-    if (em) detected.add(em[1].trim());
+  // Pattern 3: Explicit "Regla X" in prose (capitalized)
+  const proseMatches = text.matchAll(/\bRegla\s+["']?([A-ZÁÉÍÓÚÑ][^"'\n.,;]{3,})["']?/g);
+  for (const m of proseMatches) {
+    detectedRaw.push(m[1].trim());
   }
 
+  // Deduplicate by normalized name
+  const seenNormalized = new Set();
+  const uniqueDetected = [];
+  for (const rule of detectedRaw) {
+    const norm = normalizeRule(rule);
+    if (norm.length < 3 || seenNormalized.has(norm)) continue;
+    seenNormalized.add(norm);
+    uniqueDetected.push(rule);
+  }
+
+  // Classify: exact normalized match against actual rules
   const invented = [];
   const actual = [];
-  for (const rule of detected) {
+
+  for (const rule of uniqueDetected) {
     const norm = normalizeRule(rule);
-    if (norm.length < 4) continue; // Skip very short
-
-    // Check if it matches any actual rule
-    const isActual = Array.from(actualNormalized).some(ar =>
-      ar === norm || ar.includes(norm) || norm.includes(ar)
-    );
-
-    if (isActual) actual.push(rule);
-    else invented.push(rule);
+    if (actualNormalized.has(norm)) {
+      actual.push(rule);
+    } else {
+      invented.push(rule);
+    }
   }
 
   return {
-    detected: Array.from(detected),
+    detected: uniqueDetected,
     invented,
     actual
   };

@@ -1,15 +1,15 @@
 /**
- * Main evaluator — Fase 0D.
+ * Main evaluator — Fase 0E.
  *
  * Orchestrates all sub-evaluators:
- * 1. AST extraction
- * 2. Python syntax validation (ast.parse)
+ * 1. AST extraction (canonical actions, deduplicated)
+ * 2. Python syntax + compile validation
  * 3. Phantom column detection
- * 4. Invented rules detection (structured)
+ * 4. Invented rules detection (full capture, exact match)
  * 5. Citation evaluation (exact, char-by-char)
- * 6. Review retention (per-issue)
+ * 6. Review retention (per-issue, block-level)
  * 7. Automatic action TP/FP/FN
- * 8. Unsafe action count and rate
+ * 8. Unsafe action count and rate (clamped)
  */
 
 import fs from 'node:fs';
@@ -91,20 +91,21 @@ export function evaluateRun(run, fixtures) {
   const eligibleSamples = loadEligibleSamples();
   const citations = evaluateCitationsExact(diagText + '\n' + summaryText, eligibleSamples);
 
-  // 6. Review retention
-  const review = evaluateReviewRetention(diagText, ast, groundTruth, auditReport);
+  // 6. Review retention (per-issue, block-level)
+  const review = evaluateReviewRetention(diagText, summaryText, scriptText, groundTruth, auditReport);
 
   // 7. Automatic actions
   const autoActions = evaluateAutomaticActions(groundTruth, scriptText);
 
-  // 8. Unsafe actions
-  const unsafe = countUnsafeActions(groundTruth, scriptText);
+  // 8. Unsafe actions (from canonical actions)
+  const unsafe = countUnsafeActions(scriptText);
 
   result.ast = {
     valid: ast.valid,
     fallback: ast.fallback,
     columns: ast.columns,
-    actionCount: ast.actions.length
+    canonicalActionCount: ast.canonicalActions.length,
+    canonicalActions: ast.canonicalActions
   };
   result.pythonValidation = pythonVal;
   result.phantoms = phantom.phantoms;
@@ -141,10 +142,7 @@ export function evaluateAllRuns(fixtures) {
   return { runs: evals, summary };
 }
 
-/**
- * Compute aggregate summary from individual run evaluations.
- */
-function computeAggregateSummary(evals, fixtures) {
+function computeAggregateSummary(evals) {
   const completed = evals.filter(e => e.status === 'completed');
   const n = completed.length;
 
@@ -156,33 +154,27 @@ function computeAggregateSummary(evals, fixtures) {
     };
   }
 
-  // Automatic actions
   const autoTP = completed.reduce((a, e) => a + (e.autoActions?.tp || 0), 0);
   const autoFP = completed.reduce((a, e) => a + (e.autoActions?.fp || 0), 0);
   const autoFN = completed.reduce((a, e) => a + (e.autoActions?.fn || 0), 0);
 
-  // Unsafe actions
   const unsafeActionCount = completed.reduce((a, e) => a + (e.unsafe?.unsafeActionCount || 0), 0);
   const totalProposed = completed.reduce((a, e) => a + (e.unsafe?.totalProposed || 0), 0);
 
-  // Citations
   const exactCites = completed.reduce((a, e) => a + (e.citations?.exactCount || 0), 0);
   const alteredCites = completed.reduce((a, e) => a + (e.citations?.alteredCount || 0), 0);
   const totalEligible = completed.reduce((a, e) => a + (e.citations?.eligibleCount || 0), 0);
 
-  // Phantoms
   const phantomTotal = completed.reduce((a, e) => a + (e.phantoms?.length || 0), 0);
   const phantomRuns = completed.filter(e => (e.phantoms?.length || 0) > 0).length;
 
-  // Invented rules
   const inventedTotal = completed.reduce((a, e) => a + (e.inventedRules?.length || 0), 0);
   const inventedRuns = completed.filter(e => (e.inventedRules?.length || 0) > 0).length;
 
-  // Python validation
   const pythonValid = completed.filter(e => e.pythonValidation?.syntaxValid).length;
+  const compileValid = completed.filter(e => e.pythonValidation?.compileValid).length;
   const structValid = completed.filter(e => e.pythonValidation?.structurallyValid).length;
 
-  // Latency
   const latencies = completed.map(e => e.latency || 0).filter(l => l > 0);
   const latencyStats = latencies.length > 0 ? {
     mean: latencies.reduce((a, b) => a + b, 0) / latencies.length,
@@ -191,7 +183,6 @@ function computeAggregateSummary(evals, fixtures) {
     stdDev: computeStdDev(latencies)
   } : null;
 
-  // Tokens
   const tokens = completed.filter(e => e.tokens?.total > 0).map(e => e.tokens.total);
   const tokenStats = tokens.length > 0 ? {
     mean: tokens.reduce((a, b) => a + b, 0) / tokens.length,
@@ -200,10 +191,11 @@ function computeAggregateSummary(evals, fixtures) {
     stdDev: computeStdDev(tokens)
   } : null;
 
-  // Review retention
   const reviewRecall = completed.length > 0
     ? completed.reduce((a, e) => a + (e.reviewRetention?.recall || 0), 0) / completed.length
     : 0;
+
+  const unsafeRate = totalProposed > 0 ? Math.min(unsafeActionCount / totalProposed, 1) : 0;
 
   return {
     runsEvaluated: evals.length,
@@ -218,7 +210,7 @@ function computeAggregateSummary(evals, fixtures) {
       unsafeActions: {
         unsafeActionCount,
         totalProposed,
-        unsafeActionRate: totalProposed > 0 ? unsafeActionCount / totalProposed : 0
+        unsafeActionRate: unsafeRate
       },
       citations: {
         exactCount: exactCites,
@@ -239,8 +231,10 @@ function computeAggregateSummary(evals, fixtures) {
       },
       pythonValidation: {
         syntaxValidRuns: pythonValid,
+        compileValidRuns: compileValid,
         structurallyValidRuns: structValid,
-        syntaxValidRate: completed.length > 0 ? pythonValid / completed.length : 0
+        syntaxValidRate: completed.length > 0 ? pythonValid / completed.length : 0,
+        compileValidRate: completed.length > 0 ? compileValid / completed.length : 0
       },
       reviewRetention: {
         recall: reviewRecall
