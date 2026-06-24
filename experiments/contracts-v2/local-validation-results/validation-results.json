@@ -1,7 +1,7 @@
 {
   "harnessVersion": "1.1.0",
-  "generatedAt": "2026-06-24T19:33:12.278Z",
-  "commitSha": "036b1abdc440a2c0953c566623d5bd83b4bac32a",
+  "generatedAt": "2026-06-24T19:34:24.278Z",
+  "commitSha": "fe402f7282c9426ca3238afd3ee083adbcb3c6e8",
   "sourceTreeDirty": true,
   "auditEngineSha256": "3ee341a49e5ebc42ccf3bb6cb2e9e39d350dc476f9cb159decba5d45a678c6a0",
   "contractsV2Sha256": "6a587f6cd3e9d8f2b74977b5f9cc805b94e62413ff4672a447bf493f6100ee64",
@@ -118,7 +118,7 @@
       },
       "privacyViolations": 0,
       "truncations": 8,
-      "durationMs": 3188,
+      "durationMs": 3119,
       "error": null,
       "remediation": {
         "diagnosisRef": "diag:4b255cd3ec73ef5f7fd84011fe25291dab9980f27f17f4c98ddf9b3daf43631f",
@@ -218,7 +218,7 @@
       },
       "privacyViolations": 0,
       "truncations": 1,
-      "durationMs": 12,
+      "durationMs": 10,
       "error": null,
       "remediation": {
         "diagnosisRef": "diag:9965033a7d92fba7641971d3107f88d96b3435cbe3edc8e6064113a17bf071a6",
@@ -336,7 +336,7 @@
       },
       "privacyViolations": 0,
       "truncations": 5,
-      "durationMs": 34,
+      "durationMs": 33,
       "error": null,
       "remediation": {
         "diagnosisRef": "diag:4a2b5558079ac3ee3edb19f224023bdd13ac027ab867156e0786c5a042e2b69f",
