@@ -405,84 +405,96 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
         pushEvent('info', 'Iniciando Diagnosis v2 (contrato estructurado)...');
         setProgressStep('Preparando Diagnosis v2');
 
-        if (aiConfig.providerType === 'chrome') {
-          startNetworkMonitoring();
-        }
+        let chromeMonitoringStarted = false;
 
-        const v2Result = await runStructuredDiagnosis(report as any, {
-          provider: aiProvider,
-          auditEvidence: auditEvidence ? { datasetFingerprint: auditEvidence.datasetFingerprint } : null,
-          onProgress: (event) => {
-            pushEvent(event.type === 'chunk' ? 'info' : 'info', event.text);
-          },
-        });
-
-        if (!v2Result.success) {
-          const v2Failure = v2Result as { success: false; code: string; message: string; path: string; details: Record<string, unknown> };
-          const normalized = normalizeAiProviderError(new Error(v2Failure.message), aiConfig);
-          setError(v2Failure.message);
-          setNormalizedError(normalized);
-          pushEvent('error', `Diagnosis v2 fallido: ${v2Failure.code}`);
-          setProgressStatus('error');
-          setProgressStep(`Error: ${v2Failure.code}`);
-          recordLlmCall({
-            callType: 'diagnosis',
-            providerType: aiConfig.providerType as 'local' | 'cloud' | 'chrome' | 'ollama',
-            provider: aiConfig.providerType === 'webllm_experimental' ? 'WebLLM' : aiConfig.providerType === 'ollama' ? 'Ollama' : aiConfig.providerType === 'chrome' ? 'Chrome AI' : (aiConfig.cloudProvider || 'Cloud'),
-            model: aiConfig.model,
-            temperature: aiConfig.temperature,
-            promptHash: '',
-            promptText: '',
-            inputJsonHash: computeInputHash(report),
-            promptLength: 0,
-            inputColumnCount: report.colCount,
-            inputIssueCount: report.issues.length,
-            rowCount: report.rowCount,
-            colCount: report.colCount,
-            datasetFingerprint: auditEvidence?.datasetFingerprint || '',
-            responseLength: 0,
-            latencyMs: (v2Failure.details?.latencyMs as number) ?? 0,
-            tokensGenerated: 0,
-            status: 'error',
-            error: v2Failure.message,
-          });
-        } else {
-          setStructuredDiagnosis(v2Result.result);
-          setLastMetrics(v2Result.result.metrics as ProviderMetrics);
-          onMetrics?.(v2Result.result.metrics as ProviderMetrics);
-          onStructuredDiagnosisComplete?.(v2Result.result);
-          pushEvent('success', `Diagnosis v2 completado · ${v2Result.result.metrics.tokensGenerated} tokens · ${(v2Result.result.metrics.latencyMs / 1000).toFixed(1)}s`);
-          setProgressStatus('success');
-          setProgressStep(`Diagnosis v2 completado · ${(v2Result.result.metrics.latencyMs / 1000).toFixed(1)}s`);
-          recordLlmCall({
-            callType: 'diagnosis',
-            providerType: aiConfig.providerType as 'local' | 'cloud' | 'chrome' | 'ollama',
-            provider: aiConfig.providerType === 'webllm_experimental' ? 'WebLLM' : aiConfig.providerType === 'ollama' ? 'Ollama' : aiConfig.providerType === 'chrome' ? 'Chrome AI' : (aiConfig.cloudProvider || 'Cloud'),
-            model: v2Result.result.metrics.model,
-            temperature: aiConfig.temperature,
-            promptHash: v2Result.result.promptHash,
-            promptText: '',
-            inputJsonHash: computeInputHash(report),
-            promptLength: 0,
-            inputColumnCount: report.colCount,
-            inputIssueCount: report.issues.length,
-            rowCount: report.rowCount,
-            colCount: report.colCount,
-            datasetFingerprint: auditEvidence?.datasetFingerprint || '',
-            responseLength: 0,
-            latencyMs: v2Result.result.metrics.latencyMs,
-            tokensGenerated: v2Result.result.metrics.tokensGenerated,
-            status: 'completed',
-          });
-
+        try {
           if (aiConfig.providerType === 'chrome') {
+            startNetworkMonitoring();
+            chromeMonitoringStarted = true;
+          }
+
+          const v2Result = await runStructuredDiagnosis(report as any, {
+            provider: aiProvider,
+            auditEvidence: auditEvidence ? { datasetFingerprint: auditEvidence.datasetFingerprint } : null,
+            onProgress: (event) => {
+              pushEvent(event.type === 'chunk' ? 'info' : 'info', event.text);
+            },
+          });
+
+          if (!v2Result.success) {
+            const v2Failure = v2Result as { success: false; code: string; message: string; path: string; details: Record<string, unknown> };
+            const normalized = normalizeAiProviderError(new Error(v2Failure.message), aiConfig);
+            setError(v2Failure.message);
+            setNormalizedError(normalized);
+            pushEvent('error', `Diagnosis v2 fallido: ${v2Failure.code}`);
+            setProgressStatus('error');
+            setProgressStep(`Error: ${v2Failure.code}`);
+            recordLlmCall({
+              callType: 'diagnosis',
+              providerType: aiConfig.providerType as 'local' | 'cloud' | 'chrome' | 'ollama',
+              provider: aiConfig.providerType === 'webllm_experimental' ? 'WebLLM' : aiConfig.providerType === 'ollama' ? 'Ollama' : aiConfig.providerType === 'chrome' ? 'Chrome AI' : (aiConfig.cloudProvider || 'Cloud'),
+              model: aiConfig.model,
+              temperature: aiConfig.temperature,
+              promptHash: '',
+              promptText: '',
+              inputJsonHash: computeInputHash(report),
+              promptLength: 0,
+              inputColumnCount: report.colCount,
+              inputIssueCount: report.issues.length,
+              rowCount: report.rowCount,
+              colCount: report.colCount,
+              datasetFingerprint: auditEvidence?.datasetFingerprint || '',
+              responseLength: 0,
+              latencyMs: (v2Failure.details?.latencyMs as number) ?? 0,
+              tokensGenerated: 0,
+              status: 'error',
+              error: v2Failure.message,
+            });
+          } else {
+            setStructuredDiagnosis(v2Result.result);
+            setLastMetrics(v2Result.result.metrics as ProviderMetrics);
+            onMetrics?.(v2Result.result.metrics as ProviderMetrics);
+            onStructuredDiagnosisComplete?.(v2Result.result);
+            pushEvent('success', `Diagnosis v2 completado · ${v2Result.result.metrics.tokensGenerated} tokens · ${(v2Result.result.metrics.latencyMs / 1000).toFixed(1)}s`);
+            setProgressStatus('success');
+            setProgressStep(`Diagnosis v2 completado · ${(v2Result.result.metrics.latencyMs / 1000).toFixed(1)}s`);
+            recordLlmCall({
+              callType: 'diagnosis',
+              providerType: aiConfig.providerType as 'local' | 'cloud' | 'chrome' | 'ollama',
+              provider: aiConfig.providerType === 'webllm_experimental' ? 'WebLLM' : aiConfig.providerType === 'ollama' ? 'Ollama' : aiConfig.providerType === 'chrome' ? 'Chrome AI' : (aiConfig.cloudProvider || 'Cloud'),
+              model: v2Result.result.metrics.model,
+              temperature: aiConfig.temperature,
+              promptHash: v2Result.result.promptHash,
+              promptText: '',
+              inputJsonHash: computeInputHash(report),
+              promptLength: 0,
+              inputColumnCount: report.colCount,
+              inputIssueCount: report.issues.length,
+              rowCount: report.rowCount,
+              colCount: report.colCount,
+              datasetFingerprint: auditEvidence?.datasetFingerprint || '',
+              responseLength: 0,
+              latencyMs: v2Result.result.metrics.latencyMs,
+              tokensGenerated: v2Result.result.metrics.tokensGenerated,
+              status: 'completed',
+            });
+
+            if (aiConfig.providerType === 'chrome') {
+              const networkGuardResult = stopNetworkMonitoring();
+              chromeMonitoringStarted = false;
+              setNetworkResult(networkGuardResult);
+              const availability = await detectChromeAiAvailability();
+              const placeholderData = [['placeholder']];
+              const placeholderColumns = ['column'];
+              const receipt = await generateQuickReceipt(placeholderData, placeholderColumns, networkGuardResult!, availability);
+              setPrivacyReceipt(receipt);
+            }
+          }
+        } finally {
+          if (chromeMonitoringStarted) {
             const networkGuardResult = stopNetworkMonitoring();
+            chromeMonitoringStarted = false;
             setNetworkResult(networkGuardResult);
-            const availability = await detectChromeAiAvailability();
-            const placeholderData = [['placeholder']];
-            const placeholderColumns = ['column'];
-            const receipt = await generateQuickReceipt(placeholderData, placeholderColumns, networkGuardResult!, availability);
-            setPrivacyReceipt(receipt);
           }
         }
       } else {
