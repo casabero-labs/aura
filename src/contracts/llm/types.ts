@@ -368,3 +368,20 @@ export interface ScriptContractV2 {
   columnRefs: string[];
   cleanDatasetFn: string;
 }
+
+export interface DiagnosisExecutionResult {
+  version: 2;
+  diagnosis: DiagnosisResponseV2;
+  metrics: {
+    latencyMs: number;
+    tokensGenerated: number;
+    firstTokenMs?: number;
+    model: string;
+    provider: string;
+    isLocal: boolean;
+  };
+  promptHash: string;
+  evidenceEnvelopeRef: string;
+  promptVersion: string;
+  rawResponseHash: string;
+}

@@ -280,7 +280,8 @@ function buildUserPayload(
   const maxConf = options?.maxConfidence ?? 1;
 
   // Build UNTRUSTED_DATA block — structured evidence for the model
-  // Includes: evidence samples (filtered by privacy level), issue descriptions, stats, truncation manifest
+  // Includes: full issue data, evidence samples, column stats, truncation manifest
+  // All data is authoritative; narrative sections are secondary context
   const untrustedData = {
     truncationManifest: envelope.truncationManifest,
     columnCount,
@@ -302,18 +303,23 @@ function buildUserPayload(
       const evidence = envelope.evidence.samples.filter(s => s.issueId === iss.issueId);
       return {
         issueId: iss.issueId,
-        description: iss.description,
+        ruleId: iss.ruleId,
+        columnId: iss.columnId,
+        scope: iss.scope,
+        category: iss.category,
         ruleName: iss.ruleName,
+        description: iss.description,
         count: iss.count,
         affectedPercentage: iss.affectedPercentage,
-        scope: iss.scope,
+        severity: iss.severity,
         columnName: col?.name ?? null,
+        evidenceRefs: iss.evidenceRefs,
         evidenceSamples: evidence.slice(0, 5).map(s => ({
           ref: s.evidenceRef,
           values: s.values,
         })),
-        severity: iss.severity,
         actionability: iss.actionability,
+        automaticAuthorization: iss.automaticAuthorization,
       };
     }),
   };

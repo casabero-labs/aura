@@ -47,6 +47,7 @@ export type {
   DiagnosisPromptOptionsV2,
   DiagnosisErrorCode,
   DiagnosisError,
+  DiagnosisExecutionResult,
   RemediationPlanV2,
   RemediationActionV2,
   ScriptContractV2,

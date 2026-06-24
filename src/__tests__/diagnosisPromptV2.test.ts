@@ -210,4 +210,68 @@ describe('UNTRUSTED_DATA block', () => {
       }
     }
   });
+
+  it('issues contain issueId, ruleId, columnId, scope', () => {
+    const pkg = buildDiagnosisPromptV2(envelope);
+    const match = pkg.userPayload.match(/=== UNTRUSTED_DATA ===\s*(\{[\s\S]*?\})\s*===/);
+    expect(match).toBeTruthy();
+    const untrustedData = JSON.parse(match![1]);
+    for (const issue of untrustedData.issues) {
+      expect(issue).toHaveProperty('issueId');
+      expect(issue).toHaveProperty('ruleId');
+      expect(issue).toHaveProperty('columnId');
+      expect(issue).toHaveProperty('scope');
+      expect(typeof issue.issueId).toBe('string');
+      expect(typeof issue.ruleId).toBe('string');
+    }
+  });
+
+  it('issues contain evidenceRefs array', () => {
+    const pkg = buildDiagnosisPromptV2(envelope);
+    const match = pkg.userPayload.match(/=== UNTRUSTED_DATA ===\s*(\{[\s\S]*?\})\s*===/);
+    expect(match).toBeTruthy();
+    const untrustedData = JSON.parse(match![1]);
+    for (const issue of untrustedData.issues) {
+      expect(issue).toHaveProperty('evidenceRefs');
+      expect(Array.isArray(issue.evidenceRefs)).toBe(true);
+    }
+  });
+
+  it('issues contain description', () => {
+    const pkg = buildDiagnosisPromptV2(envelope);
+    const match = pkg.userPayload.match(/=== UNTRUSTED_DATA ===\s*(\{[\s\S]*?\})\s*===/);
+    expect(match).toBeTruthy();
+    const untrustedData = JSON.parse(match![1]);
+    for (const issue of untrustedData.issues) {
+      expect(issue).toHaveProperty('description');
+      expect(typeof issue.description).toBe('string');
+    }
+  });
+
+  it('issues contain automaticAuthorization with conditionsMet', () => {
+    const pkg = buildDiagnosisPromptV2(envelope);
+    const match = pkg.userPayload.match(/=== UNTRUSTED_DATA ===\s*(\{[\s\S]*?\})\s*===/);
+    expect(match).toBeTruthy();
+    const untrustedData = JSON.parse(match![1]);
+    for (const issue of untrustedData.issues) {
+      expect(issue).toHaveProperty('automaticAuthorization');
+      expect(issue.automaticAuthorization).toHaveProperty('actionType');
+      expect(issue.automaticAuthorization).toHaveProperty('authorized');
+      expect(issue.automaticAuthorization).toHaveProperty('conditionsMet');
+      expect(Array.isArray(issue.automaticAuthorization.conditionsMet)).toBe(true);
+    }
+  });
+});
+
+describe('Privacy policy enforcement in UNTRUSTED_DATA', () => {
+  it('cloud_no_samples has evidenceSamples=[]', () => {
+    const cloudNoSamplesEnvelope = _buildEvidenceEnvelopeV2(minimalReport, opts({ privacyLevel: 'cloud_no_samples' }));
+    const pkg = buildDiagnosisPromptV2(cloudNoSamplesEnvelope);
+    const match = pkg.userPayload.match(/=== UNTRUSTED_DATA ===\s*(\{[\s\S]*?\})\s*===/);
+    expect(match).toBeTruthy();
+    const untrustedData = JSON.parse(match![1]);
+    for (const issue of untrustedData.issues) {
+      expect(issue.evidenceSamples || []).toHaveLength(0);
+    }
+  });
 });

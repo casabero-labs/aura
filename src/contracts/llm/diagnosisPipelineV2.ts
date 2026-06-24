@@ -13,8 +13,12 @@ import type {
   DiagnosisPromptPackageV2,
   DiagnosisResponseV2,
   EvidenceEnvelopeV2,
+  DiagnosisErrorCode,
+  DiagnosisError,
 } from './types';
-import { parseDiagnosisResponseV2, type DiagnosisParseOutcome } from './diagnosisParserV2';
+import type { ProviderMetrics } from '../../types';
+import { sha256hex } from './hash';
+import { parseDiagnosisResponseV2, type DiagnosisParseOutcome, type ParseFailure } from './diagnosisParserV2';
 import { validateDiagnosisResponseV2 } from './diagnosisValidatorV2';
 import { isContractsV2Enabled } from './contractRegistry';
 
@@ -37,7 +41,7 @@ export interface DiagnosisPipelineResult {
 
 export interface DiagnosisPipelineFailure {
   success: false;
-  code: string;
+  code: DiagnosisErrorCode;
   message: string;
   path: string;
   details: unknown;
@@ -46,7 +50,7 @@ export interface DiagnosisPipelineFailure {
 export type DiagnosisPipelineOutcome = DiagnosisPipelineResult | DiagnosisPipelineFailure;
 
 function failure(
-  code: string,
+  code: DiagnosisErrorCode,
   message: string,
   path: string,
   details: unknown,
@@ -99,7 +103,7 @@ export async function runDiagnosisPipeline(
   // 2. Parse — strict JSON only
   const parsed = parseDiagnosisResponseV2(raw);
   if (!parsed.success) {
-    const pf = parsed as { success: false; error: { code: string; message: string; path: string; details: Record<string, unknown> } };
+    const pf: ParseFailure = parsed as ParseFailure;
     return {
       success: false,
       code: pf.error.code,
@@ -128,7 +132,7 @@ export async function runDiagnosisPipeline(
     // Validator emits typed codes directly — no re-interpretation needed
     return {
       success: false,
-      code: firstError.code || 'DIAGNOSIS_SCHEMA_INVALID',
+      code: firstError.code as DiagnosisErrorCode,
       message: firstError.message,
       path: firstError.path,
       details: {
