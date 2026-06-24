@@ -88,7 +88,7 @@ describe('v2 flag selection', () => {
     const p = makeProvider('cloud');
     const r = await runStructuredDiagnosis(minimalReport, { provider: p, auditEvidence });
     expect(r.success).toBe(false);
-    expect(r.code).toBe('CONTRACTS_V2_DISABLED');
+    expect((r as { success: false; code: string }).code).toBe('CONTRACTS_V2_DISABLED');
   });
 
   it('flag true → success with structured result', async () => {
@@ -97,11 +97,13 @@ describe('v2 flag selection', () => {
     setupValidProvider(p);
     const r = await runStructuredDiagnosis(minimalReport, { provider: p, auditEvidence });
     expect(r.success).toBe(true);
-    expect(r.result.version).toBe(2);
-    expect(r.result.diagnosis.contractId).toBe('aura.diagnosis.v2');
-    expect(r.result.diagnosis.issues).toHaveLength(2);
-    expect(r.result.diagnosis.diagnosisBlocks).toHaveLength(2);
-    expect(r.result.metrics.tokensGenerated).toBe(250);
+    if (r.success) {
+      expect(r.result.version).toBe(2);
+      expect(r.result.diagnosis.contractId).toBe('aura.diagnosis.v2');
+      expect(r.result.diagnosis.issues).toHaveLength(2);
+      expect(r.result.diagnosis.diagnosisBlocks).toHaveLength(2);
+      expect(r.result.metrics.tokensGenerated).toBe(250);
+    }
   });
 });
 
@@ -113,15 +115,15 @@ describe('fingerprint enforcement', () => {
     const p = makeProvider('cloud');
     const r = await runStructuredDiagnosis(minimalReport, { provider: p, auditEvidence: null });
     expect(r.success).toBe(false);
-    expect(r.code).toBe('DIAGNOSIS_ADAPTER_ERROR');
-    expect(r.message).toContain('datasetFingerprint');
+    expect((r as { success: false; code: string; message: string }).code).toBe('DIAGNOSIS_ADAPTER_ERROR');
+    expect((r as { success: false; code: string; message: string }).message).toContain('datasetFingerprint');
   });
 
   it('empty → DIAGNOSIS_ADAPTER_ERROR', async () => {
     const p = makeProvider('cloud');
     const r = await runStructuredDiagnosis(minimalReport, { provider: p, auditEvidence: { datasetFingerprint: '' } });
     expect(r.success).toBe(false);
-    expect(r.code).toBe('DIAGNOSIS_ADAPTER_ERROR');
+    expect((r as { success: false; code: string }).code).toBe('DIAGNOSIS_ADAPTER_ERROR');
   });
 });
 
@@ -143,8 +145,10 @@ describe('result structure', () => {
     setupValidProvider(p);
     const r = await runStructuredDiagnosis(minimalReport, { provider: p, auditEvidence });
     expect(r.success).toBe(true);
-    expect(r.result.version).toBe(2);
-    expect(r.result.diagnosis.contractId).toBe('aura.diagnosis.v2');
-    expect(r.result.metrics.latencyMs).toBeGreaterThan(0);
+    if (r.success) {
+      expect(r.result.version).toBe(2);
+      expect(r.result.diagnosis.contractId).toBe('aura.diagnosis.v2');
+      expect(r.result.metrics.latencyMs).toBeGreaterThan(0);
+    }
   });
 });

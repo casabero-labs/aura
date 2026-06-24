@@ -333,13 +333,115 @@ export interface DiagnosisError {
   details: unknown;
 }
 
+// ── Remediation Action Types ──
+
+export type RemediationActionTypeV2 =
+  | 'trim_whitespace'
+  | 'drop_exact_duplicates'
+  | 'normalize_placeholders'
+  | 'normalize_casing'
+  | 'convert_disguised_numbers'
+  | 'requires_human_review';
+
+// ── Remediation Parameters (discriminated by action type) ──
+
+export interface TrimWhitespaceParams {
+  trimEdges: true;
+  collapseInternalWhitespace: boolean;
+}
+
+export interface DropExactDuplicatesParams {
+  keep: 'first';
+}
+
+export interface NormalizePlaceholdersParams {
+  strategy: 'controlled_vocabulary';
+  replacement: null;
+}
+
+export interface NormalizeCasingParams {
+  strategy: 'title_case' | 'lowercase';
+}
+
+export interface ConvertDisguisedNumbersParams {
+  decimalSeparator: 'auto';
+  errors: 'coerce';
+}
+
+export interface RequiresHumanReviewParams {
+  reasonCode:
+    | 'unknown_rule'
+    | 'ambiguous_column'
+    | 'review_only_rule'
+    | 'diagnosis_requires_review'
+    | 'authorization_missing'
+    | 'no_safe_transform';
+}
+
+export type RemediationParametersV2 =
+  | TrimWhitespaceParams
+  | DropExactDuplicatesParams
+  | NormalizePlaceholdersParams
+  | NormalizeCasingParams
+  | ConvertDisguisedNumbersParams
+  | RequiresHumanReviewParams;
+
+// ── Remediation Context (minimized, no samples/text/keys) ──
+
+export interface RemediationContextColumnV2 {
+  columnId: string;
+  name: string;
+  position: number;
+  duplicateOrdinal: number;
+  isAmbiguous: boolean;
+  isDuplicate: boolean;
+}
+
+export interface RemediationContextIssueV2 {
+  issueId: string;
+  ruleId: string;
+  columnId: string | null;
+  scope: 'dataset' | 'column';
+  evidenceRefs: string[];
+  actionability: Actionability;
+  automaticAuthorization: AutomaticAuthorization;
+}
+
+export interface RemediationContextV2 {
+  evidenceEnvelopeRef: string;
+  datasetFingerprint: string;
+  columns: RemediationContextColumnV2[];
+  issues: RemediationContextIssueV2[];
+}
+
+// ── Remediation Error Codes ──
+
+export type RemediationErrorCode =
+  | 'REMEDIATION_SCHEMA_INVALID'
+  | 'REMEDIATION_REFERENCE_INVALID'
+  | 'REMEDIATION_DIAGNOSIS_MISMATCH'
+  | 'REMEDIATION_ACTION_NOT_ALLOWED'
+  | 'REMEDIATION_ACTIONABILITY_UPGRADE'
+  | 'REMEDIATION_ACTION_ID_INVALID'
+  | 'REMEDIATION_COVERAGE_INVALID'
+  | 'REMEDIATION_APPROVAL_INVALID'
+  | 'CONTRACTS_V2_DISABLED';
+
 // ── Remediation Contract ──
 export interface RemediationPlanV2 {
   contractId: 'aura.remediation.v2';
   contractVersion: '2.0.0';
+  planId: string;
   diagnosisRef: string;
+  evidenceEnvelopeRef: string;
+  datasetFingerprint: string;
   plan: RemediationActionV2[];
   actionabilityMap: Record<string, Actionability>;
+  exclusions: Array<{
+    issueId: string;
+    reason: 'not_actionable';
+  }>;
+  generatedAt: string;
 }
 
 export interface RemediationActionV2 {
@@ -347,28 +449,14 @@ export interface RemediationActionV2 {
   issueId: string;
   ruleId: string;
   columnId: string | null;
-  actionType: string;
-  parameters: Record<string, unknown>;
+  actionType: RemediationActionTypeV2;
+  parameters: RemediationParametersV2;
   actionability: Actionability;
   evidenceRefs: string[];
   approvalStatus: 'pending' | 'approved' | 'rejected';
 }
 
-// ── Script Contract ──
-export interface ScriptContractV2 {
-  contractId: 'aura.script.v2';
-  contractVersion: '2.0.0';
-  remediationRef: string;
-  acceptedActionIds: string[];
-  rejectedActionIds: string[];
-  rendererVersion: string;
-  scriptHash: string;
-  validationResult: ValidationResultV2;
-  scriptText?: string;
-  columnRefs: string[];
-  cleanDatasetFn: string;
-}
-
+// ── DiagnosisExecutionResult (with optional remediation context) ──
 export interface DiagnosisExecutionResult {
   version: 2;
   diagnosis: DiagnosisResponseV2;
@@ -384,4 +472,20 @@ export interface DiagnosisExecutionResult {
   evidenceEnvelopeRef: string;
   promptVersion: string;
   rawResponseHash: string;
+  remediationContext?: RemediationContextV2;
+}
+
+// ── Script Contract ──
+export interface ScriptContractV2 {
+  contractId: 'aura.script.v2';
+  contractVersion: '2.0.0';
+  remediationRef: string;
+  acceptedActionIds: string[];
+  rejectedActionIds: string[];
+  rendererVersion: string;
+  scriptHash: string;
+  validationResult: ValidationResultV2;
+  scriptText?: string;
+  columnRefs: string[];
+  cleanDatasetFn: string;
 }

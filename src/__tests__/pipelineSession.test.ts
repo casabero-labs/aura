@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach, vi } from 'vitest';
+import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import { clearPipelineSession, loadPipelineSession, savePipelineSession } from '../services/pipelineSession';
 
 function createLocalStorageMock() {
@@ -38,6 +38,8 @@ describe('pipelineSession', () => {
       approvedScript: 'print("ok")',
       healthDelta: null,
       aiAnalysis: 'diagnosis',
+      structuredDiagnosis: null,
+      remediationPlan: null,
       benchmarkResults: [],
       improvementRun: null,
       scriptValidation: null,
@@ -61,7 +63,9 @@ describe('pipelineSession', () => {
       state: 'upload', file: null, report: null, auditEvidence: null,
       rawData: [], csvFields: [], csvDelimiter: ',',
       cleaningScript: '', approvedScript: '', healthDelta: null,
-      aiAnalysis: '', benchmarkResults: [], improvementRun: null,
+      aiAnalysis: '',
+        structuredDiagnosis: null,
+        remediationPlan: null, benchmarkResults: [], improvementRun: null,
       scriptValidation: null, deterministicValidation: null, logs: [],
     });
     expect(loadPipelineSession()).not.toBeNull();
@@ -93,6 +97,8 @@ describe('pipelineSession', () => {
       approvedScript: '',
       healthDelta: null,
       aiAnalysis: '',
+        structuredDiagnosis: null,
+        remediationPlan: null,
       benchmarkResults: [],
       improvementRun: null,
       scriptValidation: null,

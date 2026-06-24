@@ -48,8 +48,14 @@ export type {
   DiagnosisErrorCode,
   DiagnosisError,
   DiagnosisExecutionResult,
+  RemediationActionTypeV2,
+  RemediationParametersV2,
+  RemediationContextV2,
+  RemediationContextColumnV2,
+  RemediationContextIssueV2,
   RemediationPlanV2,
   RemediationActionV2,
+  RemediationErrorCode,
   ScriptContractV2,
 } from './types';
 
@@ -156,3 +162,31 @@ export type {
   StructuredDiagnosisFailure,
   StructuredDiagnosisOutcome,
 } from './diagnosisSelector';
+
+// ── Remediation v2 ──
+export {
+  buildRemediationContext,
+  buildDiagnosisRef,
+} from './remediationContextV2';
+
+export {
+  lookupRemediationAction,
+  isKnownRule,
+} from './remediationPolicyV2';
+
+export {
+  buildRemediationPlanV2,
+} from './remediationBuilderV2';
+
+export {
+  validateRemediationPlanV2,
+} from './remediationValidatorV2';
+
+export {
+  approveRemediationActionV2,
+  rejectRemediationActionV2,
+  resetRemediationActionV2,
+} from './remediationApprovalV2';
+export type {
+  ApprovalResult,
+} from './remediationApprovalV2';

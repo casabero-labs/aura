@@ -1,10 +1,13 @@
-import React, { useCallback, useState } from 'react';
-import { ArrowRight, CheckCircle2, FileCode2, ShieldAlert, ShieldCheck, TriangleAlert, Gauge, Sparkles } from 'lucide-react';
-import { AIProvider, AuditReport, ProviderMetrics, ScriptValidationResult, ProgressDisclosureStatus } from '../types';
+import React, { useCallback, useState, useEffect } from 'react';
+import { ArrowRight, CheckCircle2, FileCode2, ShieldAlert, ShieldCheck, TriangleAlert, Gauge, Sparkles, ClipboardList, AlertTriangle, Ban, Shield } from 'lucide-react';
+import { AIProvider, ProviderMetrics, ScriptValidationResult, ProgressDisclosureStatus, AuditReport } from '../types';
 import ProgressDisclosure from './ProgressDisclosure';
 import { highlightPython } from '../services/highlightPython';
 import { buildDeterministicCleaningScript, buildFallbackScriptMetrics } from '../services/deterministicScriptBuilder';
 import { buildDiagnosisScriptBrief, buildDiagnosisSummaryPrompt, buildScriptPrompt, extractPythonScript } from '../services/providers/prompts';
+import { isContractsV2Enabled, buildRemediationPlanV2, buildRemediationContext, validateRemediationPlanV2, approveRemediationActionV2, rejectRemediationActionV2, resetRemediationActionV2 } from '../contracts/llm';
+import { _buildEvidenceEnvelopeV2 } from '../contracts/llm/evidenceEnvelopeV2';
+import type { DiagnosisExecutionResult, RemediationPlanV2 } from '../contracts/llm';
 
 interface ScriptGenerationStepProps {
   report: AuditReport;
@@ -12,6 +15,9 @@ interface ScriptGenerationStepProps {
   diagnosisText: string;
   cleaningScript: string;
   scriptValidation: ScriptValidationResult | null;
+  structuredDiagnosis?: DiagnosisExecutionResult | null;
+  remediationPlan?: RemediationPlanV2 | null;
+  onRemediationPlanChange?: (plan: RemediationPlanV2) => void;
   onScriptGenerated: (script: string, metrics: ProviderMetrics) => void;
   onLog?: (stage: string, msg: string) => void;
   onContinue: () => void;
@@ -23,6 +29,9 @@ const ScriptGenerationStep: React.FC<ScriptGenerationStepProps> = ({
   diagnosisText,
   cleaningScript,
   scriptValidation,
+  structuredDiagnosis,
+  remediationPlan,
+  onRemediationPlanChange,
   onScriptGenerated,
   onLog,
   onContinue,
@@ -45,6 +54,44 @@ const ScriptGenerationStep: React.FC<ScriptGenerationStepProps> = ({
     onScriptGenerated(fallbackScript, metrics);
     onLog?.('script', `Script determinista generado como respaldo :: ${reason}`);
   }, [onLog, onScriptGenerated, report]);
+
+  // ── Contracts v2: deterministic RemediationPlan ──
+  const isV2 = isContractsV2Enabled() && !!structuredDiagnosis;
+  const [v2Plan, setV2Plan] = useState<RemediationPlanV2 | null>(remediationPlan ?? null);
+
+  useEffect(() => {
+    if (!isV2 || remediationPlan) return;
+    try {
+      const ctx = buildRemediationContext(
+        _buildEvidenceEnvelopeV2(report as any, { privacyLevel: 'local_full', datasetSha256: '', delimiter: (report as any).delimiterDetected ?? ',' })
+      );
+      ctx.evidenceEnvelopeRef = structuredDiagnosis!.evidenceEnvelopeRef;
+      ctx.datasetFingerprint = (structuredDiagnosis!.diagnosis as any).evidenceEnvelopeRef ? '' : '';
+      const plan = buildRemediationPlanV2({ ...structuredDiagnosis!, remediationContext: ctx }, ctx);
+      setV2Plan(plan);
+      onRemediationPlanChange?.(plan);
+    } catch (e) {
+      onLog?.('script', `Error building remediation plan: ${(e as Error).message}`);
+    }
+  }, [isV2, structuredDiagnosis, remediationPlan]);
+
+  const handleApprove = useCallback((actionId: string) => {
+    if (!v2Plan) return;
+    const result = approveRemediationActionV2(v2Plan, actionId);
+    if (result.success) { setV2Plan(result.plan); onRemediationPlanChange?.(result.plan); }
+  }, [v2Plan, onRemediationPlanChange]);
+
+  const handleReject = useCallback((actionId: string) => {
+    if (!v2Plan) return;
+    const result = rejectRemediationActionV2(v2Plan, actionId);
+    if (result.success) { setV2Plan(result.plan); onRemediationPlanChange?.(result.plan); }
+  }, [v2Plan, onRemediationPlanChange]);
+
+  const handleReset = useCallback((actionId: string) => {
+    if (!v2Plan) return;
+    const result = resetRemediationActionV2(v2Plan, actionId);
+    if (result.success) { setV2Plan(result.plan); onRemediationPlanChange?.(result.plan); }
+  }, [v2Plan, onRemediationPlanChange]);
 
   const generateScript = useCallback(async () => {
     if (isLoading) return;
@@ -127,6 +174,96 @@ const ScriptGenerationStep: React.FC<ScriptGenerationStepProps> = ({
 
   return (
     <>
+      {isV2 && v2Plan ? (
+        <section className="section" data-testid="remediation-stage">
+          <header className="section-header">
+            <div>
+              <p className="sec-eye">remediación estructurada v2</p>
+              <h2 className="sec-title">Plan de remediación determinista</h2>
+            </div>
+          </header>
+          <p className="section-note">
+            Plan estructurado listo. La generación determinista del script se realizará en la siguiente fase.
+          </p>
+
+          <div className="stage-decision-summary" style={{ marginBottom: 'var(--space-md)' }}>
+            <div className="stage-summary-item">
+              <span className="stage-summary-label">acciones</span>
+              <strong className="stage-summary-value">{v2Plan.plan.length}</strong>
+            </div>
+            <div className="stage-summary-item">
+              <span className="stage-summary-label">auto-safe</span>
+              <strong className="stage-summary-value">{v2Plan.plan.filter(a => a.actionability === 'auto_safe').length}</strong>
+            </div>
+            <div className="stage-summary-item">
+              <span className="stage-summary-label">review</span>
+              <strong className="stage-summary-value">{v2Plan.plan.filter(a => a.actionability === 'review_only').length}</strong>
+            </div>
+            <div className="stage-summary-item">
+              <span className="stage-summary-label">exclusiones</span>
+              <strong className="stage-summary-value">{v2Plan.exclusions.length}</strong>
+            </div>
+          </div>
+
+          {v2Plan.plan.map((action, i) => (
+            <div key={action.actionId} className="stage-result" style={{ marginBottom: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <h4 style={{ fontSize: '13px', fontWeight: 600, margin: 0 }}>
+                    {i + 1}. [{action.actionType}] {action.ruleId}
+                    {action.columnId ? ` → ${action.columnId}` : ' (dataset)'}
+                  </h4>
+                  <div style={{ fontSize: '11px', color: 'var(--ink3)', marginTop: '2px' }}>
+                    {action.actionability === 'auto_safe' ? '✓ Automático' : action.actionability === 'review_only' ? '⚠️ Revisión requerida' : 'No accionable'} · {action.evidenceRefs.length} evidencias
+                  </div>
+                  <div style={{ fontSize: '10px', color: 'var(--ink3)', fontFamily: 'monospace', marginTop: '2px' }}>
+                    {action.actionId}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                  {action.approvalStatus === 'pending' && (
+                    <>
+                      <button className="btn-s btn-sm" onClick={() => handleApprove(action.actionId)} style={{ background: 'var(--success-bg)', color: 'var(--success-fg)' }}>
+                        <CheckCircle2 size={12} /> Aprobar
+                      </button>
+                      <button className="btn-s btn-sm" onClick={() => handleReject(action.actionId)} style={{ background: 'var(--error-bg)', color: 'var(--error-fg)' }}>
+                        <AlertTriangle size={12} /> Rechazar
+                      </button>
+                    </>
+                  )}
+                  {action.approvalStatus === 'approved' && (
+                    <button className="btn-s btn-sm" onClick={() => handleReset(action.actionId)} style={{ background: 'var(--success-bg)', color: 'var(--success-fg)' }}>
+                      <ShieldCheck size={12} /> Aprobado
+                    </button>
+                  )}
+                  {action.approvalStatus === 'rejected' && (
+                    <button className="btn-s btn-sm" onClick={() => handleReset(action.actionId)} style={{ background: 'var(--error-bg)', color: 'var(--error-fg)' }}>
+                      <Ban size={12} /> Rechazado
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {v2Plan.exclusions.length > 0 && (
+            <div style={{ marginTop: 'var(--space-md)', padding: '10px', background: 'var(--surface2)', borderRadius: '6px' }}>
+              <h4 style={{ fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>Exclusiones (not_actionable)</h4>
+              {v2Plan.exclusions.map(ex => (
+                <div key={ex.issueId} style={{ fontSize: '11px', color: 'var(--ink3)' }}>
+                  {ex.issueId}: {ex.reason}
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="evidence-options" data-testid="primary-stage-action" style={{ marginTop: 'var(--space-lg)' }}>
+            <button className="btn-p btn-sm" onClick={onContinue}>
+              Continuar a revisión <ArrowRight size={12} />
+            </button>
+          </div>
+        </section>
+      ) : (
       <section className="section" data-testid="script-stage">
         <header className="section-header">
           <div>
@@ -308,6 +445,7 @@ const ScriptGenerationStep: React.FC<ScriptGenerationStepProps> = ({
           <pre>{scriptPromptPreview}</pre>
         </details>
       </section>
+      )}
     </>
   );
 };
