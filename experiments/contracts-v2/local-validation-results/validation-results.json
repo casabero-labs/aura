@@ -1,8 +1,8 @@
 {
   "harnessVersion": "1.1.0",
-  "generatedAt": "2026-06-24T19:34:24.278Z",
-  "commitSha": "fe402f7282c9426ca3238afd3ee083adbcb3c6e8",
-  "sourceTreeDirty": true,
+  "generatedAt": "2026-06-24T20:17:56.876Z",
+  "commitSha": "fe5378e3eff87de45b60111eb42e30ed89beb1cd",
+  "sourceTreeDirty": false,
   "auditEngineSha256": "3ee341a49e5ebc42ccf3bb6cb2e9e39d350dc476f9cb159decba5d45a678c6a0",
   "contractsV2Sha256": "6a587f6cd3e9d8f2b74977b5f9cc805b94e62413ff4672a447bf493f6100ee64",
   "datasetsDir": "/Users/casabero/Documents/GitHub/aura/experiments/datasets",
@@ -118,7 +118,7 @@
       },
       "privacyViolations": 0,
       "truncations": 8,
-      "durationMs": 3119,
+      "durationMs": 3075,
       "error": null,
       "remediation": {
         "diagnosisRef": "diag:4b255cd3ec73ef5f7fd84011fe25291dab9980f27f17f4c98ddf9b3daf43631f",

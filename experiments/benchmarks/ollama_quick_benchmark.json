@@ -1,0 +1,34 @@
+{
+  "benchmark": "ollama-quick",
+  "commit": "fe5378e",
+  "date": "2026-06-24T20:26:39.003Z",
+  "model": "qwen2.5:3b",
+  "temperature": 0.1,
+  "dataset": "synthetic_ground_truth.csv",
+  "datasetSha256": "4e7d358f2141c6463146417a66f1c2312c7c3cdf6a39005780c92b061ff7ac49",
+  "runs": 3,
+  "state": "preliminary_valid",
+  "results": [
+    {
+      "run": 1,
+      "status": "success",
+      "latencyMs": 2555,
+      "modelTokens": 110,
+      "responsePreview": "```json\n[\n    {\"row\": 2, \"field\": \"nombre\", \"issue\": \"null\"},\n    {\"row\": 4, \"field\": \"edad\", \"issue\": \"null\"},\n    {\"row\": 6, \"field\": \"email\", \"issue\": \"whitespace\"},\n    {\"row\": 8, \"field\": \"depart"
+    },
+    {
+      "run": 2,
+      "status": "success",
+      "latencyMs": 5517,
+      "modelTokens": 248,
+      "responsePreview": "Here are the potential data quality issues identified for the given CSV with the provided structure and number of rows:\n\n```json\n[\n    {\"row\": 0, \"field\": \"id\", \"issue\": \"null\"},\n    {\"row\": 0, \"field"
+    },
+    {
+      "run": 3,
+      "status": "success",
+      "latencyMs": 5665,
+      "modelTokens": 253,
+      "responsePreview": "Here are some potential data quality issues based on the provided information for a CSV with 15 rows:\n\n```json\n[\n    {\"row\": 0, \"field\": \"id\", \"issue\": null},\n    {\"row\": 0, \"field\": \"nombre\", \"issue\""
+    }
+  ]
+}
