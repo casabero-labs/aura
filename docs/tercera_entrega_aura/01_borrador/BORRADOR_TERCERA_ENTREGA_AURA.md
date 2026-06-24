@@ -228,3 +228,89 @@ El desarrollo desde aqui debe seguir una regla practica:
 > Solo se implementa o documenta lo que mejora la evidencia de la tercera entrega.
 
 El siguiente avance debe partir de `05_desarrollo/NEXT_STEPS.md`, ejecutar una tarea pequena, validar con tests o evidencia exportable y actualizar este borrador si cambia el estado de los resultados.
+
+---
+
+## 13. Planificación determinista de la remediación y gobernanza HITL
+
+### 13.1 Problema que resuelve
+
+Una vez que el motor determinista genera hallazgos y el LLM los interpreta, queda la pregunta: ¿qué transformación se aplica, quién la autoriza, y cómo se garantiza que no se ejecute una operación destructiva sin supervisión? El plan de remediación actúa como la frontera entre la interpretación del modelo y las transformaciones aplicables. El LLM puede explicar un hallazgo, pero no tiene autoridad para seleccionar una operación. AURA consulta una política cerrada basada en el identificador de la regla y asigna cada propuesta a una categoría de seguridad.
+
+### 13.2 Entrada
+
+Recibe un `DiagnosisExecutionResult` que contiene:
+
+- `remediationContext`: issues del motor con sus `evidenceRefs`, `ruleId`, `columnId`, `scope`.
+- `diagnosis`: bloques de diagnóstico con la misma estructura de issues.
+- `evidenceEnvelopeRef`: hash del envelope que vincula el plan al dataset procesado.
+- `datasetFingerprint`: hash SHA-256 del CSV original.
+
+El contexto de remediación se construye con `buildRemediationContext` y es exclusivamente local (no requiere LLM).
+
+### 13.3 Procesamiento
+
+`buildRemediationPlanV2` opera en tres fases sin inferencia LLM:
+
+1. **Política de acción:** para cada issue, consulta `lookupRemediationAction(ruleId)` en `remediationPolicyV2.ts`. Esta tabla es cerrada: por cada `ruleId` existe exactamente un `actionType` autorizado. No hay variabilidad.
+
+2. **Actionability:** `computeEffectiveActionability` calcula si la acción es `auto_safe`, `review_only` o `not_actionable`. La función degrada `auto_safe` → `review_only` cuando la columna tiene `requiresReview=true` o la regla exige supervisión. Este degradamiento es univalente: nunca sube de nivel.
+
+3. **Identificadores:** cada acción recibe un `actionId` calculaddo como `act:${sha256short(sha256hex(payload))}` donde `payload = { diagnosisRef, issueId, ruleId, columnId, actionType }`. El `planId` se calcula como hash de todo el plan serializado en orden canónico. Estos hashes son deterministas: la misma entrada produce siempre el mismo identificador.
+
+El validador `validateRemediationPlanV2` comprueba la integridad del plan recomputando todos los hashes y rechazando cualquier discrepancia.
+
+### 13.4 Salida
+
+`RemediationPlanV2` con:
+
+```
+planId:             SHA-256 del plan (identidad inmutable)
+diagnosisRef:       Vinculación al diagnóstico
+plan:               Array<actionId, issueId, ruleId, columnId, actionType,
+                        parameters, actionability, evidenceRefs, approvalStatus>
+actionabilityMap:   Record<issueId, auto_safe | review_only | not_actionable>
+exclusions:         Array<issueId, reason: "not_actionable">
+generatedAt:        ISO 8601
+```
+
+El plan no contiene scripts, solo acciones autorizadas.
+
+### 13.5 Qué ve el usuario
+
+`RemediationPlanStepV2` renderiza:
+
+- Lista de acciones con tipo, regla, columna y actionability.
+- Botones **Aprobar** y **Rechazar** para cada acción en estado `pending`.
+- Estado **Aprobado** o **Rechazado** visible tras decisión.
+- Lista de exclusiones `not_actionable`.
+- Botón **Continuar** que pasa a `ScriptGenerationStepV2`.
+
+Si el plan es inválido (por ejemplo, restaurado con diagnóstico diferente), el componente muestra error y no permite continuar.
+
+### 13.6 Salvaguardas
+
+| Salvaguarda | Mecanismo |
+|---|---|
+| El LLM no selecciona acciones | `lookupRemediationAction` es tabla cerrada; el LLM solo propone scripts sobre acciones ya autorizadas. |
+| No hay auto_safe sin autorización de columna | `computeEffectiveActionability` degrada si `requiresReview=true`. |
+| El plan no se altera sin perder identidad | `planId` se recomputa en validación; cualquier cambio no autorizado falla. |
+| Acciones no pueden ejecutarse sin aprobación | Estado inicial `pending`; solo `approved` pasa al generador de script. |
+| No se excluyen acciones que requieren revisión | El validador rechaza exclusiones con `actionability === 'review_only'`. |
+| Références inválidas se detectan | Cada `actionId` y `evidenceRefs` se recomputa y compara. |
+
+### 13.7 Evidencia existente
+
+- `src/contracts/llm/remediationBuilderV2.ts`: constructor del plan.
+- `src/contracts/llm/remediationValidatorV2.ts`: validador fail-closed con 480 líneas.
+- `src/contracts/llm/remediationPolicyV2.ts`: tabla de acciones autorizadas por regla.
+- `src/components/RemediationPlanStepV2.tsx`: interfaz de revisión HITL.
+- `src/__tests__/remediationV2Integration.test.ts`: 22 tests de integración.
+- `src/__tests__/remediationV2Adversarial.test.ts`: tests adversariales.
+- `experiments/contracts-v2/local-validation-results/validation-results.json`: 3/3 PASS, 0 unsafeUpgrades, 0 invalidReferences, planHashStable=true.
+
+### 13.8 Limitaciones
+
+- Los planes se construyen sobre fixtures deterministas (no inferencia LLM real). Los resultados de actionability reflejan las reglas del motor, no la interpretación de un modelo.
+- Cero `auto_safe` en los tres datasets del harness: todas las columnas tienen `requiresReview=true`. El sistema puede generar `auto_safe` cuando las columnas lo permitan; el resultado actual es una consecuencia de la política conservadora.
+- Sin ejecución real de scripts: el harness valida estructura del plan, no la ejecución de transformaciones. La ejecución requiere export a Colab o Pyodide.
