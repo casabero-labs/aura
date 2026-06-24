@@ -43,10 +43,16 @@ export type {
   DiagnosisResponseV2,
   DiagnosisIssueV2,
   DiagnosisBlockV2,
+  DiagnosisPromptPackageV2,
+  DiagnosisPromptOptionsV2,
+  DiagnosisErrorCode,
+  DiagnosisError,
   RemediationPlanV2,
   RemediationActionV2,
   ScriptContractV2,
 } from './types';
+
+export type { DiagnosisParseOutcome } from './diagnosisParserV2';
 
 export {
   buildColumnRegistry,
@@ -109,3 +115,23 @@ export {
   validatePrivacyCompliance,
   aggregateResults,
 } from './validators';
+
+// ── Diagnosis v2 ──
+export {
+  buildDiagnosisPromptV2,
+  canonicalJson,
+  buildEnvelopeRef,
+} from './diagnosisPromptV2';
+
+export {
+  parseDiagnosisResponseV2,
+} from './diagnosisParserV2';
+
+export {
+  validateDiagnosisResponseV2,
+} from './diagnosisValidatorV2';
+
+export {
+  Errors as DiagnosisErrors,
+  diagnosisError,
+} from './diagnosisV2Errors';

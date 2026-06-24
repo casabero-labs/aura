@@ -63,13 +63,16 @@ export const REGISTRY: Record<ContractId, ContractMetadata> = {
     version: TARGET_VERSION,
     taskType: 'diagnosis',
     schema: schema(
-      ['contractId', 'contractVersion', 'evidenceEnvelopeRef', 'issues', 'diagnosisBlocks'],
+      ['contractId', 'contractVersion', 'evidenceEnvelopeRef', 'responseId', 'issues', 'diagnosisBlocks', 'limitations', 'generatedAt'],
       {
         contractId: { type: 'string', enum: ['aura.diagnosis.v2'] },
         contractVersion: { type: 'string', enum: ['2.0.0'] },
         evidenceEnvelopeRef: { type: 'string' },
+        responseId: { type: 'string' },
         issues: { type: 'array' },
         diagnosisBlocks: { type: 'array' },
+        limitations: { type: 'array' },
+        generatedAt: { type: 'string' },
       }
     ),
     createdAt: FIXED_CREATED_AT,

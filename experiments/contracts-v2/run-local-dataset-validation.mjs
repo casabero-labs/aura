@@ -57,6 +57,8 @@ const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 // ── Dynamic imports ──
 const { runAudit } = await import(path.resolve(REPO_ROOT, 'src/services/auditEngine.ts'));
 const { _buildEvidenceEnvelopeV2 } = await import(path.resolve(REPO_ROOT, 'src/contracts/llm/evidenceEnvelopeV2.ts'));
+const { buildDiagnosisPromptV2, buildEnvelopeRef } = await import(path.resolve(REPO_ROOT, 'src/contracts/llm/diagnosisPromptV2.ts'));
+const { validateDiagnosisResponseV2 } = await import(path.resolve(REPO_ROOT, 'src/contracts/llm/diagnosisValidatorV2.ts'));
 
 // ── Provenance metadata ──
 function sha256(filePath) {
@@ -77,6 +79,7 @@ const results = {
   datasetsDir: DATASETS_DIR,
   summary: { total: 0, passed: 0, failed: 0, unsupported: 0 },
   files: [],
+  diagnosis: { promptHashStable: true, fixtures: [] },
 };
 
 // ── Main ──
@@ -299,6 +302,71 @@ async function validateFile(filename) {
           }
         }
       }
+    }
+
+    // ── Diagnosis fixture (deterministic, no model call) ──
+    try {
+      const diagEnvelope = _buildEvidenceEnvelopeV2(reportInput, {
+        privacyLevel: 'local_full',
+        datasetSha256: record.sha256,
+        delimiter,
+      });
+      const promptPackage = buildDiagnosisPromptV2(diagEnvelope);
+      const envelopeRef = buildEnvelopeRef(diagEnvelope);
+
+      // Verify prompt hash is stable
+      const promptPackage2 = buildDiagnosisPromptV2(diagEnvelope);
+      if (promptPackage.promptHash !== promptPackage2.promptHash) {
+        results.diagnosis.promptHashStable = false;
+      }
+
+      // Build a minimal deterministic diagnosis fixture that mirrors envelope issues
+      const diagIssues = (diagEnvelope.issues || []).map(iss => ({
+        issueId: iss.issueId,
+        evidenceRefs: iss.evidenceRefs || [],
+        hypothesis: `Automatically generated from ${iss.ruleName || iss.ruleId}`,
+        confidence: 0.5,
+        requiresHumanReview: iss.actionability === 'review_only' || !iss.automaticAuthorization?.authorized,
+        limits: ['Deterministic fixture — no model inference applied'],
+      }));
+
+      const diagBlocks = (diagEnvelope.issues || []).map(iss => ({
+        issueId: iss.issueId,
+        ruleId: iss.ruleId,
+        columnId: iss.columnId || null,
+        scope: iss.scope || 'column',
+        observation: `${iss.ruleName || iss.ruleId}: ${iss.count} affected (${iss.affectedPercentage}%)`,
+        recommendation: 'Review this issue in the context of the dataset domain',
+      }));
+
+      const diagnosisFixture = {
+        contractId: 'aura.diagnosis.v2',
+        contractVersion: '2.0.0',
+        evidenceEnvelopeRef: envelopeRef,
+        responseId: `diag-fixture-${record.file.replace(/[^a-zA-Z0-9]/g, '-').slice(0, 60)}`,
+        issues: diagIssues,
+        diagnosisBlocks: diagBlocks,
+        limitations: ['Deterministic diagnosis fixture — no LLM inference performed'],
+        generatedAt: new Date().toISOString(),
+      };
+
+      // Validate the fixture against its own envelope
+      const validation = validateDiagnosisResponseV2(diagnosisFixture, diagEnvelope);
+
+      results.diagnosis.fixtures.push({
+        file: record.file,
+        envelopeRef,
+        promptHash: promptPackage.promptHash,
+        promptHashStable: promptPackage.promptHash === promptPackage2.promptHash,
+        issueCount: diagIssues.length,
+        blockCount: diagBlocks.length,
+        validation: { valid: validation.valid, errorCount: validation.errors.length, warningCount: validation.warnings.length },
+      });
+    } catch (diagErr) {
+      results.diagnosis.fixtures.push({
+        file: record.file,
+        error: `Diagnosis fixture generation failed: ${diagErr.message}`,
+      });
     }
 
     // Determine overall status

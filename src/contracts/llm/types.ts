@@ -271,8 +271,11 @@ export interface DiagnosisResponseV2 {
   contractId: 'aura.diagnosis.v2';
   contractVersion: '2.0.0';
   evidenceEnvelopeRef: string;
+  responseId: string;
   issues: DiagnosisIssueV2[];
   diagnosisBlocks: DiagnosisBlockV2[];
+  limitations: string[];
+  generatedAt: string;
 }
 
 export interface DiagnosisIssueV2 {
@@ -285,11 +288,46 @@ export interface DiagnosisIssueV2 {
 }
 
 export interface DiagnosisBlockV2 {
+  issueId: string;
   ruleId: string;
   columnId: string | null;
   scope: IssueScope;
   observation: string;
   recommendation: string;
+}
+
+// ── Diagnosis Prompt Types ──
+export interface DiagnosisPromptPackageV2 {
+  contractId: 'aura.diagnosis.v2';
+  contractVersion: '2.0.0';
+  evidenceEnvelopeRef: string;
+  promptVersion: string;
+  promptHash: string;
+  systemInstruction: string;
+  userPayload: string;
+  responseSchema: Record<string, unknown>;
+  generatedAt: string;
+}
+
+export interface DiagnosisPromptOptionsV2 {
+  maxConfidence?: number;
+}
+
+// ── Diagnosis Error Codes ──
+export type DiagnosisErrorCode =
+  | 'DIAGNOSIS_JSON_INVALID'
+  | 'DIAGNOSIS_SCHEMA_INVALID'
+  | 'DIAGNOSIS_REFERENCE_INVALID'
+  | 'DIAGNOSIS_ENVELOPE_MISMATCH'
+  | 'DIAGNOSIS_REVIEW_DOWNGRADE'
+  | 'DIAGNOSIS_EXECUTABLE_CONTENT'
+  | 'CONTRACTS_V2_DISABLED';
+
+export interface DiagnosisError {
+  code: DiagnosisErrorCode;
+  message: string;
+  path: string;
+  details: unknown;
 }
 
 // ── Remediation Contract ──
