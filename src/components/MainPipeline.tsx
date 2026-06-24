@@ -12,6 +12,7 @@ import { buildAuditEvidence, buildIngestionEvidence, createTraceRecorder, finger
 import { matchGroundTruth, buildDeterministicValidationReport } from '../services/deterministicValidation';
 import { validateCleaningScript } from '../services/scriptValidationService';
 import { AIConfig, AIProvider, AuditReport, AuditExecutionEvidence, BenchmarkResult, DeterministicValidationReport, HealthDelta, ImprovementRun, ProviderMetrics, ScriptValidationResult, ProgressDisclosureStatus } from '../types';
+import type { DiagnosisExecutionResult } from '../contracts/llm';
 
 export type PipelineState = 'upload' | 'profile' | 'diagnosis' | 'script' | 'review' | 'export';
 
@@ -27,6 +28,7 @@ export interface PipelineData {
   approvedScript: string;
   healthDelta: HealthDelta | null;
   aiAnalysis: string;
+  structuredDiagnosis: DiagnosisExecutionResult | null;
   benchmarkResults: BenchmarkResult[];
   improvementRun: ImprovementRun | null;
   scriptValidation: ScriptValidationResult | null;
@@ -56,6 +58,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, onLog
   const [approvedScript, setApprovedScript] = useState('');
   const [healthDelta, setHealthDelta] = useState<HealthDelta | null>(null);
   const [aiAnalysis, setAiAnalysis] = useState('');
+  const [structuredDiagnosis, setStructuredDiagnosis] = useState<DiagnosisExecutionResult | null>(null);
   const [benchmarkResults, setBenchmarkResults] = useState<BenchmarkResult[]>([]);
   const [improvementRun, setImprovementRun] = useState<ImprovementRun | null>(null);
   const [logs, setLogs] = useState<{ time: string; msg: string }[]>([]);
@@ -73,13 +76,16 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, onLog
       mountCountRef.current += 1;
       return;
     }
-    onPipelineChange?.({
+    const pipelineData: PipelineData = {
       state, file, report, auditEvidence, rawData, csvFields, csvDelimiter,
       cleaningScript, approvedScript, healthDelta, aiAnalysis,
+      structuredDiagnosis,
       benchmarkResults, improvementRun, scriptValidation, deterministicValidation, logs,
-    });
+    };
+    onPipelineChange?.(pipelineData);
   }, [state, file, report, auditEvidence, rawData, csvFields, csvDelimiter,
       cleaningScript, approvedScript, healthDelta, aiAnalysis,
+      structuredDiagnosis,
       benchmarkResults, improvementRun, scriptValidation, deterministicValidation, logs]);
 
   const addLog = (msg: string) => {
@@ -96,7 +102,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, onLog
     setIsProcessing(true);
     setReport(null); setRawData([]); setCsvFields([]); setCsvDelimiter(',');
     setAuditEvidence(null); setCleaningScript(''); setApprovedScript('');
-    setHealthDelta(null); setAiAnalysis(''); setLogs([]);
+    setHealthDelta(null); setAiAnalysis(''); setStructuredDiagnosis(null); setLogs([]);
     setScriptValidation(null);
     setBenchmarkResults([]); setImprovementRun(null);
     setProcessProgressStatus('running');
@@ -170,6 +176,8 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, onLog
   };
 
   const hasData = !!report;
+  const hasStructuredDiagnosis = !!structuredDiagnosis;
+  const hasDiagnosis = hasData && (aiAnalysis.trim().length > 0 || hasStructuredDiagnosis);
 
   const terminalRows = logs.length > 0
     ? logs
@@ -243,6 +251,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, onLog
           analysisText={aiAnalysis}
           onAiConfigChange={onAiConfigChange || (() => {})}
           onAnalysisComplete={(analysis) => setAiAnalysis(analysis)}
+          onStructuredDiagnosisComplete={setStructuredDiagnosis}
           onLog={(stage, msg) => addLog(`${stage} :: ${msg}`)}
           onContinue={() => setState('script')}
           onOpenLab={onOpenLab}

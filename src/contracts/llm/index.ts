@@ -155,5 +155,4 @@ export type {
   StructuredDiagnosisResult,
   StructuredDiagnosisFailure,
   StructuredDiagnosisOutcome,
-  DiagnosisExecutionResult,
 } from './diagnosisSelector';

@@ -157,7 +157,15 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
   };
 
   const exportDiagnosisJson = () => {
-    if (!draftAnalysis.trim()) return;
+    if (!draftAnalysis.trim() && !structuredDiagnosis) return;
+    if (structuredDiagnosis) {
+      downloadTextFile(
+        `aura_diagnostico_estructurado_v2_${Date.now()}.json`,
+        JSON.stringify(structuredDiagnosis, null, 2),
+        'application/json;charset=utf-8',
+      );
+      return;
+    }
     const profile = {
       dataset: {
         rows: report.rowCount,
@@ -191,7 +199,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
   };
 
   const exportDiagnosisPdf = async () => {
-    if (!draftAnalysis.trim()) return;
+    if (!draftAnalysis.trim() && !structuredDiagnosis) return;
     const { jsPDF } = await import('jspdf');
     const doc = new jsPDF();
     const margin = 16;
@@ -215,7 +223,11 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
     doc.setFont('helvetica', 'normal');
     draw(`Dataset: ${report.rowCount.toLocaleString('es-CO')} filas · ${report.colCount} columnas · delimitador "${report.delimiterDetected}" · score ${report.score}/100`, 9, 5);
     draw(`Modelo: ${aiConfig.model} · Proveedor: ${aiConfig.providerType} · Temperatura: ${aiConfig.temperature}`, 9, 5);
-    draw(`Prompt hash: ${computePromptHash(diagnosisPrompt)}`, 8, 5);
+    if (structuredDiagnosis) {
+      draw(`Diagnosis v2 · responseId: ${structuredDiagnosis.diagnosis.responseId}`, 8, 5);
+    } else {
+      draw(`Prompt hash: ${computePromptHash(diagnosisPrompt)}`, 8, 5);
+    }
     y += 4;
     doc.setFont('helvetica', 'bold');
     draw('1. Perfil determinista del dataset', 11, 6);
@@ -230,10 +242,30 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
       draw(`${index + 1}. ${issue.severity.toUpperCase()} · ${issue.ruleName}${issue.column ? ` · ${issue.column}` : ''}: ${issue.description}`, 8, 4);
     });
     y += 3;
-    doc.setFont('helvetica', 'bold');
-    draw('3. Diagnostico LLM generado', 11, 6);
-    doc.setFont('helvetica', 'normal');
-    draw(draftAnalysis.replace(/[#*_`]/g, ''), 9, 5);
+
+    if (structuredDiagnosis) {
+      doc.setFont('helvetica', 'bold');
+      draw('3. Diagnostico Estructurado v2', 11, 6);
+      doc.setFont('helvetica', 'normal');
+      structuredDiagnosis.diagnosis.diagnosisBlocks.slice(0, 8).forEach((block, index) => {
+        draw(`${index + 1}. [${block.ruleId}] ${block.observation}`, 8, 4);
+        draw(`   Recomendacion: ${block.recommendation}`, 8, 4);
+      });
+      if (structuredDiagnosis.diagnosis.limitations.length > 0) {
+        y += 2;
+        doc.setFont('helvetica', 'bold');
+        draw('Limitaciones:', 9, 4);
+        doc.setFont('helvetica', 'normal');
+        structuredDiagnosis.diagnosis.limitations.forEach((lim) => {
+          draw(`- ${lim}`, 8, 4);
+        });
+      }
+    } else {
+      doc.setFont('helvetica', 'bold');
+      draw('3. Diagnostico LLM generado', 11, 6);
+      doc.setFont('helvetica', 'normal');
+      draw(draftAnalysis.replace(/[#*_`]/g, ''), 9, 5);
+    }
     doc.save(`aura_reporte_perfil_diagnostico_${Date.now()}.pdf`);
   };
 
@@ -304,7 +336,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
     }
   }, [aiProvider, pushEvent]);
 
-  const handleProviderTypeChange = (type: 'chrome' | 'ollama' | 'cloud') => {
+  const handleProviderTypeChange = (type: 'chrome' | 'ollama' | 'cloud' | 'webllm_experimental') => {
     const defaults: Record<string, string> = {
       chrome: 'gemini-nano',
       ollama: 'qwen2.5:3b',
@@ -373,6 +405,10 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
         pushEvent('info', 'Iniciando Diagnosis v2 (contrato estructurado)...');
         setProgressStep('Preparando Diagnosis v2');
 
+        if (aiConfig.providerType === 'chrome') {
+          startNetworkMonitoring();
+        }
+
         const v2Result = await runStructuredDiagnosis(report as any, {
           provider: aiProvider,
           auditEvidence: auditEvidence ? { datasetFingerprint: auditEvidence.datasetFingerprint } : null,
@@ -438,6 +474,16 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
             tokensGenerated: v2Result.result.metrics.tokensGenerated,
             status: 'completed',
           });
+
+          if (aiConfig.providerType === 'chrome') {
+            const networkGuardResult = stopNetworkMonitoring();
+            setNetworkResult(networkGuardResult);
+            const availability = await detectChromeAiAvailability();
+            const placeholderData = [['placeholder']];
+            const placeholderColumns = ['column'];
+            const receipt = await generateQuickReceipt(placeholderData, placeholderColumns, networkGuardResult!, availability);
+            setPrivacyReceipt(receipt);
+          }
         }
       } else {
         if (aiConfig.providerType === 'webllm_experimental') {
@@ -580,7 +626,8 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
   const isCloud = aiConfig.providerType === 'cloud';
   const isOllama = aiConfig.providerType === 'ollama';
   const isChrome = aiConfig.providerType === 'chrome';
-  const hasDiagnosis = draftAnalysis.trim().length > 0;
+  const isV2 = structuredDiagnosis !== null;
+  const hasDiagnosis = draftAnalysis.trim().length > 0 || isV2;
 
   return (
     <>
@@ -742,23 +789,6 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
               {aiConfig.providerType === 'cloud' && aiConfig.apiKey && (
                 <li>El proveedor cloud no responde. Verifica la API key.</li>
               )}
-              {aiConfig.providerType === 'chrome' && (
-                <>
-                  <li><strong>Chrome AI (Gemini Nano)</strong> no está disponible en este navegador.</li>
-                  <li style={{ marginTop: 'var(--space-sm)' }}>
-                    <strong>Para activarlo:</strong>
-                    <ol style={{ margin: '4px 0 0 16px', fontSize: '13px', lineHeight: 1.7 }}>
-                      <li>Verifica que uses Chrome 138 o superior.</li>
-                      <li>Abre <code>chrome://flags</code> en una pestaña nueva.</li>
-                      <li>Busca "Prompt API", "Gemini Nano" o "Built-in AI".</li>
-                      <li>Activa las opciones y reinicia Chrome.</li>
-                    </ol>
-                  </li>
-                  <li style={{ marginTop: 'var(--space-sm)', fontSize: '12px', color: 'var(--ink3)' }}>
-                    También puedes revisar <code>chrome://on-device-internals</code> para ver modelos disponibles.
-                  </li>
-                </>
-              )}
               {aiConfig.providerType === 'ollama' && (
                 <li>Ollama todavía no está conectado a AURA. Completa la configuración guiada para este equipo.</li>
               )}
@@ -767,14 +797,18 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
               )}
             </ul>
             <div className="provider-unavailable-actions">
-              {aiConfig.providerType === 'chrome' && (
+              {aiConfig.providerType === 'ollama' && (
                 <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap', marginBottom: 'var(--space-sm)' }}>
-                  <button className="btn-s btn-sm" onClick={async () => {
-                    await getChromeAiDiagnostic();
-                    aiProvider.isAvailable().then((avail) => setProviderAvailable(avail)).catch(() => setProviderAvailable(false));
-                  }}>
-                    <Activity size={12} /> Verificar Chrome AI
+                  <button className="btn-s btn-sm" onClick={() => handleProviderTypeChange('cloud')}>
+                    <Globe size={12} /> Usar Cloud
                   </button>
+                  <button className="btn-s btn-sm" onClick={() => handleProviderTypeChange('webllm_experimental')}>
+                    <HardDrive size={12} /> Usar WebGPU
+                  </button>
+                </div>
+              )}
+              {aiConfig.providerType === 'webllm_experimental' && (
+                <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap', marginBottom: 'var(--space-sm)' }}>
                   <button className="btn-s btn-sm" onClick={() => handleProviderTypeChange('ollama')}>
                     <Server size={12} /> Usar Ollama
                   </button>
@@ -783,27 +817,56 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
                   </button>
                 </div>
               )}
-              {aiConfig.providerType === 'ollama' && (
+              {aiConfig.providerType === 'cloud' && (
                 <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap', marginBottom: 'var(--space-sm)' }}>
-                  <button
-                    className="btn-p btn-sm"
-                    onClick={() => window.location.assign('/ollama-setup.html?return=/')}
-                    data-testid="ollama-provider-unavailable-setup"
-                  >
-                    <Server size={12} /> Configurar Ollama
+                  <button className="btn-s btn-sm" onClick={() => handleProviderTypeChange('ollama')}>
+                    <Server size={12} /> Usar Ollama
                   </button>
-                  <button className="btn-s btn-sm" onClick={async () => {
-                    const avail = await aiProvider.isAvailable();
-                    setProviderAvailable(avail);
-                  }}>
-                    <RefreshCw size={12} /> Volver a intentar
+                  <button className="btn-s btn-sm" onClick={() => handleProviderTypeChange('webllm_experimental')}>
+                    <HardDrive size={12} /> Usar WebGPU
                   </button>
                 </div>
               )}
-              <p><strong>Puedes continuar con script determinista.</strong> El motor de reglas no depende del LLM.</p>
-              <button className="btn-s btn-sm" onClick={onContinue} style={{ marginTop: 'var(--space-sm)' }}>
-                <Play size={12} /> Continuar sin diagnóstico
-              </button>
+            </div>
+          </div>
+        )}
+
+        {providerAvailable === false && aiConfig.providerType === 'chrome' && (
+          <div className="provider-unavailable-notice">
+            <div className="provider-unavailable-header">
+              <ShieldAlert size={16} style={{ color: 'var(--orange)' }} />
+              <strong>Chrome AI no disponible</strong>
+            </div>
+            <ul className="provider-unavailable-reasons">
+              <li><strong>Chrome AI (Gemini Nano)</strong> no está disponible en este navegador.</li>
+              <li style={{ marginTop: 'var(--space-sm)' }}>
+                <strong>Para activarlo:</strong>
+                <ol style={{ margin: '4px 0 0 16px', fontSize: '13px', lineHeight: 1.7 }}>
+                  <li>Verifica que uses Chrome 138 o superior.</li>
+                  <li>Abre <code>chrome://flags</code> en una pestaña nueva.</li>
+                  <li>Busca "Prompt API", "Gemini Nano" o "Built-in AI".</li>
+                  <li>Activa las opciones y reinicia Chrome.</li>
+                </ol>
+              </li>
+              <li style={{ marginTop: 'var(--space-sm)', fontSize: '12px', color: 'var(--ink3)' }}>
+                También puedes revisar <code>chrome://on-device-internals</code> para ver modelos disponibles.
+              </li>
+            </ul>
+            <div className="provider-unavailable-actions">
+              <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap', marginBottom: 'var(--space-sm)' }}>
+                <button className="btn-s btn-sm" onClick={async () => {
+                  await getChromeAiDiagnostic();
+                  aiProvider.isAvailable().then((avail) => setProviderAvailable(avail)).catch(() => setProviderAvailable(false));
+                }}>
+                  <Activity size={12} /> Verificar Chrome AI
+                </button>
+                <button className="btn-s btn-sm" onClick={() => handleProviderTypeChange('ollama')}>
+                  <Server size={12} /> Usar Ollama
+                </button>
+                <button className="btn-s btn-sm" onClick={() => handleProviderTypeChange('cloud')}>
+                  <Globe size={12} /> Usar Cloud
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -869,13 +932,72 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
 
         {hasDiagnosis && !isLoading && (
           <div className="stage-result">
-            <h3 className="stage-result-title">Resumen de AURA</h3>
-            <GeminiAdvisor
-              analysis={draftAnalysis}
-              isLoading={isLoading}
-              providerType={aiConfig.providerType as 'local' | 'cloud' | 'chrome' | 'ollama'}
-              model={aiConfig.model}
-            />
+            {isV2 ? (
+              <>
+                <h3 className="stage-result-title">Diagnóstico Estructurado v2</h3>
+                {structuredDiagnosis.diagnosis.diagnosisBlocks.length > 0 && (
+                  <div style={{ marginBottom: 'var(--space-md)' }}>
+                    <h4 style={{ fontSize: '13px', fontWeight: 600, marginBottom: '8px', color: 'var(--ink2)' }}>Observaciones y Recomendaciones</h4>
+                    {structuredDiagnosis.diagnosis.diagnosisBlocks.map((block, i) => (
+                      <div key={i} style={{ marginBottom: '12px', padding: '10px', background: 'var(--surface2)', borderRadius: '6px', borderLeft: '3px solid var(--accent)' }}>
+                        <div style={{ fontSize: '12px', color: 'var(--ink3)', marginBottom: '4px' }}>
+                          {block.ruleId}{block.columnId ? ` · ${block.columnId}` : ''}
+                        </div>
+                        <div style={{ fontSize: '13px', marginBottom: '6px' }}>
+                          <strong>Observación:</strong> {block.observation}
+                        </div>
+                        <div style={{ fontSize: '13px', color: 'var(--accent)' }}>
+                          <strong>Recomendación:</strong> {block.recommendation}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {structuredDiagnosis.diagnosis.issues.length > 0 && (
+                  <div style={{ marginBottom: 'var(--space-md)' }}>
+                    <h4 style={{ fontSize: '13px', fontWeight: 600, marginBottom: '8px', color: 'var(--ink2)' }}>Hallazgos</h4>
+                    {structuredDiagnosis.diagnosis.issues.map((issue, i) => (
+                      <div key={i} style={{ marginBottom: '10px', padding: '8px', background: 'var(--surface1)', borderRadius: '4px' }}>
+                        <div style={{ fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>
+                          {issue.hypothesis}
+                          {issue.requiresHumanReview && (
+                            <span style={{ marginLeft: '8px', padding: '1px 6px', background: 'var(--warning-bg, #fff3cd)', color: 'var(--warning-fg, #856404)', borderRadius: '3px', fontSize: '10px', fontWeight: 600 }}>
+                              REVISIÓN HUMANA
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: '11px', color: 'var(--ink3)' }}>
+                          Confianza: {(issue.confidence * 100).toFixed(0)}% · Evidencia: {issue.evidenceRefs.length} refs
+                        </div>
+                        {issue.limits.length > 0 && (
+                          <div style={{ fontSize: '11px', color: 'var(--ink3)', marginTop: '4px', fontStyle: 'italic' }}>
+                            Límites: {issue.limits.join('; ')}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {structuredDiagnosis.diagnosis.limitations.length > 0 && (
+                  <div style={{ marginBottom: 'var(--space-md)', padding: '10px', background: 'var(--surface1)', borderRadius: '6px', borderLeft: '3px solid var(--warning)' }}>
+                    <h4 style={{ fontSize: '12px', fontWeight: 600, marginBottom: '6px', color: 'var(--ink2)' }}>Limitaciones</h4>
+                    {structuredDiagnosis.diagnosis.limitations.map((lim, i) => (
+                      <div key={i} style={{ fontSize: '12px', color: 'var(--ink3)', marginBottom: '4px' }}>{lim}</div>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <h3 className="stage-result-title">Resumen de AURA</h3>
+                <GeminiAdvisor
+                  analysis={draftAnalysis}
+                  isLoading={isLoading}
+                  providerType={aiConfig.providerType as 'local' | 'cloud' | 'chrome' | 'ollama'}
+                  model={aiConfig.model}
+                />
+              </>
+            )}
             {lastMetrics && (
               <div className="stage-result-metrics">
                 <span>{(lastMetrics.latencyMs / 1000).toFixed(1)}s</span>
