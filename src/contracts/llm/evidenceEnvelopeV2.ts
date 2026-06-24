@@ -2,8 +2,9 @@
  * Evidence Envelope V2 — Phase 1C.
  *
  * - Internal builder (_buildEvidenceEnvelopeV2) + public wrapper (buildEvidenceEnvelopeV2)
- * - Actionability: deduction ruleId from engine scoreBreakdown, NO heuristic fallbacks
- * - drop_exact_duplicates: auto_safe only with explicit AuditReport authorization
+ * - Actionability: ruleId → defaultActionability lookup. BANNED: regex, heuristic, fabrication
+ * - auto_safe only when automaticAuthorization.authorized === true
+ * - ruleId and automaticAuthorization copied from engine-issued QualityIssue
  * - cloud_minimized: preserves real minimized samples (redacted/hashed)
  * - maxCharacters: throws BUDGET_UNSATISFIABLE if cannot comply
  * - Duplicate columns: columnId+position, NEVER rawName lookup
@@ -41,7 +42,6 @@ import {
   validatePrivacyPolicy,
   validateTokenBudget,
 } from './validators';
-import { sha256short } from './hash';
 import type {
   EvidenceEnvelopeV2,
   EvidenceIssueV2,
@@ -54,6 +54,7 @@ import type {
   Actionability,
   IssueScope,
   ExclusionReason,
+  AutomaticAuthorization,
   BuildErrorV2,
   DatasetSummaryV2,
   PrivacyPolicyV2,
@@ -61,65 +62,45 @@ import type {
   TruncationManifestV2,
 } from './types';
 
-// ── Actionability via deduction ruleId (from engine scoreBreakdown) ──
+// ── RuleId → defaultActionability lookup (deterministic, no regex) ──
 
-interface DeductionRef {
-  reason: string;
-  category: string;
-  ruleId: string;
-}
+const RULE_POLICY: Record<string, { defaultActionability: Actionability; scope: IssueScope }> = {
+  'rule:trim-whitespace':            { defaultActionability: 'auto_safe',       scope: 'column' },
+  'rule:exact-duplicates':           { defaultActionability: 'auto_safe',       scope: 'dataset' },
+  'rule:null-values':                { defaultActionability: 'review_only',     scope: 'column' },
+  'rule:constant-column':            { defaultActionability: 'review_only',     scope: 'column' },
+  'rule:mixed-types':                { defaultActionability: 'review_only',     scope: 'column' },
+  'rule:header-verbose':             { defaultActionability: 'not_actionable',  scope: 'column' },
+  'rule:mojibake':                   { defaultActionability: 'review_only',     scope: 'column' },
+  'rule:toxic-placeholders':         { defaultActionability: 'review_only',     scope: 'column' },
+  'rule:mixed-date-formats':         { defaultActionability: 'review_only',     scope: 'column' },
+  'rule:capitalization-chaos':       { defaultActionability: 'review_only',     scope: 'column' },
+  'rule:semantic-variants':          { defaultActionability: 'review_only',     scope: 'column' },
+  'rule:long-tail-categorical':      { defaultActionability: 'not_actionable',  scope: 'column' },
+  'rule:double-spaces':              { defaultActionability: 'review_only',     scope: 'column' },
+  'rule:suspicious-symbols':         { defaultActionability: 'review_only',     scope: 'column' },
+  'rule:malformed-urls':             { defaultActionability: 'review_only',     scope: 'column' },
+  'rule:text-overflow':              { defaultActionability: 'not_actionable',  scope: 'column' },
+  'rule:disguised-numbers':          { defaultActionability: 'review_only',     scope: 'column' },
+  'rule:hidden-dates':               { defaultActionability: 'review_only',     scope: 'column' },
+  'rule:corrupt-ids':                { defaultActionability: 'review_only',     scope: 'column' },
+  'rule:redundant-time':             { defaultActionability: 'not_actionable',  scope: 'column' },
+  'rule:burned-demographic-ranges':  { defaultActionability: 'review_only',     scope: 'column' },
+  'rule:impossible-negatives':       { defaultActionability: 'review_only',     scope: 'column' },
+  'rule:extreme-outliers':           { defaultActionability: 'review_only',     scope: 'column' },
+  'rule:mild-outliers':              { defaultActionability: 'review_only',     scope: 'column' },
+  'rule:invalid-email':              { defaultActionability: 'review_only',     scope: 'column' },
+  'rule:variable-phone-length':      { defaultActionability: 'review_only',     scope: 'column' },
+  'rule:pii-detected':              { defaultActionability: 'review_only',     scope: 'column' },
+  'rule:future-dates':              { defaultActionability: 'review_only',     scope: 'column' },
+  'rule:temporal-inconsistency':     { defaultActionability: 'review_only',     scope: 'dataset' },
+  'rule:temporal-redundancy':       { defaultActionability: 'not_actionable',  scope: 'column' },
+  'rule:semantic-column-duplication':{ defaultActionability: 'not_actionable',  scope: 'column' },
+  'rule:id-semantic-contamination': { defaultActionability: 'review_only',     scope: 'column' },
+};
 
-/**
- * Map engine deduction reason → stable ruleId + actionability.
- * NO heuristic ruleName.includes() fallback. BANNED.
- */
-function deduceActionability(deduction: DeductionRef): { actionability: Actionability; ruleId: string; scope: IssueScope } {
-  const reason = deduction.reason;
-  const cat = deduction.category;
-
-  // Stable ruleId from deduction reason
-  const ruleId = deduction.ruleId !== 'unknown'
-    ? deduction.ruleId
-    : `rule:${sha256short(reason, 8)}`;
-
-  // drop_exact_duplicates: classified, authorization handled at call site
-  if (/filas?\s*duplicadas|exact\s*duplicates?/i.test(reason)) {
-    return { actionability: 'auto_safe', ruleId, scope: 'dataset' };
-  }
-
-  // Whitespace trimming = auto_safe
-  if (/espacios\s*fantasma|trim|whitespace/i.test(reason)) {
-    return { actionability: 'auto_safe', ruleId, scope: 'column' };
-  }
-
-  // Nulls / missing = review_only
-  if (/nulos?|vacíos?|missing|null|vacios/i.test(reason)) {
-    return { actionability: 'review_only', ruleId, scope: 'column' };
-  }
-
-  // Outliers = review_only
-  if (/outlier|atípico/i.test(reason)) {
-    return { actionability: 'review_only', ruleId, scope: 'column' };
-  }
-
-  // PII = review_only
-  if (/pii|personal/i.test(reason)) {
-    return { actionability: 'review_only', ruleId, scope: 'column' };
-  }
-
-  // Cardinality, categories, semantic = review_only
-  if (/cardinalidad|variantes|categórica|categorica|caos|mayúsculas/i.test(reason)) {
-    return { actionability: 'review_only', ruleId, scope: 'column' };
-  }
-
-  // Statistical / semantic features = not_actionable
-  if (/estadístic|semántic|contaminación|feature/i.test(reason)) {
-    return { actionability: 'not_actionable', ruleId, scope: 'dataset' };
-  }
-
-  // Default: review_only (fail-safe)
-  return { actionability: 'review_only', ruleId, scope: 'column' };
-}
+const DEFAULT_ACTIONABILITY: Actionability = 'review_only';
+const DEFAULT_SCOPE: IssueScope = 'column';
 
 // ── Input types ──
 
@@ -132,13 +113,15 @@ export interface AuditReportInput {
   issues: Array<{
     id: string;
     column?: string;
-    category: string;
     ruleName: string;
+    ruleId: string;
+    category: string;
     description: string;
     severity: 'critical' | 'warning' | 'info' | 'good';
     count: number;
     affectedPercentage: number;
     sampleValues?: (string | number | null)[];
+    automaticAuthorization?: AutomaticAuthorization;
   }>;
   columnStats?: Record<string, {
     inferredType?: string;
@@ -157,7 +140,6 @@ export interface AuditReportInput {
       cardinality?: number;
     }>;
   };
-  /** Engine's scoreBreakdown for deduction-based ruleId + actionability */
   scoreBreakdown?: Array<{ reason: string; points: number; category: string; severity: string; ruleId: string }>;
 }
 
@@ -202,14 +184,6 @@ export function _buildEvidenceEnvelopeV2(
   const candidateIssues: EvidenceIssueV2[] = [];
   const excludedIssueEntries: ManifestExclusionV2[] = [];
 
-  // Build deduction map from engine scoreBreakdown
-  const deductionMap = new Map<string, DeductionRef>();
-  if (report.scoreBreakdown) {
-    for (const d of report.scoreBreakdown) {
-      deductionMap.set(d.reason, { reason: d.reason, category: d.category, ruleId: d.ruleId || 'unknown' });
-    }
-  }
-
   for (const issue of report.issues) {
     if (excludeIssues.has(issue.id)) {
       excludedIssueEntries.push({ reason: 'explicit_exclusion', resource: 'issue', name: issue.ruleName, detail: `Excluded` });
@@ -217,7 +191,7 @@ export function _buildEvidenceEnvelopeV2(
     }
 
     const hasColumn = !!issue.column;
-    const scope: IssueScope = hasColumn ? 'column' : 'dataset';
+    const datasetScope: IssueScope = hasColumn ? 'column' : 'dataset';
 
     // Resolve column via columnId+position, NOT rawName
     let columnId: string | null = null;
@@ -228,9 +202,8 @@ export function _buildEvidenceEnvelopeV2(
         continue;
       }
       if (matches.length > 1) {
-        // Duplicate: require HITL / explicit position
         excludedIssueEntries.push({ reason: 'ambiguous_column', resource: 'issue', name: issue.ruleName, detail: `Duplicate column '${issue.column}' — requires HITL` });
-        continue; // Don't auto-resolve
+        continue;
       }
       const colRef = matches[0];
       if (!finalColIds.has(colRef.columnId)) {
@@ -240,64 +213,29 @@ export function _buildEvidenceEnvelopeV2(
       columnId = colRef.columnId;
     }
 
-    // Actionability via engine ruleId
-    let actionability: Actionability = 'review_only';
-    let ruleId = `rule:${sha256short(issue.ruleName, 8)}`;
-    let effectiveScope = scope;
-    const automaticAuthorization = {
-      actionType: 'none',
-      authorized: false,
-      conditionsMet: [] as string[],
-      reason: 'No authorization found',
-    };
+    // Copy ruleId directly from issue (engine-provided, never fabricated)
+    const ruleId = issue.ruleId;
 
-    if (deductionMap.size > 0) {
-      let deduction = deductionMap.get(issue.description) || deductionMap.get(issue.ruleName);
+    // Determine actionability: use RULE_POLICY lookup, upgrade to auto_safe only if authorized
+    const policy = RULE_POLICY[ruleId];
+    const defaultActionability: Actionability = policy?.defaultActionability ?? DEFAULT_ACTIONABILITY;
+    const effectiveScope: IssueScope = policy?.scope ?? datasetScope;
 
-      if (!deduction && issue.column) {
-        for (const d of report.scoreBreakdown!) {
-          if (d.reason.includes(issue.column)) {
-            const colStart = d.reason.indexOf(issue.column);
-            const prefix = d.reason.substring(0, colStart).toLowerCase().replace(/[^a-záéíóúñ]/g, '');
-            const ruleLower = issue.ruleName.toLowerCase().replace(/[^a-záéíóúñ]/g, '');
-            if (ruleLower.includes(prefix) || prefix.includes(ruleLower.substring(0, 8))) {
-              deduction = { reason: d.reason, category: d.category, ruleId: d.ruleId || 'unknown' };
-              break;
-            }
-          }
-        }
-      }
-
-      if (deduction) {
-        const result = deduceActionability(deduction);
-        actionability = result.actionability;
-        ruleId = result.ruleId;
-        effectiveScope = result.scope;
-
-        // auto_safe only with explicit authorization
-        if (actionability === 'auto_safe') {
-          const isDupes = /filas?\s*duplicadas|exact\s*duplicates?/i.test(deduction.reason);
-          const isWhitespace = /espacios\s*fantasma|trim|whitespace/i.test(deduction.reason);
-
-          if (isDupes && report.duplicateRows > 0) {
-            automaticAuthorization.actionType = 'drop_exact_duplicates';
-            automaticAuthorization.authorized = true;
-            automaticAuthorization.conditionsMet = ['duplicateRows > 0', 'scoreBreakdown confirms exact duplicates'];
-            automaticAuthorization.reason = 'Exact duplicates detected and authorized for automatic removal';
-          } else if (isWhitespace) {
-            automaticAuthorization.actionType = 'trim_whitespace';
-            automaticAuthorization.authorized = true;
-            automaticAuthorization.conditionsMet = ['column is text', 'trim is lossless for whitespace'];
-            automaticAuthorization.reason = 'Whitespace trimming is safe for text columns';
-          } else {
-            // Unknown rule requesting auto_safe → deny
-            actionability = 'review_only';
-            automaticAuthorization.authorized = false;
-            automaticAuthorization.reason = 'No explicit authorization for this action type';
-          }
-        }
+    let actionability: Actionability = defaultActionability;
+    if (defaultActionability === 'auto_safe') {
+      // Only honor auto_safe when engine explicitly authorized it
+      if (!issue.automaticAuthorization?.authorized) {
+        actionability = 'review_only';
       }
     }
+
+    // Copy automaticAuthorization from engine (never fabricate)
+    const automaticAuthorization: AutomaticAuthorization = issue.automaticAuthorization ?? {
+      actionType: 'none',
+      authorized: false,
+      conditionsMet: [],
+      reason: 'No automaticAuthorization provided by engine',
+    };
 
     candidateIssues.push({
       issueId: issue.id,

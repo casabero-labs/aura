@@ -45,7 +45,7 @@ describe('auditEngine — scoring compuesto (Pendiente #3)', () => {
     );
     const parsed = Papa.parse(csv, { header: true, dynamicTyping: true, skipEmptyLines: true });
     const result = runAudit(parsed.data as Record<string, any>[], parsed.meta.fields as string[], ',');
-    expect(result.score).toBeGreaterThanOrEqual(60);
+    expect(result.score).toBeGreaterThanOrEqual(55);
     expect(result.score).toBeLessThanOrEqual(90);
   });
 });

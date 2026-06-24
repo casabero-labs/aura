@@ -23,6 +23,50 @@ export enum IssueCategory {
   SEMANTIC = 'Semántica y Seguridad'
 }
 
+export const RULE_IDS = {
+  EXACT_DUPLICATES: 'rule:exact-duplicates',
+  TRIM_WHITESPACE: 'rule:trim-whitespace',
+  NULL_VALUES: 'rule:null-values',
+  CONSTANT_COLUMN: 'rule:constant-column',
+  MIXED_TYPES: 'rule:mixed-types',
+  HEADER_VERBOSE: 'rule:header-verbose',
+  MOJIBAKE: 'rule:mojibake',
+  TOXIC_PLACEHOLDERS: 'rule:toxic-placeholders',
+  MIXED_DATE_FORMATS: 'rule:mixed-date-formats',
+  CAPITALIZATION_CHAOS: 'rule:capitalization-chaos',
+  SEMANTIC_VARIANTS: 'rule:semantic-variants',
+  LONG_TAIL_CATEGORICAL: 'rule:long-tail-categorical',
+  DOUBLE_SPACES: 'rule:double-spaces',
+  SUSPICIOUS_SYMBOLS: 'rule:suspicious-symbols',
+  MALFORMED_URLS: 'rule:malformed-urls',
+  TEXT_OVERFLOW: 'rule:text-overflow',
+  DISGUISED_NUMBERS: 'rule:disguised-numbers',
+  HIDDEN_DATES: 'rule:hidden-dates',
+  CORRUPT_IDS: 'rule:corrupt-ids',
+  REDUNDANT_TIME: 'rule:redundant-time',
+  BURNED_DEMOGRAPHIC_RANGES: 'rule:burned-demographic-ranges',
+  IMPOSSIBLE_NEGATIVES: 'rule:impossible-negatives',
+  EXTREME_OUTLIERS: 'rule:extreme-outliers',
+  MILD_OUTLIERS: 'rule:mild-outliers',
+  INVALID_EMAIL: 'rule:invalid-email',
+  VARIABLE_PHONE_LENGTH: 'rule:variable-phone-length',
+  PII_DETECTED: 'rule:pii-detected',
+  FUTURE_DATES: 'rule:future-dates',
+  TEMPORAL_INCONSISTENCY: 'rule:temporal-inconsistency',
+  TEMPORAL_REDUNDANCY: 'rule:temporal-redundancy',
+  SEMANTIC_COLUMN_DUPLICATION: 'rule:semantic-column-duplication',
+  ID_SEMANTIC_CONTAMINATION: 'rule:id-semantic-contamination',
+} as const;
+
+export type RuleId = typeof RULE_IDS[keyof typeof RULE_IDS];
+
+export interface AutomaticAuthorization {
+  actionType: string;
+  authorized: boolean;
+  conditionsMet: string[];
+  reason: string;
+}
+
 export interface QualityIssue {
   id: string;
   column?: string;
@@ -35,6 +79,7 @@ export interface QualityIssue {
   affectedPercentage: number;
   sampleValues: any[];
   evidenceNote?: string;
+  automaticAuthorization?: AutomaticAuthorization;
 }
 
 export type SemanticType = 'string' | 'number' | 'boolean' | 'date' | 'mixed' | 'email' | 'phone' | 'ip' | 'url' | 'currency' | 'percentage' | 'uuid' | 'zip';

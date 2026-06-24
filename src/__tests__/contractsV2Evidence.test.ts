@@ -36,31 +36,24 @@ const opts = (overrides: Record<string, unknown> = {}) => ({
 const minimalReport: AuditReportInput = {
   score: 85, rowCount: 100, colCount: 5, duplicateRows: 0, delimiterDetected: ',',
   issues: [
-    { id: 'hygiene-ghost-Name', column: 'Name', category: 'Higiene de Texto', ruleName: 'Espacios Fantasma (Trim)', description: 'whitespace padding', severity: 'info', count: 2, affectedPercentage: 2, sampleValues: ['Braund, Mr. Owen Harris', 'Cumings, Mrs. John Bradley'] },
-    { id: 'integrity-null-Age', column: 'Age', category: 'Integridad', ruleName: 'Valores Nulos / Vacios', description: 'nulls in Age', severity: 'warning', count: 177, affectedPercentage: 19.9, sampleValues: [null, 22, 38] },
-    { id: 'dup-rows-global', column: undefined, category: 'Integridad', ruleName: 'Exact Duplicates', description: 'duplicate rows', severity: 'warning', count: 3, affectedPercentage: 3, sampleValues: [] },
+    { id: 'hygiene-ghost-Name', column: 'Name', category: 'Higiene de Texto', ruleName: 'Espacios Fantasma (Trim)', description: 'whitespace padding', severity: 'info', count: 2, affectedPercentage: 2, sampleValues: ['Braund, Mr. Owen Harris', 'Cumings, Mrs. John Bradley'], ruleId: 'rule:trim-whitespace', automaticAuthorization: { actionType: 'trim_whitespace', authorized: true, conditionsMet: ['string-column', 'leading-or-trailing-whitespace-confirmed'], reason: 'Deterministic lossless normalization' } },
+    { id: 'integrity-null-Age', column: 'Age', category: 'Integridad', ruleName: 'Valores Nulos / Vacios', description: 'nulls in Age', severity: 'warning', count: 177, affectedPercentage: 19.9, sampleValues: [null, 22, 38], ruleId: 'rule:null-values', automaticAuthorization: { actionType: 'null_values', authorized: false, conditionsMet: [], reason: 'No explicit auto_safe action available for null imputation' } },
+    { id: 'dup-rows-global', column: undefined, category: 'Integridad', ruleName: 'Exact Duplicates', description: 'duplicate rows', severity: 'warning', count: 3, affectedPercentage: 3, sampleValues: [], ruleId: 'rule:exact-duplicates', automaticAuthorization: { actionType: 'drop_exact_duplicates', authorized: false, conditionsMet: [], reason: 'No explicit authorization: duplicateRows=0' } },
   ],
   columnStats: {
     Name: { inferredType: 'string', semanticType: 'name', distinctCount: 89, nullCount: 0, nullPercentage: 0, topValues: [{ value: 'Braund, Mr. Owen Harris', count: 1, percentage: 1 }], stats: {} },
     Age: { inferredType: 'number', semanticType: 'age', distinctCount: 88, nullCount: 177, nullPercentage: 19.9, topValues: [{ value: '24', count: 5, percentage: 5 }], stats: {} },
   },
   datasetProfile: { columns: [{ name: 'PassengerId' }, { name: 'Survived' }, { name: 'Name' }, { name: 'Age' }, { name: 'Fare' }] },
-  scoreBreakdown: [
-    { reason: 'Espacios Fantasma en [Name]', points: 3, category: 'HYGIENE', severity: 'INFO', ruleId: 'rule:whitespace' },
-    { reason: 'Valores Nulos en [Age]', points: 5, category: 'INTEGRITY', severity: 'WARNING', ruleId: 'rule:null' },
-  ],
 };
 
 const reportWithDups: AuditReportInput = {
   score: 75, rowCount: 50, colCount: 4, duplicateRows: 5, delimiterDetected: ',',
   issues: [
-    { id: 'dup-rows', column: undefined, category: 'INTEGRITY', ruleName: 'Exact Duplicates', description: 'Filas Duplicadas (5)', severity: 'warning', count: 5, affectedPercentage: 10, sampleValues: [] },
+    { id: 'dup-rows', column: undefined, category: 'INTEGRITY', ruleName: 'Exact Duplicates', description: 'Filas Duplicadas (5)', severity: 'warning', count: 5, affectedPercentage: 10, sampleValues: [], ruleId: 'rule:exact-duplicates', automaticAuthorization: { actionType: 'drop_exact_duplicates', authorized: true, conditionsMet: ['full-row-equality-confirmed', 'duplicate-count-positive'], reason: 'Deterministic exact-row duplicate authorization' } },
   ],
   columnStats: {},
   datasetProfile: { columns: [{ name: 'Name' }, { name: 'Name' }, { name: 'Age' }, { name: 'Fare' }] },
-  scoreBreakdown: [
-    { reason: 'Filas Duplicadas (5)', points: 2, category: 'INTEGRITY', severity: 'WARNING', ruleId: 'rule:dupes' },
-  ],
 };
 
 // ── Hash known vectors ──
@@ -239,11 +232,10 @@ describe('Automatic authorization', () => {
     issues: [{
       id: 'dup-rows', column: undefined, category: 'INTEGRITY', ruleName: 'Exact Duplicates',
       description: 'Filas Duplicadas (5)', severity: 'warning', count: 5, affectedPercentage: 10, sampleValues: [],
+      ruleId: 'rule:exact-duplicates',
+      automaticAuthorization: { actionType: 'drop_exact_duplicates', authorized: true, conditionsMet: ['full-row-equality-confirmed', 'duplicate-count-positive'], reason: 'Deterministic exact-row duplicate authorization' },
     }],
     datasetProfile: { columns: [{ name: 'A' }, { name: 'B' }, { name: 'C' }] },
-    scoreBreakdown: [
-      { reason: 'Filas Duplicadas (5)', points: 2, category: 'INTEGRITY', severity: 'WARNING', ruleId: 'rule:dup' },
-    ],
   };
 
   it('duplicates have auto_safe with authorized=true when duplicateRows>0', () => {
@@ -257,8 +249,7 @@ describe('Automatic authorization', () => {
 
   const dupReportNoRows: AuditReportInput = {
     ...dupReport, duplicateRows: 0,
-    scoreBreakdown: [],
-    issues: [{ ...dupReport.issues[0], description: 'Filas Duplicadas (0)' }],
+    issues: [{ ...dupReport.issues[0], automaticAuthorization: { actionType: 'drop_exact_duplicates', authorized: false, conditionsMet: [], reason: 'duplicateRows=0, no authorization' } }],
   };
 
   it('duplicates without duplicateRows are review_only', () => {
@@ -281,7 +272,7 @@ describe('Engine ruleId integration', () => {
   it('unknown rules default to review_only', () => {
     const report: AuditReportInput = {
       score: 100, rowCount: 10, colCount: 2, duplicateRows: 0, delimiterDetected: ',',
-      issues: [{ id: 'x', column: 'A', category: 'TEST', ruleName: 'Some Unknown Rule', description: 'unknown', severity: 'info', count: 1, affectedPercentage: 10, sampleValues: [] }],
+      issues: [{ id: 'x', column: 'A', category: 'TEST', ruleName: 'Some Unknown Rule', description: 'unknown', severity: 'info', count: 1, affectedPercentage: 10, sampleValues: [], ruleId: 'rule:unknown-rule', automaticAuthorization: { actionType: 'none', authorized: false, conditionsMet: [], reason: 'No authorization' } }],
       datasetProfile: { columns: [{ name: 'A' }, { name: 'B' }] },
     };
     const e = _buildEvidenceEnvelopeV2(report, opts());
