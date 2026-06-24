@@ -1,12 +1,11 @@
 import React, { useCallback, useState, useEffect } from 'react';
-import { ArrowRight, CheckCircle2, FileCode2, ShieldAlert, ShieldCheck, TriangleAlert, Gauge, Sparkles, ClipboardList, AlertTriangle, Ban, Shield } from 'lucide-react';
+import { ArrowRight, CheckCircle2, FileCode2, ShieldAlert, ShieldCheck, TriangleAlert, Gauge, Sparkles, AlertTriangle, Ban } from 'lucide-react';
 import { AIProvider, ProviderMetrics, ScriptValidationResult, ProgressDisclosureStatus, AuditReport } from '../types';
 import ProgressDisclosure from './ProgressDisclosure';
 import { highlightPython } from '../services/highlightPython';
 import { buildDeterministicCleaningScript, buildFallbackScriptMetrics } from '../services/deterministicScriptBuilder';
 import { buildDiagnosisScriptBrief, buildDiagnosisSummaryPrompt, buildScriptPrompt, extractPythonScript } from '../services/providers/prompts';
-import { isContractsV2Enabled, buildRemediationPlanV2, buildRemediationContext, validateRemediationPlanV2, approveRemediationActionV2, rejectRemediationActionV2, resetRemediationActionV2 } from '../contracts/llm';
-import { _buildEvidenceEnvelopeV2 } from '../contracts/llm/evidenceEnvelopeV2';
+import { isContractsV2Enabled, buildRemediationPlanV2, validateRemediationPlanV2, approveRemediationActionV2, rejectRemediationActionV2, resetRemediationActionV2 } from '../contracts/llm';
 import type { DiagnosisExecutionResult, RemediationPlanV2 } from '../contracts/llm';
 
 interface ScriptGenerationStepProps {
@@ -58,20 +57,25 @@ const ScriptGenerationStep: React.FC<ScriptGenerationStepProps> = ({
   // ── Contracts v2: deterministic RemediationPlan ──
   const isV2 = isContractsV2Enabled() && !!structuredDiagnosis;
   const [v2Plan, setV2Plan] = useState<RemediationPlanV2 | null>(remediationPlan ?? null);
+  const [v2PlanError, setV2PlanError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isV2 || remediationPlan) return;
     try {
-      const ctx = buildRemediationContext(
-        _buildEvidenceEnvelopeV2(report as any, { privacyLevel: 'local_full', datasetSha256: '', delimiter: (report as any).delimiterDetected ?? ',' })
-      );
-      ctx.evidenceEnvelopeRef = structuredDiagnosis!.evidenceEnvelopeRef;
-      ctx.datasetFingerprint = (structuredDiagnosis!.diagnosis as any).evidenceEnvelopeRef ? '' : '';
-      const plan = buildRemediationPlanV2({ ...structuredDiagnosis!, remediationContext: ctx }, ctx);
+      if (!structuredDiagnosis?.remediationContext) {
+        setV2PlanError('remediationContext not found in diagnosis result');
+        return;
+      }
+      const plan = buildRemediationPlanV2(structuredDiagnosis);
+      const validation = validateRemediationPlanV2(plan, structuredDiagnosis);
+      if (!validation.valid) {
+        setV2PlanError(`Plan validation failed: ${validation.errors.map(e => e.message).join('; ')}`);
+        return;
+      }
       setV2Plan(plan);
       onRemediationPlanChange?.(plan);
     } catch (e) {
-      onLog?.('script', `Error building remediation plan: ${(e as Error).message}`);
+      setV2PlanError(`Error building remediation plan: ${(e as Error).message}`);
     }
   }, [isV2, structuredDiagnosis, remediationPlan]);
 
@@ -186,6 +190,13 @@ const ScriptGenerationStep: React.FC<ScriptGenerationStepProps> = ({
             Plan estructurado listo. La generación determinista del script se realizará en la siguiente fase.
           </p>
 
+          {v2PlanError && (
+            <div className="provider-error-notice" style={{ marginBottom: 'var(--space-md)' }}>
+              <AlertTriangle size={14} style={{ color: 'var(--error)' }} />
+              <span>{v2PlanError}</span>
+            </div>
+          )}
+
           <div className="stage-decision-summary" style={{ marginBottom: 'var(--space-md)' }}>
             <div className="stage-summary-item">
               <span className="stage-summary-label">acciones</span>
@@ -262,6 +273,23 @@ const ScriptGenerationStep: React.FC<ScriptGenerationStepProps> = ({
               Continuar a revisión <ArrowRight size={12} />
             </button>
           </div>
+        </section>
+      ) : isV2 ? (
+        <section className="section" data-testid="remediation-stage">
+          <header className="section-header">
+            <div>
+              <p className="sec-eye">remediación estructurada v2</p>
+              <h2 className="sec-title">Plan de remediación determinista</h2>
+            </div>
+          </header>
+          {v2PlanError ? (
+            <div className="provider-error-notice" style={{ marginBottom: 'var(--space-md)' }}>
+              <AlertTriangle size={14} style={{ color: 'var(--error)' }} />
+              <span>{v2PlanError}</span>
+            </div>
+          ) : (
+            <p className="section-note">Construyendo plan de remediación determinista...</p>
+          )}
         </section>
       ) : (
       <section className="section" data-testid="script-stage">

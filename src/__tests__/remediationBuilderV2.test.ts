@@ -71,7 +71,7 @@ describe('buildDiagnosisRef', () => {
 
 describe('buildRemediationPlanV2', () => {
   it('produces valid plan with correct planId', () => {
-    const plan = buildRemediationPlanV2(diagExec, ctx);
+    const plan = buildRemediationPlanV2(diagExec);
     expect(plan.contractId).toBe('aura.remediation.v2');
     expect(plan.contractVersion).toBe('2.0.0');
     expect(plan.planId.startsWith('plan:')).toBe(true);
@@ -81,29 +81,29 @@ describe('buildRemediationPlanV2', () => {
   });
 
   it('trim-whitespace rule produces trim_whitespace action', () => {
-    const plan = buildRemediationPlanV2(diagExec, ctx);
+    const plan = buildRemediationPlanV2(diagExec);
     const trimAction = plan.plan.find(a => a.ruleId === 'rule:trim-whitespace');
     expect(trimAction).toBeDefined();
     expect(trimAction!.actionType).toBe('trim_whitespace');
   });
 
   it('null-values rule (unknown in policy) produces requires_human_review', () => {
-    const plan = buildRemediationPlanV2(diagExec, ctx);
+    const plan = buildRemediationPlanV2(diagExec);
     const nullAction = plan.plan.find(a => a.ruleId === 'rule:null-values');
     expect(nullAction).toBeDefined();
     expect(nullAction!.actionType).toBe('requires_human_review');
   });
 
   it('all actions start as pending', () => {
-    const plan = buildRemediationPlanV2(diagExec, ctx);
+    const plan = buildRemediationPlanV2(diagExec);
     for (const action of plan.plan) {
       expect(action.approvalStatus).toBe('pending');
     }
   });
 
   it('same inputs → same planId (deterministic)', () => {
-    const p1 = buildRemediationPlanV2(diagExec, ctx);
-    const p2 = buildRemediationPlanV2(diagExec, ctx);
+    const p1 = buildRemediationPlanV2(diagExec);
+    const p2 = buildRemediationPlanV2(diagExec);
     expect(p1.planId).toBe(p2.planId);
   });
 });

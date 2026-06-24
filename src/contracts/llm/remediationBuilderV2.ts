@@ -6,7 +6,6 @@
 
 import type {
   DiagnosisExecutionResult,
-  DiagnosisResponseV2,
   RemediationActionTypeV2,
   RemediationActionV2,
   RemediationContextV2,
@@ -20,45 +19,53 @@ import { canonicalJson } from './diagnosisPromptV2';
 import { sha256hex, sha256short } from './hash';
 import { buildDiagnosisRef } from './remediationContextV2';
 import { lookupRemediationAction } from './remediationPolicyV2';
-import type { ColumnRef } from './types';
 
-// ── Effective Actionability ──
+// ── Effective Actionability (trust-degrading, closed) ──
 
 export function computeEffectiveActionability(
   ctxIssue: RemediationContextIssueV2,
-  diagnosisIssue: DiagnosisResponseV2['issues'][number] | undefined,
+  diagnosisIssue: { requiresHumanReview: boolean } | undefined,
   columns: RemediationContextV2['columns'],
 ): Actionability {
   const trusted = ctxIssue.actionability;
   const auth = ctxIssue.automaticAuthorization;
 
-  // 1. trusted not_actionable → not_actionable
+  // Rule 1: trusted not_actionable → not_actionable (no upgrade)
   if (trusted === 'not_actionable') return 'not_actionable';
 
-  // 2. trusted review_only → review_only
+  // Rule 2: trusted review_only → review_only (no upgrade)
   if (trusted === 'review_only') return 'review_only';
 
-  // 3. auto_safe but authorization not true → review_only
-  if (trusted === 'auto_safe' && !auth.authorized) return 'review_only';
+  // Rule 3: missing diagnosis issue → review_only
+  if (!diagnosisIssue) return 'review_only';
 
-  // 4. auto_safe but diagnosis requires human review → review_only
-  if (trusted === 'auto_safe' && diagnosisIssue?.requiresHumanReview) return 'review_only';
+  // Rule 4: authorization.actionType mismatch with registry → review_only
+  const mappedActionType = lookupRemediationAction(ctxIssue.ruleId);
+  if (auth.actionType !== mappedActionType && mappedActionType !== 'requires_human_review') return 'review_only';
 
-  // 5. column ambiguous or duplicate → review_only
+  // Rule 5: authorization.authorized === false → review_only
+  if (!auth.authorized) return 'review_only';
+
+  // Rule 6: ambiguous or duplicate column → review_only
   if (ctxIssue.columnId) {
     const col = columns.find(c => c.columnId === ctxIssue.columnId);
     if (col && (col.isAmbiguous || col.isDuplicate)) return 'review_only';
   }
 
-  // 6. auto_safe only when all conditions satisfied
+  // Rule 7: diagnosis requiresHumanReview → review_only
+  if (diagnosisIssue.requiresHumanReview) return 'review_only';
+
+  // Rule 8: auto_safe only with exact match of rule, action, authorization
   if (
     trusted === 'auto_safe' &&
-    auth.authorized
+    auth.authorized &&
+    mappedActionType !== 'requires_human_review' &&
+    auth.actionType === mappedActionType
   ) {
     return 'auto_safe';
   }
 
-  // Fallback (should not reach here)
+  // Fallback (unknown rule or unmatched condition) → review_only
   return 'review_only';
 }
 
@@ -113,11 +120,39 @@ function buildActionId(
   return `act:${sha256short(hash)}`;
 }
 
-// ── PlanId: plan:<sha256(diagnosisRef + all actionIds)> ──
+// ── PlanId: plan:<sha256(canonical plan fields, excluding HITL) ──
 
-function buildPlanId(diagnosisRef: string, actionIds: string[]): string {
-  const sorted = [...actionIds].sort();
-  const payload = { diagnosisRef, actionIds: sorted };
+function buildPlanId(
+  diagnosisRef: string,
+  evidenceEnvelopeRef: string,
+  datasetFingerprint: string,
+  actions: RemediationActionV2[],
+  actionabilityMap: Record<string, Actionability>,
+  exclusions: Array<{ issueId: string; reason: 'not_actionable' }>,
+): string {
+  const planWithoutHitl = actions
+    .map(a => {
+      const { approvalStatus, ...rest } = a;
+      return rest;
+    })
+    .sort((a, b) => a.actionId.localeCompare(b.actionId));
+
+  const sortedActionabilityKeys = Object.keys(actionabilityMap).sort();
+  const sortedActionability: Record<string, string> = {};
+  for (const k of sortedActionabilityKeys) {
+    sortedActionability[k] = actionabilityMap[k];
+  }
+
+  const sortedExclusions = [...exclusions].sort((a, b) => a.issueId.localeCompare(b.issueId));
+
+  const payload = {
+    diagnosisRef,
+    evidenceEnvelopeRef,
+    datasetFingerprint,
+    plan: planWithoutHitl,
+    actionabilityMap: sortedActionability,
+    exclusions: sortedExclusions,
+  };
   const hash = sha256hex(canonicalJson(payload));
   return `plan:${sha256short(hash)}`;
 }
@@ -126,11 +161,10 @@ function buildPlanId(diagnosisRef: string, actionIds: string[]): string {
 
 export function buildRemediationPlanV2(
   diagnosisExecution: DiagnosisExecutionResult,
-  context?: RemediationContextV2,
 ): RemediationPlanV2 {
-  const ctx = context ?? diagnosisExecution.remediationContext;
+  const ctx = diagnosisExecution.remediationContext;
   if (!ctx) {
-    throw new Error('remediationContext is required for buildRemediationPlanV2');
+    throw new Error('remediationContext is required in DiagnosisExecutionResult for buildRemediationPlanV2');
   }
 
   const diagnosisRef = buildDiagnosisRef(diagnosisExecution.diagnosis);
@@ -181,7 +215,7 @@ export function buildRemediationPlanV2(
     });
   }
 
-  const planId = buildPlanId(diagnosisRef, actions.map(a => a.actionId));
+  const planId = buildPlanId(diagnosisRef, ctx.evidenceEnvelopeRef, ctx.datasetFingerprint, actions, actionabilityMap, exclusions);
 
   return {
     contractId: 'aura.remediation.v2',

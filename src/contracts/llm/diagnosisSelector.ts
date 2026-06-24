@@ -16,6 +16,7 @@ import {
 import { isContractsV2Enabled } from './contractRegistry';
 import { sha256hex } from './hash';
 import { AIProviderDiagnosisAdapter } from '../../services/providers/diagnosisAdapter';
+import { buildRemediationContext } from './remediationContextV2';
 
 export { isContractsV2Enabled } from './contractRegistry';
 
@@ -157,6 +158,11 @@ export async function runStructuredDiagnosis(
     evidenceEnvelopeRef: promptPackage.evidenceEnvelopeRef,
     promptVersion: promptPackage.promptVersion,
     rawResponseHash,
+    remediationContext: (() => {
+      const ctx = buildRemediationContext(envelope);
+      ctx.evidenceEnvelopeRef = promptPackage.evidenceEnvelopeRef;
+      return ctx;
+    })(),
   };
 
   return { success: true, result };
