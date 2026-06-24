@@ -1,43 +1,57 @@
 /**
- * Contracts v2 — Fase 1 index.
- *
- * Barrel export. All public APIs are gated behind CONTRACTS_V2_ENABLED.
- *
- * Production continues using Contracts v1 until Phase 1 is reviewed and approved.
+ * Contracts v2 — Phase 1B index.
+ * Barrel export. All behind CONTRACTS_V2_ENABLED gate.
  */
+
+export { sha256hex, sha256short } from './hash';
 
 export type {
   ContractId,
   ContractMetadata,
+  SchemaV2,
+  SchemaPropertyV2,
   CompatibilityDescriptor,
   ValidationResultSummary,
+  IssueScope,
   ColumnRef,
+  AmbiguousLookupError,
   EvidenceEnvelopeV2,
   DatasetFingerprintV2,
   DatasetSummaryV2,
   EvidenceIssueV2,
   Actionability,
+  ActionabilityRule,
   EvidenceV2,
   EvidenceSampleV2,
   ColumnStatsV2,
   TopValueV2,
   SelectionManifestV2,
-  BudgetExclusionV2,
+  ManifestExclusionV2,
+  ExclusionReason,
   TruncationManifestV2,
   TruncatedItemV2,
   PrivacyLevel,
   PrivacyPolicyV2,
   PrivacyRuleV2,
+  PIIConfig,
   TokenBudgetV2,
   ValidationErrorV2,
   ValidationResultV2,
   EvidenceEnvelopeOptionsV2,
+  BuildErrorV2,
+  DiagnosisResponseV2,
+  DiagnosisIssueV2,
+  DiagnosisBlockV2,
+  RemediationPlanV2,
+  RemediationActionV2,
+  ScriptContractV2,
 } from './types';
 
 export {
   buildColumnRegistry,
   getColumnById,
   getColumnsByName,
+  resolveColumnByName,
   validateColumnId,
   getColumnsRequiringReview,
   getInjectionRiskColumns,
@@ -60,22 +74,28 @@ export type { AuditReportInput } from './evidenceEnvelopeV2';
 
 export {
   buildPrivacyPolicy,
+  buildPIIConfig,
+  isPII,
+  shouldHashColumn,
+  redactValue,
+  hashValue,
   allowsRawSamples,
   allowsTopValues,
-  requiresHash,
   parsePrivacyLevel,
 } from './privacyPolicy';
 
 export {
   buildTokenBudget,
   createTruncationManifest,
-  applyColumnLimit,
-  applyIssueLimit,
-  applySampleLimit,
-  applyTopValuesLimit,
-  applyCharacterLimit,
-  defaultBudget,
+  logColumnExclusion,
+  logIssueExclusion,
+  logSampleTruncation,
+  logTopValueTruncation,
+  logCharacterTruncation,
+  applySlice,
+  enforceCharacterBudget,
   estimateCharCount,
+  defaultBudget,
 } from './tokenBudget';
 
 export {
@@ -85,5 +105,6 @@ export {
   validateEvidenceRefs,
   validatePrivacyPolicy,
   validateTokenBudget,
+  validatePrivacyCompliance,
   aggregateResults,
 } from './validators';

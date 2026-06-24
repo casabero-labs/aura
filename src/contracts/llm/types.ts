@@ -1,6 +1,5 @@
 /**
- * Contracts v2 — Shared types.
- * Fase 1: typed, versioned infrastructure. No Ollama, no production activation.
+ * Contracts v2 — Shared types (Phase 1B).
  */
 
 // ── Contract Identifiers ──
@@ -14,10 +13,23 @@ export interface ContractMetadata {
   contractId: ContractId;
   version: string;
   taskType: string;
-  schema: Record<string, unknown>;
+  schema: SchemaV2;
   createdAt: string;
   compatibility: CompatibilityDescriptor;
   validationResult: ValidationResultSummary;
+}
+
+export interface SchemaV2 {
+  type: 'object';
+  required: string[];
+  properties: Record<string, SchemaPropertyV2>;
+}
+
+export interface SchemaPropertyV2 {
+  type: string;
+  enum?: string[];
+  format?: string;
+  nullable?: boolean;
 }
 
 export interface CompatibilityDescriptor {
@@ -33,6 +45,9 @@ export interface ValidationResultSummary {
   warnings: string[];
 }
 
+// ── Issue Scope ──
+export type IssueScope = 'dataset' | 'column';
+
 // ── Column References ──
 export interface ColumnRef {
   columnId: string;
@@ -44,6 +59,22 @@ export interface ColumnRef {
   isDuplicate: boolean;
   isReservedWord: boolean;
 }
+
+export interface AmbiguousLookupError {
+  columnId: string;
+  name: string;
+  matches: ColumnRef[];
+  reason: 'duplicate_name' | 'ambiguous_name' | 'reserved_word';
+}
+
+// ── Inclusion Reason (for manifests) ──
+export type ExclusionReason =
+  | 'explicit_exclusion'
+  | 'privacy_policy'
+  | 'budget_limit'
+  | 'ambiguous_column'
+  | 'missing_reference'
+  | 'unsupported_scope';
 
 // ── Evidence Envelope V2 ──
 export interface EvidenceEnvelopeV2 {
@@ -80,7 +111,8 @@ export interface EvidenceIssueV2 {
   issueId: string;
   ruleId: string;
   ruleName: string;
-  columnId: string;
+  columnId: string | null;
+  scope: IssueScope;
   category: string;
   severity: 'critical' | 'warning' | 'info' | 'good';
   count: number;
@@ -91,6 +123,15 @@ export interface EvidenceIssueV2 {
 
 export type Actionability = 'auto_safe' | 'review_only' | 'not_actionable';
 
+export interface ActionabilityRule {
+  ruleId: string;
+  defaultActionability: Actionability;
+  allowedAutomaticAction: string | null;
+  authorizationConditions: string[];
+  requiresHumanReview: boolean;
+  scope: IssueScope;
+}
+
 export interface EvidenceV2 {
   samples: EvidenceSampleV2[];
   columnStats: Record<string, ColumnStatsV2>;
@@ -99,7 +140,7 @@ export interface EvidenceV2 {
 export interface EvidenceSampleV2 {
   evidenceRef: string;
   issueId: string;
-  columnId: string;
+  columnId: string | null;
   values: (string | number | null)[];
   metadata: Record<string, unknown>;
 }
@@ -127,11 +168,11 @@ export interface SelectionManifestV2 {
   excludedColumns: number;
   includedIssues: number;
   excludedIssues: number;
-  excludedByBudget: BudgetExclusionV2[];
+  excludedByBudget: ManifestExclusionV2[];
 }
 
-export interface BudgetExclusionV2 {
-  reason: string;
+export interface ManifestExclusionV2 {
+  reason: ExclusionReason;
   resource: 'column' | 'issue' | 'sample';
   name: string;
   detail: string;
@@ -149,6 +190,7 @@ export interface TruncatedItemV2 {
   id: string;
   name: string;
   resource: string;
+  reason: ExclusionReason;
   allowed: number;
   actual: number;
   excess: number;
@@ -166,6 +208,14 @@ export interface PrivacyRuleV2 {
   type: 'redact' | 'hash' | 'omit' | 'limit';
   target: 'column' | 'issue' | 'sample' | 'value';
   detail: string;
+}
+
+// ── PII Detection ──
+export interface PIIConfig {
+  semanticTypes: string[];
+  categoryPatterns: RegExp[];
+  columnNamePatterns: RegExp[];
+  genericPatterns: RegExp[];
 }
 
 // ── Token Budget ──
@@ -200,4 +250,72 @@ export interface EvidenceEnvelopeOptionsV2 {
   excludeIssues?: string[];
   datasetSha256: string;
   delimiter: string;
+}
+
+export interface BuildErrorV2 {
+  code: string;
+  message: string;
+  details: Record<string, unknown>;
+}
+
+// ── Diagnosis Contract ──
+export interface DiagnosisResponseV2 {
+  contractId: 'aura.diagnosis.v2';
+  contractVersion: '2.0.0';
+  evidenceEnvelopeRef: string;
+  issues: DiagnosisIssueV2[];
+  diagnosisBlocks: DiagnosisBlockV2[];
+}
+
+export interface DiagnosisIssueV2 {
+  issueId: string;
+  evidenceRefs: string[];
+  hypothesis: string;
+  confidence: number;
+  requiresHumanReview: boolean;
+  limits: string[];
+}
+
+export interface DiagnosisBlockV2 {
+  ruleId: string;
+  columnId: string | null;
+  scope: IssueScope;
+  observation: string;
+  recommendation: string;
+}
+
+// ── Remediation Contract ──
+export interface RemediationPlanV2 {
+  contractId: 'aura.remediation.v2';
+  contractVersion: '2.0.0';
+  diagnosisRef: string;
+  plan: RemediationActionV2[];
+  actionabilityMap: Record<string, Actionability>;
+}
+
+export interface RemediationActionV2 {
+  actionId: string;
+  issueId: string;
+  ruleId: string;
+  columnId: string | null;
+  actionType: string;
+  parameters: Record<string, unknown>;
+  actionability: Actionability;
+  evidenceRefs: string[];
+  approvalStatus: 'pending' | 'approved' | 'rejected';
+}
+
+// ── Script Contract ──
+export interface ScriptContractV2 {
+  contractId: 'aura.script.v2';
+  contractVersion: '2.0.0';
+  remediationRef: string;
+  acceptedActionIds: string[];
+  rejectedActionIds: string[];
+  rendererVersion: string;
+  scriptHash: string;
+  validationResult: ValidationResultV2;
+  scriptText?: string;
+  columnRefs: string[];
+  cleanDatasetFn: string;
 }

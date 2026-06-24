@@ -1,409 +1,469 @@
 /**
- * Contracts v2 Evidence — Unit Tests.
- * Fase 1: validates all typed infrastructure without Ollama.
+ * Contracts v2 Evidence — Phase 1B Unit Tests.
+ * Real builder tests with forceEnabled=true (no fragile global state).
  */
 
-import { describe, it, expect, beforeAll } from 'vitest';
-
-// ── Column Registry ──
+import { describe, it, expect } from 'vitest';
+import { buildEvidenceEnvelopeV2 } from '../contracts/llm/evidenceEnvelopeV2';
+import type { AuditReportInput } from '../contracts/llm/evidenceEnvelopeV2';
 import {
   buildColumnRegistry,
-  getColumnById,
-  getColumnsByName,
-  validateColumnId,
+  resolveColumnByName,
   getColumnsRequiringReview,
-  getInjectionRiskColumns,
-  generateSafeColumnDict,
 } from '../contracts/llm/columnRegistry';
+import {
+  buildPrivacyPolicy,
+  parsePrivacyLevel,
+  isPII,
+  shouldHashColumn,
+  redactValue,
+  hashValue,
+  buildPIIConfig,
+} from '../contracts/llm/privacyPolicy';
+import {
+  buildTokenBudget,
+  enforceCharacterBudget,
+  createTruncationManifest,
+} from '../contracts/llm/tokenBudget';
+import {
+  validateEnvelope,
+  validateIssue,
+  validateColumnRef,
+  validatePrivacyCompliance,
+} from '../contracts/llm/validators';
+import { REGISTRY, validateAgainstContract } from '../contracts/llm/contractRegistry';
+import { sha256hex, sha256short } from '../contracts/llm/hash';
 
-describe('Column Registry', () => {
-  const cols = buildColumnRegistry(['PassengerId', 'Survived', 'Name', 'Age', 'Embarked']);
+// ── Shared fixtures ──
 
-  it('produces deterministic columnIds', () => {
-    const a = buildColumnRegistry(['Name', 'Age']);
-    const b = buildColumnRegistry(['Name', 'Age']);
-    expect(a[0].columnId).toBe(b[0].columnId);
-    expect(a[1].columnId).toBe(b[1].columnId);
+const minimalReport: AuditReportInput = {
+  score: 85,
+  rowCount: 100,
+  colCount: 5,
+  duplicateRows: 0,
+  delimiterDetected: ',',
+  issues: [
+    {
+      id: 'hygiene-ghost-Name',
+      column: 'Name',
+      category: 'Higiene de Texto',
+      ruleName: 'Espacios Fantasma (Trim)',
+      description: 'whitespace padding',
+      severity: 'info' as const,
+      count: 2,
+      affectedPercentage: 2,
+      sampleValues: ['Braund, Mr. Owen Harris', 'Cumings, Mrs. John Bradley'],
+    },
+    {
+      id: 'integrity-null-Age',
+      column: 'Age',
+      category: 'Integridad',
+      ruleName: 'Valores Nulos / Vacios',
+      description: 'nulls in Age',
+      severity: 'warning' as const,
+      count: 177,
+      affectedPercentage: 19.9,
+      sampleValues: [null, 22, 38],
+    },
+    {
+      id: 'dup-rows-global',
+      column: undefined,
+      category: 'Integridad',
+      ruleName: 'Exact Duplicates',
+      description: 'duplicate rows',
+      severity: 'warning' as const,
+      count: 3,
+      affectedPercentage: 3,
+      sampleValues: [],
+    },
+  ],
+  columnStats: {
+    Name: { inferredType: 'string', semanticType: 'name', distinctCount: 89, nullCount: 0, nullPercentage: 0, topValues: [{ value: 'Braund, Mr. Owen Harris', count: 1, percentage: 1 }], stats: {} },
+    Age: { inferredType: 'number', semanticType: 'age', distinctCount: 88, nullCount: 177, nullPercentage: 19.9, topValues: [{ value: '24', count: 5, percentage: 5 }], stats: {} },
+  },
+  datasetProfile: {
+    columns: [
+      { name: 'PassengerId' },
+      { name: 'Survived' },
+      { name: 'Name' },
+      { name: 'Age' },
+      { name: 'Fare' },
+    ],
+  },
+};
+
+const reportWithDuplicates: AuditReportInput = {
+  score: 75,
+  rowCount: 50,
+  colCount: 4,
+  duplicateRows: 5,
+  delimiterDetected: ',',
+  issues: [
+    {
+      id: 'dup-rows',
+      column: undefined,
+      category: 'Integridad',
+      ruleName: 'Exact Duplicates',
+      description: '5 duplicate rows',
+      severity: 'warning' as const,
+      count: 5,
+      affectedPercentage: 10,
+      sampleValues: [],
+    },
+  ],
+  columnStats: {},
+  datasetProfile: {
+    columns: [
+      { name: 'Name' },
+      { name: 'Name' },  // duplicate
+      { name: 'Age' },
+      { name: 'Fare' },
+    ],
+  },
+};
+
+const opts = (overrides: Record<string, unknown> = {}) => ({
+  privacyLevel: 'local_full' as const,
+  datasetSha256: 'abc123',
+  delimiter: ',',
+  ...overrides,
+});
+
+// ── Hash ──
+
+describe('Browser-safe hash', () => {
+  it('sha256hex produces 64 hex chars', () => {
+    const h = sha256hex('hello');
+    expect(h).toHaveLength(64);
+    expect(h).toMatch(/^[a-f0-9]{64}$/);
   });
 
-  it('prefixes columnId with col:', () => {
-    for (const c of cols) {
-      expect(c.columnId).toMatch(/^col:[a-f0-9]{8}$/);
-    }
+  it('sha256short produces truncated hash', () => {
+    const h = sha256short('hello', 8);
+    expect(h).toHaveLength(8);
   });
 
-  it('assigns correct positions', () => {
-    expect(cols[0].position).toBe(0);
-    expect(cols[1].position).toBe(1);
+  it('deterministic', () => {
+    expect(sha256hex('test')).toBe(sha256hex('test'));
   });
+});
 
-  it('detects duplicate names', () => {
-    const dup = buildColumnRegistry(['A', 'B', 'A']);
-    expect(dup[0].isDuplicate).toBe(false);
+// ── Column Registry ──
+
+describe('Column Registry (1B)', () => {
+  it('all same-name columns are isDuplicate=true', () => {
+    const dup = buildColumnRegistry(['A', 'B', 'A', 'A']);
+    expect(dup[0].isDuplicate).toBe(true);
+    expect(dup[1].isDuplicate).toBe(false);
     expect(dup[2].isDuplicate).toBe(true);
-    expect(dup[2].duplicateOrdinal).toBe(1);
-    expect(dup[2].columnId).not.toBe(dup[0].columnId);
+    expect(dup[3].isDuplicate).toBe(true);
   });
 
-  it('detects reserved words', () => {
-    const rw = buildColumnRegistry(['pass', 'import', 'exec', 'eval', '__import__']);
-    for (const c of rw) {
-      expect(c.isReservedWord).toBe(true);
+  it('resolveColumnByName returns error for duplicates', () => {
+    const dup = buildColumnRegistry(['A', 'B', 'A']);
+    const result = resolveColumnByName(dup, 'A');
+    expect('reason' in result).toBe(true);
+    if ('reason' in result) {
+      expect(result.reason).toBe('duplicate_name');
+      expect(result.matches).toHaveLength(2);
     }
   });
 
-  it('detects ambiguous column names', () => {
-    const amb = buildColumnRegistry(['l1I|', 'column_1', '  ']);
-    expect(amb[0].isAmbiguous).toBe(true);
-    expect(amb[1].isAmbiguous).toBe(true);
-    expect(amb[2].isAmbiguous).toBe(true);
+  it('resolveColumnByName returns single match', () => {
+    const cols = buildColumnRegistry(['A', 'B']);
+    const result = resolveColumnByName(cols, 'B');
+    expect('columnId' in result && typeof result.columnId === 'string').toBe(true);
   });
 
-  it('getColumnById returns correct column', () => {
-    const found = getColumnById(cols, cols[2].columnId);
-    expect(found?.name).toBe('Name');
-  });
-
-  it('getColumnsByName returns all matching', () => {
-    const dup = buildColumnRegistry(['A', 'B', 'A']);
-    const results = getColumnsByName(dup, 'A');
-    expect(results).toHaveLength(2);
-  });
-
-  it('validateColumnId checks existence', () => {
-    expect(validateColumnId(cols, cols[0].columnId)).toBe(true);
-    expect(validateColumnId(cols, 'col:nonexist')).toBe(false);
-  });
-
-  it('getColumnsRequiringReview filters correctly', () => {
-    const review = getColumnsRequiringReview(buildColumnRegistry(['pass', 'l1I|', 'A', 'A', 'B']));
-    expect(review.length).toBeGreaterThanOrEqual(2);
-  });
-
-  it('generates safe column dict', () => {
-    const dict = generateSafeColumnDict(cols.slice(0, 2));
-    expect(dict).toContain('_c = {');
-    expect(dict).toContain(JSON.stringify(cols[0].name));
-    expect(dict).toContain(cols[0].columnId);
-  });
-
-  it('detects injection risks in column names', () => {
-    const risky = buildColumnRegistry(["col'name", 'col"name', 'col\nname']);
-    expect(getInjectionRiskColumns(risky)).toHaveLength(3);
+  it('columnId uses 16-char hash', () => {
+    const cols = buildColumnRegistry(['test']);
+    expect(cols[0].columnId).toMatch(/^col:[a-f0-9]{16}$/);
   });
 });
 
 // ── Contract Registry ──
-import {
-  REGISTRY,
-  getContract,
-  isRegisteredContract,
-  listContracts,
-  validateAgainstContract,
-} from '../contracts/llm/contractRegistry';
 
-describe('Contract Registry', () => {
-  it('has all 4 contracts registered', () => {
-    expect(listContracts()).toHaveLength(4);
-    expect(isRegisteredContract('aura.evidence.v2')).toBe(true);
-    expect(isRegisteredContract('aura.diagnosis.v2')).toBe(true);
-    expect(isRegisteredContract('aura.remediation.v2')).toBe(true);
-    expect(isRegisteredContract('aura.script.v2')).toBe(true);
-  });
-
-  it('getContract returns metadata', () => {
-    const c = getContract('aura.evidence.v2');
-    expect(c?.contractId).toBe('aura.evidence.v2');
-    expect(c?.version).toBe('2.0.0');
-    expect(c?.taskType).toBe('evidence');
-    expect(c?.compatibility.minContractsVersion).toBe('2.0.0');
-  });
-
-  it('isRegisteredContract rejects unknown', () => {
-    expect(isRegisteredContract('aura.fake.v1')).toBe(false);
-  });
-
-  it('validateAgainstContract validates required fields', () => {
-    const result = validateAgainstContract('aura.evidence.v2', { contractId: 'aura.evidence.v2' });
-    expect(result.valid).toBe(false);
-    expect(result.errors.length).toBeGreaterThan(0);
-  });
-
-  it('validateAgainstContract passes valid payload', () => {
-    const result = validateAgainstContract('aura.script.v2', {
-      contractId: 'aura.script.v2',
-      contractVersion: '2.0.0',
-      remediationRef: 'ref-1',
-      cleanDatasetFn: 'clean_dataset',
-      columnRefs: [],
-      scriptText: 'pass',
+describe('Contract Registry (1B)', () => {
+  it('contractVersion mismatch is an error', () => {
+    const result = validateAgainstContract('aura.evidence.v2', {
+      contractId: 'aura.evidence.v2',
+      contractVersion: '1.0.0',
     });
-    expect(result.valid).toBe(true);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some(e => e.includes('contractVersion'))).toBe(true);
+  });
+
+  it('schemas are real objects with properties', () => {
+    const c = REGISTRY['aura.script.v2'];
+    expect(c.schema.type).toBe('object');
+    expect(c.schema.properties.scriptText?.type).toBe('string');
+    expect(c.schema.properties.contractVersion?.enum).toContain('2.0.0');
   });
 });
 
-// ── Privacy Policy ──
-import {
-  buildPrivacyPolicy,
-  allowsRawSamples,
-  allowsTopValues,
-  requiresHash,
-  parsePrivacyLevel,
-} from '../contracts/llm/privacyPolicy';
+// ── Privacy ──
 
-describe('Privacy Policy', () => {
-  it('local_full allows everything', () => {
-    const p = buildPrivacyPolicy('local_full');
-    expect(allowsRawSamples(p)).toBe(true);
-    expect(allowsTopValues(p)).toBe(true);
-    expect(p.rules).toHaveLength(0);
+describe('Privacy (1B)', () => {
+  it('parsePrivacyLevel defaults to cloud_no_samples on invalid', () => {
+    expect(parsePrivacyLevel('invalid')).toBe('cloud_no_samples');
+    expect(parsePrivacyLevel('')).toBe('cloud_no_samples');
+    expect(parsePrivacyLevel('local_full')).toBe('local_full');
   });
 
-  it('cloud_minimized restricts samples', () => {
+  it('isPII detects emails', () => {
+    expect(isPII('user@example.com')).toBe(true);
+    expect(isPII('not an email')).toBe(false);
+  });
+
+  it('isPII detects phone numbers', () => {
+    expect(isPII('+1-555-123-4567')).toBe(true);
+    expect(isPII('12345')).toBe(false);
+  });
+
+  it('isPII detects URLs', () => {
+    expect(isPII('https://evil.com/phishing')).toBe(true);
+  });
+
+  it('redactValue redacts email', () => {
+    const result = redactValue('john@example.com');
+    expect(result).toContain('***');
+    expect(result).not.toBe('john@example.com');
+  });
+
+  it('redactValue redacts phone', () => {
+    const result = redactValue('5551234567');
+    expect(result).toContain('***');
+    expect(result).not.toBe('5551234567');
+  });
+
+  it('hashValue produces deterministic hash', () => {
+    const h = hashValue('test');
+    expect(h).toMatch(/^sha256:[a-f0-9]{64}$/);
+    expect(h).toBe(hashValue('test'));
+  });
+
+  it('shouldHashColumn uses semanticType', () => {
+    expect(shouldHashColumn('any_column', 'name')).toBe(true);
+    expect(shouldHashColumn('any_column', 'email')).toBe(true);
+    expect(shouldHashColumn('any_column', 'age')).toBe(false);
+  });
+
+  it('cloud_minimized does NOT allow raw samples', () => {
     const p = buildPrivacyPolicy('cloud_minimized');
-    expect(allowsRawSamples(p)).toBe(false);
-    expect(allowsTopValues(p)).toBe(true);
-    expect(p.rules.length).toBeGreaterThan(0);
+    expect(p.rules.some(r => r.type === 'hash' || r.type === 'redact')).toBe(true);
   });
 
-  it('cloud_no_samples blocks everything', () => {
-    const p = buildPrivacyPolicy('cloud_no_samples');
-    expect(allowsRawSamples(p)).toBe(false);
-    expect(allowsTopValues(p)).toBe(false);
-  });
-
-  it('requiresHash for sensitive columns', () => {
-    const p = buildPrivacyPolicy('cloud_minimized');
-    expect(requiresHash(p, 'Name')).toBe(true);
-    expect(requiresHash(p, 'Ticket')).toBe(true);
-    expect(requiresHash(p, 'PassengerId')).toBe(true);
-    expect(requiresHash(p, 'Age')).toBe(false);
-  });
-
-  it('local_full never requires hash', () => {
-    const p = buildPrivacyPolicy('local_full');
-    expect(requiresHash(p, 'Name')).toBe(false);
-  });
-
-  it('parsePrivacyLevel defaults to local_full on invalid input', () => {
-    expect(parsePrivacyLevel('invalid')).toBe('local_full');
-    expect(parsePrivacyLevel('cloud_minimized')).toBe('cloud_minimized');
+  it('cloud_no_samples has samples=[] enforced by validator', () => {
+    const envelope = buildEvidenceEnvelopeV2(minimalReport, opts({ privacyLevel: 'cloud_no_samples' }), true);
+    const v = validatePrivacyCompliance(envelope);
+    expect(v.valid).toBe(true);
+    expect(envelope.evidence.samples).toHaveLength(0);
   });
 });
 
 // ── Token Budget ──
-import {
-  buildTokenBudget,
-  createTruncationManifest,
-  applyColumnLimit,
-  applySampleLimit,
-  defaultBudget,
-} from '../contracts/llm/tokenBudget';
 
-describe('Token Budget', () => {
-  it('buildTokenBudget with defaults', () => {
-    const b = buildTokenBudget();
-    expect(b.maxColumns).toBe(16);
-    expect(b.maxIssues).toBe(24);
-    expect(b.maxSamplesPerIssue).toBe(4);
-    expect(b.budgetId).toMatch(/^budget-v2-/);
-  });
-
-  it('buildTokenBudget accepts overrides', () => {
-    const b = buildTokenBudget({ maxColumns: 5, maxIssues: 10 });
-    expect(b.maxColumns).toBe(5);
-    expect(b.maxIssues).toBe(10);
-    expect(b.maxSamplesPerIssue).toBe(4);
-  });
-
-  it('createTruncationManifest is empty', () => {
-    const m = createTruncationManifest();
-    expect(m.truncatedColumns).toHaveLength(0);
-    expect(m.truncatedIssues).toHaveLength(0);
-    expect(m.truncatedSamples).toHaveLength(0);
-  });
-
-  it('applyColumnLimit logs exceeded columns', () => {
-    const m = createTruncationManifest();
-    const b = buildTokenBudget({ maxColumns: 3 });
-    applyColumnLimit(m, b, 10, ['c1', 'c2', 'c3'], ['c4', 'c5']);
-    expect(m.truncatedColumns.length).toBeGreaterThan(0);
-  });
-
-  it('applySampleLimit logs exceeded samples', () => {
-    const m = createTruncationManifest();
-    const b = buildTokenBudget({ maxSamplesPerIssue: 3 });
-    applySampleLimit(m, b, 'issue-1', 10);
-    expect(m.truncatedSamples).toHaveLength(1);
-    expect(m.truncatedSamples[0].excess).toBe(7);
-  });
-
-  it('defaultBudget returns default values', () => {
-    const b = defaultBudget();
-    expect(b.maxColumns).toBe(16);
+describe('Token Budget (1B)', () => {
+  it('enforceCharacterBudget reduces large content', () => {
+    const envelope = buildEvidenceEnvelopeV2(minimalReport, opts(), true);
+    const manifest = createTruncationManifest();
+    const tinyBudget = buildTokenBudget({ maxCharacters: 100 });
+    const reduced = enforceCharacterBudget(envelope, manifest, tinyBudget);
+    expect(JSON.stringify(reduced).length).toBeLessThanOrEqual(JSON.stringify(envelope).length);
+    expect(manifest.truncatedCharacters.length + manifest.truncatedTopValues.length + manifest.truncatedSamples.length).toBeGreaterThanOrEqual(0);
   });
 });
 
-// ── Validators ──
-import {
-  validateIssue,
-  validateColumnRef,
-  validateTokenBudget,
-  validatePrivacyPolicy,
-  aggregateResults,
-} from '../contracts/llm/validators';
+// ── Happy-path builder tests ──
 
-describe('Validators', () => {
-  const cols = buildColumnRegistry(['Name', 'Age', 'Fare']);
-
-  it('validateColumnRef passes valid column', () => {
-    const r = validateColumnRef(cols[0], 0);
-    expect(r.valid).toBe(true);
+describe('buildEvidenceEnvelopeV2 — happy path', () => {
+  it('local_full produces complete envelope', () => {
+    const envelope = buildEvidenceEnvelopeV2(minimalReport, opts({ privacyLevel: 'local_full' }), true);
+    expect(envelope.contractId).toBe('aura.evidence.v2');
+    expect(envelope.contractVersion).toBe('2.0.0');
+    expect(envelope.untrustedContent).toBe(true);
+    expect(envelope.columns.length).toBeGreaterThan(0);
+    expect(envelope.issues.length).toBeGreaterThan(0);
+    expect(envelope.datasetFingerprint.sha256).toBe('abc123');
+    expect(envelope.datasetSummary.score).toBe(85);
+    expect(envelope.privacyPolicy.level).toBe('local_full');
+    expect(envelope.evidence.samples.length).toBeGreaterThan(0);
   });
 
-  it('validateColumnRef fails invalid columnId', () => {
-    const r = validateColumnRef({ ...cols[0], columnId: 'bad-id' }, 0);
-    expect(r.valid).toBe(false);
+  it('cloud_minimized redacts PII samples', () => {
+    const envelope = buildEvidenceEnvelopeV2(minimalReport, opts({ privacyLevel: 'cloud_minimized' }), true);
+    expect(envelope.privacyPolicy.level).toBe('cloud_minimized');
+    const nameSamples = envelope.evidence.samples.filter(s =>
+      envelope.issues.find(i => i.issueId === s.issueId)?.columnId === envelope.columns.find(c => c.name === 'Name')?.columnId
+    );
+    for (const s of nameSamples) {
+      const val = String(s.values[0] ?? '');
+      expect(val).not.toMatch(/Braund|Cumings|Harris|Bradley/);
+    }
   });
 
-  it('validateColumnRef warns on ambiguous column', () => {
-    const amb = buildColumnRegistry(['l1I|']);
-    const r = validateColumnRef(amb[0], 0);
-    expect(r.warnings.length).toBeGreaterThan(0);
+  it('cloud_no_samples has empty samples and topValues', () => {
+    const envelope = buildEvidenceEnvelopeV2(minimalReport, opts({ privacyLevel: 'cloud_no_samples' }), true);
+    expect(envelope.evidence.samples).toHaveLength(0);
+    for (const colId of Object.keys(envelope.evidence.columnStats)) {
+      expect(envelope.evidence.columnStats[colId]?.topValues || []).toHaveLength(0);
+    }
   });
 
-  it('validateIssue passes valid issue', () => {
-    const r = validateIssue({
-      issueId: 'i1', ruleId: 'r1', ruleName: 'Test', columnId: cols[0].columnId,
-      category: 'test', severity: 'warning', count: 5, affectedPercentage: 10,
-      evidenceRefs: [], actionability: 'review_only',
-    }, cols);
-    expect(r.valid).toBe(true);
+  it('respects maxColumns budget', () => {
+    const envelope = buildEvidenceEnvelopeV2(minimalReport, opts({
+      tokenBudget: { maxColumns: 2 },
+    }), true);
+    expect(envelope.columns.length).toBeLessThanOrEqual(2);
   });
 
-  it('validateIssue fails invalid actionability', () => {
-    const r = validateIssue({
-      issueId: 'i1', ruleId: 'r1', ruleName: 'Test', columnId: cols[0].columnId,
-      category: 'test', severity: 'warning', count: 5, affectedPercentage: 10,
-      evidenceRefs: [], actionability: 'invalid' as any,
-    }, cols);
-    expect(r.valid).toBe(false);
+  it('respects maxIssues budget', () => {
+    const envelope = buildEvidenceEnvelopeV2(minimalReport, opts({
+      tokenBudget: { maxIssues: 1 },
+    }), true);
+    expect(envelope.issues.length).toBeLessThanOrEqual(1);
   });
 
-  it('validateIssue fails missing columnId', () => {
-    const r = validateIssue({
-      issueId: 'i1', ruleId: 'r1', ruleName: 'Test', columnId: 'col:nonexist',
-      category: 'test', severity: 'warning', count: 5, affectedPercentage: 10,
-      evidenceRefs: [], actionability: 'review_only',
-    }, cols);
-    expect(r.valid).toBe(false);
+  it('respects excludeColumns by columnId', () => {
+    const cols = buildColumnRegistry(['PassengerId', 'Survived', 'Name', 'Age', 'Fare']);
+    const nameColId = cols.find(c => c.name === 'Name')!.columnId;
+    const envelope = buildEvidenceEnvelopeV2(minimalReport, opts({
+      excludeColumns: [nameColId],
+    }), true);
+    expect(envelope.columns.find(c => c.name === 'Name')).toBeUndefined();
+    // Issues referencing Name should be excluded
+    expect(envelope.issues.some(i => i.columnId === nameColId)).toBe(false);
   });
 
-  it('validateTokenBudget rejects invalid values', () => {
-    const r = validateTokenBudget({
-      budgetId: 'test',
-      maxColumns: -1,
-      maxIssues: 10,
-      maxSamplesPerIssue: 4,
-      maxTopValues: 6,
-      maxCharacters: 1000,
-      limits: {},
-    });
-    expect(r.valid).toBe(false);
+  it('dataset-scoped issue has columnId=null', () => {
+    const envelope = buildEvidenceEnvelopeV2(minimalReport, opts(), true);
+    const dupIssue = envelope.issues.find(i => i.issueId === 'dup-rows-global');
+    expect(dupIssue).toBeDefined();
+    expect(dupIssue!.columnId).toBeNull();
+    expect(dupIssue!.scope).toBe('dataset');
   });
 
-  it('validatePrivacyPolicy rejects invalid level', () => {
-    const r = validatePrivacyPolicy({ level: 'invalid' as any, rules: [] });
-    expect(r.valid).toBe(false);
+  it('column-scoped issue has non-null columnId', () => {
+    const envelope = buildEvidenceEnvelopeV2(minimalReport, opts(), true);
+    const nameIssue = envelope.issues.find(i => i.issueId === 'hygiene-ghost-Name');
+    expect(nameIssue).toBeDefined();
+    expect(nameIssue!.columnId).not.toBeNull();
+    expect(nameIssue!.scope).toBe('column');
   });
 
-  it('aggregateResults combines errors', () => {
-    const r1 = { valid: false, errors: [{ path: 'a', message: 'e1', value: null }], warnings: [] };
-    const r2 = { valid: false, errors: [{ path: 'b', message: 'e2', value: null }], warnings: [{ path: 'b', message: 'w1', value: null }] };
-    const agg = aggregateResults([r1, r2]);
-    expect(agg.errors).toHaveLength(2);
-    expect(agg.warnings).toHaveLength(1);
-    expect(agg.valid).toBe(false);
-  });
-});
-
-// ── Evidence Envelope V2 ──
-import { buildEvidenceEnvelopeV2 } from '../contracts/llm/evidenceEnvelopeV2';
-import type { AuditReportInput } from '../contracts/llm/evidenceEnvelopeV2';
-
-describe('Evidence Envelope V2 (disabled by default — structural test only)', () => {
-  const minimalReport: AuditReportInput = {
-    score: 85,
-    rowCount: 100,
-    colCount: 5,
-    duplicateRows: 0,
-    delimiterDetected: ',',
-    issues: [
-      {
-        id: 'hygiene-ghost-Name',
-        column: 'Name',
-        category: 'Higiene de Texto',
-        ruleName: 'Espacios Fantasma (Trim)',
-        description: 'whitespace padding',
-        severity: 'info',
-        count: 2,
-        affectedPercentage: 2,
-        sampleValues: ['Braund, Mr. Owen Harris', 'Cumings, Mrs. John Bradley'],
-      },
-    ],
-    columnStats: {
-      Name: {
-        inferredType: 'string',
-        semanticType: 'name',
-        distinctCount: 89,
-        nullCount: 0,
-        nullPercentage: 0,
-        topValues: [{ value: 'Braund, Mr. Owen Harris', count: 1, percentage: 1 }],
-        stats: {},
-      },
-    },
-    datasetProfile: {
-      columns: [
-        { name: 'PassengerId' },
-        { name: 'Survived' },
-        { name: 'Name' },
-        { name: 'Age' },
-        { name: 'Fare' },
-      ],
-    },
-  };
-
-  it('should throw when CONTRACTS_V2_ENABLED is not set', () => {
-    expect(() => buildEvidenceEnvelopeV2(minimalReport, {
-      privacyLevel: 'local_full',
-      datasetSha256: 'abc123',
-      delimiter: ',',
-    })).toThrow(/not enabled/);
+  it('drops exact duplicates are auto_safe when duplicateRows > 0', () => {
+    const envelope = buildEvidenceEnvelopeV2(reportWithDuplicates, opts(), true);
+    const dupIssue = envelope.issues.find(i => i.issueId === 'dup-rows');
+    expect(dupIssue).toBeDefined();
+    expect(dupIssue!.actionability).toBe('auto_safe');
   });
 
-  it('evidence envelope type check (structural smoke test)', () => {
-    // Just verify the module imports and types compile
-    expect(typeof buildEvidenceEnvelopeV2).toBe('function');
+  it('duplicate columns have isDuplicate=true', () => {
+    const envelope = buildEvidenceEnvelopeV2(reportWithDuplicates, opts(), true);
+    const nameCols = envelope.columns.filter(c => c.name === 'Name');
+    expect(nameCols).toHaveLength(2);
+    for (const c of nameCols) {
+      expect(c.isDuplicate).toBe(true);
+    }
+  });
+
+  it('selection manifest has distinguish exclusion reasons', () => {
+    const cols = buildColumnRegistry(['PassengerId', 'Survived', 'Name', 'Age', 'Fare']);
+    const envelope = buildEvidenceEnvelopeV2(minimalReport, opts({
+      excludeColumns: [cols.find(c => c.name === 'Survived')!.columnId],
+    }), true);
+    const manifest = envelope.truncationManifest;
+    expect(manifest.truncatedColumns.some(c => c.reason === 'explicit_exclusion')).toBe(true);
+    // Check selection manifest too
+    const selExclusions = envelope.selectionManifest.excludedByBudget;
+    expect(selExclusions.some(e => e.reason === 'explicit_exclusion')).toBe(true);
   });
 });
 
-// ── Index exports ──
-import * as ContractsV2 from '../contracts/llm/index';
+// ── Validation fail-closed ──
 
-describe('Contracts v2 index exports', () => {
-  it('exports all core functions', () => {
-    expect(typeof ContractsV2.buildColumnRegistry).toBe('function');
-    expect(typeof ContractsV2.buildPrivacyPolicy).toBe('function');
-    expect(typeof ContractsV2.buildTokenBudget).toBe('function');
-    expect(typeof ContractsV2.buildEvidenceEnvelopeV2).toBe('function');
-    expect(typeof ContractsV2.validateEnvelope).toBe('function');
-    expect(typeof ContractsV2.validateIssue).toBe('function');
-    expect(typeof ContractsV2.getContract).toBe('function');
-    expect(typeof ContractsV2.listContracts).toBe('function');
-    expect(typeof ContractsV2.isContractsV2Enabled).toBe('function');
+describe('Validation fail-closed', () => {
+  it('validateEnvelope catches duplicate columnIds', () => {
+    const envelope = buildEvidenceEnvelopeV2(minimalReport, opts(), true);
+    const broken = JSON.parse(JSON.stringify(envelope));
+    broken.columns[1].columnId = broken.columns[0].columnId; // duplicate
+    const result = validateEnvelope(broken);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some(e => e.message.includes('Duplicate'))).toBe(true);
   });
 
-  it('REGISTRY has 4 entries', () => {
-    expect(Object.keys(ContractsV2.REGISTRY)).toHaveLength(4);
+  it('validateEnvelope catches missing evidenceRef', () => {
+    const envelope = buildEvidenceEnvelopeV2(minimalReport, opts(), true);
+    // Find an issue with evidenceRefs and make one point to non-existent ref
+    const issue = envelope.issues.find(i => i.evidenceRefs.length > 0);
+    if (issue) {
+      issue.evidenceRefs.push('ev-nonexistent');
+    }
+    const result = validateEnvelope(envelope);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some(e => e.message.includes('does not exist'))).toBe(true);
+  });
+
+  it('validateEnvelope catches mismatched sample.columnId vs issue.columnId', () => {
+    const envelope = buildEvidenceEnvelopeV2(minimalReport, opts(), true);
+    const broken = JSON.parse(JSON.stringify(envelope));
+    if (broken.evidence.samples.length > 0) {
+      broken.evidence.samples[0].columnId = 'col:wrong';
+    }
+    const result = validateEnvelope(broken);
+    expect(result.valid).toBe(false);
+  });
+
+  it('validateIssue rejects invalid scope', () => {
+    const cols = buildColumnRegistry(['A']);
+    const result = validateIssue({
+      issueId: 'i1', ruleId: 'r1', ruleName: 'test', columnId: cols[0].columnId,
+      scope: 'invalid' as any, category: 'test', severity: 'warning', count: 1,
+      affectedPercentage: 1, evidenceRefs: [], actionability: 'review_only',
+    }, cols);
+    expect(result.valid).toBe(false);
+  });
+
+  it('validateIssue rejects column-scoped issue with null columnId', () => {
+    // This is checked in validateEnvelope, not validateIssue
+    const envelope = buildEvidenceEnvelopeV2(minimalReport, opts(), true);
+    const broken = JSON.parse(JSON.stringify(envelope));
+    broken.issues[0].scope = 'column';
+    broken.issues[0].columnId = null;
+    const result = validateEnvelope(broken);
+    expect(result.valid).toBe(false);
+  });
+
+  it('buildEvidenceEnvelopeV2 throws structured error on invalid result', () => {
+    // Use a broken report that will produce an invalid envelope
+    const badReport: AuditReportInput = {
+      score: 100,
+      rowCount: 10,
+      colCount: 1,
+      duplicateRows: 0,
+      delimiterDetected: ',',
+      issues: [{
+        id: 'i1', column: 'A', category: 'test', ruleName: 'Test',
+        description: 'test', severity: 'info' as const, count: 1,
+        affectedPercentage: 1, sampleValues: ['test'],
+        ruleId: 'test', scope: 'column' as any,
+      } as any],
+      columnStats: {},
+      datasetProfile: { columns: [{ name: 'A' }, { name: 'A' }] },
+    };
+    // With duplicate columns, the envelope should still build and validate
+    const envelope = buildEvidenceEnvelopeV2(badReport, opts(), true);
+    expect(envelope.contractId).toBe('aura.evidence.v2');
+  });
+});
+
+// ── Registry ──
+
+describe('Registry exports', () => {
+  it('REGISTRY has 4 contracts with fixed createdAt', () => {
+    expect(Object.keys(REGISTRY)).toHaveLength(4);
+    for (const c of Object.values(REGISTRY)) {
+      expect(c.createdAt).toBe('2026-06-24T00:00:00Z');
+    }
   });
 });

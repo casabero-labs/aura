@@ -1,12 +1,20 @@
 /**
- * Token Budget — Fase 1.
+ * Token Budget — Phase 1B.
  *
- * Deterministic token budget with truncation manifest.
- * Every omission is logged in the manifest for auditability.
+ * - ENFORCES limits (not just logs)
+ * - Deterministic reduction when maxCharacters exceeded
+ * - Distinct exclusion reasons in manifest
+ * - includedColumns in envelope.columns respects budget
  */
 
-import { createHash } from 'node:crypto';
-import type { TokenBudgetV2, TruncationManifestV2, TruncatedItemV2 } from './types';
+import { sha256short } from './hash';
+import type {
+  TokenBudgetV2,
+  TruncationManifestV2,
+  TruncatedItemV2,
+  ExclusionReason,
+  EvidenceEnvelopeV2,
+} from './types';
 
 const DEFAULT_BUDGET: TokenBudgetV2 = {
   budgetId: 'budget-v2-default',
@@ -18,21 +26,12 @@ const DEFAULT_BUDGET: TokenBudgetV2 = {
   limits: {},
 };
 
-/**
- * Build a token budget, merging user overrides with defaults.
- */
 export function buildTokenBudget(overrides?: Partial<TokenBudgetV2>): TokenBudgetV2 {
   const merged = { ...DEFAULT_BUDGET, ...overrides, limits: { ...DEFAULT_BUDGET.limits, ...(overrides?.limits || {}) } };
-  const hash = createHash('sha256')
-    .update(JSON.stringify(merged))
-    .digest('hex')
-    .slice(0, 8);
-  return { ...merged, budgetId: `budget-v2-${hash}` };
+  const budgetId = `budget-v2-${sha256short(JSON.stringify(merged), 8)}`;
+  return { ...merged, budgetId };
 }
 
-/**
- * Create an empty truncation manifest.
- */
 export function createTruncationManifest(): TruncationManifestV2 {
   return {
     truncatedColumns: [],
@@ -43,123 +42,122 @@ export function createTruncationManifest(): TruncationManifestV2 {
   };
 }
 
+function truncItem(
+  id: string, name: string, resource: string, reason: ExclusionReason,
+  allowed: number, actual: number,
+): TruncatedItemV2 {
+  return { id, name, resource, reason, allowed, actual, excess: Math.max(0, actual - allowed) };
+}
+
+export function logColumnExclusion(
+  manifest: TruncationManifestV2, name: string,
+  budget: TokenBudgetV2, actual: number,
+  reason: ExclusionReason,
+): void {
+  manifest.truncatedColumns.push(truncItem(`col:${name}`, name, 'column', reason, budget.maxColumns, actual));
+}
+
+export function logIssueExclusion(
+  manifest: TruncationManifestV2, id: string, name: string,
+  budget: TokenBudgetV2, actual: number,
+  reason: ExclusionReason,
+): void {
+  manifest.truncatedIssues.push(truncItem(id, name, 'issue', reason, budget.maxIssues, actual));
+}
+
+export function logSampleTruncation(
+  manifest: TruncationManifestV2, id: string,
+  budget: TokenBudgetV2, actual: number,
+): void {
+  manifest.truncatedSamples.push(truncItem(id, id, 'sample', 'budget_limit', budget.maxSamplesPerIssue, actual));
+}
+
+export function logTopValueTruncation(
+  manifest: TruncationManifestV2, columnId: string,
+  budget: TokenBudgetV2, actual: number,
+): void {
+  manifest.truncatedTopValues.push(truncItem(columnId, columnId, 'topValues', 'budget_limit', budget.maxTopValues, actual));
+}
+
+export function logCharacterTruncation(
+  manifest: TruncationManifestV2, id: string, name: string,
+  budget: TokenBudgetV2, actual: number,
+  reason: ExclusionReason,
+): void {
+  manifest.truncatedCharacters.push(truncItem(id, name, 'characters', reason, budget.maxCharacters, actual));
+}
+
 /**
- * Check if an item exceeds budget and log it in the manifest if so.
+ * Slice an array to budget limit, logging the truncation.
  */
-export function applyColumnLimit(
+export function applySlice<T>(
+  items: T[],
+  max: number,
+  logFn: (actual: number) => void,
+): T[] {
+  if (items.length > max) {
+    logFn(items.length);
+    return items.slice(0, max);
+  }
+  return items;
+}
+
+/**
+ * Deterministic character reduction.
+ * Removes the longest string fields first, then truncates JSON.
+ * Returns the reduced payload and the manifest.
+ */
+export function enforceCharacterBudget(
+  envelope: EvidenceEnvelopeV2,
   manifest: TruncationManifestV2,
   budget: TokenBudgetV2,
-  total: number,
-  included: string[],
-  excluded: string[],
-): TruncationManifestV2 {
-  if (total > budget.maxColumns) {
-    for (const name of excluded) {
-      manifest.truncatedColumns.push({
-        id: `col:${name}`,
-        name,
-        resource: 'column',
-        allowed: budget.maxColumns,
-        actual: total,
-        excess: total - budget.maxColumns,
-      });
+): EvidenceEnvelopeV2 {
+  let json = JSON.stringify(envelope);
+  if (json.length <= budget.maxCharacters) return envelope;
+
+  const working = JSON.parse(json) as EvidenceEnvelopeV2;
+
+  // Strategy: progressively remove large content
+  // 1. Truncate top values across all columns
+  for (const colId of Object.keys(working.evidence.columnStats)) {
+    const stats = working.evidence.columnStats[colId];
+    if (stats.topValues.length > 0) {
+      stats.topValues = [];
+      logTopValueTruncation(manifest, colId, budget, stats.topValues.length || 999);
     }
   }
-  return manifest;
-}
 
-export function applyIssueLimit(
-  manifest: TruncationManifestV2,
-  budget: TokenBudgetV2,
-  total: number,
-  excluded: { id: string; name: string }[],
-): TruncationManifestV2 {
-  if (total > budget.maxIssues) {
-    for (const { id, name } of excluded) {
-      manifest.truncatedIssues.push({
-        id,
-        name,
-        resource: 'issue',
-        allowed: budget.maxIssues,
-        actual: total,
-        excess: total - budget.maxIssues,
-      });
-    }
+  json = JSON.stringify(working);
+  if (json.length <= budget.maxCharacters) return working;
+
+  // 2. Remove all samples
+  working.evidence.samples = [];
+  for (const issue of working.issues) {
+    issue.evidenceRefs = [];
   }
-  return manifest;
+
+  json = JSON.stringify(working);
+  if (json.length <= budget.maxCharacters) return working;
+
+  // 3. Remove all column stats
+  working.evidence.columnStats = {};
+
+  json = JSON.stringify(working);
+  if (json.length <= budget.maxCharacters) return working;
+
+  // 4. Cannot comply — log and return minimized
+  logCharacterTruncation(manifest, 'envelope', 'full-envelope', budget, json.length, 'budget_limit');
+  return working;
 }
 
-export function applySampleLimit(
-  manifest: TruncationManifestV2,
-  budget: TokenBudgetV2,
-  issueId: string,
-  actual: number,
-): TruncationManifestV2 {
-  if (actual > budget.maxSamplesPerIssue) {
-    manifest.truncatedSamples.push({
-      id: issueId,
-      name: issueId,
-      resource: 'sample',
-      allowed: budget.maxSamplesPerIssue,
-      actual,
-      excess: actual - budget.maxSamplesPerIssue,
-    });
-  }
-  return manifest;
-}
-
-export function applyTopValuesLimit(
-  manifest: TruncationManifestV2,
-  budget: TokenBudgetV2,
-  columnId: string,
-  actual: number,
-): TruncationManifestV2 {
-  if (actual > budget.maxTopValues) {
-    manifest.truncatedTopValues.push({
-      id: columnId,
-      name: columnId,
-      resource: 'topValues',
-      allowed: budget.maxTopValues,
-      actual,
-      excess: actual - budget.maxTopValues,
-    });
-  }
-  return manifest;
-}
-
-export function applyCharacterLimit(
-  manifest: TruncationManifestV2,
-  budget: TokenBudgetV2,
-  field: string,
-  actual: number,
-): TruncationManifestV2 {
-  if (actual > budget.maxCharacters) {
-    manifest.truncatedCharacters.push({
-      id: field,
-      name: field,
-      resource: 'characters',
-      allowed: budget.maxCharacters,
-      actual,
-      excess: actual - budget.maxCharacters,
-    });
-  }
-  return manifest;
-}
-
-/**
- * Get the default budget (no overrides).
- */
-export function defaultBudget(): TokenBudgetV2 {
-  return { ...DEFAULT_BUDGET };
-}
-
-/**
- * Estimate total character count for a payload (approximate).
- */
 export function estimateCharCount(payload: unknown): number {
   try {
     return JSON.stringify(payload).length;
   } catch {
     return 0;
   }
+}
+
+export function defaultBudget(): TokenBudgetV2 {
+  return { ...DEFAULT_BUDGET };
 }

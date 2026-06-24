@@ -1,14 +1,15 @@
 /**
- * Column Registry — Fase 1.
+ * Column Registry — Phase 1B.
  *
- * Safe, deterministic column references for Contracts v2.
- * - columnId: deterministic SHA-256 based
- * - pythonLiteral: safe Python dict-style access
- * - Detects: duplicates, reserved words, ambiguous names, injection patterns
+ * - Determinist columnId: col:sha256(name#pos#dupOrd)
+ * - All same-name columns marked isDuplicate=true
+ * - Ambiguous lookup returns error, not first match
+ * - excludeColumns works with columnId
+ * - Collision detection with fallback
  */
 
-import { createHash } from 'node:crypto';
-import type { ColumnRef } from './types';
+import { sha256short } from './hash';
+import type { ColumnRef, AmbiguousLookupError } from './types';
 
 const PYTHON_RESERVED = new Set([
   'False', 'None', 'True', 'and', 'as', 'assert', 'async', 'await',
@@ -27,19 +28,12 @@ const AMBIGUOUS_PATTERNS = [
   /^(column|col|field|attr|var|val|key|id|name|value|data|row|item|entry)_?\d*$/i,
 ];
 
-function sha256hex(input: string): string {
-  return createHash('sha256').update(input).digest('hex');
-}
-
 function makeColumnId(name: string, position: number, duplicateOrdinal: number): string {
-  const seed = `${name}#${position}#${duplicateOrdinal}`;
-  return `col:${sha256hex(seed).slice(0, 8)}`;
+  return `col:${sha256short(`${name}#${position}#${duplicateOrdinal}`, 16)}`;
 }
 
-function makePythonLiteral(name: string, columnId: string): string {
-  // Safe wrapper: _c is a dict-like column reference container
-  const escaped = JSON.stringify(name);
-  return `_c[${escaped}]`;
+function makePythonLiteral(name: string): string {
+  return `_c[${JSON.stringify(name)}]`;
 }
 
 function isReservedWord(name: string): boolean {
@@ -55,30 +49,45 @@ function hasInjectionRisk(name: string): boolean {
 }
 
 /**
- * Build a column registry from a list of column names (in order).
- * Duplicate names get an incrementing duplicateOrdinal.
+ * Build column registry from ordered name list.
+ * All columns sharing a name get `isDuplicate: true`.
+ * COLLISION DETECTION: if two distinct columns produce the same columnId,
+ * append "-dupN" suffix until unique.
  */
 export function buildColumnRegistry(columnNames: string[]): ColumnRef[] {
-  const nameCounts = new Map<string, number>();
+  const namePositions = new Map<string, number[]>();
+  for (let i = 0; i < columnNames.length; i++) {
+    const positions = namePositions.get(columnNames[i]) || [];
+    positions.push(i);
+    namePositions.set(columnNames[i], positions);
+  }
+
   const registry: ColumnRef[] = [];
+  const seenIds = new Set<string>();
 
   for (let i = 0; i < columnNames.length; i++) {
     const name = columnNames[i];
-    const count = (nameCounts.get(name) || 0) + 1;
-    nameCounts.set(name, count);
+    const positions = namePositions.get(name)!;
+    const multiple = positions.length > 1;
+    const dupOrd = multiple ? positions.indexOf(i) : 0;
 
-    const duplicateOrdinal = count > 1 ? count - 1 : 0;
-    const columnId = makeColumnId(name, i, duplicateOrdinal);
-    const pythonLiteral = makePythonLiteral(name, columnId);
+    let columnId = makeColumnId(name, i, dupOrd);
+    // Collision resolution: if columnId already used, append suffix
+    if (seenIds.has(columnId)) {
+      let suffix = 0;
+      while (seenIds.has(`${columnId}-dup${suffix}`)) suffix++;
+      columnId = `${columnId}-dup${suffix}`;
+    }
+    seenIds.add(columnId);
 
     registry.push({
       columnId,
       name,
       position: i,
-      duplicateOrdinal,
-      pythonLiteral,
+      duplicateOrdinal: dupOrd,
+      pythonLiteral: makePythonLiteral(name),
       isAmbiguous: isAmbiguous(name),
-      isDuplicate: count > 1,
+      isDuplicate: multiple,
       isReservedWord: isReservedWord(name),
     });
   }
@@ -86,45 +95,50 @@ export function buildColumnRegistry(columnNames: string[]): ColumnRef[] {
   return registry;
 }
 
-/**
- * Look up a column by columnId.
- */
 export function getColumnById(registry: ColumnRef[], columnId: string): ColumnRef | undefined {
   return registry.find(c => c.columnId === columnId);
 }
 
-/**
- * Look up a column by name (returns ALL matching columns, for duplicate handling).
- */
 export function getColumnsByName(registry: ColumnRef[], name: string): ColumnRef[] {
   return registry.filter(c => c.name === name);
 }
 
 /**
- * Validate that a columnId exists in the registry.
+ * Lookup a single column by name. Returns error if ambiguous.
  */
+export function resolveColumnByName(registry: ColumnRef[], name: string): ColumnRef | AmbiguousLookupError {
+  const matches = registry.filter(c => c.name === name);
+  if (matches.length === 0) {
+    return {
+      columnId: 'col:unknown',
+      name,
+      matches: [],
+      reason: 'ambiguous_name',
+    };
+  }
+  if (matches.length > 1) {
+    return {
+      columnId: matches[0].columnId,
+      name,
+      matches,
+      reason: 'duplicate_name',
+    };
+  }
+  return matches[0];
+}
+
 export function validateColumnId(registry: ColumnRef[], columnId: string): boolean {
   return registry.some(c => c.columnId === columnId);
 }
 
-/**
- * Get columns requiring human review (duplicates, ambiguous, reserved words).
- */
 export function getColumnsRequiringReview(registry: ColumnRef[]): ColumnRef[] {
   return registry.filter(c => c.isAmbiguous || c.isDuplicate || c.isReservedWord);
 }
 
-/**
- * Check for injection risks in column names (quotes, escapes, control chars).
- */
 export function getInjectionRiskColumns(registry: ColumnRef[]): ColumnRef[] {
   return registry.filter(c => hasInjectionRisk(c.name));
 }
 
-/**
- * Produce the Python-safe _c dict literal for code generation.
- * Example output: _c = {"Name": "col:a1b2c3d4", "Age": "col:e5f6g7h8"}
- */
 export function generateSafeColumnDict(registry: ColumnRef[]): string {
   const entries = registry.map(c => `    ${JSON.stringify(c.name)}: ${JSON.stringify(c.columnId)}`);
   return `_c = {\n${entries.join(',\n')}\n}`;
