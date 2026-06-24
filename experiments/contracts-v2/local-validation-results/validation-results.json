@@ -1,10 +1,10 @@
 {
-  "harnessVersion": "1.0.0",
-  "generatedAt": "2026-06-24T19:06:25.696Z",
-  "commitSha": "fa9951c9fb1aa17fa5e2ece9615ec1f1094bb457",
+  "harnessVersion": "1.1.0",
+  "generatedAt": "2026-06-24T19:33:12.278Z",
+  "commitSha": "036b1abdc440a2c0953c566623d5bd83b4bac32a",
   "sourceTreeDirty": true,
   "auditEngineSha256": "3ee341a49e5ebc42ccf3bb6cb2e9e39d350dc476f9cb159decba5d45a678c6a0",
-  "contractsV2Sha256": "19d9657f9367dd9a2d5440a2c54adb3c6f3354e64106710f694cfdc36f32e79f",
+  "contractsV2Sha256": "6a587f6cd3e9d8f2b74977b5f9cc805b94e62413ff4672a447bf493f6100ee64",
   "datasetsDir": "/Users/casabero/Documents/GitHub/aura/experiments/datasets",
   "summary": {
     "total": 6,
@@ -118,8 +118,27 @@
       },
       "privacyViolations": 0,
       "truncations": 8,
-      "durationMs": 3176,
-      "error": null
+      "durationMs": 3188,
+      "error": null,
+      "remediation": {
+        "diagnosisRef": "diag:4b255cd3ec73ef5f7fd84011fe25291dab9980f27f17f4c98ddf9b3daf43631f",
+        "planId": "plan:bb4d70d4",
+        "planHash": "327f5b6e6dc1d9d8",
+        "planHashStable": true,
+        "totalActions": 12,
+        "autoSafeCount": 0,
+        "reviewOnlyCount": 12,
+        "notActionableCount": 0,
+        "pendingCount": 12,
+        "exclusionCount": 0,
+        "invalidReferences": 0,
+        "unsafeUpgrades": 0,
+        "validation": {
+          "valid": true,
+          "errorCount": 0,
+          "errors": []
+        }
+      }
     },
     {
       "file": "synthetic_ground_truth.csv",
@@ -199,8 +218,27 @@
       },
       "privacyViolations": 0,
       "truncations": 1,
-      "durationMs": 9,
-      "error": null
+      "durationMs": 12,
+      "error": null,
+      "remediation": {
+        "diagnosisRef": "diag:9965033a7d92fba7641971d3107f88d96b3435cbe3edc8e6064113a17bf071a6",
+        "planId": "plan:91c4fcd1",
+        "planHash": "64b6d2c7ed93a0f7",
+        "planHashStable": true,
+        "totalActions": 16,
+        "autoSafeCount": 0,
+        "reviewOnlyCount": 16,
+        "notActionableCount": 0,
+        "pendingCount": 16,
+        "exclusionCount": 0,
+        "invalidReferences": 0,
+        "unsafeUpgrades": 0,
+        "validation": {
+          "valid": true,
+          "errorCount": 0,
+          "errors": []
+        }
+      }
     },
     {
       "file": "titanic.csv",
@@ -298,8 +336,27 @@
       },
       "privacyViolations": 0,
       "truncations": 5,
-      "durationMs": 30,
-      "error": null
+      "durationMs": 34,
+      "error": null,
+      "remediation": {
+        "diagnosisRef": "diag:4a2b5558079ac3ee3edb19f224023bdd13ac027ab867156e0786c5a042e2b69f",
+        "planId": "plan:15734607",
+        "planHash": "8119fc5f52ec31fc",
+        "planHashStable": true,
+        "totalActions": 9,
+        "autoSafeCount": 0,
+        "reviewOnlyCount": 9,
+        "notActionableCount": 1,
+        "pendingCount": 9,
+        "exclusionCount": 1,
+        "invalidReferences": 0,
+        "unsafeUpgrades": 0,
+        "validation": {
+          "valid": true,
+          "errorCount": 0,
+          "errors": []
+        }
+      }
     }
   ],
   "diagnosis": {
@@ -348,5 +405,12 @@
         }
       }
     ]
+  },
+  "remediation": {
+    "plansBuilt": 3,
+    "plansValid": 3,
+    "planHashStable": true,
+    "unsafeUpgrades": 0,
+    "invalidReferences": 0
   }
 }

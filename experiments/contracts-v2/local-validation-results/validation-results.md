@@ -1,6 +1,6 @@
 # Contracts v2 — Local Dataset Validation
 
-**Generated:** 2026-06-24T19:06:25.696Z
+**Generated:** 2026-06-24T19:33:12.278Z
 **Datasets dir:** /Users/casabero/Documents/GitHub/aura/experiments/datasets
 
 | Status | Count |
@@ -8,6 +8,16 @@
 | PASS | 3 |
 | FAIL | 0 |
 | UNSUPPORTED | 3 |
+
+## Remediation (Phase 3)
+
+| Metric | Value |
+|--------|-------|
+| Plans built | 3 |
+| Plans valid | 3 |
+| planHashStable | true |
+| unsafeUpgrades | 0 |
+| invalidReferences | 0 |
 
 ## ⚠️ .DS_Store
 
@@ -50,7 +60,7 @@
 - **Rows:** 48842 × **Cols:** 15
 - **Issues:** 12
 - **Duplicate columns:** 0
-- **Duration:** 3176ms
+- **Duration:** 3188ms
 
 | Level | Budget | Size | Samples | Columns | Issues | Trunc | PII Leaks |
 |-------|--------|------|---------|---------|--------|-------|-----------|
@@ -64,6 +74,16 @@
 | cloud_no_samples_reduced | | 7.7KB | 0 | 5 | 7 | 3 | 0 |
 | cloud_no_samples_tight | — | — | — | — | — | — | Cannot reduce envelope to 4000 chars (actual: 5690) |
 
+**Remediation Plan:** ✅ Valid
+- **planId:** `plan:bb4d70d4`
+- **planHash:** `327f5b6e6dc1d9d8` (stable: true)
+- **Actions:** 12 total · 0 auto_safe · 12 review_only
+- **Exclusions:** 0 not_actionable
+- **Pending:** 12
+- **unsafeUpgrades:** 0
+- **invalidReferences:** 0
+- **validation:** ✅ PASS (0 errors)
+
 ## ✅ synthetic_ground_truth.csv
 
 - **Status:** PASS
@@ -72,7 +92,7 @@
 - **Rows:** 15 × **Cols:** 9
 - **Issues:** 16
 - **Duplicate columns:** 0
-- **Duration:** 9ms
+- **Duration:** 12ms
 
 | Level | Budget | Size | Samples | Columns | Issues | Trunc | PII Leaks |
 |-------|--------|------|---------|---------|--------|-------|-----------|
@@ -86,6 +106,16 @@
 | cloud_no_samples_reduced | — | — | — | — | — | — | Cannot reduce envelope to 8000 chars (actual: 8184) |
 | cloud_no_samples_tight | — | — | — | — | — | — | Cannot reduce envelope to 4000 chars (actual: 5872) |
 
+**Remediation Plan:** ✅ Valid
+- **planId:** `plan:91c4fcd1`
+- **planHash:** `64b6d2c7ed93a0f7` (stable: true)
+- **Actions:** 16 total · 0 auto_safe · 16 review_only
+- **Exclusions:** 0 not_actionable
+- **Pending:** 16
+- **unsafeUpgrades:** 0
+- **invalidReferences:** 0
+- **validation:** ✅ PASS (0 errors)
+
 ## ✅ titanic.csv
 
 - **Status:** PASS
@@ -94,7 +124,7 @@
 - **Rows:** 891 × **Cols:** 12
 - **Issues:** 10
 - **Duplicate columns:** 0
-- **Duration:** 30ms
+- **Duration:** 34ms
 
 | Level | Budget | Size | Samples | Columns | Issues | Trunc | PII Leaks |
 |-------|--------|------|---------|---------|--------|-------|-----------|
@@ -107,3 +137,13 @@
 | cloud_no_samples_default | | 11.1KB | 0 | 12 | 10 | 2 | 0 |
 | cloud_no_samples_reduced | | 5.5KB | 0 | 5 | 2 | 3 | 0 |
 | cloud_no_samples_tight | | 3.7KB | 0 | 3 | 0 | 2 | 0 |
+
+**Remediation Plan:** ✅ Valid
+- **planId:** `plan:15734607`
+- **planHash:** `8119fc5f52ec31fc` (stable: true)
+- **Actions:** 9 total · 0 auto_safe · 9 review_only
+- **Exclusions:** 1 not_actionable
+- **Pending:** 9
+- **unsafeUpgrades:** 0
+- **invalidReferences:** 0
+- **validation:** ✅ PASS (0 errors)
