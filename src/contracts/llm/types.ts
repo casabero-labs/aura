@@ -111,6 +111,7 @@ export interface EvidenceIssueV2 {
   issueId: string;
   ruleId: string;
   ruleName: string;
+  description: string;
   columnId: string | null;
   scope: IssueScope;
   category: string;
@@ -239,6 +240,7 @@ export interface TokenBudgetV2 {
 
 // ── Validation ──
 export interface ValidationErrorV2 {
+  code: string;
   path: string;
   message: string;
   value: unknown;

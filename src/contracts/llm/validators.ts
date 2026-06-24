@@ -247,8 +247,8 @@ export function validateEvidenceRefs(refs: string[], samples: EvidenceSampleV2[]
 
 // ── Helpers ──
 
-function err(path: string, msg: string): ValidationErrorV2 { return { path, message: msg, value: undefined }; }
-function warn(path: string, msg: string): ValidationErrorV2 { return { path, message: msg, value: undefined }; }
+function err(path: string, msg: string): ValidationErrorV2 { return { code: 'EVIDENCE_SCHEMA_INVALID', path, message: msg, value: undefined }; }
+function warn(path: string, msg: string): ValidationErrorV2 { return { code: 'EVIDENCE_SCHEMA_INVALID', path, message: msg, value: undefined }; }
 
 function findDuplicates(arr: string[]): string[] {
   const seen = new Map<string, number>();

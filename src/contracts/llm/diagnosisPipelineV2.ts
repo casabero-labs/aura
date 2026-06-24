@@ -99,12 +99,13 @@ export async function runDiagnosisPipeline(
   // 2. Parse — strict JSON only
   const parsed = parseDiagnosisResponseV2(raw);
   if (!parsed.success) {
+    const pf = parsed as { success: false; error: { code: string; message: string; path: string; details: Record<string, unknown> } };
     return {
       success: false,
-      code: parsed.error.code,
-      message: parsed.error.message,
-      path: parsed.error.path,
-      details: parsed.error.details,
+      code: pf.error.code,
+      message: pf.error.message,
+      path: pf.error.path,
+      details: pf.error.details,
     };
   }
 
@@ -124,11 +125,10 @@ export async function runDiagnosisPipeline(
 
   if (!validation.valid) {
     const firstError = validation.errors[0];
-    const code = mapErrorToCode(firstError);
-
+    // Validator emits typed codes directly — no re-interpretation needed
     return {
       success: false,
-      code,
+      code: firstError.code || 'DIAGNOSIS_SCHEMA_INVALID',
       message: firstError.message,
       path: firstError.path,
       details: {
@@ -138,35 +138,6 @@ export async function runDiagnosisPipeline(
   }
 
   return { success: true, response: parsed.response };
-}
-
-/**
- * Map a ValidationErrorV2 to a typed DiagnosisErrorCode.
- * Uses path + code prefix pattern matching rather than word-search.
- */
-function mapErrorToCode(error: { path: string; message: string }): string {
-  const { path, message } = error;
-
-  if (path === 'evidenceEnvelopeRef' || message.includes('ENVELOPE_MISMATCH')) {
-    return 'DIAGNOSIS_ENVELOPE_MISMATCH';
-  }
-  if (message.includes('executable') || message.includes('Executable')) {
-    return 'DIAGNOSIS_EXECUTABLE_CONTENT';
-  }
-  if (message.includes('review') || message.includes('Review') || message.includes('requiresHumanReview')) {
-    return 'DIAGNOSIS_REVIEW_DOWNGRADE';
-  }
-  if (message.includes('does not exist') || message.includes('unknown') || message.includes('orphan')) {
-    return 'DIAGNOSIS_REFERENCE_INVALID';
-  }
-  if (path.startsWith('issues[') || path.startsWith('diagnosisBlocks[') || path.startsWith('limitations[')) {
-    return 'DIAGNOSIS_SCHEMA_INVALID';
-  }
-  if (message.includes('Must be') || message.includes('Exceeds') || message.includes('Duplicate') || message.includes('Missing')) {
-    return 'DIAGNOSIS_SCHEMA_INVALID';
-  }
-
-  return 'DIAGNOSIS_SCHEMA_INVALID';
 }
 
 /**

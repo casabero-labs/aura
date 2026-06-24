@@ -159,3 +159,55 @@ describe('buildDiagnosisPromptV2', () => {
     expect(pkg.systemInstruction).toContain('CANNOT create new columns');
   });
 });
+
+describe('UNTRUSTED_DATA block', () => {
+  it('uses evidenceRef (not sampleRef) in evidenceSamples', () => {
+    const pkg = buildDiagnosisPromptV2(envelope);
+    const match = pkg.userPayload.match(/=== UNTRUSTED_DATA ===\s*(\{[\s\S]*?\})\s*===/);
+    expect(match).toBeTruthy();
+    const untrustedData = JSON.parse(match![1]);
+    for (const issue of untrustedData.issues) {
+      for (const sample of issue.evidenceSamples || []) {
+        expect(sample).toHaveProperty('ref');
+        expect(sample).not.toHaveProperty('sampleRef');
+        expect(typeof sample.ref).toBe('string');
+      }
+    }
+  });
+
+  it('includes columnStats in untrustedData', () => {
+    const pkg = buildDiagnosisPromptV2(envelope);
+    const match = pkg.userPayload.match(/=== UNTRUSTED_DATA ===\s*(\{[\s\S]*?\})\s*===/);
+    expect(match).toBeTruthy();
+    const untrustedData = JSON.parse(match![1]);
+    expect(untrustedData).toHaveProperty('columnStats');
+    expect(typeof untrustedData.columnStats).toBe('object');
+    expect(Object.keys(untrustedData.columnStats).length).toBeGreaterThan(0);
+    for (const [colId, stats] of Object.entries(untrustedData.columnStats as Record<string, unknown>)) {
+      expect(stats).toHaveProperty('inferredType');
+      expect(stats).toHaveProperty('distinctCount');
+      expect(stats).toHaveProperty('nullCount');
+      expect(stats).toHaveProperty('nullPercentage');
+    }
+  });
+
+  it('untrustedData JSON contains no undefined values', () => {
+    const pkg = buildDiagnosisPromptV2(envelope);
+    const match = pkg.userPayload.match(/=== UNTRUSTED_DATA ===\s*(\{[\s\S]*?\})\s*===/);
+    expect(match).toBeTruthy();
+    const untrustedDataStr = match![1];
+    expect(untrustedDataStr).not.toContain('undefined');
+  });
+
+  it('evidenceSamples values are preserved as arrays', () => {
+    const pkg = buildDiagnosisPromptV2(envelope);
+    const match = pkg.userPayload.match(/=== UNTRUSTED_DATA ===\s*(\{[\s\S]*?\})\s*===/);
+    expect(match).toBeTruthy();
+    const untrustedData = JSON.parse(match![1]);
+    for (const issue of untrustedData.issues) {
+      for (const sample of issue.evidenceSamples || []) {
+        expect(Array.isArray(sample.values)).toBe(true);
+      }
+    }
+  });
+});

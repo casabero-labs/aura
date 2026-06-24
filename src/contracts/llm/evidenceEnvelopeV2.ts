@@ -15,7 +15,7 @@ import {
   getColumnById,
   resolveColumn,
 } from './columnRegistry';
-import type { AmbiguousLookupError } from './columnRegistry';
+import type { AmbiguousLookupError } from './types';
 import {
   buildPrivacyPolicy,
   shouldHashColumn,
@@ -241,6 +241,7 @@ export function _buildEvidenceEnvelopeV2(
       issueId: issue.id,
       ruleId,
       ruleName: issue.ruleName,
+      description: issue.description ?? '',
       columnId,
       scope: effectiveScope,
       category: issue.category,

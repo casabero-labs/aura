@@ -270,7 +270,7 @@ function buildUserPayload(
   }).join('\n');
 
   // Build column stats summary (relevant stats only, no sensitive values)
-  const columnStatsSummary = Object.values(envelope.columnStats || {}).slice(0, 20).map((cs, i) => {
+  const columnStatsSummary = Object.values(envelope.evidence.columnStats || {}).slice(0, 20).map((cs, i) => {
     const col = envelope.columns[i];
     return [
       `${col?.name || 'unknown'}: type=${cs.inferredType || 'unknown'}, distinct=${cs.distinctCount ?? 0}, nulls=${cs.nullCount ?? 0} (${((cs.nullPercentage ?? 0)).toFixed(1)}%)`,
@@ -285,6 +285,18 @@ function buildUserPayload(
     truncationManifest: envelope.truncationManifest,
     columnCount,
     rowCount,
+    columnStats: Object.fromEntries(
+      Object.entries(envelope.evidence.columnStats || {}).map(([colId, cs]) => [
+        colId,
+        {
+          inferredType: cs.inferredType,
+          distinctCount: cs.distinctCount,
+          nullCount: cs.nullCount,
+          nullPercentage: cs.nullPercentage,
+          topValues: (cs.topValues || []).map(tv => ({ value: tv.value, count: tv.count })),
+        },
+      ])
+    ),
     issues: envelope.issues.map(iss => {
       const col = envelope.columns.find(c => c.columnId === iss.columnId);
       const evidence = envelope.evidence.samples.filter(s => s.issueId === iss.issueId);
@@ -297,7 +309,7 @@ function buildUserPayload(
         scope: iss.scope,
         columnName: col?.name ?? null,
         evidenceSamples: evidence.slice(0, 5).map(s => ({
-          ref: s.sampleRef,
+          ref: s.evidenceRef,
           values: s.values,
         })),
         severity: iss.severity,
