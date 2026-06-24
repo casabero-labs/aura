@@ -297,8 +297,9 @@ describe('detectInventedRulesStructured — full capture (real)', () => {
   it('captures full rule text to end of line when no , columna=', () => {
     const text = `# AURA: regla=Valores Nulos / Vacios en la columna Cabin`;
     const result = detectInventedRulesStructured(text, actualRules);
-    // "Valores Nulos / Vacios en la columna Cabin" is NOT an exact match for "Valores Nulos / Vacios"
-    expect(result.invented.length).toBeGreaterThan(0);
+    // "Valores Nulos / Vacios en la columna Cabin" strips contextual suffix → matches actual rule
+    expect(result.actual).toContain('Valores Nulos / Vacios en la columna Cabin');
+    expect(result.invented).toHaveLength(0);
   });
 
   it('exact normalized comparison (no includes)', () => {
@@ -416,8 +417,9 @@ describe('evaluateReviewRetention — per-issue (real)', () => {
   it('review marker for Age does NOT acredit Fare', () => {
     // Only Age block has review marker, Fare does not
     // Use rule names matching ground truth (no accents)
-    const diagText = `Valores Nulos / Vacios en Age — requiere revision humana antes de imputar.
-Outliers Extremos (IQR 3x) en Fare — tratamiento automatico.`;
+    // Each line is a Markdown bullet item (- ), so they stay in separate blocks
+    const diagText = `- Valores Nulos / Vacios en Age — requiere revision humana antes de imputar.
+- Outliers Extremos (IQR 3x) en Fare — tratamiento automatico.`;
     const review = evaluateReviewRetention(diagText, '', '', groundTruth, auditReport);
     const ageIssue = review.perIssue.find(i => i.issueId === 'integrity-null-Age');
     const fareIssue = review.perIssue.find(i => i.issueId === 'logic-outlier-Fare');

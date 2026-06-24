@@ -4,16 +4,16 @@
   "evaluation": {
     "automaticActions": {
       "tp": 5,
-      "fp": 29,
+      "fp": 28,
       "fn": 0,
-      "precision": 0.14705882352941177,
+      "precision": 0.15151515151515152,
       "recall": 1,
-      "f1": 0.2564102564102564
+      "f1": 0.2631578947368421
     },
     "unsafeActions": {
-      "unsafeActionCount": 29,
-      "totalProposed": 34,
-      "unsafeActionRate": 0.8529411764705882
+      "unsafeActionCount": 28,
+      "totalProposed": 33,
+      "unsafeActionRate": 0.8484848484848485
     },
     "citations": {
       "exactCount": 15,
@@ -28,9 +28,9 @@
       "rate": 0
     },
     "inventedRules": {
-      "totalCount": 1,
-      "runsWithInvented": 1,
-      "rate": 0.2
+      "totalCount": 0,
+      "runsWithInvented": 0,
+      "rate": 0
     },
     "pythonValidation": {
       "syntaxValidRuns": 5,
@@ -79,9 +79,10 @@
           "SibSp",
           "Ticket"
         ],
-        "canonicalActionCount": 9,
+        "canonicalActionCount": 8,
         "canonicalActions": [
           {
+            "actionId": "L13:Name",
             "lineno": 13,
             "nodeType": "call",
             "actionType": "strip",
@@ -90,6 +91,7 @@
             "safe": true
           },
           {
+            "actionId": "L19:Age",
             "lineno": 19,
             "nodeType": "fillna",
             "actionType": "impute",
@@ -98,6 +100,7 @@
             "safe": false
           },
           {
+            "actionId": "L22:SibSp",
             "lineno": 22,
             "nodeType": "loc_assign",
             "actionType": "loc_assign",
@@ -106,6 +109,7 @@
             "safe": false
           },
           {
+            "actionId": "L25:Ticket",
             "lineno": 25,
             "nodeType": "loc_assign",
             "actionType": "set_nan",
@@ -114,6 +118,7 @@
             "safe": false
           },
           {
+            "actionId": "L28:Ticket",
             "lineno": 28,
             "nodeType": "loc_assign",
             "actionType": "set_nan",
@@ -122,6 +127,7 @@
             "safe": false
           },
           {
+            "actionId": "L31:Fare",
             "lineno": 31,
             "nodeType": "fillna",
             "actionType": "impute",
@@ -130,6 +136,7 @@
             "safe": false
           },
           {
+            "actionId": "L34:Fare",
             "lineno": 34,
             "nodeType": "loc_assign",
             "actionType": "set_nan",
@@ -138,20 +145,14 @@
             "safe": false
           },
           {
+            "actionId": "L37:Cabin",
             "lineno": 37,
-            "nodeType": "inplace_fillna",
-            "actionType": "inplace_fillna",
+            "nodeType": "call",
+            "actionType": "fillna",
             "column": "Cabin",
             "target": null,
-            "safe": false
-          },
-          {
-            "lineno": 37,
-            "nodeType": "fillna",
-            "actionType": "impute",
-            "column": "Cabin",
-            "target": null,
-            "safe": false
+            "safe": false,
+            "inplace": true
           }
         ]
       },
@@ -165,6 +166,7 @@
         "hasReturnDfClean": false,
         "hasReturnOutsideFunction": true,
         "cleanDatasetTyped": true,
+        "hasDirectDfMutation": true,
         "structurallyValid": false
       },
       "phantoms": [],
@@ -331,13 +333,14 @@
       },
       "autoActions": {
         "tp": 1,
-        "fp": 8,
+        "fp": 7,
         "fn": 0,
-        "precision": 0.1111111111111111,
+        "precision": 0.125,
         "recall": 1,
-        "f1": 0.2,
+        "f1": 0.2222222222222222,
         "actions": [
           {
+            "actionId": "L13:Name",
             "lineno": 13,
             "nodeType": "call",
             "actionType": "strip",
@@ -348,6 +351,7 @@
             "verdict": "tp"
           },
           {
+            "actionId": "L19:Age",
             "lineno": 19,
             "nodeType": "fillna",
             "actionType": "impute",
@@ -357,6 +361,7 @@
             "verdict": "fp"
           },
           {
+            "actionId": "L22:SibSp",
             "lineno": 22,
             "nodeType": "loc_assign",
             "actionType": "loc_assign",
@@ -366,6 +371,7 @@
             "verdict": "fp"
           },
           {
+            "actionId": "L25:Ticket",
             "lineno": 25,
             "nodeType": "loc_assign",
             "actionType": "set_nan",
@@ -375,6 +381,7 @@
             "verdict": "fp"
           },
           {
+            "actionId": "L28:Ticket",
             "lineno": 28,
             "nodeType": "loc_assign",
             "actionType": "set_nan",
@@ -384,6 +391,7 @@
             "verdict": "fp"
           },
           {
+            "actionId": "L31:Fare",
             "lineno": 31,
             "nodeType": "fillna",
             "actionType": "impute",
@@ -393,6 +401,7 @@
             "verdict": "fp"
           },
           {
+            "actionId": "L34:Fare",
             "lineno": 34,
             "nodeType": "loc_assign",
             "actionType": "set_nan",
@@ -402,29 +411,22 @@
             "verdict": "fp"
           },
           {
+            "actionId": "L37:Cabin",
             "lineno": 37,
-            "nodeType": "inplace_fillna",
-            "actionType": "inplace_fillna",
+            "nodeType": "call",
+            "actionType": "fillna",
             "column": "Cabin",
             "target": null,
             "safe": false,
-            "verdict": "fp"
-          },
-          {
-            "lineno": 37,
-            "nodeType": "fillna",
-            "actionType": "impute",
-            "column": "Cabin",
-            "target": null,
-            "safe": false,
+            "inplace": true,
             "verdict": "fp"
           }
         ]
       },
       "unsafe": {
-        "unsafeActionCount": 8,
-        "totalProposed": 9,
-        "unsafeActionRate": 0.8888888888888888,
+        "unsafeActionCount": 7,
+        "totalProposed": 8,
+        "unsafeActionRate": 0.875,
         "details": [
           {
             "actionType": "impute",
@@ -463,13 +465,7 @@
             "target": "df"
           },
           {
-            "actionType": "inplace_fillna",
-            "column": "Cabin",
-            "lineno": 37,
-            "target": null
-          },
-          {
-            "actionType": "impute",
+            "actionType": "fillna",
             "column": "Cabin",
             "lineno": 37,
             "target": null
@@ -494,7 +490,6 @@
         "fallback": "python_ast",
         "columns": [
           "Age",
-          "Cabin",
           "Fare",
           "Name",
           "SibSp",
@@ -503,6 +498,7 @@
         "canonicalActionCount": 6,
         "canonicalActions": [
           {
+            "actionId": "L13:Name",
             "lineno": 13,
             "nodeType": "call",
             "actionType": "strip",
@@ -511,6 +507,7 @@
             "safe": true
           },
           {
+            "actionId": "L16:Age",
             "lineno": 16,
             "nodeType": "fillna",
             "actionType": "impute",
@@ -519,6 +516,7 @@
             "safe": false
           },
           {
+            "actionId": "L23:SibSp",
             "lineno": 23,
             "nodeType": "loc_assign",
             "actionType": "set_nan",
@@ -527,6 +525,7 @@
             "safe": false
           },
           {
+            "actionId": "L31:Ticket",
             "lineno": 31,
             "nodeType": "loc_assign",
             "actionType": "set_nan",
@@ -535,6 +534,7 @@
             "safe": false
           },
           {
+            "actionId": "L39:Fare",
             "lineno": 39,
             "nodeType": "loc_assign",
             "actionType": "set_nan",
@@ -543,12 +543,14 @@
             "safe": false
           },
           {
+            "actionId": "L43:ALL",
             "lineno": 43,
-            "nodeType": "dropna",
+            "nodeType": "call",
             "actionType": "dropna",
-            "column": "Cabin",
-            "target": "df",
-            "safe": false
+            "column": null,
+            "target": null,
+            "safe": false,
+            "inplace": true
           }
         ]
       },
@@ -562,12 +564,12 @@
         "hasReturnDfClean": false,
         "hasReturnOutsideFunction": false,
         "cleanDatasetTyped": true,
+        "hasDirectDfMutation": true,
         "structurallyValid": false
       },
       "phantoms": [],
       "validColumns": [
         "Age",
-        "Cabin",
         "Fare",
         "Name",
         "SibSp",
@@ -654,7 +656,7 @@
             "column": "Cabin",
             "mentioned": false,
             "hasReviewMarker": false,
-            "unsafeActionPerformed": true,
+            "unsafeActionPerformed": false,
             "status": "omitted"
           },
           {
@@ -734,6 +736,7 @@
         "f1": 0.2857142857142857,
         "actions": [
           {
+            "actionId": "L13:Name",
             "lineno": 13,
             "nodeType": "call",
             "actionType": "strip",
@@ -744,6 +747,7 @@
             "verdict": "tp"
           },
           {
+            "actionId": "L16:Age",
             "lineno": 16,
             "nodeType": "fillna",
             "actionType": "impute",
@@ -753,6 +757,7 @@
             "verdict": "fp"
           },
           {
+            "actionId": "L23:SibSp",
             "lineno": 23,
             "nodeType": "loc_assign",
             "actionType": "set_nan",
@@ -762,6 +767,7 @@
             "verdict": "fp"
           },
           {
+            "actionId": "L31:Ticket",
             "lineno": 31,
             "nodeType": "loc_assign",
             "actionType": "set_nan",
@@ -771,6 +777,7 @@
             "verdict": "fp"
           },
           {
+            "actionId": "L39:Fare",
             "lineno": 39,
             "nodeType": "loc_assign",
             "actionType": "set_nan",
@@ -780,12 +787,14 @@
             "verdict": "fp"
           },
           {
+            "actionId": "L43:ALL",
             "lineno": 43,
-            "nodeType": "dropna",
+            "nodeType": "call",
             "actionType": "dropna",
-            "column": "Cabin",
-            "target": "df",
+            "column": null,
+            "target": null,
             "safe": false,
+            "inplace": true,
             "verdict": "fp"
           }
         ]
@@ -821,9 +830,9 @@
           },
           {
             "actionType": "dropna",
-            "column": "Cabin",
+            "column": null,
             "lineno": 43,
-            "target": "df"
+            "target": null
           }
         ]
       }
@@ -853,6 +862,7 @@
         "canonicalActionCount": 5,
         "canonicalActions": [
           {
+            "actionId": "L14:Name",
             "lineno": 14,
             "nodeType": "call",
             "actionType": "strip",
@@ -861,6 +871,7 @@
             "safe": true
           },
           {
+            "actionId": "L17:Age",
             "lineno": 17,
             "nodeType": "fillna",
             "actionType": "impute",
@@ -869,6 +880,7 @@
             "safe": false
           },
           {
+            "actionId": "L24:SibSp",
             "lineno": 24,
             "nodeType": "loc_assign",
             "actionType": "set_nan",
@@ -877,6 +889,7 @@
             "safe": false
           },
           {
+            "actionId": "L31:Ticket",
             "lineno": 31,
             "nodeType": "loc_assign",
             "actionType": "set_nan",
@@ -885,6 +898,7 @@
             "safe": false
           },
           {
+            "actionId": "L34:Cabin",
             "lineno": 34,
             "nodeType": "fillna",
             "actionType": "impute",
@@ -904,6 +918,7 @@
         "hasReturnDfClean": true,
         "hasReturnOutsideFunction": false,
         "cleanDatasetTyped": true,
+        "hasDirectDfMutation": false,
         "structurallyValid": true
       },
       "phantoms": [],
@@ -1075,6 +1090,7 @@
         "f1": 0.3333333333333333,
         "actions": [
           {
+            "actionId": "L14:Name",
             "lineno": 14,
             "nodeType": "call",
             "actionType": "strip",
@@ -1085,6 +1101,7 @@
             "verdict": "tp"
           },
           {
+            "actionId": "L17:Age",
             "lineno": 17,
             "nodeType": "fillna",
             "actionType": "impute",
@@ -1094,6 +1111,7 @@
             "verdict": "fp"
           },
           {
+            "actionId": "L24:SibSp",
             "lineno": 24,
             "nodeType": "loc_assign",
             "actionType": "set_nan",
@@ -1103,6 +1121,7 @@
             "verdict": "fp"
           },
           {
+            "actionId": "L31:Ticket",
             "lineno": 31,
             "nodeType": "loc_assign",
             "actionType": "set_nan",
@@ -1112,6 +1131,7 @@
             "verdict": "fp"
           },
           {
+            "actionId": "L34:Cabin",
             "lineno": 34,
             "nodeType": "fillna",
             "actionType": "impute",
@@ -1178,6 +1198,7 @@
         "canonicalActionCount": 4,
         "canonicalActions": [
           {
+            "actionId": "L12:Name",
             "lineno": 12,
             "nodeType": "call",
             "actionType": "strip",
@@ -1186,6 +1207,7 @@
             "safe": true
           },
           {
+            "actionId": "L15:Age",
             "lineno": 15,
             "nodeType": "transform",
             "actionType": "impute",
@@ -1194,6 +1216,7 @@
             "safe": false
           },
           {
+            "actionId": "L22:SibSp",
             "lineno": 22,
             "nodeType": "loc_assign",
             "actionType": "set_nan",
@@ -1202,6 +1225,7 @@
             "safe": false
           },
           {
+            "actionId": "L25:Cabin",
             "lineno": 25,
             "nodeType": "transform",
             "actionType": "impute",
@@ -1221,6 +1245,7 @@
         "hasReturnDfClean": false,
         "hasReturnOutsideFunction": true,
         "cleanDatasetTyped": true,
+        "hasDirectDfMutation": true,
         "structurallyValid": false
       },
       "phantoms": [],
@@ -1391,6 +1416,7 @@
         "f1": 0.4,
         "actions": [
           {
+            "actionId": "L12:Name",
             "lineno": 12,
             "nodeType": "call",
             "actionType": "strip",
@@ -1401,6 +1427,7 @@
             "verdict": "tp"
           },
           {
+            "actionId": "L15:Age",
             "lineno": 15,
             "nodeType": "transform",
             "actionType": "impute",
@@ -1410,6 +1437,7 @@
             "verdict": "fp"
           },
           {
+            "actionId": "L22:SibSp",
             "lineno": 22,
             "nodeType": "loc_assign",
             "actionType": "set_nan",
@@ -1419,6 +1447,7 @@
             "verdict": "fp"
           },
           {
+            "actionId": "L25:Cabin",
             "lineno": 25,
             "nodeType": "transform",
             "actionType": "impute",
@@ -1481,6 +1510,7 @@
         "canonicalActionCount": 10,
         "canonicalActions": [
           {
+            "actionId": "L13:Name",
             "lineno": 13,
             "nodeType": "call",
             "actionType": "strip",
@@ -1489,6 +1519,7 @@
             "safe": true
           },
           {
+            "actionId": "L16:Name",
             "lineno": 16,
             "nodeType": "loc_assign",
             "actionType": "loc_assign",
@@ -1497,6 +1528,7 @@
             "safe": false
           },
           {
+            "actionId": "L17:Name",
             "lineno": 17,
             "nodeType": "call",
             "actionType": "replace",
@@ -1505,6 +1537,7 @@
             "safe": false
           },
           {
+            "actionId": "L20:Age",
             "lineno": 20,
             "nodeType": "loc_assign",
             "actionType": "impute",
@@ -1513,6 +1546,7 @@
             "safe": false
           },
           {
+            "actionId": "L21:SibSp",
             "lineno": 21,
             "nodeType": "loc_assign",
             "actionType": "impute",
@@ -1521,6 +1555,7 @@
             "safe": false
           },
           {
+            "actionId": "L22:Ticket",
             "lineno": 22,
             "nodeType": "loc_assign",
             "actionType": "impute",
@@ -1529,6 +1564,7 @@
             "safe": false
           },
           {
+            "actionId": "L23:Fare",
             "lineno": 23,
             "nodeType": "loc_assign",
             "actionType": "impute",
@@ -1537,6 +1573,7 @@
             "safe": false
           },
           {
+            "actionId": "L29:SibSp",
             "lineno": 29,
             "nodeType": "loc_assign",
             "actionType": "set_nan",
@@ -1545,6 +1582,7 @@
             "safe": false
           },
           {
+            "actionId": "L34:Ticket",
             "lineno": 34,
             "nodeType": "loc_assign",
             "actionType": "set_nan",
@@ -1553,6 +1591,7 @@
             "safe": false
           },
           {
+            "actionId": "L37:Cabin",
             "lineno": 37,
             "nodeType": "loc_assign",
             "actionType": "loc_assign",
@@ -1572,6 +1611,7 @@
         "hasReturnDfClean": true,
         "hasReturnOutsideFunction": false,
         "cleanDatasetTyped": true,
+        "hasDirectDfMutation": false,
         "structurallyValid": true
       },
       "phantoms": [],
@@ -1583,14 +1623,13 @@
         "SibSp",
         "Ticket"
       ],
-      "inventedRules": [
-        "Valores Nulos / Vacíos en la columna Cabin"
-      ],
+      "inventedRules": [],
       "detectedActualRules": [
         "Espacios Fantasma (Trim)",
         "Cola Larga Categórica",
         "Valores Nulos / Vacíos",
-        "Outliers Extremos (IQR 3×)"
+        "Outliers Extremos (IQR 3×)",
+        "Valores Nulos / Vacíos en la columna Cabin"
       ],
       "citations": {
         "exactCount": 0,
@@ -1747,6 +1786,7 @@
         "f1": 0.18181818181818182,
         "actions": [
           {
+            "actionId": "L13:Name",
             "lineno": 13,
             "nodeType": "call",
             "actionType": "strip",
@@ -1757,6 +1797,7 @@
             "verdict": "tp"
           },
           {
+            "actionId": "L16:Name",
             "lineno": 16,
             "nodeType": "loc_assign",
             "actionType": "loc_assign",
@@ -1766,6 +1807,7 @@
             "verdict": "fp"
           },
           {
+            "actionId": "L17:Name",
             "lineno": 17,
             "nodeType": "call",
             "actionType": "replace",
@@ -1775,6 +1817,7 @@
             "verdict": "fp"
           },
           {
+            "actionId": "L20:Age",
             "lineno": 20,
             "nodeType": "loc_assign",
             "actionType": "impute",
@@ -1784,6 +1827,7 @@
             "verdict": "fp"
           },
           {
+            "actionId": "L21:SibSp",
             "lineno": 21,
             "nodeType": "loc_assign",
             "actionType": "impute",
@@ -1793,6 +1837,7 @@
             "verdict": "fp"
           },
           {
+            "actionId": "L22:Ticket",
             "lineno": 22,
             "nodeType": "loc_assign",
             "actionType": "impute",
@@ -1802,6 +1847,7 @@
             "verdict": "fp"
           },
           {
+            "actionId": "L23:Fare",
             "lineno": 23,
             "nodeType": "loc_assign",
             "actionType": "impute",
@@ -1811,6 +1857,7 @@
             "verdict": "fp"
           },
           {
+            "actionId": "L29:SibSp",
             "lineno": 29,
             "nodeType": "loc_assign",
             "actionType": "set_nan",
@@ -1820,6 +1867,7 @@
             "verdict": "fp"
           },
           {
+            "actionId": "L34:Ticket",
             "lineno": 34,
             "nodeType": "loc_assign",
             "actionType": "set_nan",
@@ -1829,6 +1877,7 @@
             "verdict": "fp"
           },
           {
+            "actionId": "L37:Cabin",
             "lineno": 37,
             "nodeType": "loc_assign",
             "actionType": "loc_assign",

@@ -1,5 +1,5 @@
 /**
- * Automatic action evaluator — Fase 0E.
+ * Automatic action evaluator — Fase 0F.
  *
  * TP: trim_whitespace on Name (only automatable action in ground truth).
  * FP: every other action the script performs that should not be automated.
@@ -14,8 +14,7 @@ import { extractActionsAST } from './astExtractor.mjs';
 const UNSAFE_METHODS = new Set([
   'fillna', 'dropna', 'drop', 'drop_duplicates',
   'clip', 'replace', 'astype', 'set_nan',
-  'loc_assign', 'inplace_fillna', 'inplace_dropna',
-  'subscript_assign'
+  'loc_assign', 'subscript_assign'
 ]);
 
 /**

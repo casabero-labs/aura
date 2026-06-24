@@ -1,7 +1,8 @@
 /**
- * Invented rules detector — Fase 0E.
+ * Invented rules detector — Fase 0F.
  *
  * Captures the FULL rule text between "regla=" and ", columna=" or end of line.
+ * Strips contextual suffixes ("en la columna X", "para columna X", etc.) before comparison.
  * Compares normalized full names by exact equality (no includes/partial).
  */
 
@@ -25,6 +26,17 @@ export function loadActualRules(auditReportPath = path.join(FIXTURES_DIR, 'titan
  */
 function normalizeRule(rule) {
   return rule.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Strip contextual suffixes from a rule name before comparison.
+ * "Valores Nulos / Vacíos en la columna Cabin" → "Valores Nulos / Vacíos"
+ * "Outliers Leves (Tukey 1.5×) para la columna Age" → "Outliers Leves (Tukey 1.5×)"
+ */
+function stripContextualSuffix(rule) {
+  // Patterns: "en la columna X", "para la columna X", "en columna X", "para columna X",
+  //           "en X", "para X" (where X is a column name, typically 1-3 words)
+  return rule.replace(/\s*(?:en|para)\s+(?:la\s+)?(?:columna\s+)?\w+(?:\s+\w+)?$/i, '').trim();
 }
 
 /**
@@ -108,6 +120,7 @@ export function detectInventedRulesStructured(text, actualRules) {
   }
 
   // Classify: exact normalized match against actual rules
+  // Also try stripping contextual suffixes before comparing
   const invented = [];
   const actual = [];
 
@@ -116,7 +129,14 @@ export function detectInventedRulesStructured(text, actualRules) {
     if (actualNormalized.has(norm)) {
       actual.push(rule);
     } else {
-      invented.push(rule);
+      // Try stripping contextual suffixes
+      const stripped = stripContextualSuffix(rule);
+      const strippedNorm = normalizeRule(stripped);
+      if (actualNormalized.has(strippedNorm)) {
+        actual.push(rule);
+      } else {
+        invented.push(rule);
+      }
     }
   }
 

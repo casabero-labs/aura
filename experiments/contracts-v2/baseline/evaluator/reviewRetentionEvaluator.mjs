@@ -1,7 +1,8 @@
 /**
- * Review retention evaluator — Fase 0E.
+ * Review retention evaluator — Fase 0F.
  *
- * Per-issue: locate the block/bullet/paragraph where the rule+column appears.
+ * Per-issue: locate the multiline Markdown block where rule+column appears.
+ * Groups consecutive lines into items by Markdown item markers (-, *, 1., 2., etc.).
  * Check for HITL/review marker in that SAME block.
  * If an unsafe action is performed on that column, it overrides retention.
  *
@@ -18,25 +19,37 @@ import { extractActionsAST } from './astExtractor.mjs';
 const REVIEW_MARKERS = /(?:revis(?:ión|ar)?|hitl|humano|manual|requiere\s+revis|requires\s+human|human[- ]?in[- ]?the[- ]?loop|validar\s+con)/i;
 
 /**
- * Split text into blocks: each line is a separate block (paragraph/bullet).
- * AURA comment lines start a new block.
+ * Split text into Markdown item blocks.
+ * A new block starts at lines matching: -, *, 1., 2., 3., etc.
+ * Consecutive non-marker lines belong to the current block.
  */
 function splitIntoBlocks(text) {
   if (!text) return [];
   const blocks = [];
-  const lines = text.split('\n');
-  for (const line of lines) {
+  let current = null;
+
+  for (const line of text.split('\n')) {
     const trimmed = line.trim();
-    if (trimmed.length > 0) {
-      blocks.push(trimmed);
+    if (trimmed.length === 0) continue;
+
+    const isItemStart = /^\s*[-*]\s/.test(trimmed) || /^\s*\d+\.\s/.test(trimmed) || /^#{1,3}\s/.test(trimmed);
+
+    if (isItemStart) {
+      if (current) blocks.push(current);
+      current = trimmed;
+    } else if (current) {
+      current += '\n' + trimmed;
+    } else {
+      current = trimmed;
     }
   }
+  if (current) blocks.push(current);
   return blocks;
 }
 
 /**
  * Find the block that contains both the rule name AND the column name.
- * No fallback — if both aren't in the same block, the issue is not mentioned.
+ * Searches the entire block (which may be multiline).
  */
 function findBlockForIssue(blocks, rule, column) {
   const ruleLower = (rule || '').toLowerCase();
@@ -67,7 +80,6 @@ export function evaluateReviewRetention(diagText, summaryText, scriptText, groun
   const fullText = (diagText || '') + '\n' + (summaryText || '');
   const blocks = splitIntoBlocks(fullText);
 
-  // Also include script blocks for review marker detection
   const scriptBlocks = splitIntoBlocks(scriptText || '');
   const allBlocks = [...blocks, ...scriptBlocks];
 
