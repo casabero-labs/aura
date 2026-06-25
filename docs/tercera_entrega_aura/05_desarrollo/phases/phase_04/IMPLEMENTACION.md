@@ -96,6 +96,47 @@
 
 ---
 
+## Loop 3R: Hardening del finalizer
+
+**SHA:** `<commit actual>`
+
+### Defectos cerrados
+
+| # | Defecto | Corrección |
+|---|---|---|
+| F1 | pythonSyntax opcional/ausente | `validatePythonSyntax`: state debe ser `passed`, `not_run` o `failed` |
+| F2 | Alias mutable de validationResult | `copyValidationResult` defensiva (errors, warnings, pythonSyntax) |
+| F3 | generatedAt no canónico | `validateGeneratedAt`: `parsed.toISOString() === generatedAt` |
+| F4 | Pérdida de actionId al fallar el renderer | `validateActionWithRenderer` individual, cause con actionId |
+| F5 | Shape runtime sin defensa | `validatePlanShape`: plan, plan.plan, action objects, approvalStatus |
+
+### Archivos modificados
+
+| Archivo | Cambio |
+|---|---|
+| `scriptBuilderV2.ts` | `validatePlanShape`, `validateActionWithRenderer`, `validateGeneratedAt` canónico, `validatePythonSyntax`, `copyValidationResult` |
+| `scriptBuilderV2.test.ts` | +31 tests |
+
+### Tests (82 total, +31)
+
+| Suite nueva | Tests |
+|---|---|
+| pythonSyntax strict | 10 |
+| Defensive copy | 7 |
+| generatedAt canonical | 7 |
+| Renderer error attribution | 1 |
+| Runtime shape | 6 |
+
+### Verificaciones
+
+| Verificación | Resultado |
+|---|---|
+| Suite completa | 959 passed, 6 skipped |
+| Build | built in ~3s |
+| Contracts v2 | 3/3 PASS |
+
+---
+
 ## Loop 3: Builder y Finalizer
 
 **SHA:** `<commit actual>`

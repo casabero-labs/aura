@@ -261,6 +261,94 @@ cd src && npm run contracts:v2:validate-local
 
 ---
 
+## Loop 3R — Hardening del finalizer
+
+### Comandos de reproducción
+
+```bash
+cd src && npm test -- scriptBuilderV2
+# 82 passed (51 + 31 nuevos)
+
+cd src && npm test
+# 959 passed, 6 skipped
+
+cd src && npm run build
+# built in ~3s
+
+cd src && npm run contracts:v2:validate-local
+# 3/3 PASS
+```
+
+### pythonSyntax evidence
+
+| Caso | Resultado |
+|---|---|
+| Ausente | SCRIPT_FINALIZATION_VALIDATION_REQUIRED |
+| null | SCRIPT_FINALIZATION_VALIDATION_REQUIRED |
+| state undefined | SCRIPT_FINALIZATION_VALIDATION_REQUIRED |
+| state desconocido | SCRIPT_FINALIZATION_VALIDATION_REQUIRED |
+| failed + valid=true | SCRIPT_FINALIZATION_SYNTAX_FAILED |
+| valid=false | SCRIPT_FINALIZATION_VALIDATION_FAILED |
+| valid=true+passed | Aceptado |
+| valid=true+not_run | Aceptado |
+
+### Copia defensiva evidence
+
+| Prueba | Resultado |
+|---|---|
+| validationResult no comparte referencia | ✓ |
+| errors no comparte referencia | ✓ |
+| warnings no comparte referencia | ✓ |
+| pythonSyntax no comparte referencia | ✓ |
+| modificar valid después no cambia contrato | ✓ |
+| añadir error después no cambia contrato | ✓ |
+| modificar pythonSyntax.state después no cambia contrato | ✓ |
+
+### generatedAt evidence
+
+| Entrada | Resultado |
+|---|---|
+| `2026-06-25T12:00:00.000Z` | Aceptado |
+| `2026-06-25` (date-only) | Rechazado |
+| `June 25, 2026` | Rechazado |
+| `2026-06-25T12:00:00` (sin Z) | Rechazado |
+| `""` (vacío) | Rechazado |
+| No string | Rechazado |
+| Auto-generado | Canónico |
+
+### Renderer error attribution
+
+```typescript
+// Action with invalid params (trimEdges: false)
+// → ScriptBuilderError code=SCRIPT_BUILD_RENDER_FAILED
+// → cause.rendererErrorCode = 'RENDER_PARAMETERS_INVALID'
+// → cause.actionId = <actionId>
+// → cause.actionType = 'trim_whitespace'
+```
+
+### Shape validation evidence
+
+| Caso | Resultado |
+|---|---|
+| plan null | SCRIPT_BUILD_REFERENCE_INVALID |
+| plan.plan null | SCRIPT_BUILD_REFERENCE_INVALID |
+| plan.plan no array | SCRIPT_BUILD_REFERENCE_INVALID |
+| acción null | SCRIPT_BUILD_REFERENCE_INVALID |
+| approvalStatus desconocido | SCRIPT_BUILD_REFERENCE_INVALID |
+| actionId missing | SCRIPT_BUILD_REFERENCE_INVALID |
+
+### Confirmaciones
+
+- `scriptRendererV2.ts` no cambió
+- `scriptColumnResolver.ts` no cambió
+- `columnRegistry.ts` no cambió
+- `placeholderVocabulary.ts` no cambió
+- Phase 3 no cambió
+- Loop 1 y Loop 2 no cambiaron
+- No se ejecutó Python
+
+---
+
 ## Loop 2 — Renderer determinista
 
 ### Comandos de reproducción

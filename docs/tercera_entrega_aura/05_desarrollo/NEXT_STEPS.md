@@ -4,17 +4,17 @@
 
 Phase 3 está cerrada y congelada en `d3774dd5ac98d89ca4454c693b1b0a30856cd191`. No modificar su evidencia.
 
-**Loop 3 implementado. Pendiente de revisión focalizada antes de Loop 4.**
+**Loop 3 cerrado técnicamente. Pendiente de verificación directa antes de Loop 4.**
 
-## Loop 3 — Implementado
+## Loop 3R — Implementado
 
-Builder + Finalizer:
-- `buildScriptCandidateCoreV2()` — core puro (sin reloj)
-- `buildScriptCandidateV2()` — core + generatedAt
-- `buildScriptHashPayloadV2()` / `computeScriptHashV2()` — hash estable
-- `finalizeScriptContractV2()` — contrato final con hash
-- Partición: accepted/rejected/excluded (disjuntos, exhaustivos)
-- 51 tests. Suite: 928 passed, 6 skipped. Build: ~3s. Contracts: 3/3 PASS
+Hardening del finalizer:
+- pythonSyntax estricto: state `passed`|`not_run`|`failed`
+- Copia defensiva de validationResult
+- generatedAt canónico ISO UTC
+- Renderer error con actionId en cause
+- Shape runtime validation (plan, plan.plan, approvalStatus)
+- 82 tests (51 + 31). Suite: 959 passed, 6 skipped. Build: ~3s. Contracts: 3/3 PASS.
 
 ## Loops pendientes
 
@@ -26,4 +26,4 @@ Builder + Finalizer:
 
 ## Regla
 
-Loop 4 puede iniciarse tras revisión focalizada de Loop 3. No iniciar Phase 5 hasta congelar Phase 4.
+Loop 4 puede iniciarse tras verificación directa de Loop 3R. No iniciar Phase 5 hasta congelar Phase 4.

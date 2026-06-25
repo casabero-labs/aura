@@ -647,7 +647,7 @@ describe('Finalizer', () => {
     const vr = makeValidValidationResult('passed');
     const contract = finalizeScriptContractV2(candidate, vr);
     expect(contract.scriptHash).toBeTruthy();
-    expect(contract.validationResult).toBe(vr);
+    expect(contract.validationResult).toEqual(vr);
     expect(contract.generatedAt).toBe(candidate.generatedAt);
   });
 
@@ -656,7 +656,7 @@ describe('Finalizer', () => {
     const vr = makeValidValidationResult('not_run');
     const contract = finalizeScriptContractV2(candidate, vr);
     expect(contract.scriptHash).toBeTruthy();
-    expect(contract.validationResult).toBe(vr);
+    expect(contract.validationResult).toEqual(vr);
   });
 
   it('valid=false rejected', () => {
@@ -745,5 +745,255 @@ describe('Candidate shape', () => {
     expect(candidate.rendererVersion).toBe(SCRIPT_RENDERER_VERSION);
     expect(candidate.placeholderVocabularyVersion).toBe(PLACEHOLDER_VOCABULARY_VERSION);
     expect(candidate.cleanDatasetFn).toBe(CLEAN_DATASET_FN);
+  });
+});
+
+// ── Loop 3R: Finalizer hardening ──
+
+describe('Loop 3R: Finalizer — pythonSyntax strict', () => {
+  let columns: ColumnRef[];
+  let plan: RemediationPlanV2;
+  let ctx: ScriptBuildContextV2;
+
+  beforeEach(() => {
+    columns = buildColumnRegistry(['Age']);
+    plan = makePlan([makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false })]);
+    ctx = makeBuildContext(plan, ['Age']);
+  });
+
+  it('pythonSyntax absent rejects', () => {
+    const candidate = buildScriptCandidateV2(plan, ctx, { generatedAt: '2025-01-01T00:00:00.000Z' });
+    const vr = { valid: true, errors: [], warnings: [] } as unknown as ScriptValidationResultV2;
+    expect(() => finalizeScriptContractV2(candidate, vr)).toThrow(ScriptBuilderError);
+  });
+
+  it('pythonSyntax null rejects', () => {
+    const candidate = buildScriptCandidateV2(plan, ctx, { generatedAt: '2025-01-01T00:00:00.000Z' });
+    const vr = { valid: true, errors: [], warnings: [], pythonSyntax: null } as unknown as ScriptValidationResultV2;
+    expect(() => finalizeScriptContractV2(candidate, vr)).toThrow(ScriptBuilderError);
+  });
+
+  it('pythonSyntax state undefined rejects', () => {
+    const candidate = buildScriptCandidateV2(plan, ctx, { generatedAt: '2025-01-01T00:00:00.000Z' });
+    const vr = { valid: true, errors: [], warnings: [], pythonSyntax: {} } as ScriptValidationResultV2;
+    expect(() => finalizeScriptContractV2(candidate, vr)).toThrow(ScriptBuilderError);
+  });
+
+  it('pythonSyntax state unknown rejects', () => {
+    const candidate = buildScriptCandidateV2(plan, ctx, { generatedAt: '2025-01-01T00:00:00.000Z' });
+    const vr = { valid: true, errors: [], warnings: [], pythonSyntax: { state: 'running' } } as unknown as ScriptValidationResultV2;
+    expect(() => finalizeScriptContractV2(candidate, vr)).toThrow(ScriptBuilderError);
+  });
+
+  it('pythonSyntax state passed accepted', () => {
+    const candidate = buildScriptCandidateV2(plan, ctx, { generatedAt: '2025-01-01T00:00:00.000Z' });
+    const vr = makeValidValidationResult('passed');
+    expect(() => finalizeScriptContractV2(candidate, vr)).not.toThrow();
+  });
+
+  it('pythonSyntax state not_run accepted', () => {
+    const candidate = buildScriptCandidateV2(plan, ctx, { generatedAt: '2025-01-01T00:00:00.000Z' });
+    const vr = makeValidValidationResult('not_run');
+    expect(() => finalizeScriptContractV2(candidate, vr)).not.toThrow();
+  });
+
+  it('pythonSyntax state failed rejects', () => {
+    const candidate = buildScriptCandidateV2(plan, ctx, { generatedAt: '2025-01-01T00:00:00.000Z' });
+    const vr = { ...makeValidValidationResult('passed'), pythonSyntax: { state: 'failed' as const } };
+    expect(() => finalizeScriptContractV2(candidate, vr)).toThrow(ScriptBuilderError);
+  });
+
+  it('valid=false rejects', () => {
+    const candidate = buildScriptCandidateV2(plan, ctx, { generatedAt: '2025-01-01T00:00:00.000Z' });
+    const vr = { ...makeValidValidationResult('passed'), valid: false };
+    expect(() => finalizeScriptContractV2(candidate, vr)).toThrow(ScriptBuilderError);
+  });
+
+  it('validationResult null rejects', () => {
+    const candidate = buildScriptCandidateV2(plan, ctx, { generatedAt: '2025-01-01T00:00:00.000Z' });
+    expect(() => finalizeScriptContractV2(candidate, null as unknown as ScriptValidationResultV2)).toThrow(ScriptBuilderError);
+  });
+
+  it('validationResult undefined rejects', () => {
+    const candidate = buildScriptCandidateV2(plan, ctx, { generatedAt: '2025-01-01T00:00:00.000Z' });
+    expect(() => finalizeScriptContractV2(candidate, undefined as unknown as ScriptValidationResultV2)).toThrow(ScriptBuilderError);
+  });
+});
+
+describe('Loop 3R: Defensive copy', () => {
+  let columns: ColumnRef[];
+  let plan: RemediationPlanV2;
+  let ctx: ScriptBuildContextV2;
+
+  beforeEach(() => {
+    columns = buildColumnRegistry(['Age']);
+    plan = makePlan([makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false })]);
+    ctx = makeBuildContext(plan, ['Age']);
+  });
+
+  it('validationResult does not share reference', () => {
+    const candidate = buildScriptCandidateV2(plan, ctx, { generatedAt: '2025-01-01T00:00:00.000Z' });
+    const vr = makeValidValidationResult('passed');
+    const contract = finalizeScriptContractV2(candidate, vr);
+    expect(contract.validationResult).not.toBe(vr);
+  });
+
+  it('errors does not share reference', () => {
+    const candidate = buildScriptCandidateV2(plan, ctx, { generatedAt: '2025-01-01T00:00:00.000Z' });
+    const vr = makeValidValidationResult('passed');
+    const contract = finalizeScriptContractV2(candidate, vr);
+    expect(contract.validationResult.errors).not.toBe(vr.errors);
+  });
+
+  it('warnings does not share reference', () => {
+    const candidate = buildScriptCandidateV2(plan, ctx, { generatedAt: '2025-01-01T00:00:00.000Z' });
+    const vr = makeValidValidationResult('passed');
+    const contract = finalizeScriptContractV2(candidate, vr);
+    expect(contract.validationResult.warnings).not.toBe(vr.warnings);
+  });
+
+  it('pythonSyntax does not share reference', () => {
+    const candidate = buildScriptCandidateV2(plan, ctx, { generatedAt: '2025-01-01T00:00:00.000Z' });
+    const vr = makeValidValidationResult('passed');
+    const contract = finalizeScriptContractV2(candidate, vr);
+    expect(contract.validationResult.pythonSyntax).not.toBe(vr.pythonSyntax);
+  });
+
+  it('modifying valid after finalize does not change contract', () => {
+    const candidate = buildScriptCandidateV2(plan, ctx, { generatedAt: '2025-01-01T00:00:00.000Z' });
+    const vr = makeValidValidationResult('passed');
+    const contract = finalizeScriptContractV2(candidate, vr);
+    vr.valid = false;
+    expect(contract.validationResult.valid).toBe(true);
+  });
+
+  it('adding error after finalize does not change contract', () => {
+    const candidate = buildScriptCandidateV2(plan, ctx, { generatedAt: '2025-01-01T00:00:00.000Z' });
+    const vr = makeValidValidationResult('passed');
+    const contract = finalizeScriptContractV2(candidate, vr);
+    vr.errors.push({ code: 'TEST', path: '', message: 'injected', value: null });
+    expect(contract.validationResult.errors).toHaveLength(0);
+  });
+
+  it('modifying pythonSyntax.state after finalize does not change contract', () => {
+    const candidate = buildScriptCandidateV2(plan, ctx, { generatedAt: '2025-01-01T00:00:00.000Z' });
+    const vr = makeValidValidationResult('passed');
+    const contract = finalizeScriptContractV2(candidate, vr);
+    vr.pythonSyntax.state = 'failed';
+    expect(contract.validationResult.pythonSyntax.state).toBe('passed');
+  });
+});
+
+describe('Loop 3R: generatedAt canonical ISO UTC', () => {
+  let columns: ColumnRef[];
+  let plan: RemediationPlanV2;
+  let ctx: ScriptBuildContextV2;
+
+  beforeEach(() => {
+    columns = buildColumnRegistry(['Age']);
+    plan = makePlan([makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false })]);
+    ctx = makeBuildContext(plan, ['Age']);
+  });
+
+  it('accepts canonical ISO UTC', () => {
+    expect(() => buildScriptCandidateV2(plan, ctx, { generatedAt: '2026-06-25T12:00:00.000Z' })).not.toThrow();
+  });
+
+  it('rejects date-only', () => {
+    expect(() => buildScriptCandidateV2(plan, ctx, { generatedAt: '2026-06-25' })).toThrow(ScriptBuilderError);
+  });
+
+  it('rejects natural language date', () => {
+    expect(() => buildScriptCandidateV2(plan, ctx, { generatedAt: 'June 25, 2026' })).toThrow(ScriptBuilderError);
+  });
+
+  it('rejects ISO without Z (no timezone)', () => {
+    expect(() => buildScriptCandidateV2(plan, ctx, { generatedAt: '2026-06-25T12:00:00' })).toThrow(ScriptBuilderError);
+  });
+
+  it('rejects empty string', () => {
+    expect(() => buildScriptCandidateV2(plan, ctx, { generatedAt: '' })).toThrow(ScriptBuilderError);
+  });
+
+  it('rejects non-string value', () => {
+    const planInput = makePlan([makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false })]);
+    const ctxInput = makeBuildContext(planInput, ['Age']);
+    expect(() => buildScriptCandidateV2(planInput, ctxInput, { generatedAt: 123 as unknown as string }))
+      .toThrow(ScriptBuilderError);
+  });
+
+  it('auto-generated value is canonical', () => {
+    const candidate = buildScriptCandidateV2(plan, ctx);
+    const d = new Date(candidate.generatedAt);
+    expect(d.toISOString()).toBe(candidate.generatedAt);
+  });
+});
+
+describe('Loop 3R: Renderer error attribution with actionId', () => {
+  it('invalid params action throws SCRIPT_BUILD_RENDER_FAILED with actionId', () => {
+    const columns = buildColumnRegistry(['Age']);
+    const plan = makePlan([makeAction('trim_whitespace', columns[0].columnId, {
+      trimEdges: false, // invalid
+      collapseInternalWhitespace: 'not_a_boolean',
+    })]);
+    const ctx = makeBuildContext(plan, ['Age']);
+    try {
+      buildScriptCandidateCoreV2(plan, ctx);
+      expect.fail('should have thrown');
+    } catch (e) {
+      expect(e).toBeInstanceOf(ScriptBuilderError);
+      const err = e as ScriptBuilderError;
+      expect(err.code).toBe('SCRIPT_BUILD_RENDER_FAILED');
+      const cause = err.cause as Record<string, unknown>;
+      expect(cause.rendererErrorCode).toBe('RENDER_PARAMETERS_INVALID');
+      expect(cause.actionId).toBe(plan.plan[0].actionId);
+      expect(cause.actionType).toBe('trim_whitespace');
+    }
+  });
+});
+
+describe('Loop 3R: Runtime shape validation', () => {
+  let columns: ColumnRef[];
+  let plan: RemediationPlanV2;
+  let ctx: ScriptBuildContextV2;
+
+  beforeEach(() => {
+    columns = buildColumnRegistry(['Age']);
+    plan = makePlan([makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false })]);
+    ctx = makeBuildContext(plan, ['Age']);
+  });
+
+  it('plan null rejects with ScriptBuilderError', () => {
+    expect(() => buildScriptCandidateCoreV2(null as unknown as RemediationPlanV2, ctx)).toThrow(ScriptBuilderError);
+  });
+
+  it('plan.plan null rejects with ScriptBuilderError', () => {
+    const badPlan = { ...plan, plan: null } as unknown as RemediationPlanV2;
+    expect(() => buildScriptCandidateCoreV2(badPlan, ctx)).toThrow(ScriptBuilderError);
+  });
+
+  it('plan.plan not array rejects with ScriptBuilderError', () => {
+    const badPlan = { ...plan, plan: 'not_array' } as unknown as RemediationPlanV2;
+    expect(() => buildScriptCandidateCoreV2(badPlan, ctx)).toThrow(ScriptBuilderError);
+  });
+
+  it('null action in plan.plan rejects with ScriptBuilderError', () => {
+    const badPlan = { ...plan, plan: [null] } as unknown as RemediationPlanV2;
+    expect(() => buildScriptCandidateCoreV2(badPlan, ctx)).toThrow(ScriptBuilderError);
+  });
+
+  it('unknown approvalStatus rejects with ScriptBuilderError', () => {
+    const badPlan = makePlan([
+      makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false }, 'UNKNOWN_STATUS' as unknown as 'approved'),
+    ]);
+    expect(() => buildScriptCandidateCoreV2(badPlan, ctx)).toThrow(ScriptBuilderError);
+  });
+
+  it('missing actionId rejects with ScriptBuilderError', () => {
+    const badPlan = {
+      ...plan,
+      plan: [{ approvalStatus: 'approved', actionType: 'trim_whitespace' }],
+    } as unknown as RemediationPlanV2;
+    expect(() => buildScriptCandidateCoreV2(badPlan, ctx)).toThrow(ScriptBuilderError);
   });
 });

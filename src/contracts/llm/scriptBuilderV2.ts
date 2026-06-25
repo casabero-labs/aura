@@ -1,8 +1,11 @@
 /**
- * Script Builder v2 — Phase 4 Loop 3.
+ * Script Builder v2 — Phase 4 Loop 3R.
  *
  * Builds ScriptContractCandidateV2 from RemediationPlanV2 + ScriptBuildContextV2.
  * Implements the candidate → validate → finalize pipeline.
+ *
+ * Hardened: finalizer fail-closed, defensive copy, canonical generatedAt,
+ * renderer error attribution with actionId, runtime shape validation.
  *
  * Pure core (no clock). Deterministic. NO LLM.
  */
@@ -14,14 +17,22 @@ import type {
   ScriptContractCandidateV2,
   ScriptContractV2,
   ScriptValidationResultV2,
+  ValidationErrorV2,
   ScriptExcludedActionV2,
   ScriptExclusionReasonV2,
   ColumnRef,
   RemediationActionTypeV2,
+  PythonSyntaxState,
 } from './types';
 import { canonicalJson } from './diagnosisPromptV2';
 import { sha256hex } from './hash';
-import { SCRIPT_RENDERER_VERSION, buildScriptText, RenderableScriptActionV2, ScriptRendererError } from './scriptRendererV2';
+import {
+  SCRIPT_RENDERER_VERSION,
+  buildScriptText,
+  renderActionV2,
+  RenderableScriptActionV2,
+  ScriptRendererError,
+} from './scriptRendererV2';
 import { PLACEHOLDER_VOCABULARY_VERSION } from './placeholderVocabulary';
 
 // ── Constants ──
@@ -84,6 +95,39 @@ function actionRequiresColumn(actionType: RemediationActionTypeV2): boolean {
   return COLUMN_REQUIRED_ACTIONS.includes(actionType);
 }
 
+const VALID_APPROVAL_STATUSES = new Set<string>(['approved', 'pending', 'rejected']);
+
+// ── Shape Validation ──
+
+function validatePlanShape(plan: unknown): asserts plan is RemediationPlanV2 {
+  if (!plan || typeof plan !== 'object') {
+    builderError('SCRIPT_BUILD_REFERENCE_INVALID', 'plan must be a non-null object');
+  }
+
+  const p = plan as Record<string, unknown>;
+
+  if (!Array.isArray(p.plan)) {
+    builderError('SCRIPT_BUILD_REFERENCE_INVALID', 'plan.plan must be an array');
+  }
+
+  for (let i = 0; i < (p.plan as unknown[]).length; i++) {
+    const action = (p.plan as unknown[])[i];
+    if (!action || typeof action !== 'object') {
+      builderError('SCRIPT_BUILD_REFERENCE_INVALID', `plan.plan[${i}] must be a non-null object`);
+    }
+
+    const a = action as Record<string, unknown>;
+
+    if (!a.actionId || typeof a.actionId !== 'string') {
+      builderError('SCRIPT_BUILD_REFERENCE_INVALID', `plan.plan[${i}] has missing or non-string actionId`);
+    }
+
+    if (typeof a.approvalStatus !== 'string' || !VALID_APPROVAL_STATUSES.has(a.approvalStatus as string)) {
+      builderError('SCRIPT_BUILD_REFERENCE_INVALID', `plan.plan[${i}] "${a.actionId}" has invalid approvalStatus "${String(a.approvalStatus)}"`);
+    }
+  }
+}
+
 // ── Precondition Validation ──
 
 function validatePreconditions(
@@ -131,12 +175,36 @@ function validatePreconditions(
   }
 }
 
+// ── Renderer Validation (individual, for error attribution) ──
+
+function validateActionWithRenderer(
+  action: RemediationActionV2,
+  columnRef: ColumnRef | null,
+  columnRegistry: ScriptBuildContextV2['columnRegistry'],
+): void {
+  try {
+    renderActionV2(action, columnRef, columnRegistry);
+  } catch (e) {
+    if (e instanceof ScriptRendererError) {
+      builderError('SCRIPT_BUILD_RENDER_FAILED', e.message, {
+        rendererErrorCode: e.code,
+        actionId: action.actionId,
+        actionType: action.actionType,
+      });
+    }
+    throw e;
+  }
+}
+
 // ── Core Builder (pure, no clock) ──
 
 export function buildScriptCandidateCoreV2(
-  plan: RemediationPlanV2,
+  planInput: RemediationPlanV2,
   buildContext: ScriptBuildContextV2,
 ): ScriptContractCandidateCoreV2 {
+  validatePlanShape(planInput);
+  const plan = planInput as RemediationPlanV2;
+
   validatePreconditions(plan, buildContext);
 
   const acceptedActionIds: string[] = [];
@@ -168,15 +236,9 @@ export function buildScriptCandidateCoreV2(
 
       // drop_exact_duplicates → dataset scope, no column needed
       if (DATASET_SCOPE_ACTIONS.includes(action.actionType)) {
-        try {
-          renderableActions.push({ action, columnRef: null });
-          acceptedActionIds.push(action.actionId);
-        } catch (e) {
-          if (e instanceof ScriptRendererError) {
-            builderError('SCRIPT_BUILD_RENDER_FAILED', e.message, { rendererErrorCode: e.code, actionId: action.actionId });
-          }
-          throw e;
-        }
+        validateActionWithRenderer(action, null, buildContext.columnRegistry);
+        renderableActions.push({ action, columnRef: null });
+        acceptedActionIds.push(action.actionId);
         continue;
       }
 
@@ -198,16 +260,10 @@ export function buildScriptCandidateCoreV2(
           continue;
         }
 
-        try {
-          renderableActions.push({ action, columnRef: registryCol });
-          acceptedActionIds.push(action.actionId);
-          usedColumnIds.add(registryCol.columnId);
-        } catch (e) {
-          if (e instanceof ScriptRendererError) {
-            builderError('SCRIPT_BUILD_RENDER_FAILED', e.message, { rendererErrorCode: e.code, actionId: action.actionId });
-          }
-          throw e;
-        }
+        validateActionWithRenderer(action, registryCol, buildContext.columnRegistry);
+        renderableActions.push({ action, columnRef: registryCol });
+        acceptedActionIds.push(action.actionId);
+        usedColumnIds.add(registryCol.columnId);
         continue;
       }
 
@@ -282,26 +338,35 @@ export function buildScriptCandidateCoreV2(
   };
 }
 
+// ── generatedAt validation ──
+
+function validateGeneratedAt(generatedAt: string): void {
+  if (typeof generatedAt !== 'string') {
+    builderError('SCRIPT_BUILD_GENERATED_AT_INVALID', `generatedAt must be a string, got ${typeof generatedAt}`);
+  }
+
+  const parsed = new Date(generatedAt);
+  if (Number.isNaN(parsed.getTime())) {
+    builderError('SCRIPT_BUILD_GENERATED_AT_INVALID', `generatedAt "${generatedAt}" is not a valid date`);
+  }
+
+  if (parsed.toISOString() !== generatedAt) {
+    builderError('SCRIPT_BUILD_GENERATED_AT_INVALID', `generatedAt "${generatedAt}" is not canonical ISO UTC (expected "${parsed.toISOString()}")`);
+  }
+}
+
 // ── Full Builder (with generatedAt) ──
 
 export function buildScriptCandidateV2(
-  plan: RemediationPlanV2,
+  planInput: RemediationPlanV2,
   buildContext: ScriptBuildContextV2,
   options?: ScriptCandidateBuildOptionsV2,
 ): ScriptContractCandidateV2 {
-  const core = buildScriptCandidateCoreV2(plan, buildContext);
+  const core = buildScriptCandidateCoreV2(planInput, buildContext);
 
   const generatedAt = options?.generatedAt ?? new Date().toISOString();
 
-  // Validate generatedAt is a valid ISO date
-  try {
-    const d = new Date(generatedAt);
-    if (isNaN(d.getTime())) {
-      builderError('SCRIPT_BUILD_GENERATED_AT_INVALID', `generatedAt "${generatedAt}" is not a valid ISO date`);
-    }
-  } catch {
-    builderError('SCRIPT_BUILD_GENERATED_AT_INVALID', `generatedAt "${generatedAt}" is not a valid ISO date`);
-  }
+  validateGeneratedAt(generatedAt);
 
   return {
     ...core,
@@ -334,21 +399,65 @@ export function computeScriptHashV2(
   return sha256hex(canonicalJson(payload));
 }
 
+// ── pythonSyntax validation ──
+
+const VALID_PYTHON_SYNTAX_STATES = new Set<PythonSyntaxState>(['passed', 'not_run', 'failed']);
+
+function validatePythonSyntax(validationResult: ScriptValidationResultV2): void {
+  if (!validationResult.pythonSyntax || typeof validationResult.pythonSyntax !== 'object') {
+    builderError('SCRIPT_FINALIZATION_VALIDATION_REQUIRED', 'validationResult.pythonSyntax is missing or not an object');
+  }
+
+  const state = (validationResult.pythonSyntax as Record<string, unknown>).state;
+  if (typeof state !== 'string' || !VALID_PYTHON_SYNTAX_STATES.has(state as PythonSyntaxState)) {
+    builderError(
+      'SCRIPT_FINALIZATION_VALIDATION_REQUIRED',
+      `validationResult.pythonSyntax.state must be "passed", "not_run", or "failed", got "${String(state)}"`,
+    );
+  }
+}
+
+// ── Defensive copy of validationResult ──
+
+function copyValidationError(err: ValidationErrorV2): ValidationErrorV2 {
+  return {
+    code: err.code,
+    path: err.path,
+    message: err.message,
+    value: err.value,
+  };
+}
+
+function copyValidationResult(vr: ScriptValidationResultV2): ScriptValidationResultV2 {
+  return {
+    valid: vr.valid,
+    errors: vr.errors.map(e => copyValidationError(e)),
+    warnings: vr.warnings.map(e => copyValidationError(e)),
+    pythonSyntax: {
+      state: vr.pythonSyntax.state,
+      engine: vr.pythonSyntax?.engine,
+      message: vr.pythonSyntax?.message,
+    },
+  };
+}
+
 // ── Finalizer ──
 
 export function finalizeScriptContractV2(
   candidate: ScriptContractCandidateV2,
   validationResult: ScriptValidationResultV2,
 ): ScriptContractV2 {
-  if (!validationResult) {
+  if (validationResult === null || validationResult === undefined) {
     builderError('SCRIPT_FINALIZATION_VALIDATION_REQUIRED', 'validationResult is required');
   }
+
+  validatePythonSyntax(validationResult);
 
   if (validationResult.valid !== true) {
     builderError('SCRIPT_FINALIZATION_VALIDATION_FAILED', 'validationResult.valid is not true');
   }
 
-  if (validationResult.pythonSyntax?.state === 'failed') {
+  if (validationResult.pythonSyntax.state === 'failed') {
     builderError('SCRIPT_FINALIZATION_SYNTAX_FAILED', 'Python syntax validation failed');
   }
 
@@ -368,7 +477,7 @@ export function finalizeScriptContractV2(
     scriptText: candidate.scriptText,
     cleanDatasetFn: candidate.cleanDatasetFn,
     scriptHash,
-    validationResult,
+    validationResult: copyValidationResult(validationResult),
     generatedAt: candidate.generatedAt,
   };
 }
