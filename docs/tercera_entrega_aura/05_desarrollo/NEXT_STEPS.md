@@ -4,19 +4,28 @@
 
 Phase 3 está cerrada y congelada en `d3774dd5ac98d89ca4454c693b1b0a30856cd191`. No modificar su evidencia.
 
+Phase 4 está **diseñada** — esperando aprobación para implementación.
+
 ## Siguiente tarea
 
-Diseñar Phase 4: `ScriptContractV2` y renderer determinista.
+Esperar aprobación del diseño de Phase 4 antes de iniciar implementación.
 
-Antes de implementar:
+Documentos de diseño Phase 4:
 
-1. definir contrato, invariantes y errores;
-2. definir mapeo `actionType` → plantilla;
-3. fijar entradas, salidas y hashes;
-4. diseñar pruebas para `approved`, `pending`, `rejected`, columnas ambiguas y referencias inválidas;
-5. definir artefactos y métricas de cierre;
-6. actualizar la documentación de `05_desarrollo/phases/phase_04/`.
+- `05_desarrollo/phases/phase_04/DISENO_SCRIPT_CONTRACT_V2.md` — contrato, invariantes, códigos de error, renderer
+- `05_desarrollo/phases/phase_04/PLAN_LOOPS_PHASE4.md` — 6 loops, archivos, tests, métricas
+- `05_desarrollo/phases/phase_04/DECISIONES.md` — 10 decisiones arquitectónicas
+- `05_desarrollo/phases/phase_04/ARQUITECTURA.md` — flujo de datos y capas
+- `05_desarrollo/phases/phase_04/README.md` — estado y alcance
+
+## Pendientes
+
+1. Aprobación del diseño
+2. Implementación de 6 loops (en orden L1 → L6)
+3. Cada loop: código → tests → artefacto → commit
+4. Congelamiento de Phase 4
+5. Inicio de Phase 5 (ejecución, reauditoría, delta)
 
 ## Regla
 
-No iniciar Phase 5 ni consolidar el Word final hasta congelar Phase 4. Cada loop debe dejar código, pruebas, evidencia, resultados, limitaciones y commit exacto.
+No iniciar implementación hasta que el diseño sea aprobado. No iniciar Phase 5 hasta congelar Phase 4.
