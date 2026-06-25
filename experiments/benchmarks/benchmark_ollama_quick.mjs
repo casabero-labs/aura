@@ -4,7 +4,16 @@
  * Temperature: 0.1, same model (qwen2.5:3b), same prompt.
  * Max runtime: 5 minutes total.
  *
+ * Options (temperature):
+ *   Temperature is set to 0.1 for reproducibility.
+ *   For future formal runs, use { temperature: 0.1 } as API option.
+ *
  * Usage: npx tsx benchmark_ollama_quick.mjs
+ *
+ * Status: operational_smoke_test
+ *   - connectivity test only; does NOT evaluate diagnostic quality
+ *   - prompt contains no EvidenceEnvelope, no rows
+ *   - row counts in responses are NOT valid evidence
  */
 import fs from 'fs';
 import path from 'path';
@@ -90,7 +99,7 @@ Be brief. JSON format: [{"row": 0, "field": "name", "issue": "whitespace"}]`;
     }
   }
 
-  const state = allFailed ? 'attempted_failed' : 'preliminary_valid';
+  const state = allFailed ? 'attempted_failed' : 'operational_smoke_test';
   const summary = {
     benchmark: 'ollama-quick',
     commit: 'fe5378e',
@@ -106,7 +115,7 @@ Be brief. JSON format: [{"row": 0, "field": "name", "issue": "whitespace"}]`;
 
   fs.writeFileSync(OUTPUT, JSON.stringify(summary, null, 2));
   console.log(`[ollama-quick] Done. State: ${state}. Output: ${OUTPUT}`);
-  console.log(`[ollama-quick] NOTE: preliminary_valid means structure check passed; does NOT imply benchmark formal.`);
+  console.log(`[ollama-quick] NOTE: operational_smoke_test = connectivity test. Does NOT evaluate diagnostic quality. Prompt has no EvidenceEnvelope. Row counts in responses are NOT valid evidence.`);
 }
 
 main().catch(err => {

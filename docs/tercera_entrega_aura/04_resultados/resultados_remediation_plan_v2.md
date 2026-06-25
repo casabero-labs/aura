@@ -21,8 +21,8 @@ Estructura principal:
 ```
 contractId:         "aura.remediation.v2"
 contractVersion:    "2.0.0"
-planId:             SHA-256 del plan serializado (orden canónico)
-diagnosisRef:       Hash del diagnóstico asociado
+planId:             SHA-256 truncado (20 caracteres) del plan serializado
+diagnosisRef:       SHA-256 del envelope + diagnosisRefBase (sin responseId ni generatedAt)
 evidenceEnvelopeRef: Hash del envelope de evidencia
 datasetFingerprint:  SHA-256 del CSV procesado
 plan:               Array<RemediationActionV2>
@@ -69,29 +69,28 @@ El LLM no tiene autoridad para seleccionar qué tipo de acción aplicar. Su rol 
 
 - **Interpretar** la evidencia del motor determinista.
 - **Explicar** los hallazgos en lenguaje natural.
-- **Generar** el script Python/Pandas sujeto a las transformaciones que `remediationPolicyV2` autoriza por regla.
 
-Si el LLM propusiera una transformación no autorizada (por ejemplo, `drop_column` para una regla que solo autoriza `trim_whitespace`), el validador de script la rechazaría con `SCRIPT_UNAUTHORIZED_ACTION`.
-
-Esta separación es deliberada: evita que el LLM sugiera operaciones destructivas o fuera de política.
+Phase 3 implementa exclusivamente `RemediationPlanV2`. El plan **no contiene código**:
+solo enumera acciones autorizadas, sus evidenceRefs y actionability. La generación de script
+Python/Pandas corresponde a Phase 4 (renderer determinista), no a Contracts v2.
 
 ## 6. Papel de la revisión humana
 
 Cada acción en el plan tiene estado inicial `pending`. El revisor humano puede:
 
-- **Aprobar:** la acción pasa a `approved` y se incluye en el script.
+- **Aprobar:** la acción pasa a `approved` y queda registrada para el renderer de Phase 4.
 - **Rechazar:** la acción pasa a `rejected` y se excluye del script.
 - **Resetear:** volver a `pending` para reevaluar.
 
-Una vez que el revisor aproba un subconjunto de acciones, `ScriptGenerationStepV2` genera un script Python/Pandas que solo incluye las acciones `approved`. El script se valida contra el esquema de columnas original antes de entregarse.
+Phase 4 implementará el renderer que genera el script Python/Pandas a partir de las acciones `approved`. Currently no se ejecutan transformaciones desde Phase 3.
 
-La revisión humana es **obligatoria**: no existe vía para ejecutar un script sin al menos una aprobación explícita.
+La revisión humana es **obligatoria**: el approvalStatus registra la decisión.
 
 ## 7. Datasets utilizados
 
 | Dataset | Filas | Columnas | SHA-256 | Issues | Descripción |
 |---|---|---|---|---|---|
-| synthetic_ground_truth.csv | 15 | 9 | `4e7d358f...` | 16 | Ground truth controlado con anomalías conocidas |
+| synthetic_ground_truth.csv | 15 | 9 | `4e7d358f...` | 16 | Ground truth: 9 tipos, 26 instancias; 16 hallazgos detectados por el motor |
 | titanic.csv | 891 | 12 | `4a437fde...` | 10 | Dataset real público, tamaño medio |
 | adult_income.csv | 48.842 | 15 | `23f713bb...` | 12 | Dataset público UCI, alto volumen |
 
@@ -114,7 +113,7 @@ Los tres planes pasaron la validación del contrato `aura.remediation.v2` sin er
 
 - La infraestructura del contrato está correctamente implementada.
 - `buildRemediationPlanId` produce identificadores estables.
-- `validateRemediationPlanV2` recomputa correctamente los hashes y rechaza cualquier alteración.
+- `validateRemediationPlanV2` recalcula correctamente los hashes y rechaza cualquier alteración.
 
 ### 9.2 Ausencia de upgrades inseguros
 

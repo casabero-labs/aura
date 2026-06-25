@@ -87,8 +87,9 @@ Un resultado se queda como preliminar si:
 Permitido:
 
 - AURA implementa un flujo local-first de carga, perfilamiento y auditoria determinista.
-- El motor determinista es reproducible y sensible, pero genera falsos positivos.
-- La evidencia preliminar del dataset sintetico reporta precision 37.93%, recall 84.62% y F1 52.38%.
+ - El motor determinista es reproducible y sensible, pero genera falsos positivos.
+- La baseline v1 sobre Titanic registró unsafe action rate de 84.85% (28/33 acciones inseguras, precision 15.15%, recall 100%, F1 26.32%), lo que justifica Contracts v2. Estos resultados NO corresponden a la evaluacion sobre `synthetic_ground_truth.csv`.
+- La evidencia de cobertura del motor sobre `synthetic_ground_truth.csv` (9 tipos, 26 instancias ground truth, TP/FP/FN por regla) se publica por separado y no debe mezclarse con la baseline Titanic.
 - La capa LLM esta restringida mediante smart sample, copy-paste evidence, salida estructurada y validacion de script.
 - El benchmark LLM esta implementado, pero necesita corridas formales para conclusiones comparativas.
 - **AURA post-Loop 2 detecta contaminacion semantica de ID en Incidentes Policiales (CrimeId ← Disposition) que Gemini Nano no identifico.**

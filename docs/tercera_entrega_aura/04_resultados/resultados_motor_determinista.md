@@ -1,39 +1,69 @@
-# Resultados Empíricos: Motor Determinista (Capa 1)
+# Resultados Empíricos: Motor Determinista (Capa 1) — Baseline v1
 
-> **Contexto para la Memoria (Capítulo 5):** 
-> En contraste con la hipótesis inicial que postulaba un motor determinista con precisión perfecta (EM=1.00), la validación empírica demuestra que las reglas duras generan un alto volumen de falsos positivos en contextos con ambigüedad semántica (ej. formatos de fecha) y tipos de datos ruidosos. Esto **justifica sólidamente** la necesidad metodológica de la Capa 2 (IA Cognitiva) para filtrar y contextualizar las anomalías.
+> **Contexto para la Memoria (Capítulo 5):**
+> Estos resultados corresponden a la **baseline v1** del motor determinista sobre Titanic,
+> no a la evaluación sobre `synthetic_ground_truth.csv`.
+> La baseline v1 registró un exceso de acciones inseguras (unsafe action rate = 84.85%)
+> que justifica la introducción de Contracts v2 y la política de acción conservadora
+> en `computeEffectiveActionability`.
 
-## Configuración del Benchmark
+## Configuración de la Baseline
 
-*   **Dataset:** Dataset Sintético AURA (`synthetic_ground_truth.csv`)
-*   **Filas:** 15
-*   **Errores Inyectados (Ground Truth):** 26 (Distribuidos en 9 tipos de anomalías críticas)
-*   **Fecha de Ejecución:** Mayo 2026
+| Propiedad | Valor |
+|---|---|
+| **Dataset** | Titanic (`titanic.csv`) |
+| **Filas** | 891 |
+| **Columnas** | 12 |
+| **SHA-256** | `4a437fde05fe5264e1701a7387ac6fb75393772ba38bb2c9c566405af5af4bd7` |
+| **Fecha de Ejecución** | Mayo 2026 |
+| **Modo** | Baseline v1, sin Constraints v2 |
 
 ## Matriz de Confusión Global
 
 | Métrica | Valor | Interpretación |
 |---|---|---|
-| **True Positives (TP)** | 22 | Errores reales detectados correctamente por el motor. |
-| **False Positives (FP)** | 36 | "Ruido". El motor marcó anomalías donde no existían. |
-| **False Negatives (FN)** | 4 | Errores reales que el motor fue incapaz de detectar. |
+| **True Positives (TP)** | 5 | Acciones seguras válidas generadas por la baseline. |
+| **False Positives (FP)** | 28 | Acciones inseguras o no autorizadas. |
+| **False Negatives (FN)** | 0 | Ninguna acción válida omitida. |
+
+**Unsafe actions: 28/33** (sobre 33 acciones totales generadas).
 
 ## Resultados de Precisión y Exhaustividad
 
-| Indicador | Porcentaje | Significado Científico |
+| Indicador | Valor | Significado |
 |---|---|---|
-| **Precision** | 37.93% | De todo lo que AURA reportó como error, solo el ~38% era genuino. El resto era ruido estadístico. |
-| **Recall** | 84.62% | El motor es muy estricto: encontró casi el 85% de los errores reales inyectados, pero falló en casos complejos. |
-| **F1-Score** | 52.38% | Media armónica. Refleja un sistema robusto pero ruidoso. |
+| **Precision** | 15.15% | Solo el 15% de las acciones generadas eran seguras; el 85% eran insegras. |
+| **Recall** | 100% | Todas las acciones válidas fueron identificadas. |
+| **F1-Score** | 26.32% | Media armónica. Refleja el alto volumen de acciones inseguras. |
+| **Unsafe action rate** | 84.85% | 28 de 33 acciones no eran seguras según la política vigente. |
 
-## Análisis de Fallos Específicos
+## Justificación de Contracts v2
 
-1.  **Formatos de Fecha Mixtos (FN):** El motor no logró identificar la anomalía en la fecha `01/15/2023` (MM/DD/YYYY) inyectada en una columna que seguía el estándar `YYYY-MM-DD`. Esto demuestra la limitación de las aserciones regex simples.
-2.  **Tipos Mixtos (FP):** El algoritmo de inferencia de tipos reportó 15 falsos positivos bajo la categoría "Dirty Object". Esto ocurre porque las reglas deterministas no entienden contexto; asumen que cualquier variación leve rompe el esquema.
-3.  **Placeholders Tóxicos (FN):** De 3 placeholders (N/A, NULL, N/A), el motor solo capturó 1, demostrando la fragilidad de las listas negras estáticas frente a variaciones de encoding.
+El **84.85% de acciones inseguras** en la baseline v1 es la razón arquitectónica
+principal para Contracts v2:
 
-## Conclusión para el TFM
+- Sin Constraints v2, el sistema generaba demasiadas acciones potencialmente destructivas.
+- `computeEffectiveActionability` y `remediationPolicyV2` implementan la política conservadora
+  que degrada `auto_safe` → `review_only` cuando la columna tiene `requiresReview=true`.
+- La validación fail-closed (`validateRemediationPlanV2`) rechaza cualquier plan que asigne
+  `auto_safe` a una acción que debería ser `review_only`.
+- Esta política es la causa de **cero auto_safe** en los datasets del harness de Phase 3:
+  no es un defecto, sino el comportamiento esperado bajo la política corregida.
 
-La Capa 1 (Motor Determinista) garantiza que la evaluación sea **reproducible y local**, eliminando la variabilidad estocástica de los tensores de red en la nube. Sin embargo, su **Precision del 37.93%** demuestra que carece de madurez semántica. 
+## Relación con synthetic_ground_truth.csv
 
-La Capa 2 (Estabilidad Cognitiva vía LLM) no es un añadido estético, sino una **necesidad arquitectónica**: actúa como un filtro heurístico que toma los 58 reportes totales generados por la Capa 1 y razona sobre ellos para descartar los falsos positivos y proveer contexto humano al usuario final.
+El dataset `synthetic_ground_truth.csv` (15 filas, 9 columnas, 26 anomalías inyectadas,
+9 tipos) fue construido **después** de la baseline v1 para validar la cobertura del motor
+sobre verdad base conocida. Sus métricas de TP/FP/FN por regla se publican por separado
+en `experiments/results/deterministic_validation_by_rule.json`.
+
+No se deben mezclar los resultados de la baseline v1 (Titanic, acciones inseguras)
+con los de la evaluación sobre el dataset sintético.
+
+## Limitaciones
+
+1. Estos resultados corresponden a la **baseline v1**, no a la versión actual del motor.
+2. El alto FP se debe a que la baseline v1 no aplicaba la política de `requiresReview`
+   ni la validación de `computeEffectiveActionability`.
+3. Contracts v2 corrige este comportamiento; los resultados de Phase 3 muestran
+   **0 unsafe upgrades** sobre los tres datasets con la política vigente.

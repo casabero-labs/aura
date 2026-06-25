@@ -21,7 +21,7 @@
 | Issues inyectados | 16 |
 | Propósito | Ground truth controlado; anomalías conocidas de forma exacta para validar cobertura del motor. |
 
-Selección: dataset pequeño con anomalías injectadas manualmente. Permite validar que cada anomalía conocida produce un hallazgo y que el plan la cubre con acción o exclusión.
+Selección: dataset pequeño con anomalías inyectadas manualmente. Permite validar que cada anomalía conocida produce un hallazgo y que el plan la cubre con acción o exclusión.
 
 ### 2.2 titanic.csv — Caso aplicado principal
 
@@ -61,7 +61,7 @@ La unidad de evaluación es la **regla por columna**, no el dataset completo. Es
 
 El diagnóstico (`DiagnosisResponseV2`) se construye a partir del envelope y una respuesta estructurada del LLM. En el harness actual se usa fixture determinista (sin inferencia LLM real) para validar la infraestructura del contrato:
 
-- `diagnosisRef`: SHA-256 del envelope + responseId.
+- `diagnosisRef`: SHA-256 truncado del envelope (sin responseId ni generatedAt).
 - `issues`: cada issue del motor se transforma en bloque de diagnóstico con `evidenceRefs` que apuntan a la evidencia original.
 - `diagnosisBlocks`: mapeo 1:1 entre issue y bloque de remediation.
 - `generatedAt`: marca temporal ISO 8601.
@@ -75,7 +75,7 @@ El `RemediationPlanV2` se construye sin LLM. El constructor `buildRemediationPla
 1. `DiagnosisExecutionResult` con `remediationContext` y `diagnosis`.
 2. Por cada issue del contexto, consulta `remediationPolicyV2` para determinar el `actionType` autorizado.
 3. Calcula `actionability` con `computeEffectiveActionability` (que degrade `auto_safe` → `review_only` si la columna tiene `requiresReview=true` o la regla exige revisión).
-4. Genera `actionId` como SHA-256 de `(diagnosisRef, issueId, ruleId, columnId, actionType)`.
+4. Genera `actionId` como `act:${sha256short(sha256hex(canonicalJson({ diagnosisRef, issueId, ruleId, columnId, actionType })))}`.
 5. Agrupa issues no accionables en `exclusions`.
 
 **Unidad de evaluación:** el plan completo, junto con su `planId` (SHA-256 del plan serializado). La estabilidad del hash entre ejecuciones confirma determinismo.
@@ -85,7 +85,7 @@ El `RemediationPlanV2` se construye sin LLM. El constructor `buildRemediationPla
 El dataset `synthetic_ground_truth.csv` fue construido manualmente:
 
 - 15 filas, 9 columnas.
-- 16 anomalías injectadas con conocimiento exacto de ubicación y tipo.
+- 26 anomalías inyectadas (9 tipos) con conocimiento exacto de ubicación y tipo.
 - Anomalías incluyen: espacios fantasma, nulos, duplicados exactos, mayúsculas mixtas, fechas mal formateadas, placeholders tóxicos, números disfrazados, IDs corruptos.
 - Ground truth documentado en `experiments/datasets/synthetic_ground_truth.json`.
 
@@ -135,8 +135,8 @@ Cualquier discrepancia produce un error con código `REMEDIATION_REFERENCE_INVAL
 
 ## 10. Estabilidad de hashes
 
-- `planId` es SHA-256 del plan serializado (orden canónico de campos).
-- `actionId` es SHA-256 de la tupla `(diagnosisRef, issueId, ruleId, columnId, actionType)`.
+- `planId` es SHA-256 truncado (20 caracteres) del plan serializado (orden canónico de campos).
+- `actionId` es `act:${sha256short(sha256hex(...))}` de la tupla `(diagnosisRef, issueId, ruleId, columnId, actionType)`.
 - `planHashStable` en el harness confirma que dos ejecuciones del mismo dataset producen el mismo `planId`.
 
 Esta propiedad garantiza **reproducibilidad**: cualquier actor que implemente el mismo algoritmo sobre el mismo envelope y diagnóstico llegará al mismo plan.

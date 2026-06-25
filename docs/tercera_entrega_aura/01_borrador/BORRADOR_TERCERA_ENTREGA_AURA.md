@@ -256,7 +256,7 @@ El contexto de remediación se construye con `buildRemediationContext` y es excl
 
 2. **Actionability:** `computeEffectiveActionability` calcula si la acción es `auto_safe`, `review_only` o `not_actionable`. La función degrada `auto_safe` → `review_only` cuando la columna tiene `requiresReview=true` o la regla exige supervisión. Este degradamiento es univalente: nunca sube de nivel.
 
-3. **Identificadores:** cada acción recibe un `actionId` calculaddo como `act:${sha256short(sha256hex(payload))}` donde `payload = { diagnosisRef, issueId, ruleId, columnId, actionType }`. El `planId` se calcula como hash de todo el plan serializado en orden canónico. Estos hashes son deterministas: la misma entrada produce siempre el mismo identificador.
+3. **Identificadores:** cada acción recibe un `actionId` calculado como `act:${sha256short(sha256hex(payload))}` donde `payload = { diagnosisRef, issueId, ruleId, columnId, actionType }`. El `planId` se calcula como hash de todo el plan serializado en orden canónico. Estos hashes son deterministas: la misma entrada produce siempre el mismo identificador.
 
 El validador `validateRemediationPlanV2` comprueba la integridad del plan recomputando todos los hashes y rechazando cualquier discrepancia.
 
@@ -284,7 +284,7 @@ El plan no contiene scripts, solo acciones autorizadas.
 - Botones **Aprobar** y **Rechazar** para cada acción en estado `pending`.
 - Estado **Aprobado** o **Rechazado** visible tras decisión.
 - Lista de exclusiones `not_actionable`.
-- Botón **Continuar** que pasa a `ScriptGenerationStepV2`.
+- Botón **Continuar** que pasa al renderer de Phase 4.
 
 Si el plan es inválido (por ejemplo, restaurado con diagnóstico diferente), el componente muestra error y no permite continuar.
 
@@ -297,7 +297,7 @@ Si el plan es inválido (por ejemplo, restaurado con diagnóstico diferente), el
 | El plan no se altera sin perder identidad | `planId` se recomputa en validación; cualquier cambio no autorizado falla. |
 | Acciones no pueden ejecutarse sin aprobación | Estado inicial `pending`; solo `approved` pasa al generador de script. |
 | No se excluyen acciones que requieren revisión | El validador rechaza exclusiones con `actionability === 'review_only'`. |
-| Références inválidas se detectan | Cada `actionId` y `evidenceRefs` se recomputa y compara. |
+| Referencias inválidas se detectan | Cada `actionId` y `evidenceRefs` se recalcula y compara. |
 
 ### 13.7 Evidencia existente
 

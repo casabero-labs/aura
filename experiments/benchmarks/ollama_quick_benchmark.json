@@ -7,7 +7,7 @@
   "dataset": "synthetic_ground_truth.csv",
   "datasetSha256": "4e7d358f2141c6463146417a66f1c2312c7c3cdf6a39005780c92b061ff7ac49",
   "runs": 3,
-  "state": "preliminary_valid",
+  "state": "operational_smoke_test",
   "results": [
     {
       "run": 1,
