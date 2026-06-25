@@ -96,6 +96,65 @@
 
 ---
 
+## Loop 4: Validator
+
+**SHA:** `<commit actual>`
+
+### API
+
+| Función | Descripción |
+|---|---|
+| `validateScriptCandidateV2(candidate, plan, ctx, opts?)` | Valida candidato (fail-closed, nunca lanza) |
+| `verifyScriptContractV2(contract, plan, ctx, opts?)` | Verifica contrato final (hash + candidate) |
+
+### Códigos
+
+16 errores + 1 warning. Ver `scriptErrorCodes.ts`.
+
+### Matriz V1-V35
+Shape (V1-V7) → Referencias (V8-V15) → Cobertura → HITL (V16-V21) → Columnas (V22-V25) → Seguridad (V26-V31) → Sintaxis (V32-V34) → Reconstrucción (V35) → Hash (final).
+
+### Seguridad
+Enmascarador léxico: strings + comentarios. 0 falsos positivos en columnas `eval(`, `open(`, `os.system`.
+
+### Archivos creados
+
+| Archivo | Descripción |
+|---|---|
+| `scriptErrorCodes.ts` | 16 errores + 1 warning |
+| `scriptValidatorV2.ts` | Validator fail-closed |
+| `scriptValidatorV2.test.ts` | 42 tests |
+
+### Archivos modificados
+
+| Archivo | Cambio |
+|---|---|
+| `index.ts` | Exports |
+| `DISENO_SCRIPT_CONTRACT_V2.md` | V24, V25, V26, V35 corregidos |
+
+### Tests (42)
+
+| Suite | Tests |
+|---|---|
+| Shape | 12 |
+| Referencias | 5 |
+| Partición | 3 |
+| Columnas | 2 |
+| Seguridad | 8 |
+| Sintaxis | 4 |
+| Reconstrucción | 3 |
+| Final contract | 3 |
+
+### Verificaciones
+
+| Verificación | Resultado |
+|---|---|
+| Suite completa | 1001 passed, 6 skipped |
+| Build | built in ~3s |
+| Contracts v2 | 3/3 PASS |
+
+---
+
 ## Loop 3R: Hardening del finalizer
 
 **SHA:** `<commit actual>`

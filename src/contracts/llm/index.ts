@@ -247,3 +247,13 @@ export {
 } from './scriptBuilderV2';
 export type { ScriptContractCandidateCoreV2, ScriptCandidateBuildOptionsV2, ScriptBuilderErrorCode } from './scriptBuilderV2';
 export { ScriptBuilderError } from './scriptBuilderV2';
+
+// ── Script Error Codes (Phase 4 Loop 4) ──
+export type { ScriptErrorCode, ScriptWarningCode } from './scriptErrorCodes';
+
+// ── Script Validator v2 (Phase 4 Loop 4) ──
+export {
+  validateScriptCandidateV2,
+  verifyScriptContractV2,
+} from './scriptValidatorV2';
+export type { PythonSyntaxCheckResultV2, ScriptValidationOptionsV2 } from './scriptValidatorV2';

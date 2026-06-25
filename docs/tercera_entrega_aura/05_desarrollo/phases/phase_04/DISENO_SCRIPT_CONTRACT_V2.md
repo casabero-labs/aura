@@ -489,14 +489,14 @@ validateScriptCandidateV2(candidate, plan, buildContext) → ValidationResultV2
 |---|---|---|
 | V22 | Ninguna columna ambigua en `columnRefs` de acciones accepted | `SCRIPT_COLUMN_AMBIGUOUS` |
 | V23 | `pythonLiteral` es válido para cada `ColumnRef` | `SCRIPT_REFERENCE_INVALID` |
-| V24 | Columnas duplicadas tienen `duplicateOrdinal` > 0 y `pythonLiteral` con ordinal | `SCRIPT_REFERENCE_INVALID` |
-| V25 | `columnId === null` solo para `drop_exact_duplicates` | `SCRIPT_REFERENCE_INVALID` |
+| V24 | Cada `ColumnRef` coincide exactamente con el registry en los 8 campos. Primera duplicada puede usar ordinal 0. `pythonLiteral` es siempre `_c["columnId"]`; duplicadas se acceden por `_c["columnId"]["position"]` | `SCRIPT_REFERENCE_INVALID` |
+| V25 | Acción `approved` que requiere columna y no la tiene: `missing_column`. `drop_exact_duplicates` usa `columnId: null`. `requires_human_review` nunca va a accepted | `SCRIPT_REFERENCE_INVALID` |
 
 ### 8.6 Validaciones de seguridad
 
 | # | Validación | Código de error |
 |---|---|---|
-| V26 | `scriptHash` coincide con recálculo | `SCRIPT_HASH_MISMATCH` |
+| V26 | `scriptHash` coincide con recálculo (solo en `verifyScriptContractV2`, el candidato no tiene `scriptHash`) | `SCRIPT_HASH_MISMATCH` |
 | V27 | Sin `eval`, `exec`, `__import__` en `scriptText` | `SCRIPT_EXECUTABLE_CONTENT` |
 | V28 | Sin `subprocess`, `os.system` en `scriptText` | `SCRIPT_NETWORK_ACCESS` |
 | V29 | Sin `open()`, `__file__` en `scriptText` | `SCRIPT_FILE_ACCESS` |
@@ -521,14 +521,26 @@ type PythonSyntaxState = 'passed' | 'failed' | 'not_run';
 
 | # | Validación | Código de error |
 |---|---|---|
-| V35 | Re-renderizar desde plan + contexto produce mismo `scriptText`, `acceptedActionIds`, `columnRefs`, `cleanDatasetFn` | `SCRIPT_RENDER_MISMATCH` |
+| V35 | Reconstrucción mediante `buildScriptCandidateCoreV2()` y comparación de todos los campos deterministas del core (excluyendo `generatedAt`) | `SCRIPT_RENDER_MISMATCH` |
 
 ```
-reconstructed = buildScriptCandidateV2(plan, buildContext)
+reconstructed = buildScriptCandidateCoreV2(plan, buildContext)
 comparar:
-  candidate.scriptText === reconstructed.scriptText
+  candidate.contractId === reconstructed.contractId
+  candidate.contractVersion === reconstructed.contractVersion
+  candidate.remediationRef === reconstructed.remediationRef
+  candidate.datasetFingerprint === reconstructed.datasetFingerprint
   candidate.acceptedActionIds deep equals reconstructed.acceptedActionIds
+  candidate.rejectedActionIds deep equals reconstructed.rejectedActionIds
+  candidate.excludedActionIds deep equals reconstructed.excludedActionIds
   candidate.columnRefs deep equals reconstructed.columnRefs
+  candidate.rendererVersion === reconstructed.rendererVersion
+  candidate.placeholderVocabularyVersion === reconstructed.placeholderVocabularyVersion
+  candidate.scriptText === reconstructed.scriptText
+  candidate.cleanDatasetFn === reconstructed.cleanDatasetFn
+```
+
+No comparar `generatedAt`. Usar `buildScriptCandidateCoreV2()` (no `buildScriptCandidateV2()`).
   candidate.cleanDatasetFn === reconstructed.cleanDatasetFn
 ```
 
