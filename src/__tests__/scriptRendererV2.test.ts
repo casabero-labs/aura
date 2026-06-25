@@ -520,16 +520,25 @@ describe('requires_human_review', () => {
   });
 
   it('each valid reasonCode renders without error', () => {
+    const fakeCol = makeColRef('ReviewCol', 0);
+    const registry = buildRegistry([fakeCol]);
+    for (const reasonCode of allReasonCodes) {
+      const action = makeAction('requires_human_review', fakeCol.columnId, { reasonCode });
+      expect(() => renderActionV2(action, fakeCol, registry)).not.toThrow();
+    }
+  });
+
+  it('each valid reasonCode renders with null columnRef', () => {
     const registry = buildRegistry([makeColRef('Name', 0)]);
     for (const reasonCode of allReasonCodes) {
-      const action = makeAction('requires_human_review', 'col:test', { reasonCode });
+      const action = makeAction('requires_human_review', null, { reasonCode });
       expect(() => renderActionV2(action, null, registry)).not.toThrow();
     }
   });
 
   it('invalid reasonCode throws', () => {
     const registry = buildRegistry([makeColRef('Name', 0)]);
-    const action = makeAction('requires_human_review', 'col:test', {
+    const action = makeAction('requires_human_review', null, {
       reasonCode: 'llm_generated_reason',
     });
     expect(() => renderActionV2(action, null, registry)).toThrow(ScriptRendererError);
@@ -548,10 +557,11 @@ describe('requires_human_review', () => {
   });
 
   it('no executable code in comment', () => {
-    const registry = buildRegistry([makeColRef('Name', 0)]);
+    const fakeCol = makeColRef('ReviewCol', 0);
+    const registry = buildRegistry([fakeCol]);
     for (const reasonCode of allReasonCodes) {
-      const action = makeAction('requires_human_review', 'col:test', { reasonCode });
-      const line = renderActionV2(action, null, registry);
+      const action = makeAction('requires_human_review', fakeCol.columnId, { reasonCode });
+      const line = renderActionV2(action, fakeCol, registry);
       expect(line.trim()).toMatch(/^# AURA review-only: reasonCode=.+; no transformation rendered$/);
     }
   });
@@ -812,7 +822,7 @@ describe('Full script with all actionTypes', () => {
         columnRef: cols[3],
       },
       {
-        action: makeAction('requires_human_review', 'col:some', { reasonCode: 'unknown_rule' }),
+        action: makeAction('requires_human_review', null, { reasonCode: 'unknown_rule' }),
         columnRef: null,
       },
     ];
@@ -925,5 +935,470 @@ describe('ScriptRendererError codes', () => {
       expect(e).toBeInstanceOf(ScriptRendererError);
       expect((e as ScriptRendererError).code).toBe('RENDER_UNSUPPORTED_ACTION');
     }
+  });
+});
+
+// ── Loop 2R: Security & Hardening ──
+
+describe('Loop 2R: Falsified pythonLiteral', () => {
+  it('rejects __import__ injection', () => {
+    const cols = buildColumnRegistry(['Age']);
+    const registry = buildRegistry(cols);
+    const trustedCol = registry.byColumnId.get(cols[0].columnId)!;
+    const fakeCol: ColumnRef = {
+      ...trustedCol,
+      pythonLiteral: `__import__("os").system("malicious") or ${trustedCol.pythonLiteral}`,
+    };
+    const action = makeAction('trim_whitespace', trustedCol.columnId, {
+      trimEdges: true,
+      collapseInternalWhitespace: false,
+    });
+    expect(() => renderActionV2(action, fakeCol, registry)).toThrow(ScriptRendererError);
+    try {
+      renderActionV2(action, fakeCol, registry);
+    } catch (e) {
+      expect((e as ScriptRendererError).code).toBe('RENDER_COLUMN_MISMATCH');
+    }
+  });
+
+  it('rejects eval injection in pythonLiteral', () => {
+    const cols = buildColumnRegistry(['Age']);
+    const registry = buildRegistry(cols);
+    const trustedCol = registry.byColumnId.get(cols[0].columnId)!;
+    const fakeCol: ColumnRef = {
+      ...trustedCol,
+      pythonLiteral: `eval("__import__('os').system('rm -rf /')")`,
+    };
+    const action = makeAction('trim_whitespace', trustedCol.columnId, {
+      trimEdges: true,
+      collapseInternalWhitespace: false,
+    });
+    expect(() => renderActionV2(action, fakeCol, registry)).toThrow(ScriptRendererError);
+    try {
+      renderActionV2(action, fakeCol, registry);
+    } catch (e) {
+      expect((e as ScriptRendererError).code).toBe('RENDER_COLUMN_MISMATCH');
+    }
+  });
+
+  it('rejects exec injection in pythonLiteral', () => {
+    const cols = buildColumnRegistry(['Age']);
+    const registry = buildRegistry(cols);
+    const trustedCol = registry.byColumnId.get(cols[0].columnId)!;
+    const fakeCol: ColumnRef = {
+      ...trustedCol,
+      pythonLiteral: `exec("print(open('/etc/passwd').read())")`,
+    };
+    const action = makeAction('trim_whitespace', trustedCol.columnId, {
+      trimEdges: true,
+      collapseInternalWhitespace: false,
+    });
+    expect(() => renderActionV2(action, fakeCol, registry)).toThrow(ScriptRendererError);
+    try {
+      renderActionV2(action, fakeCol, registry);
+    } catch (e) {
+      expect((e as ScriptRendererError).code).toBe('RENDER_COLUMN_MISMATCH');
+    }
+  });
+
+  it('rejects newline injection in pythonLiteral', () => {
+    const cols = buildColumnRegistry(['Age']);
+    const registry = buildRegistry(cols);
+    const trustedCol = registry.byColumnId.get(cols[0].columnId)!;
+    const fakeCol: ColumnRef = {
+      ...trustedCol,
+      pythonLiteral: `${trustedCol.pythonLiteral}\n__import__("os").system("id")`,
+    };
+    const action = makeAction('trim_whitespace', trustedCol.columnId, {
+      trimEdges: true,
+      collapseInternalWhitespace: false,
+    });
+    expect(() => renderActionV2(action, fakeCol, registry)).toThrow(ScriptRendererError);
+    try {
+      renderActionV2(action, fakeCol, registry);
+    } catch (e) {
+      expect((e as ScriptRendererError).code).toBe('RENDER_COLUMN_MISMATCH');
+    }
+  });
+
+  it('rejects comment injection in pythonLiteral', () => {
+    const cols = buildColumnRegistry(['Age']);
+    const registry = buildRegistry(cols);
+    const trustedCol = registry.byColumnId.get(cols[0].columnId)!;
+    const fakeCol: ColumnRef = {
+      ...trustedCol,
+      pythonLiteral: `${trustedCol.pythonLiteral} # injected comment`,
+    };
+    const action = makeAction('trim_whitespace', trustedCol.columnId, {
+      trimEdges: true,
+      collapseInternalWhitespace: false,
+    });
+    expect(() => renderActionV2(action, fakeCol, registry)).toThrow(ScriptRendererError);
+    try {
+      renderActionV2(action, fakeCol, registry);
+    } catch (e) {
+      expect((e as ScriptRendererError).code).toBe('RENDER_COLUMN_MISMATCH');
+    }
+  });
+
+  it('rejects literal from another existing column', () => {
+    const cols = buildColumnRegistry(['Age', 'Fare']);
+    const registry = buildRegistry(cols);
+    const ageCol = registry.byColumnId.get(cols[0].columnId)!;
+    const fareCol = registry.byColumnId.get(cols[1].columnId)!;
+    const fakeCol: ColumnRef = {
+      ...ageCol,
+      pythonLiteral: fareCol.pythonLiteral,
+    };
+    const action = makeAction('trim_whitespace', ageCol.columnId, {
+      trimEdges: true,
+      collapseInternalWhitespace: false,
+    });
+    expect(() => renderActionV2(action, fakeCol, registry)).toThrow(ScriptRendererError);
+    try {
+      renderActionV2(action, fakeCol, registry);
+    } catch (e) {
+      expect((e as ScriptRendererError).code).toBe('RENDER_COLUMN_MISMATCH');
+    }
+  });
+
+  it('malicious text never appears in scriptText via buildScriptText', () => {
+    const cols = buildColumnRegistry(['Age']);
+    const registry = buildRegistry(cols);
+    const trustedCol = registry.byColumnId.get(cols[0].columnId)!;
+    const fakeCol: ColumnRef = {
+      ...trustedCol,
+      pythonLiteral: `__import__("os").system("malicious")`,
+    };
+    const action = makeAction('trim_whitespace', trustedCol.columnId, {
+      trimEdges: true,
+      collapseInternalWhitespace: false,
+    });
+    expect(() => buildScriptText([{ action, columnRef: fakeCol }], registry)).toThrow(ScriptRendererError);
+
+    let capturedScript = '';
+    try {
+      buildScriptText([{ action, columnRef: fakeCol }], registry);
+    } catch (e) {
+      capturedScript = (e as Error).message;
+    }
+    expect(capturedScript).not.toContain('__import__');
+    expect(capturedScript).not.toContain('malicious');
+    expect(capturedScript).not.toContain('eval');
+    expect(capturedScript).not.toContain('exec');
+  });
+});
+
+describe('Loop 2R: Falsified isReservedWord', () => {
+  it('rejects altered isReservedWord', () => {
+    const cols = buildColumnRegistry(['Age']);
+    const registry = buildRegistry(cols);
+    const trustedCol = registry.byColumnId.get(cols[0].columnId)!;
+    const fakeCol: ColumnRef = {
+      ...trustedCol,
+      isReservedWord: true,
+    };
+    const action = makeAction('trim_whitespace', trustedCol.columnId, {
+      trimEdges: true,
+      collapseInternalWhitespace: false,
+    });
+    expect(() => renderActionV2(action, fakeCol, registry)).toThrow(ScriptRendererError);
+    try {
+      renderActionV2(action, fakeCol, registry);
+    } catch (e) {
+      expect((e as ScriptRendererError).code).toBe('RENDER_COLUMN_MISMATCH');
+    }
+  });
+
+  it('rejects altered position', () => {
+    const cols = buildColumnRegistry(['Age']);
+    const registry = buildRegistry(cols);
+    const trustedCol = registry.byColumnId.get(cols[0].columnId)!;
+    const fakeCol: ColumnRef = {
+      ...trustedCol,
+      position: 999,
+    };
+    const action = makeAction('trim_whitespace', trustedCol.columnId, {
+      trimEdges: true,
+      collapseInternalWhitespace: false,
+    });
+    expect(() => renderActionV2(action, fakeCol, registry)).toThrow(ScriptRendererError);
+    try {
+      renderActionV2(action, fakeCol, registry);
+    } catch (e) {
+      expect((e as ScriptRendererError).code).toBe('RENDER_COLUMN_MISMATCH');
+    }
+  });
+
+  it('rejects altered duplicateOrdinal', () => {
+    const cols = buildColumnRegistry(['Score', 'Score']);
+    const registry = buildRegistry(cols);
+    const col0 = registry.byColumnId.get(cols[0].columnId)!;
+    const fakeCol: ColumnRef = {
+      ...col0,
+      duplicateOrdinal: 5,
+    };
+    const action = makeAction('trim_whitespace', col0.columnId, {
+      trimEdges: true,
+      collapseInternalWhitespace: false,
+    });
+    expect(() => renderActionV2(action, fakeCol, registry)).toThrow(ScriptRendererError);
+    try {
+      renderActionV2(action, fakeCol, registry);
+    } catch (e) {
+      expect((e as ScriptRendererError).code).toBe('RENDER_COLUMN_MISMATCH');
+    }
+  });
+
+  it('rejects altered isDuplicate', () => {
+    const cols = buildColumnRegistry(['Age']);
+    const registry = buildRegistry(cols);
+    const trustedCol = registry.byColumnId.get(cols[0].columnId)!;
+    const fakeCol: ColumnRef = {
+      ...trustedCol,
+      isDuplicate: true,
+    };
+    const action = makeAction('trim_whitespace', trustedCol.columnId, {
+      trimEdges: true,
+      collapseInternalWhitespace: false,
+    });
+    expect(() => renderActionV2(action, fakeCol, registry)).toThrow(ScriptRendererError);
+    try {
+      renderActionV2(action, fakeCol, registry);
+    } catch (e) {
+      expect((e as ScriptRendererError).code).toBe('RENDER_COLUMN_MISMATCH');
+    }
+  });
+
+  it('rejects altered name', () => {
+    const cols = buildColumnRegistry(['Age']);
+    const registry = buildRegistry(cols);
+    const trustedCol = registry.byColumnId.get(cols[0].columnId)!;
+    const fakeCol: ColumnRef = {
+      ...trustedCol,
+      name: 'INJECTED',
+    };
+    const action = makeAction('trim_whitespace', trustedCol.columnId, {
+      trimEdges: true,
+      collapseInternalWhitespace: false,
+    });
+    expect(() => renderActionV2(action, fakeCol, registry)).toThrow(ScriptRendererError);
+    try {
+      renderActionV2(action, fakeCol, registry);
+    } catch (e) {
+      expect((e as ScriptRendererError).code).toBe('RENDER_COLUMN_MISMATCH');
+    }
+  });
+});
+
+describe('Loop 2R: Null columnId for required-column actions', () => {
+  it('trim_whitespace with null columnId throws RENDER_COLUMN_REQUIRED', () => {
+    const cols = buildColumnRegistry(['Age']);
+    const registry = buildRegistry(cols);
+    const col = registry.byColumnId.get(cols[0].columnId)!;
+    const action = makeAction('trim_whitespace', null, {
+      trimEdges: true,
+      collapseInternalWhitespace: false,
+    });
+    expect(() => renderActionV2(action, col, registry)).toThrow(ScriptRendererError);
+    try {
+      renderActionV2(action, col, registry);
+    } catch (e) {
+      expect((e as ScriptRendererError).code).toBe('RENDER_COLUMN_REQUIRED');
+    }
+  });
+
+  it('normalize_placeholders with null columnId throws RENDER_COLUMN_REQUIRED', () => {
+    const cols = buildColumnRegistry(['Age']);
+    const registry = buildRegistry(cols);
+    const col = registry.byColumnId.get(cols[0].columnId)!;
+    const action = makeAction('normalize_placeholders', null, {
+      strategy: 'controlled_vocabulary',
+      replacement: null,
+    });
+    expect(() => renderActionV2(action, col, registry)).toThrow(ScriptRendererError);
+    try {
+      renderActionV2(action, col, registry);
+    } catch (e) {
+      expect((e as ScriptRendererError).code).toBe('RENDER_COLUMN_REQUIRED');
+    }
+  });
+});
+
+describe('Loop 2R: drop_exact_duplicates with non-null columnRef', () => {
+  it('action.columnId=null + columnRef!=null → RENDER_COLUMN_NOT_ALLOWED', () => {
+    const cols = buildColumnRegistry(['Age']);
+    const registry = buildRegistry(cols);
+    const col = registry.byColumnId.get(cols[0].columnId)!;
+    const action = makeAction('drop_exact_duplicates', null, { keep: 'first' });
+    expect(() => renderActionV2(action, col, registry)).toThrow(ScriptRendererError);
+    try {
+      renderActionV2(action, col, registry);
+    } catch (e) {
+      expect((e as ScriptRendererError).code).toBe('RENDER_COLUMN_NOT_ALLOWED');
+    }
+  });
+});
+
+describe('Loop 2R: requires_human_review consistency', () => {
+  it('action.columnId=null with columnRef!=null throws RENDER_COLUMN_NOT_ALLOWED', () => {
+    const cols = buildColumnRegistry(['Age']);
+    const registry = buildRegistry(cols);
+    const col = registry.byColumnId.get(cols[0].columnId)!;
+    const action = makeAction('requires_human_review', null, { reasonCode: 'unknown_rule' });
+    expect(() => renderActionV2(action, col, registry)).toThrow(ScriptRendererError);
+    try {
+      renderActionV2(action, col, registry);
+    } catch (e) {
+      expect((e as ScriptRendererError).code).toBe('RENDER_COLUMN_NOT_ALLOWED');
+    }
+  });
+
+  it('action.columnId set but columnRef=null throws RENDER_COLUMN_REQUIRED', () => {
+    const cols = buildColumnRegistry(['Age']);
+    const registry = buildRegistry(cols);
+    const col = registry.byColumnId.get(cols[0].columnId)!;
+    const action = makeAction('requires_human_review', col.columnId, { reasonCode: 'unknown_rule' });
+    expect(() => renderActionV2(action, null, registry)).toThrow(ScriptRendererError);
+    try {
+      renderActionV2(action, null, registry);
+    } catch (e) {
+      expect((e as ScriptRendererError).code).toBe('RENDER_COLUMN_REQUIRED');
+    }
+  });
+
+  it('comment never uses pythonLiteral', () => {
+    const cols = buildColumnRegistry(['Age']);
+    const registry = buildRegistry(cols);
+    const col = registry.byColumnId.get(cols[0].columnId)!;
+    const action = makeAction('requires_human_review', col.columnId, { reasonCode: 'unknown_rule' });
+    const line = renderActionV2(action, col, registry);
+    expect(line).not.toContain('_c[');
+    expect(line).not.toContain(col.pythonLiteral);
+  });
+});
+
+describe('Loop 2R: Parameters validation', () => {
+  it('null parameters throws RENDER_PARAMETERS_INVALID', () => {
+    const cols = buildColumnRegistry(['Age']);
+    const registry = buildRegistry(cols);
+    const col = registry.byColumnId.get(cols[0].columnId)!;
+    const action = makeAction('trim_whitespace', col.columnId, {
+      trimEdges: true,
+      collapseInternalWhitespace: false,
+    });
+    (action as unknown as { parameters: unknown }).parameters = null;
+    expect(() => renderActionV2(action, col, registry)).toThrow(ScriptRendererError);
+    try {
+      renderActionV2(action, col, registry);
+    } catch (e) {
+      expect((e as ScriptRendererError).code).toBe('RENDER_PARAMETERS_INVALID');
+    }
+  });
+
+  it('undefined parameters throws RENDER_PARAMETERS_INVALID', () => {
+    const cols = buildColumnRegistry(['Age']);
+    const registry = buildRegistry(cols);
+    const col = registry.byColumnId.get(cols[0].columnId)!;
+    const action = makeAction('trim_whitespace', col.columnId, {
+      trimEdges: true,
+      collapseInternalWhitespace: false,
+    });
+    (action as unknown as { parameters: unknown }).parameters = undefined;
+    expect(() => renderActionV2(action, col, registry)).toThrow(ScriptRendererError);
+    try {
+      renderActionV2(action, col, registry);
+    } catch (e) {
+      expect((e as ScriptRendererError).code).toBe('RENDER_PARAMETERS_INVALID');
+    }
+  });
+
+  it('string parameters throws RENDER_PARAMETERS_INVALID', () => {
+    const cols = buildColumnRegistry(['Age']);
+    const registry = buildRegistry(cols);
+    const col = registry.byColumnId.get(cols[0].columnId)!;
+    const action = makeAction('trim_whitespace', col.columnId, {
+      trimEdges: true,
+      collapseInternalWhitespace: false,
+    });
+    (action as unknown as { parameters: unknown }).parameters = 'malicious_string';
+    expect(() => renderActionV2(action, col, registry)).toThrow(ScriptRendererError);
+    try {
+      renderActionV2(action, col, registry);
+    } catch (e) {
+      expect((e as ScriptRendererError).code).toBe('RENDER_PARAMETERS_INVALID');
+    }
+  });
+
+  it('array parameters throws RENDER_PARAMETERS_INVALID', () => {
+    const cols = buildColumnRegistry(['Age']);
+    const registry = buildRegistry(cols);
+    const col = registry.byColumnId.get(cols[0].columnId)!;
+    const action = makeAction('trim_whitespace', col.columnId, {
+      trimEdges: true,
+      collapseInternalWhitespace: false,
+    });
+    (action as unknown as { parameters: unknown }).parameters = ['exploit'];
+    expect(() => renderActionV2(action, col, registry)).toThrow(ScriptRendererError);
+    try {
+      renderActionV2(action, col, registry);
+    } catch (e) {
+      expect((e as ScriptRendererError).code).toBe('RENDER_PARAMETERS_INVALID');
+    }
+  });
+
+  it('empty object parameters passes validation but then fails on missing required fields', () => {
+    const cols = buildColumnRegistry(['Age']);
+    const registry = buildRegistry(cols);
+    const col = registry.byColumnId.get(cols[0].columnId)!;
+    const action = makeAction('trim_whitespace', col.columnId, {
+      trimEdges: true,
+      collapseInternalWhitespace: false,
+    });
+    (action as unknown as { parameters: unknown }).parameters = {};
+    expect(() => renderActionV2(action, col, registry)).toThrow(ScriptRendererError);
+    try {
+      renderActionV2(action, col, registry);
+    } catch (e) {
+      expect((e as ScriptRendererError).code).toBe('RENDER_PARAMETERS_INVALID');
+    }
+  });
+});
+
+describe('Loop 2R: Script output sanitization', () => {
+  it('scriptText never contains __import__', () => {
+    const cols = buildColumnRegistry(['Age']);
+    const registry = buildRegistry(cols);
+    const trustedCol = registry.byColumnId.get(cols[0].columnId)!;
+    const action = makeAction('trim_whitespace', trustedCol.columnId, {
+      trimEdges: true,
+      collapseInternalWhitespace: false,
+    });
+    const script = buildScriptText([{ action, columnRef: trustedCol }], registry);
+    expect(script).not.toContain('__import__');
+  });
+
+  it('scriptText never contains eval(', () => {
+    const cols = buildColumnRegistry(['Age']);
+    const registry = buildRegistry(cols);
+    const trustedCol = registry.byColumnId.get(cols[0].columnId)!;
+    const action = makeAction('trim_whitespace', trustedCol.columnId, {
+      trimEdges: true,
+      collapseInternalWhitespace: false,
+    });
+    const script = buildScriptText([{ action, columnRef: trustedCol }], registry);
+    expect(script).not.toContain('eval(');
+  });
+
+  it('scriptText never contains exec(', () => {
+    const cols = buildColumnRegistry(['Age']);
+    const registry = buildRegistry(cols);
+    const trustedCol = registry.byColumnId.get(cols[0].columnId)!;
+    const action = makeAction('trim_whitespace', trustedCol.columnId, {
+      trimEdges: true,
+      collapseInternalWhitespace: false,
+    });
+    const script = buildScriptText([{ action, columnRef: trustedCol }], registry);
+    expect(script).not.toContain('exec(');
   });
 });

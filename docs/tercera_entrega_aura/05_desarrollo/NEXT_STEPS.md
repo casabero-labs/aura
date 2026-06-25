@@ -6,14 +6,16 @@ Phase 3 está cerrada y congelada en `d3774dd5ac98d89ca4454c693b1b0a30856cd191`.
 
 Phase 4 Loop 1R.1 cerrado técnicamente.
 
-**Loop 2 implementado. Pendiente de revisión focalizada antes de Loop 3.**
+**Loop 2R implementado. Pendiente de verificación directa antes de Loop 3.**
 
-## Loop 2 — Implementado
+## Loop 2R — Implementado
 
-Renderer determinista:
-- `scriptRendererV2.ts` — 8 códigos de error, 6 actionTypes
-- `scriptRendererV2.test.ts` — 70 tests
-- Build: ~3s. Suite: 850 passed, 6 skipped. Contracts: 3/3 PASS. Python: PASS.
+Hardening del renderer:
+- `validateColumnRef` con 8 campos (incl pythonLiteral, isReservedWord)
+- Import de helpers oficiales desde scriptColumnResolver.ts
+- Parámetros validados pre-casting
+- 97 tests (71 + 26 nuevos)
+- Suite: 877 passed, 6 skipped. Build: ~3s. Contracts: 3/3 PASS. Python: PASS.
 
 ## Loops pendientes
 
@@ -26,4 +28,4 @@ Renderer determinista:
 
 ## Regla
 
-Loop 3 puede iniciarse tras revisión focalizada de Loop 2. No iniciar Phase 5 hasta congelar Phase 4.
+Loop 3 puede iniciarse tras verificación directa de Loop 2R. No iniciar Phase 5 hasta congelar Phase 4.

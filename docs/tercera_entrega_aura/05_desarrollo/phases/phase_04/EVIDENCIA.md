@@ -134,13 +134,83 @@ cd src && npm run contracts:v2:validate-local
 
 ---
 
+## Loop 2R — Hardening del renderer
+
+### Comandos de reproducción
+
+```bash
+cd src && npm test -- scriptRendererV2
+# 97 passed (71 existentes + 26 nuevos)
+
+cd src && npm test
+# 877 passed, 6 skipped
+
+cd src && npm run build
+# built in ~3s
+
+cd src && npm run contracts:v2:validate-local
+# 3/3 PASS
+```
+
+### Falsificación de pythonLiteral evidence
+
+| Ataque | Resultado |
+|---|---|
+| `__import__("os").system("malicious")` in pythonLiteral | RENDER_COLUMN_MISMATCH |
+| `eval(__import__...)` in pythonLiteral | RENDER_COLUMN_MISMATCH |
+| `exec(...)` in pythonLiteral | RENDER_COLUMN_MISMATCH |
+| newline injection in pythonLiteral | RENDER_COLUMN_MISMATCH |
+| comment injection in pythonLiteral | RENDER_COLUMN_MISMATCH |
+| pythonLiteral from another existing column | RENDER_COLUMN_MISMATCH |
+
+### Falsificación de metadata
+
+| Campo alterado | Resultado |
+|---|---|
+| `isReservedWord` | RENDER_COLUMN_MISMATCH |
+| `position` | RENDER_COLUMN_MISMATCH |
+| `duplicateOrdinal` | RENDER_COLUMN_MISMATCH |
+| `isDuplicate` | RENDER_COLUMN_MISMATCH |
+| `name` | RENDER_COLUMN_MISMATCH |
+
+### Parameters validation
+
+| Entrada | Resultado |
+|---|---|
+| `null` | RENDER_PARAMETERS_INVALID |
+| `undefined` | RENDER_PARAMETERS_INVALID |
+| `"string"` | RENDER_PARAMETERS_INVALID |
+| `["array"]` | RENDER_PARAMETERS_INVALID |
+| `{}` (empty) | RENDER_PARAMETERS_INVALID |
+
+### Script output sanitization
+
+| Check | Resultado |
+|---|---|
+| scriptText never contains `__import__` | ✓ |
+| scriptText never contains `eval(` | ✓ |
+| scriptText never contains `exec(` | ✓ |
+
+### Confirmaciones
+
+- REVISION_ADVERSARIAL_LOOP1.md no cambió
+- REAUDITORIA_LOOP1R.md no cambió
+- Phase 3 no cambió
+- `columnRegistry.ts` no fue modificado
+- `placeholderVocabulary.ts` no fue modificado
+- `scriptColumnResolver.ts` no fue modificado
+- No se calculó scriptHash contractual
+- No se ejecutaron transformaciones
+
+---
+
 ## Loop 2 — Renderer determinista
 
 ### Comandos de reproducción
 
 ```bash
 cd src && npm test -- scriptRendererV2
-# 70 passed
+# 97 passed
 
 cd src && npm test
 # 850 passed, 6 skipped

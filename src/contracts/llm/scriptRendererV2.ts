@@ -1,12 +1,14 @@
 /**
- * Script Renderer v2 — Phase 4 Loop 2.
+ * Script Renderer v2 — Phase 4 Loop 2R.
  *
- * Deterministic Python/Pandas script renderer.
- * Transforms approved RemediationActionV2[] into executable script text.
- * NO LLM involvement. NO timestamps. NO UUIDs. NO clock.
+ * Deterministic Python/Pandas script renderer. Hardened.
+ * NO LLM. NO timestamps. NO UUIDs. NO clock.
  *
  * Canonical column reference: _c["columnId"]
  * Duplicates: _c["columnId"]["position"]
+ *
+ * Uses official helpers from scriptColumnResolver.ts exclusively.
+ * ColumnRef is untrusted input — registry is the only authority.
  */
 
 import type {
@@ -14,15 +16,14 @@ import type {
   ColumnRegistryV2,
   RemediationActionV2,
   RemediationActionTypeV2,
-  TrimWhitespaceParams,
-  DropExactDuplicatesParams,
-  NormalizePlaceholdersParams,
-  NormalizeCasingParams,
-  ConvertDisguisedNumbersParams,
   RequiresHumanReviewParams,
 } from './types';
 import { generateSafeColumnDict } from './columnRegistry';
 import { PLACEHOLDER_VOCABULARY_V2 } from './placeholderVocabulary';
+import {
+  buildColumnReadExpression,
+  buildColumnWriteTarget,
+} from './scriptColumnResolver';
 
 // ── Version ──
 
@@ -61,139 +62,138 @@ function rendererError(code: ScriptRendererErrorCode, message: string): never {
   throw new ScriptRendererError(code, message);
 }
 
-// ── Column Validation ──
+// ── Parameter Validation ──
 
-function validateColumnRefForAction(
-  col: ColumnRef | null,
+function validateParameters(parameters: unknown, actionId: string): void {
+  if (parameters === null || parameters === undefined) {
+    rendererError(
+      'RENDER_PARAMETERS_INVALID',
+      `RENDER_PARAMETERS_INVALID: action "${actionId}" has null/undefined parameters`,
+    );
+  }
+  if (typeof parameters !== 'object') {
+    rendererError(
+      'RENDER_PARAMETERS_INVALID',
+      `RENDER_PARAMETERS_INVALID: action "${actionId}" parameters must be an object, got ${typeof parameters}`,
+    );
+  }
+  if (Array.isArray(parameters)) {
+    rendererError(
+      'RENDER_PARAMETERS_INVALID',
+      `RENDER_PARAMETERS_INVALID: action "${actionId}" parameters must be an object, got array`,
+    );
+  }
+}
+
+// ── Action Type Classification ──
+
+const COLUMN_REQUIRED_ACTIONS: readonly RemediationActionTypeV2[] = [
+  'trim_whitespace',
+  'normalize_placeholders',
+  'normalize_casing',
+  'convert_disguised_numbers',
+];
+
+const COLUMN_FORBIDDEN_ACTIONS: readonly RemediationActionTypeV2[] = [
+  'drop_exact_duplicates',
+];
+
+// ── Column Validation (untrusted ColumnRef → trusted registryCol) ──
+
+function columnsMatch(a: ColumnRef, b: ColumnRef): boolean {
+  return (
+    a.columnId === b.columnId &&
+    a.name === b.name &&
+    a.position === b.position &&
+    a.duplicateOrdinal === b.duplicateOrdinal &&
+    a.pythonLiteral === b.pythonLiteral &&
+    a.isDuplicate === b.isDuplicate &&
+    a.isAmbiguous === b.isAmbiguous &&
+    a.isReservedWord === b.isReservedWord
+  );
+}
+
+/**
+ * Validate a columnRef against the registry.
+ * The ColumnRef is UNTRUSTED. After validation, returns the registry column.
+ */
+function validateColumnRef(
+  columnRef: ColumnRef,
   action: RemediationActionV2,
   registry: ColumnRegistryV2,
 ): ColumnRef {
-  if (action.approvalStatus !== 'approved') {
+  if (action.columnId !== null && action.columnId !== columnRef.columnId) {
     rendererError(
-      'RENDER_ACTION_NOT_APPROVED',
-      `RENDER_ACTION_NOT_APPROVED: action "${action.actionId}" has approvalStatus "${action.approvalStatus}"`,
+      'RENDER_COLUMN_MISMATCH',
+      `RENDER_COLUMN_MISMATCH: action.columnId "${action.columnId}" does not match columnRef.columnId "${columnRef.columnId}"`,
     );
   }
 
-  const actionTypeRequiresColumn: RemediationActionTypeV2[] = [
-    'trim_whitespace',
-    'normalize_placeholders',
-    'normalize_casing',
-    'convert_disguised_numbers',
-  ];
-
-  const actionTypeAllowsNullColumn: RemediationActionTypeV2[] = [
-    'drop_exact_duplicates',
-  ];
-
-  const requiresColumn = actionTypeRequiresColumn.includes(action.actionType);
-  const allowsNullColumn = actionTypeAllowsNullColumn.includes(action.actionType);
-
-  if (col === null) {
-    if (requiresColumn) {
-      rendererError(
-        'RENDER_COLUMN_REQUIRED',
-        `RENDER_COLUMN_REQUIRED: actionType "${action.actionType}" requires a column`,
-      );
-    }
-    if (!allowsNullColumn && action.actionType !== 'requires_human_review') {
-      rendererError(
-        'RENDER_COLUMN_REQUIRED',
-        `RENDER_COLUMN_REQUIRED: actionType "${action.actionType}" does not allow null column`,
-      );
-    }
+  const registryCol = registry.byColumnId.get(columnRef.columnId);
+  if (!registryCol) {
+    rendererError(
+      'RENDER_COLUMN_NOT_IN_REGISTRY',
+      `RENDER_COLUMN_NOT_IN_REGISTRY: columnRef.columnId "${columnRef.columnId}" not found in registry`,
+    );
   }
 
-  if (col !== null) {
-    if (action.columnId !== null && action.columnId !== col.columnId) {
-      rendererError(
-        'RENDER_COLUMN_MISMATCH',
-        `RENDER_COLUMN_MISMATCH: action.columnId "${action.columnId}" does not match columnRef.columnId "${col.columnId}"`,
-      );
-    }
-
-    const registryCol = registry.byColumnId.get(col.columnId);
-    if (!registryCol) {
-      rendererError(
-        'RENDER_COLUMN_NOT_IN_REGISTRY',
-        `RENDER_COLUMN_NOT_IN_REGISTRY: columnRef.columnId "${col.columnId}" not found in registry`,
-      );
-    }
-
-    if (col.isAmbiguous) {
-      rendererError(
-        'RENDER_COLUMN_AMBIGUOUS',
-        `RENDER_COLUMN_AMBIGUOUS: column "${col.columnId}" is marked ambiguous`,
-      );
-    }
-
-    if (
-      col.columnId !== registryCol.columnId ||
-      col.name !== registryCol.name ||
-      col.position !== registryCol.position ||
-      col.duplicateOrdinal !== registryCol.duplicateOrdinal ||
-      col.isDuplicate !== registryCol.isDuplicate ||
-      col.isAmbiguous !== registryCol.isAmbiguous
-    ) {
-      rendererError(
-        'RENDER_COLUMN_MISMATCH',
-        `RENDER_COLUMN_MISMATCH: columnRef does not match registry for "${col.columnId}"`,
-      );
-    }
+  if (!columnsMatch(columnRef, registryCol)) {
+    rendererError(
+      'RENDER_COLUMN_MISMATCH',
+      `RENDER_COLUMN_MISMATCH: columnRef fields do not match registry for "${columnRef.columnId}"`,
+    );
   }
 
-  return col!;
-}
-
-// ── Expression Builders ──
-
-function buildReadExpression(col: ColumnRef): string {
-  if (col.isDuplicate) {
-    return `df_clean.iloc[:, ${col.pythonLiteral}["position"]]`;
+  if (registryCol.isAmbiguous) {
+    rendererError(
+      'RENDER_COLUMN_AMBIGUOUS',
+      `RENDER_COLUMN_AMBIGUOUS: column "${registryCol.columnId}" is marked ambiguous`,
+    );
   }
-  return `df_clean[${col.pythonLiteral}]`;
-}
 
-function buildWriteTarget(col: ColumnRef): string {
-  if (col.isDuplicate) {
-    return `df_clean.iloc[:, ${col.pythonLiteral}["position"]]`;
-  }
-  return `df_clean[${col.pythonLiteral}]`;
+  return registryCol;
 }
 
 // ── Action Renderers ──
+
+// Verified col: trusted registry ColumnRef (never the untrusted input)
 
 function renderTrimWhitespace(
   action: RemediationActionV2,
   col: ColumnRef,
 ): string {
-  const params = action.parameters as TrimWhitespaceParams;
-  if (params.trimEdges !== true) {
+  const params = action.parameters;
+  validateParameters(params, action.actionId);
+  if (
+    typeof (params as Record<string, unknown>).trimEdges !== 'boolean' ||
+    (params as Record<string, unknown>).trimEdges !== true
+  ) {
     rendererError(
       'RENDER_PARAMETERS_INVALID',
-      `RENDER_PARAMETERS_INVALID: trim_whitespace requires trimEdges=true, got ${JSON.stringify(params.trimEdges)}`,
+      `RENDER_PARAMETERS_INVALID: trim_whitespace requires trimEdges=true`,
     );
   }
 
-  const read = buildReadExpression(col);
-  const target = buildWriteTarget(col);
+  const collapse = (params as Record<string, unknown>).collapseInternalWhitespace;
+  if (typeof collapse !== 'boolean') {
+    rendererError(
+      'RENDER_PARAMETERS_INVALID',
+      `RENDER_PARAMETERS_INVALID: trim_whitespace collapseInternalWhitespace must be boolean`,
+    );
+  }
 
-  if (params.collapseInternalWhitespace === false) {
+  const read = buildColumnReadExpression(col);
+  const target = buildColumnWriteTarget(col);
+
+  if (collapse === false) {
     return `    ${target} = ${read}.astype("string").str.strip()`;
   }
-
-  if (params.collapseInternalWhitespace === true) {
-    return `    ${target} = ${read}.astype("string").str.strip().str.replace(r"\\s+", " ", regex=True)`;
-  }
-
-  rendererError(
-    'RENDER_PARAMETERS_INVALID',
-    `RENDER_PARAMETERS_INVALID: trim_whitespace collapseInternalWhitespace must be boolean, got ${JSON.stringify(params.collapseInternalWhitespace)}`,
-  );
+  return `    ${target} = ${read}.astype("string").str.strip().str.replace(r"\\s+", " ", regex=True)`;
 }
 
 function renderDropExactDuplicates(action: RemediationActionV2): string {
-  const params = action.parameters as DropExactDuplicatesParams;
+  const params = action.parameters;
+  validateParameters(params, action.actionId);
 
   if (action.columnId !== null) {
     rendererError(
@@ -202,10 +202,13 @@ function renderDropExactDuplicates(action: RemediationActionV2): string {
     );
   }
 
-  if (params.keep !== 'first') {
+  if (
+    typeof (params as Record<string, unknown>).keep !== 'string' ||
+    (params as Record<string, unknown>).keep !== 'first'
+  ) {
     rendererError(
       'RENDER_PARAMETERS_INVALID',
-      `RENDER_PARAMETERS_INVALID: drop_exact_duplicates requires keep="first", got "${params.keep}"`,
+      `RENDER_PARAMETERS_INVALID: drop_exact_duplicates requires keep="first"`,
     );
   }
 
@@ -216,24 +219,28 @@ function renderNormalizePlaceholders(
   action: RemediationActionV2,
   col: ColumnRef,
 ): string {
-  const params = action.parameters as NormalizePlaceholdersParams;
+  const params = action.parameters;
+  validateParameters(params, action.actionId);
 
-  if (params.strategy !== 'controlled_vocabulary') {
+  if (
+    typeof (params as Record<string, unknown>).strategy !== 'string' ||
+    (params as Record<string, unknown>).strategy !== 'controlled_vocabulary'
+  ) {
     rendererError(
       'RENDER_PARAMETERS_INVALID',
-      `RENDER_PARAMETERS_INVALID: normalize_placeholders requires strategy="controlled_vocabulary", got "${params.strategy}"`,
+      `RENDER_PARAMETERS_INVALID: normalize_placeholders requires strategy="controlled_vocabulary"`,
     );
   }
 
-  if (params.replacement !== null) {
+  if ((params as Record<string, unknown>).replacement !== null) {
     rendererError(
       'RENDER_PARAMETERS_INVALID',
-      `RENDER_PARAMETERS_INVALID: normalize_placeholders requires replacement=null, got ${JSON.stringify(params.replacement)}`,
+      `RENDER_PARAMETERS_INVALID: normalize_placeholders requires replacement=null`,
     );
   }
 
-  const read = buildReadExpression(col);
-  const target = buildWriteTarget(col);
+  const read = buildColumnReadExpression(col);
+  const target = buildColumnWriteTarget(col);
 
   const placeholders = PLACEHOLDER_VOCABULARY_V2;
   const serializedPlaceholders = placeholders.map(v => JSON.stringify(v)).join(', ');
@@ -245,21 +252,31 @@ function renderNormalizeCasing(
   action: RemediationActionV2,
   col: ColumnRef,
 ): string {
-  const params = action.parameters as NormalizeCasingParams;
-  const read = buildReadExpression(col);
-  const target = buildWriteTarget(col);
+  const params = action.parameters;
+  validateParameters(params, action.actionId);
 
-  if (params.strategy === 'title_case') {
+  const strategy = (params as Record<string, unknown>).strategy;
+  if (typeof strategy !== 'string') {
+    rendererError(
+      'RENDER_PARAMETERS_INVALID',
+      `RENDER_PARAMETERS_INVALID: normalize_casing strategy must be a string`,
+    );
+  }
+
+  const read = buildColumnReadExpression(col);
+  const target = buildColumnWriteTarget(col);
+
+  if (strategy === 'title_case') {
     return `    ${target} = ${read}.astype("string").str.strip().str.title()`;
   }
 
-  if (params.strategy === 'lowercase') {
+  if (strategy === 'lowercase') {
     return `    ${target} = ${read}.astype("string").str.strip().str.lower()`;
   }
 
   rendererError(
     'RENDER_PARAMETERS_INVALID',
-    `RENDER_PARAMETERS_INVALID: normalize_casing strategy must be "title_case" or "lowercase", got "${params.strategy}"`,
+    `RENDER_PARAMETERS_INVALID: normalize_casing strategy must be "title_case" or "lowercase", got "${strategy}"`,
   );
 }
 
@@ -267,24 +284,31 @@ function renderConvertDisguisedNumbers(
   action: RemediationActionV2,
   col: ColumnRef,
 ): string {
-  const params = action.parameters as ConvertDisguisedNumbersParams;
+  const params = action.parameters;
+  validateParameters(params, action.actionId);
 
-  if (params.decimalSeparator !== 'auto') {
+  if (
+    typeof (params as Record<string, unknown>).decimalSeparator !== 'string' ||
+    (params as Record<string, unknown>).decimalSeparator !== 'auto'
+  ) {
     rendererError(
       'RENDER_PARAMETERS_INVALID',
-      `RENDER_PARAMETERS_INVALID: convert_disguised_numbers requires decimalSeparator="auto", got "${params.decimalSeparator}"`,
+      `RENDER_PARAMETERS_INVALID: convert_disguised_numbers requires decimalSeparator="auto"`,
     );
   }
 
-  if (params.errors !== 'coerce') {
+  if (
+    typeof (params as Record<string, unknown>).errors !== 'string' ||
+    (params as Record<string, unknown>).errors !== 'coerce'
+  ) {
     rendererError(
       'RENDER_PARAMETERS_INVALID',
-      `RENDER_PARAMETERS_INVALID: convert_disguised_numbers requires errors="coerce", got "${params.errors}"`,
+      `RENDER_PARAMETERS_INVALID: convert_disguised_numbers requires errors="coerce"`,
     );
   }
 
-  const read = buildReadExpression(col);
-  const target = buildWriteTarget(col);
+  const read = buildColumnReadExpression(col);
+  const target = buildColumnWriteTarget(col);
 
   return [
     `    ${target} = pd.to_numeric(`,
@@ -294,11 +318,17 @@ function renderConvertDisguisedNumbers(
   ].join('\n');
 }
 
-function renderRequiresHumanReview(
-  action: RemediationActionV2,
-  _col: ColumnRef | null,
-): string {
-  const params = action.parameters as RequiresHumanReviewParams;
+function renderRequiresHumanReview(action: RemediationActionV2): string {
+  const params = action.parameters;
+  validateParameters(params, action.actionId);
+
+  const reasonCode = (params as Record<string, unknown>).reasonCode;
+  if (typeof reasonCode !== 'string') {
+    rendererError(
+      'RENDER_PARAMETERS_INVALID',
+      `RENDER_PARAMETERS_INVALID: requires_human_review reasonCode must be a string`,
+    );
+  }
 
   const validReasonCodes: RequiresHumanReviewParams['reasonCode'][] = [
     'unknown_rule',
@@ -309,14 +339,14 @@ function renderRequiresHumanReview(
     'no_safe_transform',
   ];
 
-  if (!validReasonCodes.includes(params.reasonCode)) {
+  if (!(validReasonCodes as string[]).includes(reasonCode)) {
     rendererError(
       'RENDER_PARAMETERS_INVALID',
-      `RENDER_PARAMETERS_INVALID: requires_human_review reasonCode "${params.reasonCode}" is not a valid closed reasonCode`,
+      `RENDER_PARAMETERS_INVALID: requires_human_review reasonCode "${reasonCode}" is not a valid closed reasonCode`,
     );
   }
 
-  return `    # AURA review-only: reasonCode=${params.reasonCode}; no transformation rendered`;
+  return `    # AURA review-only: reasonCode=${reasonCode}; no transformation rendered`;
 }
 
 // ── Main Render Function ──
@@ -333,65 +363,79 @@ export function renderActionV2(
     );
   }
 
-  const actionTypeRequiresColumn: RemediationActionTypeV2[] = [
-    'trim_whitespace',
-    'normalize_placeholders',
-    'normalize_casing',
-    'convert_disguised_numbers',
-  ];
+  const requiresColumn = COLUMN_REQUIRED_ACTIONS.includes(action.actionType);
+  const forbidsColumn = COLUMN_FORBIDDEN_ACTIONS.includes(action.actionType);
 
-  const actionTypeAllowsNullColumn: RemediationActionTypeV2[] = [
-    'drop_exact_duplicates',
-    'requires_human_review',
-  ];
-
-  const requiresColumn = actionTypeRequiresColumn.includes(action.actionType);
-  const allowsNullColumn = actionTypeAllowsNullColumn.includes(action.actionType);
-
-  if (columnRef === null) {
-    if (requiresColumn) {
+  // ── Action type requires a column ──
+  if (requiresColumn) {
+    if (action.columnId === null) {
       rendererError(
         'RENDER_COLUMN_REQUIRED',
-        `RENDER_COLUMN_REQUIRED: actionType "${action.actionType}" requires a column`,
+        `RENDER_COLUMN_REQUIRED: actionType "${action.actionType}" requires a column but action.columnId is null`,
       );
     }
-    if (!allowsNullColumn) {
+    if (columnRef === null) {
       rendererError(
         'RENDER_COLUMN_REQUIRED',
-        `RENDER_COLUMN_REQUIRED: actionType "${action.actionType}" does not allow null column`,
+        `RENDER_COLUMN_REQUIRED: actionType "${action.actionType}" requires a column but columnRef is null`,
       );
     }
   }
 
-  const col = columnRef !== null
-    ? validateColumnRefForAction(columnRef, action, registry)
-    : null;
-
-  if (col !== null && action.columnId !== null && action.columnId !== col.columnId) {
+  // ── Action type forbids a column ──
+  if (forbidsColumn && columnRef !== null) {
     rendererError(
-      'RENDER_COLUMN_MISMATCH',
-      `RENDER_COLUMN_MISMATCH: action.columnId "${action.columnId}" does not match resolved columnRef.columnId "${col.columnId}"`,
+      'RENDER_COLUMN_NOT_ALLOWED',
+      `RENDER_COLUMN_NOT_ALLOWED: actionType "${action.actionType}" does not allow a columnRef`,
     );
   }
 
+  // ── Validate and resolve columnRef (untrusted → trusted registryCol) ──
+  let resolvedCol: ColumnRef | null = null;
+  if (columnRef !== null) {
+    resolvedCol = validateColumnRef(columnRef, action, registry);
+
+    if (action.columnId !== null && action.columnId !== resolvedCol.columnId) {
+      rendererError(
+        'RENDER_COLUMN_MISMATCH',
+        `RENDER_COLUMN_MISMATCH: action.columnId "${action.columnId}" does not match resolved column "${resolvedCol.columnId}"`,
+      );
+    }
+  }
+
+  // ── requires_human_review consistency ──
+  if (action.actionType === 'requires_human_review') {
+    if (action.columnId === null && columnRef !== null) {
+      rendererError(
+        'RENDER_COLUMN_NOT_ALLOWED',
+        `RENDER_COLUMN_NOT_ALLOWED: requires_human_review with action.columnId=null must have columnRef=null`,
+      );
+    }
+    if (action.columnId !== null && columnRef === null) {
+      rendererError(
+        'RENDER_COLUMN_REQUIRED',
+        `RENDER_COLUMN_REQUIRED: requires_human_review with action.columnId set requires a matching columnRef`,
+      );
+    }
+    return renderRequiresHumanReview(action);
+  }
+
+  // ── Dispatch ──
   switch (action.actionType) {
     case 'trim_whitespace':
-      return renderTrimWhitespace(action, col!);
+      return renderTrimWhitespace(action, resolvedCol!);
 
     case 'drop_exact_duplicates':
       return renderDropExactDuplicates(action);
 
     case 'normalize_placeholders':
-      return renderNormalizePlaceholders(action, col!);
+      return renderNormalizePlaceholders(action, resolvedCol!);
 
     case 'normalize_casing':
-      return renderNormalizeCasing(action, col!);
+      return renderNormalizeCasing(action, resolvedCol!);
 
     case 'convert_disguised_numbers':
-      return renderConvertDisguisedNumbers(action, col!);
-
-    case 'requires_human_review':
-      return renderRequiresHumanReview(action, col);
+      return renderConvertDisguisedNumbers(action, resolvedCol!);
 
     default: {
       const exhaustiveCheck: never = action;

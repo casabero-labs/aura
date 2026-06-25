@@ -96,9 +96,66 @@
 
 ---
 
-## Loop 2: Renderer determinista
+## Loop 2R: Hardening del renderer
 
 **SHA:** `<commit actual>`
+
+### Defectos cerrados
+
+| # | Defecto | Corrección |
+|---|---|---|
+| F1 | `ColumnRef.pythonLiteral` falsificado | `validateColumnRef` compara 8 campos (incl pythonLiteral, isReservedWord); retorna registryCol |
+| F2 | `buildReadExpression` / `buildWriteTarget` duplicados | Eliminados; usa `buildColumnReadExpression` / `buildColumnWriteTarget` de scriptColumnResolver.ts |
+| F3 | `action.columnId === null` para acciones por columna | `RENDER_COLUMN_REQUIRED` si `action.columnId === null` |
+| F4 | `drop_exact_duplicates` con `columnRef !== null` | `RENDER_COLUMN_NOT_ALLOWED` |
+| F5 | `requires_human_review` con referencias incoherentes | Reglas de consistencia action.columnId ↔ columnRef |
+| F6 | Parámetros null/undefined/string/array | `validateParameters` pre-casting |
+| F7 | `isReservedWord` no validado | Incluido en `columnsMatch` |
+
+### Archivos modificados
+
+| Archivo | Cambio |
+|---|---|
+| `scriptRendererV2.ts` | Reescritura con validateColumnRef (8 campos), import de helpers oficiales, validateParameters |
+| `scriptRendererV2.test.ts` | +26 tests (falsified pythonLiteral, isReservedWord, params, consistency) |
+
+### Tests (97 total, +26)
+
+| Suite nueva | Tests |
+|---|---|
+| Falsified pythonLiteral | 8 |
+| Falsified isReservedWord | 5 |
+| Null columnId for required-column actions | 2 |
+| drop_exact_duplicates with non-null columnRef | 1 |
+| requires_human_review consistency | 3 |
+| Parameters validation | 5 |
+| Script output sanitization | 3 |
+| **Total nuevos** | **27** |
+
+### Verificaciones
+
+| Verificación | Resultado |
+|---|---|
+| Suite completa | 877 passed, 6 skipped |
+| Build | built in ~3s |
+| Contracts v2 | 3/3 PASS |
+| Python `ast.parse` | PASSED |
+
+### Ataque rechazado (ejemplo)
+
+```typescript
+// pythonLiteral falsificado
+const fakeCol = { ...registryCol, pythonLiteral: `__import__("os").system("malicious")` };
+renderActionV2(action, fakeCol, registry);
+// → ScriptRendererError: RENDER_COLUMN_MISMATCH
+// El texto malicioso nunca aparece en scriptText
+```
+
+---
+
+## Loop 2: Renderer determinista
+
+**SHA:** `fe96be289684c821c53b6ecc6d77065af5196bca`
 
 ### API implementada
 

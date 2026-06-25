@@ -1,6 +1,6 @@
 # Limitaciones — Phase 4
 
-## Loop 2 — Renderer determinista
+## Loop 2R — Hardening del renderer
 
 ### Limitaciones
 
@@ -19,16 +19,15 @@
 13. **`requires_human_review` no genera transformación:** Loop 3 excluirá esta acción de `acceptedActionIds`.
 14. **El renderer no decide la partición:** Recibe acciones ya seleccionadas, solo las renderiza.
 
-### Curados en Loop 2
+### Curados en Loop 2R
 
-- Renderer implementado: `scriptRendererV2.ts` con 8 códigos de error
-
-### Curados en Loop 1R.1
-
-- ReadonlyMap: closure-based (sin propiedad `_map`)
-- `forEach`: callback recibe la vista readonly (sin `set`/`delete`/`clear`)
-- `resolveScriptColumn`: fail-closed (correspondenceEvidence obligatorio)
-- Duplicate metadata: validación de flags, ordinales, gaps
+- ColumnRef no confiable: `validateColumnRef` compara 8 campos contra registry
+- pythonLiteral falsificado: rechazado con RENDER_COLUMN_MISMATCH
+- Helpers oficiales: importa de scriptColumnResolver.ts
+- Parámetros malformados: validación pre-casting
+- `action.columnId === null` para acciones por columna: RENDER_COLUMN_REQUIRED
+- `drop_exact_duplicates` con columnRef no nulo: RENDER_COLUMN_NOT_ALLOWED
+- `requires_human_review` con referencias incoherentes: reglas de consistencia
 
 ### Claims NO permitidos aún
 
