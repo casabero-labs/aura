@@ -16,7 +16,7 @@
 | **Columnas** | 12 |
 | **SHA-256** | `4a437fde05fe5264e1701a7387ac6fb75393772ba38bb2c9c566405af5af4bd7` |
 | **Fecha de Ejecución** | Mayo 2026 |
-| **Modo** | Baseline v1, sin Constraints v2 |
+| **Modo** | Baseline v1, sin Contracts v2 |
 
 ## Matriz de Confusión Global
 
@@ -42,9 +42,7 @@
 El **84.85% de acciones inseguras** en la baseline v1 es la razón arquitectónica
 principal para Contracts v2:
 
-- Sin Constraints v2, el sistema generaba demasiadas acciones potencialmente destructivas.
-- `computeEffectiveActionability` y `remediationPolicyV2` implementan la política conservadora
-  que degrada `auto_safe` → `review_only` cuando la columna tiene `requiresReview=true`.
+- Sin Contracts v2, el sistema carecía de la política de `computeEffectiveActionability` que degrada `auto_safe` → `review_only` según 8 reglas: nivel de acciónabilidad configurado, validación de autorización automática, coincidencia de tipo de acción con el registro, presencia del issue en el diagnóstico, columna ambigua/duplicada, y `requiresHumanReview` del diagnóstico.
 - La validación fail-closed (`validateRemediationPlanV2`) rechaza cualquier plan que asigne
   `auto_safe` a una acción que debería ser `review_only`.
 - Esta política es la causa de **cero auto_safe** en los datasets del harness de Phase 3:

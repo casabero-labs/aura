@@ -254,7 +254,7 @@ El contexto de remediación se construye con `buildRemediationContext` y es excl
 
 1. **Política de acción:** para cada issue, consulta `lookupRemediationAction(ruleId)` en `remediationPolicyV2.ts`. Esta tabla es cerrada: por cada `ruleId` existe exactamente un `actionType` autorizado. No hay variabilidad.
 
-2. **Actionability:** `computeEffectiveActionability` calcula si la acción es `auto_safe`, `review_only` o `not_actionable`. La función degrada `auto_safe` → `review_only` cuando la columna tiene `requiresReview=true` o la regla exige supervisión. Este degradamiento es univalente: nunca sube de nivel.
+2. **Actionability:** `computeEffectiveActionability` calcula si la acción es `auto_safe`, `review_only` o `not_actionable`. La función degrada `auto_safe` → `review_only` según 8 reglas: nivel de acciónabilidad configurado, validación de autorización automática, coincidencia de tipo de acción con el registro, presencia del issue en el diagnóstico, columna ambigua/duplicada, y `requiresHumanReview` del diagnóstico. Este degradamiento es univalente: nunca sube de nivel.
 
 3. **Identificadores:** cada acción recibe un `actionId` calculado como `act:${sha256short(sha256hex(payload))}` donde `payload = { diagnosisRef, issueId, ruleId, columnId, actionType }`. El `planId` se calcula como hash de todo el plan serializado en orden canónico. Estos hashes son deterministas: la misma entrada produce siempre el mismo identificador.
 
@@ -265,8 +265,8 @@ El validador `validateRemediationPlanV2` comprueba la integridad del plan recomp
 `RemediationPlanV2` con:
 
 ```
-planId:             SHA-256 del plan (identidad inmutable)
-diagnosisRef:       Vinculación al diagnóstico
+planId:             `plan:${sha256short(hash)}` del plan serializado (identidad inmutable, longitud por defecto 8 caracteres)
+diagnosisRef:       `diag:${SHA-256 de 64 hex}` del envelope de evidencia (vinculación al diagnóstico)
 plan:               Array<actionId, issueId, ruleId, columnId, actionType,
                         parameters, actionability, evidenceRefs, approvalStatus>
 actionabilityMap:   Record<issueId, auto_safe | review_only | not_actionable>
@@ -293,7 +293,7 @@ Si el plan es inválido (por ejemplo, restaurado con diagnóstico diferente), el
 | Salvaguarda | Mecanismo |
 |---|---|
 | El LLM no selecciona acciones | `lookupRemediationAction` es tabla cerrada; el LLM solo propone scripts sobre acciones ya autorizadas. |
-| No hay auto_safe sin autorización de columna | `computeEffectiveActionability` degrada si `requiresReview=true`. |
+| No hay auto_safe sin validación de autorización | `computeEffectiveActionability` degrada si `automaticAuthorization.authorized=false` o si el tipo de acción no coincide con `remediationPolicyV2`. |
 | El plan no se altera sin perder identidad | `planId` se recomputa en validación; cualquier cambio no autorizado falla. |
 | Acciones no pueden ejecutarse sin aprobación | Estado inicial `pending`; solo `approved` pasa al generador de script. |
 | No se excluyen acciones que requieren revisión | El validador rechaza exclusiones con `actionability === 'review_only'`. |
@@ -312,5 +312,5 @@ Si el plan es inválido (por ejemplo, restaurado con diagnóstico diferente), el
 ### 13.8 Limitaciones
 
 - Los planes se construyen sobre fixtures deterministas (no inferencia LLM real). Los resultados de actionability reflejan las reglas del motor, no la interpretación de un modelo.
-- Cero `auto_safe` en los tres datasets del harness: todas las columnas tienen `requiresReview=true`. El sistema puede generar `auto_safe` cuando las columnas lo permitan; el resultado actual es una consecuencia de la política conservadora.
+- Cero `auto_safe` en los tres datasets del harness: los datasets no satisfacen todas las condiciones necesarias para `auto_safe` según `computeEffectiveActionability` (8 reglas de degradación). El sistema puede generar `auto_safe` cuando se cumplan todas las condiciones de registro, autorización y tipo de acción; el resultado actual es una consecuencia de la política conservadora activa.
 - Sin ejecución real de scripts: el harness valida estructura del plan, no la ejecución de transformaciones. La ejecución requiere export a Colab o Pyodide.

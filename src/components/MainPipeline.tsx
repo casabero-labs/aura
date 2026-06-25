@@ -94,6 +94,18 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, onLog
       remediationPlan,
       benchmarkResults, improvementRun, scriptValidation, deterministicValidation, logs]);
 
+  // ── Phase 3 E2E Harness: expose injection callbacks on window ──
+  useEffect(() => {
+    (window as any).__PHASE3_INJECT__ = (diagnosis: DiagnosisExecutionResult, plan: RemediationPlanV2, opts?: { analysisText?: string }) => {
+      setStructuredDiagnosis(diagnosis);
+      if (plan) setRemediationPlan(plan);
+      if (opts?.analysisText) setAiAnalysis(opts.analysisText);
+    };
+    (window as any).__PHASE3_SET_STATE__ = (state: PipelineState) => {
+      setState(state);
+    };
+  }, []);
+
   // ── Plan lifecycle: clear on new diagnosis, validate restored plan ──
   const prevDiagnosisRef = useRef<string | null>(null);
   const prevEnvelopeRef = useRef<string | null>(null);

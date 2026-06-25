@@ -945,13 +945,13 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
         {hasDiagnosis && !isLoading && (
           <div className="stage-result">
             {isV2 ? (
-              <>
+              <div className="diagnosis-result-v2">
                 <h3 className="stage-result-title">Diagnóstico Estructurado v2</h3>
                 {structuredDiagnosis.diagnosis.diagnosisBlocks.length > 0 && (
                   <div style={{ marginBottom: 'var(--space-md)' }}>
                     <h4 style={{ fontSize: '13px', fontWeight: 600, marginBottom: '8px', color: 'var(--ink2)' }}>Observaciones y Recomendaciones</h4>
                     {structuredDiagnosis.diagnosis.diagnosisBlocks.map((block, i) => (
-                      <div key={i} style={{ marginBottom: '12px', padding: '10px', background: 'var(--surface2)', borderRadius: '6px', borderLeft: '3px solid var(--accent)' }}>
+                      <div key={i} className="diagnosis-block" style={{ marginBottom: '12px', padding: '10px', background: 'var(--surface2)', borderRadius: '6px', borderLeft: '3px solid var(--accent)' }}>
                         <div style={{ fontSize: '12px', color: 'var(--ink3)', marginBottom: '4px' }}>
                           {block.ruleId}{block.columnId ? ` · ${block.columnId}` : ''}
                         </div>
@@ -969,7 +969,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
                   <div style={{ marginBottom: 'var(--space-md)' }}>
                     <h4 style={{ fontSize: '13px', fontWeight: 600, marginBottom: '8px', color: 'var(--ink2)' }}>Hallazgos</h4>
                     {structuredDiagnosis.diagnosis.issues.map((issue, i) => (
-                      <div key={i} style={{ marginBottom: '10px', padding: '8px', background: 'var(--surface1)', borderRadius: '4px' }}>
+                      <div key={i} className="diagnosis-issue" style={{ marginBottom: '10px', padding: '8px', background: 'var(--surface1)', borderRadius: '4px' }}>
                         <div style={{ fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>
                           {issue.hypothesis}
                           {issue.requiresHumanReview && (
@@ -998,7 +998,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
                     ))}
                   </div>
                 )}
-              </>
+              </div>
             ) : (
               <>
                 <h3 className="stage-result-title">Resumen de AURA</h3>

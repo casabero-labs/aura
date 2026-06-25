@@ -168,7 +168,7 @@ const RemediationPlanStepV2: React.FC<RemediationPlanStepV2Props> = ({
       </div>
 
       {v2Plan.plan.map((action, i) => (
-        <div key={action.actionId} className="stage-result" style={{ marginBottom: '12px' }}>
+        <div key={action.actionId} className="stage-result remediation-action" style={{ marginBottom: '12px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <h4 style={{ fontSize: '13px', fontWeight: 600, margin: 0 }}>

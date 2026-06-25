@@ -5,9 +5,8 @@
  * Profile → structured Diagnosis v2 → RemediationPlan v2 → HITL approval.
  *
  * Does NOT call real LLM providers.
- * Screenshots 01-04: always capture (profile, diagnosis).
- * Screenshots 05-06: require structuredDiagnosis (fixture or real LLM).
- *   If CONTRACTS_V2_ENABLED is set, the fixture path provides it.
+ * Harness (Phase3EvidenceHarness) injects pre-computed DiagnosisExecutionResult
+ * and RemediationPlanV2 via window.__PHASE3_INJECT__ (component callbacks).
  *
  * Viewport: 1440 × 1000 as specified.
  * Datasets: synthetic_ground_truth.csv, titanic.csv, adult_income.csv
@@ -15,6 +14,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
+import { PHASE3_TITANIC_DIAGNOSIS, PHASE3_TITANIC_PLAN } from './harness/Phase3EvidenceHarness';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -29,7 +29,7 @@ const SCREENSHOT_DIR = path.resolve(
   '../../../docs/tercera_entrega_aura/03_evidencia/screenshots/phase3',
 );
 
-const COMMIT = 'fe5378e';
+const COMMIT = '8f3f34d';
 const DATE   = '2026-06-24';
 
 async function uploadDataset(page: any, filePath: string) {
@@ -73,106 +73,70 @@ test.describe('Phase 3 — Third Delivery Evidence Screenshots', () => {
     const diagnosisStage = page.locator('[data-testid="diagnosis-stage"]');
     await diagnosisStage.waitFor({ state: 'visible', timeout: 10_000 });
 
-    const genBtn = diagnosisStage.getByRole('button', { name: /(Generar|Regenerar) diagnóstico/i });
-    const canGenerate = await genBtn.isEnabled().catch(() => false);
-    if (canGenerate) {
-      await genBtn.click();
-      await page.waitForTimeout(6000);
-    }
+    await page.evaluate((diag: any) => {
+      (window as any).__PHASE3_INJECT__(diag, null);
+    }, PHASE3_TITANIC_DIAGNOSIS);
 
-    await diagnosisStage.waitFor({ state: 'visible', timeout: 10_000 });
+    await page.waitForTimeout(2000);
     await page.screenshot({ path: path.join(SCREENSHOT_DIR, '04_structured_diagnosis_v2.png'), fullPage: true });
   });
 
-  test('05 — remediation_plan_v2.png (titanic, fixture)', async ({ page }) => {
+  test('05 — remediation_plan_v2.png (titanic)', async ({ page }) => {
     await uploadDataset(page, DATASETS.titanic);
 
-    await page.locator('.profile-actions').getByRole('button', { name: /Generar diagnóstico/i }).click();
-    await page.waitForTimeout(600);
+    await page.evaluate(() => {
+      (window as any).__PHASE3_SET_STATE__('diagnosis');
+    });
 
     const diagnosisStage = page.locator('[data-testid="diagnosis-stage"]');
     await diagnosisStage.waitFor({ state: 'visible', timeout: 10_000 });
 
-    const genBtn = diagnosisStage.getByRole('button', { name: /(Generar|Regenerar) diagnóstico/i });
-    const canGenerate = await genBtn.isEnabled().catch(() => false);
-    if (canGenerate) {
-      await genBtn.click();
-      await page.waitForTimeout(6000);
-    }
+    await page.evaluate((arg: { diag: any; plan: any }) => {
+      (window as any).__PHASE3_INJECT__(arg.diag, arg.plan, { analysisText: 'Diagnóstico estructurado completado vía harness de evidencia.' });
+    }, { diag: PHASE3_TITANIC_DIAGNOSIS, plan: PHASE3_TITANIC_PLAN });
 
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(3000);
 
-    const skipBtn = diagnosisStage.getByRole('button', { name: /Continuar sin diagnóstico/i });
-    const contBtn = page.locator('[data-testid="primary-stage-action"]').getByRole('button', { name: /Continuar a propuesta/i });
-    const hasSkip = await skipBtn.isVisible({ timeout: 5000 }).catch(() => false);
-    const hasCont = await contBtn.isVisible({ timeout: 5000 }).catch(() => false);
+    const contBtn = diagnosisStage.locator('button').filter({ hasText: /Continuar a propuesta/i });
+    await contBtn.waitFor({ state: 'visible', timeout: 10_000 });
+    await contBtn.click();
 
-    if (hasSkip) {
-      await skipBtn.click();
-    } else if (hasCont) {
-      await contBtn.click();
-    }
-
-    await page.waitForTimeout(1000);
-
-    const remStage = page.locator('[data-testid="remediation-stage"]');
-    const remVisible = await remStage.isVisible({ timeout: 5000 }).catch(() => false);
-    if (remVisible) {
-      await remStage.waitFor({ state: 'visible', timeout: 10_000 });
-      await page.screenshot({ path: path.join(SCREENSHOT_DIR, '05_remediation_plan_v2.png'), fullPage: true });
-    } else {
-      await page.screenshot({ path: path.join(SCREENSHOT_DIR, '05_remediation_plan_v2.png'), fullPage: true });
-    }
+    await page.waitForTimeout(1500);
+    await page.screenshot({ path: path.join(SCREENSHOT_DIR, '05_remediation_plan_v2.png'), fullPage: true });
   });
 
-  test('06 — remediation_hitl.png (titanic, fixture)', async ({ page }) => {
+  test('06 — remediation_hitl.png (titanic)', async ({ page }) => {
     await uploadDataset(page, DATASETS.titanic);
 
-    await page.locator('.profile-actions').getByRole('button', { name: /Generar diagnóstico/i }).click();
-    await page.waitForTimeout(600);
+    await page.evaluate(() => {
+      (window as any).__PHASE3_SET_STATE__('diagnosis');
+    });
 
     const diagnosisStage = page.locator('[data-testid="diagnosis-stage"]');
     await diagnosisStage.waitFor({ state: 'visible', timeout: 10_000 });
 
-    const genBtn = diagnosisStage.getByRole('button', { name: /(Generar|Regenerar) diagnóstico/i });
-    const canGenerate = await genBtn.isEnabled().catch(() => false);
-    if (canGenerate) {
-      await genBtn.click();
-      await page.waitForTimeout(6000);
-    }
+    await page.evaluate((arg: { diag: any; plan: any }) => {
+      (window as any).__PHASE3_INJECT__(arg.diag, arg.plan, { analysisText: 'Diagnóstico estructurado completado vía harness de evidencia.' });
+    }, { diag: PHASE3_TITANIC_DIAGNOSIS, plan: PHASE3_TITANIC_PLAN });
 
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(3000);
 
-    const skipBtn = diagnosisStage.getByRole('button', { name: /Continuar sin diagnóstico/i });
-    const contBtn = page.locator('[data-testid="primary-stage-action"]').getByRole('button', { name: /Continuar a propuesta/i });
-    const hasSkip = await skipBtn.isVisible({ timeout: 5000 }).catch(() => false);
-    const hasCont = await contBtn.isVisible({ timeout: 5000 }).catch(() => false);
+    const contBtn = diagnosisStage.locator('button').filter({ hasText: /Continuar a propuesta/i });
+    await contBtn.waitFor({ state: 'visible', timeout: 10_000 });
+    await contBtn.click();
 
-    if (hasSkip) {
-      await skipBtn.click();
-    } else if (hasCont) {
-      await contBtn.click();
-    }
-
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(1500);
 
     const remStage = page.locator('[data-testid="remediation-stage"]');
-    const remVisible = await remStage.isVisible({ timeout: 5000 }).catch(() => false);
-    if (!remVisible) {
-      await page.screenshot({ path: path.join(SCREENSHOT_DIR, '06_remediation_hitl.png'), fullPage: true });
-      return;
-    }
+    const firstAction = remStage.locator('.remediation-action').first();
+    const secondAction = remStage.locator('.remediation-action').nth(1);
 
-    await remStage.waitFor({ state: 'visible', timeout: 10_000 });
-
-    const approveBtn = remStage.locator('button').filter({ hasText: 'Aprobar' }).first();
-    const rejectBtn  = remStage.locator('button').filter({ hasText: 'Rechazar' }).first();
-
-    const hasApprove = await approveBtn.isVisible({ timeout: 3000 }).catch(() => false);
-    const hasReject  = await rejectBtn.isVisible({ timeout: 3000 }).catch(() => false);
-
-    if (hasApprove) { await approveBtn.click(); await page.waitForTimeout(200); }
-    if (hasReject)  { await rejectBtn.click();  await page.waitForTimeout(200); }
+    const firstApproveBtn = firstAction.locator('button').filter({ hasText: 'Aprobar' });
+    const secondRejectBtn = secondAction.locator('button').filter({ hasText: 'Rechazar' });
+    await firstApproveBtn.click();
+    await page.waitForTimeout(300);
+    await secondRejectBtn.click();
+    await page.waitForTimeout(300);
 
     await page.screenshot({ path: path.join(SCREENSHOT_DIR, '06_remediation_hitl.png'), fullPage: true });
   });

@@ -61,7 +61,7 @@ La unidad de evaluación es la **regla por columna**, no el dataset completo. Es
 
 El diagnóstico (`DiagnosisResponseV2`) se construye a partir del envelope y una respuesta estructurada del LLM. En el harness actual se usa fixture determinista (sin inferencia LLM real) para validar la infraestructura del contrato:
 
-- `diagnosisRef`: SHA-256 truncado del envelope (sin responseId ni generatedAt).
+- `diagnosisRef`: `diag:${SHA-256 de 64 hex del envelope}` (sin responseId ni generatedAt).
 - `issues`: cada issue del motor se transforma en bloque de diagnóstico con `evidenceRefs` que apuntan a la evidencia original.
 - `diagnosisBlocks`: mapeo 1:1 entre issue y bloque de remediation.
 - `generatedAt`: marca temporal ISO 8601.
@@ -74,7 +74,7 @@ El `RemediationPlanV2` se construye sin LLM. El constructor `buildRemediationPla
 
 1. `DiagnosisExecutionResult` con `remediationContext` y `diagnosis`.
 2. Por cada issue del contexto, consulta `remediationPolicyV2` para determinar el `actionType` autorizado.
-3. Calcula `actionability` con `computeEffectiveActionability` (que degrade `auto_safe` → `review_only` si la columna tiene `requiresReview=true` o la regla exige revisión).
+3. Calcula `actionability` con `computeEffectiveActionability`: degrada `auto_safe` → `review_only` según 8 reglas: nivel de acciónabilidad configurado, validación de autorización automática, coincidencia de tipo de acción con el registro, presencia del issue en el diagnóstico, columna ambigua/duplicada, y `requiresHumanReview` del diagnóstico.
 4. Genera `actionId` como `act:${sha256short(sha256hex(canonicalJson({ diagnosisRef, issueId, ruleId, columnId, actionType })))}`.
 5. Agrupa issues no accionables en `exclusions`.
 
@@ -135,7 +135,7 @@ Cualquier discrepancia produce un error con código `REMEDIATION_REFERENCE_INVAL
 
 ## 10. Estabilidad de hashes
 
-- `planId` es SHA-256 truncado (20 caracteres) del plan serializado (orden canónico de campos).
+- `planId` es `plan:${sha256short(hash)}` del plan serializado (orden canónico de campos), usando `sha256short` con longitud por defecto (8 caracteres).
 - `actionId` es `act:${sha256short(sha256hex(...))}` de la tupla `(diagnosisRef, issueId, ruleId, columnId, actionType)`.
 - `planHashStable` en el harness confirma que dos ejecuciones del mismo dataset producen el mismo `planId`.
 
@@ -160,7 +160,7 @@ El flujo HITL exige que toda acción pase por `pending → approved|rejected` an
 ## 13. Limitaciones conocidas
 
 1. **Fixture determinista ≠ inferencia LLM real.** El diagnóstico usa fixture, no modelo. Los resultados de cobertura y actionability refleja las reglas del motor, no la interpretación de un LLM.
-2. **Auto-safe = 0 en todos los datasets.** Refleja que las columnas en estos datasets tienen `requiresReview=true` en su metadata, lo que degrada cualquier `auto_safe` a `review_only`. No es una incapacidad del sistema para generar `auto_safe`, sino una política conservadora activa.
+2. **Auto-safe = 0 en todos los datasets.** Refleja que los datasets no satisfacen todas las condiciones de `computeEffectiveActionability` para `auto_safe` (8 reglas de degradación). No es una incapacidad del sistema, sino una consecuencia de la política conservadora activa que asigna `review_only` cuando alguna condición no se cumple.
 3. **Ground truth limitado al dataset sintético.** Solo el dataset sintético tiene verdad base conocida. Titanic y Adult Income no permiten TP/FP/FN absolutos.
 4. **Truncamientos de evidencia** pueden reducir la información disponible para diagnóstico en envelopes reducidos. El harness registra truncamientos por configuración.
 5. **Sin ejecución real de scripts.** El harness valida la estructura del plan, no la ejecución de las transformaciones. La ejecución real requiere export a Colab o Pyodide.

@@ -21,8 +21,8 @@ Estructura principal:
 ```
 contractId:         "aura.remediation.v2"
 contractVersion:    "2.0.0"
-planId:             SHA-256 truncado (20 caracteres) del plan serializado
-diagnosisRef:       SHA-256 del envelope + diagnosisRefBase (sin responseId ni generatedAt)
+planId:             `plan:${sha256short(hash)}` del plan serializado (longitud por defecto 8 caracteres)
+diagnosisRef:       `diag:${SHA-256 de 64 hex del envelope}` (sin responseId ni generatedAt)
 evidenceEnvelopeRef: Hash del envelope de evidencia
 datasetFingerprint:  SHA-256 del CSV procesado
 plan:               Array<RemediationActionV2>
@@ -40,28 +40,26 @@ El constructor `buildRemediationPlanV2` opera sin LLM:
 1. Recibe `DiagnosisExecutionResult` (que incluye `remediationContext` y `diagnosis`).
 2. Itera sobre cada issue del contexto.
 3. Para cada issue, consulta `remediationPolicyV2.ts` → `lookupRemediationAction(ruleId)` para obtener el `actionType` autorizado.
-4. Calcula `actionability` con `computeEffectiveActionability(ctxIssue, diagIssue, columns)`. Esta función puede degradar `auto_safe` → `review_only` si la columna tiene `requiresReview=true`.
+4. Calcula `actionability` con `computeEffectiveActionability(ctxIssue, diagIssue, columns)`: degrada `auto_safe` → `review_only` según 8 reglas: nivel de acciónabilidad configurado, validación de autorización automática, coincidencia de tipo de acción con el registro, presencia del issue en el diagnóstico, columna ambigua/duplicada, y `requiresHumanReview` del diagnóstico.
 5. Genera `actionId` como `act:${sha256short(sha256hex(canonicalJson({ diagnosisRef, issueId, ruleId, columnId, actionType })))`.
 6. Agrupa en `exclusions` los issues donde `actionability = 'not_actionable'`.
 
 ## 4. Cómo se calcula actionability
 
-La función `computeEffectiveActionability` aplica la siguiente lógica:
+La función `computeEffectiveActionability` aplica 8 reglas de degradación (de `auto_safe` → `review_only`):
 
 ```
-SI automaticAuthorization.authorized == true
-  AND column.requiresReview != true
-  AND ruleId no exige revisión obligatoria
-  → auto_safe
-SI automaticAuthorization == null
-  OR column.requiresReview == true
-  OR ruleId in [null_values, pattern_inconsistency, ...]
-  → review_only
-SI no existe transformación segura known
-  → not_actionable
+Regla 1: trusted actionability = not_actionable → not_actionable
+Regla 2: trusted actionability = review_only → review_only
+Regla 3: issue ausente en diagnóstico → review_only
+Regla 4: actionType de autorización no coincide con remediationPolicyV2 → review_only
+Regla 5: automaticAuthorization.authorized = false → review_only
+Regla 6: columna ambigua o duplicada → review_only
+Regla 7: diagnóstico requiere revisión humana → review_only
+Regla 8 (fallback): regla desconocida o condición no satisfecha → review_only
 ```
 
-**Importante:** en los tres datasets del harness, todas las columnas tienen `requiresReview=true` en su metadata de perfil. Esto degrada cualquier `auto_safe` potencial a `review_only`. El resultado de cero `auto_safe` es una **consecuencia de la política conservadora activa**, no una incapacidad del sistema para construir planes con acciones automáticas.
+Solo si todas las condiciones de Regla 8 se satisfacen simultáneamente (trusted=auto_safe, auth autorizada, tipo coincide, issue presente, columna limpia, sin requerimiento de revisión) se asigna `auto_safe`. En caso contrario, el fallback es `review_only`.
 
 ## 5. Por qué el LLM no selecciona transformaciones
 
@@ -125,7 +123,7 @@ Los tres planes pasaron la validación del contrato `aura.remediation.v2` sin er
 
 ### 9.4 Cero auto_safe
 
-Los cero `auto_safe` en todos los datasets se explican por la política conservadora activa (columnas con `requiresReview=true`). El sistema **puede** construir planes con `auto_safe` (la lógica existe y está probada), pero los datasets del harness no cumplen los requisitos para ninguna acción automática.
+Los cero `auto_safe` en todos los datasets se explican por la política conservadora activa (las 8 reglas de `computeEffectiveActionability` asignan `review_only` cuando no se satisfacen todas las condiciones). El sistema **puede** construir planes con `auto_safe` (la lógica existe y está probada), pero los datasets del harness no cumplen los requisitos para ninguna acción automática.
 
 ### 9.5 Cobertura
 
@@ -134,7 +132,7 @@ El plan de Titanic tiene 9 acciones y 1 exclusión para 10 issues. El plan de sy
 ## 10. Limitaciones
 
 1. **Fixtures deterministas, no inferencia LLM.** El diagnóstico usa `DiagnosisResponseV2` fixture, no un modelo real. Los planes resultantes reflejan la cobertura del motor determinista, no la interpretación de un LLM.
-2. **Auto-safe ausente por política.** No es un defecto del sistema; es el resultado esperado con `requiresReview=true` en las columnas de estos datasets.
+2. **Auto-safe ausente por política.** No es un defecto del sistema; es el resultado esperado dado que las 8 reglas de `computeEffectiveActionability` asignan `review_only` cuando alguna condición no se satisface.
 3. **Sin ejecución de scripts.** El harness valida la estructura del plan, no la ejecución de las transformaciones Python resultantes.
 4. **Ground truth solo en sintético.** Titanic y Adult Income no tienen verdad base annotada, por lo que no se pueden calcular TP/FP/FN sobre sus issues.
 
