@@ -4,29 +4,21 @@
 
 Phase 3 está cerrada y congelada en `d3774dd5ac98d89ca4454c693b1b0a30856cd191`. No modificar su evidencia.
 
-Phase 4 Loop 1 cerrado técnicamente con hardening final (Loop 1R.1).
+Phase 4 Loop 1R.1 cerrado técnicamente.
 
-Pendiente de verificación final del commit (`git status --porcelain` vacío, CI verde) para iniciar Loop 2.
+**Loop 2 implementado. Pendiente de revisión focalizada antes de Loop 3.**
 
-## Loop 1R.1 — Completado
+## Loop 2 — Implementado
 
-Hallazgos de reauditoría cerrados:
-- H-NEW-1: `createReadonlyMapView` closure-based, sin `_map`
-- H-NEW-2: `forEach` pasa vista readonly
-- M-NEW-1: `resolveScriptColumn` fail-closed
-- M-DUP: metadata de duplicados validada
-
-Tests: 780 passed, 6 skipped. Build 3.15s. Contracts 3/3 PASS. Python syntax + semantic PASS.
-
-## Siguiente tarea
-
-**Loop 2: Renderer determinista.**
+Renderer determinista:
+- `scriptRendererV2.ts` — 8 códigos de error, 6 actionTypes
+- `scriptRendererV2.test.ts` — 70 tests
+- Build: ~3s. Suite: 850 passed, 6 skipped. Contracts: 3/3 PASS. Python: PASS.
 
 ## Loops pendientes
 
 | Loop | Título | Archivos |
 |---|---|---|
-| L2 | Renderer determinista | `scriptRendererV2.ts` |
 | L3 | Builder + Finalizer | `scriptBuilderV2.ts` |
 | L4 | Validator | `scriptValidatorV2.ts`, `scriptErrorCodes.ts` |
 | L5 | UI | `ScriptGenerationStepV2.tsx`, etc. |
@@ -34,4 +26,4 @@ Tests: 780 passed, 6 skipped. Build 3.15s. Contracts 3/3 PASS. Python syntax + s
 
 ## Regla
 
-Loop 2 puede iniciarse. No iniciar Phase 5 hasta congelar Phase 4.
+Loop 3 puede iniciarse tras revisión focalizada de Loop 2. No iniciar Phase 5 hasta congelar Phase 4.

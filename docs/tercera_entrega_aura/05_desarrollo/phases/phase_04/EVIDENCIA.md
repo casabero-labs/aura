@@ -134,6 +134,92 @@ cd src && npm run contracts:v2:validate-local
 
 ---
 
+## Loop 2 — Renderer determinista
+
+### Comandos de reproducción
+
+```bash
+cd src && npm test -- scriptRendererV2
+# 70 passed
+
+cd src && npm test
+# 850 passed, 6 skipped
+
+cd src && npm run build
+# built in ~3s
+
+cd src && npm run contracts:v2:validate-local
+# 3/3 PASS
+
+# Python syntax validation
+python3 -c "import ast; ast.parse(script_text)" # PASSED
+```
+
+### Resultados
+
+| Verificación | Resultado |
+|---|---|
+| Tests Loop 2 | 70 passed |
+| Suite completa | 850 passed, 6 skipped |
+| Build | built in ~3s |
+| Contracts v2 validate-local | 3/3 PASS |
+| Python `ast.parse` | PASS |
+
+### Plantillas evidence
+
+| actionType | Check | Resultado |
+|---|---|---|
+| `trim_whitespace` collapse=false | `.str.strip()` | presente |
+| `trim_whitespace` collapse=true | `.str.replace(r"\\s+"` | presente |
+| `drop_exact_duplicates` | `keep="first"` | presente |
+| `normalize_placeholders` | 17 placeholders vía `.length` | presente |
+| `normalize_placeholders` | `np.nan` | presente |
+| `normalize_casing` title | `.str.title()` | presente |
+| `normalize_casing` lower | `.str.lower()` | presente |
+| `convert_disguised_numbers` | `errors="coerce"` | presente |
+| `convert_disguised_numbers` | `str.replace(",", ".", regex=False)` | presente |
+| `requires_human_review` | `# AURA review-only:` | presente |
+| `requires_human_review` | reasonCode en comentario | presente |
+| requires_human_review | sin `df_clean` en comentario | ✓ |
+| requires_human_review | sin `=` en comentario | ✓ |
+
+### Seguridad evidence
+
+| Prueba | Resultado |
+|---|---|
+| pending action rechazada | ScriptRendererError |
+| rejected action rechazada | ScriptRendererError |
+| columna ambigua rechazada | RENDER_COLUMN_AMBIGUOUS |
+| columnId mismatch | RENDER_COLUMN_MISMATCH |
+| columna no en registry | RENDER_COLUMN_NOT_IN_REGISTRY |
+| columnRef externo | RENDER_COLUMN_NOT_IN_REGISTRY |
+| ninguna resolución por nombre | `byName` no usado |
+| reserved word | `pythonLiteral` canónico usado |
+
+### Determinismo evidence
+
+| Prueba | Resultado |
+|---|---|
+| 3 renders idénticos | texto idéntico |
+| sin generatedAt | confirmado |
+| sin timestamp | confirmado |
+| sin UUID | confirmado |
+| orden preservado | acción[0] antes que acción[1] |
+
+### Confirmaciones
+
+- REVISION_ADVERSARIAL_LOOP1.md no cambió
+- REAUDITORIA_LOOP1R.md no cambió
+- Phase 3 no cambió
+- `columnRegistry.ts` no fue modificado
+- `placeholderVocabulary.ts` no fue modificado
+- `scriptColumnResolver.ts` no fue modificado
+- Ninguna columna se resolvió por nombre
+- No se calculó scriptHash contractual
+- No se ejecutaron transformaciones
+
+---
+
 ## Loop 1 — Histórico
 
 Ver `EVIDENCIA.md` original en el commit `53df16a`.

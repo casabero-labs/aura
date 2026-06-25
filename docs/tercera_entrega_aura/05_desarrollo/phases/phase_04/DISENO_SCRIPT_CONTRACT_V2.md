@@ -316,40 +316,38 @@ export type ScriptErrorCode =
 
 ### 5.1 `pythonLiteral` en `ColumnRef`
 
-`pythonLiteral` es propiedad de `ColumnRef`, NO de `RemediationContextColumnV2`. Se obtiene del envelope de evidencia original o se construye en el `ScriptBuildContextV2` a partir de `columnId` y `name`.
+`pythonLiteral` es propiedad de `ColumnRef`, NO de `RemediationContextColumnV2`. Se obtiene del envelope de evidencia original o se construye en el `ScriptBuildContextV2` a partir de `columnId`.
 
 ```typescript
-function buildPythonLiteral(name: string, duplicateOrdinal: number, isReservedWord: boolean): string {
-  const sanitized = sanitizePythonIdentifier(name);
-  if (isReservedWord) return `df['${name}']`;
-  if (duplicateOrdinal > 0) return `${sanitized}_${duplicateOrdinal}`;
-  return sanitized;
-}
+// Canonical: _c["columnId"]
+// buildColumnRegistry produce pythonLiteral = `_c[${JSON.stringify(columnId)}]`
+// Para duplicados: el renderer usa iloc[:, _c["columnId"]["position"]]
+// Para reserved words: pythonLiteral sigue siendo _c["columnId"] (bracket notation)
 ```
 
 ### 5.2 Helpers deterministas
 
 ```typescript
-// Lectura: obtiene el ColumnRef completo desde el registry
-function readColumn(columnId: string | null, registry: ColumnRegistryV2): ColumnRef | null
+// Resolución: obtiene ColumnRef desde registry (o fail-closed)
+function resolveScriptColumn(columnId: string | null, buildContext: ScriptBuildContextV2): ColumnResolutionResult
 
-// Escritura: produce la expresión Python para acceder a la columna
-function writeColumn(col: ColumnRef): string  // → col.pythonLiteral
+// Lectura: expresión Python para leer la columna
+function buildColumnReadExpression(col: ColumnRef): string  // → df_clean[_c["col:..."]] o df_clean.iloc[:, ...]
 
-// Acceso: produce la expresión completa df_clean[pythonLiteral]
-function accessColumn(col: ColumnRef): string  // → `df_clean[${col.pythonLiteral}]`
+// Escritura: expresión Python para escribir la columna
+function buildColumnWriteTarget(col: ColumnRef): string  // → df_clean[_c["col:..."]] o df_clean.iloc[:, ...]
 ```
 
 ### 5.3 Columnas duplicadas
 
-Columnas con `isDuplicate === true` se operan por **posición** y **duplicateOrdinal**, no por nombre. El `pythonLiteral` incluye el sufijo ordinal (ej: `Name_0`, `Name_1`). Esto garantiza determinismo incluso con nombres idénticos.
+Columnas con `isDuplicate === true` se operan por **posición** usando `duplicateOrdinal`. El `pythonLiteral` sigue siendo canónico `_c["columnId"]`; la distinción única/duplicada se resuelve en el renderer con label vs `iloc[:, _c["columnId"]["position"]]`. Esto garantiza determinismo incluso con nombres idénticos.
 
 ### 5.4 Drop exact duplicates
 
 `drop_exact_duplicates` opera a nivel dataset (sin columna). Acepta `columnRef` nulo. La plantilla es:
 
 ```python
-df_clean = df_clean.drop_duplicates().copy()
+df_clean = df_clean.drop_duplicates(keep="first").copy()
 ```
 
 ---
@@ -360,12 +358,12 @@ df_clean = df_clean.drop_duplicates().copy()
 
 | actionType | Renderiza | Plantilla Python | Parámetros | columnRef |
 |---|---|---|---|---|
-| `trim_whitespace` | Si `approved` y columna válida | `df_clean[col] = df_clean[col].astype('string').str.strip()` | `trimEdges: true`, `collapseInternalWhitespace: boolean` | Requerido |
-| `drop_exact_duplicates` | Si `approved` | `df_clean = df_clean.drop_duplicates().copy()` | `keep: 'first'` | Acepta null |
-| `normalize_placeholders` | Si `approved` y columna válida | `df_clean[col] = df_clean[col].replace([PLACEHOLDER_VOCABULARY], np.nan)` | `strategy: 'controlled_vocabulary'`, `replacement: null` | Requerido |
-| `normalize_casing` | Si `approved` y columna válida | `df_clean[col] = df_clean[col].astype('string').str.strip().str.title()` (o `.str.lower()`) | `strategy: 'title_case' \| 'lowercase'` | Requerido |
-| `convert_disguised_numbers` | Si `approved` y columna válida | `df_clean[col] = pd.to_numeric(df_clean[col].astype('string').str.replace(',', '.', regex=False), errors='coerce')` | `decimalSeparator: 'auto'`, `errors: 'coerce'` | Requerido |
-| `requires_human_review` | **NUNCA** | Sin transformación. | `reasonCode` | No usado |
+| `trim_whitespace` | Si `approved` y columna válida | `df_clean[_c["col:..."]] = df_clean[_c["col:..."].astype("string").str.strip()` | `trimEdges: true`, `collapseInternalWhitespace: boolean` | Requerido |
+| `drop_exact_duplicates` | Si `approved` | `df_clean = df_clean.drop_duplicates(keep="first").copy()` | `keep: 'first'` | Acepta null |
+| `normalize_placeholders` | Si `approved` y columna válida | `df_clean[_c["col:..."]] = df_clean[_c["col:..."].replace([PLACEHOLDER_VOCABULARY], np.nan)` | `strategy: 'controlled_vocabulary'`, `replacement: null` | Requerido |
+| `normalize_casing` | Si `approved` y columna válida | `df_clean[_c["col:..."]] = df_clean[_c["col:..."].astype("string").str.strip().str.title()` (o `.str.lower()`) | `strategy: 'title_case' \| 'lowercase'` | Requerido |
+| `convert_disguised_numbers` | Si `approved` y columna válida | `df_clean[_c["col:..."]] = pd.to_numeric(df_clean[_c["col:..."].astype("string").str.replace(",", ".", regex=False), errors="coerce")` | `decimalSeparator: 'auto'`, `errors: 'coerce'` | Requerido |
+| `requires_human_review` | **NUNCA** | `# AURA review-only: reasonCode=<reasonCode>; no transformation rendered` | `reasonCode` | Opcional |
 
 ### 6.2 Comportamiento con columnas duplicadas o ambiguas
 
@@ -373,8 +371,8 @@ df_clean = df_clean.drop_duplicates().copy()
 |---|---|
 | Columna con `isAmbiguous === true` | La acción se excluye con `reason: 'ambiguous_column'`. No se renderiza. |
 | Columna con `isDuplicate === true` | Se opera por posición usando `duplicateOrdinal` y `pythonLiteral` del `ColumnRef`. |
-| Columna con `isReservedWord === true` | Se usa `pythonLiteral` del `ColumnRef` (notación `df['name']`). |
-| `columnId === null` (scope dataset) | Solo permitido en `drop_exact_duplicates`. Para otros actionTypes, se excluye. |
+| Columna con `isReservedWord === true` | Se usa `pythonLiteral` del `ColumnRef` (canonical `_c["columnId"]`, bracket notation). |
+| `columnId === null` (scope dataset) | Solo permitido en `drop_exact_duplicates` y `requires_human_review`. Para otros actionTypes, se excluye. |
 
 ### 6.3 Reglas del renderer
 
@@ -382,7 +380,7 @@ df_clean = df_clean.drop_duplicates().copy()
 2. **`requires_human_review` nunca produce transformación.**
 3. **El LLM no escribe código.** El renderer es 100% determinista, basado en plantillas fijas.
 4. **Mismo input → mismo output.** El hash es estable.
-5. **Ninguna columna se resuelve por nombre.** Siempre se usa `columnId` con `readColumn`/`writeColumn`.
+5. **Ninguna columna se resuelve por nombre.** Siempre se usa `columnId` con `buildColumnReadExpression`/`buildColumnWriteTarget`.
 6. **Imports fijos.** Solo `pandas`, `numpy`. Sin `os`, `sys`, `subprocess`, `socket`, `requests`.
 7. **Sin operaciones destructivas.** Sin `inplace=True`, `del`, `drop` sin `.copy()`.
 
@@ -541,9 +539,9 @@ Cuando `acceptedActionIds` está vacío, el script debe contener una función Py
 import pandas as pd
 import numpy as np
 
-# Script generado por AURA desde hallazgos deterministas.
-# Sin transformaciones automáticas — todas las acciones requieren revisión humana
-# o fueron rechazadas por el revisor.
+_c = {
+    "col:...": "columnName",
+}
 
 def clean_dataset(df):
     df_clean = df.copy()

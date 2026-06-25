@@ -223,3 +223,14 @@ export type { ColumnResolutionResult, RegistryBuildError, RegistryBuildResult } 
 export {
   buildScriptContext,
 } from './scriptBuildContext';
+
+// ── Script Renderer v2 (Phase 4 Loop 2) ──
+export {
+  SCRIPT_RENDERER_VERSION,
+  renderActionV2,
+  buildScriptHeader,
+  buildScriptFooter,
+  buildScriptText,
+} from './scriptRendererV2';
+export type { RenderableScriptActionV2, ScriptRendererErrorCode } from './scriptRendererV2';
+export { ScriptRendererError } from './scriptRendererV2';

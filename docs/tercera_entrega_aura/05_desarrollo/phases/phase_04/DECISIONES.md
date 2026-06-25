@@ -51,7 +51,7 @@
 
 **Consecuencias:**
 - `pythonLiteral` se obtiene de `ColumnRef` (envelope) o se construye en `ScriptBuildContextV2`
-- Columnas duplicadas reciben `pythonLiteral` con ordinal (ej: `Name_0`, `Name_1`)
+- Columnas duplicadas se referencian por posición: `df_clean.iloc[:, _c["columnId"]["position"]]`
 - `drop_exact_duplicates` acepta `columnRef === null` (opera a nivel dataset)
 - Los helpers `readColumn`/`writeColumn`/`accessColumn` encapsulan toda la lógica de acceso
 

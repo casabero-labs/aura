@@ -58,7 +58,7 @@ Tabla en `loop_01_schema_and_columns.md` con:
 ### Métrica
 - Cobertura de columnas resueltas: 100%
 - Columnas rechazadas por ambigüedad: documentadas
-- Vocabulario: 19 placeholders, versión 1.0.0
+- Vocabulario: 17 placeholders, versión 1.0.0
 
 ### Criterio de cierre
 - 25+ tests pasando
@@ -106,7 +106,7 @@ Construir el mapeo `actionType` → plantilla Python/Pandas usando helpers de co
 ### Artefacto de evidencia
 Tabla en `loop_02_renderer.md` con:
 - Cada actionType y su plantilla Python resultante
-- Ejemplo con columna duplicada (Name_0, Name_1)
+- Ejemplo con columna duplicada (`df_clean.iloc[:, _c["col:..."]["position"]]`)
 - Vocabulario de placeholders usado en `normalize_placeholders`
 
 ### Métrica

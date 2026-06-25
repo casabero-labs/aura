@@ -96,13 +96,93 @@
 
 ---
 
+## Loop 2: Renderer determinista
+
+**SHA:** `<commit actual>`
+
+### API implementada
+
+| Función | Descripción |
+|---|---|
+| `SCRIPT_RENDERER_VERSION` | `'2.0.0'` |
+| `renderActionV2(action, columnRef, registry)` | Renderiza una acción a Python |
+| `buildScriptHeader(registry)` | Imports + `_c` dict + `def clean_dataset(df):` |
+| `buildScriptFooter()` | `return df_clean` |
+| `buildScriptText(actions, registry)` | Script completo |
+
+### actionType → plantilla
+
+| actionType | Parámetros | Plantilla |
+|---|---|---|
+| `trim_whitespace` | `collapseInternalWhitespace: false` | `df_clean[_c["col:..."]] = df_clean[_c["col:..."]].astype("string").str.strip()` |
+| `trim_whitespace` | `collapseInternalWhitespace: true` | + `.str.replace(r"\\s+", " ", regex=True)` |
+| `drop_exact_duplicates` | `keep: "first"`, `columnId: null` | `df_clean = df_clean.drop_duplicates(keep="first").copy()` |
+| `normalize_placeholders` | `strategy: "controlled_vocabulary"`, `replacement: null` | `df_clean[_c["col:..."]] = df_clean[_c["col:..."]].replace([...17 placeholders...], np.nan)` |
+| `normalize_casing` | `strategy: "title_case"` | `...str.title()` |
+| `normalize_casing` | `strategy: "lowercase"` | `...str.lower()` |
+| `convert_disguised_numbers` | `decimalSeparator: "auto"`, `errors: "coerce"` | `pd.to_numeric(...str.replace(",", ".", regex=False), errors="coerce")` |
+| `requires_human_review` | cualquier `reasonCode` válido | `# AURA review-only: reasonCode=...; no transformation rendered` |
+
+### Archivos creados
+
+| Archivo | Descripción |
+|---|---|
+| `scriptRendererV2.ts` | Renderer con 8 códigos de error |
+| `scriptRendererV2.test.ts` | 70 tests |
+
+### Archivos modificados
+
+| Archivo | Cambio |
+|---|---|
+| `index.ts` | Exports del renderer |
+
+### Tests (70)
+
+| Suite | Tests |
+|---|---|
+| Header y footer | 11 |
+| trim_whitespace | 5 |
+| drop_exact_duplicates | 5 |
+| normalize_placeholders | 7 |
+| normalize_casing | 4 |
+| convert_disguised_numbers | 6 |
+| requires_human_review | 7 |
+| Seguridad: approvalStatus | 2 |
+| Seguridad: referencias | 4 |
+| Nombres especiales | 4 |
+| Determinismo | 4 |
+| Script completo | 3 |
+| Códigos de error | 5 |
+| Versión | 1 |
+| **Total** | **70** |
+
+### Verificaciones
+
+| Verificación | Resultado |
+|---|---|
+| Suite completa | 850 passed, 6 skipped |
+| Build | built in ~3s |
+| Contracts v2 | 3/3 PASS |
+| Python `ast.parse` | PASSED |
+
+### Limitaciones
+
+1. No decide partición approved/rejected/pending
+2. No construye `ScriptContractCandidateV2`
+3. No calcula `scriptHash` contractual
+4. No valida el contrato completo
+5. No consulta al LLM
+6. No añade timestamps, UUIDs o información del modelo
+7. `requires_human_review` no genera transformación
+
+---
+
 ## Loop 1: Base types, ScriptBuildContextV2, column resolver y vocabulario (histórico)
 
 Ver `loop_01_schema_and_columns.md` y `REVISION_ADVERSARIAL_LOOP1.md` para el estado original (rechazado).
 
 ## Loops pendientes
 
-- Loop 2: Renderer determinista
 - Loop 3: Builder + Finalizer
 - Loop 4: Validator
 - Loop 5: UI
