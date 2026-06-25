@@ -541,8 +541,6 @@ comparar:
 ```
 
 No comparar `generatedAt`. Usar `buildScriptCandidateCoreV2()` (no `buildScriptCandidateV2()`).
-  candidate.cleanDatasetFn === reconstructed.cleanDatasetFn
-```
 
 Si alguna comparación falla → `SCRIPT_RENDER_MISMATCH`. Esto detecta drift entre builder y validator.
 

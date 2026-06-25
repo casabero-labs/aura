@@ -1,5 +1,5 @@
 /**
- * Script Validator v2 — Phase 4 Loop 4.
+ * Script Validator v2 — Phase 4 Loop 4R.
  *
  * Validates ScriptContractCandidateV2 and verifies ScriptContractV2.
  * Totally fail-closed: never throws, always returns ScriptValidationResultV2.
@@ -71,6 +71,27 @@ function safeString(value: unknown, path: string, state: ValState, allowEmpty = 
   return true;
 }
 
+function safeFiniteNumber(value: unknown, path: string, state: ValState): value is number {
+  if (typeof value !== 'number') {
+    verror(state, 'SCRIPT_CONTRACT_INVALID', path, `expected number, got ${typeof value}`);
+    return false;
+  }
+  if (!Number.isFinite(value)) {
+    verror(state, 'SCRIPT_CONTRACT_INVALID', path, `expected finite number, got ${value}`);
+    return false;
+  }
+  return true;
+}
+
+function safeNonNegativeInteger(value: unknown, path: string, state: ValState): value is number {
+  if (!safeFiniteNumber(value, path, state)) return false;
+  if (!Number.isInteger(value) || value < 0) {
+    verror(state, 'SCRIPT_CONTRACT_INVALID', path, `expected non-negative integer, got ${value}`);
+    return false;
+  }
+  return true;
+}
+
 function safeArray(value: unknown, path: string, state: ValState): value is unknown[] {
   if (!Array.isArray(value)) {
     verror(state, 'SCRIPT_CONTRACT_INVALID', path, `expected array, got ${typeof value}`);
@@ -130,12 +151,10 @@ function validateShape(candidate: unknown, isFinal: boolean, state: ValState): R
 
   const c = candidate as Record<string, unknown>;
 
-  // V1 — required fields
   const expectedKeys = new Set(isFinal
     ? [...CANDIDATE_KEYS, ...CONTRACT_EXTRA_KEYS]
     : CANDIDATE_KEYS);
 
-  // V5 — no extra properties
   for (const key of Object.keys(c)) {
     if (!expectedKeys.has(key)) {
       verror(state, 'SCRIPT_CONTRACT_INVALID', `$.${key}`, `unexpected property "${key}"`);
@@ -143,7 +162,6 @@ function validateShape(candidate: unknown, isFinal: boolean, state: ValState): R
   }
 
   if (isFinal) {
-    const allContractKeys = new Set([...CANDIDATE_KEYS, ...CONTRACT_EXTRA_KEYS]);
     for (const key of expectedKeys) {
       if (!(key in c)) {
         verror(state, 'SCRIPT_CONTRACT_INVALID', `$.${key}`, 'required field missing');
@@ -151,22 +169,18 @@ function validateShape(candidate: unknown, isFinal: boolean, state: ValState): R
     }
   }
 
-  // V2 — contractId
   if (c.contractId !== 'aura.script.v2') {
     verror(state, 'SCRIPT_CONTRACT_INVALID', '$.contractId', `expected "aura.script.v2", got "${String(c.contractId)}"`);
   }
 
-  // V3 — contractVersion
   if (c.contractVersion !== '2.0.0') {
     verror(state, 'SCRIPT_CONTRACT_INVALID', '$.contractVersion', `expected "2.0.0", got "${String(c.contractVersion)}"`);
   }
 
-  // V6 — cleanDatasetFn
   if (c.cleanDatasetFn !== 'clean_dataset') {
     verror(state, 'SCRIPT_CONTRACT_INVALID', '$.cleanDatasetFn', `expected "clean_dataset", got "${String(c.cleanDatasetFn)}"`);
   }
 
-  // V7 — rendererVersion, placeholderVocabularyVersion
   if (c.rendererVersion !== SCRIPT_RENDERER_VERSION) {
     verror(state, 'SCRIPT_CONTRACT_INVALID', '$.rendererVersion', `expected "${SCRIPT_RENDERER_VERSION}"`);
   }
@@ -174,7 +188,6 @@ function validateShape(candidate: unknown, isFinal: boolean, state: ValState): R
     verror(state, 'SCRIPT_CONTRACT_INVALID', '$.placeholderVocabularyVersion', `expected "${PLACEHOLDER_VOCABULARY_VERSION}"`);
   }
 
-  // V4 — generatedAt ISO UTC canonical
   if (safeString(c.generatedAt, '$.generatedAt', state)) {
     const d = new Date(c.generatedAt as string);
     if (isNaN(d.getTime()) || d.toISOString() !== c.generatedAt) {
@@ -182,41 +195,35 @@ function validateShape(candidate: unknown, isFinal: boolean, state: ValState): R
     }
   }
 
-  // scriptText
-  if (!safeString(c.scriptText, '$.scriptText', state)) return c;
-  if (!(c.scriptText as string).includes('def clean_dataset(df):')) {
+  safeString(c.scriptText, '$.scriptText', state);
+  if (typeof c.scriptText === 'string' && !(c.scriptText as string).includes('def clean_dataset(df):')) {
     verror(state, 'SCRIPT_CONTRACT_INVALID', '$.scriptText', 'missing def clean_dataset(df):');
   }
 
-  // remediationRef
   safeString(c.remediationRef, '$.remediationRef', state);
   safeString(c.datasetFingerprint, '$.datasetFingerprint', state);
 
-  // Arrays
   const acceptedIds = safeStrArray(c.acceptedActionIds, '$.acceptedActionIds', state);
   if (acceptedIds) safeNoDupIds(acceptedIds, '$.acceptedActionIds', state);
 
   const rejectedIds = safeStrArray(c.rejectedActionIds, '$.rejectedActionIds', state);
   if (rejectedIds) safeNoDupIds(rejectedIds, '$.rejectedActionIds', state);
 
-  // excludedActionIds
   if (safeArray(c.excludedActionIds, '$.excludedActionIds', state)) {
     const exArr = c.excludedActionIds as unknown[];
     const seenEx = new Set<string>();
     for (let i = 0; i < exArr.length; i++) {
       if (safeObj(exArr[i], `$.excludedActionIds[${i}]`, state)) {
         const ex = exArr[i] as Record<string, unknown>;
-        if (safeString(ex.actionId, `$.excludedActionIds[${i}].actionId`, state)) {
-          const aid = ex.actionId as string;
-          if (seenEx.has(aid)) {
-            verror(state, 'SCRIPT_REFERENCE_INVALID', `$.excludedActionIds[${i}]`, `duplicate actionId "${aid}"`);
-          }
-          seenEx.add(aid);
+        safeString(ex.actionId, `$.excludedActionIds[${i}].actionId`, state);
+        const aid = ex.actionId as string;
+        if (aid && seenEx.has(aid)) {
+          verror(state, 'SCRIPT_REFERENCE_INVALID', `$.excludedActionIds[${i}]`, `duplicate actionId "${aid}"`);
         }
+        if (aid) seenEx.add(aid);
         if (!VALID_EXCLUSION_REASONS.has(ex.reason as string)) {
           verror(state, 'SCRIPT_CONTRACT_INVALID', `$.excludedActionIds[${i}].reason`, `invalid reason "${String(ex.reason)}"`);
         }
-        // No extra props in excluded
         for (const k of Object.keys(ex)) {
           if (k !== 'actionId' && k !== 'reason') {
             verror(state, 'SCRIPT_CONTRACT_INVALID', `$.excludedActionIds[${i}].${k}`, `unexpected property "${k}"`);
@@ -226,7 +233,6 @@ function validateShape(candidate: unknown, isFinal: boolean, state: ValState): R
     }
   }
 
-  // columnRefs
   if (safeArray(c.columnRefs, '$.columnRefs', state)) {
     const colsArr = c.columnRefs as unknown[];
     const seenCols = new Set<string>();
@@ -235,12 +241,8 @@ function validateShape(candidate: unknown, isFinal: boolean, state: ValState): R
         const col = colsArr[i] as Record<string, unknown>;
         safeString(col.columnId, `$.columnRefs[${i}].columnId`, state);
         safeString(col.name, `$.columnRefs[${i}].name`, state);
-        if (typeof col.position !== 'number' || col.position < 0) {
-          verror(state, 'SCRIPT_CONTRACT_INVALID', `$.columnRefs[${i}].position`, `expected non-negative number`);
-        }
-        if (typeof col.duplicateOrdinal !== 'number' || col.duplicateOrdinal < 0) {
-          verror(state, 'SCRIPT_CONTRACT_INVALID', `$.columnRefs[${i}].duplicateOrdinal`, `expected non-negative number`);
-        }
+        safeNonNegativeInteger(col.position, `$.columnRefs[${i}].position`, state);
+        safeNonNegativeInteger(col.duplicateOrdinal, `$.columnRefs[${i}].duplicateOrdinal`, state);
         safeString(col.pythonLiteral, `$.columnRefs[${i}].pythonLiteral`, state);
         if (typeof col.isAmbiguous !== 'boolean') {
           verror(state, 'SCRIPT_CONTRACT_INVALID', `$.columnRefs[${i}].isAmbiguous`, 'must be boolean');
@@ -257,7 +259,6 @@ function validateShape(candidate: unknown, isFinal: boolean, state: ValState): R
         }
         if (col.columnId) seenCols.add(col.columnId as string);
 
-        // Extra properties check
         const colKeys = new Set(['columnId', 'name', 'position', 'duplicateOrdinal', 'pythonLiteral', 'isAmbiguous', 'isDuplicate', 'isReservedWord']);
         for (const k of Object.keys(col)) {
           if (!colKeys.has(k)) {
@@ -284,17 +285,14 @@ function validateCorrespondence(
     planMap.set(action.actionId, action);
   }
 
-  // V8 — remediationRef
   if (c.remediationRef !== plan.planId) {
     verror(state, 'SCRIPT_REMEDIATION_MISMATCH', '$.remediationRef', `expected "${plan.planId}", got "${String(c.remediationRef)}"`);
   }
 
-  // V9 — datasetFingerprint
   if (c.datasetFingerprint !== plan.datasetFingerprint) {
     verror(state, 'SCRIPT_REFERENCE_INVALID', '$.datasetFingerprint', `fingerprint mismatch`);
   }
 
-  // Context
   if (!buildContext.correspondenceEvidence.valid) {
     verror(state, 'SCRIPT_REFERENCE_INVALID', '$.context', 'correspondenceEvidence.valid is false');
   }
@@ -307,7 +305,6 @@ function validateCorrespondence(
     verror(state, 'SCRIPT_REMEDIATION_MISMATCH', '$.context', 'evidenceEnvelopeRef mismatch');
   }
 
-  // V10-V12 — all IDs exist in plan
   const acceptedIds = (c.acceptedActionIds as string[]) || [];
   const rejectedIds = (c.rejectedActionIds as string[]) || [];
   const excludedIds = ((c.excludedActionIds as ScriptExcludedActionV2[]) || []).map(e => e.actionId);
@@ -322,7 +319,6 @@ function validateCorrespondence(
     if (!planMap.has(id)) verror(state, 'SCRIPT_REFERENCE_INVALID', '$.excludedActionIds', `actionId "${id}" not in plan`);
   }
 
-  // V13-V14 — exact coverage
   const allCovered = new Set([...acceptedIds, ...rejectedIds, ...excludedIds]);
   for (const action of plan.plan) {
     if (!allCovered.has(action.actionId)) {
@@ -333,7 +329,6 @@ function validateCorrespondence(
     verror(state, 'SCRIPT_COVERAGE_INVALID', '$.plan', 'extra actionIds not in plan');
   }
 
-  // V15 — columnRefs match registry
   const registry = buildContext.columnRegistry;
   const refs = (c.columnRefs as ColumnRef[]) || [];
   for (let i = 0; i < refs.length; i++) {
@@ -361,12 +356,6 @@ function validateCorrespondence(
   }
 }
 
-// ── Custom sorting helpers based on columnId comparison ──
-function compareColumnIdsStable(): number {
-  // Implementation provided when needed for column ordering checks
-  return 0;
-}
-
 // ── HITL / Partition Validation (V16-V21) ──
 
 function validatePartition(
@@ -383,8 +372,8 @@ function validatePartition(
   const acceptedIds = new Set(c.acceptedActionIds as string[] || []);
   const rejectedIds = new Set(c.rejectedActionIds as string[] || []);
   const excluded = (c.excludedActionIds as ScriptExcludedActionV2[]) || [];
+  const excludedIds = new Set(excluded.map(e => e.actionId));
 
-  // V16 — accepted must be approved
   for (const id of acceptedIds) {
     const action = planMap.get(id);
     if (action && action.approvalStatus !== 'approved') {
@@ -392,7 +381,6 @@ function validatePartition(
     }
   }
 
-  // V17 — rejected must be rejected
   for (const id of rejectedIds) {
     const action = planMap.get(id);
     if (action && action.approvalStatus !== 'rejected') {
@@ -400,14 +388,27 @@ function validatePartition(
     }
   }
 
-  // V18 — rejected ∩ excluded = ∅
+  const interAcceptedRejected = [...acceptedIds].filter(id => rejectedIds.has(id));
+  for (const id of interAcceptedRejected) {
+    verror(state, 'SCRIPT_PARTITION_INVALID', '$.acceptedActionIds', `"${id}" is in both accepted and rejected`);
+  }
+
+  const interAcceptedExcluded = [...acceptedIds].filter(id => excludedIds.has(id));
+  for (const id of interAcceptedExcluded) {
+    verror(state, 'SCRIPT_PARTITION_INVALID', '$.acceptedActionIds', `"${id}" is in both accepted and excluded`);
+  }
+
+  const interRejectedExcluded = [...rejectedIds].filter(id => excludedIds.has(id));
+  for (const id of interRejectedExcluded) {
+    verror(state, 'SCRIPT_PARTITION_INVALID', '$.rejectedActionIds', `"${id}" is in both rejected and excluded`);
+  }
+
   for (const ex of excluded) {
     if (rejectedIds.has(ex.actionId)) {
       verror(state, 'SCRIPT_PARTITION_INVALID', `$.excludedActionIds`, `"${ex.actionId}" is both rejected and excluded`);
     }
   }
 
-  // V19 — pending must be in excluded
   for (const action of plan.plan) {
     if (action.approvalStatus === 'pending') {
       const found = excluded.find(e => e.actionId === action.actionId);
@@ -417,9 +418,14 @@ function validatePartition(
         verror(state, 'SCRIPT_APPROVAL_INVALID', `$.excludedActionIds`, `pending action "${action.actionId}" has reason "${found.reason}"`);
       }
     }
+    if (action.approvalStatus === 'rejected') {
+      const found = excluded.find(e => e.actionId === action.actionId);
+      if (found && found.reason !== 'unsupported_action' && found.reason !== 'missing_column' && found.reason !== 'ambiguous_column') {
+        verror(state, 'SCRIPT_APPROVAL_INVALID', `$.excludedActionIds`, `rejected action "${action.actionId}" has unexpected reason "${found.reason}"`);
+      }
+    }
   }
 
-  // V20 — requires_human_review never accepted
   for (const id of acceptedIds) {
     const action = planMap.get(id);
     if (action && action.actionType === 'requires_human_review') {
@@ -427,7 +433,6 @@ function validatePartition(
     }
   }
 
-  // V21 — approved not-renderable should be excluded
   const registry = buildContext.columnRegistry;
   for (const action of plan.plan) {
     if (action.approvalStatus !== 'approved') continue;
@@ -435,7 +440,6 @@ function validatePartition(
 
     if (COLUMN_REQUIRED_ACTIONS.has(action.actionType)) {
       if (!action.columnId) {
-        // missing column — should be in excluded
         const inAccepted = acceptedIds.has(action.actionId);
         const inExcluded = excluded.find(e => e.actionId === action.actionId);
         if (inAccepted) {
@@ -476,7 +480,6 @@ function validateColumns(
   const acceptedIds = new Set(c.acceptedActionIds as string[] || []);
   const refs = (c.columnRefs as ColumnRef[]) || [];
 
-  // Derive expected columnRefs from accepted actions
   const expectedCols = new Map<string, ColumnRef>();
   const planMap = new Map<string, RemediationActionV2>();
   for (const action of plan.plan) planMap.set(action.actionId, action);
@@ -493,14 +496,12 @@ function validateColumns(
     }
   }
 
-  // V22 — no ambiguous columns in accepted
   for (const [, col] of expectedCols) {
     if (col.isAmbiguous) {
       verror(state, 'SCRIPT_COLUMN_AMBIGUOUS', '$.columnRefs', `ambiguous column "${col.columnId}" referenced by accepted action`);
     }
   }
 
-  // V25 — check columnRefs match expected (sorted by columnId)
   const expectedIds = [...expectedCols.keys()].sort();
   const actualIds = refs.map(r => r.columnId).filter(Boolean);
 
@@ -525,7 +526,6 @@ function validateColumns(
     }
   }
 
-  // columnRefs sorted by columnId
   for (let i = 1; i < refs.length; i++) {
     if (refs[i - 1].columnId.localeCompare(refs[i].columnId) >= 0) {
       verror(state, 'SCRIPT_RENDER_MISMATCH', '$.columnRefs', 'not sorted by columnId');
@@ -556,8 +556,40 @@ function maskStringsAndComments(script: string): string {
   while (i < script.length) {
     const ch = script[i];
 
+    // Triple single-quoted string
+    if (script.startsWith("'''", i)) {
+      result.push("'''");
+      i += 3;
+      while (i < script.length) {
+        if (script.startsWith("'''", i)) {
+          result.push("'''");
+          i += 3;
+          break;
+        }
+        result.push(' ');
+        i++;
+      }
+      continue;
+    }
+
+    // Triple double-quoted string
+    if (script.startsWith('"""', i)) {
+      result.push('"""');
+      i += 3;
+      while (i < script.length) {
+        if (script.startsWith('"""', i)) {
+          result.push('"""');
+          i += 3;
+          break;
+        }
+        result.push(' ');
+        i++;
+      }
+      continue;
+    }
+
     // Single-line comment
-    if (ch === '#' && (i === 0 || script[i - 1] !== '\\')) {
+    if (ch === '#') {
       result.push('#');
       i++;
       while (i < script.length && script[i] !== '\n') {
@@ -567,21 +599,36 @@ function maskStringsAndComments(script: string): string {
       continue;
     }
 
-    // Single-quoted string
-    if (ch === "'") {
-      if (script.startsWith("r'", i) || script.startsWith("R'", i)) {
-        result.push(script[i]);
+    // String with prefix (r, R, f, F, b, B, fr, rf, fr, etc.)
+    if (ch === "'" || ch === '"') {
+      const prefixChars: Record<string, string[]> = {
+        'r': ["r'", 'r"'],
+        'R': ["R'", 'R"'],
+        'f': ["f'", 'f"'],
+        'F': ["F'", 'F"'],
+        'b': ["b'", 'b"'],
+        'B': ["B'", 'B"'],
+      };
+      let matchedPrefix: string | null = null;
+      if (i + 1 < script.length && prefixChars[ch]?.includes(script.substring(i, i + 2))) {
+        matchedPrefix = script.substring(i, i + 2);
+      }
+      if (matchedPrefix) {
+        result.push(matchedPrefix);
+        i += 2;
+      } else {
+        result.push(ch === "'" ? "'" : '"');
         i++;
       }
-      result.push("'");
-      i++;
+
+      const close = matchedPrefix ? matchedPrefix[1] : ch;
       while (i < script.length) {
-        if (script[i] === '\\') {
+        if (script[i] === '\\' && i + 1 < script.length) {
           result.push(' ');
-          i++;
-          if (i < script.length) { result.push(' '); i++; }
-        } else if (script[i] === "'") {
-          result.push("'");
+          result.push(' ');
+          i += 2;
+        } else if (script[i] === close) {
+          result.push(close);
           i++;
           break;
         } else {
@@ -592,32 +639,6 @@ function maskStringsAndComments(script: string): string {
       continue;
     }
 
-    // Double-quoted string
-    if (ch === '"') {
-      if (script.startsWith('r"', i) || script.startsWith('R"', i)) {
-        result.push(script[i]);
-        i++;
-      }
-      result.push('"');
-      i++;
-      while (i < script.length) {
-        if (script[i] === '\\') {
-          result.push(' ');
-          i++;
-          if (i < script.length) { result.push(' '); i++; }
-        } else if (script[i] === '"') {
-          result.push('"');
-          i++;
-          break;
-        } else {
-          result.push(' ');
-          i++;
-        }
-      }
-      continue;
-    }
-
-    // Normal character — pass through
     result.push(ch);
     i++;
   }
@@ -625,56 +646,49 @@ function maskStringsAndComments(script: string): string {
   return result.join('');
 }
 
-// ── Security: Pattern Scanning on Masked Script ──
+// ── Import Whitelist Validation ──
 
-function scanMasked(masked: string): Set<string> {
-  const tokens = new Set<string>();
-  const re = /\b[a-z_]+\b|[a-z_]+\.[a-z_]+\.?/gi;
-  let m;
-  while ((m = re.exec(masked)) !== null) {
-    tokens.add(m[0]);
-  }
-  return tokens;
-}
+const ALLOWED_IMPORTS = new Set(['pandas as pd', 'numpy as np']);
 
-function validateSecurity(scriptText: string, state: ValState): void {
-  const masked = maskStringsAndComments(scriptText);
-  const tokens = scanMasked(masked);
-
-  // UNAUTHORIZED_IMPORT
-  const unauthorizedImports = ['os', 'sys', 'subprocess', 'socket', 'requests', 'urllib', 'pathlib', 'io'];
-  for (const imp of unauthorizedImports) {
-    if (tokens.has(imp)) {
-      const match = new RegExp(`\\b${imp}\\b`).exec(masked);
-      if (match) {
-        const context = masked.substring(Math.max(0, match.index - 5), match.index + imp.length + 5);
-        if (!/["'#]/.test(context.replace(imp, '').trim())) {
-          verror(state, 'SCRIPT_UNAUTHORIZED_IMPORT', '$.scriptText', `unauthorized import: ${imp}`);
-        }
+function validateImportWhitelist(scriptText: string, state: ValState): void {
+  const importLineRe = /^(\s*)import\s+([^;\n]+)/gm;
+  let match: RegExpExecArray | null;
+  while ((match = importLineRe.exec(scriptText)) !== null) {
+    const line = match[0];
+    const moduleList = match[2];
+    const modules = moduleList.split(',').map(m => m.trim());
+    for (const mod of modules) {
+      const normalized = mod.replace(/\s+/g, ' ');
+      if (!ALLOWED_IMPORTS.has(normalized)) {
+        verror(state, 'SCRIPT_UNAUTHORIZED_IMPORT', '$.scriptText', `unauthorized import: "${mod.trim()}"`);
       }
     }
   }
 
-  // from ... import
-  if (/from\s+\w+\s+import/.test(masked)) {
+  if (/^\s*from\s+\S+\s+import\s+/gm.test(scriptText)) {
     verror(state, 'SCRIPT_UNAUTHORIZED_IMPORT', '$.scriptText', 'from ... import not allowed');
   }
+}
+
+// ── Security: Pattern Scanning on Masked Script ──
+
+function validateSecurity(scriptText: string, state: ValState): void {
+  validateImportWhitelist(scriptText, state);
+
+  const masked = maskStringsAndComments(scriptText);
 
   // EXECUTABLE_CONTENT
   for (const kw of ['eval', 'exec', '__import__']) {
-    const idx = masked.indexOf(kw);
-    if (idx >= 0) {
-      // Check it's not inside a string by verifying the token exists
-      const re = new RegExp(`\\b${kw}\\(`, 'i');
-      if (re.test(masked)) {
-        verror(state, 'SCRIPT_EXECUTABLE_CONTENT', '$.scriptText', `executable content: ${kw}`);
-      }
+    const re = new RegExp(`\\b${kw}\\(`, 'i');
+    if (re.test(masked)) {
+      verror(state, 'SCRIPT_EXECUTABLE_CONTENT', '$.scriptText', `executable content: ${kw}`);
     }
   }
 
   // NETWORK_ACCESS
   for (const kw of ['subprocess', 'os.system', 'socket', 'requests', 'urllib', 'http.client']) {
-    const re = new RegExp(kw.replace('.', '\\.'), 'i');
+    const escaped = kw.replace('.', '\\.');
+    const re = new RegExp(`\\b${escaped}\\b`, 'i');
     if (re.test(masked)) {
       verror(state, 'SCRIPT_NETWORK_ACCESS', '$.scriptText', `network access: ${kw}`);
     }
@@ -699,6 +713,9 @@ function validateSecurity(scriptText: string, state: ValState): void {
 
 // ── Syntax Validation (V32-V34) ──
 
+const VALID_STATES = new Set(['passed', 'failed', 'not_run']);
+const ALLOWED_RESULT_KEYS = new Set(['state', 'engine', 'message']);
+
 function validateSyntax(
   scriptText: string,
   options: ScriptValidationOptionsV2 | undefined,
@@ -710,19 +727,72 @@ function validateSyntax(
     return;
   }
 
+  let rawResult: unknown;
   try {
-    const result = options.syntaxChecker(scriptText);
-    state.syntaxResult = result;
+    rawResult = options.syntaxChecker(scriptText);
+  } catch {
+    state.syntaxResult = { state: 'not_run' };
+    vwarn(state, 'SCRIPT_SYNTAX_NOT_RUN', '$.syntax', 'syntax checker threw');
+    return;
+  }
 
-    if (result.state === 'failed') {
-      verror(state, 'SCRIPT_SYNTAX_INVALID', '$.scriptText', result.message || 'syntax invalid');
+  if (rawResult === null || rawResult === undefined) {
+    state.syntaxResult = { state: 'not_run' };
+    vwarn(state, 'SCRIPT_SYNTAX_NOT_RUN', '$.syntax', 'syntax checker returned null/undefined');
+    return;
+  }
+
+  if (typeof rawResult !== 'object') {
+    state.syntaxResult = { state: 'not_run' };
+    vwarn(state, 'SCRIPT_SYNTAX_NOT_RUN', '$.syntax', `syntax checker returned ${typeof rawResult}`);
+    return;
+  }
+
+  if (Array.isArray(rawResult)) {
+    state.syntaxResult = { state: 'not_run' };
+    vwarn(state, 'SCRIPT_SYNTAX_NOT_RUN', '$.syntax', 'syntax checker returned array');
+    return;
+  }
+
+  const result = rawResult as Record<string, unknown>;
+
+  const stateVal = result.state;
+  if (!VALID_STATES.has(stateVal as string)) {
+    state.syntaxResult = { state: 'not_run' };
+    vwarn(state, 'SCRIPT_SYNTAX_NOT_RUN', '$.syntax', `invalid syntax state "${String(stateVal)}"`);
+    return;
+  }
+
+  const engineVal = result.engine;
+  if (engineVal !== undefined && typeof engineVal !== 'string') {
+    state.syntaxResult = { state: 'not_run' };
+    vwarn(state, 'SCRIPT_SYNTAX_NOT_RUN', '$.syntax', `syntax checker engine must be string`);
+    return;
+  }
+
+  const msgVal = result.message;
+  if (msgVal !== undefined && typeof msgVal !== 'string') {
+    state.syntaxResult = { state: 'not_run' };
+    vwarn(state, 'SCRIPT_SYNTAX_NOT_RUN', '$.syntax', `syntax checker message must be string`);
+    return;
+  }
+
+  for (const k of Object.keys(result)) {
+    if (!ALLOWED_RESULT_KEYS.has(k)) {
+      state.syntaxResult = { state: 'not_run' };
+      vwarn(state, 'SCRIPT_SYNTAX_NOT_RUN', '$.syntax', `unexpected property "${k}" in syntax result`);
+      return;
     }
-  } catch (e) {
-    state.syntaxResult = {
-      state: 'not_run',
-      message: `checker threw: ${e instanceof Error ? e.message : String(e)}`,
-    };
-    vwarn(state, 'SCRIPT_SYNTAX_NOT_RUN', '$.syntax', 'syntax checker threw exception');
+  }
+
+  state.syntaxResult = {
+    state: stateVal as PythonSyntaxState,
+    engine: typeof engineVal === 'string' ? engineVal : undefined,
+    message: typeof msgVal === 'string' ? msgVal : undefined,
+  };
+
+  if (stateVal === 'failed') {
+    verror(state, 'SCRIPT_SYNTAX_INVALID', '$.scriptText', typeof msgVal === 'string' ? msgVal : 'syntax invalid');
   }
 }
 
@@ -755,6 +825,88 @@ function validateReconstruction(
 
     if (JSON.stringify(expected) !== JSON.stringify(actual)) {
       verror(state, 'SCRIPT_RENDER_MISMATCH', `$.${field}`, 'mismatch between candidate and reconstruction');
+    }
+  }
+}
+
+// ── Embedded validationResult deep validation ──
+
+function validateEmbeddedValidationResult(
+  vr: unknown,
+  state: ValState,
+): void {
+  if (!safeObj(vr, '$.validationResult', state)) return;
+
+  const r = vr as Record<string, unknown>;
+
+  if (typeof r.valid !== 'boolean') {
+    verror(state, 'SCRIPT_CONTRACT_INVALID', '$.validationResult.valid', 'must be boolean');
+  }
+
+  if (!safeArray(r.errors, '$.validationResult.errors', state)) return;
+  const errors = r.errors as unknown[];
+  for (let i = 0; i < errors.length; i++) {
+    if (!safeObj(errors[i], `$.validationResult.errors[${i}]`, state)) continue;
+    const err = errors[i] as Record<string, unknown>;
+    if (typeof err.code !== 'string' || err.code === '') {
+      verror(state, 'SCRIPT_CONTRACT_INVALID', `$.validationResult.errors[${i}].code`, 'must be non-empty string');
+    }
+    if (typeof err.path !== 'string') {
+      verror(state, 'SCRIPT_CONTRACT_INVALID', `$.validationResult.errors[${i}].path`, 'must be string');
+    }
+    if (typeof err.message !== 'string') {
+      verror(state, 'SCRIPT_CONTRACT_INVALID', `$.validationResult.errors[${i}].message`, 'must be string');
+    }
+    const allowedErrKeys = new Set(['code', 'path', 'message', 'value']);
+    for (const k of Object.keys(err)) {
+      if (!allowedErrKeys.has(k)) {
+        verror(state, 'SCRIPT_CONTRACT_INVALID', `$.validationResult.errors[${i}].${k}`, `unexpected property "${k}"`);
+      }
+    }
+  }
+
+  if (!safeArray(r.warnings, '$.validationResult.warnings', state)) return;
+  const warnings = r.warnings as unknown[];
+  for (let i = 0; i < warnings.length; i++) {
+    if (!safeObj(warnings[i], `$.validationResult.warnings[${i}]`, state)) continue;
+    const warn = warnings[i] as Record<string, unknown>;
+    if (typeof warn.code !== 'string' || warn.code === '') {
+      verror(state, 'SCRIPT_CONTRACT_INVALID', `$.validationResult.warnings[${i}].code`, 'must be non-empty string');
+    }
+    if (typeof warn.path !== 'string') {
+      verror(state, 'SCRIPT_CONTRACT_INVALID', `$.validationResult.warnings[${i}].path`, 'must be string');
+    }
+    if (typeof warn.message !== 'string') {
+      verror(state, 'SCRIPT_CONTRACT_INVALID', `$.validationResult.warnings[${i}].message`, 'must be string');
+    }
+    const allowedWarnKeys = new Set(['code', 'path', 'message', 'value']);
+    for (const k of Object.keys(warn)) {
+      if (!allowedWarnKeys.has(k)) {
+        verror(state, 'SCRIPT_CONTRACT_INVALID', `$.validationResult.warnings[${i}].${k}`, `unexpected property "${k}"`);
+      }
+    }
+  }
+
+  if (safeObj(r.pythonSyntax, '$.validationResult.pythonSyntax', state)) {
+    const ps = r.pythonSyntax as Record<string, unknown>;
+    if (!VALID_STATES.has(ps.state as string)) {
+      verror(state, 'SCRIPT_CONTRACT_INVALID', '$.validationResult.pythonSyntax.state', `invalid state "${String(ps.state)}"`);
+    }
+    if (ps.engine !== undefined && typeof ps.engine !== 'string') {
+      verror(state, 'SCRIPT_CONTRACT_INVALID', '$.validationResult.pythonSyntax.engine', 'must be string or absent');
+    }
+    if (ps.message !== undefined && typeof ps.message !== 'string') {
+      verror(state, 'SCRIPT_CONTRACT_INVALID', '$.validationResult.pythonSyntax.message', 'must be string or absent');
+    }
+    const allowedPsKeys = new Set(['state', 'engine', 'message']);
+    for (const k of Object.keys(ps)) {
+      if (!allowedPsKeys.has(k)) {
+        verror(state, 'SCRIPT_CONTRACT_INVALID', `$.validationResult.pythonSyntax.${k}`, `unexpected property "${k}"`);
+      }
+    }
+  } else {
+    if (r.pythonSyntax !== undefined) {
+      verror(state, 'SCRIPT_CONTRACT_INVALID', '$.validationResult.pythonSyntax', 'must be object or absent');
     }
   }
 }
@@ -828,7 +980,6 @@ export function verifyScriptContractV2(
 
     const ct = contract as Record<string, unknown>;
 
-    // Validate scriptHash is present
     if (!safeString(ct.scriptHash, '$.scriptHash', state)) {
       return {
         valid: false,
@@ -838,27 +989,8 @@ export function verifyScriptContractV2(
       };
     }
 
-    // Validate validationResult embedded
-    if (safeObj(ct.validationResult, '$.validationResult', state)) {
-      const vr = ct.validationResult as Record<string, unknown>;
-      if (typeof vr.valid !== 'boolean') {
-        verror(state, 'SCRIPT_CONTRACT_INVALID', '$.validationResult.valid', 'must be boolean');
-      }
-      if (!safeArray(vr.errors, '$.validationResult.errors', state)) {
-        // handled
-      }
-      if (!safeArray(vr.warnings, '$.validationResult.warnings', state)) {
-        // handled
-      }
-      if (safeObj(vr.pythonSyntax, '$.validationResult.pythonSyntax', state)) {
-        const ps = vr.pythonSyntax as Record<string, unknown>;
-        if (!['passed', 'failed', 'not_run'].includes(ps.state as string)) {
-          verror(state, 'SCRIPT_CONTRACT_INVALID', '$.validationResult.pythonSyntax.state', 'invalid pythonSyntax state');
-        }
-      }
-    }
+    validateEmbeddedValidationResult(ct.validationResult, state);
 
-    // Validate candidate shape from contract
     const c = validateShape(ct, true, state);
     if (!c) {
       return {
@@ -876,7 +1008,6 @@ export function verifyScriptContractV2(
     validateSyntax(c.scriptText as string, options, state);
     validateReconstruction(c, remediationPlan, buildContext, state);
 
-    // Hash validation
     try {
       const computedHash = computeScriptHashV2(ct as unknown as ScriptContractCandidateV2);
       if (ct.scriptHash !== computedHash) {
@@ -885,9 +1016,6 @@ export function verifyScriptContractV2(
     } catch (e) {
       verror(state, 'SCRIPT_HASH_MISMATCH', '$.scriptHash', `hash computation error: ${e instanceof Error ? e.message : String(e)}`);
     }
-
-    // Don't trust embedded valid
-    // Fresh result stands on its own
   } catch (e) {
     verror(state, 'SCRIPT_CONTRACT_INVALID', '$', `unexpected verification error: ${e instanceof Error ? e.message : String(e)}`);
   }

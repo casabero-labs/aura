@@ -155,6 +155,108 @@ Enmascarador léxico: strings + comentarios. 0 falsos positivos en columnas `eva
 
 ---
 
+## Loop 4R: Hardening del validator
+
+**SHA:** `<commit actual>`
+
+### Defectos cerrados
+
+| # | Defecto | Corrección |
+|---|---|---|
+| R1 | pythonSyntax checker con resultado malformado | Validación estricta: null/undefined/array/string → not_run; state debe ser passed/failed/not_run; engine/message deben ser string o ausentes; sin propiedades extras |
+| R2 | Política de imports no cerrada | Whitelist explícito: solo `import pandas as pd` y `import numpy as np`. Rechaza: import sin alias, alias igual al módulo, múltiples en una línea, from ... import |
+| R3 | validationResult incrustado con forma libre | Validación profunda: keys exactas (valid, errors, warnings, pythonSyntax); errors/warnings: código no vacío, path string, message string, value unknown, sin extras |
+| R4 | Falta de tests de seguridad directos | Tests directos por categoría: SCRIPT_EXECUTABLE_CONTENT, SCRIPT_NETWORK_ACCESS, SCRIPT_FILE_ACCESS, SCRIPT_DESTRUCTIVE_OPERATION |
+| R5 | Sin prueba real de compile | Checker real con python3: compile(sys.stdin.read(), '<aura>', 'exec'); graceful not_run si Python no disponible |
+| R6 | validateShape salía temprano tras scriptText inválido | Continúa validando otros campos de forma segura tras error en scriptText |
+| R7 | position/duplicateOrdinal sin validación runtime | safeNonNegativeInteger + Number.isFinite para ambos campos |
+| R8 | validatePartition sin intersecciones explícitas | accepted∩rejected, accepted∩excluded, rejected∩excluded → SCRIPT_PARTITION_INVALID |
+| R9 | Enmascarador sin triple strings ni prefijos | Soporta ''', """, r, R, f, F, b, B, fr, rf, etc.; escapes en strings |
+| R10 | compareColumnIdsStable() vacía y no usada | Eliminada |
+
+### API (sin cambios)
+
+| Función | Descripción |
+|---|---|
+| `validateScriptCandidateV2(candidate, plan, ctx, opts?)` | Valida candidato (fail-closed) |
+| `verifyScriptContractV2(contract, plan, ctx, opts?)` | Verifica contrato final (hash + candidate) |
+
+### Shape tri-estado del syntax checker
+
+| Resultado del checker | pythonSyntax.state | Error/Warning |
+|---|---|---|
+| `{ state: 'passed' }` | `passed` | ninguno |
+| `{ state: 'failed', message: '...' }` | `failed` | SCRIPT_SYNTAX_INVALID |
+| null, undefined, array, string, sin state, state desconocido, engine/message no string, propiedad extra | `not_run` | SCRIPT_SYNTAX_NOT_RUN |
+| checker lanza | `not_run` | SCRIPT_SYNTAX_NOT_RUN (sin stack trace) |
+
+### Política exacta de imports
+
+```
+PERMITIDO:
+  import pandas as pd
+  import numpy as np
+
+RECHAZADO:
+  import pandas
+  import pandas as pandas
+  import numpy
+  import numpy as numpy
+  import pandas as pd, numpy as np
+  import pandas, numpy
+  from os import system
+  from os import *
+  cualquier import dentro de clean_dataset body
+```
+
+### Intersecciones de partición
+
+| Verificación | Código |
+|---|---|
+| accepted ∩ rejected ≠ ∅ | SCRIPT_PARTITION_INVALID |
+| accepted ∩ excluded ≠ ∅ | SCRIPT_PARTITION_INVALID |
+| rejected ∩ excluded ≠ ∅ | SCRIPT_PARTITION_INVALID |
+
+### security: tokens peligrosos enmascarados por string lexer
+
+Tokens dentro de `_c` dict strings → no producen error:
+
+- `eval(`, `exec(`, `__import__(`, `open(`, `io.open(`, `pathlib`, `__file__`, `subprocess`, `os.system`, `socket`, `requests`, `urllib`, `http.client`, `del`, `inplace=True`
+
+### Archivos modificados
+
+| Archivo | Cambio |
+|---|---|
+| `scriptValidatorV2.ts` | validateSyntax fail-closed, validateImportWhitelist, maskStringsAndComments triple strings, validatePartition intersecciones, validateEmbeddedValidationResult, safeNonNegativeInteger, safeFiniteNumber |
+| `scriptValidatorV2.test.ts` | 88 tests (72 nuevas) |
+| `loop_04_validator.md` | Actualizado con hardening |
+
+### Tests (88 total, +46)
+
+| Suite | Tests |
+|---|---|
+| Shape | 19 |
+| Referencias | 5 |
+| Partición | 7 |
+| Columnas | 3 |
+| Seguridad | 12 |
+| Import whitelist | 6 |
+| Sintaxis | 13 |
+| Reconstrucción | 4 |
+| Contrato final + hash | 16 |
+| Python compile real | 3 |
+
+### Verificaciones
+
+| Verificación | Resultado |
+|---|---|
+| Tests Loop 4R | 88 passed |
+| Suite completa | 1047 passed, 6 skipped |
+| Build | built in ~3s |
+| Contracts v2 | 3/3 PASS |
+
+---
+
 ## Loop 3R: Hardening del finalizer
 
 **SHA:** `<commit actual>`
