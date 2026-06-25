@@ -1,49 +1,24 @@
-# Tercera entrega AURA - carpeta activa
+# TFM AURA — inicio aquí
 
-Esta es la unica carpeta documental activa para seguir el TFM de AURA.
+Esta es la carpeta documental activa del proyecto.
 
 ## Orden de lectura
 
-1. `01_borrador/BORRADOR_TERCERA_ENTREGA_AURA.md`
-2. `05_desarrollo/NEXT_STEPS.md`
-3. `03_evidencia/MATRIZ_EVIDENCIA_RESULTADOS.md`
-4. `02_metodologia/RETROALIMENTACION_Y_DIRECTRICES.md`
-5. `02_metodologia/PROTOCOLO_BENCHMARK_AURA_2026-06.md`
-6. `10_glosario/glosario_reglas_deterministas_aura.md`
+1. `00_MAPA_MAESTRO_TFM.md` — estado real y jerarquía de fuentes.
+2. `05_desarrollo/NEXT_STEPS.md` — siguiente tarea concreta.
+3. `05_desarrollo/ROADMAP_FASES_RESTANTES.md` — alcance de Phase 4–6.
+4. `03_evidencia/MATRIZ_EVIDENCIA_RESULTADOS.md` — trazabilidad de objetivos.
+5. `03_evidencia/PAQUETE_EVIDENCIA_PHASE3.md` — Phase 3 congelada.
+6. `01_borrador/BORRADOR_TERCERA_ENTREGA_AURA.md` — narrativa académica viva.
 
-## Subcarpetas
+## Regla de continuidad
 
-| Carpeta | Uso |
-|---|---|
-| `01_borrador/` | Documento base para redactar la tercera entrega. |
-| `02_metodologia/` | Protocolo, directrices, matriz de pipeline y marco experimental. |
-| `03_evidencia/` | Datasets, resultados exportados, capturas seleccionadas y matriz objetivo-evidencia. |
-| `04_resultados/` | Tablas academicas y soporte tecnico ya depurado. |
-| `05_desarrollo/` | Planes ejecutables y siguiente ruta de trabajo. |
-| `06_articulo/` | Borrador de articulo derivado del TFM. |
-| `07_referencias/` | Bibliografia y fuentes originales. |
-| `08_contexto_historico/` | Solo contexto minimo de entregas anteriores. |
-| `09_figuras/` | Figuras utiles para memoria o articulo. |
-| `10_glosario/` | Glosario auditable de reglas deterministas. |
+La evidencia reproducible y el código vigente prevalecen sobre borradores históricos. Cada loop debe actualizar su documentación en `05_desarrollo/phases/phase_XX/` y dejar pruebas, resultados, limitaciones y commit.
 
-## Objetivos que guian la tercera entrega
+## Estado actual
 
-| OE | Objetivo | Resultado que debe sostenerlo |
-|---|---|---|
-| OE1 | Arquitectura local-first e ingestion verificable | Contrato de ingestion, fingerprint, evidencia exportable. |
-| OE2 | Motor determinista reproducible | Reglas auditables, metricas por regla, glosario R01-R28. |
-| OE3 | Diagnostico LLM restringido | Diagnostico anclado a evidencia y script validado. |
-| OE4 | Laboratorio LLM trazable | Corridas con estado de evidencia, sin declarar benchmark formal si no cumple protocolo. |
-| OE5 | Gobernanza HITL y exportacion | Checklist humano, simulacion, delta de salud y paquete exportable. |
-
-## Criterio de trabajo
-
-No volver a dispersar documentos. Si aparece informacion nueva, debe entrar en una de estas formas:
-
-- actualizacion del borrador;
-- tabla de evidencia;
-- protocolo/metodologia;
-- resultado exportado;
-- siguiente paso en `NEXT_STEPS.md`.
-
-Los reportes de loop, capturas repetidas y planes obsoletos no vuelven a ser entrada principal.
+- Phase 1: cerrada.
+- Phase 2: cerrada.
+- Phase 3: congelada en `d3774dd5ac98d89ca4454c693b1b0a30856cd191`.
+- Phase 4: siguiente fase.
+- Word/PDF final: se consolida después de terminar todas las fases.
