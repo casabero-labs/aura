@@ -1,5 +1,5 @@
 /**
- * Script Column Resolver — Phase 4 Loop 1R.
+ * Script Column Resolver — Phase 4 Loop 1R.1.
  *
  * Structural API for column resolution. NOT the renderer.
  * Uses columnId as primary authority. Never falls back to name lookup.
@@ -13,6 +13,7 @@ import type {
   ColumnRegistryV2,
   ColumnAccessSpecV2,
   ColumnResolutionFailureReasonV2,
+  ScriptBuildContextV2,
 } from './types';
 
 // ── Column Resolution ──
@@ -23,9 +24,9 @@ export type ColumnResolutionResult =
 
 export function resolveScriptColumn(
   columnId: string | null,
-  buildContext: { columnRegistry: ColumnRegistryV2; correspondenceEvidence?: { valid: boolean } },
+  buildContext: ScriptBuildContextV2,
 ): ColumnResolutionResult {
-  if (buildContext.correspondenceEvidence && !buildContext.correspondenceEvidence.valid) {
+  if (!buildContext?.correspondenceEvidence?.valid) {
     return { ok: false, reason: 'context_invalid' };
   }
 
@@ -82,27 +83,24 @@ export function isColumnStructurallyRenderable(col: ColumnRef): boolean {
   return !col.isAmbiguous;
 }
 
-// ── Readonly Map View (runtime-immutable proxy) ──
+// ── Readonly Map View (closure-based, no _map property) ──
 
-class ReadonlyMapView<K, V> implements Omit<Map<K, V>, 'set' | 'delete' | 'clear'> {
-  private _map: Map<K, V>;
-
-  constructor(map: Map<K, V>) {
-    this._map = map;
-  }
-
-  get(key: K): V | undefined { return this._map.get(key); }
-  has(key: K): boolean { return this._map.has(key); }
-  get size(): number { return this._map.size; }
-  keys(): MapIterator<K> { return this._map.keys(); }
-  values(): MapIterator<V> { return this._map.values(); }
-  entries(): MapIterator<[K, V]> { return this._map.entries(); }
-  forEach(cb: (value: V, key: K, map: Map<K, V>) => void, thisArg?: unknown): void {
-    this._map.forEach(cb, thisArg);
-  }
-  [Symbol.iterator](): MapIterator<[K, V]> { return this._map[Symbol.iterator](); }
-
-  // Explicitly omit mutable methods so cast to any still reveals no set/delete/clear
+function createReadonlyMapView<K, V>(source: Map<K, V>): ReadonlyMap<K, V> {
+  const view: ReadonlyMap<K, V> = {
+    get size(): number { return source.size; },
+    get(key: K): V | undefined { return source.get(key); },
+    has(key: K): boolean { return source.has(key); },
+    keys(): MapIterator<K> { return source.keys(); },
+    values(): MapIterator<V> { return source.values(); },
+    entries(): MapIterator<[K, V]> { return source.entries(); },
+    forEach(cb: (value: V, key: K, map: ReadonlyMap<K, V>) => void, thisArg?: unknown): void {
+      source.forEach((value: V, key: K) => {
+        cb.call(thisArg, value, key, view);
+      });
+    },
+    [Symbol.iterator](): MapIterator<[K, V]> { return source[Symbol.iterator](); },
+  };
+  return Object.freeze(view) as ReadonlyMap<K, V>;
 }
 
 // Helper to check the canonical pythonLiteral format
@@ -176,6 +174,53 @@ export function buildColumnRegistryV2(columnRefs: ColumnRef[]): ColumnRegistryV2
     }
   }
 
+  // Validate duplicate metadata consistency
+  const nameGroups = new Map<string, ColumnRef[]>();
+  for (const col of columnRefs) {
+    const group = nameGroups.get(col.name) || [];
+    group.push(col);
+    nameGroups.set(col.name, group);
+  }
+
+  for (const [, group] of nameGroups) {
+    group.sort((a, b) => a.position - b.position);
+
+    if (group.length === 1) {
+      const col = group[0];
+      if (col.columnId) {
+        if (col.isDuplicate) {
+          errors.push({
+            code: 'INCONSISTENT_DUPLICATE_FLAG',
+            message: `INCONSISTENT_DUPLICATE_FLAG: Column ${col.columnId} "${col.name}" has isDuplicate=true but is the only column with that name`,
+          });
+        }
+        if (col.duplicateOrdinal !== 0) {
+          errors.push({
+            code: 'INCONSISTENT_DUPLICATE_ORDINAL',
+            message: `INCONSISTENT_DUPLICATE_ORDINAL: Column ${col.columnId} "${col.name}" has duplicateOrdinal=${col.duplicateOrdinal}, expected 0 (unique column)`,
+          });
+        }
+      }
+    } else {
+      for (let i = 0; i < group.length; i++) {
+        const col = group[i];
+        if (!col.columnId) continue;
+        if (!col.isDuplicate) {
+          errors.push({
+            code: 'INCONSISTENT_DUPLICATE_FLAG',
+            message: `INCONSISTENT_DUPLICATE_FLAG: Column ${col.columnId} "${col.name}" has isDuplicate=false but name appears ${group.length} times`,
+          });
+        }
+        if (col.duplicateOrdinal !== i) {
+          errors.push({
+            code: 'INCONSISTENT_DUPLICATE_ORDINAL',
+            message: `INCONSISTENT_DUPLICATE_ORDINAL: Column ${col.columnId} "${col.name}" has duplicateOrdinal=${col.duplicateOrdinal}, expected ${i} (order by position: ${i} of ${group.length})`,
+          });
+        }
+      }
+    }
+  }
+
   if (errors.length > 0) {
     throw new Error(`buildColumnRegistryV2 validation failed: ${errors.map(e => e.message).join('; ')}`);
   }
@@ -205,7 +250,7 @@ export function buildColumnRegistryV2(columnRefs: ColumnRef[]): ColumnRegistryV2
 
   return {
     orderedColumns,
-    byColumnId: new ReadonlyMapView(byColumnIdRaw) as ReadonlyMap<string, ColumnRef>,
-    byName: new ReadonlyMapView(byNameRaw) as ReadonlyMap<string, readonly ColumnRef[]>,
+    byColumnId: createReadonlyMapView(byColumnIdRaw),
+    byName: createReadonlyMapView(byNameRaw) as ReadonlyMap<string, readonly ColumnRef[]>,
   };
 }

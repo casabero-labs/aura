@@ -332,3 +332,263 @@ describe('isColumnStructurallyRenderable', () => {
     expect(isColumnStructurallyRenderable(cols[0])).toBe(false);
   });
 });
+
+// ── ReadonlyMapView encapsulation (H-NEW-1 / H-NEW-2) ──
+
+describe('ReadonlyMapView encapsulation (H-NEW-1, H-NEW-2)', () => {
+  const cols = buildColumnRegistry(['Age', 'Fare']);
+  const reg = buildColumnRegistryV2(cols);
+
+  it('Object.keys(view) does not contain _map or any storage property', () => {
+    const keys = Object.keys(reg.byColumnId as any);
+    expect(keys).not.toContain('_map');
+    expect(keys).not.toContain('_source');
+    // Public API methods are fine; storage properties must not leak
+  });
+
+  it('Object.keys(byName) does not contain _map', () => {
+    const keys = Object.keys(reg.byName as any);
+    expect(keys).not.toContain('_map');
+  });
+
+  it('Reflect.ownKeys(view) does not contain storage properties', () => {
+    const keys = Reflect.ownKeys(reg.byColumnId as any);
+    expect(keys).not.toContain('_map');
+  });
+
+  it('Object.values(view) does not contain a Map instance', () => {
+    const vals = Object.values(reg.byColumnId as any);
+    for (const v of vals) {
+      expect(v).not.toBeInstanceOf(Map);
+    }
+  });
+
+  it('view has no set/delete/clear methods', () => {
+    const v = reg.byColumnId as any;
+    expect('set' in v).toBe(false);
+    expect('delete' in v).toBe(false);
+    expect('clear' in v).toBe(false);
+    expect(typeof v.set).toBe('undefined');
+    expect(typeof v.delete).toBe('undefined');
+    expect(typeof v.clear).toBe('undefined');
+  });
+
+  it('forEach callback receives the readonly view, not mutable map', () => {
+    let forEachMap: any = null;
+    reg.byColumnId.forEach((_v, _k, map) => {
+      forEachMap = map;
+    });
+    expect(forEachMap).toBe(reg.byColumnId);
+    // The view should have no set method
+    expect('set' in forEachMap).toBe(false);
+    expect(typeof forEachMap.set).toBe('undefined');
+  });
+
+  it('forEach callback cannot call map.set()', () => {
+    let mutated = false;
+    reg.byColumnId.forEach((_v, _k, map) => {
+      try {
+        (map as any).set('injected', {});
+        mutated = true;
+      } catch {}
+    });
+    expect(mutated).toBe(false);
+  });
+
+  it('forEach callback cannot call map.delete()', () => {
+    let mutated = false;
+    reg.byColumnId.forEach((_v, _k, map) => {
+      try {
+        (map as any).delete(cols[0].columnId);
+        mutated = true;
+      } catch {}
+    });
+    expect(mutated).toBe(false);
+  });
+
+  it('cannot inject column through any means', () => {
+    const v = reg.byColumnId as any;
+    const before = reg.byColumnId.size;
+    // Try common injection paths
+    if (typeof v.set === 'function') v.set('injected', {});
+    if (typeof v.set === 'function') (v as Map<any, any>).set('injected', {});
+    if (typeof v._map?.set === 'function') v._map.set('injected', {});
+    if (typeof v.set === 'undefined' && typeof v._map === 'undefined') {
+      // No injection path available
+    }
+    expect(reg.byColumnId.size).toBe(before);
+    expect(reg.byColumnId.has('injected')).toBe(false);
+  });
+
+  it('cannot delete column through any means', () => {
+    const ageId = cols[0].columnId;
+    const hadAge = reg.byColumnId.has(ageId);
+    expect(hadAge).toBe(true);
+    const v = reg.byColumnId as any;
+    if (typeof v.delete === 'function') v.delete(ageId);
+    if (typeof v._map?.delete === 'function') v._map.delete(ageId);
+    expect(reg.byColumnId.has(ageId)).toBe(true);
+  });
+
+  it('Object.isFrozen(view) is true', () => {
+    expect(Object.isFrozen(reg.byColumnId)).toBe(true);
+    expect(Object.isFrozen(reg.byName)).toBe(true);
+  });
+
+  it('entries(), values(), keys() do not expose the Map container', () => {
+    for (const entry of reg.byColumnId.entries()) {
+      expect(entry).not.toBeInstanceOf(Map);
+    }
+    for (const val of reg.byColumnId.values()) {
+      expect(val).not.toBeInstanceOf(Map);
+    }
+    for (const key of reg.byColumnId.keys()) {
+      expect(key).not.toBeInstanceOf(Map);
+    }
+  });
+
+  it('ColumnRef and arrays remain frozen', () => {
+    const col = reg.byColumnId.get(cols[0].columnId)!;
+    expect(Object.isFrozen(col)).toBe(true);
+    const arr = reg.byName.get('Age')!;
+    expect(Object.isFrozen(arr)).toBe(true);
+  });
+});
+
+// ── Duplicate metadata validation (M-DUP) ──
+
+describe('Duplicate metadata validation (M-DUP)', () => {
+  it('rejects same name with isDuplicate=false on all columns', () => {
+    const c1: ColumnRef = { columnId: 'col:1', name: 'A', position: 0, duplicateOrdinal: 0, pythonLiteral: '_c["col:1"]', isAmbiguous: false, isDuplicate: false, isReservedWord: false };
+    const c2: ColumnRef = { columnId: 'col:2', name: 'A', position: 1, duplicateOrdinal: 0, pythonLiteral: '_c["col:2"]', isAmbiguous: false, isDuplicate: false, isReservedWord: false };
+    expect(() => buildColumnRegistryV2([c1, c2])).toThrow(/INCONSISTENT_DUPLICATE_FLAG/);
+  });
+
+  it('rejects unique name with isDuplicate=true', () => {
+    const c: ColumnRef = { columnId: 'col:1', name: 'A', position: 0, duplicateOrdinal: 0, pythonLiteral: '_c["col:1"]', isAmbiguous: false, isDuplicate: true, isReservedWord: false };
+    expect(() => buildColumnRegistryV2([c])).toThrow(/INCONSISTENT_DUPLICATE_FLAG/);
+  });
+
+  it('rejects unique name with duplicateOrdinal=1', () => {
+    const c: ColumnRef = { columnId: 'col:1', name: 'A', position: 0, duplicateOrdinal: 1, pythonLiteral: '_c["col:1"]', isAmbiguous: false, isDuplicate: false, isReservedWord: false };
+    expect(() => buildColumnRegistryV2([c])).toThrow(/INCONSISTENT_DUPLICATE_ORDINAL/);
+  });
+
+  it('rejects ordinals 0 and 2 (gap)', () => {
+    const c1: ColumnRef = { columnId: 'col:1', name: 'A', position: 0, duplicateOrdinal: 0, pythonLiteral: '_c["col:1"]', isAmbiguous: false, isDuplicate: true, isReservedWord: false };
+    const c2: ColumnRef = { columnId: 'col:2', name: 'A', position: 1, duplicateOrdinal: 2, pythonLiteral: '_c["col:2"]', isAmbiguous: false, isDuplicate: true, isReservedWord: false };
+    expect(() => buildColumnRegistryV2([c1, c2])).toThrow(/INCONSISTENT_DUPLICATE_ORDINAL/);
+  });
+
+  it('rejects both ordinals 0', () => {
+    const c1: ColumnRef = { columnId: 'col:1', name: 'A', position: 0, duplicateOrdinal: 0, pythonLiteral: '_c["col:1"]', isAmbiguous: false, isDuplicate: true, isReservedWord: false };
+    const c2: ColumnRef = { columnId: 'col:2', name: 'A', position: 1, duplicateOrdinal: 0, pythonLiteral: '_c["col:2"]', isAmbiguous: false, isDuplicate: true, isReservedWord: false };
+    expect(() => buildColumnRegistryV2([c1, c2])).toThrow(/INCONSISTENT_DUPLICATE_ORDINAL/);
+  });
+
+  it('rejects mixed duplicate flags (some true, some false)', () => {
+    const c1: ColumnRef = { columnId: 'col:1', name: 'A', position: 0, duplicateOrdinal: 0, pythonLiteral: '_c["col:1"]', isAmbiguous: false, isDuplicate: true, isReservedWord: false };
+    const c2: ColumnRef = { columnId: 'col:2', name: 'A', position: 1, duplicateOrdinal: 1, pythonLiteral: '_c["col:2"]', isAmbiguous: false, isDuplicate: false, isReservedWord: false };
+    expect(() => buildColumnRegistryV2([c1, c2])).toThrow(/INCONSISTENT_DUPLICATE_FLAG/);
+  });
+
+  it('rejects three duplicates with ordinals incompatible with position order', () => {
+    const c1: ColumnRef = { columnId: 'col:1', name: 'A', position: 0, duplicateOrdinal: 2, pythonLiteral: '_c["col:1"]', isAmbiguous: false, isDuplicate: true, isReservedWord: false };
+    const c2: ColumnRef = { columnId: 'col:2', name: 'A', position: 1, duplicateOrdinal: 0, pythonLiteral: '_c["col:2"]', isAmbiguous: false, isDuplicate: true, isReservedWord: false };
+    const c3: ColumnRef = { columnId: 'col:3', name: 'A', position: 2, duplicateOrdinal: 1, pythonLiteral: '_c["col:3"]', isAmbiguous: false, isDuplicate: true, isReservedWord: false };
+    expect(() => buildColumnRegistryV2([c1, c2, c3])).toThrow(/INCONSISTENT_DUPLICATE_ORDINAL/);
+  });
+
+  it('accepts valid duplicate metadata from buildColumnRegistry', () => {
+    const cols = buildColumnRegistry(['Score', 'Score']);
+    expect(cols[0].isDuplicate).toBe(true);
+    expect(cols[1].isDuplicate).toBe(true);
+    expect(cols[0].duplicateOrdinal).toBe(0);
+    expect(cols[1].duplicateOrdinal).toBe(1);
+    const reg = buildColumnRegistryV2(cols);
+    expect(reg.byColumnId.size).toBe(2);
+  });
+
+  it('accepts three duplicates with correct ordinal sequence', () => {
+    const cols = buildColumnRegistry(['X', 'X', 'X']);
+    expect(cols[0].duplicateOrdinal).toBe(0);
+    expect(cols[1].duplicateOrdinal).toBe(1);
+    expect(cols[2].duplicateOrdinal).toBe(2);
+    const reg = buildColumnRegistryV2(cols);
+    expect(reg.byColumnId.size).toBe(3);
+  });
+
+  it('accepts interleaved duplicates with correct ordinal sequence', () => {
+    const cols = buildColumnRegistry(['A', 'B', 'A']);
+    const reg = buildColumnRegistryV2(cols);
+    expect(reg.byColumnId.size).toBe(3);
+    // A at position 0: ordinal 0, A at position 2: ordinal 1
+    const aCols = cols.filter(c => c.name === 'A');
+    expect(aCols[0].duplicateOrdinal).toBe(0);
+    expect(aCols[1].duplicateOrdinal).toBe(1);
+    expect(aCols[0].position).toBe(0);
+    expect(aCols[1].position).toBe(2);
+  });
+});
+
+// ── resolveScriptColumn fail-closed (M-NEW-1) ──
+
+describe('resolveScriptColumn fail-closed (M-NEW-1)', () => {
+  it('resolves when correspondenceEvidence is present and valid=true', () => {
+    const cols = buildColumnRegistry(['Age']);
+    const ctx = makeContext(cols);
+    const result = resolveScriptColumn(cols[0].columnId, ctx);
+    expect(result.ok).toBe(true);
+  });
+
+  it('returns context_invalid when correspondenceEvidence omitted via any cast', () => {
+    const cols = buildColumnRegistry(['Age']);
+    const ctx = {
+      remediationContext: { evidenceEnvelopeRef: '', datasetFingerprint: 'sha256:test', columns: [], issues: [] },
+      sourceDatasetFingerprint: 'sha256:test',
+      columnRegistry: buildColumnRegistryV2(cols),
+    } as any;
+    const result = resolveScriptColumn(cols[0].columnId, ctx);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toBe('context_invalid');
+  });
+
+  it('returns context_invalid when correspondenceEvidence is undefined', () => {
+    const cols = buildColumnRegistry(['Age']);
+    const ctx = {
+      remediationContext: { evidenceEnvelopeRef: '', datasetFingerprint: 'sha256:test', columns: [], issues: [] },
+      sourceDatasetFingerprint: 'sha256:test',
+      columnRegistry: buildColumnRegistryV2(cols),
+      correspondenceEvidence: undefined,
+    } as any;
+    const result = resolveScriptColumn(cols[0].columnId, ctx);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toBe('context_invalid');
+  });
+
+  it('returns context_invalid when correspondenceEvidence is null', () => {
+    const cols = buildColumnRegistry(['Age']);
+    const ctx = {
+      remediationContext: { evidenceEnvelopeRef: '', datasetFingerprint: 'sha256:test', columns: [], issues: [] },
+      sourceDatasetFingerprint: 'sha256:test',
+      columnRegistry: buildColumnRegistryV2(cols),
+      correspondenceEvidence: null,
+    } as any;
+    const result = resolveScriptColumn(cols[0].columnId, ctx);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toBe('context_invalid');
+  });
+
+  it('returns context_invalid when correspondenceEvidence has valid=false', () => {
+    const cols = buildColumnRegistry(['Age']);
+    const ctx = {
+      remediationContext: { evidenceEnvelopeRef: '', datasetFingerprint: 'sha256:test', columns: [], issues: [] },
+      sourceDatasetFingerprint: 'sha256:test',
+      columnRegistry: buildColumnRegistryV2(cols),
+      correspondenceEvidence: { valid: false },
+    } as any;
+    const result = resolveScriptColumn(cols[0].columnId, ctx);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toBe('context_invalid');
+  });
+});

@@ -99,9 +99,24 @@ buildColumnRegistry(['Age', 'Score', 'Score'])
 
 ---
 
+## Hardening final Loop 1R.1
+
+Cerrados los hallazgos de reauditoría:
+- H-NEW-1: `createReadonlyMapView` basado en closure — sin propiedad `_map`, Object.keys vacío de storage
+- H-NEW-2: `forEach` entrega la vista readonly como tercer argumento
+- M-NEW-1: `resolveScriptColumn` fail-closed — `correspondenceEvidence` obligatorio
+- M-DUP: validación de metadata de duplicados (flags, ordinales, gaps)
+
+Tests: 64 (28 nuevos de encapsulación + metadata + fail-closed).
+Python: syntaxValidation PASSED, semanticExecution PASSED.
+ReadonlyMap: Object.freeze, sin `set`/`delete`/`clear`, `Object.keys` no contiene `_map`.
+
+---
+
 ## SHA
 
 ```
 Anterior: 9a8f5e0330f1dbb5c84d60db96c4b0249e7746f4
-Loop 1R: commit actual (SHA al hacer commit)
+Loop 1R: 8a8e66b72a7b06d722fc57c5fcd70d05f670bb29
+Loop 1R.1: commit actual (SHA al hacer commit)
 ```

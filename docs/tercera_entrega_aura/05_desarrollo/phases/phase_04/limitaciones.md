@@ -1,6 +1,6 @@
 # Limitaciones — Phase 4
 
-## Loop 1R — Remediación
+## Loop 1R.1 — Hardening final
 
 ### Limitaciones
 
@@ -14,6 +14,15 @@
 8. **`byName` no es fallback:** El `ColumnRegistryV2` incluye `byName` para diagnóstico, pero no se usa para resolución.
 9. **`resolveScriptColumn` no distingue causa de `context_invalid`:** Un contexto inválido retorna `context_invalid` sin diferenciar si es por fingerprint o column mismatch.
 10. **Vocabulario incluye `-`, `--`, `...`:** Riesgo de falsos positivos documentado en D15.
+11. **Registry usa `throw` en lugar de `RegistryBuildResult`:** Errores de validación lanzan Error en lugar de retornar resultado tipado.
+12. **`isColumnStructurallyRenderable` solo verifica ambigüedad:** No verifica actionType ni semanticType.
+
+### Curados en Loop 1R.1
+
+- ReadonlyMap: closure-based (sin propiedad `_map`)
+- `forEach`: callback recibe la vista readonly (sin `set`/`delete`/`clear`)
+- `resolveScriptColumn`: fail-closed (correspondenceEvidence obligatorio)
+- Duplicate metadata: validación de flags, ordinales, gaps
 
 ### Claims NO permitidos aún
 
