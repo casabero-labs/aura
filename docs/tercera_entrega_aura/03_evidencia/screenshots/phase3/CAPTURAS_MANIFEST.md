@@ -1,14 +1,16 @@
 # Capturas de pantalla — Phase 3 (Tercera Entrega)
 
-> **Commit:** `fe5378e3eff87de45b60111eb42e30ed89beb1cd`
-> **Fecha de captura:** 2026-06-24
+> **Commit:** `b89f38e` (hardened deterministic Phase 3 evidence harness)
+> **Fecha de captura:** 2026-06-25
 > **Viewport:** 1440 × 1000
 > **Directorio:** `docs/tercera_entrega_aura/03_evidencia/screenshots/phase3/`
 > **Spec:** `src/tests/e2e/third-delivery-evidence.spec.ts`
 > **Playwright:** Chromium headless, Vite dev server (http://127.0.0.1:3000)
-> **Nota:** Diagnóstico y plan usan fixture determinista (no inferencia LLM real).
-> El harness de validación (`contracts:v2:validate-local`) confirma 3/3 PASS
-> con fixtures estructuradas que replican el contrato `aura.diagnosis.v2`.
+> **Env vars:** `VITE_CONTRACTS_V2_ENABLED=true VITE_PHASE3_E2E_HARNESS=true`
+> **Fixture:** `src/tests/e2e/harness/Phase3EvidenceHarness.ts` (Titanic audit report, no Ollama)
+> **Harness:** Deterministic — `window.__PHASE3_INJECT__` + `window.__PHASE3_SET_STATE__`
+> **Assertions:** 04 (diagnosis-v2 visible + blocks + issues + REVISIÓN HUMANA), 05 (9 actions + approve/reject + exclusion), 06 (HITL approve/reject + pending)
+> **Contracts:** `contracts:v2:validate-local` confirma 3/3 PASS con fixtures Titanic
 
 ---
 
@@ -20,8 +22,8 @@
 | **Dataset** | `synthetic_ground_truth.csv` (SHA-256: `4e7d358f...`) |
 | **Filas × Columnas** | 15 × 9 |
 | **Issues** | 16 |
-| **Commit** | `fe5378e` |
-| **Fecha captura** | 2026-06-24 |
+| **Commit** | `b89f38e` |
+| **Fecha captura** | 2026-06-25 |
 | **Viewport** | 1440 × 1000 |
 | **Ruta** | `docs/tercera_entrega_aura/03_evidencia/screenshots/phase3/01_synthetic_profile.png` |
 | **Tamaño** | 83.556 bytes |
@@ -40,8 +42,8 @@
 | **Dataset** | `titanic.csv` (SHA-256: `4a437fde...`) |
 | **Filas × Columnas** | 891 × 12 |
 | **Issues** | 10 |
-| **Commit** | `fe5378e` |
-| **Fecha captura** | 2026-06-24 |
+| **Commit** | `b89f38e` |
+| **Fecha captura** | 2026-06-25 |
 | **Viewport** | 1440 × 1000 |
 | **Ruta** | `docs/tercera_entrega_aura/03_evidencia/screenshots/phase3/02_titanic_profile.png` |
 | **Tamaño** | 84.776 bytes |
@@ -60,8 +62,8 @@
 | **Dataset** | `adult_income.csv` (SHA-256: `23f713bb...`) |
 | **Filas × Columnas** | 48.842 × 15 |
 | **Issues** | 12 |
-| **Commit** | `fe5378e` |
-| **Fecha captura** | 2026-06-24 |
+| **Commit** | `b89f38e` |
+| **Fecha captura** | 2026-06-25 |
 | **Viewport** | 1440 × 1000 |
 | **Ruta** | `docs/tercera_entrega_aura/03_evidencia/screenshots/phase3/03_adult_income_profile.png` |
 | **Tamaño** | 86.461 bytes |
@@ -79,8 +81,8 @@
 | **Nombre** | `04_structured_diagnosis_v2.png` |
 | **Dataset** | `titanic.csv` (SHA-256: `4a437fde...`) |
 | **Filas × Columnas** | 891 × 12 |
-| **Commit** | `fe5378e` |
-| **Fecha captura** | 2026-06-24 |
+| **Commit** | `b89f38e` |
+| **Fecha captura** | 2026-06-25 |
 | **Viewport** | 1440 × 1000 |
 | **Ruta** | `docs/tercera_entrega_aura/03_evidencia/screenshots/phase3/04_structured_diagnosis_v2.png` |
 | **Tamaño** | 299.410 bytes |
@@ -97,8 +99,8 @@
 |---|---|
 | **Nombre** | `05_remediation_plan_v2.png` |
 | **Dataset** | `titanic.csv` (SHA-256: `4a437fde...`) |
-| **Commit** | `fe5378e` |
-| **Fecha captura** | 2026-06-24 |
+| **Commit** | `b89f38e` |
+| **Fecha captura** | 2026-06-25 |
 | **Viewport** | 1440 × 1000 |
 | **Ruta** | `docs/tercera_entrega_aura/03_evidencia/screenshots/phase3/05_remediation_plan_v2.png` |
 | **Tamaño** | 58.692 bytes |
@@ -115,8 +117,8 @@
 |---|---|
 | **Nombre** | `06_remediation_hitl.png` |
 | **Dataset** | `titanic.csv` (SHA-256: `4a437fde...`) |
-| **Commit** | `fe5378e` |
-| **Fecha captura** | 2026-06-24 |
+| **Commit** | `b89f38e` |
+| **Fecha captura** | 2026-06-25 |
 | **Viewport** | 1440 × 1000 |
 | **Ruta** | `docs/tercera_entrega_aura/03_evidencia/screenshots/phase3/06_remediation_hitl.png` |
 | **Tamaño** | 58.692 bytes |
@@ -133,11 +135,13 @@ Para regenerar las capturas:
 
 ```bash
 cd src
-npx playwright install chromium   # si es la primera vez
-npm run dev -- --host 127.0.0.1   # iniciar servidor en otra terminal
-npx playwright test e2e/third-delivery-evidence.spec.ts \
-  --project=chromium \
-  --reporter=list
+npm test                              # unit tests
+npm run build                         # production build
+npx playwright install chromium        # si es la primera vez
+VITE_CONTRACTS_V2_ENABLED=true VITE_PHASE3_E2E_HARNESS=true \
+  npx playwright test third-delivery-evidence.spec.ts \
+  --project=chromium --reporter=list  # 6/6 tests
+npm run contracts:v2:validate-local   # 3/3 contracts pass
 ```
 
 Las capturas se guardan en:
@@ -145,8 +149,10 @@ Las capturas se guardan en:
 docs/tercera_entrega_aura/03_evidencia/screenshots/phase3/
 ```
 
-Para capturar los steps 05 y 06 con el plan de remediación visible, se necesita:
-- `CONTRACTS_V2_ENABLED=true` en el entorno Vite, Y
-- Un `structuredDiagnosis` válido (ya sea de una corrida LLM real o de la persistencia del pipeline).
+**Fixtures deterministas (sin Ollama):**
+- `PHASE3_TITANIC_DIAGNOSIS` — DiagnosisExecutionResult derivado de `titanic-audit-report.json`
+- `PHASE3_TITANIC_PLAN` — RemediationPlanV2 con 9 acciones, 1 exclusión (`semantic-long-tail-Name`)
 
-Sin `structuredDiagnosis`, `RemediationPlanStepV2` renderiza un estado de espera y la captura muestra la etapa de propuesta sin acciones.
+**Harness API:**
+- `window.__PHASE3_INJECT__(diagnosis, plan, opts?)` — inyecta diagnóstico y plan
+- `window.__PHASE3_SET_STATE__(state)` — establece estado del pipeline ('diagnosis')

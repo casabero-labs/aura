@@ -96,6 +96,12 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, onLog
 
   // ── Phase 3 E2E Harness: expose injection callbacks on window ──
   useEffect(() => {
+    const isDev = import.meta.env.DEV;
+    const harnessEnabled =
+      import.meta.env.VITE_PHASE3_E2E_HARNESS === 'true';
+
+    if (!isDev || !harnessEnabled) return;
+
     (window as any).__PHASE3_INJECT__ = (diagnosis: DiagnosisExecutionResult, plan: RemediationPlanV2, opts?: { analysisText?: string }) => {
       setStructuredDiagnosis(diagnosis);
       if (plan) setRemediationPlan(plan);
@@ -103,6 +109,11 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, onLog
     };
     (window as any).__PHASE3_SET_STATE__ = (state: PipelineState) => {
       setState(state);
+    };
+
+    return () => {
+      delete (window as any).__PHASE3_INJECT__;
+      delete (window as any).__PHASE3_SET_STATE__;
     };
   }, []);
 
@@ -328,6 +339,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, onLog
           onContinue={() => setState('script')}
           onOpenLab={onOpenLab}
           onOpenSettings={onOpenSettings}
+          initialDiagnosis={structuredDiagnosis}
         />
       )}
 

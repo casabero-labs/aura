@@ -28,6 +28,7 @@ interface DiagnosisStepProps {
   onContinue: () => void;
   onOpenLab?: () => void;
   onOpenSettings?: () => void;
+  initialDiagnosis?: DiagnosisExecutionResult | null;
 }
 
 export const buildDiagnosisInputSummary = (report: AuditReport) => {
@@ -57,6 +58,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
   onContinue,
   onOpenLab,
   onOpenSettings,
+  initialDiagnosis,
 }) => {
   const [draftAnalysis, setDraftAnalysis] = useState(analysisText);
   const [isLoading, setIsLoading] = useState(false);
@@ -74,8 +76,14 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
   const [progressValue, setProgressValue] = useState<number | undefined>(undefined);
   const [progressStep, setProgressStep] = useState<string>('');
   const [progressIndeterminate, setProgressIndeterminate] = useState(false);
-  const [structuredDiagnosis, setStructuredDiagnosis] = useState<DiagnosisExecutionResult | null>(null);
-  
+  const [structuredDiagnosis, setStructuredDiagnosis] = useState<DiagnosisExecutionResult | null>(initialDiagnosis ?? null);
+
+  useEffect(() => {
+    if (initialDiagnosis !== null && initialDiagnosis !== undefined) {
+      setStructuredDiagnosis(initialDiagnosis);
+    }
+  }, [initialDiagnosis]);
+
   // Chrome AI guided UX states
   const [chromeAvailability, setChromeAvailability] = useState<NormalizedAvailability | null>(null);
   const [isCheckingChrome, setIsCheckingChrome] = useState(false);
