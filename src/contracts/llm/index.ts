@@ -57,6 +57,16 @@ export type {
   RemediationActionV2,
   RemediationErrorCode,
   ScriptContractV2,
+  ScriptContractCandidateV2,
+  ScriptExclusionReasonV2,
+  ScriptExcludedActionV2,
+  ColumnRegistryV2,
+  CorrespondenceEvidenceV2,
+  ScriptBuildContextV2,
+  ColumnAccessSpecV2,
+  ColumnAccessMode,
+  PythonSyntaxState,
+  ScriptValidationResultV2,
 } from './types';
 
 export type { DiagnosisParseOutcome } from './diagnosisParserV2';
@@ -191,3 +201,25 @@ export {
 export type {
   ApprovalResult,
 } from './remediationApprovalV2';
+
+// ── Script v2 (Phase 4) ──
+export {
+  PLACEHOLDER_VOCABULARY_V2,
+  PLACEHOLDER_VOCABULARY_VERSION,
+  PLACEHOLDER_COUNT,
+} from './placeholderVocabulary';
+
+export {
+  resolveScriptColumn,
+  buildColumnAccessSpec,
+  accessColumnDf,
+  writeColumnLiteral,
+  buildPythonLiteral,
+  buildColumnRegistryV2,
+  isColumnRenderizable,
+} from './scriptColumnResolver';
+export type { ColumnResolutionResult } from './scriptColumnResolver';
+
+export {
+  buildScriptContext,
+} from './scriptBuildContext';

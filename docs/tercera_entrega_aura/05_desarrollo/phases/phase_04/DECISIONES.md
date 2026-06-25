@@ -182,7 +182,7 @@ Una acción `rejected` NUNCA aparece en `excludedActionIds`. Los conjuntos son m
 **Justificación:** `normalize_placeholders` reemplaza valores por `np.nan`. La lista de valores debe ser determinista, auditable y versionada. Si cambia, debe reflejarse en `placeholderVocabularyVersion` y por tanto en `scriptHash`.
 
 **Consecuencias:**
-- 19 placeholders en la versión 1.0.0
+- 17 placeholders en la versión 1.0.0 (longitud calculada vía `.length`)
 - Cualquier adición requiere bump de `placeholderVocabularyVersion`
 - El vocabulario se importa como constante, nunca se construye dinámicamente
 

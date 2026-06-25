@@ -475,17 +475,102 @@ export interface DiagnosisExecutionResult {
   remediationContext?: RemediationContextV2;
 }
 
-// ── Script Contract ──
+// ── Script Exclusion (Phase 4) ──
+export type ScriptExclusionReasonV2 =
+  | 'pending'
+  | 'ambiguous_column'
+  | 'missing_column'
+  | 'unsupported_action';
+
+export interface ScriptExcludedActionV2 {
+  actionId: string;
+  reason: ScriptExclusionReasonV2;
+}
+
+// ── Column Registry (Phase 4) ──
+export interface ColumnRegistryV2 {
+  orderedColumns: readonly ColumnRef[];
+  byColumnId: ReadonlyMap<string, ColumnRef>;
+  byName: ReadonlyMap<string, readonly ColumnRef[]>;
+}
+
+// ── Correspondence Evidence (Phase 4) ──
+export interface CorrespondenceEvidenceV2 {
+  fingerprintMatch: boolean;
+  columnsMatch: boolean;
+  missingColumnIds: readonly string[];
+  mismatchedColumns: readonly string[];
+  columnsFromContext: number;
+  columnsInRegistry: number;
+  valid: boolean;
+}
+
+// ── Script Build Context (Phase 4) ──
+export interface ScriptBuildContextV2 {
+  remediationContext: RemediationContextV2;
+  sourceDatasetFingerprint: string;
+  columnRegistry: ColumnRegistryV2;
+  correspondenceEvidence: CorrespondenceEvidenceV2;
+}
+
+// ── Column Access Spec (Phase 4) ──
+export type ColumnAccessMode = 'label' | 'position';
+
+export interface ColumnAccessSpecV2 {
+  columnId: string;
+  pythonLiteral: string;
+  accessMode: ColumnAccessMode;
+  position: number;
+  duplicateOrdinal: number;
+}
+
+// ── Python Syntax State (Phase 4) ──
+export type PythonSyntaxState = 'passed' | 'failed' | 'not_run';
+
+// ── Script Validation Result (Phase 4) ──
+export interface ScriptValidationResultV2 extends Omit<ValidationResultV2, 'errors' | 'warnings'> {
+  valid: boolean;
+  errors: ValidationErrorV2[];
+  warnings: ValidationErrorV2[];
+  pythonSyntax: {
+    state: PythonSyntaxState;
+    engine?: string;
+    message?: string;
+  };
+}
+
+// ── Script Contract Candidate (Phase 4) ──
+export interface ScriptContractCandidateV2 {
+  contractId: 'aura.script.v2';
+  contractVersion: '2.0.0';
+  remediationRef: string;
+  datasetFingerprint: string;
+  acceptedActionIds: string[];
+  rejectedActionIds: string[];
+  excludedActionIds: ScriptExcludedActionV2[];
+  columnRefs: ColumnRef[];
+  rendererVersion: string;
+  placeholderVocabularyVersion: string;
+  scriptText: string;
+  cleanDatasetFn: string;
+  generatedAt: string;
+}
+
+// ── Script Contract (Phase 4) ──
 export interface ScriptContractV2 {
   contractId: 'aura.script.v2';
   contractVersion: '2.0.0';
   remediationRef: string;
+  datasetFingerprint: string;
   acceptedActionIds: string[];
   rejectedActionIds: string[];
+  excludedActionIds: ScriptExcludedActionV2[];
+  columnRefs: ColumnRef[];
   rendererVersion: string;
-  scriptHash: string;
-  validationResult: ValidationResultV2;
-  scriptText?: string;
-  columnRefs: string[];
+  placeholderVocabularyVersion: string;
+  scriptText: string;
   cleanDatasetFn: string;
+  scriptHash: string;
+  validationResult: ScriptValidationResultV2;
+  generatedAt: string;
 }
