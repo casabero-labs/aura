@@ -1,5 +1,5 @@
 /**
- * Script Build Context — Phase 4 Loop 1.
+ * Script Build Context — Phase 4 Loop 1R.
  *
  * Builds ScriptBuildContextV2 from RemediationContextV2 and ColumnRef[].
  * Does NOT modify RemediationContextV2.
@@ -32,6 +32,15 @@ function buildCorrespondenceEvidence(
       missingColumnIds.push(cid);
     }
   }
+  missingColumnIds.sort();
+
+  const unexpectedColumnIds: string[] = [];
+  for (const cid of registryColumnIds) {
+    if (!contextColumnIds.has(cid)) {
+      unexpectedColumnIds.push(cid);
+    }
+  }
+  unexpectedColumnIds.sort();
 
   const mismatchedColumns: string[] = [];
   for (const col of remediationContext.columns) {
@@ -48,10 +57,12 @@ function buildCorrespondenceEvidence(
       }
     }
   }
+  mismatchedColumns.sort();
 
   const columnsMatch =
     columnsFromContext === columnsInRegistry &&
     missingColumnIds.length === 0 &&
+    unexpectedColumnIds.length === 0 &&
     mismatchedColumns.length === 0;
 
   const valid = fingerprintMatch && columnsMatch;
@@ -60,6 +71,7 @@ function buildCorrespondenceEvidence(
     fingerprintMatch,
     columnsMatch,
     missingColumnIds: Object.freeze(missingColumnIds),
+    unexpectedColumnIds: Object.freeze(unexpectedColumnIds),
     mismatchedColumns: Object.freeze(mismatchedColumns),
     columnsFromContext,
     columnsInRegistry,

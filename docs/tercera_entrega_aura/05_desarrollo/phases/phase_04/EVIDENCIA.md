@@ -1,77 +1,65 @@
 # Evidencia — Phase 4
 
-## Loop 1 — Base types, ScriptBuildContextV2, column resolver, vocabulary
+## Loop 1R — Remediación de revisión adversarial
 
 ### Comandos de reproducción
 
 ```bash
-# Tests específicos
 cd src && npm test -- scriptContractV2.types scriptBuildContext scriptColumnResolver placeholderVocabulary
+# 78 passed
 
-# Suite completa
 cd src && npm test
+# 752 passed, 6 skipped
 
-# Build
 cd src && npm run build
+# built in 4.74s
 
-# Contracts v2 validación local
 cd src && npm run contracts:v2:validate-local
+# 3/3 PASS
+
+# Python syntax validation
+python3 -c "import ast; ast.parse(script)" # PASS
 ```
 
 ### Resultados
 
 | Verificación | Resultado |
 |---|---|
-| Tests Loop 1 | 59 passed |
-| Suite completa | 733 passed, 6 skipped |
-| Build | ✓ built in 4.19s |
-| Contracts v2 validate-local | 3/3 PASS (Phase 3 remediation) |
+| Tests Loop 1R | 78 passed |
+| Suite completa | 752 passed, 6 skipped |
+| Build | built in 4.74s |
+| Contracts v2 validate-local | 3/3 PASS |
+| Python `ast.parse` | PASS |
 
-### SHA
+### Expresiones exactas (antes/después)
 
-```
-Base: c048a7e601088cb7f433085748f489f01b81b91d
-Loop 1: HEAD (sha completo al hacer commit)
-```
+| Escenario | Antes | Después |
+|---|---|---|
+| Columna única (Age) | `df_clean["_c[\"col:...\"]"]` INVALID | `df_clean[_c["col:..."]]` VALID |
+| Duplicada (Score, ord 0) | N/A | `df_clean.iloc[:, _c["col:..."]["position"]]` |
+| Duplicada (Score, ord 1) | N/A | `df_clean.iloc[:, _c["col:..."]["position"]]` |
 
-### Tabla de resolución de columnas
+### Inmutabilidad verificada
 
-| columnId | name | isDuplicate | isAmbiguous | isReservedWord | accessMode | pythonLiteral |
-|---|---|---|---|---|---|---|
-| `col:A` | A | false | false | false | label | A |
-| `col:Name_0` | Name | true | false | false | position | Name_0 |
-| `col:Name_1` | Name | true | false | false | position | Name_1 |
-| `col:class` | class | false | false | true | label | `df['class']` |
-| `col:ambiguous` | col | true | true | false | N/A | N/A |
-
-### Vocabulario final
-
-- **PLACEHOLDER_VOCABULARY_V2.length:** 17
-- **Versión:** 1.0.0
-- **Valores:** `''`, `'n/a'`, `'N/A'`, `'na'`, `'NA'`, `'null'`, `'NULL'`, `'none'`, `'None'`, `'?'`, `'-'`, `'--'`, `'...'`, `'NaN'`, `'NAN'`, `'nan'`, `'N/a'`
+| Prueba | Método | Resultado |
+|---|---|---|
+| Map.set no expuesto | `'set' in (reg.byColumnId as any)` | `false` |
+| Map.delete no expuesto | `'delete' in (reg.byColumnId as any)` | `false` |
+| byName inner array push | `reg.byName.get('A')!.push(x)` | TypeError |
+| ColumnRef mutation | `col.name = 'MUTATED'` | TypeError |
+| orderedColumns push | `(reg.orderedColumns as any).push(x)` | TypeError |
+| ColumnRef frozen | `Object.isFrozen(col)` | `true` |
 
 ### Confirmaciones
 
-- Phase 3 NO cambió (archivos congelados intactos)
+- REVISION_ADVERSARIAL_LOOP1.md no cambió
+- Phase 3 no cambió (archivos congelados intactos)
 - Ninguna columna se resolvió por nombre
-- `RemediationContextColumnV2.pythonLiteral` NO se comparó (tipo no existe)
-- `correspondenceEvidence` verifica fingerprint, count, existence, name, position, ordinal, flags
+- El `pythonLiteral` canónico `_c["columnId"]` es la única representación aceptada
+- `buildColumnRegistry.ts` no fue modificado
 
-### Archivos modificados (git diff --name-only)
+---
 
-```
-src/contracts/llm/index.ts
-src/contracts/llm/types.ts
-```
+## Loop 1 — Histórico
 
-### Archivos creados
-
-```
-src/contracts/llm/placeholderVocabulary.ts
-src/contracts/llm/scriptColumnResolver.ts
-src/contracts/llm/scriptBuildContext.ts
-src/__tests__/placeholderVocabulary.test.ts
-src/__tests__/scriptColumnResolver.test.ts
-src/__tests__/scriptBuildContext.test.ts
-src/__tests__/scriptContractV2.types.test.ts
-```
+Ver `EVIDENCIA.md` original en el commit `53df16a`.

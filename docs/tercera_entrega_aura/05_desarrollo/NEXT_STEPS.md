@@ -4,22 +4,25 @@
 
 Phase 3 está cerrada y congelada en `d3774dd5ac98d89ca4454c693b1b0a30856cd191`. No modificar su evidencia.
 
-Phase 4 Loop 1 **completado**. Loops 2–6 pendientes.
+Phase 4 Loop 1R **completado** — pendiente de reauditoría.
 
-## Loop 1 — Completado ✓
+## Loop 1R — Completado ✓
 
-SHA: `c048a7e601088cb7f433085748f489f01b81b91d` → `HEAD`
+SHA: `9a8f5e0...` → `HEAD`
 
 Entrega:
-- Tipos: `ScriptExclusionReasonV2`, `ScriptExcludedActionV2`, `ColumnRegistryV2`, `CorrespondenceEvidenceV2`, `ScriptBuildContextV2`, `ColumnAccessSpecV2`, `PythonSyntaxState`, `ScriptValidationResultV2`
-- Archivos: `placeholderVocabulary.ts`, `scriptColumnResolver.ts`, `scriptBuildContext.ts`
-- Tests: 59 passing
-- Build: ✓
-- Contracts v2: 3/3 PASS (Phase 3 remediation)
+- Remediados 10 hallazgos de la revisión adversarial (1 Critical, 3 High, 4 Medium, 2 Low)
+- `buildColumnReadExpression` y `buildColumnWriteTarget` con sintaxis Pandas válida
+- `ReadonlyMapView` con inmutabilidad runtime verificada
+- `buildColumnRegistryV2` con validación de `pythonLiteral` canónico
+- `resolveScriptColumn` fail-closed (`context_invalid`)
+- Tests: 78 passing (integración real con `buildColumnRegistry()`)
+- Python `ast.parse`: PASS
+- `buildColumnRegistry.ts` no fue modificado
 
 ## Siguiente tarea
 
-Loop 2: Renderer determinista (`scriptRendererV2.ts`)
+**Reauditoría de Loop 1R.** No continuar con Loop 2 hasta que Loop 1R sea aprobado.
 
 ## Loops pendientes
 
@@ -33,4 +36,4 @@ Loop 2: Renderer determinista (`scriptRendererV2.ts`)
 
 ## Regla
 
-No implementar Loop 2 hasta hacer commit de Loop 1. No iniciar Phase 5 hasta congelar Phase 4.
+No implementar Loop 2 hasta que Loop 1R sea aprobado en reauditoría. No iniciar Phase 5 hasta congelar Phase 4.

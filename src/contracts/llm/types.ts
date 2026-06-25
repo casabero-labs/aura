@@ -494,11 +494,18 @@ export interface ColumnRegistryV2 {
   byName: ReadonlyMap<string, readonly ColumnRef[]>;
 }
 
+// ── Column Resolution Failure Reasons (Phase 4) ──
+export type ColumnResolutionFailureReasonV2 =
+  | 'context_invalid'
+  | 'missing_column'
+  | 'ambiguous_column';
+
 // ── Correspondence Evidence (Phase 4) ──
 export interface CorrespondenceEvidenceV2 {
   fingerprintMatch: boolean;
   columnsMatch: boolean;
   missingColumnIds: readonly string[];
+  unexpectedColumnIds: readonly string[];
   mismatchedColumns: readonly string[];
   columnsFromContext: number;
   columnsInRegistry: number;
@@ -522,16 +529,15 @@ export interface ColumnAccessSpecV2 {
   accessMode: ColumnAccessMode;
   position: number;
   duplicateOrdinal: number;
+  readExpression: string;
+  writeTarget: string;
 }
 
 // ── Python Syntax State (Phase 4) ──
 export type PythonSyntaxState = 'passed' | 'failed' | 'not_run';
 
 // ── Script Validation Result (Phase 4) ──
-export interface ScriptValidationResultV2 extends Omit<ValidationResultV2, 'errors' | 'warnings'> {
-  valid: boolean;
-  errors: ValidationErrorV2[];
-  warnings: ValidationErrorV2[];
+export interface ScriptValidationResultV2 extends ValidationResultV2 {
   pythonSyntax: {
     state: PythonSyntaxState;
     engine?: string;

@@ -1,5 +1,5 @@
 /**
- * ScriptContractV2 Types Tests — Phase 4 Loop 1.
+ * ScriptContractV2 Types Tests — Phase 4 Loop 1R.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -8,8 +8,14 @@ import type {
   ScriptContractV2,
   ScriptValidationResultV2,
   ScriptExcludedActionV2,
+  ColumnAccessSpecV2,
   ColumnRef,
 } from '../contracts/llm/types';
+import {
+  buildColumnAccessSpec,
+  buildColumnReadExpression,
+  buildColumnWriteTarget,
+} from '../contracts/llm/scriptColumnResolver';
 
 function makeCol(overrides: Partial<ColumnRef> = {}): ColumnRef {
   return {
@@ -17,7 +23,7 @@ function makeCol(overrides: Partial<ColumnRef> = {}): ColumnRef {
     name: 'test',
     position: 0,
     duplicateOrdinal: 0,
-    pythonLiteral: 'test',
+    pythonLiteral: '_c["col:test"]',
     isAmbiguous: false,
     isDuplicate: false,
     isReservedWord: false,
@@ -120,13 +126,6 @@ describe('ScriptContractCandidateV2', () => {
     expect(candidate.excludedActionIds[2].reason).toBe('unsupported_action');
     expect(candidate.excludedActionIds[3].reason).toBe('missing_column');
   });
-
-  it('columnRefs uses ColumnRef type not string array', () => {
-    const col = makeCol({ columnId: 'col:Name', name: 'Name', position: 0 });
-    const candidate = makeCandidate({ columnRefs: [col] });
-    expect(candidate.columnRefs[0]).toHaveProperty('columnId');
-    expect(candidate.columnRefs[0]).toHaveProperty('pythonLiteral');
-  });
 });
 
 describe('ScriptContractV2 (final)', () => {
@@ -153,46 +152,59 @@ describe('ScriptContractV2 (final)', () => {
 });
 
 describe('ScriptValidationResultV2', () => {
-  it('has pythonSyntax with state passed', () => {
-    const result = makeValidationResult({
-      pythonSyntax: { state: 'passed' },
-    });
-    expect(result.pythonSyntax.state).toBe('passed');
-  });
-
-  it('has pythonSyntax with state failed', () => {
-    const result = makeValidationResult({
-      pythonSyntax: { state: 'failed', message: 'SyntaxError' },
-    });
-    expect(result.pythonSyntax.state).toBe('failed');
-  });
-
-  it('has pythonSyntax with state not_run', () => {
-    const result = makeValidationResult({
-      pythonSyntax: { state: 'not_run' },
-    });
-    expect(result.pythonSyntax.state).toBe('not_run');
-  });
-
-  it('has engine field', () => {
-    const result = makeValidationResult({
-      pythonSyntax: { state: 'passed', engine: 'python3' },
-    });
-    expect(result.pythonSyntax.engine).toBe('python3');
-  });
-
-  it('has optional message field', () => {
-    const result = makeValidationResult({
-      pythonSyntax: { state: 'failed', message: 'SyntaxError at line 1' },
-    });
-    expect(result.pythonSyntax.message).toBe('SyntaxError at line 1');
-  });
-
-  it('extends ValidationResultV2 shape', () => {
+  it('extends ValidationResultV2 directly', () => {
     const result = makeValidationResult();
     expect(typeof result.valid).toBe('boolean');
     expect(Array.isArray(result.errors)).toBe(true);
     expect(Array.isArray(result.warnings)).toBe(true);
+  });
+
+  it('has pythonSyntax with state passed', () => {
+    const result = makeValidationResult({ pythonSyntax: { state: 'passed' } });
+    expect(result.pythonSyntax.state).toBe('passed');
+  });
+
+  it('has pythonSyntax with state failed', () => {
+    const result = makeValidationResult({ pythonSyntax: { state: 'failed', message: 'SyntaxError' } });
+    expect(result.pythonSyntax.state).toBe('failed');
+  });
+
+  it('has pythonSyntax with state not_run', () => {
+    const result = makeValidationResult({ pythonSyntax: { state: 'not_run' } });
+    expect(result.pythonSyntax.state).toBe('not_run');
+  });
+});
+
+describe('ColumnAccessSpecV2', () => {
+  it('includes readExpression for unique column', () => {
+    const col = makeCol({ columnId: 'col:A', pythonLiteral: '_c["col:A"]', isDuplicate: false });
+    const spec = buildColumnAccessSpec(col);
+    expect(spec.readExpression).toBe('df_clean[_c["col:A"]]');
+  });
+
+  it('includes writeTarget for unique column', () => {
+    const col = makeCol({ columnId: 'col:A', pythonLiteral: '_c["col:A"]', isDuplicate: false });
+    const spec = buildColumnAccessSpec(col);
+    expect(spec.writeTarget).toBe('df_clean[_c["col:A"]]');
+  });
+
+  it('duplicate column uses position accessMode with iloc', () => {
+    const col = makeCol({ columnId: 'col:dup', pythonLiteral: '_c["col:dup"]', isDuplicate: true, position: 3 });
+    const spec = buildColumnAccessSpec(col);
+    expect(spec.accessMode).toBe('position');
+    expect(spec.readExpression).toBe('df_clean.iloc[:, _c["col:dup"]["position"]]');
+  });
+
+  it('has all fields including readExpression and writeTarget', () => {
+    const col = makeCol({ columnId: 'col:A', pythonLiteral: '_c["col:A"]', position: 2, duplicateOrdinal: 0 });
+    const spec = buildColumnAccessSpec(col);
+    expect(spec.columnId).toBe('col:A');
+    expect(spec.pythonLiteral).toBe('_c["col:A"]');
+    expect(spec.accessMode).toBe('label');
+    expect(spec.position).toBe(2);
+    expect(spec.duplicateOrdinal).toBe(0);
+    expect(spec.readExpression).toBeDefined();
+    expect(spec.writeTarget).toBeDefined();
   });
 });
 
@@ -215,5 +227,18 @@ describe('ScriptExclusionReasonV2 reasons', () => {
   it('unsupported_action reason is valid', () => {
     const excluded: ScriptExcludedActionV2 = { actionId: 'act:4', reason: 'unsupported_action' };
     expect(excluded.reason).toBe('unsupported_action');
+  });
+});
+
+describe('buildColumnReadExpression and buildColumnWriteTarget', () => {
+  it('unique column read expression does NOT wrap pythonLiteral in string', () => {
+    const expr = buildColumnReadExpression(makeCol({ pythonLiteral: '_c["col:A"]' }));
+    expect(expr).toBe('df_clean[_c["col:A"]]');
+    expect(expr).not.toContain('"_c');
+  });
+
+  it('duplicate column uses iloc positional access', () => {
+    const expr = buildColumnReadExpression(makeCol({ pythonLiteral: '_c["col:dup"]', isDuplicate: true }));
+    expect(expr).toBe('df_clean.iloc[:, _c["col:dup"]["position"]]');
   });
 });

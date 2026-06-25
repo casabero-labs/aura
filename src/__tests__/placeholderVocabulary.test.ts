@@ -1,5 +1,5 @@
 /**
- * Placeholder Vocabulary Tests — Phase 4 Loop 1.
+ * Placeholder Vocabulary Tests — Phase 4 Loop 1R.
  */
 
 import { describe, it, expect } from 'vitest';

@@ -198,3 +198,17 @@ Una acción `rejected` NUNCA aparece en `excludedActionIds`. Los conjuntos son m
 - `scriptText` nunca está vacío
 - Mínimo: imports + `def clean_dataset(df): df_clean = df.copy(); return df_clean`
 - La validación verifica que `def clean_dataset(df):` existe en `scriptText`
+
+---
+
+## D15: Riesgo de falsos positivos en PLACEHOLDER_VOCABULARY_V2
+
+**Decisión:** Los valores `-`, `--` y `...` pueden ser valores legítimos en columnas de texto y no deben asumirse universalmente como placeholders nulos.
+
+**Justificación:** En datasets reales, `-` puede representar "no aplica" o "sin datos", `...` puede ser texto legítimo o elipsis. `normalize_placeholders` no debe aplicarse sin una acción determinista autorizada que confirme el contexto semántico.
+
+**Consecuencias:**
+- `normalize_placeholders` solo podrá aplicarse cuando exista una acción determinista autorizada
+- Phase 4 no debe afirmar que todo valor del vocabulario es universalmente nulo
+- La política será reevaluada antes de cerrar el renderer (Loop 2)
+- El vocabulario no se modifica en Loop 1R

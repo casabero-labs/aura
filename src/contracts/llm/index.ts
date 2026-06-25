@@ -67,6 +67,7 @@ export type {
   ColumnAccessMode,
   PythonSyntaxState,
   ScriptValidationResultV2,
+  ColumnResolutionFailureReasonV2,
 } from './types';
 
 export type { DiagnosisParseOutcome } from './diagnosisParserV2';
@@ -212,13 +213,12 @@ export {
 export {
   resolveScriptColumn,
   buildColumnAccessSpec,
-  accessColumnDf,
-  writeColumnLiteral,
-  buildPythonLiteral,
+  buildColumnReadExpression,
+  buildColumnWriteTarget,
   buildColumnRegistryV2,
-  isColumnRenderizable,
+  isColumnStructurallyRenderable,
 } from './scriptColumnResolver';
-export type { ColumnResolutionResult } from './scriptColumnResolver';
+export type { ColumnResolutionResult, RegistryBuildError, RegistryBuildResult } from './scriptColumnResolver';
 
 export {
   buildScriptContext,
