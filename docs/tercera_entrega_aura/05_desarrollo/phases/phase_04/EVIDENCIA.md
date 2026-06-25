@@ -204,6 +204,63 @@ cd src && npm run contracts:v2:validate-local
 
 ---
 
+## Loop 3 — Builder y Finalizer
+
+### Comandos de reproducción
+
+```bash
+cd src && npm test -- scriptBuilderV2
+# 51 passed
+
+cd src && npm test
+# 928 passed, 6 skipped
+
+cd src && npm run build
+# built in ~3s
+
+cd src && npm run contracts:v2:validate-local
+# 3/3 PASS
+```
+
+### Partición evidence
+
+| Caso | Resultado |
+|---|---|
+| rejected → rejectedActionIds | ✓ |
+| pending → excludedActionIds (pending) | ✓ |
+| requires_human_review → excludedActionIds (unsupported_action) | ✓ |
+| missing column → excludedActionIds (missing_column) | ✓ |
+| ambiguous column → excludedActionIds (ambiguous_column) | ✓ |
+| Cobertura exacta | ✓ |
+| Conjuntos disjuntos | ✓ |
+| Duplicate actionId rechazado | ✓ |
+
+### Hash evidence
+
+| Prueba | Resultado |
+|---|---|
+| Hash estable 3 ejecuciones | ✓ |
+| Hash igual con generatedAt diferente | ✓ |
+| Hash cambia con acceptedActionIds | ✓ |
+| Hash cambia con columnRefs | ✓ |
+| Hash cambia con remediationRef | ✓ |
+| Hash cambia con datasetFingerprint | ✓ |
+| Node vs pure JS idéntico | ✓ |
+
+### Confirmaciones
+
+- `scriptRendererV2.ts` no cambió
+- `scriptColumnResolver.ts` no cambió
+- `columnRegistry.ts` no cambió
+- `placeholderVocabulary.ts` no cambió
+- Phase 3 no cambió
+- Loop 1 y Loop 2 no cambiaron
+- No se ejecutó Python
+- `generatedAt` no entra al hash
+- `rejectedActionIds` y `excludedActionIds` no entran al hash
+
+---
+
 ## Loop 2 — Renderer determinista
 
 ### Comandos de reproducción

@@ -234,3 +234,16 @@ export {
 } from './scriptRendererV2';
 export type { RenderableScriptActionV2, ScriptRendererErrorCode } from './scriptRendererV2';
 export { ScriptRendererError } from './scriptRendererV2';
+
+// ── Script Builder v2 (Phase 4 Loop 3) ──
+export {
+  SCRIPT_CONTRACT_VERSION,
+  CLEAN_DATASET_FN,
+  buildScriptCandidateCoreV2,
+  buildScriptCandidateV2,
+  buildScriptHashPayloadV2,
+  computeScriptHashV2,
+  finalizeScriptContractV2,
+} from './scriptBuilderV2';
+export type { ScriptContractCandidateCoreV2, ScriptCandidateBuildOptionsV2, ScriptBuilderErrorCode } from './scriptBuilderV2';
+export { ScriptBuilderError } from './scriptBuilderV2';

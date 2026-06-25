@@ -58,21 +58,26 @@
 ```typescript
 interface ScriptBuildContextV2 {
   remediationContext: RemediationContextV2;
-  datasetFingerprint: string;
+  sourceDatasetFingerprint: string;
   columnRegistry: ColumnRegistryV2;
   correspondenceEvidence: CorrespondenceEvidenceV2;
 }
 
 interface ColumnRegistryV2 {
-  byColumnId: Map<string, ColumnRef>;
-  byName: Map<string, ColumnRef[]>;  // puede haber duplicados
+  orderedColumns: readonly ColumnRef[];
+  byColumnId: ReadonlyMap<string, ColumnRef>;
+  byName: ReadonlyMap<string, readonly ColumnRef[]>;  // diagnóstico, no resolución
 }
 
 interface CorrespondenceEvidenceV2 {
+  fingerprintMatch: boolean;
+  columnsMatch: boolean;
+  missingColumnIds: readonly string[];
+  unexpectedColumnIds: readonly string[];
+  mismatchedColumns: readonly string[];
   columnsFromContext: number;
   columnsInRegistry: number;
-  columnsMatch: boolean;
-  fingerprintMatch: boolean;
+  valid: boolean;
 }
 ```
 
@@ -82,7 +87,7 @@ interface CorrespondenceEvidenceV2 {
 columnRegistry.byColumnId.size === remediationContext.columns.length
 Para toda columna en remediationContext.columns:
   columnRegistry.byColumnId.has(col.columnId) === true
-  columnRegistry.byColumnId.get(col.columnId).pythonLiteral === col.pythonLiteral
+  (RemediationContextColumnV2 no contiene pythonLiteral — se obtiene del registry)
 ```
 
 `correspondenceEvidence.columnsMatch` es `true` solo si se cumplen ambos invariantes.

@@ -96,6 +96,85 @@
 
 ---
 
+## Loop 3: Builder y Finalizer
+
+**SHA:** `<commit actual>`
+
+### API implementada
+
+| Función | Descripción |
+|---|---|
+| `SCRIPT_CONTRACT_VERSION` | `'2.0.0'` |
+| `CLEAN_DATASET_FN` | `'clean_dataset'` |
+| `buildScriptCandidateCoreV2(plan, ctx)` | Core puro (sin reloj) |
+| `buildScriptCandidateV2(plan, ctx, opts?)` | Core + `generatedAt` |
+| `buildScriptHashPayloadV2(candidate)` | Payload del hash |
+| `computeScriptHashV2(candidate)` | `sha256hex(canonicalJson(payload))` |
+| `finalizeScriptContractV2(candidate, vr)` | Contrato final con hash |
+
+### Reglas de partición
+
+| Estado | Destino |
+|---|---|
+| `rejected` | `rejectedActionIds` |
+| `pending` | `excludedActionIds` (reason: `'pending'`) |
+| `approved` + `requires_human_review` | `excludedActionIds` (reason: `'unsupported_action'`) |
+| `approved` + columna missing | `excludedActionIds` (reason: `'missing_column'`) |
+| `approved` + columna ambigua | `excludedActionIds` (reason: `'ambiguous_column'`) |
+| `approved` + renderizable | `acceptedActionIds` |
+
+### Hash
+
+```typescript
+sha256hex(canonicalJson({
+  remediationRef, datasetFingerprint, acceptedActionIds,
+  columnRefs, rendererVersion, placeholderVocabularyVersion,
+  scriptText, cleanDatasetFn,
+}))
+```
+
+NO incluye: `generatedAt`, `validationResult`, `rejectedActionIds`, `excludedActionIds`.
+
+### Archivos creados
+
+| Archivo | Descripción |
+|---|---|
+| `scriptBuilderV2.ts` | Builder con 8 códigos de error |
+| `scriptBuilderV2.test.ts` | 51 tests |
+
+### Archivos modificados
+
+| Archivo | Cambio |
+|---|---|
+| `index.ts` | Exports del builder |
+
+### Tests (51)
+
+| Suite | Tests |
+|---|---|
+| Versión y constantes | 2 |
+| Candidate: cero/una/varias acciones | 4 |
+| Partición | 7 |
+| Columnas | 5 |
+| Contexto | 4 |
+| Integración renderer | 3 |
+| Reconstrucción | 2 |
+| Hash | 8 |
+| generatedAt | 3 |
+| Finalizer | 8 |
+| Candidate shape | 4 |
+
+### Verificaciones
+
+| Verificación | Resultado |
+|---|---|
+| Suite completa | 928 passed, 6 skipped |
+| Build | built in ~3s |
+| Contracts v2 | 3/3 PASS |
+| Hash: Node vs pure JS | idéntico |
+
+---
+
 ## Loop 2R: Hardening del renderer
 
 **SHA:** `<commit actual>`
