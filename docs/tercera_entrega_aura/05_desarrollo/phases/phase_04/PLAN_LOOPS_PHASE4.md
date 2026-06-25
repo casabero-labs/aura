@@ -1,6 +1,6 @@
 # Plan de Loops — Phase 4 (ScriptContractV2 + Renderer)
 
-> **Versión:** 1.0.0 · **Fecha:** 2026-06-25 · **Commit congelado Phase 3:** `d3774dd5ac98d89ca4454c693b1b0a30856cd191`
+> **Versión:** 2.0.0 · **Fecha:** 2026-06-25 · **Commit congelado Phase 3:** `d3774dd5ac98d89ca4454c693b1b0a30856cd191`
 
 ---
 
@@ -8,61 +8,73 @@
 
 Phase 4 se divide en 6 loops. Cada loop produce código, tests y artefacto de evidencia. Los artefactos de evidencia se almacenan en `docs/tercera_entrega_aura/03_evidencia/screenshots/phase4/`.
 
+**Flujo contractual:** `buildScriptCandidateV2` → `validateScriptCandidateV2` → `finalizeScriptContractV2`
+
 **Regla de oro:** El LLM no escribe, corrige ni completa código en ningún punto.
 
 ---
 
-## Loop 1: Base types y column resolver
+## Loop 1: Base types, ScriptBuildContextV2 y column resolver
 
 ### Objetivo
-Actualizar `ScriptContractV2` al tipo completo y crear el resolver de columnas para el renderer.
+Definir `ScriptBuildContextV2`, `ScriptContractCandidateV2`, completar `ScriptContractV2`, y crear el resolver de columnas con helpers `readColumn`/`writeColumn`.
 
 ### Archivos previstos
 
 | Archivo | Acción |
 |---|---|
-| `src/contracts/llm/types.ts` | Actualizar `ScriptContractV2` con campos completos |
-| `src/contracts/llm/scriptColumnResolver.ts` | Crear — resuelve `columnId` → `pythonLiteral` |
-| `src/contracts/llm/index.ts` | Exportar nuevo módulo |
+| `src/contracts/llm/types.ts` | Añadir `ScriptBuildContextV2`, `ColumnRegistryV2`, `CorrespondenceEvidenceV2`, `ScriptContractCandidateV2`, actualizar `ScriptContractV2` |
+| `src/contracts/llm/scriptColumnResolver.ts` | Crear — helpers `readColumn`, `writeColumn`, `accessColumn`, `buildPythonLiteral`, `buildColumnRegistry` |
+| `src/contracts/llm/scriptBuildContext.ts` | Crear — `buildScriptContext()` |
+| `src/contracts/llm/placeholderVocabulary.ts` | Crear — `PLACEHOLDER_VOCABULARY_V2` constante |
+| `src/contracts/llm/index.ts` | Exportar nuevos módulos |
 
 ### Tests primero
 
 | Archivo | Tests |
 |---|---|
-| `src/__tests__/scriptContractV2.types.test.ts` | Verificar shape del tipo, campos obligatorios |
-| `src/__tests__/scriptColumnResolver.test.ts` | Resolver columnas normales, duplicadas, ambiguas, reserved words, `columnId` nulo |
+| `src/__tests__/scriptContractV2.types.test.ts` | Shape de candidate, final, context. Campos obligatorios. |
+| `src/__tests__/scriptColumnResolver.test.ts` | `readColumn`: normal, duplicada (ordinal), ambigua, reserved word, nula. `writeColumn`: pythonLiteral correcto. `accessColumn`: expresión df_clean completa. |
+| `src/__tests__/placeholderVocabulary.test.ts` | Constante congelada, inmutable, contiene todos los valores esperados. |
 
 ### Implementación
 
-1. Completar `ScriptContractV2` en `types.ts` con `datasetFingerprint`, `excludedActionIds`, `generatedAt`
-2. Cambiar `columnRefs: string[]` → `columnRefs: ColumnRef[]`
-3. Cambiar `scriptText?: string` → `scriptText: string`
-4. Crear `scriptColumnResolver.ts` con función `resolveActionColumn(action, contextColumns): ColumnRef | AmbiguousLookupError`
-5. Usar `duplicateOrdinal` y `pythonLiteral` del `ColumnRef` existente en `RemediationContextV2`
+1. `ScriptBuildContextV2`: `remediationContext`, `datasetFingerprint`, `columnRegistry`, `correspondenceEvidence`
+2. `ColumnRegistryV2`: `byColumnId: Map<string, ColumnRef>`, `byName: Map<string, ColumnRef[]>`
+3. `ScriptContractCandidateV2`: sin `scriptHash` ni `validationResult`
+4. `ScriptContractV2`: con `scriptHash`, `validationResult`, `placeholderVocabularyVersion`, partición corregida
+5. `buildPythonLiteral(name, duplicateOrdinal, isReservedWord)`: sanitización + ordinal + reserved word handling
+6. `readColumn(columnId, registry)`: null-safe, busca por columnId
+7. `writeColumn(col)`: devuelve `pythonLiteral` para escritura
+8. `accessColumn(col)`: devuelve `df_clean[pythonLiteral]` para acceso
+9. `PLACEHOLDER_VOCABULARY_V2`: `ReadonlyArray<string>`, `Object.freeze`, version `1.0.0`
 
 ### Artefacto de evidencia
-Tabla en `loop_01_column_resolver.md` con:
-- Casos de columna normal, duplicada, ambigua, reserved word, nula
-- Decisión de renderizado para cada caso
+Tabla en `loop_01_schema_and_columns.md` con:
+- Casos de columna normal, duplicada (ordinal 0, 1), ambigua, reserved word, nula
+- `pythonLiteral` generado para cada caso
+- Vocabulario de placeholders completo
 
 ### Métrica
 - Cobertura de columnas resueltas: 100%
 - Columnas rechazadas por ambigüedad: documentadas
+- Vocabulario: 19 placeholders, versión 1.0.0
 
 ### Criterio de cierre
-- 20+ tests pasando
-- Todas las variantes de columna cubiertas
-- `isAmbiguous`, `isDuplicate`, `isReservedWord` probados
+- 25+ tests pasando
+- `ScriptBuildContextV2` se construye sin modificar `RemediationContextV2`
+- `correspondenceEvidence.columnsMatch === true` para contextos válidos
+- `pythonLiteral` se obtiene de `ColumnRef`, no de `RemediationContextColumnV2`
 
 ### Riesgos
-- Bajo. El `ColumnRef` ya existe en `RemediationContextV2.columns[]`.
+- Bajo. `ColumnRef` ya existe. Se añade `pythonLiteral` al resolver, no al tipo existente.
 
 ---
 
-## Loop 2: Renderer determinista
+## Loop 2: Renderer determinista + PLACEHOLDER_VOCABULARY
 
 ### Objetivo
-Construir el mapeo `actionType` → plantilla Python/Pandas.
+Construir el mapeo `actionType` → plantilla Python/Pandas usando helpers de columna y vocabulario de placeholders.
 
 ### Archivos previstos
 
@@ -75,84 +87,90 @@ Construir el mapeo `actionType` → plantilla Python/Pandas.
 
 | Archivo | Tests |
 |---|---|
-| `src/__tests__/scriptRendererV2.test.ts` | Cada `actionType` → script generado correcto |
+| `src/__tests__/scriptRendererV2.test.ts` | Cada `actionType` → script generado correcto. Columna duplicada (ordinal). Columna reserved word. `drop_exact_duplicates` con `columnRef` nulo. `requires_human_review` sin código. |
 
 ### Implementación
 
-1. Crear `renderActionV2(action: RemediationActionV2, columnRef: ColumnRef): string`
+1. `renderActionV2(action, columnRef, params): string`
 2. Para cada `actionType`:
-   - `trim_whitespace`: `.str.strip()` con/sin `collapseInternalWhitespace`
-   - `drop_exact_duplicates`: `.drop_duplicates().copy()`
-   - `normalize_placeholders`: `.replace([...], np.nan)`
+   - `trim_whitespace`: `.str.strip()` + `.str.replace(r'\s+', ' ', regex=True)` si `collapseInternalWhitespace`
+   - `drop_exact_duplicates`: acepta `columnRef === null`, `.drop_duplicates().copy()`
+   - `normalize_placeholders`: usa `PLACEHOLDER_VOCABULARY_V2` para la lista de reemplazo
    - `normalize_casing`: `.str.title()` o `.str.lower()` según `strategy`
    - `convert_disguised_numbers`: `pd.to_numeric(...)`
-   - `requires_human_review`: comentario Python, sin código
-3. Crear `buildScriptHeader(): string` — imports, `df_clean = df.copy()`
-4. Crear `buildScriptFooter(): string` — comentario de cierre
+   - `requires_human_review`: comentario Python con `reasonCode`, sin código
+3. `buildScriptHeader()`: imports + `def clean_dataset(df):` + `df_clean = df.copy()`
+4. `buildScriptFooter()`: `return df_clean`
+5. `buildScriptText(actions, columnRegistry): string` — orquesta header + acciones + footer
 
 ### Artefacto de evidencia
 Tabla en `loop_02_renderer.md` con:
 - Cada actionType y su plantilla Python resultante
-- Ejemplo con datos ficticios
+- Ejemplo con columna duplicada (Name_0, Name_1)
+- Vocabulario de placeholders usado en `normalize_placeholders`
 
 ### Métrica
 - 6 actionTypes cubiertos
 - Script generado para plan de 9 acciones → salida determinista
-- Mismo input → mismo output (hash estable)
+- Mismo input → mismo output (hash estable, sin `generatedAt`)
 
 ### Criterio de cierre
-- 15+ tests pasando
+- 20+ tests pasando
 - Cada actionType produce exactamente la salida esperada
 - Hash estable verificado con 3 ejecuciones
+- `drop_exact_duplicates` funciona con `columnRef === null`
 
 ### Riesgos
-- Medio. Las plantillas deben coincidir con la semántica de cada `actionType`. El `collapseInternalWhitespace` requiere `.str.replace(r'\s+', ' ', regex=True)` adicional.
+- Medio. Las plantillas deben coincidir con la semántica de cada `actionType`. `collapseInternalWhitespace` requiere `.str.replace()` adicional.
 
 ---
 
-## Loop 3: Script contract builder
+## Loop 3: Script contract builder + finalizer
 
 ### Objetivo
-Construir `ScriptContractV2` completo a partir de `RemediationPlanV2` y `RemediationContextV2`.
+Construir `ScriptContractCandidateV2` y `finalizeScriptContractV2()`.
 
 ### Archivos previstos
 
 | Archivo | Acción |
 |---|---|
-| `src/contracts/llm/scriptBuilderV2.ts` | Crear — builder principal |
+| `src/contracts/llm/scriptBuilderV2.ts` | Crear — `buildScriptCandidateV2()`, `finalizeScriptContractV2()`, función de reconstrucción |
 | `src/contracts/llm/index.ts` | Exportar |
 
 ### Tests primero
 
 | Archivo | Tests |
 |---|---|
-| `src/__tests__/scriptBuilderV2.test.ts` | Build con 0, 1, 9 acciones; todas approved; mix approved/rejected/pending; columna ambigua; requires_human_review |
+| `src/__tests__/scriptBuilderV2.test.ts` | Candidate con 0, 1, 9 acciones. Todas approved. Mix approved/rejected/pending. Columna ambigua. `requires_human_review`. Partición: rejected NUNCA en excluded. Finalizer con validación. Reconstrucción exacta. |
 
 ### Implementación
 
-1. `buildScriptContractV2(plan, remediationContext): ScriptContractV2`
-2. Iterar `plan.plan[]`:
-   - `approved` → intentar renderizar (si columna válida) → `acceptedActionIds`
-   - `rejected` → `rejectedActionIds`
+1. `buildScriptCandidateV2(plan, buildContext): ScriptContractCandidateV2`
+2. Iterar `plan.plan[]` aplicando partición única:
+   - `rejected` → `rejectedActionIds` (NUNCA en excluded)
+   - `approved` + renderizable → `acceptedActionIds`
+   - `approved` + no renderizable (columna ambigua, `requires_human_review`, etc.) → `excludedActionIds`
    - `pending` → `excludedActionIds` con `reason: 'pending'`
-   - Columna ambigua → `excludedActionIds` con `reason: 'ambiguous_column'`
-   - `requires_human_review` → `excludedActionIds` con `reason: 'unsupported_action'`
-3. Construir `scriptText` concatenando acciones aprobadas
-4. Calcular `scriptHash` con `canonicalJson`
-5. Resolver `columnRefs` para acciones aprobadas
+3. Construir `scriptText` concatenando acciones en `acceptedActionIds`
+4. Si `acceptedActionIds` vacío → función `clean_dataset(df)` que copia y retorna sin transformaciones
+5. Resolver `columnRefs` para acciones accepted
+6. `finalizeScriptContractV2(candidate, validationResult): ScriptContractV2` — añade `scriptHash` y `validationResult`
+7. `scriptHash` NO incluye `generatedAt`
 
 ### Artefacto de evidencia
-JSON de ejemplo con `ScriptContractV2` resultante para Titanic (9 acciones → 1 approved, 7 pending, 1 rejected).
+JSON de ejemplo con `ScriptContractCandidateV2` y `ScriptContractV2` final para Titanic.
 
 ### Métrica
-- Plan de 9 acciones → contrato completo con 1 acción aprobada
-- `scriptHash` estable
-- `acceptedActionIds.length === 1`, `rejectedActionIds.length === 1`, `excludedActionIds.length === 7`
+- Plan de 9 acciones → candidato con partición correcta
+- `acceptedActionIds.length` depende de HITL
+- `rejectedActionIds ∩ excludedActionIds = ∅`
+- `scriptHash` estable (sin `generatedAt`)
 
 ### Criterio de cierre
-- 20+ tests pasando
-- Contrato válido según esquema
-- Hash verificable
+- 25+ tests pasando
+- Candidato válido según esquema
+- Finalizer solo acepta candidatos validados
+- Hash verificable y determinista
 
 ### Riesgos
 - Bajo. La lógica es lineal y determinista.
@@ -162,44 +180,49 @@ JSON de ejemplo con `ScriptContractV2` resultante para Titanic (9 acciones → 1
 ## Loop 4: Script contract validator
 
 ### Objetivo
-Validar `ScriptContractV2` contra el plan y el contexto.
+Validar `ScriptContractCandidateV2` contra el plan y el contexto, incluyendo validación por reconstrucción exacta.
 
 ### Archivos previstos
 
 | Archivo | Acción |
 |---|---|
-| `src/contracts/llm/scriptValidatorV2.ts` | Crear — validador exhaustivo |
-| `src/contracts/llm/scriptErrorCodes.ts` | Crear — códigos de error |
+| `src/contracts/llm/scriptValidatorV2.ts` | Crear — `validateScriptCandidateV2()` con V1–V35 |
+| `src/contracts/llm/scriptErrorCodes.ts` | Crear — `ScriptErrorCode`, `PythonSyntaxState` |
 | `src/contracts/llm/index.ts` | Exportar |
 
 ### Tests primero
 
 | Archivo | Tests |
 |---|---|
-| `src/__tests__/scriptValidatorV2.test.ts` | Validar contrato válido; contrato con campos faltantes; remediationRef incorrecto; acción no aprobada en scriptText; columna ambigua; hash mismatch; cobertura incompleta; executable content; imports no autorizados |
+| `src/__tests__/scriptValidatorV2.test.ts` | Validar candidato válido. Campos faltantes. remediationRef incorrecto. Acción rejected en excluded. Acción pending en accepted. Columna ambigua. Hash mismatch (en final). Render mismatch (reconstrucción). Executable content. Imports no autorizados. Python syntax: passed, failed, not_run. |
 
 ### Implementación
 
-1. `validateScriptContractV2(contract: unknown, plan: RemediationPlanV2, ctx: RemediationContextV2): ValidationResultV2`
-2. Implementar validaciones V1–V28 (definidas en `DISENO_SCRIPT_CONTRACT_V2.md`)
-3. Validación de sintaxis Python (opcional, depende de entorno)
-4. Validación de seguridad (executable content, network, file access, unauthorized imports)
-5. Validación de cobertura exacta
+1. `validateScriptCandidateV2(candidate, plan, buildContext): ValidationResultV2`
+2. Validaciones V1–V35 (definidas en `DISENO_SCRIPT_CONTRACT_V2.md`)
+3. Validación de partición: `rejectedActionIds ∩ excludedActionIds = ∅`
+4. Validación por reconstrucción: re-renderizar y comparar `scriptText`, `acceptedActionIds`, `columnRefs`, `cleanDatasetFn`
+5. Python syntax tri-state: `'passed'` | `'failed'` | `'not_run'`
+6. `not_run` emite warning, no bloquea finalización
+7. Validación de seguridad exhaustiva
 
 ### Artefacto de evidencia
-Tabla con casos de validación y resultados.
+Tabla con casos de validación y resultados, incluyendo `SCRIPT_RENDER_MISMATCH`.
 
 ### Métrica
-- 0 falsos positivos en contrato válido
-- 100% de errores detectados en contrato inválido
+- 0 falsos positivos en candidato válido
+- 100% de errores detectados en candidato inválido
+- `SCRIPT_PARTITION_INVALID` detecta rejected en excluded
+- `SCRIPT_RENDER_MISMATCH` detecta drift builder-validator
 
 ### Criterio de cierre
-- 25+ tests pasando
+- 30+ tests pasando
 - Todos los códigos de error cubiertos
-- Validación de seguridad exhaustiva
+- Reconstrucción exacta verificada
 
 ### Riesgos
-- Medio. La validación de sintaxis Python requiere entorno con Python instalado (no siempre disponible en CI). Implementar como best-effort.
+- Medio. Validación de sintaxis Python requiere Python instalado. `not_run` no bloquea.
+- La reconstrucción requiere que builder y validator usen exactamente el mismo renderer.
 
 ---
 
@@ -227,33 +250,31 @@ Conectar el sistema de script v2 con la UI existente.
 
 1. Crear `ScriptGenerationStepV2`:
    - Recibe `remediationPlan` y `structuredDiagnosis`
-   - Construye `ScriptContractV2` via `buildScriptContractV2`
+   - Construye `ScriptBuildContextV2` desde `remediationContext`
+   - Llama `buildScriptCandidateV2()` → `validateScriptCandidateV2()` → `finalizeScriptContractV2()`
    - Muestra script renderizado con syntax highlighting
-   - Muestra resumen: acciones aprobadas, rechazadas, pendientes
+   - Muestra resumen de gobernanza con partición única
+   - Badge: `"Contrato válido"` / `"Validación fallida"` / `"Sin validar"`
+   - NO muestra badge `"Seguro"`
    - Botón "Continuar a revisión"
-2. Modificar `ScriptGenerationStep`:
-   - Si `isV2 && remediationPlan`, renderizar `ScriptGenerationStepV2`
-3. Modificar `ReviewStep`:
-   - Aceptar `ScriptContractV2` como prop opcional
-   - Mostrar validación del contrato
-   - Checklist HITL actualizado con métricas del contrato
+2. Modificar `ScriptGenerationStep`: si `isV2 && remediationPlan`, renderizar `ScriptGenerationStepV2`
+3. Modificar `ReviewStep`: aceptar `ScriptContractV2` como prop opcional
 
 ### Artefacto de evidencia
-Screenshot del script generado para Titanic (1 acción trim_whitespace, 7 pending, 1 rejected).
+Screenshot del script generado para Titanic.
 
 ### Métrica
 - Componente renderiza correctamente con plan de 9 acciones
+- Badge muestra "Contrato válido" (no "Seguro")
 - Script visible con syntax highlighting
-- Resumen de gobernanza visible
 
 ### Criterio de cierre
 - Componente monta sin errores
-- Script renderizado coincide con `buildScriptContractV2`
+- Script renderizado coincide con `buildScriptCandidateV2`
 - Navegación a ReviewStep funcional
 
 ### Riesgos
-- Medio. Integración con el pipeline existente requiere cuidado con el ruteo v1/v2.
-- `ScriptReview` actual usa CodeMirror/Monaco — verificar compatibilidad.
+- Medio. `ScriptReview` actual usa CodeMirror/Monaco — verificar compatibilidad.
 
 ---
 
@@ -266,22 +287,22 @@ Crear harness E2E para Phase 4 y generar capturas de evidencia.
 
 | Archivo | Acción |
 |---|---|
-| `tests/e2e/harness/Phase4ScriptHarness.ts` | Crear — fixture de ScriptContractV2 para Titanic |
-| `tests/e2e/fourth-delivery-evidence.spec.ts` | Crear — 3 tests E2E |
+| `src/tests/e2e/harness/Phase4ScriptHarness.ts` | Crear — fixture de ScriptContractV2 para Titanic |
+| `src/tests/e2e/fourth-delivery-evidence.spec.ts` | Crear — 3 tests E2E |
 | `docs/tercera_entrega_aura/03_evidencia/screenshots/phase4/` | Crear — capturas |
 
 ### Tests primero (E2E)
 
 | Test | Descripción | Assertions |
 |---|---|---|
-| 07 — `script_generation_v2.png` | Script generado con 1 acción approved | `script-stage` visible; código Python visible; `clean_dataset` function visible; resumen de gobernanza visible |
-| 08 — `script_review_v2.png` | Revisión del script con checklist | `review-stage` visible; `Aprobar` button visible; checklist con 5 items; `Seguro` badge visible |
-| 09 — `script_approved_v2.png` | Script aprobado y listo para exportación | `Preparar exportación` button visible; HITL decision registrada; `APROBADO` badge visible |
+| 07 — `script_generation_v2.png` | Script generado | `script-stage` visible; código Python visible; `clean_dataset` function visible; badge "Contrato válido" visible; resumen de gobernanza con partición única |
+| 08 — `script_review_v2.png` | Revisión del script | `review-stage` visible; `Aprobar` button visible; checklist con 5 items |
+| 09 — `script_approved_v2.png` | Script aprobado | `Preparar exportación` button visible; HITL decision registrada; `APROBADO` badge visible |
 
 ### Implementación
 
-1. Crear `Phase4ScriptHarness.ts` con `PHASE4_TITANIC_SCRIPT` (fixture determinista)
-2. Crear `fourth-delivery-evidence.spec.ts` con 3 tests E2E
+1. Crear `src/tests/e2e/harness/Phase4ScriptHarness.ts` con fixture determinista
+2. Crear `src/tests/e2e/fourth-delivery-evidence.spec.ts` con 3 tests E2E
 3. Generar capturas y guardar en `phase4/`
 4. Actualizar `CAPTURAS_MANIFEST.md` en `phase4/`
 
@@ -302,7 +323,7 @@ Crear harness E2E para Phase 4 y generar capturas de evidencia.
 - `CAPTURAS_MANIFEST.md` actualizado
 
 ### Riesgos
-- Medio. Depende de Loop 5 (UI). Si la UI no está lista, las capturas no se pueden tomar.
+- Medio. Depende de Loop 5 (UI).
 
 ---
 
@@ -310,10 +331,10 @@ Crear harness E2E para Phase 4 y generar capturas de evidencia.
 
 | Loop | Título | Archivos | Tests | Riesgo |
 |---|---|---|---|---|
-| L1 | Base types + column resolver | 3 | 20+ | Bajo |
-| L2 | Renderer determinista | 2 | 15+ | Medio |
-| L3 | Script contract builder | 2 | 20+ | Bajo |
-| L4 | Script contract validator | 3 | 25+ | Medio |
+| L1 | Types + BuildContext + column resolver + vocabulary | 5 | 25+ | Bajo |
+| L2 | Renderer determinista | 2 | 20+ | Medio |
+| L3 | Script contract builder + finalizer | 2 | 25+ | Bajo |
+| L4 | Script contract validator (con reconstrucción) | 3 | 30+ | Medio |
 | L5 | UI — Script generation + review | 4 | 10+ | Medio |
 | L6 | E2E harness + capturas | 3 | 3 E2E | Medio |
 
@@ -321,8 +342,10 @@ Crear harness E2E para Phase 4 y generar capturas de evidencia.
 
 | Archivo | Loop | Tipo de cambio |
 |---|---|---|
-| `src/contracts/llm/types.ts` | L1 | Actualizar tipo |
+| `src/contracts/llm/types.ts` | L1 | Añadir tipos |
+| `src/contracts/llm/scriptBuildContext.ts` | L1 | Nuevo |
 | `src/contracts/llm/scriptColumnResolver.ts` | L1 | Nuevo |
+| `src/contracts/llm/placeholderVocabulary.ts` | L1 | Nuevo |
 | `src/contracts/llm/scriptRendererV2.ts` | L2 | Nuevo |
 | `src/contracts/llm/scriptBuilderV2.ts` | L3 | Nuevo |
 | `src/contracts/llm/scriptValidatorV2.ts` | L4 | Nuevo |
@@ -332,8 +355,8 @@ Crear harness E2E para Phase 4 y generar capturas de evidencia.
 | `src/components/ScriptGenerationStep.tsx` | L5 | Modificar ruteo |
 | `src/components/ReviewStep.tsx` | L5 | Modificar props |
 | `src/components/ScriptReview.tsx` | L5 | Modificar props |
-| `tests/e2e/harness/Phase4ScriptHarness.ts` | L6 | Nuevo |
-| `tests/e2e/fourth-delivery-evidence.spec.ts` | L6 | Nuevo |
+| `src/tests/e2e/harness/Phase4ScriptHarness.ts` | L6 | Nuevo |
+| `src/tests/e2e/fourth-delivery-evidence.spec.ts` | L6 | Nuevo |
 
 ## Archivos que NO se modifican
 
@@ -343,29 +366,23 @@ Crear harness E2E para Phase 4 y generar capturas de evidencia.
 - `src/contracts/llm/remediationPolicyV2.ts` (Phase 3 congelado)
 - `src/services/deterministicScriptBuilder.ts` (legacy v1, se preserva)
 - `src/services/scriptValidationService.ts` (legacy v1, se preserva)
-- `tests/e2e/harness/Phase3EvidenceHarness.ts` (Phase 3 congelado)
-- `tests/e2e/third-delivery-evidence.spec.ts` (Phase 3 congelado)
+- `src/tests/e2e/harness/Phase3EvidenceHarness.ts` (Phase 3 congelado)
+- `src/tests/e2e/third-delivery-evidence.spec.ts` (Phase 3 congelado)
 - Capturas 01–06 (Phase 3 congeladas)
 
 ## Dependencias entre loops
 
 ```
-L1 (types + resolver) ──► L2 (renderer) ──► L3 (builder) ──► L4 (validator)
-                                                                    │
-                                                                    ▼
-                                                              L5 (UI) ──► L6 (E2E)
+L1 (types + context + resolver + vocabulary) → L2 (renderer) → L3 (builder) → L4 (validator)
+                                                                                    │
+                                                                                    ▼
+                                                                              L5 (UI) → L6 (E2E)
 ```
-
-Los loops L1-L4 pueden implementarse y probarse de forma aislada (sin UI, sin browser). L5 y L6 requieren los loops anteriores completos.
 
 ## Riesgos y decisiones abiertas
 
-1. **Validación de sintaxis Python en CI:** `compile()` requiere Python instalado. Decisión: implementar como validación best-effort (salta si Python no está disponible).
-
-2. **`pythonLiteral` para columnas con nombres especiales:** Si una columna se llama `class`, `def`, `import`, etc., el `pythonLiteral` debe usar notación de diccionario (`df['class']`). Ya resuelto en `ColumnRef.pythonLiteral`.
-
-3. **Colisiones de nombres de función:** Si `cleanDatasetFn` colisiona con nombres built-in de pandas. Decisión: prefijar con `_aura_` si es necesario, o documentar que el usuario puede renombrarla.
-
-4. **Legacy v1 vs v2 coexistence:** Los componentes legacy se preservan. El ruteo en `ScriptGenerationStep` decide cuál usar basado en `isContractsV2Enabled()`.
-
-5. **Script vacío (0 acciones aprobadas):** El contrato debe ser válido incluso con `acceptedActionIds: []`. `scriptText` contiene solo header + footer + comentario.
+1. **Python syntax tri-state:** `not_run` no bloquea finalización pero emite warning. Solo `passed` es validación formal.
+2. **`pythonLiteral` en `ColumnRef`, no en `RemediationContextColumnV2`:** Se obtiene del envelope original o se construye en `buildScriptContext()`.
+3. **Script vacío (0 acciones):** Contiene función `clean_dataset(df)` completa, copia y retorna sin transformaciones.
+4. **Reconstrucción exacta:** Builder y validator deben usar exactamente el mismo renderer para que `SCRIPT_RENDER_MISMATCH` no dé falsos positivos.
+5. **Partición única:** `rejectedActionIds` y `excludedActionIds` son disjuntos por construcción. El validador lo verifica con `SCRIPT_PARTITION_INVALID`.

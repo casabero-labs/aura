@@ -1,12 +1,12 @@
 # Decisiones de diseño — Phase 4
 
-> **Versión:** 1.0.0 · **Fecha:** 2026-06-25 · **Commit Phase 3:** `d3774dd5ac98d89ca4454c693b1b0a30856cd191`
+> **Versión:** 2.0.0 · **Fecha:** 2026-06-25 · **Commit Phase 3:** `d3774dd5ac98d89ca4454c693b1b0a30856cd191`
 
 ---
 
 ## D1: Separación estricta de capas
 
-**Decisión:** El builder de script v2 (`scriptBuilderV2.ts`) NO importa código de UI, componentes React, ni servicios de ejecución. Solo depende de `types.ts`, `scriptColumnResolver.ts`, `scriptRendererV2.ts`, y `hash.ts`.
+**Decisión:** El builder de script v2 (`scriptBuilderV2.ts`) NO importa código de UI, componentes React, ni servicios de ejecución. Solo depende de `types.ts`, `scriptBuildContext.ts`, `scriptColumnResolver.ts`, `scriptRendererV2.ts`, `placeholderVocabulary.ts`, y `hash.ts`.
 
 **Justificación:** El contrato y el renderer deben ser auditables sin arrastrar dependencias de browser. El mismo builder debe funcionar en Node.js (tests, CI) y en browser (Vite).
 
@@ -30,29 +30,30 @@
 
 ---
 
-## D3: Uso de `canonicalJson` para hashes
+## D3: `scriptHash` sin `generatedAt`, con `placeholderVocabularyVersion`
 
-**Decisión:** El `scriptHash` se calcula con `canonicalJson()` (keys ordenadas alfabéticamente, sin whitespace). Misma función que `planId` en Phase 3.
+**Decisión:** El `scriptHash` se calcula con `canonicalJson()` incluyendo `placeholderVocabularyVersion` pero excluyendo `generatedAt`. Misma función de hashing que `planId` en Phase 3.
 
-**Justificación:** Consistencia con el ecosistema de contratos. `canonicalJson` ya está probado y es estable.
+**Justificación:** `generatedAt` cambia en cada ejecución — incluirlo rompe la estabilidad del hash. `placeholderVocabularyVersion` es necesario porque un cambio en el vocabulario de placeholders altera el comportamiento del renderer.
 
 **Consecuencias:**
-- `scriptHash` no incluye `validationResult` (que es output de validación, no input)
-- `scriptHash` incluye `scriptText`, `acceptedActionIds`, `columnRefs`, `rendererVersion`
-- No incluye `rejectedActionIds` ni `excludedActionIds` (decisiones humanas, no afectan el cuerpo ejecutable)
+- `scriptHash` incluye: `remediationRef`, `datasetFingerprint`, `acceptedActionIds`, `columnRefs`, `rendererVersion`, `placeholderVocabularyVersion`, `scriptText`, `cleanDatasetFn`
+- `scriptHash` NO incluye: `generatedAt`, `validationResult`, `rejectedActionIds`, `excludedActionIds`
+- Dos ejecuciones del mismo builder con los mismos inputs producen el mismo hash
 
 ---
 
-## D4: Columnas se resuelven por `columnId`, no por nombre
+## D4: Columnas se operan por posición en duplicados
 
-**Decisión:** El renderer usa exclusivamente `columns[].columnId` del `RemediationContextV2` para obtener `pythonLiteral`. Nunca busca por `columns[].name`.
+**Decisión:** Las columnas duplicadas (`isDuplicate === true`) se operan por **posición** y **duplicateOrdinal**, no por nombre. `pythonLiteral` pertenece a `ColumnRef` (no a `RemediationContextColumnV2`) y se construye con helpers `buildPythonLiteral`/`readColumn`/`writeColumn`.
 
-**Justificación:** Nombres de columna pueden ser ambiguos (duplicados, caracteres especiales, reserved words). `columnId` es determinista (hash del contenido + posición). El `ColumnRef` ya contiene `pythonLiteral` (nombre sanitizado con ordinal si es duplicado, notación `df['name']` si es reserved word).
+**Justificación:** Nombres de columna duplicados son indistinguibles por nombre. La posición (`columnId` + `duplicateOrdinal`) es determinista y no ambigua. `RemediationContextColumnV2` no tiene `pythonLiteral` porque ese campo pertenece al `ColumnRef` del envelope original.
 
 **Consecuencias:**
-- Si `columnId` no se encuentra en el contexto → error `SCRIPT_REFERENCE_INVALID`
-- Si `isAmbiguous === true` → exclusión automática
-- El renderer nunca hace `df[columnName]` directamente
+- `pythonLiteral` se obtiene de `ColumnRef` (envelope) o se construye en `ScriptBuildContextV2`
+- Columnas duplicadas reciben `pythonLiteral` con ordinal (ej: `Name_0`, `Name_1`)
+- `drop_exact_duplicates` acepta `columnRef === null` (opera a nivel dataset)
+- Los helpers `readColumn`/`writeColumn`/`accessColumn` encapsulan toda la lógica de acceso
 
 ---
 
@@ -69,7 +70,7 @@
 
 ---
 
-## D6: `cleanDatasetFn` como identificador único
+## D6: `cleanDatasetFn` fijo a `clean_dataset`
 
 **Decisión:** El nombre de la función de limpieza es fijo: `clean_dataset`. No se parametriza.
 
@@ -81,29 +82,35 @@
 
 ---
 
-## D7: `excludedActionIds` como array estructurado
+## D7: Partición única sin solapamiento
 
-**Decisión:** Las acciones excluidas se representan como `Array<{actionId: string, reason: string}>`, no como `string[]`.
+**Decisión:** Las acciones del plan se particionan en tres conjuntos disjuntos:
+- `acceptedActionIds`: solo `approved` Y renderizables
+- `rejectedActionIds`: ÚNICAMENTE `rejected`
+- `excludedActionIds`: `pending` O `approved` no renderizables
 
-**Justificación:** Cada exclusión tiene un motivo (pending, rejected, ambiguous_column, unsupported_action). Esto permite auditoría y explicabilidad. Un array plano de strings no captura el motivo.
+Una acción `rejected` NUNCA aparece en `excludedActionIds`. Los conjuntos son mutuamente excluyentes por construcción.
+
+**Justificación:** Claridad semántica. `rejected` es una decisión HITL explícita; `excluded` es una limitación técnica (columna ambigua, `requires_human_review`, pendiente de decisión). Mezclarlos en la misma lista oscurece la trazabilidad.
 
 **Consecuencias:**
-- `excludedActionIds` es un array de objetos, no de strings
-- `rejectedActionIds` sigue siendo `string[]` (el motivo siempre es "rechazado por HITL")
-- La validación verifica que el `reason` sea uno de los valores permitidos
+- `excludedActionIds[].reason` nunca es `'rejected'`
+- `rejectedActionIds` es `string[]` (sin motivo adicional — siempre es "rechazado por HITL")
+- La validación verifica `rejectedActionIds ∩ excludedActionIds = ∅` con `SCRIPT_PARTITION_INVALID`
 
 ---
 
-## D8: Validación best-effort de sintaxis Python
+## D8: Sintaxis Python como tri-state
 
-**Decisión:** La validación de sintaxis Python (`compile()`) es opcional y solo se ejecuta si el entorno tiene Python disponible.
+**Decisión:** La validación de sintaxis Python tiene tres estados: `'passed'`, `'failed'`, `'not_run'`. Solo `'passed'` es validación formal aprobada.
 
-**Justificación:** En CI (GitHub Actions), Python puede no estar instalado. La validación de seguridad (sin eval/exec/subprocess) es suficiente para garantizar que el script no es malicioso. La sintaxis se valida con regex de estructura básica.
+**Justificación:** En entornos sin Python (CI, browser), no se puede ejecutar `compile()`. `not_run` no debe bloquear la finalización del contrato, pero debe registrarse explícitamente para que el consumidor sepa que la sintaxis no fue verificada.
 
 **Consecuencias:**
-- `validateScriptContractV2` tiene un parámetro `checkPythonSyntax?: boolean`
-- Si `true` y Python no disponible → warning, no error
-- La validación de estructura (imports, función, indentación) siempre se ejecuta
+- `PythonSyntaxState = 'passed' | 'failed' | 'not_run'`
+- `'failed'` → `SCRIPT_SYNTAX_INVALID`, bloquea finalización
+- `'not_run'` → warning, no bloquea
+- El badge UI muestra "Contrato válido" (no "Seguro") cuando `valid === true`
 
 ---
 
@@ -136,3 +143,58 @@
 - Capturas 01–06
 - `CAPTURAS_MANIFEST.md`
 - `PAQUETE_EVIDENCIA_PHASE3.md`
+
+---
+
+## D11: Flujo candidate → validate → finalize
+
+**Decisión:** El contrato se construye en tres fases separadas:
+1. `buildScriptCandidateV2()` → `ScriptContractCandidateV2` (sin hash ni validación)
+2. `validateScriptCandidateV2()` → `ValidationResultV2`
+3. `finalizeScriptContractV2()` → `ScriptContractV2` (con hash y validación, solo si `valid === true`)
+
+**Justificación:** Separación de concerns. El builder no debe conocer la validación. El hash solo se calcula una vez que el candidato es válido. Esto permite iterar sobre el candidato (corregir, re-validar) sin recalcular hashes innecesariamente.
+
+**Consecuencias:**
+- `ScriptContractCandidateV2` no tiene `scriptHash` ni `validationResult`
+- `finalizeScriptContractV2()` es la única función que produce `ScriptContractV2`
+- El hash es estable porque no incluye `generatedAt`
+
+---
+
+## D12: Validación por reconstrucción exacta
+
+**Decisión:** El validador re-renderiza el candidato desde el plan y contexto original, y compara `scriptText`, `acceptedActionIds`, `columnRefs`, y `cleanDatasetFn`. Cualquier diferencia produce `SCRIPT_RENDER_MISMATCH`.
+
+**Justificación:** Defensa contra drift entre builder y validator. Si el builder y el validator usan versiones diferentes del renderer o tienen bugs sutiles, la reconstrucción los detecta.
+
+**Consecuencias:**
+- El validator importa y usa exactamente las mismas funciones del builder
+- `SCRIPT_RENDER_MISMATCH` es un código de error nuevo
+- La reconstrucción no compara `rejectedActionIds` ni `excludedActionIds` (son independientes del renderer)
+
+---
+
+## D13: PLACEHOLDER_VOCABULARY_V2 cerrado y versionado
+
+**Decisión:** El vocabulario de placeholders es una constante `ReadonlyArray<string>` congelada con `Object.freeze`, versionada con string semántico (`'1.0.0'`), y sin valores provenientes del LLM.
+
+**Justificación:** `normalize_placeholders` reemplaza valores por `np.nan`. La lista de valores debe ser determinista, auditable y versionada. Si cambia, debe reflejarse en `placeholderVocabularyVersion` y por tanto en `scriptHash`.
+
+**Consecuencias:**
+- 19 placeholders en la versión 1.0.0
+- Cualquier adición requiere bump de `placeholderVocabularyVersion`
+- El vocabulario se importa como constante, nunca se construye dinámicamente
+
+---
+
+## D14: Script con cero acciones es una función Python completa
+
+**Decisión:** Cuando `acceptedActionIds` está vacío, el script contiene `def clean_dataset(df):` que copia y retorna el dataframe sin transformaciones.
+
+**Justificación:** El contrato debe ser ejecutable incluso sin transformaciones. Una función vacía o un script sin función no es un artefacto usable. Phase 5 necesita una función `clean_dataset` para ejecutar.
+
+**Consecuencias:**
+- `scriptText` nunca está vacío
+- Mínimo: imports + `def clean_dataset(df): df_clean = df.copy(); return df_clean`
+- La validación verifica que `def clean_dataset(df):` existe en `scriptText`
