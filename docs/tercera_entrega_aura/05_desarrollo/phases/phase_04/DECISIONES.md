@@ -345,3 +345,52 @@ Una acción `rejected` NUNCA aparece en `excludedActionIds`. Los conjuntos son m
 - Si el usuario tiene Contracts v2 activado pero sin remediation plan, ve el legacy
 - Si desactiva Contracts v2, pierde el contrato v2 existente (se limpia)
 - El routing es monotónico: una vez en v2, no se regresa a legacy en la misma sesión
+
+---
+
+## D25: prevDiagnosisRef y prevEnvelopeRef inicializados desde initialData
+
+**Decisión:** `prevDiagnosisRef` y `prevEnvelopeRef` se inicializan con `deriveDiagnosisIdentity(initialData?.structuredDiagnosis)`, no con `null`.
+
+**Justificación:** Si se inicializan a `null`, el primer render con `structuredDiagnosis` restaurado se clasifica como nuevo diagnóstico y el `remediationPlan` se borra. La inicialización correcta evita falsos positivos de "nuevo diagnóstico" en sesiones restauradas.
+
+**Consecuencias:**
+- Una sesión guardada con diagnosis+plan no pierde el plan al restaurar
+- El plan lifecycle correctamente identifica cambios reales de diagnóstico
+- Sin `initialData` (mount fresco), los refs se inicializan a `null` (comportamiento correcto)
+
+---
+
+## D26: Cleanup de 4 estados en fallos de fresh verification
+
+**Decisión:** Cuando la verificación fresca de un contrato restaurado falla (por hash, fingerprint, contexto o validation), se limpian `scriptContractV2`, `scriptContractVerificationV2`, `cleaningScript` y `approvedScript`.
+
+**Justificación:** Antes solo se limpiaban 2 de 4 estados. `cleaningScript` y `approvedScript` residuales podían causar estados inconsistentes (ReviewStep muestra script fantasma).
+
+**Consecuencias:**
+- Limpieza atómica de los 4 estados relacionados con el contrato
+- No hay riesgo de mostrar un script obsoleto después de invalidar el contrato
+
+---
+
+## D27: Preservación condicional de approvedScript
+
+**Decisión:** `approvedScript` se preserva en restauración solo si está vacío o coincide exactamente con `contract.scriptText`. Si contiene otro script, se limpia.
+
+**Justificación:** No se puede confiar en `approvedScript` de sesiones previas. Si el contrato fue aprobado, `approvedScript === contract.scriptText`. Si no coincide, los datos están corruptos.
+
+**Consecuencias:**
+- Evita mostrar un script aprobado que no corresponde al contrato actual
+- Si `approvedScript` está vacío, se conserva vacío (comportamiento correcto para sesiones no aprobadas aún)
+
+---
+
+## D28: Fresh verification reemplaza verificación persistida
+
+**Decisión:** La verificación fresca (`verifyScriptContractV2`) siempre sustituye a la verificación persistida en `initialData.scriptContractVerificationV2`.
+
+**Justificación:** La verificación en localStorage puede estar desactualizada (versión vieja del validator, datos corruptos). La verificación fresca garantiza consistencia con el código actual.
+
+**Consecuencias:**
+- `setScriptContractVerificationV2(verification)` con el resultado fresco (no el persistido)
+- Si la verificación fresca falla, se limpia todo (D26)

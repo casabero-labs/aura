@@ -1,6 +1,6 @@
 # Contracts v2 — Local Dataset Validation
 
-**Generated:** 2026-06-26T13:46:26.276Z
+**Generated:** 2026-06-26T14:09:21.504Z
 **Datasets dir:** /Users/casabero/Documents/GitHub/aura/experiments/datasets
 
 | Status | Count |
@@ -60,7 +60,7 @@
 - **Rows:** 48842 × **Cols:** 15
 - **Issues:** 12
 - **Duplicate columns:** 0
-- **Duration:** 3507ms
+- **Duration:** 3553ms
 
 | Level | Budget | Size | Samples | Columns | Issues | Trunc | PII Leaks |
 |-------|--------|------|---------|---------|--------|-------|-----------|
@@ -92,7 +92,7 @@
 - **Rows:** 15 × **Cols:** 9
 - **Issues:** 16
 - **Duplicate columns:** 0
-- **Duration:** 11ms
+- **Duration:** 9ms
 
 | Level | Budget | Size | Samples | Columns | Issues | Trunc | PII Leaks |
 |-------|--------|------|---------|---------|--------|-------|-----------|

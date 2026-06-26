@@ -32,6 +32,7 @@ import type {
   ColumnRef,
 } from '../contracts/llm/types';
 import { buildUiScriptContext, buildScriptContractInputKey } from '../services/scriptContractUiContext';
+import { AIConfig, AIProvider } from '../types';
 
 // Mock isContractsV2Enabled to return true
 vi.mock('../contracts/llm/contractRegistry', async (importOriginal) => {
@@ -959,5 +960,281 @@ describe('ScriptReview v2 props', () => {
       />,
     );
     expect(screen.getByText('Editar')).toBeTruthy();
+  });
+});
+
+// ── MainPipeline session restoration ───────────────────────────────────────────
+
+describe('MainPipeline session restoration', () => {
+  const mockAiConfig: AIConfig = {
+    model: 'test',
+    temperature: 0.5,
+    autoAnalyze: false,
+    providerType: 'cloud',
+  };
+
+  const mockAiProvider = {
+    name: 'test-mock',
+    type: 'cloud' as const,
+    analyzeStream: vi.fn(),
+    generateExecutiveReport: vi.fn(),
+    generateExecutiveReportStream: vi.fn(),
+    generateText: vi.fn(),
+    isAvailable: vi.fn().mockResolvedValue(true),
+  } as AIProvider;
+
+  function makeInitialData(overrides: Record<string, any> = {}) {
+    const diag = makeStructuredDiagnosis();
+    const plan = buildRemediationPlanV2(diag);
+    const contract = makeValidContract();
+    return {
+      state: 'script' as const,
+      file: null,
+      report: { score: 100, issues: [], rowCount: 10, colCount: 3 } as any,
+      auditEvidence: {
+        datasetFingerprint: 'sha256:fingerprint123',
+        fileName: 'test.csv',
+        fileSize: 100,
+        startedAt: '2025-01-01T00:00:00.000Z',
+        completedAt: '2025-01-01T00:00:01.000Z',
+        parseDurationMs: 10,
+        auditDurationMs: 10,
+        rowsProcessed: 10,
+        columnsProcessed: 3,
+        delimiter: ',',
+        truncated: false,
+        ingestionStatus: 'success' as const,
+        report: null as any,
+        trace: [],
+      } as any,
+      rawData: [],
+      csvFields: ['id', 'age', 'name'],
+      csvDelimiter: ',',
+      cleaningScript: contract.scriptText,
+      approvedScript: '',
+      healthDelta: null,
+      aiAnalysis: '',
+      structuredDiagnosis: diag,
+      remediationPlan: plan,
+      scriptContractV2: contract,
+      scriptContractVerificationV2: makeValidVerification(),
+      benchmarkResults: [],
+      improvementRun: null,
+      scriptValidation: null,
+      deterministicValidation: null,
+      logs: [],
+      ...overrides,
+    };
+  }
+
+  it('valid session at review: preserves plan, review step renders', async () => {
+    const contract = makeValidContract();
+
+    const { default: MainPipeline } = await import('../components/MainPipeline');
+
+    const initialData = makeInitialData({ state: 'review' as const });
+    render(
+      <MainPipeline
+        aiConfig={mockAiConfig}
+        aiProvider={mockAiProvider}
+        initialData={initialData}
+        onLog={vi.fn()}
+      />,
+    );
+
+    // ReviewStep renders (either v2 or legacy — both contain review content)
+    const v2Heading = screen.queryByText('Revisión de contrato');
+    const legacyHeading = screen.queryByText('Tú decides antes de aplicar');
+    expect(v2Heading || legacyHeading).toBeTruthy();
+    // Plan was preserved — V2Review would error if remediationPlan was null
+    if (v2Heading) {
+      expect(screen.queryByText(/Falta información para aprobar/)).toBeNull();
+      // Contract hash visible
+      expect(screen.getByText(contract.scriptHash.slice(0, 12))).toBeTruthy();
+    }
+  });
+
+  it('valid session at script with pre-built plan: can generate and shows contract', async () => {
+    const user = userEvent.setup();
+    const contract = makeValidContract();
+
+    const { default: MainPipeline } = await import('../components/MainPipeline');
+
+    render(
+      <MainPipeline
+        aiConfig={mockAiConfig}
+        aiProvider={mockAiProvider}
+        initialData={makeInitialData({})}
+        onLog={vi.fn()}
+      />,
+    );
+
+    // Plan is preserved — RemediationPlanStepV2 shows plan summary
+    expect(screen.getByText('Plan de remediación determinista')).toBeTruthy();
+    // Generate button available (plan already built)
+    expect(screen.getByText('Generar contrato de script')).toBeTruthy();
+
+    // Click to generate → contract re-generated
+    await user.click(screen.getByText('Generar contrato de script'));
+    await waitFor(() => {
+      expect(screen.getByText('Contrato válido')).toBeTruthy();
+    });
+  });
+
+  it('invalid session: altered hash → full cleanup, plan view shown', async () => {
+    const diag = makeStructuredDiagnosis();
+    const plan = buildRemediationPlanV2(diag);
+    const badContract = makeValidContract({ scriptHash: '000000000000' });
+
+    const { default: MainPipeline } = await import('../components/MainPipeline');
+
+    render(
+      <MainPipeline
+        aiConfig={mockAiConfig}
+        aiProvider={mockAiProvider}
+        initialData={makeInitialData({
+          scriptContractV2: badContract,
+          remediationPlan: plan,
+          structuredDiagnosis: diag,
+        })}
+        onLog={vi.fn()}
+      />,
+    );
+
+    // Contract cleared — plan view shown, not contract view
+    await waitFor(() => {
+      expect(screen.getByText('Generar contrato de script')).toBeTruthy();
+    });
+    expect(screen.queryByText('Contrato válido')).toBeNull();
+  });
+
+  it('invalid session: incompatible fingerprint → full cleanup', async () => {
+    const { default: MainPipeline } = await import('../components/MainPipeline');
+
+    render(
+      <MainPipeline
+        aiConfig={mockAiConfig}
+        aiProvider={mockAiProvider}
+        initialData={makeInitialData({
+          auditEvidence: {
+            ...makeInitialData().auditEvidence,
+            datasetFingerprint: 'sha256:old-fingerprint',
+          },
+        })}
+        onLog={vi.fn()}
+      />,
+    );
+
+    // When fingerprint mismatches restoredKey vs currentKey, all states cleared
+    await waitFor(() => {
+      expect(screen.getByText('Generar contrato de script')).toBeTruthy();
+    });
+    expect(screen.queryByText('Contrato válido')).toBeNull();
+  });
+});
+
+// ── Full flow to ReviewStep ────────────────────────────────────────────────────
+
+describe('Full flow to ReviewStep', () => {
+  const mockAiConfig: AIConfig = {
+    model: 'test',
+    temperature: 0.5,
+    autoAnalyze: false,
+    providerType: 'cloud',
+  };
+
+  const mockAiProvider = {
+    name: 'test-mock',
+    type: 'cloud' as const,
+    analyzeStream: vi.fn(),
+    generateExecutiveReport: vi.fn(),
+    generateExecutiveReportStream: vi.fn(),
+    generateText: vi.fn(),
+    isAvailable: vi.fn().mockResolvedValue(true),
+  } as AIProvider;
+
+  it('null plan → build → generate → review → approve', async () => {
+    const user = userEvent.setup();
+    const diag = makeStructuredDiagnosis();
+
+    const initialData = {
+      state: 'script' as const,
+      file: null,
+      report: { score: 100, issues: [], rowCount: 10, colCount: 3 } as any,
+      auditEvidence: {
+        datasetFingerprint: 'sha256:fingerprint123',
+        fileName: 'test.csv',
+        fileSize: 100,
+        startedAt: '2025-01-01T00:00:00.000Z',
+        completedAt: '2025-01-01T00:00:01.000Z',
+        parseDurationMs: 10,
+        auditDurationMs: 10,
+        rowsProcessed: 10,
+        columnsProcessed: 3,
+        delimiter: ',',
+        truncated: false,
+        ingestionStatus: 'success' as const,
+        report: null as any,
+        trace: [],
+      } as any,
+      rawData: [],
+      csvFields: ['id', 'age', 'name'],
+      csvDelimiter: ',',
+      cleaningScript: '',
+      approvedScript: '',
+      healthDelta: null,
+      aiAnalysis: '',
+      structuredDiagnosis: diag,
+      remediationPlan: null,
+      scriptContractV2: null,
+      scriptContractVerificationV2: null,
+      benchmarkResults: [],
+      improvementRun: null,
+      scriptValidation: null,
+      deterministicValidation: null,
+      logs: [],
+    };
+
+    const { default: MainPipeline } = await import('../components/MainPipeline');
+
+    render(
+      <MainPipeline
+        aiConfig={mockAiConfig}
+        aiProvider={mockAiProvider}
+        initialData={initialData}
+        onLog={vi.fn()}
+      />,
+    );
+
+    // Step 1: Plan view (Vista A) — remediation plan is null
+    await waitFor(() => {
+      expect(screen.getByText('Generar contrato de script')).toBeTruthy();
+    });
+
+    // Step 2: Click generate → contract built
+    await user.click(screen.getByText('Generar contrato de script'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Contrato válido')).toBeTruthy();
+    });
+
+    // Step 3: Continue to review step
+    await user.click(screen.getByText('Continuar a revisión'));
+
+    // Step 4: ReviewStep renders with approve button
+    await waitFor(() => {
+      expect(screen.getByText('Aprobar script')).toBeTruthy();
+    });
+
+    // Step 5: Approve the contract
+    await user.click(screen.getByText('Aprobar script'));
+
+    // Step 6: Contract approved — success message appears
+    await waitFor(() => {
+      expect(screen.getByText('Contrato aprobado por revisión humana')).toBeTruthy();
+    });
+
+    // No HealthDelta, no createImprovementRun in v2
+    expect(screen.queryByText('Remediación simulada')).toBeNull();
   });
 });

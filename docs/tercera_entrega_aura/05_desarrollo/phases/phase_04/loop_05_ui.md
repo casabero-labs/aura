@@ -305,10 +305,13 @@ useEffect(() => {
 #### MainPipeline — prevRefs inicializados desde initialData
 
 ```typescript
+const initialDiagnosisIdentity = deriveDiagnosisIdentity(initialData?.structuredDiagnosis ?? null);
+const prevDiagnosisRef = useRef<string | null>(initialDiagnosisIdentity.diagRef);
+const prevEnvelopeRef = useRef<string | null>(initialDiagnosisIdentity.envelopeRef);
 const prevContractKeyRef = useRef<string | null>(getInitialContractKey());
-const prevDiagnosisRef = useRef<string | null>(null);
-const prevEnvelopeRef = useRef<string | null>(null);
 ```
+
+NOTA: Fixed en Loop 5R.2 — antes se inicializaban a `null`.
 
 ### Archivos modificados (Loop 5R.1)
 
@@ -346,6 +349,87 @@ const prevEnvelopeRef = useRef<string | null>(null);
 | D24 | Error de aprobación silenciosa muestra lista de campos faltantes — diagnóstico transparente para el usuario |
 
 ---
+
+## Loop 5R.2 — Cierre de restauración de sesión
+
+**SHA base:** `00e2e88a2aa953de9e0ab23e7dad4922aea316bd`
+**Fecha:** 2026-06-26
+**Estado:** Implementado
+
+### Objetivo
+
+1. Inicializar `prevDiagnosisRef` y `prevEnvelopeRef` desde `initialData` (no null)
+2. Limpiar 4 estados (`scriptContractV2`, `verification`, `cleaningScript`, `approvedScript`) en todos los fallos del fresh verification
+3. Preservar `approvedScript` solo si vacío o coincide con `contract.scriptText`
+4. Tests reales de MainPipeline para sesión válida, inválida y flujo completo
+
+### Cambios en código
+
+#### MainPipeline — prevRefs inicializados desde initialData
+
+```typescript
+const initialDiagnosisIdentity = deriveDiagnosisIdentity(initialData?.structuredDiagnosis ?? null);
+const prevDiagnosisRef = useRef<string | null>(initialDiagnosisIdentity.diagRef);
+const prevEnvelopeRef = useRef<string | null>(initialDiagnosisIdentity.envelopeRef);
+```
+
+Sin esto, el primer mount de una sesión válida clasifica su diagnóstico como nuevo y borra el `remediationPlan`.
+
+#### Fresh verification — cleanup completo en fallos
+
+```typescript
+// restoredKey !== currentKey → limpia 4 estados + log
+// !context.ok → limpia 4 estados
+// !remediationPlan → limpia 4 estados
+// !verification.valid → limpia 4 estados
+```
+
+Antes: solo limpiaba 2 estados (`scriptContractV2`, `verification`). Ahora: los 4.
+
+#### Fresh verification — restore explícito en éxito
+
+```typescript
+setScriptContractV2(initialData.scriptContractV2);
+setScriptContractVerificationV2(verification); // fresh, no persistida
+setCleaningScript(initialData.scriptContractV2.scriptText);
+if (approvedScript && approvedScript !== contract.scriptText) setApprovedScript('');
+```
+
+No se confía en `initialData.scriptContractVerificationV2`.
+
+### Tests (38 tests — 5 nuevos en 5R.2)
+
+| Suite | Tests |
+|---|---|
+| MainPipeline valid session (script state) | 1 |
+| MainPipeline valid session (review state) | 1 |
+| MainPipeline invalid session (altered hash) | 1 |
+| MainPipeline invalid session (incompatible fingerprint) | 1 |
+| MainPipeline full flow (null plan → review → approve) | 1 |
+
+### Verificaciones
+
+| Verificación | Resultado |
+|---|---|
+| Suite completa | 1112 passed, 6 skipped (51 files) |
+| Typecheck | clean (0 errors) |
+| Build | built in ~3.5s |
+| Contracts v2 | 3/3 PASS |
+
+### Decisiones Loop 5R.2
+
+| ID | Decisión |
+|---|---|
+| D25 | prevDiagnosisRef y prevEnvelopeRef se inicializan desde `initialData` — evita que el plan lifecycle borre remediationPlan en sesión restaurada |
+| D26 | Cleanup de 4 estados en todos los fallos de fresh verification — consistencia completa |
+| D27 | `approvedScript` solo se preserva si está vacío o coincide con `contract.scriptText` — no se confía en datos potencialmente corruptos |
+| D28 | Fresh verification siempre reemplaza la verificación persistida — resultado fresco en `scriptContractVerificationV2` |
+
+### Limitaciones curadas en 5R.2
+
+- prevDiagnosisRef/prevEnvelopeRef previamente inicializados a `null` — causaban pérdida de remediationPlan
+- Fresh verification que fallaba limpiaba solo 2 de 4 estados
+- Fresh verification exitosa no restauraba `cleaningScript`/`approvedScript`
 
 ## Limitaciones no bloqueantes
 

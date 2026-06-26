@@ -663,6 +663,59 @@ cd src && npm run contracts:v2:validate-local
 
 ---
 
+## Loop 5R.2 — Cierre de restauración de sesión
+
+### Comandos de reproducción
+
+```bash
+cd src && npm test -- scriptGenerationStepV2
+# 38 passed
+
+cd src && npm test
+# 1112 passed, 6 skipped
+
+cd src && npm run typecheck
+# clean (0 errors)
+
+cd src && npm run build
+# built in ~3.5s
+
+cd src && npm run contracts:v2:validate-local
+# 3/3 PASS
+```
+
+### Cambios implementados
+
+1. `prevDiagnosisRef` y `prevEnvelopeRef` inicializados desde `initialData` (no `null`)
+2. Fresh verification limpia los 4 estados en todos los fallos (`restoredKey !== currentKey`, `!context.ok`, `!remediationPlan`, `!verification.valid`)
+3. Fresh verification en éxito restaura explícitamente `scriptContractV2`, `verification` fresca, `cleaningScript`, y condicionalmente `approvedScript`
+4. 5 tests reales de MainPipeline (sesión válida script, válida review, inválida hash, inválida fingerprint, flujo completo)
+5. 38 tests total en `scriptGenerationStepV2.test.tsx`
+
+### Archivos modificados
+
+| Archivo | Cambio |
+|---|---|
+| `src/components/MainPipeline.tsx` | prevRefs desde initialData, cleanup 4 estados, restore explícito |
+| `src/__tests__/scriptGenerationStepV2.test.tsx` | 5 tests nuevos de MainPipeline (38 total) |
+
+### Confirmaciones
+
+- `scriptBuilderV2.ts` no cambió
+- `scriptRendererV2.ts` no cambió
+- `scriptValidatorV2.ts` no cambió
+- `scriptColumnResolver.ts` no cambió
+- `columnRegistry.ts` no cambió
+- `placeholderVocabulary.ts` no cambió
+- `scriptErrorCodes.ts` no cambió
+- Phase 3 no cambió
+- ReviewStep no cambió
+- No se importó Pyodide
+- No se ejecutó Python
+- No se generó HealthDelta
+
+---
+
 ## Loop 1 — Histórico
 
 Ver `EVIDENCIA.md` original en el commit `53df16a`.

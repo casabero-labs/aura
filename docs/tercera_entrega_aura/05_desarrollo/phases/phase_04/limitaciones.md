@@ -92,3 +92,21 @@
 - `deriveDiagnosisIdentity` centraliza derivación de identidad (D22)
 - `prevContractKeyRef` inicializado desde initialData (D23)
 - Error de aprobación con lista de campos faltantes (D24)
+
+---
+
+## Loop 5R.2 — Cierre de restauración de sesión
+
+### Limitaciones
+
+1. **`prevDiagnosisRef` y `prevEnvelopeRef` corregidos:** Antes inicializados a `null`, ahora desde `initialData` (D25). Cierra la falsa detección de nuevo diagnóstico.
+2. **Cleanup incompleto corregido:** Los fallos de fresh verification ahora limpian los 4 estados, no solo 2 (D26).
+3. **`approvedScript` preservado condicionalmente:** Solo se conserva si vacío o coincide con `contract.scriptText` (D27).
+4. **Verificación fresca siempre sustituye la persistida:** No se confía en `initialData.scriptContractVerificationV2` (D28).
+
+### Curados en Loop 5R.2
+
+- prevDiagnosisRef/prevEnvelopeRef desde initialData (D25)
+- Cleanup de 4 estados en todos los fallos (D26)
+- Preservación condicional de approvedScript (D27)
+- Fresh verification reemplaza persistida (D28)

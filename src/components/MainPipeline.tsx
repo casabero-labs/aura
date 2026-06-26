@@ -173,8 +173,9 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
   }, [auditEvidence, structuredDiagnosis, remediationPlan, csvFields]);
 
   // ── Plan lifecycle: clear on new diagnosis, validate restored plan ──
-  const prevDiagnosisRef = useRef<string | null>(null);
-  const prevEnvelopeRef = useRef<string | null>(null);
+  const initialDiagnosisIdentity = deriveDiagnosisIdentity(initialData?.structuredDiagnosis ?? null);
+  const prevDiagnosisRef = useRef<string | null>(initialDiagnosisIdentity.diagRef);
+  const prevEnvelopeRef = useRef<string | null>(initialDiagnosisIdentity.envelopeRef);
   useEffect(() => {
     const { diagRef: currentDiagRef, envelopeRef: currentEnvelopeRef } = deriveDiagnosisIdentity(structuredDiagnosis);
 
@@ -245,7 +246,14 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
       csvFields,
     });
 
-    if (restoredKey !== currentKey) return;
+    if (restoredKey !== currentKey) {
+      setScriptContractV2(null);
+      setScriptContractVerificationV2(null);
+      setCleaningScript('');
+      setApprovedScript('');
+      addLog('script.contract.v2.restored.mismatch :: restored key does not match current state — contract cleared');
+      return;
+    }
 
     const context = buildUiScriptContext({
       structuredDiagnosis: initialData.structuredDiagnosis ?? null,
@@ -255,12 +263,16 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
     if (!context.ok) {
       setScriptContractV2(null);
       setScriptContractVerificationV2(null);
+      setCleaningScript('');
+      setApprovedScript('');
       addLog('script.contract.v2.restored.invalid :: context build failed — contract cleared');
       return;
     }
     if (!initialData.remediationPlan) {
       setScriptContractV2(null);
       setScriptContractVerificationV2(null);
+      setCleaningScript('');
+      setApprovedScript('');
       addLog('script.contract.v2.restored.invalid :: no remediationPlan — contract cleared');
       return;
     }
@@ -272,8 +284,19 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
     if (!verification.valid) {
       setScriptContractV2(null);
       setScriptContractVerificationV2(null);
+      setCleaningScript('');
+      setApprovedScript('');
       addLog(`script.contract.v2.restored.invalid :: verification failed — contract cleared`);
       return;
+    }
+    // Contract is valid — restore all states explicitly (do not trust persisted verification)
+    setScriptContractV2(initialData.scriptContractV2);
+    setScriptContractVerificationV2(verification);
+    setCleaningScript(initialData.scriptContractV2.scriptText);
+    // Preserve approvedScript only if empty or matches contract.scriptText exactly
+    const restoredApproved = initialData.approvedScript ?? '';
+    if (restoredApproved && restoredApproved !== initialData.scriptContractV2.scriptText) {
+      setApprovedScript('');
     }
     addLog('script.contract.v2.restored.valid :: fresh verification passed on mount');
   }, []); // Run once on mount

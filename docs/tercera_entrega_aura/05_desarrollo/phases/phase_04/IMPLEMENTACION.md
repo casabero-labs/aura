@@ -665,6 +665,39 @@ scriptContractVerificationV2: ScriptValidationResultV2 | null;
 
 ---
 
+## Loop 5R.2: Cierre de restauración de sesión
+
+**SHA base:** `00e2e88a2aa953de9e0ab23e7dad4922aea316bd`
+
+### Cambios
+
+| Archivo | Descripción |
+|---|---|
+| `src/components/MainPipeline.tsx` | prevDiagnosisRef y prevEnvelopeRef desde initialData; cleanup 4 estados; restore explícito de contract/verification/cleaningScript/approvedScript |
+| `src/__tests__/scriptGenerationStepV2.test.tsx` | 5 tests nuevos de MainPipeline (sesión válida, inválida hash, inválida fingerprint, flujo completo a revisión) |
+
+### Tests (38, +5 en 5R.2)
+
+| Suite | Tests |
+|---|---|
+| MainPipeline valid session (script) | 1 |
+| MainPipeline valid session (review) | 1 |
+| MainPipeline invalid session (altered hash) | 1 |
+| MainPipeline invalid session (incompatible fingerprint) | 1 |
+| MainPipeline full flow (null plan → review → approve) | 1 |
+
+### Verificaciones
+
+| Verificación | Resultado |
+|---|---|
+| Suite completa | 1112 passed, 6 skipped (51 files) |
+| Typecheck | clean (0 errors) |
+| Build | built in ~3.5s |
+| Contracts v2 | 3/3 PASS |
+| Remediation plans valid | 3/3 |
+
+---
+
 ## Loops pendientes
 
 - Loop 6: E2E + capturas
