@@ -1321,4 +1321,81 @@ describe('data-testid contract details', () => {
     expect(screen.getByTestId('partition-excluded')).toBeTruthy();
     expect(screen.getByTestId('syntax-state')).toBeTruthy();
   });
+
+  it('exposes full contract hash as data-contract-hash attribute (64 hex chars)', async () => {
+    const { default: ScriptGenerationStepV2 } = await import('../components/ScriptGenerationStepV2');
+    const diag = makeStructuredDiagnosis();
+    const contract = makeValidContract();
+    const verification = makeValidVerification();
+    const plan = buildRemediationPlanV2(diag);
+
+    render(
+      <ScriptGenerationStepV2
+        report={{} as any}
+        csvFields={['id', 'age', 'name']}
+        sourceDatasetFingerprint={'sha256:fingerprint123'}
+        structuredDiagnosis={diag}
+        remediationPlan={plan}
+        scriptContractV2={contract}
+        scriptContractVerificationV2={verification}
+        onScriptContractChange={() => {}}
+        onRemediationPlanChange={vi.fn()}
+        onContinue={() => {}}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('contract-hash')).toBeTruthy();
+    });
+
+    const el = screen.getByTestId('contract-hash');
+    const fullHash = el.getAttribute('data-contract-hash');
+    expect(fullHash).toBeTruthy();
+    expect(fullHash).toMatch(/^[a-f0-9]+$/);
+    expect(fullHash).toBe(contract.scriptHash);
+  });
+
+  it('no-op contract shows accepted = 0 in partition', async () => {
+    const user = userEvent.setup();
+    const { default: ScriptGenerationStepV2 } = await import('../components/ScriptGenerationStepV2');
+    const diag = makeStructuredDiagnosis();
+
+    render(
+      <ScriptGenerationStepV2
+        report={{} as any}
+        csvFields={['id', 'age', 'name']}
+        sourceDatasetFingerprint={'sha256:fingerprint123'}
+        structuredDiagnosis={diag}
+        remediationPlan={null}
+        scriptContractV2={null}
+        scriptContractVerificationV2={null}
+        onScriptContractChange={() => {}}
+        onRemediationPlanChange={vi.fn()}
+        onContinue={() => {}}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Generar contrato de script')).toBeTruthy();
+    });
+
+    // Reject all actions
+    const r = screen.getByTestId('remediation-stage');
+    const buttons = r.querySelectorAll('button');
+    for (const b of buttons) {
+      if (b.textContent?.includes('Rechazar')) {
+        await user.click(b);
+        await new Promise(r => setTimeout(r, 50));
+      }
+    }
+
+    await user.click(screen.getByText('Generar contrato de script'));
+    await waitFor(() => {
+      expect(screen.getByText('Contrato válido')).toBeTruthy();
+    });
+
+    const acceptedEl = screen.getByTestId('partition-accepted');
+    expect(acceptedEl).toBeTruthy();
+    expect(acceptedEl.querySelector('strong')?.textContent?.trim()).toBe('0');
+  });
 });

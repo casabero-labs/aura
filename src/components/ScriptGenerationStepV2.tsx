@@ -553,7 +553,7 @@ const ScriptGenerationStepV2: React.FC<ScriptGenerationStepV2Props> = ({
       >
         renderer: {contract.rendererVersion} · placeholder:{' '}
         {contract.placeholderVocabularyVersion} · hash:{' '}
-        <span data-testid="contract-hash">{contract.scriptHash.slice(0, 12)}</span>
+        <span data-testid="contract-hash" data-contract-hash={contract.scriptHash}>{contract.scriptHash.slice(0, 12)}</span>
         {contract.validationResult.pythonSyntax.state === 'not_run' && (
           <span style={{ color: 'var(--orange)', marginLeft: '8px' }} data-testid="syntax-state">
             syntax: not_run (Python no disponible en navegador)
