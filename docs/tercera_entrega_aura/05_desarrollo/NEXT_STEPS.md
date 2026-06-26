@@ -2,52 +2,45 @@
 
 ## Estado
 
-Phase 3 está cerrada y congelada en `d3774dd5ac98d89ca4454c693b1b0a30856cd191`. No modificar su evidencia.
+**Phase 3 cerrada y congelada en `d3774dd5ac98d89ca4454c693b1b0a30856cd191`.** No modificar su evidencia.
 
-**Loop 5R y 5R.1 completados. Integración UI reparada y plan propagado. Pendiente Loop 6 (E2E + capturas).**
+**Phase 4 cerrada y congelada en `aa167995316962a70ff41a3970326d4824d980c0`.** Evidencia E2E completa: 8/8 escenarios contractuales demostrados en navegador.
 
-## Loop 5R — UI — Reparación de integración
+## Phase 4 — Resumen final
 
-Reparación de la integración UI del ScriptContractV2:
+6 loops principales + 9 subloops correctivos. Pipeline contractual completo:
 
-- `buildUiScriptContext()` — helper compartido centraliza construcción de contexto
-- `buildScriptContractInputKey()` — clave de invalidación con `approvalStatus` por acción
-- `RemediationPlanStepV2` — reutilizable con `continueLabel` y `onContinueWithPlan`
-- `ScriptGenerationStepV2` — reescrito: Vista A reutiliza `RemediationPlanStepV2`
-- `ReviewStep` — fresh verification antes de approve
-- `MainPipeline` — `initialData` prop para restauración de sesión
-- 29 tests. Suite: 1103 passed, 6 skipped. Build: ~3s. Contracts: 3/3 PASS
+```
+RemediationPlanV2 → HITL → buildScriptCandidateV2 → validateScriptCandidateV2
+→ finalizeScriptContractV2 (hash + syntax) → verifyScriptContractV2
+→ revisión humana read-only → aprobación
+```
 
-## Loop 5R.1 — Propagación del plan y restauración de sesión
-
-Conexión del plan de remediación al parent state y verificación fresca de contratos restaurados:
-
-- `onRemediationPlanChange` — prop en ScriptGenerationStepV2, propagación defensiva
-- Fresh verification on mount — `verifyScriptContractV2` para contratos restaurados
-- `deriveDiagnosisIdentity` — helper centraliza derivación de identidad
-- `prevContractKeyRef` — inicializado desde initialData (evita falsa invalidación)
-- ReviewStep — error UI visible para aprobación silenciosa (D24)
-- 33 tests. Suite: 1107 passed, 6 skipped. Build: ~3.5s. Contracts: 3/3 PASS
-
-## Loop 5R.2 — Cierre de restauración de sesión
-
-Cierre definitivo de la restauración de sesión con contratos v2:
-
-- `prevDiagnosisRef` y `prevEnvelopeRef` inicializados desde initialData (D25)
-- Fresh verification limpia 4 estados en todos los fallos (D26)
-- `approvedScript` preservado condicionalmente (D27)
-- Fresh verification reemplaza persistida (D28)
-- 5 tests reales de MainPipeline (sesión válida, inválida hash, inválida fingerprint, flujo completo a review)
-- 38 tests total en scriptGenerationStepV2. Suite: 1112 passed, 6 skipped. Build: ~3.5s. Contracts: 3/3 PASS
-
-**Loop 5 cerrado técnicamente. Pendiente de verificación directa antes de Loop 6.**
-
-## Loops pendientes
-
-| Loop | Título | Archivos |
-|---|---|---|
-| L6 | E2E + capturas | `Phase4ScriptHarness.ts`, `fourth-delivery-evidence.spec.ts` |
+| Métrica | Resultado |
+|---|---|
+| Tests unitarios | 1116 passed, 6 skipped |
+| E2E | 8/8 en dos corridas consecutivas |
+| Typecheck | 0 errores |
+| Build | ~3s |
+| Contracts v2 | 3/3 PASS |
+| Capturas | 6 screenshots |
+| Python | No ejecutado |
+| HealthDelta | No calculado |
 
 ## Regla
 
-No iniciar Phase 5 hasta congelar Phase 4. Loop 6 cierra Phase 4.
+No iniciar Phase 5 hasta que el diseño esté completo y aprobado. Phase 5 ejecutará el script generado contra datos reales, calculará HealthDelta y medirá mejora.
+
+## Próximo paso permitido
+
+Diseñar Phase 5 sin ejecutarla todavía. Definir alcance, arquitectura, contratos y plan de pruebas.
+
+## Loops cerrados (Phase 4)
+
+| Loop | SHA | Descripción |
+|---|---|---|
+| L1-L5 | Loops 1-5 | Contratos, renderer, builder, validator, UI |
+| L5R | `7ad83d1` | Reparación integración |
+| L5R.1 | `00e2e88` | Propagación plan |
+| L5R.2 | `5af5d0c` | Restauración sesión |
+| L6 | `aa16799` | Evidencia E2E (8 escenarios) |
