@@ -15,7 +15,7 @@ Cadena narrativa: CSV → fingerprint y auditoría local → evidencia limitada 
 | Phase 1: EvidenceEnvelopeV2 | Cerrada | código y tests |
 | Phase 2: DiagnosisResponseV2 | Cerrada | código y tests |
 | Phase 3: RemediationPlanV2 + HITL | **Congelada** | `03_evidencia/PAQUETE_EVIDENCIA_PHASE3.md` |
-| Phase 4: ScriptContractV2 + renderer | **Cerrada** | `e1b07641f7df8d2589b8f264d1e9510b12637e82` |
+| Phase 4: ScriptContractV2 + renderer | **Cerrada** | `9e9ce27903eb2f7dfb64bc67a4ff4d7680c3b69f` |
 | Phase 5: ejecución, reauditoría y delta | Pendiente | roadmap |
 | Phase 6: experimento y memoria final | Pendiente | roadmap |
 
