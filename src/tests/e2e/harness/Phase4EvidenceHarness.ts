@@ -389,6 +389,96 @@ export const PHASE4_TITANIC_DIAGNOSIS: DiagnosisExecutionResult = {
 // Build the plan using the same deterministic builder
 export const PHASE4_TITANIC_PLAN: RemediationPlanV2 = buildRemediationPlanV2(PHASE4_TITANIC_DIAGNOSIS);
 
+// ── Fixture builder with runtime fingerprint ─────────────────────────────────
+
+export function buildPhase4TitanicFixture(datasetFingerprint: string): {
+  diagnosis: DiagnosisExecutionResult;
+  plan: RemediationPlanV2;
+} {
+  const columnRefs = buildColumnRegistry([...TITANIC_COLUMNS]);
+  const columns = columnRefs.map((c) => ({ ...c }));
+  const evidenceEnvelopeRef = EVIDENCE_ENVELOPE_REF;
+
+  const issues: any[] = [];
+  const diagnosisBlocks: any[] = [];
+  const ctxIssues: any[] = [];
+  const autoSafeCols = ['PassengerId', 'Name'];
+  const reviewOnlyCols = ['Age', 'Fare', 'SibSp'];
+  const notActionableCols = ['Survived', 'Pclass', 'Sex', 'Parch', 'Ticket', 'Cabin', 'Embarked'];
+
+  for (const col of columnRefs) {
+    const isAutoSafe = autoSafeCols.includes(col.name);
+    const isReviewOnly = reviewOnlyCols.includes(col.name);
+    const issueId = `e2e-${isAutoSafe ? 'auto' : isReviewOnly ? 'review' : 'na'}-${col.name}`;
+    const ruleId = isAutoSafe ? 'rule:trim-whitespace' : 'rule:null-values';
+    const actionability = (isAutoSafe ? 'auto_safe' : isReviewOnly ? 'review_only' : 'not_actionable') as any;
+
+    issues.push({
+      issueId,
+      evidenceRefs: [],
+      hypothesis: `E2E test issue for column ${col.name}`,
+      confidence: 0.85,
+      requiresHumanReview: !isAutoSafe,
+      limits: [],
+    });
+    diagnosisBlocks.push({
+      issueId,
+      ruleId,
+      columnId: col.columnId,
+      scope: 'column' as const,
+      observation: `E2E test observation for ${col.name}`,
+      recommendation: isAutoSafe ? 'Trim whitespace determinista.' : 'Revisar manualmente.',
+    });
+    ctxIssues.push({
+      issueId,
+      ruleId,
+      columnId: col.columnId,
+      scope: 'column' as const,
+      evidenceRefs: [],
+      actionability,
+      automaticAuthorization: isAutoSafe ? {
+        actionType: 'trim_whitespace',
+        authorized: true,
+        conditionsMet: ['string-column'],
+        reason: 'Deterministic lossless normalization',
+      } : {
+        actionType: 'none',
+        authorized: false,
+        conditionsMet: [],
+        reason: 'No automatic authorization',
+      },
+    });
+  }
+
+  const diagnosis: DiagnosisExecutionResult = {
+    version: 2,
+    diagnosis: {
+      contractId: 'aura.diagnosis.v2',
+      contractVersion: '2.0.0',
+      evidenceEnvelopeRef,
+      responseId: 'diag-e2e-phase4-v3',
+      issues,
+      diagnosisBlocks,
+      limitations: [],
+      generatedAt: '2026-06-26T00:00:00.000Z',
+    },
+    metrics: { latencyMs: 0, tokensGenerated: 0, model: 'deterministic-e2e', provider: 'fixture', isLocal: true },
+    promptHash: 'e2e-harness-v3',
+    evidenceEnvelopeRef,
+    promptVersion: '2.0.0',
+    rawResponseHash: 'e2e-harness-v3',
+    remediationContext: {
+      evidenceEnvelopeRef,
+      datasetFingerprint,
+      columns,
+      issues: ctxIssues,
+    },
+  };
+
+  const plan = buildRemediationPlanV2(diagnosis);
+  return { diagnosis, plan };
+}
+
 // ── Tamper helpers for fail-closed demonstration ──────────────────────────────
 
 export interface ScriptContractPatch {

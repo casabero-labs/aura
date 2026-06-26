@@ -192,22 +192,12 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
         return { ...prev, ...patch };
       });
     };
-    // Sync auditEvidence fingerprint for E2E contract builder compatibility.
-    // Necessary because plan fingerprint (file SHA-256) differs from runtime
-    // dataset fingerprint (FNV hash). Without this sync, buildScriptCandidateV2
-    // fails validation on fingerprint mismatch.
-    (window as any).__PHASE4_SYNC_FP__ = (fingerprint: string) => {
-      setAuditEvidence((prev: AuditExecutionEvidence | null) =>
-        prev ? { ...prev, datasetFingerprint: fingerprint } : prev,
-      );
-    };
     (window as any).__PHASE4_GET_STATE__ = () => ({ ...phase4StateRef.current });
 
     return () => {
       delete (window as any).__PHASE4_INJECT__;
       delete (window as any).__PHASE4_SET_STATE__;
       delete (window as any).__PHASE4_TAMPER_CONTRACT__;
-      delete (window as any).__PHASE4_SYNC_FP__;
       delete (window as any).__PHASE4_GET_STATE__;
     };
   }, []);
