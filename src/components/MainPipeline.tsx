@@ -6,14 +6,14 @@ import DiagnosisStep from './DiagnosisStep';
 import ProfileStep from './ProfileStep';
 import ReviewStep from './ReviewStep';
 import ScriptGenerationStep from './ScriptGenerationStep';
+import ScriptGenerationStepV2 from './ScriptGenerationStepV2';
 import { runAudit } from '../services/auditEngine';
 import { parseCsv } from '../services/csvService';
 import { buildAuditEvidence, buildIngestionEvidence, createTraceRecorder, fingerprintDataset } from '../services/executionEvidence';
 import { matchGroundTruth, buildDeterministicValidationReport } from '../services/deterministicValidation';
 import { validateCleaningScript } from '../services/scriptValidationService';
 import { AIConfig, AIProvider, AuditReport, AuditExecutionEvidence, BenchmarkResult, DeterministicValidationReport, HealthDelta, ImprovementRun, ProviderMetrics, ScriptValidationResult, ProgressDisclosureStatus } from '../types';
-import type { DiagnosisExecutionResult } from '../contracts/llm';
-import type { RemediationPlanV2 } from '../contracts/llm';
+import type { DiagnosisExecutionResult, RemediationPlanV2, ScriptContractV2, ScriptValidationResultV2 } from '../contracts/llm';
 import { validateRemediationPlanV2, isContractsV2Enabled } from '../contracts/llm';
 
 export type PipelineState = 'upload' | 'profile' | 'diagnosis' | 'script' | 'review' | 'export';
@@ -32,6 +32,8 @@ export interface PipelineData {
   aiAnalysis: string;
   structuredDiagnosis: DiagnosisExecutionResult | null;
   remediationPlan: RemediationPlanV2 | null;
+  scriptContractV2: ScriptContractV2 | null;
+  scriptContractVerificationV2: ScriptValidationResultV2 | null;
   benchmarkResults: BenchmarkResult[];
   improvementRun: ImprovementRun | null;
   scriptValidation: ScriptValidationResult | null;
@@ -72,6 +74,8 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, onLog
   const [deterministicValidation, setDeterministicValidation] = useState<DeterministicValidationReport | null>(null);
   const [processProgressStatus, setProcessProgressStatus] = useState<ProgressDisclosureStatus>('idle');
   const [processProgressStep, setProcessProgressStep] = useState('');
+  const [scriptContractV2, setScriptContractV2] = useState<ScriptContractV2 | null>(null);
+  const [scriptContractVerificationV2, setScriptContractVerificationV2] = useState<ScriptValidationResultV2 | null>(null);
 
   // Sync pipeline data upward to parent (deferred to avoid overwriting App's session restore)
   const mountCountRef = useRef(0);
@@ -85,6 +89,8 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, onLog
       cleaningScript, approvedScript, healthDelta, aiAnalysis,
       structuredDiagnosis,
       remediationPlan,
+      scriptContractV2,
+      scriptContractVerificationV2,
       benchmarkResults, improvementRun, scriptValidation, deterministicValidation, logs,
     };
     onPipelineChange?.(pipelineData);
@@ -92,6 +98,8 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, onLog
       cleaningScript, approvedScript, healthDelta, aiAnalysis,
       structuredDiagnosis,
       remediationPlan,
+      scriptContractV2,
+      scriptContractVerificationV2,
       benchmarkResults, improvementRun, scriptValidation, deterministicValidation, logs]);
 
   // ── Phase 3 E2E Harness: expose injection callbacks on window ──
@@ -116,6 +124,22 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, onLog
       delete (window as any).__PHASE3_SET_STATE__;
     };
   }, []);
+
+  // ── Script Contract v2 invalidation ──
+  const prevContractKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!isContractsV2Enabled()) return;
+    const fingerprint = auditEvidence?.datasetFingerprint ?? null;
+    const key = fingerprint
+      ? `f:${fingerprint}#d:${structuredDiagnosis?.evidenceEnvelopeRef ?? 'none'}#p:${remediationPlan?.planId ?? 'none'}#c:${csvFields.join(',')}`
+      : null;
+    if (prevContractKeyRef.current !== null && key !== prevContractKeyRef.current) {
+      setScriptContractV2(null);
+      setScriptContractVerificationV2(null);
+      addLog('script.contract.v2.invalidated :: plan/diagnosis/fingerprint changed');
+    }
+    prevContractKeyRef.current = key;
+  }, [auditEvidence, structuredDiagnosis, remediationPlan, csvFields]);
 
   // ── Plan lifecycle: clear on new diagnosis, validate restored plan ──
   const prevDiagnosisRef = useRef<string | null>(null);
@@ -187,6 +211,8 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, onLog
     setAuditEvidence(null); setCleaningScript(''); setApprovedScript('');
     setHealthDelta(null); setAiAnalysis(''); setStructuredDiagnosis(null); setRemediationPlan(null); setLogs([]);
     setScriptValidation(null);
+    setScriptContractV2(null);
+    setScriptContractVerificationV2(null);
     setBenchmarkResults([]); setImprovementRun(null);
     setProcessProgressStatus('running');
     setProcessProgressStep('Leyendo archivo CSV');
@@ -344,7 +370,30 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, onLog
       )}
 
       {/* ── Step 4: Script generation ── */}
-      {state === 'script' && report && (
+      {state === 'script' && report && isContractsV2Enabled() && !!structuredDiagnosis?.remediationContext && (
+        <ScriptGenerationStepV2
+          report={report}
+          csvFields={csvFields}
+          sourceDatasetFingerprint={auditEvidence?.datasetFingerprint ?? null}
+          structuredDiagnosis={structuredDiagnosis}
+          remediationPlan={remediationPlan}
+          scriptContractV2={scriptContractV2}
+          scriptContractVerificationV2={scriptContractVerificationV2}
+          onScriptContractChange={(contract, verification) => {
+            setScriptContractV2(contract);
+            setScriptContractVerificationV2(verification);
+            if (contract) {
+              setCleaningScript(contract.scriptText);
+            }
+            addLog(contract ? `script.contract.v2 :: hash=${contract.scriptHash.slice(0, 12)}` : 'script.contract.v2.cleared');
+          }}
+          onLog={(stage, msg) => addLog(`${stage} :: ${msg}`)}
+          onContinue={() => setState('review')}
+        />
+      )}
+
+      {/* ── Step 4: Script generation (legacy) ── */}
+      {state === 'script' && report && (!isContractsV2Enabled() || !structuredDiagnosis?.remediationContext) && (
         <ScriptGenerationStep
           report={report}
           aiProvider={aiProvider}
@@ -386,6 +435,10 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, onLog
           onImprovementRun={(run) => setImprovementRun(run)}
           onLog={(stage, msg) => addLog(`${stage} :: ${msg}`)}
           onContinue={() => setState('export')}
+          scriptContractV2={scriptContractV2}
+          remediationPlanV2={remediationPlan}
+          structuredDiagnosis={structuredDiagnosis}
+          sourceDatasetFingerprint={auditEvidence?.datasetFingerprint ?? null}
         />
       )}
     </div>

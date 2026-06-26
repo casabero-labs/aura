@@ -2,7 +2,25 @@ import React, { useState } from 'react';
 import ScriptReview from './ScriptReview';
 import ImprovementRunPanel from './ImprovementRunPanel';
 import { createImprovementRun } from '../services/improvementService';
-import { ArrowRight, CheckCircle2, ChevronDown, ShieldAlert, ShieldCheck, TrendingUp, TriangleAlert, Play } from 'lucide-react';
+import {
+  buildScriptContext,
+  isContractsV2Enabled,
+  verifyScriptContractV2,
+} from '../contracts/llm';
+import type {
+  DiagnosisExecutionResult,
+  RemediationPlanV2,
+  ScriptContractV2,
+} from '../contracts/llm';
+import {
+  ArrowRight,
+  CheckCircle2,
+  ChevronDown,
+  ShieldAlert,
+  ShieldCheck,
+  TrendingUp,
+  TriangleAlert,
+} from 'lucide-react';
 import {
   AuditReport,
   AuditExecutionEvidence,
@@ -24,6 +42,10 @@ interface ReviewStepProps {
   auditEvidence?: AuditExecutionEvidence;
   benchmarkResults?: BenchmarkResult[];
   scriptValidation?: ScriptValidationResult | null;
+  scriptContractV2?: ScriptContractV2 | null;
+  remediationPlanV2?: RemediationPlanV2 | null;
+  structuredDiagnosis?: DiagnosisExecutionResult | null;
+  sourceDatasetFingerprint?: string | null;
   onScriptApproved?: (script: string) => void;
   onImprovementRun?: (run: ImprovementRun) => void;
   onHealthDelta?: (delta: HealthDelta) => void;
@@ -43,6 +65,10 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
   auditEvidence,
   benchmarkResults = [],
   scriptValidation,
+  scriptContractV2,
+  remediationPlanV2,
+  structuredDiagnosis,
+  sourceDatasetFingerprint,
   onScriptApproved,
   onImprovementRun,
   onHealthDelta,
@@ -55,8 +81,16 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
   const [improvementRun, setImprovementRun] = useState<ImprovementRun | null>(null);
   const [healthDelta, setHealthDelta] = useState<HealthDelta | null>(null);
   const [hitlDecision, setHitlDecision] = useState<HitlDecision | null>(null);
+  const [v2VerifyError, setV2VerifyError] = useState<string | null>(null);
+  const [v2Approved, setV2Approved] = useState<boolean>(false);
+
+  const isV2Review = !!scriptContractV2 && isContractsV2Enabled();
 
   const handleApprove = (script: string) => {
+    if (isV2Review && scriptContractV2) {
+      handleApproveV2(script);
+      return;
+    }
     setCurrentApprovedScript(script);
     onScriptApproved?.(script);
 
@@ -115,6 +149,55 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
     runSimulation(script, decision);
   };
 
+  const handleApproveV2 = async (script: string) => {
+    if (!scriptContractV2 || !remediationPlanV2 || !structuredDiagnosis?.remediationContext || !sourceDatasetFingerprint) {
+      return;
+    }
+    if (script !== scriptContractV2.scriptText) {
+      setV2VerifyError('El código no coincide con el contrato. No se puede aprobar.');
+      return;
+    }
+    setStage('validating');
+    try {
+      const refs = csvFields.map((name, position) => ({
+        columnId: `col:${name}#${position}#0`,
+        name,
+        position,
+        duplicateOrdinal: 0,
+        isAmbiguous: false,
+        isDuplicate: false,
+      }));
+      const buildContext = buildScriptContext(
+        structuredDiagnosis.remediationContext,
+        refs,
+        sourceDatasetFingerprint,
+      );
+      const freshVerification = verifyScriptContractV2(
+        scriptContractV2,
+        remediationPlanV2,
+        buildContext,
+      );
+      if (!freshVerification.valid) {
+        setV2VerifyError(
+          `Verificación fallida: ${freshVerification.errors
+            .slice(0, 3)
+            .map((e) => e.message)
+            .join('; ')}`,
+        );
+        setStage('pending');
+        return;
+      }
+      setV2Approved(true);
+      setCurrentApprovedScript(script);
+      setStage('completed');
+      onScriptApproved?.(script);
+      onLog?.('review.v2.approve', `Contrato aprobado por revisión humana · hash=${scriptContractV2.scriptHash.slice(0, 12)}`);
+    } catch (err: any) {
+      setV2VerifyError(`Error en verificación: ${err?.message ?? 'desconocido'}`);
+      setStage('pending');
+    }
+  };
+
   const safetyLabel = scriptValidation
     ? (scriptValidation.safetyScore >= 80 ? 'Seguro' : scriptValidation.safetyScore >= 50 ? 'Requiere revisión' : 'Bloqueado')
     : 'Sin validar';
@@ -167,7 +250,29 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
     }
   };
 
-  const canContinue = currentApprovedScript && stage === 'completed';
+  const canContinue = isV2Review
+    ? v2Approved && stage === 'completed'
+    : currentApprovedScript && stage === 'completed';
+
+  if (isV2Review && scriptContractV2) {
+    return (
+      <div className="review-step" data-testid="review-stage">
+        <V2Review
+          scriptContract={scriptContractV2}
+          remediationPlan={remediationPlanV2 ?? null}
+          csvFields={csvFields}
+          sourceDatasetFingerprint={sourceDatasetFingerprint ?? null}
+          structuredDiagnosis={structuredDiagnosis ?? null}
+          v2Approved={v2Approved}
+          v2VerifyError={v2VerifyError}
+          stage={stage}
+          canContinue={canContinue}
+          onApprove={handleApproveV2}
+          onContinue={onContinue}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="review-step" data-testid="review-stage">
@@ -373,5 +478,124 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
     </div>
   );
 };
+
+interface V2ReviewProps {
+  scriptContract: ScriptContractV2;
+  remediationPlan: RemediationPlanV2 | null;
+  csvFields: string[];
+  sourceDatasetFingerprint: string | null;
+  structuredDiagnosis: DiagnosisExecutionResult | null;
+  v2Approved: boolean;
+  v2VerifyError: string | null;
+  stage: string;
+  canContinue: boolean;
+  onApprove: (script: string) => void;
+  onContinue: () => void;
+}
+
+function V2Review({
+  scriptContract,
+  remediationPlan,
+  csvFields,
+  sourceDatasetFingerprint,
+  structuredDiagnosis,
+  v2Approved,
+  v2VerifyError,
+  stage,
+  canContinue,
+  onApprove,
+  onContinue,
+}: V2ReviewProps) {
+  const [verifying, setVerifying] = useState(false);
+
+  const handleVerifyAndApprove = async () => {
+    setVerifying(true);
+    try {
+      await onApprove(scriptContract.scriptText);
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  return (
+    <>
+      <div className="section-header">
+        <div>
+          <p className="sec-eye">revisión humana</p>
+          <h2 className="sec-title">Revisión de contrato</h2>
+        </div>
+        {v2Approved && (
+          <div className="flex items-center gap-2" style={{ color: 'var(--success)' }}>
+            <ShieldCheck size={16} />
+            <span>Contrato aprobado por revisión humana</span>
+          </div>
+        )}
+      </div>
+
+      <div className="companion-note">
+        <ShieldCheck size={14} />
+        <p>
+          El contrato fue generado y validado. Su ejecución pertenece a la siguiente fase.
+        </p>
+      </div>
+
+      <div className="stage-decision-summary" data-testid="stage-decision-summary">
+        <div className="stage-summary-item">
+          <span className="stage-summary-label">Estado</span>
+          <strong style={{ color: v2Approved ? 'var(--success)' : 'var(--ink3)' }}>
+            {v2Approved ? 'Contrato válido' : 'Pendiente de revisión'}
+          </strong>
+        </div>
+        <div className="stage-summary-item">
+          <span className="stage-summary-label">hash</span>
+          <strong style={{ fontFamily: 'monospace', fontSize: '11px' }}>
+            {scriptContract.scriptHash.slice(0, 12)}
+          </strong>
+        </div>
+        <div className="stage-summary-item">
+          <span className="stage-summary-label">syntax</span>
+          <strong
+            style={{
+              color:
+                scriptContract.validationResult.pythonSyntax.state === 'passed'
+                  ? 'var(--success)'
+                  : scriptContract.validationResult.pythonSyntax.state === 'failed'
+                    ? 'var(--error)'
+                    : 'var(--orange)',
+            }}
+          >
+            {scriptContract.validationResult.pythonSyntax.state}
+          </strong>
+        </div>
+      </div>
+
+      {v2VerifyError && (
+        <div className="provider-error-notice" style={{ marginBottom: 'var(--space-md)' }}>
+          <AlertTriangle size={14} style={{ color: 'var(--error)' }} />
+          <span>{v2VerifyError}</span>
+        </div>
+      )}
+
+      <div className="mt-6">
+        <ScriptReview
+          code={scriptContract.scriptText}
+          language="python"
+          readOnly
+          hideEditAction
+          approvedCode={v2Approved ? scriptContract.scriptText : undefined}
+          onApprove={handleVerifyAndApprove}
+        />
+      </div>
+
+      {canContinue && (
+        <div className="stage-actions" data-testid="primary-stage-action">
+          <button className="btn-p btn-sm" onClick={onContinue}>
+            Preparar exportación <ArrowRight size={12} />
+          </button>
+        </div>
+      )}
+    </>
+  );
+}
 
 export default ReviewStep;

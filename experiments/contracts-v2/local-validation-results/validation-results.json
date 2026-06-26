@@ -1,10 +1,10 @@
 {
   "harnessVersion": "1.1.0",
-  "generatedAt": "2026-06-25T14:01:27.201Z",
-  "commitSha": "12e39bd1a108c1e69ce3ebfe6a7691dc23782d12",
-  "sourceTreeDirty": false,
+  "generatedAt": "2026-06-26T03:17:25.729Z",
+  "commitSha": "c0e4e6a14e6f73e635f0c2196a2bd2d150e0cd92",
+  "sourceTreeDirty": true,
   "auditEngineSha256": "3ee341a49e5ebc42ccf3bb6cb2e9e39d350dc476f9cb159decba5d45a678c6a0",
-  "contractsV2Sha256": "6a587f6cd3e9d8f2b74977b5f9cc805b94e62413ff4672a447bf493f6100ee64",
+  "contractsV2Sha256": "6ae0c3127b23ea7273e6e0464db425bb41ea5ffa3867d8ed8610b2b5e590d373",
   "datasetsDir": "/Users/casabero/Documents/GitHub/aura/experiments/datasets",
   "summary": {
     "total": 6,
@@ -118,7 +118,7 @@
       },
       "privacyViolations": 0,
       "truncations": 8,
-      "durationMs": 3143,
+      "durationMs": 3112,
       "error": null,
       "remediation": {
         "diagnosisRef": "diag:4b255cd3ec73ef5f7fd84011fe25291dab9980f27f17f4c98ddf9b3daf43631f",
@@ -336,7 +336,7 @@
       },
       "privacyViolations": 0,
       "truncations": 5,
-      "durationMs": 33,
+      "durationMs": 32,
       "error": null,
       "remediation": {
         "diagnosisRef": "diag:4a2b5558079ac3ee3edb19f224023bdd13ac027ab867156e0786c5a042e2b69f",

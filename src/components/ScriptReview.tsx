@@ -10,6 +10,9 @@ interface ScriptReviewProps {
   onApprove?: (code: string) => void;
   onDraftChange?: () => void;
   approvedCode?: string;
+  readOnly?: boolean;
+  hideEditAction?: boolean;
+  approvalLabel?: string;
 }
 
 type OperationKind = 'destructiva' | 'transformacion' | 'lectura';
@@ -35,6 +38,9 @@ const ScriptReview: React.FC<ScriptReviewProps> = ({
   onApprove,
   onDraftChange,
   approvedCode,
+  readOnly = false,
+  hideEditAction = false,
+  approvalLabel,
 }) => {
   const [copied, setCopied] = useState(false);
   const [editedCode, setEditedCode] = useState(code);
@@ -45,8 +51,8 @@ const ScriptReview: React.FC<ScriptReviewProps> = ({
   useEffect(() => {
     setEditedCode(code);
     setHasReviewed(false);
-    setIsEditing(false);
-  }, [code]);
+    if (!readOnly) setIsEditing(false);
+  }, [code, readOnly]);
 
   useEffect(() => {
     const node = scrollRef.current;
@@ -72,7 +78,7 @@ const ScriptReview: React.FC<ScriptReviewProps> = ({
     return Math.max(0, ...issueCounts, 0);
   }, [report]);
 
-  const isApproved = approvedCode === editedCode && !!approvedCode;
+  const isApproved = readOnly ? !!approvedCode : approvedCode === editedCode && !!approvedCode;
 
   const handleScroll = () => {
     const node = scrollRef.current;
@@ -113,14 +119,16 @@ const ScriptReview: React.FC<ScriptReviewProps> = ({
           </span>
         </div>
         <div className="script-actions">
-          <button
-            onClick={() => setIsEditing((value) => !value)}
-            className="cs-button cs-button-sm"
-            title="Editar script antes de aprobar"
-          >
-            <Edit3 size={12} />
-            {isEditing ? 'Ver código' : 'Editar'}
-          </button>
+          {!readOnly && !hideEditAction && (
+            <button
+              onClick={() => setIsEditing((value) => !value)}
+              className="cs-button cs-button-sm"
+              title="Editar script antes de aprobar"
+            >
+              <Edit3 size={12} />
+              {isEditing ? 'Ver código' : 'Editar'}
+            </button>
+          )}
           <button
             onClick={handleCopy}
             className="cs-button cs-button-sm"
@@ -195,14 +203,14 @@ const ScriptReview: React.FC<ScriptReviewProps> = ({
           {hasReviewed ? <Check size={13} /> : <Search size={13} />}
           {hasReviewed ? 'Código revisado completo' : 'Revisa hasta el final para habilitar aprobación'}
         </span>
-        <button
-          className="btn-p"
-          disabled={!hasReviewed || !editedCode.trim() || isApproved}
-          onClick={() => onApprove?.(editedCode)}
-        >
-          <ClipboardCheck size={14} />
-          {isApproved ? 'Script aprobado' : 'Aprobar script'}
-        </button>
+          <button
+            className="btn-p"
+            disabled={!hasReviewed || !editedCode.trim() || isApproved}
+            onClick={() => onApprove?.(editedCode)}
+          >
+            <ClipboardCheck size={14} />
+            {isApproved ? (approvalLabel ?? 'Script aprobado') : (approvalLabel ?? 'Aprobar script')}
+          </button>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 # Decisiones de diseño — Phase 4
 
-> **Versión:** 2.0.0 · **Fecha:** 2026-06-25 · **Commit Phase 3:** `d3774dd5ac98d89ca4454c693b1b0a30856cd191`
+> **Versión:** 2.1.0 · **Fecha:** 2026-06-25 · **Commit Phase 3:** `d3774dd5ac98d89ca4454c693b1b0a30856cd191` · **Loop 5:** `c0e4e6a`
 
 ---
 
@@ -212,3 +212,56 @@ Una acción `rejected` NUNCA aparece en `excludedActionIds`. Los conjuntos son m
 - Phase 4 no debe afirmar que todo valor del vocabulario es universalmente nulo
 - La política será reevaluada antes de cerrar el renderer (Loop 2)
 - El vocabulario no se modifica en Loop 1R
+
+---
+
+## D16: Fresh verification antes de aprobación humana
+
+**Decisión:** `ReviewStep` v2 ejecuta `verifyScriptContractV2()` una segunda vez (fresca) antes de registrar la aprobación. Si falla → bloqueo con error visible.
+
+**Justificación:** El contrato podría haber sido invalidado por cambios en datos/diagnóstico/plan entre la generación y la revisión. Una verificación fresca garantiza que el contrato aprobado es válido en el momento del approve.
+
+**Consecuencias:**
+- `ReviewStep` v2 tiene estado `v2VerifyResult` y `v2VerifyError`
+- La verificación es async (maneja errores de red/timeout)
+- Si la verificación falla, el botón "Aprobar" queda deshabilitado
+
+---
+
+## D17: Invalidation por clave compuesta
+
+**Decisión:** El contrato se invalida cuando cambia cualquiera de los inputs base: `fingerprint`, `envelopeRef`, `planId`, `csvFields`. La clave es un string compuesto `f:{fingerprint}#d:{envelopeRef}#p:{planId}#c:{csvFields.join(',')}`.
+
+**Justificación:** Re-calcular el contrato ante cada cambio de input evita aprobaciones de contratos obsoletos. La clave compuesta es determinista y se calcula en un solo efecto `useEffect`.
+
+**Consecuencias:**
+- Un cambio en `csvFields` invalida el contrato (porque cambia el column registry)
+- Un cambio en `planId` invalida el contrato (porque cambia las acciones aceptadas)
+- Si algún input es `null`, el efecto no se ejecuta (esperando datos)
+
+---
+
+## D18: ScriptGenerationStepV2 como componente de una sola dirección
+
+**Decisión:** `ScriptGenerationStepV2` solo genera contratos. No permite editar el script, re-generar parcialmente, ni modificar el plan. El usuario puede generar o ir atrás, pero no editar inline.
+
+**Justificación:** El script es determinista a partir del plan. Permitir edits inline rompería la trazabilidad del contrato. Si el usuario quiere cambiar algo, modifica el plan (loop anterior).
+
+**Consecuencias:**
+- No hay textarea editable en Vista B
+- El script mostrado es siempre `contract.scriptText` exactamente
+- `ScriptReview` recibe `readOnly=true`, `hideEditAction=true`
+- Copiar y descargar están disponibles como alternativa a la edición
+
+---
+
+## D19: Routing por Contracts v2 flag
+
+**Decisión:** El routing entre `ScriptGenerationStepV2` y `ScriptGenerationStep` se basa en `isContractsV2Enabled() && !!structuredDiagnosis?.remediationContext`. Si falta el contexto de remediación, cae al legacy aunque el flag esté activo.
+
+**Justificación:** El flag de feature es necesario pero no suficiente. Sin `remediationContext`, el builder v2 no puede construir el contexto de columnas. Fallback al legacy es la opción segura.
+
+**Consecuencias:**
+- Si el usuario tiene Contracts v2 activado pero sin remediation plan, ve el legacy
+- Si desactiva Contracts v2, pierde el contrato v2 existente (se limpia)
+- El routing es monotónico: una vez en v2, no se regresa a legacy en la misma sesión

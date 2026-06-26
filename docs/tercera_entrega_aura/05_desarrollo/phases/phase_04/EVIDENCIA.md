@@ -435,6 +435,88 @@ python3 -c "import ast; ast.parse(script_text)" # PASSED
 
 ---
 
+## Loop 5 — UI: integración del contrato v2 con la interfaz
+
+### Comandos de reproducción
+
+```bash
+cd src && npm test -- scriptGenerationStepV2
+# 22 passed
+
+cd src && npm test
+# 1096 passed, 6 skipped
+
+cd src && npm run build
+# built in ~3s
+
+cd src && npm run contracts:v2:validate-local
+# 3/3 PASS
+```
+
+### Pipeline flow evidence
+
+| Paso | Resultado |
+|---|---|
+| buildScriptContext | context valid |
+| buildScriptCandidateV2 | candidate generated |
+| validateScriptCandidateV2 | valid: true, 0 errors |
+| finalizeScriptContractV2 | contract with scriptHash |
+| verifyScriptContractV2 (fresh) | valid: true, 0 errors |
+| onScriptContractChange | callback invoked with contract + verification |
+
+### Invalidation evidence
+
+| Entrada | Clave | Resultado |
+|---|---|---|
+| fingerprint cambia | `f:new#d:...#p:...#c:...` | contract cleared |
+| envelopeRef cambia | `f:...#d:new#p:...#c:...` | contract cleared |
+| planId cambia | `f:...#d:...#p:new#c:...` | contract cleared |
+| csvFields cambia | `f:...#d:...#p:...#c:new` | contract cleared |
+| sin cambios | same key | contract preserved |
+
+### Visual state evidence
+
+| Condición | Badge |
+|---|---|
+| validation.valid && fresh.valid | Contrato válido (verde) |
+| !validation.valid | Validación fallida (rojo) |
+| contract null | Sin validar (gris) |
+| pythonSyntax.state=not_run | Warning informativo |
+
+### Routing evidence
+
+| `isContractsV2Enabled()` | `remediationContext` | Componente |
+|---|---|---|
+| true | present | ScriptGenerationStepV2 |
+| true | absent | ScriptGenerationStep (legacy) |
+| false | any | ScriptGenerationStep (legacy) |
+
+### ReviewStep v2 evidence
+
+| Evento | Resultado |
+|---|---|
+| fresh verifyScriptContractV2() antes de approve | llamado |
+| verify falla | approve bloqueado, error mostrado |
+| verify pasa | approval registrada |
+| createImprovementRun en rama v2 | NO llamado |
+| simulation en rama v2 | NO llamado |
+| healthDelta en rama v2 | NO calculado |
+
+### Confirmaciones
+
+- `scriptBuilderV2.ts` no cambió
+- `scriptRendererV2.ts` no cambió
+- `scriptValidatorV2.ts` no cambió
+- `scriptColumnResolver.ts` no cambió
+- `columnRegistry.ts` no cambió
+- `placeholderVocabulary.ts` no cambió
+- Phase 3 no cambió
+- No se importó Pyodide
+- No se ejecutó Python
+- No se creó ImprovementRun
+
+---
+
 ## Loop 1 — Histórico
 
 Ver `EVIDENCIA.md` original en el commit `53df16a`.

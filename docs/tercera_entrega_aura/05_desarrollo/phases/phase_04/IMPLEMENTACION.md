@@ -530,9 +530,63 @@ renderActionV2(action, fakeCol, registry);
 
 Ver `loop_01_schema_and_columns.md` y `REVISION_ADVERSARIAL_LOOP1.md` para el estado original (rechazado).
 
+## Loop 5: UI — Integración del contrato v2 con la interfaz
+
+**SHA:** `<commit actual>`
+
+### API implementada
+
+| Componente | Descripción |
+|---|---|
+| `ScriptGenerationStepV2` | Pipeline completo: build → validate → finalize → verify → UI |
+| `ReviewStep` v2 branch | Fresh verification + approve sin simulation/HealthDelta |
+| `ScriptReview` props | `readOnly`, `hideEditAction`, `approvalLabel` |
+
+### PipelineData — campos v2
+
+```typescript
+scriptContractV2: ScriptContractV2 | null;
+scriptContractVerificationV2: ScriptValidationResultV2 | null;
+```
+
+### Archivos creados
+
+| Archivo | Descripción |
+|---|---|
+| `src/components/ScriptGenerationStepV2.tsx` | Componente de generación de contrato v2 |
+| `src/__tests__/scriptGenerationStepV2.test.tsx` | 22 tests de integración UI |
+
+### Archivos modificados
+
+| Archivo | Cambio |
+|---|---|
+| `src/components/MainPipeline.tsx` | Routing v2, estado, invalidación |
+| `src/components/ReviewStep.tsx` | Rama v2 con fresh verification |
+| `src/components/ScriptReview.tsx` | Props readOnly, hideEditAction |
+| `src/App.tsx` | INITIAL_PIPELINE_DATA, session restore |
+
+### Tests (22 nuevos)
+
+| Suite | Tests |
+|---|---|
+| Contract flow | 5 |
+| Contract visual state | 6 |
+| PipelineData v2 fields | 2 |
+| ReviewStep v2 fresh verification | 5 |
+| Routing | 2 |
+| Imports | 2 |
+
+### Verificaciones
+
+| Verificación | Resultado |
+|---|---|
+| Suite completa | 1096 passed, 6 skipped |
+| Build | built in ~3s |
+| Contracts v2 | 3/3 PASS |
+| Remediation plans | 3/3 built, 3/3 valid |
+
+---
+
 ## Loops pendientes
 
-- Loop 3: Builder + Finalizer
-- Loop 4: Validator
-- Loop 5: UI
 - Loop 6: E2E + capturas
