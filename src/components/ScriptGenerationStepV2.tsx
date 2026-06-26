@@ -572,6 +572,17 @@ const ScriptGenerationStepV2: React.FC<ScriptGenerationStepV2Props> = ({
         >
           Continuar a revisión <ArrowRight size={12} />
         </button>
+        <button
+          className="btn-s btn-sm"
+          style={{ marginLeft: 'var(--space-sm)' }}
+          onClick={() => {
+            onScriptContractChange(null, null);
+            setView('decision');
+            setGenState({ status: 'idle' });
+          }}
+        >
+          Volver al plan
+        </button>
       </div>
 
       <details

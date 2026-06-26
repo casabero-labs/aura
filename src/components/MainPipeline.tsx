@@ -150,6 +150,26 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
     };
   }, []);
 
+  // ── Phase 4 live-state ref (kept in sync on every render) ──
+  const phase4StateRef = useRef({
+    pipelineState: 'upload' as PipelineState,
+    hasReport: false,
+    hasContract: false,
+    hasPlan: false,
+    hasDiagnosis: false,
+    fingerprint: null as string | null,
+    contractHash: null as string | null,
+  });
+  phase4StateRef.current = {
+    pipelineState: state,
+    hasReport: !!report,
+    hasContract: !!scriptContractV2,
+    hasPlan: !!remediationPlan,
+    hasDiagnosis: !!structuredDiagnosis,
+    fingerprint: auditEvidence?.datasetFingerprint ?? null,
+    contractHash: scriptContractV2?.scriptHash ?? null,
+  };
+
   // ── Phase 4 E2E Harness: expose injection + tamper callbacks on window ──
   useEffect(() => {
     const isDev = import.meta.env.DEV;
@@ -181,12 +201,14 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
         prev ? { ...prev, datasetFingerprint: fingerprint } : prev,
       );
     };
+    (window as any).__PHASE4_GET_STATE__ = () => ({ ...phase4StateRef.current });
 
     return () => {
       delete (window as any).__PHASE4_INJECT__;
       delete (window as any).__PHASE4_SET_STATE__;
       delete (window as any).__PHASE4_TAMPER_CONTRACT__;
       delete (window as any).__PHASE4_SYNC_FP__;
+      delete (window as any).__PHASE4_GET_STATE__;
     };
   }, []);
 
