@@ -250,8 +250,8 @@ describe('Review downgrade protection', () => {
     const singleEnv = _buildEvidenceEnvelopeV2(singleIssueReport, opts({ privacyLevel: 'local_full' }));
     const singleIssue = singleEnv.issues[0];
     const diag2 = {
-      contractId: 'aura.diagnosis.v2',
-      contractVersion: '2.0.0',
+      contractId: 'aura.diagnosis.v2' as const,
+      contractVersion: '2.0.0' as const,
       evidenceEnvelopeRef: buildEnvelopeRef(singleEnv),
       responseId: 'diag-001',
       issues: [{
@@ -266,7 +266,7 @@ describe('Review downgrade protection', () => {
         issueId: singleIssue.issueId,
         ruleId: singleIssue.ruleId,
         columnId: null,
-        scope: 'dataset',
+        scope: 'dataset' as const,
         observation: '5 duplicate rows',
         recommendation: 'Review deduplication strategy',
       }],

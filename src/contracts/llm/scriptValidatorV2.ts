@@ -358,7 +358,7 @@ function validateCorrespondence(
 
 // ── HITL / Partition Validation (V16-V21) ──
 
-function deriveExpectedReason(action: RemediationActionV2, registry: import('./columnRegistry').ColumnRegistry, acceptedIds: Set<string>): string | undefined {
+function deriveExpectedReason(action: RemediationActionV2, registry: { byColumnId: ReadonlyMap<string, ColumnRef> }, acceptedIds: Set<string>): string | undefined {
   if (action.approvalStatus === 'pending') return 'pending';
   if (action.approvalStatus === 'rejected') return 'unsupported_action';
   if (action.approvalStatus === 'approved') {

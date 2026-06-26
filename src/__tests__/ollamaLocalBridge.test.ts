@@ -138,6 +138,7 @@ describe('ollamaLocalBridge', () => {
       const diagnostic: OllamaDiagnostic = {
         state: 'ready',
         endpoint: 'http://127.0.0.1:11434',
+        strategy: 'test',
         stages: [],
         browser: 'Chrome',
         browserVersion: '138',
@@ -158,6 +159,7 @@ describe('ollamaLocalBridge', () => {
       const diagnostic: OllamaDiagnostic = {
         state: 'cors_probable',
         endpoint: 'http://127.0.0.1:11434',
+        strategy: 'test',
         error: {
           name: 'TypeError',
           message: 'Failed to fetch',

@@ -427,7 +427,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                                             <button className="btn-p btn-sm" onClick={async () => {
                                                 try {
                                                     const { ChromePromptProvider } = await import('../services/providers/chromeProvider');
-                                                    const provider = new ChromePromptProvider(localConfig.temperature);
+                                                    const provider = new ChromePromptProvider();
                                                     await provider.preloadModel((pct, msg) => {
                                                         setOllamaPullProgress({ stage: 'downloading', progress: pct, message: msg });
                                                     });
@@ -598,7 +598,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                                         <Download size={10} /> Descargar
                                     </button>
                                 </div>
-                                {ollamaPullProgress && ollamaPullProgress.stage !== 'idle' && (
+                                {ollamaPullProgress && (
                                     <div className="settings-download-card" style={{ marginTop: 'var(--space-sm)' }}>
                                         <div className="settings-download-row">
                                             {ollamaPullProgress.stage === 'downloading' && <Loader2 size={14} className="settings-download-spinner" />}

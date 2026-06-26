@@ -19,6 +19,7 @@ const stubAuditReport: AuditReport = {
       affectedPercentage: 12.0,
       description: 'Columna con 12% nulos.',
       sampleValues: [''],
+      ruleId: 'rule:test',
     },
     {
       id: 'sem-001',
@@ -30,6 +31,7 @@ const stubAuditReport: AuditReport = {
       affectedPercentage: 5.0,
       description: 'Valores con simbolos extranos.',
       sampleValues: ['foo/bar'],
+      ruleId: 'rule:test',
     },
   ],
   columnStats: {

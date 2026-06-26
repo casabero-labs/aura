@@ -144,7 +144,7 @@ describe('Ollama wizard integration - pure logic', () => {
     });
 
     it('redirects to wizard when Ollama selected without connection', () => {
-      const ollamaConnected = false;
+      const ollamaConnected = false as boolean;
       if (ollamaConnected !== true) {
         sessionStorage.setItem('aura_ollama_setup_started', 'true');
         window.location.assign('/ollama-setup.html?return=/');
@@ -153,7 +153,7 @@ describe('Ollama wizard integration - pure logic', () => {
     });
 
     it('does not redirect when Ollama is connected', () => {
-      const ollamaConnected = true;
+      const ollamaConnected = true as boolean;
       if (ollamaConnected !== true) {
         window.location.assign('/ollama-setup.html?return=/');
       }
@@ -162,7 +162,7 @@ describe('Ollama wizard integration - pure logic', () => {
 
     it('does not redirect on repeated selection (session flag set)', () => {
       sessionStorage.setItem('aura_ollama_setup_started', 'true');
-      const ollamaConnected = false;
+      const ollamaConnected = false as boolean;
       const setupStarted = sessionStorage.getItem('aura_ollama_setup_started') === 'true';
       if (ollamaConnected !== true && !setupStarted) {
         window.location.assign('/ollama-setup.html?return=/');

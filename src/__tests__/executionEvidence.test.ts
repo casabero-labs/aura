@@ -20,6 +20,7 @@ const stubReport: AuditReport = {
       count: 2,
       affectedPercentage: 2,
       sampleValues: ['bad'],
+      ruleId: 'rule:test',
     },
   ],
   scoreBreakdown: [],
@@ -74,8 +75,8 @@ describe('buildIngestionEvidence', () => {
     expect(evidence.ingestionError).toBe('El archivo no es un CSV válido');
     expect(evidence.rowsProcessed).toBe(0);
     expect(evidence.columnsProcessed).toBe(0);
-    expect(evidence.auditDurationMs).toBe(0);
-    expect(evidence.score).toBe(0);
+    expect((evidence as any).auditDurationMs).toBeUndefined();
+    expect((evidence as any).score).toBeUndefined();
   });
 });
 

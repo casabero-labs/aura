@@ -6,7 +6,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { parseDiagnosisResponseV2 } from '../contracts/llm/diagnosisParserV2';
-import type { DiagnosisParseOutcome } from '../contracts/llm/diagnosisParserV2';
+import type { DiagnosisParseOutcome, ParseFailure } from '../contracts/llm/diagnosisParserV2';
 import type { DiagnosisResponseV2 } from '../contracts/llm/types';
 
 // ── Valid fixture ──
@@ -70,7 +70,7 @@ describe('parseDiagnosisResponseV2 — invalid cases', () => {
     const result = parseDiagnosisResponseV2('');
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.code).toBe('DIAGNOSIS_JSON_INVALID');
+      expect((result as ParseFailure).error.code).toBe('DIAGNOSIS_JSON_INVALID');
     }
   });
 
@@ -142,10 +142,10 @@ describe('parseDiagnosisResponseV2 — error structure', () => {
     const result = parseDiagnosisResponseV2('not json');
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.code).toBeDefined();
-      expect(result.error.message).toBeDefined();
-      expect(result.error.path).toBeDefined();
-      expect(result.error.details).toBeDefined();
+      expect((result as ParseFailure).error.code).toBeDefined();
+      expect((result as ParseFailure).error.message).toBeDefined();
+      expect((result as ParseFailure).error.path).toBeDefined();
+      expect((result as ParseFailure).error.details).toBeDefined();
     }
   });
 

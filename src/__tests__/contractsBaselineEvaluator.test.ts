@@ -390,7 +390,7 @@ describe('evaluateCitationsExact (real)', () => {
   it('handles empty eligible samples', () => {
     const result = evaluateCitationsExact("text", []);
     expect(result.eligibleCount).toBe(0);
-    expect(result.exactRate).toBe(0);
+    expect((result as any).exactRate).toBe(0);
   });
 
   it('loadEligibleSamples loads from audit report', () => {

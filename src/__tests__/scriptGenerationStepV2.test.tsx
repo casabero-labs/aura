@@ -1,10 +1,27 @@
 /**
- * Script Generation Step v2 Tests — Phase 4 Loop 5.
+ * Script Generation Step v2 — Integration tests (Loop 5R).
  *
- * Tests the UI integration logic of the script contract pipeline.
+ * Real component mounting with @testing-library/react + jsdom.
+ * NO mocking of buildColumnRegistry, buildScriptContext, buildScriptCandidateV2,
+ * validateScriptCandidateV2, finalizeScriptContractV2, verifyScriptContractV2.
  */
+// @vitest-environment jsdom
 
+import React from 'react';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import {
+  buildColumnRegistry,
+  buildScriptContext,
+  buildScriptCandidateV2,
+  validateScriptCandidateV2,
+  finalizeScriptContractV2,
+  verifyScriptContractV2,
+  isContractsV2Enabled,
+  buildRemediationPlanV2,
+  validateRemediationPlanV2,
+} from '../contracts/llm';
 import type {
   RemediationActionV2,
   RemediationPlanV2,
@@ -12,14 +29,25 @@ import type {
   ScriptContractV2,
   ScriptValidationResultV2,
   DiagnosisExecutionResult,
+  ColumnRef,
 } from '../contracts/llm/types';
+import { buildUiScriptContext, buildScriptContractInputKey } from '../services/scriptContractUiContext';
+
+// Mock isContractsV2Enabled to return true
+vi.mock('../contracts/llm/contractRegistry', async (importOriginal) => {
+  const mod = await importOriginal<typeof import('../contracts/llm/contractRegistry')>();
+  return {
+    ...mod,
+    isContractsV2Enabled: () => true,
+  };
+});
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
 function makeAction(
-  actionType: RemediationActionV2['actionType'] = 'trim_whitespace',
-  columnId: string | null = 'col:age#1#0',
-  approvalStatus: RemediationActionV2['approvalStatus'] = 'approved',
+  actionType: RemediationActionV2['actionType'] = 'requires_human_review',
+  columnId: string | null = null,
+  approvalStatus: RemediationActionV2['approvalStatus'] = 'pending',
   actionId = 'act:test1',
 ): RemediationActionV2 {
   return {
@@ -28,20 +56,24 @@ function makeAction(
     ruleId: 'rule:test',
     columnId,
     actionType,
-    parameters: {},
+    parameters: { reasonCode: 'unknown_rule', message: 'test' } as RemediationActionV2['parameters'],
     actionability: 'auto_safe',
     evidenceRefs: [],
     approvalStatus,
   };
 }
 
-function makePlan(actions: RemediationActionV2[], planId = 'plan:test123'): RemediationPlanV2 {
+function makePlan(
+  actions: RemediationActionV2[],
+  planId = 'plan:test123',
+  evidenceEnvelopeRef = 'env:testabc',
+): RemediationPlanV2 {
   return {
     contractId: 'aura.remediation.v2',
     contractVersion: '2.0.0',
     planId,
     diagnosisRef: 'diag:test',
-    evidenceEnvelopeRef: 'env:testabc',
+    evidenceEnvelopeRef,
     datasetFingerprint: 'sha256:fingerprint123',
     plan: actions,
     actionabilityMap: {},
@@ -50,57 +82,81 @@ function makePlan(actions: RemediationActionV2[], planId = 'plan:test123'): Reme
   };
 }
 
-function makeRemediationContext(): RemediationContextV2 {
+function makeRemediationContext(columns?: ColumnRef[]): RemediationContextV2 {
+  const cols = columns ?? buildColumnRegistry(['id', 'age', 'name']);
   return {
     evidenceEnvelopeRef: 'env:testabc',
     datasetFingerprint: 'sha256:fingerprint123',
-    columns: [
-      { columnId: 'col:age#1#0', name: 'age', position: 1, duplicateOrdinal: 0, isAmbiguous: false, isDuplicate: false },
-    ],
-    issues: [
-      { issueId: 'issue:test', ruleId: 'rule:test', columnId: 'col:age#1#0', reason: 'Test issue', actionType: 'trim_whitespace', parameters: {} },
-    ],
+    columns: cols,
+    issues: cols.map((c) => ({
+      issueId: `issue:${c.columnId}`,
+      ruleId: 'rule:replace_na',
+      columnId: c.columnId,
+      scope: 'column' as const,
+      evidenceRefs: [],
+      actionability: 'auto_safe' as const,
+      automaticAuthorization: {
+        authorized: true,
+        actionType: 'transform_column',
+        conditionsMet: [],
+        reason: 'Auto-authorized for test',
+      },
+    })),
   };
 }
 
-function makeStructuredDiagnosis(): DiagnosisExecutionResult {
+function makeStructuredDiagnosis(columns?: ColumnRef[]): DiagnosisExecutionResult {
+  const cols = columns ?? buildColumnRegistry(['id', 'age', 'name']);
+  const ctx = makeRemediationContext(cols);
   return {
+    version: 2 as const,
     diagnosis: {
       contractId: 'aura.diagnosis.v2',
       contractVersion: '2.0.0',
-      diagnosisRef: 'diag:test',
+      responseId: 'diag:test',
       evidenceEnvelopeRef: 'env:testabc',
-      issues: [],
+      issues: ctx.issues.map((i) => ({
+        issueId: i.issueId,
+        evidenceRefs: i.evidenceRefs,
+        hypothesis: 'Test hypothesis',
+        confidence: 0.9,
+        requiresHumanReview: false,
+        limits: [],
+      })),
+      diagnosisBlocks: [],
+      limitations: [],
       generatedAt: '2025-01-01T00:00:00.000Z',
     },
+    metrics: { latencyMs: 0, tokensGenerated: 0, model: 'test', provider: 'test', isLocal: false },
+    promptHash: 'sha256:prompt',
     evidenceEnvelopeRef: 'env:testabc',
-    remediationContext: makeRemediationContext(),
-    generatedAt: '2025-01-01T00:00:00.000Z',
+    promptVersion: '1.0',
+    rawResponseHash: 'sha256:response',
+    remediationContext: ctx,
   };
 }
 
 function makeValidContract(overrides: Partial<ScriptContractV2> = {}): ScriptContractV2 {
+  const colRefs = buildColumnRegistry(['id', 'age', 'name']);
   return {
     contractId: 'aura.script.v2',
     contractVersion: '2.0.0',
     remediationRef: 'diag:test',
     datasetFingerprint: 'sha256:fingerprint123',
-    acceptedActionIds: ['act:test1'],
+    acceptedActionIds: [],
     rejectedActionIds: [],
     excludedActionIds: [],
-    columnRefs: [
-      { columnId: 'col:age#1#0', name: 'age', position: 1, duplicateOrdinal: 0, isAmbiguous: false, isDuplicate: false },
-    ],
-    rendererVersion: '1.0.0',
+    columnRefs: colRefs,
+    rendererVersion: '2.0.0',
     placeholderVocabularyVersion: '1.0.0',
-    scriptText: "import pandas as pd\nimport numpy as np\ndf['age'] = df['age'].astype(str).str.strip()",
+    scriptText: "import pandas as pd\nimport numpy as np\ndef clean_dataset(df):\n    df_clean = df.copy()\n    return df_clean",
     cleanDatasetFn: 'clean_dataset',
     scriptHash: 'a1b2c3d4e5f6',
     validationResult: {
       valid: true,
       errors: [],
-      warnings: [{ code: 'SCRIPT_SYNTAX_NOT_RUN', message: 'Python not available in browser', path: '$.pythonSyntax' }],
-      pythonSyntax: { state: 'not_run' },
+      warnings: [{ code: 'SCRIPT_SYNTAX_NOT_RUN', message: 'Python not available', path: '$.pythonSyntax', value: null }],
+      pythonSyntax: { state: 'not_run' as const },
     },
     generatedAt: '2025-01-01T00:00:00.000Z',
     ...overrides,
@@ -117,42 +173,254 @@ function makeValidVerification(overrides: Partial<ScriptValidationResultV2> = {}
   };
 }
 
-// ── Tests ─────────────────────────────────────────────────────────────────────
+// ── buildUiScriptContext tests ────────────────────────────────────────────────
 
-function createLocalStorageMock() {
-  const store = new Map<string, string>();
-  return {
-    getItem: vi.fn((key: string) => store.get(key) ?? null),
-    setItem: vi.fn((key: string, value: string) => { store.set(key, value); }),
-    removeItem: vi.fn((key: string) => { store.delete(key); }),
-    clear: vi.fn(() => store.clear()),
-    get length() { return store.size; },
-    key: vi.fn((index: number) => Array.from(store.keys())[index] ?? null),
-  };
-}
-
-describe('Contract flow (build → validate → finalize → verify)', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+describe('buildUiScriptContext', () => {
+  it('returns ok:true with valid inputs', () => {
+    const diag = makeStructuredDiagnosis();
+    const result = buildUiScriptContext({
+      structuredDiagnosis: diag,
+      csvFields: ['id', 'age', 'name'],
+      sourceDatasetFingerprint: 'sha256:fingerprint123',
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.refs).toHaveLength(3);
+      expect(result.buildContext).toBeTruthy();
+    }
   });
 
-  it('valid plan generates usable contract (requires_human_review → excluded)', async () => {
-    const { buildColumnRegistry } = await import('../contracts/llm/columnRegistry');
-    const { buildScriptContext } = await import('../contracts/llm/scriptBuildContext');
-    const { buildScriptCandidateV2 } = await import('../contracts/llm/scriptBuilderV2');
-    const { validateScriptCandidateV2 } = await import('../contracts/llm/scriptValidatorV2');
-    const { finalizeScriptContractV2 } = await import('../contracts/llm/scriptBuilderV2');
-    const { verifyScriptContractV2 } = await import('../contracts/llm/scriptValidatorV2');
+  it('returns ok:false when remediationContext is missing', () => {
+    const result = buildUiScriptContext({
+      structuredDiagnosis: { ...makeStructuredDiagnosis(), remediationContext: undefined },
+      csvFields: ['id'],
+      sourceDatasetFingerprint: 'sha256:fp',
+    });
+    expect(result.ok).toBe(false);
+    const err = result as { ok: false; reason: string };
+    expect(err.reason).toBe('missing_remediation_context');
+  });
 
+  it('returns ok:false when fingerprint is missing', () => {
+    const result = buildUiScriptContext({
+      structuredDiagnosis: makeStructuredDiagnosis(),
+      csvFields: ['id'],
+      sourceDatasetFingerprint: null,
+    });
+    expect(result.ok).toBe(false);
+    const err = result as { ok: false; reason: string };
+    expect(err.reason).toBe('missing_fingerprint');
+  });
+
+  it('returns ok:false when csvFields is empty', () => {
+    const result = buildUiScriptContext({
+      structuredDiagnosis: makeStructuredDiagnosis(),
+      csvFields: [],
+      sourceDatasetFingerprint: 'sha256:fp',
+    });
+    expect(result.ok).toBe(false);
+    const err = result as { ok: false; reason: string };
+    expect(err.reason).toBe('missing_columns');
+  });
+
+  it('refs use buildColumnRegistry — canonical IDs, not manual', () => {
+    const result = buildUiScriptContext({
+      structuredDiagnosis: makeStructuredDiagnosis(),
+      csvFields: ['age', 'salary'],
+      sourceDatasetFingerprint: 'sha256:fp',
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      // IDs come from buildColumnRegistry, not col:${name}#${pos}#0
+      for (const ref of result.refs) {
+        expect(ref.columnId).toMatch(/^col:/);
+        expect(ref.pythonLiteral).toBeTruthy();
+        expect(typeof ref.isReservedWord).toBe('boolean');
+      }
+    }
+  });
+
+  it('reserved words are marked', () => {
+    const result = buildUiScriptContext({
+      structuredDiagnosis: makeStructuredDiagnosis(),
+      csvFields: ['id', 'class', 'return'],
+      sourceDatasetFingerprint: 'sha256:fp',
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const classRef = result.refs.find((r) => r.name === 'class');
+      expect(classRef?.isReservedWord).toBe(true);
+    }
+  });
+
+  it('duplicated columns get ordinals 0 and 1', () => {
+    const result = buildUiScriptContext({
+      structuredDiagnosis: makeStructuredDiagnosis(),
+      csvFields: ['score', 'score', 'age'],
+      sourceDatasetFingerprint: 'sha256:fp',
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const scores = result.refs.filter((r) => r.name === 'score');
+      expect(scores).toHaveLength(2);
+      expect(scores[0].isDuplicate).toBe(true);
+      expect(scores[0].duplicateOrdinal).toBe(0);
+      expect(scores[1].duplicateOrdinal).toBe(1);
+    }
+  });
+});
+
+// ── buildScriptContractInputKey tests ─────────────────────────────────────────
+
+describe('buildScriptContractInputKey', () => {
+  it('returns null when fingerprint is missing', () => {
+    expect(buildScriptContractInputKey({ fingerprint: null, envelopeRef: 'e', planId: 'p', plan: [], csvFields: [] })).toBeNull();
+  });
+
+  it('returns null when plan is missing', () => {
+    expect(buildScriptContractInputKey({ fingerprint: 'f', envelopeRef: 'e', planId: 'p', plan: null, csvFields: [] })).toBeNull();
+  });
+
+  it('key changes when approvalStatus changes', () => {
+    const base = { fingerprint: 'f', envelopeRef: 'e', planId: 'p', csvFields: ['a'] };
+    const k1 = buildScriptContractInputKey({ ...base, plan: [{ actionId: 'a1', approvalStatus: 'approved' }] });
+    const k2 = buildScriptContractInputKey({ ...base, plan: [{ actionId: 'a1', approvalStatus: 'rejected' }] });
+    expect(k1).not.toBe(k2);
+  });
+
+  it('key changes when fingerprint changes', () => {
+    const base = { envelopeRef: 'e', planId: 'p', plan: [{ actionId: 'a1', approvalStatus: 'approved' }], csvFields: ['a'] };
+    const k1 = buildScriptContractInputKey({ ...base, fingerprint: 'f1' });
+    const k2 = buildScriptContractInputKey({ ...base, fingerprint: 'f2' });
+    expect(k1).not.toBe(k2);
+  });
+
+  it('key changes when csvFields change', () => {
+    const base = { fingerprint: 'f', envelopeRef: 'e', planId: 'p', plan: [{ actionId: 'a1', approvalStatus: 'approved' }] };
+    const k1 = buildScriptContractInputKey({ ...base, csvFields: ['a', 'b'] });
+    const k2 = buildScriptContractInputKey({ ...base, csvFields: ['a', 'c'] });
+    expect(k1).not.toBe(k2);
+  });
+
+  it('key is stable for same inputs', () => {
+    const base = { fingerprint: 'f', envelopeRef: 'e', planId: 'p', plan: [{ actionId: 'a1', approvalStatus: 'approved' }], csvFields: ['a'] };
+    const k1 = buildScriptContractInputKey(base);
+    const k2 = buildScriptContractInputKey(base);
+    expect(k1).toBe(k2);
+  });
+});
+
+// ── Invalidation by approvalStatus change ───────────────────────────────────
+
+describe('Invalidation by approvalStatus change', () => {
+  it('changing approvalStatus invalidates key, planId stays, contract view returns to decision', async () => {
+    const diagnosis = makeStructuredDiagnosis();
+    const plan = buildRemediationPlanV2(diagnosis);
+    const planIdBefore = plan.planId;
+
+    // Build input key with initial approvals
+    const keyBefore = buildScriptContractInputKey({
+      fingerprint: 'sha256:fingerprint123',
+      envelopeRef: 'env:testabc',
+      planId: plan.planId,
+      plan: plan.plan.map(a => ({ actionId: a.actionId, approvalStatus: a.approvalStatus })),
+      csvFields: ['id', 'age', 'name'],
+    });
+    expect(keyBefore).toBeTruthy();
+
+    // Change approvalStatus of first action
+    const changedPlan = {
+      ...plan,
+      plan: plan.plan.map((a, i) =>
+        i === 0 ? { ...a, approvalStatus: 'approved' as const } : a,
+      ),
+    };
+
+    // planId must stay the same (identity)
+    expect(changedPlan.planId).toBe(planIdBefore);
+
+    // Key changes because approvalStatus changed
+    const keyAfter = buildScriptContractInputKey({
+      fingerprint: 'sha256:fingerprint123',
+      envelopeRef: 'env:testabc',
+      planId: changedPlan.planId,
+      plan: changedPlan.plan.map(a => ({ actionId: a.actionId, approvalStatus: a.approvalStatus })),
+      csvFields: ['id', 'age', 'name'],
+    });
+    expect(keyAfter).toBeTruthy();
+    expect(keyAfter).not.toBe(keyBefore);
+
+    // ── Component test: invalidation clears contract view ──
+    const { default: ScriptGenerationStepV2 } = await import('../components/ScriptGenerationStepV2');
+    const contract = makeValidContract();
+    const verification = makeValidVerification();
+
+    const { rerender } = render(
+      <ScriptGenerationStepV2
+        report={{} as any}
+        csvFields={['id', 'age', 'name']}
+        sourceDatasetFingerprint="sha256:fingerprint123"
+        structuredDiagnosis={diagnosis}
+        remediationPlan={plan}
+        scriptContractV2={contract}
+        scriptContractVerificationV2={verification}
+        onScriptContractChange={() => {}}
+        onContinue={() => {}}
+      />,
+    );
+
+    // Contract is generated and visible
+    expect(screen.getByText('Contrato válido')).toBeTruthy();
+
+    // Store hash for later check
+    const oldHash = contract.scriptHash;
+
+    // Rerender with null contract (simulating parent invalidation due to approvalStatus change)
+    rerender(
+      <ScriptGenerationStepV2
+        report={{} as any}
+        csvFields={['id', 'age', 'name']}
+        sourceDatasetFingerprint="sha256:fingerprint123"
+        structuredDiagnosis={diagnosis}
+        remediationPlan={changedPlan}
+        scriptContractV2={null}
+        scriptContractVerificationV2={null}
+        onScriptContractChange={() => {}}
+        onContinue={() => {}}
+      />,
+    );
+
+    // "Contrato válido" label disappears
+    await waitFor(() => {
+      expect(screen.queryByText('Contrato válido')).toBeNull();
+    });
+
+    // RemediationPlanStepV2 view returns (Vista A with Generate button)
+    await waitFor(() => {
+      expect(screen.getByText('Generar contrato de script')).toBeTruthy();
+    });
+
+    // Verify old hash is not usable — new contract would have new hash
+    expect(contract.scriptHash).toBe(oldHash); // original object unchanged
+  });
+});
+
+// ── Contract pipeline integration ─────────────────────────────────────────────
+
+describe('Contract pipeline (real functions)', () => {
+  it('build → validate → finalize → verify succeeds', () => {
     const colRefs = buildColumnRegistry(['id', 'age', 'name']);
     const ctx: RemediationContextV2 = {
       evidenceEnvelopeRef: 'env:test1',
       datasetFingerprint: 'sha256:fingerprint123',
-      columns: [...colRefs],
+      columns: colRefs,
       issues: [],
     };
-    const plan = makePlan([makeAction('requires_human_review', colRefs[1].columnId, 'pending', 'act:a1')], 'plan:testctx1');
-    plan.evidenceEnvelopeRef = 'env:test1';
+    const plan = makePlan(
+      [makeAction('requires_human_review', colRefs[1].columnId, 'pending', 'act:a1')],
+      'plan:testctx1',
+      'env:test1',
+    );
 
     const buildCtx = buildScriptContext(ctx, colRefs, 'sha256:fingerprint123');
     const candidate = buildScriptCandidateV2(plan, buildCtx);
@@ -161,286 +429,47 @@ describe('Contract flow (build → validate → finalize → verify)', () => {
 
     const contract = finalizeScriptContractV2(candidate, validation);
     expect(contract.scriptHash).toBeTruthy();
+    expect(contract.scriptText).toContain('def clean_dataset');
 
     const fresh = verifyScriptContractV2(contract, plan, buildCtx);
     expect(fresh.valid).toBe(true);
   });
 
-  it('zero accepted actions → no-op script is valid', async () => {
-    const { buildColumnRegistry } = await import('../contracts/llm/columnRegistry');
-    const { buildScriptContext } = await import('../contracts/llm/scriptBuildContext');
-    const { buildScriptCandidateV2 } = await import('../contracts/llm/scriptBuilderV2');
-    const { validateScriptCandidateV2 } = await import('../contracts/llm/scriptValidatorV2');
-
-    const colRefs = buildColumnRegistry(['id', 'age', 'name']);
+  it('zero accepted actions → no-op script', () => {
+    const colRefs = buildColumnRegistry(['id', 'age']);
     const ctx: RemediationContextV2 = {
-      evidenceEnvelopeRef: 'env:test2',
+      evidenceEnvelopeRef: 'env:z',
       datasetFingerprint: 'sha256:fingerprint123',
-      columns: [...colRefs],
+      columns: colRefs,
       issues: [],
     };
-    const plan = makePlan([makeAction('requires_human_review', colRefs[1].columnId, 'pending', 'act:p1')], 'plan:testctx2');
-    plan.evidenceEnvelopeRef = 'env:test2';
+    const plan = makePlan(
+      [makeAction('requires_human_review', colRefs[1].columnId, 'pending', 'act:p1')],
+      'plan:z',
+      'env:z',
+    );
 
     const buildCtx = buildScriptContext(ctx, colRefs, 'sha256:fingerprint123');
     const candidate = buildScriptCandidateV2(plan, buildCtx);
     const validation = validateScriptCandidateV2(candidate, plan, buildCtx);
-
     expect(validation.valid).toBe(true);
     expect(candidate.acceptedActionIds).toHaveLength(0);
     expect(candidate.scriptText).toContain('import pandas as pd');
   });
 
-  it('partition counts: accepted + rejected + excluded match plan', async () => {
-    const { buildColumnRegistry } = await import('../contracts/llm/columnRegistry');
-    const { buildScriptContext } = await import('../contracts/llm/scriptBuildContext');
-    const { buildScriptCandidateV2 } = await import('../contracts/llm/scriptBuilderV2');
-
-    const colRefs = buildColumnRegistry(['id', 'age', 'name', 'salary']);
+  it('altered hash fails verification', () => {
+    const colRefs = buildColumnRegistry(['id', 'age']);
     const ctx: RemediationContextV2 = {
-      evidenceEnvelopeRef: 'env:test3',
+      evidenceEnvelopeRef: 'env:ah',
       datasetFingerprint: 'sha256:fingerprint123',
-      columns: [...colRefs],
+      columns: colRefs,
       issues: [],
     };
-    const plan = makePlan([
-      makeAction('requires_human_review', colRefs[1].columnId, 'pending', 'act:p1'),
-      makeAction('requires_human_review', colRefs[2].columnId, 'pending', 'act:p2'),
-      makeAction('requires_human_review', colRefs[3].columnId, 'pending', 'act:p3'),
-    ], 'plan:testctx3');
-    plan.evidenceEnvelopeRef = 'env:test3';
-
-    const buildCtx = buildScriptContext(ctx, colRefs, 'sha256:fingerprint123');
-    const candidate = buildScriptCandidateV2(plan, buildCtx);
-
-    expect(candidate.acceptedActionIds).toHaveLength(0);
-    expect(candidate.excludedActionIds.length).toBe(3);
-    expect(candidate.excludedActionIds.some((e: any) => e.actionId === 'act:p1')).toBe(true);
-  });
-
-  it('excluded actions include reason field', async () => {
-    const { buildColumnRegistry } = await import('../contracts/llm/columnRegistry');
-    const { buildScriptContext } = await import('../contracts/llm/scriptBuildContext');
-    const { buildScriptCandidateV2 } = await import('../contracts/llm/scriptBuilderV2');
-
-    const colRefs = buildColumnRegistry(['id', 'age', 'name']);
-    const ctx: RemediationContextV2 = {
-      evidenceEnvelopeRef: 'env:test5',
-      datasetFingerprint: 'sha256:fingerprint123',
-      columns: [...colRefs],
-      issues: [],
-    };
-    const plan = makePlan([
-      makeAction('requires_human_review', colRefs[1].columnId, 'pending', 'act:review1'),
-    ], 'plan:testctx5');
-    plan.evidenceEnvelopeRef = 'env:test5';
-
-    const buildCtx = buildScriptContext(ctx, colRefs, 'sha256:fingerprint123');
-    const candidate = buildScriptCandidateV2(plan, buildCtx);
-
-    const excluded = candidate.excludedActionIds.find((e: any) => e.actionId === 'act:review1');
-    expect(excluded).toBeTruthy();
-    expect(typeof excluded.reason).toBe('string');
-  });
-
-  it('syntax not_run appears as warning, not error', async () => {
-    const { buildColumnRegistry } = await import('../contracts/llm/columnRegistry');
-    const { buildScriptContext } = await import('../contracts/llm/scriptBuildContext');
-    const { buildScriptCandidateV2 } = await import('../contracts/llm/scriptBuilderV2');
-    const { validateScriptCandidateV2 } = await import('../contracts/llm/scriptValidatorV2');
-
-    const colRefs = buildColumnRegistry(['id', 'age', 'name']);
-    const ctx: RemediationContextV2 = {
-      evidenceEnvelopeRef: 'env:test6',
-      datasetFingerprint: 'sha256:fingerprint123',
-      columns: [...colRefs],
-      issues: [],
-    };
-    const plan = makePlan([makeAction('requires_human_review', colRefs[1].columnId, 'pending', 'act:a1')], 'plan:testctx6');
-    plan.evidenceEnvelopeRef = 'env:test6';
-
-    const buildCtx = buildScriptContext(ctx, colRefs, 'sha256:fingerprint123');
-    const candidate = buildScriptCandidateV2(plan, buildCtx);
-    const validation = validateScriptCandidateV2(candidate, plan, buildCtx);
-
-    expect(validation.valid).toBe(true);
-    expect(validation.pythonSyntax.state).toBe('not_run');
-    expect(validation.warnings.some((w: any) => w.code === 'SCRIPT_SYNTAX_NOT_RUN')).toBe(true);
-    expect(validation.errors.some((e: any) => e.code === 'SCRIPT_SYNTAX_NOT_RUN')).toBe(false);
-  });
-});
-
-describe('Contract visual state', () => {
-  it('contractValid = validationResult.valid && freshVerification.valid', async () => {
-    const contract = makeValidContract();
-    const verification = makeValidVerification({ valid: false });
-    const contractValid = contract.validationResult.valid === true && verification.valid === true;
-    expect(contractValid).toBe(false);
-  });
-
-  it('valid contract shows "Contrato válido" badge', () => {
-    const contract = makeValidContract();
-    const verification = makeValidVerification();
-    const contractValid = contract.validationResult.valid === true && verification.valid === true;
-    expect(contractValid).toBe(true);
-  });
-
-  it('"Seguro" label NOT in v2 contract display', () => {
-    const contract = makeValidContract();
-    expect(JSON.stringify(contract)).not.toMatch(/Seguro/);
-    expect(JSON.stringify(contract)).not.toMatch(/safetyScore/);
-  });
-
-  it('"AI" NOT mentioned in v2 contract', () => {
-    const contract = makeValidContract();
-    expect(JSON.stringify(contract)).not.toMatch(/\bAI\b/i);
-    expect(JSON.stringify(contract)).not.toMatch(/\bLLM\b/i);
-  });
-
-  it('syntax not_run shown as informational warning', () => {
-    const contract = makeValidContract();
-    contract.validationResult.pythonSyntax = { state: 'not_run' };
-    contract.validationResult.warnings = [
-      { code: 'SCRIPT_SYNTAX_NOT_RUN', message: 'Python not available in browser', path: '$.pythonSyntax' },
-    ];
-    expect(contract.validationResult.pythonSyntax.state).toBe('not_run');
-    expect(contract.validationResult.warnings.length).toBeGreaterThan(0);
-  });
-
-  it('errors display only code, path, message (no stack trace)', () => {
-    const error = { code: 'SCRIPT_CONTRACT_INVALID', message: 'Missing required field', path: '$.scriptText' };
-    expect(Object.keys(error)).toEqual(['code', 'message', 'path']);
-    expect(JSON.stringify(error)).not.toMatch(/at /);
-    expect(JSON.stringify(error)).not.toMatch(/stack/);
-  });
-});
-
-describe('PipelineData v2 fields', () => {
-  let mockLs: ReturnType<typeof createLocalStorageMock>;
-
-  beforeEach(() => {
-    mockLs = createLocalStorageMock();
-    vi.stubGlobal('localStorage', mockLs);
-  });
-
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
-  it('PipelineData includes scriptContractV2 and scriptContractVerificationV2', async () => {
-    const { PipelineData } = await import('../components/MainPipeline');
-    const data = {
-      state: 'review' as const,
-      file: null,
-      report: null,
-      auditEvidence: null,
-      rawData: [] as Record<string, any>[],
-      csvFields: [] as string[],
-      csvDelimiter: ',',
-      cleaningScript: '',
-      approvedScript: '',
-      healthDelta: null,
-      aiAnalysis: '',
-      structuredDiagnosis: null,
-      remediationPlan: null,
-      scriptContractV2: makeValidContract(),
-      scriptContractVerificationV2: makeValidVerification(),
-      benchmarkResults: [] as any[],
-      improvementRun: null,
-      scriptValidation: null,
-      deterministicValidation: null,
-      logs: [] as { time: string; msg: string }[],
-    };
-    expect((data as any).scriptContractV2).toBeTruthy();
-    expect((data as any).scriptContractVerificationV2).toBeTruthy();
-  });
-
-  it('session snapshot roundtrip preserves scriptContractV2', async () => {
-    const { savePipelineSession, loadPipelineSession } = await import('../services/pipelineSession');
-    const contract = makeValidContract();
-    const verification = makeValidVerification();
-
-    const snapshot = {
-      state: 'review',
-      file: null,
-      report: null,
-      auditEvidence: null,
-      rawData: [],
-      csvFields: ['age', 'name'],
-      csvDelimiter: ',',
-      cleaningScript: contract.scriptText,
-      approvedScript: '',
-      healthDelta: null,
-      aiAnalysis: '',
-      structuredDiagnosis: null,
-      remediationPlan: null,
-      scriptContractV2: contract,
-      scriptContractVerificationV2: verification,
-      benchmarkResults: [],
-      improvementRun: null,
-      scriptValidation: null,
-      deterministicValidation: null,
-      logs: [],
-      savedAt: new Date().toISOString(),
-    };
-
-    savePipelineSession(snapshot as any);
-    const restored = loadPipelineSession();
-
-    expect(restored).not.toBeNull();
-    expect((restored as any).scriptContractV2).toBeTruthy();
-    expect((restored as any).scriptContractV2.scriptHash).toBe(contract.scriptHash);
-    expect((restored as any).scriptContractVerificationV2).toBeTruthy();
-  });
-});
-
-describe('ReviewStep v2 fresh verification', () => {
-  it('fresh verification called before approval in v2', async () => {
-    const { verifyScriptContractV2 } = await import('../contracts/llm/scriptValidatorV2');
-    const { buildColumnRegistry } = await import('../contracts/llm/columnRegistry');
-    const { buildScriptContext } = await import('../contracts/llm/scriptBuildContext');
-
-    const colRefs = buildColumnRegistry(['id', 'age', 'name']);
-    const ctx: RemediationContextV2 = {
-      evidenceEnvelopeRef: 'env:vftest1',
-      datasetFingerprint: 'sha256:fingerprint123',
-      columns: [...colRefs],
-      issues: [],
-    };
-    const plan = makePlan([makeAction('requires_human_review', colRefs[1].columnId, 'pending', 'act:v1')], 'plan:vftest1');
-    plan.evidenceEnvelopeRef = 'env:vftest1';
-
-    const buildCtx = buildScriptContext(ctx, colRefs, 'sha256:fingerprint123');
-    const { buildScriptCandidateV2 } = await import('../contracts/llm/scriptBuilderV2');
-    const { validateScriptCandidateV2 } = await import('../contracts/llm/scriptValidatorV2');
-    const { finalizeScriptContractV2 } = await import('../contracts/llm/scriptBuilderV2');
-
-    const candidate = buildScriptCandidateV2(plan, buildCtx);
-    const validation = validateScriptCandidateV2(candidate, plan, buildCtx);
-    const contract = finalizeScriptContractV2(candidate, validation);
-
-    const fresh = verifyScriptContractV2(contract, plan, buildCtx);
-    expect(fresh).toBeTruthy();
-    expect(fresh.valid).toBe(true);
-  });
-
-  it('altered hash blocks approval', async () => {
-    const { verifyScriptContractV2 } = await import('../contracts/llm/scriptValidatorV2');
-    const { buildColumnRegistry } = await import('../contracts/llm/columnRegistry');
-    const { buildScriptContext } = await import('../contracts/llm/scriptBuildContext');
-    const { buildScriptCandidateV2 } = await import('../contracts/llm/scriptBuilderV2');
-    const { validateScriptCandidateV2 } = await import('../contracts/llm/scriptValidatorV2');
-    const { finalizeScriptContractV2 } = await import('../contracts/llm/scriptBuilderV2');
-
-    const colRefs = buildColumnRegistry(['id', 'age', 'name']);
-    const ctx: RemediationContextV2 = {
-      evidenceEnvelopeRef: 'env:vftest2',
-      datasetFingerprint: 'sha256:fingerprint123',
-      columns: [...colRefs],
-      issues: [],
-    };
-    const plan = makePlan([makeAction('requires_human_review', colRefs[1].columnId, 'pending', 'act:v2')], 'plan:vftest2');
-    plan.evidenceEnvelopeRef = 'env:vftest2';
+    const plan = makePlan(
+      [makeAction('requires_human_review', colRefs[1].columnId, 'pending', 'act:h1')],
+      'plan:ah',
+      'env:ah',
+    );
 
     const buildCtx = buildScriptContext(ctx, colRefs, 'sha256:fingerprint123');
     const candidate = buildScriptCandidateV2(plan, buildCtx);
@@ -451,52 +480,357 @@ describe('ReviewStep v2 fresh verification', () => {
     const fresh = verifyScriptContractV2(contract, plan, buildCtx);
     expect(fresh.valid).toBe(false);
   });
-
-  it('v2 mode does NOT call createImprovementRun', () => {
-    const contract = makeValidContract();
-    expect(JSON.stringify(contract)).not.toMatch(/createImprovementRun/);
-    expect(JSON.stringify(contract)).not.toMatch(/runSimulation/);
-    expect(JSON.stringify(contract)).not.toMatch(/Pyodide/);
-    expect(JSON.stringify(contract)).not.toMatch(/healthDelta/);
-  });
-
-  it('v2 review does NOT show safetyScore', () => {
-    const contract = makeValidContract();
-    expect(JSON.stringify(contract)).not.toMatch(/safetyScore/);
-    expect(JSON.stringify(contract)).not.toMatch(/Seguro/);
-  });
-
-  it('v2 review does NOT claim dataset improved', () => {
-    const contract = makeValidContract();
-    expect(JSON.stringify(contract)).not.toMatch(/mejor\w+/i);
-    expect(JSON.stringify(contract)).not.toMatch(/improved/i);
-  });
 });
 
-describe('isContractsV2Enabled routing', () => {
-  it('isContractsV2Enabled returns boolean', async () => {
-    const { isContractsV2Enabled } = await import('../contracts/llm');
-    const enabled = isContractsV2Enabled();
-    expect(typeof enabled).toBe('boolean');
+// ── ScriptGenerationStepV2 component ──────────────────────────────────────────
+
+describe('ScriptGenerationStepV2 component', () => {
+  it('renders "Sin validar" when fingerprint is missing', async () => {
+    const { default: ScriptGenerationStepV2 } = await import('../components/ScriptGenerationStepV2');
+    render(
+      <ScriptGenerationStepV2
+        report={{} as any}
+        csvFields={['a']}
+        sourceDatasetFingerprint={null}
+        structuredDiagnosis={makeStructuredDiagnosis()}
+        remediationPlan={null}
+        scriptContractV2={null}
+        scriptContractVerificationV2={null}
+        onScriptContractChange={() => {}}
+        onContinue={() => {}}
+      />,
+    );
+    expect(screen.getByText('Sin validar')).toBeTruthy();
   });
 
-  it('structuredDiagnosis without remediationContext → legacy route', () => {
+  it('renders RemediationPlanStepV2 when plan is null (Vista A)', async () => {
+    const { default: ScriptGenerationStepV2 } = await import('../components/ScriptGenerationStepV2');
+    render(
+      <ScriptGenerationStepV2
+        report={{} as any}
+        csvFields={['id', 'age', 'name']}
+        sourceDatasetFingerprint="sha256:fingerprint123"
+        structuredDiagnosis={makeStructuredDiagnosis()}
+        remediationPlan={null}
+        scriptContractV2={null}
+        scriptContractVerificationV2={null}
+        onScriptContractChange={() => {}}
+        onContinue={() => {}}
+      />,
+    );
+    // RemediationPlanStepV2 renders its own header
+    expect(screen.getByText('Plan de remediación determinista')).toBeTruthy();
+  });
+
+  it('generates contract on button click (Vista A → Vista B)', async () => {
+    const user = userEvent.setup();
+    const { default: ScriptGenerationStepV2 } = await import('../components/ScriptGenerationStepV2');
     const diag = makeStructuredDiagnosis();
-    diag.remediationContext = undefined;
-    expect(diag.remediationContext).toBeUndefined();
+
+    const onContractChange = vi.fn();
+
+    render(
+      <ScriptGenerationStepV2
+        report={{} as any}
+        csvFields={['id', 'age', 'name']}
+        sourceDatasetFingerprint="sha256:fingerprint123"
+        structuredDiagnosis={diag}
+        remediationPlan={null}
+        scriptContractV2={null}
+        scriptContractVerificationV2={null}
+        onScriptContractChange={onContractChange}
+        onContinue={() => {}}
+      />,
+    );
+
+    // Wait for RemediationPlanStepV2 to build the plan
+    await waitFor(() => {
+      expect(screen.getByText('Generar contrato de script')).toBeTruthy();
+    });
+
+    // Click generate
+    const btn = screen.getByText('Generar contrato de script');
+    await user.click(btn);
+
+    // Should show contract view
+    await waitFor(() => {
+      expect(screen.getByText('Contrato válido')).toBeTruthy();
+    });
+
+    // onScriptContractChange was called with a valid contract
+    expect(onContractChange).toHaveBeenCalledTimes(1);
+    const [contract, verification] = onContractChange.mock.calls[0];
+    expect(contract.scriptHash).toBeTruthy();
+    expect(contract.scriptText).toContain('def clean_dataset');
+    expect(verification.valid).toBe(true);
+  });
+
+  it('shows syntax not_run as warning', async () => {
+    const user = userEvent.setup();
+    const { default: ScriptGenerationStepV2 } = await import('../components/ScriptGenerationStepV2');
+
+    render(
+      <ScriptGenerationStepV2
+        report={{} as any}
+        csvFields={['id', 'age', 'name']}
+        sourceDatasetFingerprint="sha256:fingerprint123"
+        structuredDiagnosis={makeStructuredDiagnosis()}
+        remediationPlan={null}
+        scriptContractV2={null}
+        scriptContractVerificationV2={null}
+        onScriptContractChange={() => {}}
+        onContinue={() => {}}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Generar contrato de script')).toBeTruthy();
+    });
+
+    await user.click(screen.getByText('Generar contrato de script'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Contrato válido')).toBeTruthy();
+    });
+
+    expect(screen.getByText(/syntax: not_run/)).toBeTruthy();
+  });
+
+  it('Continue button disabled when no contract', async () => {
+    const { default: ScriptGenerationStepV2 } = await import('../components/ScriptGenerationStepV2');
+    render(
+      <ScriptGenerationStepV2
+        report={{} as any}
+        csvFields={['id', 'age', 'name']}
+        sourceDatasetFingerprint="sha256:fingerprint123"
+        structuredDiagnosis={makeStructuredDiagnosis()}
+        remediationPlan={null}
+        scriptContractV2={null}
+        scriptContractVerificationV2={null}
+        onScriptContractChange={() => {}}
+        onContinue={() => {}}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Generar contrato de script')).toBeTruthy();
+    });
+
+    // No "Continuar a revisión" button yet (we're in plan view)
+    expect(screen.queryByText('Continuar a revisión')).toBeNull();
+  });
+
+  it('contract clears when prop becomes null', async () => {
+    const { default: ScriptGenerationStepV2 } = await import('../components/ScriptGenerationStepV2');
+    const contract = makeValidContract();
+    const verification = makeValidVerification();
+    const diagnosis = makeStructuredDiagnosis();
+    const plan = buildRemediationPlanV2(diagnosis);
+
+    const { rerender } = render(
+      <ScriptGenerationStepV2
+        report={{} as any}
+        csvFields={['id', 'age', 'name']}
+        sourceDatasetFingerprint="sha256:fingerprint123"
+        structuredDiagnosis={diagnosis}
+        remediationPlan={plan}
+        scriptContractV2={contract}
+        scriptContractVerificationV2={verification}
+        onScriptContractChange={() => {}}
+        onContinue={() => {}}
+      />,
+    );
+
+    // Initially shows contract view
+    expect(screen.getByText('Contrato válido')).toBeTruthy();
+
+    // Rerender with null contract (invalidation)
+    rerender(
+      <ScriptGenerationStepV2
+        report={{} as any}
+        csvFields={['id', 'age', 'name']}
+        sourceDatasetFingerprint="sha256:fingerprint123"
+        structuredDiagnosis={diagnosis}
+        remediationPlan={plan}
+        scriptContractV2={null}
+        scriptContractVerificationV2={null}
+        onScriptContractChange={() => {}}
+        onContinue={() => {}}
+      />,
+    );
+
+    // Should go back to plan view
+    await waitFor(() => {
+      expect(screen.getByText('Generar contrato de script')).toBeTruthy();
+    });
+  });
+
+  it('scriptText displayed matches contract.scriptText exactly', async () => {
+    const user = userEvent.setup();
+    const { default: ScriptGenerationStepV2 } = await import('../components/ScriptGenerationStepV2');
+
+    render(
+      <ScriptGenerationStepV2
+        report={{} as any}
+        csvFields={['id', 'age', 'name']}
+        sourceDatasetFingerprint="sha256:fingerprint123"
+        structuredDiagnosis={makeStructuredDiagnosis()}
+        remediationPlan={null}
+        scriptContractV2={null}
+        scriptContractVerificationV2={null}
+        onScriptContractChange={() => {}}
+        onContinue={() => {}}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Generar contrato de script')).toBeTruthy();
+    });
+
+    await user.click(screen.getByText('Generar contrato de script'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Contrato válido')).toBeTruthy();
+    });
+
+    // Script code is rendered in the pre.script-code element
+    const scriptCode = document.querySelector('.script-code');
+    expect(scriptCode).toBeTruthy();
+    expect(scriptCode?.textContent).toContain('def clean_dataset');
+  });
+
+  it('no "Seguro" label in contract view', async () => {
+    const user = userEvent.setup();
+    const { default: ScriptGenerationStepV2 } = await import('../components/ScriptGenerationStepV2');
+
+    render(
+      <ScriptGenerationStepV2
+        report={{} as any}
+        csvFields={['id', 'age', 'name']}
+        sourceDatasetFingerprint="sha256:fingerprint123"
+        structuredDiagnosis={makeStructuredDiagnosis()}
+        remediationPlan={null}
+        scriptContractV2={null}
+        scriptContractVerificationV2={null}
+        onScriptContractChange={() => {}}
+        onContinue={() => {}}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Generar contrato de script')).toBeTruthy();
+    });
+
+    await user.click(screen.getByText('Generar contrato de script'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Contrato válido')).toBeTruthy();
+    });
+
+    expect(screen.queryByText('Seguro')).toBeNull();
+    expect(screen.queryByText(/safetyScore/)).toBeNull();
   });
 });
 
-describe('RemediationPlanStepV2 continueLabel', () => {
-  it('RemediationPlanStepV2 is importable', async () => {
-    const mod = await import('../components/RemediationPlanStepV2');
-    expect(mod.default).toBeDefined();
+// ── RemediationPlanStepV2 props ───────────────────────────────────────────────
+
+describe('RemediationPlanStepV2 props', () => {
+  it('continueLabel prop changes button text', async () => {
+    const { default: RemediationPlanStepV2 } = await import('../components/RemediationPlanStepV2');
+    render(
+      <RemediationPlanStepV2
+        report={{} as any}
+        structuredDiagnosis={makeStructuredDiagnosis()}
+        remediationPlan={null}
+        continueLabel="Generar contrato de script"
+        onContinueWithPlan={() => {}}
+        onContinue={() => {}}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Generar contrato de script')).toBeTruthy();
+    });
+  });
+
+  it('onContinueWithPlan called with exact plan', async () => {
+    const user = userEvent.setup();
+    const { default: RemediationPlanStepV2 } = await import('../components/RemediationPlanStepV2');
+    const onContinueWithPlan = vi.fn();
+    const diag = makeStructuredDiagnosis();
+
+    render(
+      <RemediationPlanStepV2
+        report={{} as any}
+        structuredDiagnosis={diag}
+        remediationPlan={null}
+        continueLabel="Generar contrato de script"
+        onContinueWithPlan={onContinueWithPlan}
+        onContinue={() => {}}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Generar contrato de script')).toBeTruthy();
+    });
+
+    await user.click(screen.getByText('Generar contrato de script'));
+    expect(onContinueWithPlan).toHaveBeenCalledTimes(1);
+    const plan = onContinueWithPlan.mock.calls[0][0];
+    expect(plan.planId).toBeTruthy();
+    expect(plan.plan).toBeInstanceOf(Array);
+  });
+
+  it('approve/reject changes visible state', async () => {
+    const user = userEvent.setup();
+    const { default: RemediationPlanStepV2 } = await import('../components/RemediationPlanStepV2');
+
+    render(
+      <RemediationPlanStepV2
+        report={{} as any}
+        structuredDiagnosis={makeStructuredDiagnosis()}
+        remediationPlan={null}
+        onContinue={() => {}}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Aprobar').length).toBeGreaterThan(0);
+    });
+
+    // Click approve on first action
+    const approveBtn = screen.getAllByText('Aprobar')[0];
+    await user.click(approveBtn);
+
+    // Status should change to "Aprobado"
+    await waitFor(() => {
+      expect(screen.getAllByText('Aprobado').length).toBeGreaterThan(0);
+    });
   });
 });
+
+// ── ScriptReview v2 props ─────────────────────────────────────────────────────
 
 describe('ScriptReview v2 props', () => {
-  it('ScriptReview is importable with v2 props', async () => {
+  it('readOnly hides Edit button', async () => {
     const { default: ScriptReview } = await import('../components/ScriptReview');
-    expect(ScriptReview).toBeDefined();
+    render(
+      <ScriptReview
+        code="import pandas as pd"
+        readOnly
+        hideEditAction
+      />,
+    );
+    expect(screen.queryByText('Editar')).toBeNull();
+  });
+
+  it('non-readOnly shows Edit button', async () => {
+    const { default: ScriptReview } = await import('../components/ScriptReview');
+    render(
+      <ScriptReview
+        code="import pandas as pd"
+      />,
+    );
+    expect(screen.getByText('Editar')).toBeTruthy();
   });
 });

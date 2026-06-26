@@ -574,6 +574,7 @@ const App: React.FC = () => {
             <MainPipeline
               aiConfig={aiConfig}
               aiProvider={aiProvider}
+              initialData={pipelineData}
               onPipelineChange={setPipelineData}
               onAiConfigChange={setAiConfig}
               onOpenLab={goLab}

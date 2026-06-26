@@ -207,7 +207,7 @@ describe('resolveScriptColumn edge cases', () => {
     const ctx = makeContext(cols);
     const result = resolveScriptColumn(null, ctx);
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.reason).toBe('missing_column');
+    if (!result.ok) expect((result as { ok: false; reason: string }).reason).toBe('missing_column');
   });
 
   it('returns missing_column for nonexistent columnId', () => {
@@ -215,7 +215,7 @@ describe('resolveScriptColumn edge cases', () => {
     const ctx = makeContext(cols);
     const result = resolveScriptColumn('col:nonexistent', ctx);
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.reason).toBe('missing_column');
+    if (!result.ok) expect((result as { ok: false; reason: string }).reason).toBe('missing_column');
   });
 
   it('returns ambiguous_column for ambiguous column', () => {
@@ -223,7 +223,7 @@ describe('resolveScriptColumn edge cases', () => {
     const ctx = makeContext(cols);
     const result = resolveScriptColumn(cols[0].columnId, ctx);
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.reason).toBe('ambiguous_column');
+    if (!result.ok) expect((result as { ok: false; reason: string }).reason).toBe('ambiguous_column');
   });
 
   it('returns context_invalid when evidence.valid is false (H4)', () => {
@@ -232,7 +232,7 @@ describe('resolveScriptColumn edge cases', () => {
     ctx.correspondenceEvidence.valid = false;
     const result = resolveScriptColumn(cols[0].columnId, ctx);
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.reason).toBe('context_invalid');
+    if (!result.ok) expect((result as { ok: false; reason: string }).reason).toBe('context_invalid');
   });
 
   it('does NOT resolve by name', () => {
@@ -550,7 +550,7 @@ describe('resolveScriptColumn fail-closed (M-NEW-1)', () => {
     } as any;
     const result = resolveScriptColumn(cols[0].columnId, ctx);
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.reason).toBe('context_invalid');
+    if (!result.ok) expect((result as { ok: false; reason: string }).reason).toBe('context_invalid');
   });
 
   it('returns context_invalid when correspondenceEvidence is undefined', () => {
@@ -563,7 +563,7 @@ describe('resolveScriptColumn fail-closed (M-NEW-1)', () => {
     } as any;
     const result = resolveScriptColumn(cols[0].columnId, ctx);
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.reason).toBe('context_invalid');
+    if (!result.ok) expect((result as { ok: false; reason: string }).reason).toBe('context_invalid');
   });
 
   it('returns context_invalid when correspondenceEvidence is null', () => {
@@ -576,7 +576,7 @@ describe('resolveScriptColumn fail-closed (M-NEW-1)', () => {
     } as any;
     const result = resolveScriptColumn(cols[0].columnId, ctx);
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.reason).toBe('context_invalid');
+    if (!result.ok) expect((result as { ok: false; reason: string }).reason).toBe('context_invalid');
   });
 
   it('returns context_invalid when correspondenceEvidence has valid=false', () => {
@@ -589,6 +589,6 @@ describe('resolveScriptColumn fail-closed (M-NEW-1)', () => {
     } as any;
     const result = resolveScriptColumn(cols[0].columnId, ctx);
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.reason).toBe('context_invalid');
+    if (!result.ok) expect((result as { ok: false; reason: string }).reason).toBe('context_invalid');
   });
 });

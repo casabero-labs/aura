@@ -3,7 +3,6 @@ import ScriptReview from './ScriptReview';
 import ImprovementRunPanel from './ImprovementRunPanel';
 import { createImprovementRun } from '../services/improvementService';
 import {
-  buildScriptContext,
   isContractsV2Enabled,
   verifyScriptContractV2,
 } from '../contracts/llm';
@@ -12,6 +11,7 @@ import type {
   RemediationPlanV2,
   ScriptContractV2,
 } from '../contracts/llm';
+import { buildUiScriptContext } from '../services/scriptContractUiContext';
 import {
   ArrowRight,
   CheckCircle2,
@@ -53,7 +53,7 @@ interface ReviewStepProps {
   onContinue?: () => void;
 }
 
-type ReviewStage = 'pending' | 'simulating' | 'completed';
+type ReviewStage = 'pending' | 'simulating' | 'validating' | 'completed';
 
 const ReviewStep: React.FC<ReviewStepProps> = ({
   report,
@@ -159,23 +159,20 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
     }
     setStage('validating');
     try {
-      const refs = csvFields.map((name, position) => ({
-        columnId: `col:${name}#${position}#0`,
-        name,
-        position,
-        duplicateOrdinal: 0,
-        isAmbiguous: false,
-        isDuplicate: false,
-      }));
-      const buildContext = buildScriptContext(
-        structuredDiagnosis.remediationContext,
-        refs,
-        sourceDatasetFingerprint,
-      );
+      const contextResult = buildUiScriptContext({
+        structuredDiagnosis: structuredDiagnosis ?? null,
+        csvFields,
+        sourceDatasetFingerprint: sourceDatasetFingerprint ?? null,
+      });
+      if (contextResult.ok === false) {
+        setV2VerifyError(`No se pudo construir el contexto: ${contextResult.message}`);
+        setStage('pending');
+        return;
+      }
       const freshVerification = verifyScriptContractV2(
         scriptContractV2,
         remediationPlanV2,
-        buildContext,
+        contextResult.buildContext,
       );
       if (!freshVerification.valid) {
         setV2VerifyError(
@@ -571,7 +568,7 @@ function V2Review({
 
       {v2VerifyError && (
         <div className="provider-error-notice" style={{ marginBottom: 'var(--space-md)' }}>
-          <AlertTriangle size={14} style={{ color: 'var(--error)' }} />
+          <TriangleAlert size={14} style={{ color: 'var(--error)' }} />
           <span>{v2VerifyError}</span>
         </div>
       )}

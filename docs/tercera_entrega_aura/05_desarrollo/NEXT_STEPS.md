@@ -4,17 +4,19 @@
 
 Phase 3 está cerrada y congelada en `d3774dd5ac98d89ca4454c693b1b0a30856cd191`. No modificar su evidencia.
 
-**Loop 5 implementado. Pendiente de revisión focalizada antes del harness E2E de Loop 6.**
+**Loop 5R completado. Integración UI reparada. Pendiente Loop 6 (E2E + capturas).**
 
-## Loop 5 — UI — Contrato v2 con revisión humana
+## Loop 5R — UI — Reparación de integración
 
-Pipeline de script completo: build → validate → finalize → verify → UI → revisión humana.
+Reparación de la integración UI del ScriptContractV2:
 
-- `ScriptGenerationStepV2`: decisión (Vista A), contrato (Vista B), generación, loading, error, done
-- `ReviewStep`: rama v2 con fresh `verifyScriptContractV2()` antes de aprobar
-- `ScriptReview`: `readOnly=true`, `hideEditAction=true`, sin botón Editar
-- Invalidation: fingerprint, envelopeRef, planId, csvFields
-- 22 tests. Suite: 1096 passed, 6 skipped. Build: ~3s. Contracts: 3/3 PASS
+- `buildUiScriptContext()` — helper compartido centraliza construcción de contexto
+- `buildScriptContractInputKey()` — clave de invalidación con `approvalStatus` por acción
+- `RemediationPlanStepV2` — reutilizable con `continueLabel` y `onContinueWithPlan`
+- `ScriptGenerationStepV2` — reescrito: Vista A reutiliza `RemediationPlanStepV2`
+- `ReviewStep` — fresh verification antes de approve
+- `MainPipeline` — `initialData` prop para restauración de sesión
+- 29 tests. Suite: 1103 passed, 6 skipped. Build: ~3s. Contracts: 3/3 PASS
 
 ## Loops pendientes
 

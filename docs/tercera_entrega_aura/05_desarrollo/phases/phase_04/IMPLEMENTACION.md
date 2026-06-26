@@ -587,6 +587,45 @@ scriptContractVerificationV2: ScriptValidationResultV2 | null;
 
 ---
 
+## Loop 5R: Reparación de integración UI
+
+**SHA base:** `04a33ae732003f80b0e0fe50a098c96a822d9fc4`
+
+### Cambios
+
+| Archivo | Descripción |
+|---|---|
+| `src/services/scriptContractUiContext.ts` | **CREADO** — `buildUiScriptContext()` + `buildScriptContractInputKey()` |
+| `src/components/ScriptGenerationStepV2.tsx` | **REESCRITO** — Usa `buildUiScriptContext`, reutiliza `RemediationPlanStepV2` en Vista A |
+| `src/components/RemediationPlanStepV2.tsx` | **MODIFICADO** — Props `continueLabel` y `onContinueWithPlan` |
+| `src/components/ReviewStep.tsx` | **MODIFICADO** — Usa `buildUiScriptContext`, `TriangleAlert`, `ok === false` narrow |
+| `src/components/MainPipeline.tsx` | **MODIFICADO** — `initialData` prop, `buildScriptContractInputKey`, limpieza de estado |
+| `src/App.tsx` | **MODIFICADO** — Pasa `initialData={pipelineData}` |
+| `src/__tests__/scriptGenerationStepV2.test.tsx` | **REESCRITO** — 29 tests (Loop 5R completo) |
+
+### Tests (29 nuevos, 1103 total)
+
+| Suite | Tests |
+|---|---|
+| `buildUiScriptContext` | 7 |
+| `buildScriptContractInputKey` | 6 |
+| Contract pipeline (real) | 3 |
+| ScriptGenerationStepV2 component | 6 |
+| RemediationPlanStepV2 props | 3 |
+| ScriptReview v2 props | 2 |
+
+### Verificaciones
+
+| Verificación | Resultado |
+|---|---|
+| Suite completa | 1103 passed, 6 skipped (51 files) |
+| Typecheck | clean (pre-existing errors only) |
+| Build | built in ~3s |
+| Contracts v2 | 3/3 PASS |
+| Remediation plans valid | 3/3 |
+
+---
+
 ## Loops pendientes
 
 - Loop 6: E2E + capturas

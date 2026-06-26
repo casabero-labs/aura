@@ -30,6 +30,7 @@ const stubReport: AuditReport = {
       count: 2,
       affectedPercentage: 2,
       sampleValues: ['bad-email'],
+      ruleId: 'rule:test',
     },
     {
       id: 'integrity-null-edad',
@@ -41,6 +42,7 @@ const stubReport: AuditReport = {
       count: 5,
       affectedPercentage: 5,
       sampleValues: [],
+      ruleId: 'rule:test',
     },
   ],
   scoreBreakdown: [],

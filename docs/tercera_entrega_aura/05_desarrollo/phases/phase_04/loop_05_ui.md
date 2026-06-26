@@ -1,8 +1,8 @@
-# Loop 5: UI — Integración del ScriptContractV2 con la interfaz
+# Loop 5R: UI — Reparación de integración ScriptContractV2
 
-**SHA:** `c0e4e6a14e6f73e635f0c2196a2bd2d150e0cd92`
-**Fecha:** 2026-06-25
-**Estado:** Implementado
+**SHA base:** `04a33ae732003f80b0e0fe50a098c96a822d9fc4`
+**Fecha:** 2026-06-26
+**Estado:** Implementado (reparación)
 
 ## Objetivo
 
@@ -38,10 +38,11 @@ El contrato se invalida automáticamente cuando cambia cualquiera de:
 - `structuredDiagnosis.evidenceEnvelopeRef`
 - `remediationPlan.planId`
 - `csvFields`
+- `approvalStatus` de alguna acción (D17)
 
-Clave de invalidación:
+Clave de invalidación (JSON.stringify):
 ```
-f:{fingerprint}#d:{envelopeRef}#p:{planId}#c:{csvFields.join(',')}
+JSON.stringify({ fingerprint, envelopeRef, planId, approvals: [actionId, approvalStatus], csvFields })
 ```
 
 ## Flujo de componentes
@@ -79,23 +80,25 @@ Propiedades (`ScriptGenerationStepV2Props`):
 ### Flujo de generación
 
 ```typescript
-handleGenerate() {
-  // 1. Construir contexto
-  const refs = csvFields.map((name, pos) => resolveScriptColumn(name, pos, 0));
-  const buildCtx = buildScriptContext(remediationContext, refs, fingerprint);
+// buildUiScriptContext — helper compartido (D18)
+const contextResult = buildUiScriptContext({ structuredDiagnosis, csvFields, sourceDatasetFingerprint });
+
+handleGenerate(plan) {
+  // 1. Construir contexto (shared helper)
+  if (!contextResult.ok) → error
 
   // 2. Construir candidato
-  const candidate = buildScriptCandidateV2(plan, buildCtx);
+  const candidate = buildScriptCandidateV2(plan, contextResult.buildContext);
 
   // 3. Validar
-  const validation = validateScriptCandidateV2(candidate, plan, buildCtx);
+  const validation = validateScriptCandidateV2(candidate, plan, contextResult.buildContext);
   if (!validation.valid) → error
 
   // 4. Finalizar
   const contract = finalizeScriptContractV2(candidate, validation);
 
   // 5. Verificar
-  const fresh = verifyScriptContractV2(contract, plan, buildCtx);
+  const fresh = verifyScriptContractV2(contract, plan, contextResult.buildContext);
   if (!fresh.valid) → error
 
   // 6. Guardar
@@ -172,40 +175,49 @@ En la rama v2 queda **prohibido** llamar:
 
 | Archivo | Descripción |
 |---|---|
-| `src/components/ScriptGenerationStepV2.tsx` | Componente de generación de contrato v2 |
-| `src/__tests__/scriptGenerationStepV2.test.tsx` | 22 tests de integración UI |
+| `src/services/scriptContractUiContext.ts` | Helper compartido: `buildUiScriptContext()`, `buildScriptContractInputKey()` |
+| `src/components/ScriptGenerationStepV2.tsx` | Componente de generación de contrato v2 (reescrito en 5R) |
+| `src/__tests__/scriptGenerationStepV2.test.tsx` | 29 tests de integración UI (Loop 5R) |
 
 ## Archivos modificados
 
 | Archivo | Cambio |
 |---|---|
-| `src/components/MainPipeline.tsx` | Routing v2, estado scriptContractV2, invalidación |
-| `src/components/ReviewStep.tsx` | Rama v2 con fresh verification |
+| `src/components/MainPipeline.tsx` | `initialData` prop, `buildScriptContractInputKey` para invalidación, limpieza de estado local |
+| `src/components/RemediationPlanStepV2.tsx` | Props `continueLabel` y `onContinueWithPlan` (D19) |
+| `src/components/ReviewStep.tsx` | Usa `buildUiScriptContext`, `TriangleAlert`, `ok === false` narrow |
 | `src/components/ScriptReview.tsx` | Props readOnly, hideEditAction, approvalLabel |
-| `src/components/PipelineData` (type) | Añadido scriptContractV2 y scriptContractVerificationV2 |
-| `src/App.tsx` | INITIAL_PIPELINE_DATA y restore con campos v2 |
-| `src/services/pipelineSession.ts` | Serialización de scriptContractV2 |
-| `docs/.../IMPLEMENTACION.md` | Actualizado con Loop 5 |
+| `src/App.tsx` | Pasa `initialData={pipelineData}` a MainPipeline |
 
-## Tests (22 nuevos, 1096 total)
+## Tests (29 nuevos, 1103 total)
 
 | Suite | Tests |
 |---|---|
-| Contract flow | 5 |
-| Contract visual state | 6 |
-| PipelineData v2 fields | 2 |
-| ReviewStep v2 fresh verification | 5 |
-| isContractsV2Enabled routing | 2 |
-| RemediationPlanStepV2 / ScriptReview imports | 2 |
+| buildUiScriptContext | 7 |
+| buildScriptContractInputKey | 6 |
+| Contract pipeline (real) | 3 |
+| ScriptGenerationStepV2 component | 6 |
+| RemediationPlanStepV2 props | 3 |
+| ScriptReview v2 props | 2 |
 
 ## Verificaciones
 
 | Verificación | Resultado |
 |---|---|
-| Suite completa | 1096 passed, 6 skipped |
+| Suite completa | 1103 passed, 6 skipped (51 files) |
 | Build | built in ~3s |
+| Typecheck | clean (only pre-existing `import.meta.env` errors) |
 | Contracts v2 | 3/3 PASS |
 | Remediation plans | 3/3 built, 3/3 valid |
+
+## Decisiones Loop 5R
+
+| ID | Decisión |
+|---|---|
+| D16 | Fresh verification before approval — `verifyScriptContractV2()` fresco antes de aprobar |
+| D17 | Invalidation by composite key — JSON.stringify con `approvalStatus` por acción |
+| D18 | ScriptGenerationStepV2 es unidireccional — sin edición inline, solo generar o volver |
+| D19 | Routing por flag + contexto — `isContractsV2Enabled() && !!structuredDiagnosis?.remediationContext` |
 
 ## Limitaciones no bloqueantes
 
@@ -214,3 +226,4 @@ En la rama v2 queda **prohibido** llamar:
 3. `syntax not_run` no significa `syntax passed` — es informativo
 4. No existe ejecución Python en Phase 4 — se delega a Phase 5
 5. El contrato se genera pero no se ejecuta en la UI
+6. `import.meta.env` errores pre-existentes en MainPipeline.tsx (Vite-specific)

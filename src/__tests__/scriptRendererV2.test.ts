@@ -65,7 +65,7 @@ function makeAction(
     ruleId: 'rule:test',
     columnId,
     actionType,
-    parameters: params as RemediationActionV2['parameters'],
+    parameters: params as unknown as RemediationActionV2['parameters'],
     actionability: 'auto_safe',
     evidenceRefs: [],
     approvalStatus,
@@ -924,7 +924,7 @@ describe('ScriptRendererError codes', () => {
       columnId: col.columnId,
       actionType: 'UNSUPPORTED_TYPE' as unknown as RemediationActionV2['actionType'],
       parameters: {} as RemediationActionV2['parameters'],
-      actionability: 'auto_safe',
+      actionability: 'auto_safe' as const,
       evidenceRefs: [],
       approvalStatus: 'approved' as const,
     };

@@ -1,6 +1,6 @@
 # Decisiones de diseño — Phase 4
 
-> **Versión:** 2.1.0 · **Fecha:** 2026-06-25 · **Commit Phase 3:** `d3774dd5ac98d89ca4454c693b1b0a30856cd191` · **Loop 5:** `c0e4e6a`
+> **Versión:** 2.2.0 · **Fecha:** 2026-06-26 · **Commit Phase 3:** `d3774dd5ac98d89ca4454c693b1b0a30856cd191` · **Loop 5R:** `04a33ae`
 
 ---
 
@@ -228,16 +228,32 @@ Una acción `rejected` NUNCA aparece en `excludedActionIds`. Los conjuntos son m
 
 ---
 
+## D16: Fresh verification antes de aprobación
+
+**Decisión:** En `ReviewStep` v2, antes de ejecutar `onApproveV2`, se llama a `verifyScriptContractV2()` con los datos actuales. Si la verificación fresca falla, se bloquea la aprobación y se muestra el error.
+
+**Justificación:** El contrato puede haber sido generado con inputs que cambiaron después (fingerprint, plan, etc.). Verificar fresco antes de aprobar garantiza que el contrato aprobado es válido respecto al estado actual.
+
+**Consecuencias:**
+- `ReviewStep` importa `buildUiScriptContext` y `verifyScriptContractV2`
+- Si `buildUiScriptContext` falla → error, aprobación bloqueada
+- Si `verifyScriptContractV2` falla → error, aprobación bloqueada
+- Solo se aprueba si ambas verificaciones pasan
+- `createImprovementRun` NO se llama en rama v2
+
+---
+
 ## D17: Invalidation por clave compuesta
 
-**Decisión:** El contrato se invalida cuando cambia cualquiera de los inputs base: `fingerprint`, `envelopeRef`, `planId`, `csvFields`. La clave es un string compuesto `f:{fingerprint}#d:{envelopeRef}#p:{planId}#c:{csvFields.join(',')}`.
+**Decisión:** El contrato se invalida cuando cambia cualquiera de los inputs base: `fingerprint`, `envelopeRef`, `planId`, `csvFields`, o el `approvalStatus` de alguna acción. La clave es `JSON.stringify({ fingerprint, envelopeRef, planId, approvals: [actionId, approvalStatus], csvFields })`.
 
-**Justificación:** Re-calcular el contrato ante cada cambio de input evita aprobaciones de contratos obsoletos. La clave compuesta es determinista y se calcula en un solo efecto `useEffect`.
+**Justificación:** Re-calcular el contrato ante cada cambio de input evita aprobaciones de contratos obsoletos. Incluir `approvalStatus` detecta cambios de aprobación que alteran el `acceptedActionIds`.
 
 **Consecuencias:**
 - Un cambio en `csvFields` invalida el contrato (porque cambia el column registry)
 - Un cambio en `planId` invalida el contrato (porque cambia las acciones aceptadas)
-- Si algún input es `null`, el efecto no se ejecuta (esperando datos)
+- Un cambio de `approvalStatus` invalida el contrato (porque cambia `acceptedActionIds`)
+- Si algún input es `null`, la clave es `null` (no se invalida)
 
 ---
 

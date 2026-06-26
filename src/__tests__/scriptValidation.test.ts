@@ -27,6 +27,7 @@ const stubReport: AuditReport = {
       count: 1,
       affectedPercentage: 6.7,
       sampleValues: [],
+      ruleId: 'rule:test',
     },
     {
       id: 'integrity-dupes',
@@ -37,6 +38,7 @@ const stubReport: AuditReport = {
       count: 1,
       affectedPercentage: 6.7,
       sampleValues: [],
+      ruleId: 'rule:test',
     },
     {
       id: 'hygiene-toxic-edad',
@@ -48,6 +50,7 @@ const stubReport: AuditReport = {
       count: 1,
       affectedPercentage: 6.7,
       sampleValues: ['N/A'],
+      ruleId: 'rule:test',
     },
   ],
   scoreBreakdown: [],

@@ -26,6 +26,7 @@ const report: AuditReport = {
       count: 2,
       affectedPercentage: 2,
       sampleValues: ['bad@email', 'no-at-sign', 'incomplete'],
+      ruleId: 'rule:test',
     },
     {
       id: 'types-age-age',
@@ -37,6 +38,7 @@ const report: AuditReport = {
       count: 1,
       affectedPercentage: 1,
       sampleValues: ['-5'],
+      ruleId: 'rule:test',
     },
   ],
   scoreBreakdown: [],

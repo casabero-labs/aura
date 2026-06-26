@@ -165,8 +165,8 @@ function renderTrimWhitespace(
   const params = action.parameters;
   validateParameters(params, action.actionId);
   if (
-    typeof (params as Record<string, unknown>).trimEdges !== 'boolean' ||
-    (params as Record<string, unknown>).trimEdges !== true
+    typeof (params as unknown as Record<string, unknown>).trimEdges !== 'boolean' ||
+    (params as unknown as Record<string, unknown>).trimEdges !== true
   ) {
     rendererError(
       'RENDER_PARAMETERS_INVALID',
@@ -174,7 +174,7 @@ function renderTrimWhitespace(
     );
   }
 
-  const collapse = (params as Record<string, unknown>).collapseInternalWhitespace;
+  const collapse = (params as unknown as Record<string, unknown>).collapseInternalWhitespace;
   if (typeof collapse !== 'boolean') {
     rendererError(
       'RENDER_PARAMETERS_INVALID',
@@ -203,8 +203,8 @@ function renderDropExactDuplicates(action: RemediationActionV2): string {
   }
 
   if (
-    typeof (params as Record<string, unknown>).keep !== 'string' ||
-    (params as Record<string, unknown>).keep !== 'first'
+    typeof (params as unknown as Record<string, unknown>).keep !== 'string' ||
+    (params as unknown as Record<string, unknown>).keep !== 'first'
   ) {
     rendererError(
       'RENDER_PARAMETERS_INVALID',
@@ -223,8 +223,8 @@ function renderNormalizePlaceholders(
   validateParameters(params, action.actionId);
 
   if (
-    typeof (params as Record<string, unknown>).strategy !== 'string' ||
-    (params as Record<string, unknown>).strategy !== 'controlled_vocabulary'
+    typeof (params as unknown as Record<string, unknown>).strategy !== 'string' ||
+    (params as unknown as Record<string, unknown>).strategy !== 'controlled_vocabulary'
   ) {
     rendererError(
       'RENDER_PARAMETERS_INVALID',
@@ -232,7 +232,7 @@ function renderNormalizePlaceholders(
     );
   }
 
-  if ((params as Record<string, unknown>).replacement !== null) {
+  if ((params as unknown as Record<string, unknown>).replacement !== null) {
     rendererError(
       'RENDER_PARAMETERS_INVALID',
       `RENDER_PARAMETERS_INVALID: normalize_placeholders requires replacement=null`,
@@ -255,7 +255,7 @@ function renderNormalizeCasing(
   const params = action.parameters;
   validateParameters(params, action.actionId);
 
-  const strategy = (params as Record<string, unknown>).strategy;
+  const strategy = (params as unknown as Record<string, unknown>).strategy;
   if (typeof strategy !== 'string') {
     rendererError(
       'RENDER_PARAMETERS_INVALID',
@@ -288,8 +288,8 @@ function renderConvertDisguisedNumbers(
   validateParameters(params, action.actionId);
 
   if (
-    typeof (params as Record<string, unknown>).decimalSeparator !== 'string' ||
-    (params as Record<string, unknown>).decimalSeparator !== 'auto'
+    typeof (params as unknown as Record<string, unknown>).decimalSeparator !== 'string' ||
+    (params as unknown as Record<string, unknown>).decimalSeparator !== 'auto'
   ) {
     rendererError(
       'RENDER_PARAMETERS_INVALID',
@@ -298,8 +298,8 @@ function renderConvertDisguisedNumbers(
   }
 
   if (
-    typeof (params as Record<string, unknown>).errors !== 'string' ||
-    (params as Record<string, unknown>).errors !== 'coerce'
+    typeof (params as unknown as Record<string, unknown>).errors !== 'string' ||
+    (params as unknown as Record<string, unknown>).errors !== 'coerce'
   ) {
     rendererError(
       'RENDER_PARAMETERS_INVALID',
@@ -322,7 +322,7 @@ function renderRequiresHumanReview(action: RemediationActionV2): string {
   const params = action.parameters;
   validateParameters(params, action.actionId);
 
-  const reasonCode = (params as Record<string, unknown>).reasonCode;
+  const reasonCode = (params as unknown as Record<string, unknown>).reasonCode;
   if (typeof reasonCode !== 'string') {
     rendererError(
       'RENDER_PARAMETERS_INVALID',
@@ -438,7 +438,7 @@ export function renderActionV2(
       return renderConvertDisguisedNumbers(action, resolvedCol!);
 
     default: {
-      const exhaustiveCheck: never = action;
+      const exhaustiveCheck = action as never;
       rendererError(
         'RENDER_UNSUPPORTED_ACTION',
         `RENDER_UNSUPPORTED_ACTION: actionType "${(exhaustiveCheck as { actionType: string }).actionType}" is not supported`,

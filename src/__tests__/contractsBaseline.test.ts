@@ -87,8 +87,8 @@ describe('Dataset Metadata', () => {
 });
 
 describe('Phantom Column Detection', () => {
-  function extractCols(script) {
-    const refs = new Set();
+  function extractCols(script: string) {
+    const refs = new Set<string>();
     const pats = [/df\[['"]([a-zA-Z_][a-zA-Z0-9_]*)['"]\]/g, /df_clean\[['"]([a-zA-Z_][a-zA-Z0-9_]*)['"]\]/g];
     for (const p of pats) { let m; while ((m = p.exec(script)) !== null) refs.add(m[1]); }
     return refs;

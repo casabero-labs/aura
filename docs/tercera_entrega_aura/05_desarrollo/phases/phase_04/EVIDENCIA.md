@@ -517,6 +517,86 @@ cd src && npm run contracts:v2:validate-local
 
 ---
 
+## Loop 5R — Reparación de integración UI
+
+### SHA base
+
+`04a33ae732003f80b0e0fe50a098c96a822d9fc4`
+
+### Comandos de reproducción
+
+```bash
+cd src && npm test -- scriptGenerationStepV2
+# 29 passed
+
+cd src && npm test
+# 1103 passed, 6 skipped (51 files)
+
+cd src && npm run typecheck
+# clean (only pre-existing import.meta.env errors)
+
+cd src && npm run build
+# built in ~3s
+
+cd src && npm run contracts:v2:validate-local
+# 3/3 PASS, plans 3/3 valid
+```
+
+### Resultados
+
+| Verificación | Resultado |
+|---|---|
+| Tests Loop 5R | 29 passed |
+| Suite completa | 1103 passed, 6 skipped |
+| Typecheck | clean (pre-existing errors only) |
+| Build | built in ~3s |
+| Contracts v2 validate-local | 3/3 PASS |
+| Remediation plans valid | 3/3 |
+
+### Archivos creados
+
+| Archivo | Descripción |
+|---|---|
+| `src/services/scriptContractUiContext.ts` | `buildUiScriptContext()` + `buildScriptContractInputKey()` |
+| `src/__tests__/scriptGenerationStepV2.test.tsx` | 29 tests (Loop 5R completo) |
+
+### Archivos modificados
+
+| Archivo | Cambio |
+|---|---|
+| `src/components/ScriptGenerationStepV2.tsx` | Reescrito: usa `buildUiScriptContext`, `RemediationPlanStepV2` reutilizado en Vista A |
+| `src/components/RemediationPlanStepV2.tsx` | Props `continueLabel`, `onContinueWithPlan` |
+| `src/components/ReviewStep.tsx` | Usa `buildUiScriptContext`, `TriangleAlert`, `ok === false` narrow |
+| `src/components/MainPipeline.tsx` | `initialData` prop, `buildScriptContractInputKey`, limpieza de estado |
+| `src/App.tsx` | Pasa `initialData={pipelineData}` |
+
+### Test breakdown (29 tests)
+
+| Suite | Tests |
+|---|---|
+| `buildUiScriptContext` | 7 |
+| `buildScriptContractInputKey` | 6 |
+| Contract pipeline (real) | 3 |
+| ScriptGenerationStepV2 component | 6 |
+| RemediationPlanStepV2 props | 3 |
+| ScriptReview v2 props | 2 |
+
+### Confirmaciones
+
+- `scriptBuilderV2.ts` no cambió
+- `scriptRendererV2.ts` no cambió
+- `scriptValidatorV2.ts` no cambió
+- `scriptColumnResolver.ts` no cambió
+- `columnRegistry.ts` no cambió
+- `placeholderVocabulary.ts` no cambió
+- `scriptErrorCodes.ts` no cambió
+- Phase 3 no cambió
+- No se importó Pyodide
+- No se ejecutó Python
+- No se creó ImprovementRun
+
+---
+
 ## Loop 1 — Histórico
 
 Ver `EVIDENCIA.md` original en el commit `53df16a`.

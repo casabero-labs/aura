@@ -37,7 +37,7 @@ export interface OllamaDiagnostic {
   endpoint: string;
   model?: string;
   strategy: string;
-  targetAddressSpace?: Request['targetAddressSpace'];
+  targetAddressSpace?: string;
   error?: {
     name: string;
     message: string;
@@ -57,7 +57,7 @@ export interface OllamaFetchOptions {
   headers?: Record<string, string>;
   body?: unknown;
   signal?: AbortSignal;
-  targetAddressSpace?: Request['targetAddressSpace'];
+  targetAddressSpace?: string;
 }
 
 export interface OllamaModelsResult {
@@ -123,9 +123,9 @@ export function isPrivateLanEndpoint(url: string): boolean {
 export function supportsTargetAddressSpace(): boolean {
   try {
     const request = new Request('http://127.0.0.1/', {
-      targetAddressSpace: 'loopback' as Request['targetAddressSpace'],
+      targetAddressSpace: 'loopback' as string,
     } as RequestInit);
-    return request.targetAddressSpace === 'loopback';
+    return (request as any).targetAddressSpace === 'loopback';
   } catch {
     return false;
   }
@@ -144,7 +144,7 @@ export function buildFetchOptions(
   const parsed = new URL(endpoint);
   const classification = classifyEndpointHost(parsed.hostname);
 
-  let targetAddressSpace: Request['targetAddressSpace'] | undefined;
+  let targetAddressSpace: string | undefined;
 
   if (classification === 'loopback') {
     targetAddressSpace = undefined;
@@ -313,6 +313,7 @@ export async function diagnoseOllamaConnection(
     state: 'unknown' as OllamaConnectionState,
     endpoint,
     model,
+    strategy: '',
     stages: [] as OllamaDiagnosticStage[],
     browser: browser.name,
     browserVersion: browser.version,
@@ -397,7 +398,7 @@ export async function diagnoseOllamaConnection(
     return result;
   }
 
-  let models: Array<{ name: string }> = [];
+  let models: Array<{ name: string; size?: number }> = [];
   try {
     const data = await (await fetch(tagsUrl)).json();
     models = Array.isArray(data.models) ? data.models : [];

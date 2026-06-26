@@ -188,6 +188,7 @@ export const generatePdfReport = (
   });
 
   // --- SOURCE DEBT WARNING (when delta ≤ 0) ---
+  let sectionIndex = 4;
   if (healthDelta && healthDelta.scoreDelta <= 0) {
     if (yPos > pageHeight - 40) { doc.addPage(); yPos = margin; }
     sectionIndex++;
@@ -212,10 +213,9 @@ export const generatePdfReport = (
       yPos += critLines.length * 5 + 5;
     }
     yPos += 5;
+  } else {
+    sectionIndex = 5;
   }
-
-  // --- LLM DIAGNOSIS (only if content is present) ---
-  let sectionIndex = 5;
 
   if (llmDiagnosis) {
     if (yPos > pageHeight - 50) { doc.addPage(); yPos = margin; }

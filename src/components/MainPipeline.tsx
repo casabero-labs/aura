@@ -12,6 +12,7 @@ import { parseCsv } from '../services/csvService';
 import { buildAuditEvidence, buildIngestionEvidence, createTraceRecorder, fingerprintDataset } from '../services/executionEvidence';
 import { matchGroundTruth, buildDeterministicValidationReport } from '../services/deterministicValidation';
 import { validateCleaningScript } from '../services/scriptValidationService';
+import { buildScriptContractInputKey } from '../services/scriptContractUiContext';
 import { AIConfig, AIProvider, AuditReport, AuditExecutionEvidence, BenchmarkResult, DeterministicValidationReport, HealthDelta, ImprovementRun, ProviderMetrics, ScriptValidationResult, ProgressDisclosureStatus } from '../types';
 import type { DiagnosisExecutionResult, RemediationPlanV2, ScriptContractV2, ScriptValidationResultV2 } from '../contracts/llm';
 import { validateRemediationPlanV2, isContractsV2Enabled } from '../contracts/llm';
@@ -44,6 +45,7 @@ export interface PipelineData {
 interface MainPipelineProps {
   aiConfig: AIConfig;
   aiProvider: AIProvider;
+  initialData?: PipelineData | null;
   onLog?: (stage: string, msg: string) => void;
   onPipelineChange?: (data: PipelineData) => void;
   onAiConfigChange?: (config: AIConfig) => void;
@@ -51,31 +53,31 @@ interface MainPipelineProps {
   onOpenSettings?: () => void;
 }
 
-const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, onLog, onPipelineChange, onAiConfigChange, onOpenLab, onOpenSettings }) => {
-  const [state, setState] = useState<PipelineState>('upload');
+const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initialData, onLog, onPipelineChange, onAiConfigChange, onOpenLab, onOpenSettings }) => {
+  const [state, setState] = useState<PipelineState>(() => initialData?.state ?? 'upload');
   const [file, setFile] = useState<File | null>(null);
-  const [report, setReport] = useState<AuditReport | null>(null);
-  const [auditEvidence, setAuditEvidence] = useState<AuditExecutionEvidence | null>(null);
-  const [rawData, setRawData] = useState<Record<string, any>[]>([]);
-  const [csvFields, setCsvFields] = useState<string[]>([]);
-  const [csvDelimiter, setCsvDelimiter] = useState(',');
-  const [cleaningScript, setCleaningScript] = useState('');
-  const [approvedScript, setApprovedScript] = useState('');
-  const [healthDelta, setHealthDelta] = useState<HealthDelta | null>(null);
-  const [aiAnalysis, setAiAnalysis] = useState('');
-  const [structuredDiagnosis, setStructuredDiagnosis] = useState<DiagnosisExecutionResult | null>(null);
-  const [remediationPlan, setRemediationPlan] = useState<RemediationPlanV2 | null>(null);
-  const [benchmarkResults, setBenchmarkResults] = useState<BenchmarkResult[]>([]);
-  const [improvementRun, setImprovementRun] = useState<ImprovementRun | null>(null);
-  const [logs, setLogs] = useState<{ time: string; msg: string }[]>([]);
+  const [report, setReport] = useState<AuditReport | null>(() => initialData?.report ?? null);
+  const [auditEvidence, setAuditEvidence] = useState<AuditExecutionEvidence | null>(() => initialData?.auditEvidence ?? null);
+  const [rawData, setRawData] = useState<Record<string, any>[]>(() => initialData?.rawData ?? []);
+  const [csvFields, setCsvFields] = useState<string[]>(() => initialData?.csvFields ?? []);
+  const [csvDelimiter, setCsvDelimiter] = useState(() => initialData?.csvDelimiter ?? ',');
+  const [cleaningScript, setCleaningScript] = useState(() => initialData?.cleaningScript ?? '');
+  const [approvedScript, setApprovedScript] = useState(() => initialData?.approvedScript ?? '');
+  const [healthDelta, setHealthDelta] = useState<HealthDelta | null>(() => initialData?.healthDelta ?? null);
+  const [aiAnalysis, setAiAnalysis] = useState(() => initialData?.aiAnalysis ?? '');
+  const [structuredDiagnosis, setStructuredDiagnosis] = useState<DiagnosisExecutionResult | null>(() => initialData?.structuredDiagnosis ?? null);
+  const [remediationPlan, setRemediationPlan] = useState<RemediationPlanV2 | null>(() => initialData?.remediationPlan ?? null);
+  const [benchmarkResults, setBenchmarkResults] = useState<BenchmarkResult[]>(() => initialData?.benchmarkResults ?? []);
+  const [improvementRun, setImprovementRun] = useState<ImprovementRun | null>(() => initialData?.improvementRun ?? null);
+  const [logs, setLogs] = useState<{ time: string; msg: string }[]>(() => initialData?.logs ?? []);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const [scriptValidation, setScriptValidation] = useState<ScriptValidationResult | null>(null);
-  const [deterministicValidation, setDeterministicValidation] = useState<DeterministicValidationReport | null>(null);
+  const [scriptValidation, setScriptValidation] = useState<ScriptValidationResult | null>(() => initialData?.scriptValidation ?? null);
+  const [deterministicValidation, setDeterministicValidation] = useState<DeterministicValidationReport | null>(() => initialData?.deterministicValidation ?? null);
   const [processProgressStatus, setProcessProgressStatus] = useState<ProgressDisclosureStatus>('idle');
   const [processProgressStep, setProcessProgressStep] = useState('');
-  const [scriptContractV2, setScriptContractV2] = useState<ScriptContractV2 | null>(null);
-  const [scriptContractVerificationV2, setScriptContractVerificationV2] = useState<ScriptValidationResultV2 | null>(null);
+  const [scriptContractV2, setScriptContractV2] = useState<ScriptContractV2 | null>(() => initialData?.scriptContractV2 ?? null);
+  const [scriptContractVerificationV2, setScriptContractVerificationV2] = useState<ScriptValidationResultV2 | null>(() => initialData?.scriptContractVerificationV2 ?? null);
 
   // Sync pipeline data upward to parent (deferred to avoid overwriting App's session restore)
   const mountCountRef = useRef(0);
@@ -130,13 +132,19 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, onLog
   useEffect(() => {
     if (!isContractsV2Enabled()) return;
     const fingerprint = auditEvidence?.datasetFingerprint ?? null;
-    const key = fingerprint
-      ? `f:${fingerprint}#d:${structuredDiagnosis?.evidenceEnvelopeRef ?? 'none'}#p:${remediationPlan?.planId ?? 'none'}#c:${csvFields.join(',')}`
-      : null;
+    const key = buildScriptContractInputKey({
+      fingerprint,
+      envelopeRef: structuredDiagnosis?.evidenceEnvelopeRef ?? null,
+      planId: remediationPlan?.planId ?? null,
+      plan: remediationPlan?.plan ?? null,
+      csvFields,
+    });
     if (prevContractKeyRef.current !== null && key !== prevContractKeyRef.current) {
       setScriptContractV2(null);
       setScriptContractVerificationV2(null);
-      addLog('script.contract.v2.invalidated :: plan/diagnosis/fingerprint changed');
+      setCleaningScript('');
+      setApprovedScript('');
+      addLog('script.contract.v2.invalidated :: inputs changed');
     }
     prevContractKeyRef.current = key;
   }, [auditEvidence, structuredDiagnosis, remediationPlan, csvFields]);

@@ -5,7 +5,7 @@
  * syntax, reconstruction, final contract, embedded validationResult, hash fields.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { buildColumnRegistry } from '../contracts/llm/columnRegistry';
 import { buildScriptContext } from '../contracts/llm/scriptBuildContext';
 import {
@@ -43,7 +43,7 @@ function makeAction(
     ruleId: 'rule:test',
     columnId,
     actionType: actionType as RemediationActionV2['actionType'],
-    parameters: params as RemediationActionV2['parameters'],
+    parameters: params as unknown as RemediationActionV2['parameters'],
     actionability: 'auto_safe',
     evidenceRefs: [],
     approvalStatus,

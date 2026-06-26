@@ -52,3 +52,24 @@
 - NO afirmar benchmark comparativo (falta E2E)
 - NO afirmar que los valores del vocabulario son universalmente nulos (D15)
 - NO afirmar que el contrato fue auditado end-to-end (falta Loop 6)
+
+---
+
+## Loop 5R — Reparación de integración UI
+
+### Limitaciones
+
+1. **`import.meta.env` type errors:** Pre-existentes en MainPipeline.tsx (Vite-specific, no bloqueantes)
+2. **`buildRemediationPlanV2` falla sin `automaticAuthorization`:** Los issues del contexto requieren campo completo (no parcial)
+3. **`DiagnosisResponseV2` no tiene `diagnosisRef`:** Usa `responseId` — fixture del test debió ajustarse
+4. **Plan validation requiere issues bidireccionales:** Cada `context.issueId` debe existir en `diagnosis.issues` y viceversa
+5. **Múltiples botones "Aprobar":** Un plan con 3 columnas genera 3 botones — tests deben usar `getAllByText`
+
+### Curados en Loop 5R
+
+- `buildUiScriptContext` centraliza construcción de contexto (shared helper)
+- `buildScriptContractInputKey` con `approvalStatus` por acción (D17 actualizado)
+- `RemediationPlanStepV2` reutilizable con `continueLabel` y `onContinueWithPlan` (D19)
+- `initialData` prop en MainPipeline para restauración de sesión (one-time init)
+- Fixture de diagnóstico con `DiagnosisResponseV2` completo (`responseId`, `diagnosisBlocks`, `limitations`)
+- Fixture de issues con `automaticAuthorization` completo (`authorized`, `actionType`, `conditionsMet`, `reason`)

@@ -84,7 +84,7 @@ describe('Column Registry (1C)', () => {
   it('resolveColumn via name+position for duplicates', () => {
     const cols = buildColumnRegistry(['X', 'Y', 'X']);
     const r = resolveColumn(cols, { name: 'X', position: 2 });
-    expect('name' in r && r.duplicateOrdinal).toBe(1);
+    expect('name' in r && (r as any).duplicateOrdinal).toBe(1);
   });
   it('resolveColumn returns error for duplicate without position', () => {
     const cols = buildColumnRegistry(['X', 'Y', 'X']);

@@ -131,7 +131,7 @@ class LazyChromeProvider implements AIProvider {
   private async provider(): Promise<AIProvider> {
     if (!this.providerPromise) {
       this.providerPromise = import('./providers/chromeProvider').then(({ ChromePromptProvider }) =>
-        new ChromePromptProvider(this.temperature)
+        new ChromePromptProvider()
       );
     }
     return this.providerPromise;

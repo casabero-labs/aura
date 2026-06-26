@@ -25,6 +25,7 @@ const report: AuditReport = {
       count: 2,
       affectedPercentage: 2,
       sampleValues: ['bad-email'],
+      ruleId: 'rule:test',
     },
   ],
   scoreBreakdown: [],

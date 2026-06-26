@@ -28,6 +28,8 @@ interface RemediationPlanStepV2Props {
   remediationPlan?: RemediationPlanV2 | null;
   onRemediationPlanChange?: (plan: RemediationPlanV2) => void;
   onContinue: () => void;
+  continueLabel?: string;
+  onContinueWithPlan?: (plan: RemediationPlanV2) => void;
 }
 
 const RemediationPlanStepV2: React.FC<RemediationPlanStepV2Props> = ({
@@ -36,6 +38,8 @@ const RemediationPlanStepV2: React.FC<RemediationPlanStepV2Props> = ({
   remediationPlan,
   onRemediationPlanChange,
   onContinue,
+  continueLabel,
+  onContinueWithPlan,
 }) => {
   const [v2Plan, setV2Plan] = useState<RemediationPlanV2 | null>(remediationPlan ?? null);
   const [v2PlanError, setV2PlanError] = useState<string | null>(null);
@@ -220,8 +224,18 @@ const RemediationPlanStepV2: React.FC<RemediationPlanStepV2Props> = ({
       )}
 
       <div className="evidence-options" data-testid="primary-stage-action" style={{ marginTop: 'var(--space-lg)' }}>
-        <button className="btn-p btn-sm" onClick={onContinue}>
-          Continuar a revisión <ArrowRight size={12} />
+        <button
+          className="btn-p btn-sm"
+          disabled={!v2Plan}
+          onClick={() => {
+            if (onContinueWithPlan && v2Plan) {
+              onContinueWithPlan(v2Plan);
+            } else {
+              onContinue();
+            }
+          }}
+        >
+          {continueLabel ?? 'Continuar a revisión'} <ArrowRight size={12} />
         </button>
       </div>
     </section>

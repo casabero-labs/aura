@@ -5,7 +5,7 @@
  * Coverage: candidate, partition, columns, context, renderer, reconstruction, hash, finalizer.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { buildColumnRegistry } from '../contracts/llm/columnRegistry';
 import { buildColumnRegistryV2 } from '../contracts/llm/scriptColumnResolver';
 import { buildScriptContext } from '../contracts/llm/scriptBuildContext';
@@ -46,7 +46,7 @@ function makeAction(
     ruleId: 'rule:test',
     columnId,
     actionType,
-    parameters: params as RemediationActionV2['parameters'],
+    parameters: params as unknown as RemediationActionV2['parameters'],
     actionability: 'auto_safe',
     evidenceRefs: [],
     approvalStatus,

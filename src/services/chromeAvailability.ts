@@ -229,8 +229,7 @@ export async function detectChromeAiAvailability(): Promise<NormalizedAvailabili
     } else if (apiSurface === 'window.ai.languageModel') {
       try {
         const availabilityResult = await window.ai!.languageModel!.availability();
-        availabilityWithOptionsRaw = extractAvailabilityValue(availabilityResult);
-        rawAvailability = availabilityWithOptionsRaw;
+        rawAvailability = extractAvailabilityValue(availabilityResult);
         technicalDetails.push(`window.ai.languageModel.availability() returned: ${JSON.stringify(availabilityResult)} => extracted: ${rawAvailability}`);
       } catch (e) {
         technicalDetails.push(`window.ai.languageModel.availability() failed: ${(e as Error).message}`);

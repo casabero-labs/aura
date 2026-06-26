@@ -596,6 +596,7 @@ describe('PrivacyReceiptService', () => {
       apiSurface: 'LanguageModel' as const,
       message: 'Test',
       technicalDetails: [],
+      detectedAt: new Date().toISOString(),
     };
     
     const receipt = await service.generateReceipt(data, columns, networkResult, availability);
@@ -629,6 +630,7 @@ describe('PrivacyReceiptService', () => {
       apiSurface: 'LanguageModel' as const,
       message: 'Test',
       technicalDetails: [],
+      detectedAt: new Date().toISOString(),
     };
     
     const receipt = await service.generateReceipt(data, columns, networkResult, availability);
@@ -644,8 +646,8 @@ describe('PrivacyReceiptService', () => {
     const data = [['test']];
     const columns = ['test'];
     const networkResult = {
-      requests: [{ type: 'fetch', url: 'https://external.com', timestamp: Date.now(), initiator: 'fetch' }],
-      externalRequests: [{ type: 'fetch', url: 'https://external.com', timestamp: Date.now(), initiator: 'fetch' }],
+      requests: [{ type: 'fetch' as const, url: 'https://external.com', timestamp: Date.now(), initiator: 'fetch' }],
+      externalRequests: [{ type: 'fetch' as const, url: 'https://external.com', timestamp: Date.now(), initiator: 'fetch' }],
       auraRequests: [],
       totalRequests: 1,
     };
@@ -654,6 +656,7 @@ describe('PrivacyReceiptService', () => {
       apiSurface: 'LanguageModel' as const,
       message: 'Test',
       technicalDetails: [],
+      detectedAt: new Date().toISOString(),
     };
     
     const receipt = await service.generateReceipt(data, columns, networkResult, availability);
@@ -679,6 +682,7 @@ describe('PrivacyReceiptService', () => {
       apiSurface: 'LanguageModel' as const,
       message: 'Test',
       technicalDetails: [],
+      detectedAt: new Date().toISOString(),
     };
     
     const receipt = await service.generateReceipt(data, columns, networkResult, availability);
@@ -705,6 +709,7 @@ describe('PrivacyReceiptService', () => {
       apiSurface: 'LanguageModel' as const,
       message: 'Test',
       technicalDetails: [],
+      detectedAt: new Date().toISOString(),
     };
     
     const receipt = await service.generateReceipt(data, columns, networkResult, availability);

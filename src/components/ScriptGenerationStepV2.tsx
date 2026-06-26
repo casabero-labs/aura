@@ -22,25 +22,22 @@ import {
   Terminal,
 } from 'lucide-react';
 import {
-  buildColumnRegistry,
   buildScriptCandidateV2,
-  buildScriptContext,
   finalizeScriptContractV2,
   isContractsV2Enabled,
-  resolveScriptColumn,
   validateScriptCandidateV2,
   verifyScriptContractV2,
 } from '../contracts/llm';
 import type {
-  AuditReport,
-  ColumnRef,
   DiagnosisExecutionResult,
   RemediationPlanV2,
-  ScriptBuildContextV2,
   ScriptContractV2,
   ScriptValidationResultV2,
 } from '../contracts/llm';
+import type { AuditReport } from '../types';
 import { highlightPython } from '../services/highlightPython';
+import { buildUiScriptContext } from '../services/scriptContractUiContext';
+import RemediationPlanStepV2 from './RemediationPlanStepV2';
 
 export interface ScriptGenerationStepV2Props {
   report: AuditReport;
@@ -63,15 +60,6 @@ interface GenerationState {
   contract?: ScriptContractV2;
   verification?: ScriptValidationResultV2;
 }
-
-const computeContractKey = (
-  plan: RemediationPlanV2 | null,
-  fingerprint: string | null,
-  csvFields: string[],
-) => {
-  if (!plan || !fingerprint) return null;
-  return `f:${fingerprint}#p:${plan.planId}#c:${csvFields.join(',')}`;
-};
 
 const ScriptGenerationStepV2: React.FC<ScriptGenerationStepV2Props> = ({
   report,
@@ -99,6 +87,7 @@ const ScriptGenerationStepV2: React.FC<ScriptGenerationStepV2Props> = ({
     return { status: 'idle' };
   });
 
+  // Sync with parent contract (invalidation sets it to null)
   useEffect(() => {
     if (scriptContractV2 && view === 'decision') {
       setView('contract');
@@ -108,119 +97,98 @@ const ScriptGenerationStepV2: React.FC<ScriptGenerationStepV2Props> = ({
         verification: scriptContractVerificationV2 ?? undefined,
       });
     }
-  }, [scriptContractV2]);
-
-  const buildContext = useMemo<ScriptBuildContextV2 | null>(() => {
-    if (!structuredDiagnosis?.remediationContext) return null;
-    if (!sourceDatasetFingerprint) return null;
-    if (csvFields.length === 0) return null;
-
-    const refs: ColumnRef[] = csvFields.map((name, position) => {
-      const resolved = resolveScriptColumn(name, position, 0);
-      return {
-        columnId: resolved.columnId,
-        name,
-        position,
-        duplicateOrdinal: 0,
-        isAmbiguous: false,
-        isDuplicate: false,
-      };
-    });
-
-    try {
-      return buildScriptContext(
-        structuredDiagnosis.remediationContext,
-        refs,
-        sourceDatasetFingerprint,
-      );
-    } catch {
-      return null;
+    if (!scriptContractV2 && view === 'contract') {
+      setView('decision');
+      setGenState({ status: 'idle' });
     }
-  }, [structuredDiagnosis, sourceDatasetFingerprint, csvFields]);
+  }, [scriptContractV2, scriptContractVerificationV2]);
 
-  const canGenerate = useMemo(
+  // Build context using shared helper — no manual refs
+  const contextResult = useMemo(
     () =>
-      !!remediationPlan &&
-      !!buildContext &&
-      !!sourceDatasetFingerprint &&
-      !!structuredDiagnosis?.remediationContext,
-    [remediationPlan, buildContext, sourceDatasetFingerprint, structuredDiagnosis],
+      buildUiScriptContext({
+        structuredDiagnosis,
+        csvFields,
+        sourceDatasetFingerprint,
+      }),
+    [structuredDiagnosis, csvFields, sourceDatasetFingerprint],
   );
 
-  const handleGenerate = useCallback(() => {
-    if (!canGenerate || !remediationPlan || !buildContext) return;
+  const canGenerate = useMemo(
+    () => !!remediationPlan && contextResult.ok,
+    [remediationPlan, contextResult],
+  );
 
-    setGenState({ status: 'building' });
-    onLog?.('script.v2', 'build.start');
+  const handleGenerate = useCallback(
+    (plan: RemediationPlanV2) => {
+      if (!contextResult.ok) return;
 
-    try {
-      const candidate = buildScriptCandidateV2(remediationPlan, buildContext);
-      setGenState({ status: 'validating' });
+      setGenState({ status: 'building' });
+      onLog?.('script.v2', 'build.start');
 
-      const validationResult = validateScriptCandidateV2(
-        candidate,
-        remediationPlan,
-        buildContext,
-      );
-      if (!validationResult.valid) {
+      try {
+        const candidate = buildScriptCandidateV2(plan, contextResult.buildContext);
+        setGenState({ status: 'validating' });
+
+        const validationResult = validateScriptCandidateV2(
+          candidate,
+          plan,
+          contextResult.buildContext,
+        );
+        if (!validationResult.valid) {
+          setGenState({
+            status: 'error',
+            errorMessage: `Validación fallida: ${validationResult.errors
+              .slice(0, 3)
+              .map((e) => e.message)
+              .join('; ')}`,
+          });
+          onLog?.(
+            'script.v2',
+            `validate.failed :: ${validationResult.errors[0]?.message ?? 'unknown'}`,
+          );
+          return;
+        }
+
+        setGenState({ status: 'finalizing' });
+        const contract = finalizeScriptContractV2(candidate, validationResult);
+
+        setGenState({ status: 'verifying' });
+        const freshVerification = verifyScriptContractV2(
+          contract,
+          plan,
+          contextResult.buildContext,
+        );
+
+        if (!freshVerification.valid) {
+          setGenState({
+            status: 'error',
+            errorMessage: `Verificación fallida: ${freshVerification.errors
+              .slice(0, 3)
+              .map((e) => e.message)
+              .join('; ')}`,
+          });
+          onLog?.(
+            'script.v2',
+            `verify.failed :: ${freshVerification.errors[0]?.message ?? 'unknown'}`,
+          );
+          return;
+        }
+
+        setGenState({ status: 'done', contract, verification: freshVerification });
+        setView('contract');
+        onScriptContractChange(contract, freshVerification);
+        onLog?.('script.v2', `done :: hash=${contract.scriptHash.slice(0, 12)}`);
+      } catch (err: any) {
         setGenState({
           status: 'error',
-          errorMessage: `Validación fallida: ${validationResult.errors
-            .slice(0, 3)
-            .map((e) => e.message)
-            .join('; ')}`,
+          errorMessage: err?.message ?? 'Error desconocido',
         });
-        onLog?.(
-          'script.v2',
-          `validate.failed :: ${validationResult.errors[0]?.message ?? 'unknown'}`,
-        );
-        return;
+        onLog?.('script.v2', `error :: ${err?.message ?? 'unknown'}`);
       }
-
-      setGenState({ status: 'finalizing' });
-
-      const contract = finalizeScriptContractV2(candidate, validationResult);
-
-      setGenState({ status: 'verifying' });
-
-      const freshVerification = verifyScriptContractV2(
-        contract,
-        remediationPlan,
-        buildContext,
-      );
-
-      if (!freshVerification.valid) {
-        setGenState({
-          status: 'error',
-          errorMessage: `Verificación fallida: ${freshVerification.errors
-            .slice(0, 3)
-            .map((e) => e.message)
-            .join('; ')}`,
-        });
-        onLog?.(
-          'script.v2',
-          `verify.failed :: ${freshVerification.errors[0]?.message ?? 'unknown'}`,
-        );
-        return;
-      }
-
-      const finalState: GenerationState = {
-        status: 'done',
-        contract,
-        verification: freshVerification,
-      };
-      setGenState(finalState);
-      setView('contract');
-      onScriptContractChange(contract, freshVerification);
-      onLog?.('script.v2', `done :: hash=${contract.scriptHash.slice(0, 12)}`);
-    } catch (err: any) {
-      setGenState({
-        status: 'error',
-        errorMessage: err?.message ?? 'Error desconocido',
-      });
-      onLog?.('script.v2', `error :: ${err?.message ?? 'unknown'}`);
-    }
-  }, [canGenerate, remediationPlan, buildContext, onScriptContractChange, onLog]);
+    },
+    [contextResult, onScriptContractChange, onLog],
+  );
 
   const contractValid =
     genState.status === 'done' &&
@@ -289,31 +257,32 @@ const ScriptGenerationStepV2: React.FC<ScriptGenerationStepV2Props> = ({
     );
   }
 
+  // Vista A — Decision: reuse RemediationPlanStepV2
   if (view === 'decision' || genState.status === 'idle') {
     return (
       <section className="section" data-testid="script-gen-v2-stage">
-        <header className="section-header">
-          <div>
-            <p className="sec-eye">contrato de script v2</p>
-            <h2 className="sec-title">Plan de remediación determinista</h2>
+        <RemediationPlanStepV2
+          report={report}
+          structuredDiagnosis={structuredDiagnosis}
+          remediationPlan={remediationPlan}
+          continueLabel={genState.status === 'building' ? 'Generando...' : 'Generar contrato de script'}
+          onContinueWithPlan={handleGenerate}
+          onContinue={() => {}}
+        />
+        {genState.status === 'error' && (
+          <div
+            className="provider-error-notice"
+            style={{ marginTop: 'var(--space-md)' }}
+          >
+            <AlertTriangle size={14} style={{ color: 'var(--error)' }} />
+            <span>{genState.errorMessage}</span>
           </div>
-        </header>
-
-        <div style={{ marginBottom: 'var(--space-md)' }}>
-          <DecisionView
-            remediationPlan={remediationPlan}
-            canGenerate={canGenerate}
-            onGenerate={handleGenerate}
-            isBuilding={genState.status === 'building'}
-            errorMessage={
-              genState.status === 'error' ? genState.errorMessage : undefined
-            }
-          />
-        </div>
+        )}
       </section>
     );
   }
 
+  // Loading states
   if (genState.status === 'building' || genState.status === 'validating' || genState.status === 'finalizing' || genState.status === 'verifying') {
     const labels: Record<string, string> = {
       building: 'Construyendo candidato...',
@@ -334,6 +303,7 @@ const ScriptGenerationStepV2: React.FC<ScriptGenerationStepV2Props> = ({
     );
   }
 
+  // Error state
   if (genState.status === 'error') {
     return (
       <section className="section" data-testid="script-gen-v2-stage">
@@ -357,6 +327,7 @@ const ScriptGenerationStepV2: React.FC<ScriptGenerationStepV2Props> = ({
     );
   }
 
+  // Vista B — Contract display
   const contract = genState.contract!;
   const verification = genState.verification!;
   const scriptLines = contract.scriptText.split('\n');
@@ -639,133 +610,5 @@ const ScriptGenerationStepV2: React.FC<ScriptGenerationStepV2Props> = ({
     </section>
   );
 };
-
-interface DecisionViewProps {
-  remediationPlan: RemediationPlanV2 | null;
-  canGenerate: boolean;
-  onGenerate: () => void;
-  isBuilding: boolean;
-  errorMessage?: string;
-}
-
-function DecisionView({
-  remediationPlan,
-  canGenerate,
-  onGenerate,
-  isBuilding,
-  errorMessage,
-}: DecisionViewProps) {
-  if (!remediationPlan) {
-    return (
-      <p className="section-note">
-        Construyendo plan de remediación determinista...
-      </p>
-    );
-  }
-
-  return (
-    <>
-      <p className="section-note">
-        Plan de remediación listo.{' '}
-        {!canGenerate
-          ? 'Falta información para generar el contrato.'
-          : 'Pulse "Generar contrato de script" para continuar.'}
-      </p>
-
-      <div className="stage-decision-summary" style={{ marginBottom: 'var(--space-md)' }}>
-        <div className="stage-summary-item">
-          <span className="stage-summary-label">acciones</span>
-          <strong className="stage-summary-value">
-            {remediationPlan.plan.length}
-          </strong>
-        </div>
-        <div className="stage-summary-item">
-          <span className="stage-summary-label">auto-safe</span>
-          <strong className="stage-summary-value">
-            {
-              remediationPlan.plan.filter(
-                (a) => a.actionability === 'auto_safe',
-              ).length
-            }
-          </strong>
-        </div>
-        <div className="stage-summary-item">
-          <span className="stage-summary-label">review</span>
-          <strong className="stage-summary-value">
-            {
-              remediationPlan.plan.filter(
-                (a) => a.actionability === 'review_only',
-              ).length
-            }
-          </strong>
-        </div>
-        <div className="stage-summary-item">
-          <span className="stage-summary-label">exclusiones</span>
-          <strong className="stage-summary-value">
-            {remediationPlan.exclusions.length}
-          </strong>
-        </div>
-      </div>
-
-      {remediationPlan.plan.slice(0, 5).map((action, i) => (
-        <div
-          key={action.actionId}
-          className="stage-result remediation-action"
-          style={{ marginBottom: '8px', fontSize: '12px' }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span>
-              {i + 1}. [{action.actionType}] {action.ruleId}
-              {action.columnId ? ` → ${action.columnId}` : ' (dataset)'}
-            </span>
-            <span
-              style={{
-                fontSize: '10px',
-                color:
-                  action.approvalStatus === 'approved'
-                    ? 'var(--success)'
-                    : action.approvalStatus === 'rejected'
-                      ? 'var(--error)'
-                      : 'var(--ink3)',
-              }}
-            >
-              {action.approvalStatus}
-            </span>
-          </div>
-        </div>
-      ))}
-      {remediationPlan.plan.length > 5 && (
-        <p style={{ fontSize: '11px', color: 'var(--ink3)' }}>
-          +{remediationPlan.plan.length - 5} más
-        </p>
-      )}
-
-      {errorMessage && (
-        <div
-          className="provider-error-notice"
-          style={{ marginTop: 'var(--space-md)' }}
-        >
-          <AlertTriangle size={14} style={{ color: 'var(--error)' }} />
-          <span>{errorMessage}</span>
-        </div>
-      )}
-
-      <div
-        className="evidence-options"
-        data-testid="primary-stage-action"
-        style={{ marginTop: 'var(--space-lg)' }}
-      >
-        <button
-          className="btn-p btn-sm"
-          disabled={!canGenerate || isBuilding}
-          onClick={onGenerate}
-        >
-          {isBuilding ? 'Generando...' : 'Generar contrato de script'}
-          {!isBuilding && <ArrowRight size={12} />}
-        </button>
-      </div>
-    </>
-  );
-}
 
 export default ScriptGenerationStepV2;

@@ -75,17 +75,12 @@ export const buildIngestionEvidence = (params: IngestionEvidenceParams): Omit<Au
   startedAt: params.startedAt,
   completedAt: params.completedAt,
   parseDurationMs: params.parseDurationMs,
-  auditDurationMs: 0,
-  totalDurationMs: params.parseDurationMs,
   rowsProcessed: params.rowsProcessed,
   columnsProcessed: params.columnsProcessed,
   delimiter: params.delimiter,
   truncated: params.truncated,
   ingestionStatus: params.ingestionStatus,
   ingestionError: params.ingestionError,
-  issueCount: 0,
-  score: 0,
-  trace: [],
 });
 
 export const buildAuditEvidence = (params: BuildAuditEvidenceParams): AuditExecutionEvidence => ({
