@@ -14,8 +14,8 @@ import { matchGroundTruth, buildDeterministicValidationReport } from '../service
 import { validateCleaningScript } from '../services/scriptValidationService';
 import { buildScriptContractInputKey, buildUiScriptContext } from '../services/scriptContractUiContext';
 import { AIConfig, AIProvider, AuditReport, AuditExecutionEvidence, BenchmarkResult, DeterministicValidationReport, HealthDelta, ImprovementRun, ProviderMetrics, ScriptValidationResult, ProgressDisclosureStatus } from '../types';
-import type { DiagnosisExecutionResult, RemediationPlanV2, ScriptContractV2, ScriptValidationResultV2, RemediationContextV2, ScriptBuildContextV2, ColumnRef } from '../contracts/llm';
-import { validateRemediationPlanV2, isContractsV2Enabled, verifyScriptContractV2, buildRemediationPlanV2, buildColumnRegistry, buildScriptCandidateV2, validateScriptCandidateV2, finalizeScriptContractV2, buildScriptContext } from '../contracts/llm';
+import type { DiagnosisExecutionResult, RemediationPlanV2, ScriptContractV2, ScriptValidationResultV2 } from '../contracts/llm';
+import { validateRemediationPlanV2, isContractsV2Enabled, verifyScriptContractV2 } from '../contracts/llm';
 
 export type PipelineState = 'upload' | 'profile' | 'diagnosis' | 'script' | 'review' | 'export';
 
@@ -160,20 +160,8 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
 
     (window as any).__PHASE4_INJECT__ = (diagnosis: DiagnosisExecutionResult, plan: RemediationPlanV2 | null, opts?: { analysisText?: string }) => {
       setStructuredDiagnosis(diagnosis);
-      // Always build the plan at runtime to ensure column IDs match the actual CSV
-      try {
-        const builtPlan = plan ?? buildRemediationPlanV2(diagnosis);
-        setRemediationPlan(builtPlan);
-      } catch {
-        // If buildRemediationPlanV2 fails, use provided plan or null
-        if (plan) setRemediationPlan(plan);
-      }
+      if (plan) setRemediationPlan(plan);
       if (opts?.analysisText) setAiAnalysis(opts.analysisText);
-      // Sync auditEvidence fingerprint to match diagnosis for contract builder compatibility
-      const diagFp = diagnosis?.remediationContext?.datasetFingerprint;
-      if (diagFp) {
-        setAuditEvidence((prev: AuditExecutionEvidence | null) => prev ? { ...prev, datasetFingerprint: diagFp } : prev);
-      }
     };
     (window as any).__PHASE4_SET_STATE__ = (state: PipelineState) => {
       setState(state);
@@ -184,89 +172,21 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
         return { ...prev, ...patch };
       });
     };
-    // Runtime contract builder for programmatic E2E verification
-    (window as any).__PHASE4_BUILD_CONTRACT__ = (diag: DiagnosisExecutionResult) => {
-      const plan = buildRemediationPlanV2(diag);
-      const columnRefs = buildColumnRegistry((diag.remediationContext?.columns ?? []).map(c => c.name));
-      const buildCtx = buildScriptContext(diag.remediationContext!, columnRefs, diag.remediationContext!.datasetFingerprint);
-      const candidate = buildScriptCandidateV2(plan, buildCtx);
-      const validation = validateScriptCandidateV2(candidate, plan, buildCtx);
-      const contract = finalizeScriptContractV2(candidate, validation);
-      const verification = verifyScriptContractV2(contract, plan, buildCtx);
-      return { plan, contract, verification };
-    };
-    // Build diagnosis at runtime using actual CSV columns
-    (window as any).__PHASE4_BUILD_DIAGNOSIS__ = (csvFields: string[], fingerprint: string) => {
-      const columnRefs = buildColumnRegistry([...csvFields]);
-      const columns = columnRefs.map(c => ({ ...c }));
-      const evidenceEnvelopeRef = 'env:e2e-harness-phase4';
-      const issues: any[] = [];
-      const diagnosisBlocks: any[] = [];
-      for (let i = 0; i < columns.length && i < 5; i++) {
-        const col = columns[i];
-        issues.push({
-          issueId: `e2e-issue-${col.name}`,
-          evidenceRefs: [],
-          hypothesis: `E2E test issue for column ${col.name}`,
-          confidence: 0.85,
-          requiresHumanReview: false,
-          limits: [],
-        });
-        diagnosisBlocks.push({
-          issueId: `e2e-issue-${col.name}`,
-          ruleId: 'rule:trim-whitespace',
-          columnId: col.columnId,
-          scope: 'column',
-          observation: 'E2E test observation',
-          recommendation: 'Trim whitespace determinista.',
-        });
-      }
-      const diagnosis: DiagnosisExecutionResult = {
-        version: 2,
-        diagnosis: {
-          contractId: 'aura.diagnosis.v2',
-          contractVersion: '2.0.0',
-          evidenceEnvelopeRef,
-          responseId: 'diag-e2e-phase4',
-          issues,
-          diagnosisBlocks,
-          limitations: [],
-          generatedAt: '2026-06-26T00:00:00.000Z',
-        },
-        metrics: {
-          latencyMs: 0, tokensGenerated: 0, model: 'deterministic-e2e', provider: 'fixture', isLocal: true,
-        },
-        promptHash: 'e2e-harness',
-        evidenceEnvelopeRef,
-        promptVersion: '2.0.0',
-        rawResponseHash: 'e2e-harness',
-        remediationContext: {
-          evidenceEnvelopeRef,
-          datasetFingerprint: fingerprint,
-          columns,
-          issues: issues.map((iss, idx) => ({
-            issueId: iss.issueId,
-            ruleId: 'rule:trim-whitespace',
-            columnId: columns[idx % columns.length].columnId,
-            scope: 'column' as const,
-            evidenceRefs: [],
-            actionability: 'auto_safe' as const,
-            automaticAuthorization: {
-              actionType: 'trim_whitespace',
-              authorized: true,
-              conditionsMet: ['string-column'],
-              reason: 'E2E auto auth',
-            },
-          })),
-        },
-      };
-      return diagnosis;
+    // Sync auditEvidence fingerprint for E2E contract builder compatibility.
+    // Necessary because plan fingerprint (file SHA-256) differs from runtime
+    // dataset fingerprint (FNV hash). Without this sync, buildScriptCandidateV2
+    // fails validation on fingerprint mismatch.
+    (window as any).__PHASE4_SYNC_FP__ = (fingerprint: string) => {
+      setAuditEvidence((prev: AuditExecutionEvidence | null) =>
+        prev ? { ...prev, datasetFingerprint: fingerprint } : prev,
+      );
     };
 
     return () => {
       delete (window as any).__PHASE4_INJECT__;
       delete (window as any).__PHASE4_SET_STATE__;
       delete (window as any).__PHASE4_TAMPER_CONTRACT__;
+      delete (window as any).__PHASE4_SYNC_FP__;
     };
   }, []);
 
