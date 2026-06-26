@@ -1,6 +1,6 @@
 # Capturas de pantalla — Phase 4 (Script Contract v2)
 
-> **Commit de evidencia:** `PHASE4_EVIDENCE_SHA`  
+> **Commit de evidencia:** `e1b07641f7df8d2589b8f264d1e9510b12637e82`  
 > **Fecha de captura:** 2026-06-26  
 > **Viewport:** 1440 × 1000  
 > **Directorio:** `docs/tercera_entrega_aura/03_evidencia/screenshots/phase4/`  
