@@ -372,19 +372,19 @@ const ScriptGenerationStepV2: React.FC<ScriptGenerationStepV2Props> = ({
 
       {partition && (
         <div className="stage-decision-summary" style={{ marginBottom: 'var(--space-md)' }}>
-          <div className="stage-summary-item">
+          <div className="stage-summary-item" data-testid="partition-accepted">
             <span className="stage-summary-label">aceptadas</span>
             <strong style={{ color: 'var(--success)' }}>
               {partition.accepted}
             </strong>
           </div>
-          <div className="stage-summary-item">
+          <div className="stage-summary-item" data-testid="partition-rejected">
             <span className="stage-summary-label">rechazadas</span>
             <strong style={{ color: 'var(--error)' }}>
               {partition.rejected}
             </strong>
           </div>
-          <div className="stage-summary-item">
+          <div className="stage-summary-item" data-testid="partition-excluded">
             <span className="stage-summary-label">excluidas</span>
             <strong style={{ color: 'var(--orange)' }}>
               {partition.excluded}
@@ -418,6 +418,7 @@ const ScriptGenerationStepV2: React.FC<ScriptGenerationStepV2Props> = ({
           {excludedActions.slice(0, 10).map((ex) => (
             <div
               key={ex.actionId}
+              data-testid={`excluded-action-${ex.actionId}`}
               style={{ fontSize: '11px', color: 'var(--ink2)', marginBottom: '2px' }}
             >
               <span style={{ fontFamily: 'monospace' }}>{ex.actionId}</span>
@@ -552,9 +553,9 @@ const ScriptGenerationStepV2: React.FC<ScriptGenerationStepV2Props> = ({
       >
         renderer: {contract.rendererVersion} · placeholder:{' '}
         {contract.placeholderVocabularyVersion} · hash:{' '}
-        {contract.scriptHash.slice(0, 12)}
+        <span data-testid="contract-hash">{contract.scriptHash.slice(0, 12)}</span>
         {contract.validationResult.pythonSyntax.state === 'not_run' && (
-          <span style={{ color: 'var(--orange)', marginLeft: '8px' }}>
+          <span style={{ color: 'var(--orange)', marginLeft: '8px' }} data-testid="syntax-state">
             syntax: not_run (Python no disponible en navegador)
           </span>
         )}

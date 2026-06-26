@@ -159,6 +159,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
     hasDiagnosis: false,
     fingerprint: null as string | null,
     contractHash: null as string | null,
+    planId: null as string | null,
   });
   phase4StateRef.current = {
     pipelineState: state,
@@ -168,6 +169,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
     hasDiagnosis: !!structuredDiagnosis,
     fingerprint: auditEvidence?.datasetFingerprint ?? null,
     contractHash: scriptContractV2?.scriptHash ?? null,
+    planId: remediationPlan?.planId ?? null,
   };
 
   // ── Phase 4 E2E Harness: expose injection + tamper callbacks on window ──

@@ -1238,3 +1238,87 @@ describe('Full flow to ReviewStep', () => {
     expect(screen.queryByText('Remediación simulada')).toBeNull();
   });
 });
+
+// ── "Volver al plan" cleanup ──────────────────────────────────────────────────
+
+describe('Volver al plan cleanup', () => {
+  it('clears contract and verification when clicking Volver al plan', async () => {
+    const user = userEvent.setup();
+    const { default: ScriptGenerationStepV2 } = await import('../components/ScriptGenerationStepV2');
+    const diag = makeStructuredDiagnosis();
+    const contract = makeValidContract();
+    const verification = makeValidVerification();
+    const plan = buildRemediationPlanV2(diag);
+    const onContractChange = vi.fn();
+
+    render(
+      <ScriptGenerationStepV2
+        report={{} as any}
+        csvFields={['id', 'age', 'name']}
+        sourceDatasetFingerprint={'sha256:fingerprint123'}
+        structuredDiagnosis={diag}
+        remediationPlan={plan}
+        scriptContractV2={contract}
+        scriptContractVerificationV2={verification}
+        onScriptContractChange={onContractChange}
+        onRemediationPlanChange={vi.fn()}
+        onContinue={() => {}}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Contrato válido')).toBeTruthy();
+    });
+
+    // Click "Volver al plan"
+    const backBtn = screen.getByRole('button', { name: 'Volver al plan' });
+    await user.click(backBtn);
+
+    // Should call onScriptContractChange(null, null) to clear
+    await waitFor(() => {
+      expect(onContractChange).toHaveBeenCalledWith(null, null);
+    });
+
+    // Should return to plan view
+    await waitFor(() => {
+      expect(screen.getByText('Plan de remediación determinista')).toBeTruthy();
+    });
+    expect(screen.queryByText('Contrato válido')).toBeNull();
+  });
+});
+
+// ── data-testid contract details ──────────────────────────────────────────────
+
+describe('data-testid contract details', () => {
+  it('renders contract-hash and partition testids', async () => {
+    const { default: ScriptGenerationStepV2 } = await import('../components/ScriptGenerationStepV2');
+    const diag = makeStructuredDiagnosis();
+    const contract = makeValidContract();
+    const verification = makeValidVerification();
+    const plan = buildRemediationPlanV2(diag);
+
+    render(
+      <ScriptGenerationStepV2
+        report={{} as any}
+        csvFields={['id', 'age', 'name']}
+        sourceDatasetFingerprint={'sha256:fingerprint123'}
+        structuredDiagnosis={diag}
+        remediationPlan={plan}
+        scriptContractV2={contract}
+        scriptContractVerificationV2={verification}
+        onScriptContractChange={() => {}}
+        onRemediationPlanChange={vi.fn()}
+        onContinue={() => {}}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('contract-hash')).toBeTruthy();
+    });
+
+    expect(screen.getByTestId('partition-accepted')).toBeTruthy();
+    expect(screen.getByTestId('partition-rejected')).toBeTruthy();
+    expect(screen.getByTestId('partition-excluded')).toBeTruthy();
+    expect(screen.getByTestId('syntax-state')).toBeTruthy();
+  });
+});

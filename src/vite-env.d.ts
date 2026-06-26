@@ -28,4 +28,5 @@ interface Phase4State {
   hasDiagnosis: boolean;
   fingerprint: string | null;
   contractHash: string | null;
+  planId: string | null;
 }
