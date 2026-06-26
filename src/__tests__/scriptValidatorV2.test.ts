@@ -1,7 +1,7 @@
 /**
- * Script Validator v2 Tests — Phase 4 Loop 4R.
+ * Script Validator v2 Tests — Phase 4 Loop 4R.1.
  *
- * 72 tests covering shape, references, partition, columns, security,
+ * 104 tests covering shape, references, partition, columns, security,
  * syntax, reconstruction, final contract, embedded validationResult, hash fields.
  */
 
@@ -1210,5 +1210,401 @@ describe('Python compile (real)', () => {
     });
     expect(result.pythonSyntax.state).toBe('not_run');
     expect(result.warnings.some(w => w.code === 'SCRIPT_SYNTAX_NOT_RUN')).toBe(true);
+  });
+
+  it('valid { state: "not_run" } → not_run with one warning', () => {
+    const columns = buildColumnRegistry(['Age']);
+    const candidate = buildCandidateWithGen([makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false })], ['Age']);
+    const plan = makePlan([makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false })]);
+    const ctx = makeBuildContext(plan, ['Age']);
+    const result = validateScriptCandidateV2(candidate, plan, ctx, {
+      syntaxChecker: () => ({ state: 'not_run' as const }),
+    });
+    expect(result.pythonSyntax.state).toBe('not_run');
+    expect(result.warnings.filter(w => w.code === 'SCRIPT_SYNTAX_NOT_RUN')).toHaveLength(1);
+    expect(result.errors.some(e => e.code === 'SCRIPT_SYNTAX_INVALID')).toBe(false);
+    expect(result.valid).toBe(true);
+  });
+
+  it('valid { state: "not_run", engine } → preserves engine', () => {
+    const columns = buildColumnRegistry(['Age']);
+    const candidate = buildCandidateWithGen([makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false })], ['Age']);
+    const plan = makePlan([makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false })]);
+    const ctx = makeBuildContext(plan, ['Age']);
+    const result = validateScriptCandidateV2(candidate, plan, ctx, {
+      syntaxChecker: () => ({ state: 'not_run' as const, engine: 'python3' }),
+    });
+    expect(result.pythonSyntax.state).toBe('not_run');
+    expect(result.pythonSyntax.engine).toBe('python3');
+    expect(result.warnings.filter(w => w.code === 'SCRIPT_SYNTAX_NOT_RUN')).toHaveLength(1);
+    expect(result.errors.some(e => e.code === 'SCRIPT_SYNTAX_INVALID')).toBe(false);
+  });
+
+  it('valid { state: "not_run", message } → preserves message', () => {
+    const columns = buildColumnRegistry(['Age']);
+    const candidate = buildCandidateWithGen([makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false })], ['Age']);
+    const plan = makePlan([makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false })]);
+    const ctx = makeBuildContext(plan, ['Age']);
+    const result = validateScriptCandidateV2(candidate, plan, ctx, {
+      syntaxChecker: () => ({ state: 'not_run' as const, message: 'python unavailable' }),
+    });
+    expect(result.pythonSyntax.state).toBe('not_run');
+    expect(result.pythonSyntax.message).toBe('python unavailable');
+    expect(result.warnings.filter(w => w.code === 'SCRIPT_SYNTAX_NOT_RUN')).toHaveLength(1);
+    expect(result.errors.some(e => e.code === 'SCRIPT_SYNTAX_INVALID')).toBe(false);
+  });
+
+  it('valid { state: "not_run", engine, message } → all preserved', () => {
+    const columns = buildColumnRegistry(['Age']);
+    const candidate = buildCandidateWithGen([makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false })], ['Age']);
+    const plan = makePlan([makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false })]);
+    const ctx = makeBuildContext(plan, ['Age']);
+    const result = validateScriptCandidateV2(candidate, plan, ctx, {
+      syntaxChecker: () => ({ state: 'not_run' as const, engine: 'cpython', message: 'unavailable' }),
+    });
+    expect(result.pythonSyntax.state).toBe('not_run');
+    expect(result.pythonSyntax.engine).toBe('cpython');
+    expect(result.pythonSyntax.message).toBe('unavailable');
+    expect(result.warnings.filter(w => w.code === 'SCRIPT_SYNTAX_NOT_RUN')).toHaveLength(1);
+    expect(result.errors.some(e => e.code === 'SCRIPT_SYNTAX_INVALID')).toBe(false);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════
+// Import Whitelist (exact form)
+// ═══════════════════════════════════════════════════════════
+
+describe('Import whitelist: exact form', () => {
+  it('rejects import pandas as pd, numpy as np', () => {
+    const columns = buildColumnRegistry(['Age']);
+    const candidate = buildValidCandidate([makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false })], ['Age']);
+    const badScript = candidate.scriptText.replace('import numpy as np', 'import pandas as pd, numpy as np');
+    const bad = { ...candidate, scriptText: badScript };
+    const result = validate(bad, [makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false })], ['Age']);
+    expect(result.errors.some(e => e.code === 'SCRIPT_UNAUTHORIZED_IMPORT')).toBe(true);
+  });
+
+  it('rejects import pandas, numpy', () => {
+    const columns = buildColumnRegistry(['Age']);
+    const candidate = buildValidCandidate([makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false })], ['Age']);
+    const badScript = candidate.scriptText.replace('import numpy as np', 'import pandas, numpy');
+    const bad = { ...candidate, scriptText: badScript };
+    const result = validate(bad, [makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false })], ['Age']);
+    expect(result.errors.some(e => e.code === 'SCRIPT_UNAUTHORIZED_IMPORT')).toBe(true);
+  });
+
+  it('rejects duplicate numpy', () => {
+    const columns = buildColumnRegistry(['Age']);
+    const candidate = buildValidCandidate([makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false })], ['Age']);
+    const badScript = candidate.scriptText + '\nimport numpy as np';
+    const bad = { ...candidate, scriptText: badScript };
+    const result = validate(bad, [makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false })], ['Age']);
+    expect(result.errors.some(e => e.code === 'SCRIPT_UNAUTHORIZED_IMPORT' && e.message.includes('duplicate'))).toBe(true);
+  });
+
+  it('rejects indented import', () => {
+    const columns = buildColumnRegistry(['Age']);
+    const candidate = buildValidCandidate([makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false })], ['Age']);
+    const badScript = candidate.scriptText.replace(
+      'import numpy as np',
+      '    import numpy as np',
+    );
+    const bad = { ...candidate, scriptText: badScript };
+    const result = validate(bad, [makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false })], ['Age']);
+    expect(result.errors.some(e => e.code === 'SCRIPT_UNAUTHORIZED_IMPORT' && e.message.includes('indented'))).toBe(true);
+  });
+
+  it('rejects import inside clean_dataset body', () => {
+    const columns = buildColumnRegistry(['Age']);
+    const candidate = buildValidCandidate([makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false })], ['Age']);
+    const badScript = candidate.scriptText.replace(
+      'def clean_dataset(df):\n    df_clean = df.copy()',
+      'def clean_dataset(df):\n    import pandas as pd\n    df_clean = df.copy()',
+    );
+    const bad = { ...candidate, scriptText: badScript };
+    const result = validate(bad, [makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false })], ['Age']);
+    expect(result.errors.some(e => e.code === 'SCRIPT_UNAUTHORIZED_IMPORT')).toBe(true);
+  });
+
+  it('no false positive: import os inside string literal', () => {
+    const columns = buildColumnRegistry(['Age']);
+    const candidate = buildValidCandidate([makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false })], ['Age']);
+    const script = candidate.scriptText.replace(
+      '"columnName"', '"columnName with import os inside"',
+    );
+    const bad = { ...candidate, scriptText: script };
+    const result = validate(bad, [makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false })], ['Age']);
+    expect(result.errors.filter(e => e.code === 'SCRIPT_UNAUTHORIZED_IMPORT')).toHaveLength(0);
+  });
+
+  it('no false positive: import pandas as pd inside triple string', () => {
+    const columns = buildColumnRegistry(['Age']);
+    const candidate = buildValidCandidate([makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false })], ['Age']);
+    const script = candidate.scriptText.replace(
+      '_c = {',
+      '_c = {\n    "doc": """import pandas as pd, numpy as np\nfrom os import system"""',
+    );
+    const bad = { ...candidate, scriptText: script };
+    const result = validate(bad, [makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false })], ['Age']);
+    expect(result.errors.filter(e => e.code === 'SCRIPT_UNAUTHORIZED_IMPORT')).toHaveLength(0);
+  });
+
+  it('no false positive: import pandas as pd inside comment', () => {
+    const columns = buildColumnRegistry(['Age']);
+    const candidate = buildValidCandidate([makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false })], ['Age']);
+    const script = `${candidate.scriptText}\n# import os\n# import pandas as pd, numpy as np`;
+    const bad = { ...candidate, scriptText: script };
+    const result = validate(bad, [makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false })], ['Age']);
+    expect(result.errors.filter(e => e.code === 'SCRIPT_UNAUTHORIZED_IMPORT')).toHaveLength(0);
+  });
+
+  it('no false positive: from os import system inside string', () => {
+    const columns = buildColumnRegistry(['Age']);
+    const candidate = buildValidCandidate([makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false })], ['Age']);
+    const script = candidate.scriptText.replace(
+      '"columnName"',
+      '"use from os import system to call system commands"',
+    );
+    const bad = { ...candidate, scriptText: script };
+    const result = validate(bad, [makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false })], ['Age']);
+    expect(result.errors.filter(e => e.code === 'SCRIPT_UNAUTHORIZED_IMPORT')).toHaveLength(0);
+  });
+
+  it('rejects import with semicolon', () => {
+    const columns = buildColumnRegistry(['Age']);
+    const candidate = buildValidCandidate([makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false })], ['Age']);
+    const badScript = candidate.scriptText.replace(
+      'import numpy as np',
+      'import pandas as pd; import numpy as np',
+    );
+    const bad = { ...candidate, scriptText: badScript };
+    const result = validate(bad, [makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false })], ['Age']);
+    expect(result.errors.some(e => e.code === 'SCRIPT_UNAUTHORIZED_IMPORT')).toBe(true);
+  });
+
+  it('rejects missing pandas import', () => {
+    const columns = buildColumnRegistry(['Age']);
+    const candidate = buildValidCandidate([makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false })], ['Age']);
+    const badScript = candidate.scriptText.replace('import pandas as pd\n', '');
+    const bad = { ...candidate, scriptText: badScript };
+    const result = validate(bad, [makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false })], ['Age']);
+    expect(result.errors.some(e => e.code === 'SCRIPT_UNAUTHORIZED_IMPORT' && e.message.includes('missing required import'))).toBe(true);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════
+// Exclusion Reasons Validation
+// ═══════════════════════════════════════════════════════════
+
+describe('Exclusion reasons: direct derivation', () => {
+  it('pending → excluded with reason "pending"', () => {
+    const columns = buildColumnRegistry(['Age']);
+    const plan = makePlan([makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false }, 'pending', { actionId: 'act:p' })]);
+    const ctx = makeBuildContext(plan, ['Age']);
+    const candidate = {
+      ...buildValidCandidate([], ['Age']),
+      acceptedActionIds: [],
+      rejectedActionIds: [],
+      excludedActionIds: [{ actionId: 'act:p', reason: 'pending' as const }],
+      datasetFingerprint: plan.datasetFingerprint,
+    };
+    const result = validateScriptCandidateV2(candidate, plan, ctx);
+    expect(result.errors.filter(e => e.code === 'SCRIPT_APPROVAL_INVALID')).toHaveLength(0);
+  });
+
+  it('pending → wrong reason → SCRIPT_APPROVAL_INVALID', () => {
+    const columns = buildColumnRegistry(['Age']);
+    const plan = makePlan([makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false }, 'pending', { actionId: 'act:p' })]);
+    const ctx = makeBuildContext(plan, ['Age']);
+    const candidate = {
+      ...buildValidCandidate([], ['Age']),
+      acceptedActionIds: [],
+      rejectedActionIds: [],
+      excludedActionIds: [{ actionId: 'act:p', reason: 'unsupported_action' as const }],
+      datasetFingerprint: plan.datasetFingerprint,
+    };
+    const result = validateScriptCandidateV2(candidate, plan, ctx);
+    expect(result.errors.some(e => e.code === 'SCRIPT_APPROVAL_INVALID' && e.message.includes('pending') && e.message.includes('reason'))).toBe(true);
+  });
+
+  it('approved + requires_human_review → excluded with "unsupported_action"', () => {
+    const columns = buildColumnRegistry(['Age']);
+    const plan = makePlan([makeAction('requires_human_review', columns[0].columnId, { reasonCode: 'x' }, 'approved', { actionId: 'act:hr' })]);
+    const ctx = makeBuildContext(plan, ['Age']);
+    const candidate = {
+      ...buildValidCandidate([], ['Age']),
+      acceptedActionIds: [],
+      rejectedActionIds: [],
+      excludedActionIds: [{ actionId: 'act:hr', reason: 'unsupported_action' as const }],
+      datasetFingerprint: plan.datasetFingerprint,
+    };
+    const result = validateScriptCandidateV2(candidate, plan, ctx);
+    expect(result.errors.filter(e => e.code === 'SCRIPT_APPROVAL_INVALID')).toHaveLength(0);
+  });
+
+  it('approved + requires_human_review in accepted → SCRIPT_APPROVAL_INVALID', () => {
+    const columns = buildColumnRegistry(['Age']);
+    const plan = makePlan([makeAction('requires_human_review', columns[0].columnId, { reasonCode: 'x' }, 'approved', { actionId: 'act:hr' })]);
+    const ctx = makeBuildContext(plan, ['Age']);
+    const candidate = {
+      ...buildValidCandidate([], ['Age']),
+      acceptedActionIds: ['act:hr'],
+      rejectedActionIds: [],
+      excludedActionIds: [],
+      datasetFingerprint: plan.datasetFingerprint,
+    };
+    const result = validateScriptCandidateV2(candidate, plan, ctx);
+    expect(result.errors.some(e => e.code === 'SCRIPT_APPROVAL_INVALID' && e.message.includes('requires_human_review'))).toBe(true);
+  });
+
+  it('approved + missing columnId → excluded with "missing_column"', () => {
+    const columns = buildColumnRegistry(['Age']);
+    const plan = makePlan([makeAction('trim_whitespace', null, { trimEdges: true, collapseInternalWhitespace: false }, 'approved', { actionId: 'act:nc' })]);
+    const ctx = makeBuildContext(plan, ['Age']);
+    const candidate = {
+      ...buildValidCandidate([], ['Age']),
+      acceptedActionIds: [],
+      rejectedActionIds: [],
+      excludedActionIds: [{ actionId: 'act:nc', reason: 'missing_column' as const }],
+      datasetFingerprint: plan.datasetFingerprint,
+    };
+    const result = validateScriptCandidateV2(candidate, plan, ctx);
+    expect(result.errors.filter(e => e.code === 'SCRIPT_APPROVAL_INVALID')).toHaveLength(0);
+  });
+
+  it('approved + missing columnId in accepted → SCRIPT_APPROVAL_INVALID', () => {
+    const columns = buildColumnRegistry(['Age']);
+    const plan = makePlan([makeAction('trim_whitespace', null, { trimEdges: true, collapseInternalWhitespace: false }, 'approved', { actionId: 'act:nc' })]);
+    const ctx = makeBuildContext(plan, ['Age']);
+    const candidate = {
+      ...buildValidCandidate([], ['Age']),
+      acceptedActionIds: ['act:nc'],
+      rejectedActionIds: [],
+      excludedActionIds: [],
+      datasetFingerprint: plan.datasetFingerprint,
+    };
+    const result = validateScriptCandidateV2(candidate, plan, ctx);
+    expect(result.errors.some(e => e.code === 'SCRIPT_APPROVAL_INVALID' && e.message.includes('missing column'))).toBe(true);
+  });
+
+  it('approved + ambiguous column → excluded with "ambiguous_column"', () => {
+    const columns = buildColumnRegistry(['col']);
+    const plan = makePlan([makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false }, 'approved', { actionId: 'act:amb' })]);
+    const ctx = makeBuildContext(plan, ['col']);
+    const ambCol = ctx.columnRegistry.byColumnId.get(columns[0].columnId)!;
+    const candidate = {
+      ...buildValidCandidate([makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false }, 'approved', { actionId: 'act:amb' })], ['col']),
+      acceptedActionIds: [],
+      rejectedActionIds: [],
+      excludedActionIds: [{ actionId: 'act:amb', reason: 'ambiguous_column' as const }],
+      columnRefs: [ambCol],
+      datasetFingerprint: plan.datasetFingerprint,
+    };
+    const result = validateScriptCandidateV2(candidate, plan, ctx);
+    expect(result.errors.filter(e => e.code === 'SCRIPT_APPROVAL_INVALID')).toHaveLength(0);
+  });
+
+  it('approved + ambiguous column in accepted → SCRIPT_COLUMN_AMBIGUOUS', () => {
+    const columns = buildColumnRegistry(['col']);
+    const plan = makePlan([makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false }, 'approved', { actionId: 'act:amb' })]);
+    const ctx = makeBuildContext(plan, ['col']);
+    const candidate = {
+      ...buildValidCandidate([makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false }, 'approved', { actionId: 'act:amb' })], ['col']),
+      acceptedActionIds: ['act:amb'],
+      rejectedActionIds: [],
+      excludedActionIds: [],
+      columnRefs: [ctx.columnRegistry.byColumnId.get(columns[0].columnId)!],
+      datasetFingerprint: plan.datasetFingerprint,
+    };
+    const result = validateScriptCandidateV2(candidate, plan, ctx);
+    expect(result.errors.some(e => e.code === 'SCRIPT_COLUMN_AMBIGUOUS')).toBe(true);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════
+// Embedded validationResult root keys
+// ═══════════════════════════════════════════════════════════
+
+describe('Embedded validationResult: root keys', () => {
+  it('rejects unexpected root property', () => {
+    const columns = buildColumnRegistry(['Age']);
+    const actions = [makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false })];
+    const plan = makePlan(actions);
+    const ctx = makeBuildContext(plan, ['Age']);
+    const candidate = buildScriptCandidateV2(plan, ctx, { generatedAt: '2025-01-01T00:00:00.000Z' });
+    const contract = finalizeScriptContractV2(candidate, {
+      valid: true, errors: [], warnings: [],
+      pythonSyntax: { state: 'passed' },
+    });
+    const badContract = {
+      ...contract,
+      validationResult: {
+        valid: true,
+        errors: [],
+        warnings: [],
+        pythonSyntax: { state: 'passed' },
+        extraField: true,
+      },
+    };
+    const result = verifyScriptContractV2(badContract, plan, ctx);
+    expect(result.errors.some(e => e.code === 'SCRIPT_CONTRACT_INVALID' && e.path === '$.validationResult.extraField')).toBe(true);
+  });
+
+  it('rejects missing valid key', () => {
+    const columns = buildColumnRegistry(['Age']);
+    const actions = [makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false })];
+    const plan = makePlan(actions);
+    const ctx = makeBuildContext(plan, ['Age']);
+    const candidate = buildScriptCandidateV2(plan, ctx, { generatedAt: '2025-01-01T00:00:00.000Z' });
+    const contract = finalizeScriptContractV2(candidate, {
+      valid: true, errors: [], warnings: [],
+      pythonSyntax: { state: 'passed' },
+    });
+    const badContract = {
+      ...contract,
+      validationResult: {
+        errors: [],
+        warnings: [],
+        pythonSyntax: { state: 'passed' },
+      },
+    } as any;
+    const result = verifyScriptContractV2(badContract, plan, ctx);
+    expect(result.errors.some(e => e.code === 'SCRIPT_CONTRACT_INVALID' && e.path === '$.validationResult.valid')).toBe(true);
+  });
+
+  it('rejects missing pythonSyntax key', () => {
+    const columns = buildColumnRegistry(['Age']);
+    const actions = [makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false })];
+    const plan = makePlan(actions);
+    const ctx = makeBuildContext(plan, ['Age']);
+    const candidate = buildScriptCandidateV2(plan, ctx, { generatedAt: '2025-01-01T00:00:00.000Z' });
+    const contract = finalizeScriptContractV2(candidate, {
+      valid: true, errors: [], warnings: [],
+      pythonSyntax: { state: 'passed' },
+    });
+    const badContract = {
+      ...contract,
+      validationResult: {
+        valid: true,
+        errors: [],
+        warnings: [],
+      },
+    } as any;
+    const result = verifyScriptContractV2(badContract, plan, ctx);
+    expect(result.errors.some(e => e.code === 'SCRIPT_CONTRACT_INVALID' && e.path === '$.validationResult.pythonSyntax')).toBe(true);
+  });
+
+  it('accepts valid embedded validationResult with all keys', () => {
+    const columns = buildColumnRegistry(['Age']);
+    const actions = [makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false })];
+    const plan = makePlan(actions);
+    const ctx = makeBuildContext(plan, ['Age']);
+    const candidate = buildScriptCandidateV2(plan, ctx, { generatedAt: '2025-01-01T00:00:00.000Z' });
+    const contract = finalizeScriptContractV2(candidate, {
+      valid: true, errors: [], warnings: [],
+      pythonSyntax: { state: 'passed' },
+    });
+    const result = verifyScriptContractV2(contract, plan, ctx);
+    expect(result.errors.filter(e => e.code === 'SCRIPT_CONTRACT_INVALID' && e.path.startsWith('$.validationResult'))).toHaveLength(0);
   });
 });

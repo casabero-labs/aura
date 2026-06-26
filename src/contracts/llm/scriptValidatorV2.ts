@@ -1,5 +1,5 @@
 /**
- * Script Validator v2 — Phase 4 Loop 4R.
+ * Script Validator v2 — Phase 4 Loop 4R.1.
  *
  * Validates ScriptContractCandidateV2 and verifies ScriptContractV2.
  * Totally fail-closed: never throws, always returns ScriptValidationResultV2.
@@ -358,6 +358,21 @@ function validateCorrespondence(
 
 // ── HITL / Partition Validation (V16-V21) ──
 
+function deriveExpectedReason(action: RemediationActionV2, registry: import('./columnRegistry').ColumnRegistry, acceptedIds: Set<string>): string | undefined {
+  if (action.approvalStatus === 'pending') return 'pending';
+  if (action.approvalStatus === 'rejected') return 'unsupported_action';
+  if (action.approvalStatus === 'approved') {
+    if (action.actionType === 'requires_human_review') return 'unsupported_action';
+    if (COLUMN_REQUIRED_ACTIONS.has(action.actionType)) {
+      if (!action.columnId) return 'missing_column';
+      const regCol = registry.byColumnId.get(action.columnId);
+      if (!regCol) return 'missing_column';
+      if (regCol.isAmbiguous) return 'ambiguous_column';
+    }
+  }
+  return undefined;
+}
+
 function validatePartition(
   c: Record<string, unknown>,
   plan: RemediationPlanV2,
@@ -409,6 +424,8 @@ function validatePartition(
     }
   }
 
+  const registry = buildContext.columnRegistry;
+
   for (const action of plan.plan) {
     if (action.approvalStatus === 'pending') {
       const found = excluded.find(e => e.actionId === action.actionId);
@@ -418,10 +435,23 @@ function validatePartition(
         verror(state, 'SCRIPT_APPROVAL_INVALID', `$.excludedActionIds`, `pending action "${action.actionId}" has reason "${found.reason}"`);
       }
     }
+
     if (action.approvalStatus === 'rejected') {
       const found = excluded.find(e => e.actionId === action.actionId);
       if (found && found.reason !== 'unsupported_action' && found.reason !== 'missing_column' && found.reason !== 'ambiguous_column') {
         verror(state, 'SCRIPT_APPROVAL_INVALID', `$.excludedActionIds`, `rejected action "${action.actionId}" has unexpected reason "${found.reason}"`);
+      }
+    }
+
+    if (action.approvalStatus === 'approved') {
+      const expectedReason = deriveExpectedReason(action, registry, acceptedIds);
+      if (expectedReason === 'missing_column' || expectedReason === 'ambiguous_column' || expectedReason === 'unsupported_action') {
+        const found = excluded.find(e => e.actionId === action.actionId);
+        if (!found) {
+          verror(state, 'SCRIPT_APPROVAL_INVALID', `$.plan`, `action "${action.actionId}" with reason "${expectedReason}" not in excluded`);
+        } else if (found.reason !== expectedReason) {
+          verror(state, 'SCRIPT_APPROVAL_INVALID', `$.excludedActionIds`, `action "${action.actionId}" expected reason "${expectedReason}", got "${found.reason}"`);
+        }
       }
     }
   }
@@ -433,7 +463,6 @@ function validatePartition(
     }
   }
 
-  const registry = buildContext.columnRegistry;
   for (const action of plan.plan) {
     if (action.approvalStatus !== 'approved') continue;
     if (action.actionType === 'requires_human_review') continue;
@@ -441,12 +470,8 @@ function validatePartition(
     if (COLUMN_REQUIRED_ACTIONS.has(action.actionType)) {
       if (!action.columnId) {
         const inAccepted = acceptedIds.has(action.actionId);
-        const inExcluded = excluded.find(e => e.actionId === action.actionId);
         if (inAccepted) {
           verror(state, 'SCRIPT_APPROVAL_INVALID', `$.acceptedActionIds`, `"${action.actionId}" approved but missing column`);
-        }
-        if (inExcluded && inExcluded.reason !== 'missing_column') {
-          verror(state, 'SCRIPT_APPROVAL_INVALID', `$.excludedActionIds`, `"${action.actionId}" wrong exclusion reason`);
         }
         continue;
       }
@@ -556,7 +581,6 @@ function maskStringsAndComments(script: string): string {
   while (i < script.length) {
     const ch = script[i];
 
-    // Triple single-quoted string
     if (script.startsWith("'''", i)) {
       result.push("'''");
       i += 3;
@@ -572,7 +596,6 @@ function maskStringsAndComments(script: string): string {
       continue;
     }
 
-    // Triple double-quoted string
     if (script.startsWith('"""', i)) {
       result.push('"""');
       i += 3;
@@ -588,7 +611,6 @@ function maskStringsAndComments(script: string): string {
       continue;
     }
 
-    // Single-line comment
     if (ch === '#') {
       result.push('#');
       i++;
@@ -599,9 +621,8 @@ function maskStringsAndComments(script: string): string {
       continue;
     }
 
-    // String with prefix (r, R, f, F, b, B, fr, rf, fr, etc.)
     if (ch === "'" || ch === '"') {
-      const prefixChars: Record<string, string[]> = {
+      const prefixMap: Record<string, string[]> = {
         'r': ["r'", 'r"'],
         'R': ["R'", 'R"'],
         'f': ["f'", 'f"'],
@@ -610,7 +631,7 @@ function maskStringsAndComments(script: string): string {
         'B': ["B'", 'B"'],
       };
       let matchedPrefix: string | null = null;
-      if (i + 1 < script.length && prefixChars[ch]?.includes(script.substring(i, i + 2))) {
+      if (i + 1 < script.length && prefixMap[ch]?.includes(script.substring(i, i + 2))) {
         matchedPrefix = script.substring(i, i + 2);
       }
       if (matchedPrefix) {
@@ -648,25 +669,90 @@ function maskStringsAndComments(script: string): string {
 
 // ── Import Whitelist Validation ──
 
-const ALLOWED_IMPORTS = new Set(['pandas as pd', 'numpy as np']);
+const ALLOWED_IMPORTS: Record<string, string> = {
+  'pandas as pd': 'pandas as pd',
+  'numpy as np': 'numpy as np',
+};
 
 function validateImportWhitelist(scriptText: string, state: ValState): void {
-  const importLineRe = /^(\s*)import\s+([^;\n]+)/gm;
-  let match: RegExpExecArray | null;
-  while ((match = importLineRe.exec(scriptText)) !== null) {
-    const line = match[0];
-    const moduleList = match[2];
-    const modules = moduleList.split(',').map(m => m.trim());
-    for (const mod of modules) {
-      const normalized = mod.replace(/\s+/g, ' ');
-      if (!ALLOWED_IMPORTS.has(normalized)) {
-        verror(state, 'SCRIPT_UNAUTHORIZED_IMPORT', '$.scriptText', `unauthorized import: "${mod.trim()}"`);
+  const masked = maskStringsAndComments(scriptText);
+
+  const lineRe = /^([^#\n]*?)$/gm;
+  const importRe = /^\s*import\s+(\S+)\s+as\s+(\S+)\s*(?:#[^\n]*)?$/i;
+  const fromRe = /^\s*from\s+\S+\s+import\s+/i;
+  const combinedImportRe = /^\s*import\s+\S+\s*,\s*\S+/;
+  const indentImportRe = /^\s+import\s+/;
+  const semicolonRe = /;\s*import\s+/;
+  const continuationRe = /\\\s*$/m;
+
+  const allowedFound = new Set<string>();
+  const lines = masked.split('\n');
+
+  for (let li = 0; li < lines.length; li++) {
+    const line = lines[li];
+    const trimmed = line.trim();
+
+    if (trimmed === '' || trimmed.startsWith('#')) continue;
+
+    if (fromRe.test(line)) {
+      verror(state, 'SCRIPT_UNAUTHORIZED_IMPORT', '$.scriptText', 'from ... import not allowed');
+      continue;
+    }
+
+    if (combinedImportRe.test(line)) {
+      verror(state, 'SCRIPT_UNAUTHORIZED_IMPORT', '$.scriptText', `combined import not allowed: "${trimmed}"`);
+      continue;
+    }
+
+    if (semicolonRe.test(trimmed)) {
+      verror(state, 'SCRIPT_UNAUTHORIZED_IMPORT', '$.scriptText', `semicolon in import not allowed`);
+      continue;
+    }
+
+    const match = importRe.exec(line);
+    if (match) {
+      const module = match[1];
+      const alias = match[2];
+      const normalized = `${module} as ${alias}`;
+
+      if (indentImportRe.test(line)) {
+        verror(state, 'SCRIPT_UNAUTHORIZED_IMPORT', '$.scriptText', `indented import not allowed: "${trimmed}"`);
+        continue;
+      }
+
+      if (continuationRe.test(line.slice(0, match.index + match[0].length))) {
+        verror(state, 'SCRIPT_UNAUTHORIZED_IMPORT', '$.scriptText', `import continuation not allowed`);
+        continue;
+      }
+
+      if (!ALLOWED_IMPORTS[normalized]) {
+        verror(state, 'SCRIPT_UNAUTHORIZED_IMPORT', '$.scriptText', `unauthorized import: "${normalized}"`);
+        continue;
+      }
+
+      if (allowedFound.has(normalized)) {
+        verror(state, 'SCRIPT_UNAUTHORIZED_IMPORT', '$.scriptText', `duplicate import: "${normalized}"`);
+        continue;
+      }
+
+      allowedFound.add(normalized);
+      importRe.lastIndex = 0;
+      continue;
+    }
+
+    if (/^\s*import\s+/.test(line)) {
+      const normalized = line.trim().replace(/\s+/g, ' ');
+      if (!ALLOWED_IMPORTS[normalized]) {
+        verror(state, 'SCRIPT_UNAUTHORIZED_IMPORT', '$.scriptText', `unauthorized import: "${normalized}"`);
       }
     }
   }
 
-  if (/^\s*from\s+\S+\s+import\s+/gm.test(scriptText)) {
-    verror(state, 'SCRIPT_UNAUTHORIZED_IMPORT', '$.scriptText', 'from ... import not allowed');
+  const requiredImports = ['pandas as pd', 'numpy as np'];
+  for (const req of requiredImports) {
+    if (!allowedFound.has(req)) {
+      verror(state, 'SCRIPT_UNAUTHORIZED_IMPORT', '$.scriptText', `missing required import: "${req}"`);
+    }
   }
 }
 
@@ -677,7 +763,6 @@ function validateSecurity(scriptText: string, state: ValState): void {
 
   const masked = maskStringsAndComments(scriptText);
 
-  // EXECUTABLE_CONTENT
   for (const kw of ['eval', 'exec', '__import__']) {
     const re = new RegExp(`\\b${kw}\\(`, 'i');
     if (re.test(masked)) {
@@ -685,7 +770,6 @@ function validateSecurity(scriptText: string, state: ValState): void {
     }
   }
 
-  // NETWORK_ACCESS
   for (const kw of ['subprocess', 'os.system', 'socket', 'requests', 'urllib', 'http.client']) {
     const escaped = kw.replace('.', '\\.');
     const re = new RegExp(`\\b${escaped}\\b`, 'i');
@@ -694,7 +778,6 @@ function validateSecurity(scriptText: string, state: ValState): void {
     }
   }
 
-  // FILE_ACCESS
   for (const kw of ['open(', 'io.open(', 'pathlib', '__file__']) {
     const escaped = kw.replace('.', '\\.').replace('(', '\\(').replace('_', '_');
     if (new RegExp(escaped, 'i').test(masked)) {
@@ -702,7 +785,6 @@ function validateSecurity(scriptText: string, state: ValState): void {
     }
   }
 
-  // DESTRUCTIVE_OPERATION
   if (/inplace\s*=\s*True/i.test(masked)) {
     verror(state, 'SCRIPT_DESTRUCTIVE_OPERATION', '$.scriptText', 'inplace=True');
   }
@@ -723,7 +805,9 @@ function validateSyntax(
 ): void {
   if (!options?.syntaxChecker) {
     state.syntaxResult = { state: 'not_run' };
-    vwarn(state, 'SCRIPT_SYNTAX_NOT_RUN', '$.syntax', 'no syntax checker provided');
+    if (!state.warnings.some(w => w.code === 'SCRIPT_SYNTAX_NOT_RUN')) {
+      vwarn(state, 'SCRIPT_SYNTAX_NOT_RUN', '$.syntax', 'no syntax checker provided');
+    }
     return;
   }
 
@@ -732,25 +816,33 @@ function validateSyntax(
     rawResult = options.syntaxChecker(scriptText);
   } catch {
     state.syntaxResult = { state: 'not_run' };
-    vwarn(state, 'SCRIPT_SYNTAX_NOT_RUN', '$.syntax', 'syntax checker threw');
+    if (!state.warnings.some(w => w.code === 'SCRIPT_SYNTAX_NOT_RUN')) {
+      vwarn(state, 'SCRIPT_SYNTAX_NOT_RUN', '$.syntax', 'syntax checker threw');
+    }
     return;
   }
 
   if (rawResult === null || rawResult === undefined) {
     state.syntaxResult = { state: 'not_run' };
-    vwarn(state, 'SCRIPT_SYNTAX_NOT_RUN', '$.syntax', 'syntax checker returned null/undefined');
+    if (!state.warnings.some(w => w.code === 'SCRIPT_SYNTAX_NOT_RUN')) {
+      vwarn(state, 'SCRIPT_SYNTAX_NOT_RUN', '$.syntax', 'syntax checker returned null/undefined');
+    }
     return;
   }
 
   if (typeof rawResult !== 'object') {
     state.syntaxResult = { state: 'not_run' };
-    vwarn(state, 'SCRIPT_SYNTAX_NOT_RUN', '$.syntax', `syntax checker returned ${typeof rawResult}`);
+    if (!state.warnings.some(w => w.code === 'SCRIPT_SYNTAX_NOT_RUN')) {
+      vwarn(state, 'SCRIPT_SYNTAX_NOT_RUN', '$.syntax', `syntax checker returned ${typeof rawResult}`);
+    }
     return;
   }
 
   if (Array.isArray(rawResult)) {
     state.syntaxResult = { state: 'not_run' };
-    vwarn(state, 'SCRIPT_SYNTAX_NOT_RUN', '$.syntax', 'syntax checker returned array');
+    if (!state.warnings.some(w => w.code === 'SCRIPT_SYNTAX_NOT_RUN')) {
+      vwarn(state, 'SCRIPT_SYNTAX_NOT_RUN', '$.syntax', 'syntax checker returned array');
+    }
     return;
   }
 
@@ -759,28 +851,36 @@ function validateSyntax(
   const stateVal = result.state;
   if (!VALID_STATES.has(stateVal as string)) {
     state.syntaxResult = { state: 'not_run' };
-    vwarn(state, 'SCRIPT_SYNTAX_NOT_RUN', '$.syntax', `invalid syntax state "${String(stateVal)}"`);
+    if (!state.warnings.some(w => w.code === 'SCRIPT_SYNTAX_NOT_RUN')) {
+      vwarn(state, 'SCRIPT_SYNTAX_NOT_RUN', '$.syntax', `invalid syntax state "${String(stateVal)}"`);
+    }
     return;
   }
 
   const engineVal = result.engine;
   if (engineVal !== undefined && typeof engineVal !== 'string') {
     state.syntaxResult = { state: 'not_run' };
-    vwarn(state, 'SCRIPT_SYNTAX_NOT_RUN', '$.syntax', `syntax checker engine must be string`);
+    if (!state.warnings.some(w => w.code === 'SCRIPT_SYNTAX_NOT_RUN')) {
+      vwarn(state, 'SCRIPT_SYNTAX_NOT_RUN', '$.syntax', `syntax checker engine must be string`);
+    }
     return;
   }
 
   const msgVal = result.message;
   if (msgVal !== undefined && typeof msgVal !== 'string') {
     state.syntaxResult = { state: 'not_run' };
-    vwarn(state, 'SCRIPT_SYNTAX_NOT_RUN', '$.syntax', `syntax checker message must be string`);
+    if (!state.warnings.some(w => w.code === 'SCRIPT_SYNTAX_NOT_RUN')) {
+      vwarn(state, 'SCRIPT_SYNTAX_NOT_RUN', '$.syntax', `syntax checker message must be string`);
+    }
     return;
   }
 
   for (const k of Object.keys(result)) {
     if (!ALLOWED_RESULT_KEYS.has(k)) {
       state.syntaxResult = { state: 'not_run' };
-      vwarn(state, 'SCRIPT_SYNTAX_NOT_RUN', '$.syntax', `unexpected property "${k}" in syntax result`);
+      if (!state.warnings.some(w => w.code === 'SCRIPT_SYNTAX_NOT_RUN')) {
+        vwarn(state, 'SCRIPT_SYNTAX_NOT_RUN', '$.syntax', `unexpected property "${k}" in syntax result`);
+      }
       return;
     }
   }
@@ -793,6 +893,10 @@ function validateSyntax(
 
   if (stateVal === 'failed') {
     verror(state, 'SCRIPT_SYNTAX_INVALID', '$.scriptText', typeof msgVal === 'string' ? msgVal : 'syntax invalid');
+  } else if (stateVal === 'not_run') {
+    if (!state.warnings.some(w => w.code === 'SCRIPT_SYNTAX_NOT_RUN')) {
+      vwarn(state, 'SCRIPT_SYNTAX_NOT_RUN', '$.syntax', 'syntax checker returned not_run');
+    }
   }
 }
 
@@ -831,6 +935,8 @@ function validateReconstruction(
 
 // ── Embedded validationResult deep validation ──
 
+const VR_REQUIRED_KEYS = new Set(['valid', 'errors', 'warnings', 'pythonSyntax']);
+
 function validateEmbeddedValidationResult(
   vr: unknown,
   state: ValState,
@@ -838,6 +944,18 @@ function validateEmbeddedValidationResult(
   if (!safeObj(vr, '$.validationResult', state)) return;
 
   const r = vr as Record<string, unknown>;
+
+  for (const k of Object.keys(r)) {
+    if (!VR_REQUIRED_KEYS.has(k)) {
+      verror(state, 'SCRIPT_CONTRACT_INVALID', `$.validationResult.${k}`, `unexpected property "${k}" in validationResult root`);
+    }
+  }
+
+  for (const req of ['valid', 'errors', 'warnings', 'pythonSyntax']) {
+    if (!(req in r)) {
+      verror(state, 'SCRIPT_CONTRACT_INVALID', `$.validationResult.${req}`, `missing required property "${req}"`);
+    }
+  }
 
   if (typeof r.valid !== 'boolean') {
     verror(state, 'SCRIPT_CONTRACT_INVALID', '$.validationResult.valid', 'must be boolean');

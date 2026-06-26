@@ -159,7 +159,7 @@ Enmascarador léxico: strings + comentarios. 0 falsos positivos en columnas `eva
 
 **SHA:** `<commit actual>`
 
-### Defectos cerrados
+### Defectos cerrados (Loop 4R.1)
 
 | # | Defecto | Corrección |
 |---|---|---|
@@ -173,6 +173,10 @@ Enmascarador léxico: strings + comentarios. 0 falsos positivos en columnas `eva
 | R8 | validatePartition sin intersecciones explícitas | accepted∩rejected, accepted∩excluded, rejected∩excluded → SCRIPT_PARTITION_INVALID |
 | R9 | Enmascarador sin triple strings ni prefijos | Soporta ''', """, r, R, f, F, b, B, fr, rf, etc.; escapes en strings |
 | R10 | compareColumnIdsStable() vacía y no usada | Eliminada |
+| R11 | Warning ausente para checker válido not_run | Cuando checker devuelve { state: 'not_run' } válido → se añade SCRIPT_SYNTAX_NOT_RUN exactamente 1 vez; valid=true si no hay otros errores |
+| R12 | Whitelist de imports permite formas no canónicas | Verificación línea a línea: indentación (no permitido), duplicados (no permitido), cada import en su propia línea, sin punto y coma, sin continuación con barra invertida |
+| R13 | Propiedades adicionales en raíz de validationResult | Se exigen las 4 claves exactas en raíz; cualquier extra → SCRIPT_CONTRACT_INVALID con path $.validationResult.extraField |
+| R14 | Razones de exclusión no validadas directamente | deriveExpectedReason(plan, registry) por cada acción; comparison contra excludedActionIds; SCRIPT_APPROVAL_INVALID con reason específico |
 
 ### API (sin cambios)
 
@@ -193,7 +197,7 @@ Enmascarador léxico: strings + comentarios. 0 falsos positivos en columnas `eva
 ### Política exacta de imports
 
 ```
-PERMITIDO:
+PERMITIDO (cada uno, exactamente una vez, nivel superior, línea propia):
   import pandas as pd
   import numpy as np
 
@@ -204,10 +208,16 @@ RECHAZADO:
   import numpy as numpy
   import pandas as pd, numpy as np
   import pandas, numpy
+  import pandas as pd; import numpy as np
+  import pandas as pd \
+    , numpy as np
   from os import system
   from os import *
-  cualquier import dentro de clean_dataset body
+  cualquier import indentado (dentro de clean_dataset body)
+  import duplicado de pandas o numpy
 ```
+
+El análisis se realiza sobre el texto enmascarado (strings y comentarios ya eliminados).
 
 ### Intersecciones de partición
 
@@ -228,10 +238,10 @@ Tokens dentro de `_c` dict strings → no producen error:
 | Archivo | Cambio |
 |---|---|
 | `scriptValidatorV2.ts` | validateSyntax fail-closed, validateImportWhitelist, maskStringsAndComments triple strings, validatePartition intersecciones, validateEmbeddedValidationResult, safeNonNegativeInteger, safeFiniteNumber |
-| `scriptValidatorV2.test.ts` | 88 tests (72 nuevas) |
+| `scriptValidatorV2.test.ts` | 115 tests (99 nuevas) |
 | `loop_04_validator.md` | Actualizado con hardening |
 
-### Tests (88 total, +46)
+### Tests (115 total, +27)
 
 | Suite | Tests |
 |---|---|
@@ -250,10 +260,11 @@ Tokens dentro de `_c` dict strings → no producen error:
 
 | Verificación | Resultado |
 |---|---|
-| Tests Loop 4R | 88 passed |
-| Suite completa | 1047 passed, 6 skipped |
+| Tests Loop 4R (scriptValidatorV2) | 115 passed |
+| Suite completa | 1074 passed, 6 skipped |
 | Build | built in ~3s |
 | Contracts v2 | 3/3 PASS |
+| Remediation plans built/valid | 3/3 |
 
 ---
 
