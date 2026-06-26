@@ -21,7 +21,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'VITE_CONTRACTS_V2_ENABLED=true VITE_PHASE3_E2E_HARNESS=true npm run dev -- --host 127.0.0.1',
+    command: 'VITE_CONTRACTS_V2_ENABLED=true VITE_PHASE3_E2E_HARNESS=true VITE_PHASE4_E2E_HARNESS=true npm run dev -- --host 127.0.0.1',
     url: 'http://127.0.0.1:3000',
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
