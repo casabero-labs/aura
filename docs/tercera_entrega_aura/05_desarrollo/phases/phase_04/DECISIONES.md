@@ -247,6 +247,70 @@ Una acción `rejected` NUNCA aparece en `excludedActionIds`. Los conjuntos son m
 
 **Decisión:** El contrato se invalida cuando cambia cualquiera de los inputs base: `fingerprint`, `envelopeRef`, `planId`, `csvFields`, o el `approvalStatus` de alguna acción. La clave es `JSON.stringify({ fingerprint, envelopeRef, planId, approvals: [actionId, approvalStatus], csvFields })`.
 
+## D20: onRemediationPlanChange llamado dos veces (defensivo)
+
+**Decisión:** `onRemediationPlanChange` se llama desde dos puntos: el useEffect de `RemediationPlanStepV2` y defensivamente en `handleGenerate` antes de construir el contexto.
+
+**Justificación:** El useEffect del hijo propaga el plan al parent de forma async (después del render). `handleGenerate` necesita que `remediationPlan` esté disponible inmediatamente para `buildUiScriptContext`. La redundancia garantiza que el parent tenga el plan antes de que se publique el contrato.
+
+**Consecuencias:**
+- El callback se invoca 2 veces por generación (aceptado)
+- No hay riesgo de estado inconsistente porque ambos apuntan al mismo plan
+- Si se remueve la llamada defensiva, `remediationPlan` podría ser `null` en `handleGenerate`
+
+---
+
+## D21: Fresh verification condicionada a restoredKey
+
+**Decisión:** La verificación fresca de contratos restaurados solo se ejecuta si `restoredKey === currentKey`. Si no coincide, el contrato fue invalidado y se omite la verificación.
+
+**Justificación:** Si la clave restaurada no coincide con la actual, el contrato ya está obsoleto. Verificarlo sería desperdiciar un ciclo de `verifyScriptContractV2` sin beneficio.
+
+**Consecuencias:**
+- Si `initialData.scriptContractV2` tiene una clave obsoleta, se limpia silenciosamente
+- El usuario ve el plan de regeneración al restaurar una sesión con inputs modificados
+
+---
+
+## D22: deriveDiagnosisIdentity helper
+
+**Decisión:** Se extrajo `deriveDiagnosisIdentity` como función helper en `MainPipeline` para calcular `diagRef` y `envelopeRef` desde un `DiagnosisExecutionResult`.
+
+**Justificación:** La lógica de derivación de identidad se usaba en dos lugares (plan lifecycle y fresh verification). Centralizarla evita duplicación y mantiene consistencia.
+
+**Consecuencias:**
+- `diagRef = diagnosis.diagnosis?.issues ? diag:${evidenceEnvelopeRef} : null`
+- `envelopeRef = evidenceEnvelopeRef ?? null`
+- Reutilizable en futuros efectos que necesiten comparar diagnósticos
+
+---
+
+## D23: prevContractKeyRef inicializado desde initialData
+
+**Decisión:** `prevContractKeyRef` se inicializa con `getInitialContractKey()` calculado desde `initialData`, no con `null`.
+
+**Justificación:** Si se inicializa con `null`, el primer render detectaría un cambio de `null → calculatedKey` y limpiaría el contrato restaurado. Inicializarlo con la clave correcta evita falsa invalidación.
+
+**Consecuencias:**
+- El contrato restaurado no se invalida en el primer render
+- Si `initialData.scriptContractV2` es `null`, `prevContractKeyRef` queda `null` (comportamiento correcto)
+- `getInitialContractKey` es una función pura, solo se ejecuta una vez
+
+---
+
+## D24: Error de aprobación silenciosa con lista de campos
+
+**Decisión:** Cuando falta información para aprobar en ReviewStep, se muestra un error con la lista de campos faltantes en lugar de un return silencioso.
+
+**Justificación:** El usuario debe saber qué le falta para poder proceder. Un return silencioso parece un bug.
+
+**Consecuencias:**
+- `setV2VerifyError('Falta información para aprobar: plan de remediación, fingerprint del dataset.')`
+- `setStage('pending')` se mantiene — el usuario ve el error
+- La lista es dinámica: solo muestra campos realmente faltantes
+
+---
+
 **Justificación:** Re-calcular el contrato ante cada cambio de input evita aprobaciones de contratos obsoletos. Incluir `approvalStatus` detecta cambios de aprobación que alteran el `acceptedActionIds`.
 
 **Consecuencias:**

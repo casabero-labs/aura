@@ -12,10 +12,10 @@ import { parseCsv } from '../services/csvService';
 import { buildAuditEvidence, buildIngestionEvidence, createTraceRecorder, fingerprintDataset } from '../services/executionEvidence';
 import { matchGroundTruth, buildDeterministicValidationReport } from '../services/deterministicValidation';
 import { validateCleaningScript } from '../services/scriptValidationService';
-import { buildScriptContractInputKey } from '../services/scriptContractUiContext';
+import { buildScriptContractInputKey, buildUiScriptContext } from '../services/scriptContractUiContext';
 import { AIConfig, AIProvider, AuditReport, AuditExecutionEvidence, BenchmarkResult, DeterministicValidationReport, HealthDelta, ImprovementRun, ProviderMetrics, ScriptValidationResult, ProgressDisclosureStatus } from '../types';
 import type { DiagnosisExecutionResult, RemediationPlanV2, ScriptContractV2, ScriptValidationResultV2 } from '../contracts/llm';
-import { validateRemediationPlanV2, isContractsV2Enabled } from '../contracts/llm';
+import { validateRemediationPlanV2, isContractsV2Enabled, verifyScriptContractV2 } from '../contracts/llm';
 
 export type PipelineState = 'upload' | 'profile' | 'diagnosis' | 'script' | 'review' | 'export';
 
@@ -54,6 +54,29 @@ interface MainPipelineProps {
 }
 
 const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initialData, onLog, onPipelineChange, onAiConfigChange, onOpenLab, onOpenSettings }) => {
+
+  const deriveDiagnosisIdentity = (diagnosis: DiagnosisExecutionResult | null) => {
+    if (!diagnosis) return { diagRef: null, envelopeRef: null };
+    return {
+      diagRef: diagnosis.diagnosis?.issues
+        ? `diag:${diagnosis.diagnosis.evidenceEnvelopeRef}`
+        : null,
+      envelopeRef: diagnosis.evidenceEnvelopeRef ?? null,
+    };
+  };
+
+  // Initialize prevContractKeyRef from restored session
+  const getInitialContractKey = () => {
+    if (!initialData?.scriptContractV2) return null;
+    const fp = initialData.auditEvidence?.datasetFingerprint ?? null;
+    return buildScriptContractInputKey({
+      fingerprint: fp,
+      envelopeRef: initialData.structuredDiagnosis?.evidenceEnvelopeRef ?? null,
+      planId: initialData.remediationPlan?.planId ?? null,
+      plan: initialData.remediationPlan?.plan ?? null,
+      csvFields: initialData.csvFields ?? [],
+    });
+  };
   const [state, setState] = useState<PipelineState>(() => initialData?.state ?? 'upload');
   const [file, setFile] = useState<File | null>(null);
   const [report, setReport] = useState<AuditReport | null>(() => initialData?.report ?? null);
@@ -128,7 +151,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
   }, []);
 
   // ── Script Contract v2 invalidation ──
-  const prevContractKeyRef = useRef<string | null>(null);
+  const prevContractKeyRef = useRef<string | null>(getInitialContractKey());
   useEffect(() => {
     if (!isContractsV2Enabled()) return;
     const fingerprint = auditEvidence?.datasetFingerprint ?? null;
@@ -153,10 +176,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
   const prevDiagnosisRef = useRef<string | null>(null);
   const prevEnvelopeRef = useRef<string | null>(null);
   useEffect(() => {
-    const currentDiagRef = structuredDiagnosis?.diagnosis?.issues
-      ? `diag:${structuredDiagnosis.diagnosis.evidenceEnvelopeRef}`
-      : null;
-    const currentEnvelopeRef = structuredDiagnosis?.evidenceEnvelopeRef ?? null;
+    const { diagRef: currentDiagRef, envelopeRef: currentEnvelopeRef } = deriveDiagnosisIdentity(structuredDiagnosis);
 
     if (!structuredDiagnosis) {
       // No diagnosis — clear plan
@@ -202,6 +222,61 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
       }
     }
   }, [structuredDiagnosis]);
+
+  // ── Fresh verification of restored script contract on mount ──
+  useEffect(() => {
+    if (!initialData?.scriptContractV2 || !isContractsV2Enabled()) return;
+    const { diagRef: currentDiagRef, envelopeRef: currentEnvelopeRef } = deriveDiagnosisIdentity(initialData.structuredDiagnosis);
+    const restoredKey = buildScriptContractInputKey({
+      fingerprint: initialData.auditEvidence?.datasetFingerprint ?? null,
+      envelopeRef: currentEnvelopeRef,
+      planId: initialData.remediationPlan?.planId ?? null,
+      plan: initialData.remediationPlan?.plan ?? null,
+      csvFields: initialData.csvFields ?? [],
+    });
+
+    // Only verify if the restored contract key matches what we'd compute now
+    const currentFp = auditEvidence?.datasetFingerprint ?? null;
+    const currentKey = buildScriptContractInputKey({
+      fingerprint: currentFp,
+      envelopeRef: structuredDiagnosis?.evidenceEnvelopeRef ?? null,
+      planId: remediationPlan?.planId ?? null,
+      plan: remediationPlan?.plan ?? null,
+      csvFields,
+    });
+
+    if (restoredKey !== currentKey) return;
+
+    const context = buildUiScriptContext({
+      structuredDiagnosis: initialData.structuredDiagnosis ?? null,
+      csvFields: initialData.csvFields ?? [],
+      sourceDatasetFingerprint: initialData.auditEvidence?.datasetFingerprint ?? null,
+    });
+    if (!context.ok) {
+      setScriptContractV2(null);
+      setScriptContractVerificationV2(null);
+      addLog('script.contract.v2.restored.invalid :: context build failed — contract cleared');
+      return;
+    }
+    if (!initialData.remediationPlan) {
+      setScriptContractV2(null);
+      setScriptContractVerificationV2(null);
+      addLog('script.contract.v2.restored.invalid :: no remediationPlan — contract cleared');
+      return;
+    }
+    const verification = verifyScriptContractV2(
+      initialData.scriptContractV2,
+      initialData.remediationPlan,
+      context.buildContext,
+    );
+    if (!verification.valid) {
+      setScriptContractV2(null);
+      setScriptContractVerificationV2(null);
+      addLog(`script.contract.v2.restored.invalid :: verification failed — contract cleared`);
+      return;
+    }
+    addLog('script.contract.v2.restored.valid :: fresh verification passed on mount');
+  }, []); // Run once on mount
 
   const addLog = (msg: string) => {
     const time = new Date().toLocaleTimeString('es-CO', {
@@ -387,6 +462,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
           remediationPlan={remediationPlan}
           scriptContractV2={scriptContractV2}
           scriptContractVerificationV2={scriptContractVerificationV2}
+          onRemediationPlanChange={setRemediationPlan}
           onScriptContractChange={(contract, verification) => {
             setScriptContractV2(contract);
             setScriptContractVerificationV2(verification);

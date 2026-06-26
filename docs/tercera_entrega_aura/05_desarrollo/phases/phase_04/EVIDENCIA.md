@@ -597,6 +597,72 @@ cd src && npm run contracts:v2:validate-local
 
 ---
 
+## Loop 5R.1 — Propagación del plan y restauración de sesión
+
+### Comandos de reproducción
+
+```bash
+cd src && npm test -- scriptGenerationStepV2
+# 33 passed
+
+cd src && npm test
+# 1107 passed, 6 skipped
+
+cd src && npm run typecheck
+# clean (0 errors)
+
+cd src && npm run build
+# built in ~3.5s
+
+cd src && npm run contracts:v2:validate-local
+# 3/3 PASS
+```
+
+### Cambios implementados
+
+1. `ScriptGenerationStepV2` — `onRemediationPlanChange` prop agregada; useEffect sync siempre (no condicional a `view`)
+2. `MainPipeline` — Fresh verification on mount para contratos restaurados; `prevContractKeyRef` inicializado desde `initialData`; `deriveDiagnosisIdentity` helper
+3. `ReviewStep` — Bloqueo de aprobación silenciosa con error UI visible cuando falta plan/contexto
+4. `RemediationPlanStepV2` — Ya tenía `onRemediationPlanChange` (no cambió en Loop 5R.1)
+
+### Archivos modificados
+
+| Archivo | Cambio |
+|---|---|
+| `src/components/ScriptGenerationStepV2.tsx` | `onRemediationPlanChange` prop, useEffect sync always |
+| `src/components/MainPipeline.tsx` | Fresh verification mount, prevRefs init from initialData, `deriveDiagnosisIdentity` |
+| `src/components/ReviewStep.tsx` | Error UI para plan/contexto faltante en aprobación |
+
+### Test breakdown (33 tests — 3 nuevos)
+
+| Suite | Tests |
+|---|---|
+| buildUiScriptContext | 7 |
+| buildScriptContractInputKey | 6 |
+| Contract pipeline (real) | 3 |
+| ScriptGenerationStepV2 component | 8 |
+| Full integrated flow | 1 |
+| Session restoration fresh verification | 2 |
+| RemediationPlanStepV2 props | 3 |
+| ScriptReview v2 props | 2 |
+| Invalid inputs | 1 |
+
+### Confirmaciones
+
+- `scriptBuilderV2.ts` no cambió
+- `scriptRendererV2.ts` no cambió
+- `scriptValidatorV2.ts` no cambió
+- `scriptColumnResolver.ts` no cambió
+- `columnRegistry.ts` no cambió
+- `placeholderVocabulary.ts` no cambió
+- `scriptErrorCodes.ts` no cambió
+- Phase 3 no cambió
+- No se importó Pyodide
+- No se ejecutó Python
+- No se creó ImprovementRun
+
+---
+
 ## Loop 1 — Histórico
 
 Ver `EVIDENCIA.md` original en el commit `53df16a`.

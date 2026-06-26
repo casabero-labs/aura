@@ -365,6 +365,7 @@ describe('Invalidation by approvalStatus change', () => {
         scriptContractV2={contract}
         scriptContractVerificationV2={verification}
         onScriptContractChange={() => {}}
+        onRemediationPlanChange={vi.fn()}
         onContinue={() => {}}
       />,
     );
@@ -386,6 +387,7 @@ describe('Invalidation by approvalStatus change', () => {
         scriptContractV2={null}
         scriptContractVerificationV2={null}
         onScriptContractChange={() => {}}
+        onRemediationPlanChange={vi.fn()}
         onContinue={() => {}}
       />,
     );
@@ -497,6 +499,7 @@ describe('ScriptGenerationStepV2 component', () => {
         scriptContractV2={null}
         scriptContractVerificationV2={null}
         onScriptContractChange={() => {}}
+        onRemediationPlanChange={vi.fn()}
         onContinue={() => {}}
       />,
     );
@@ -515,6 +518,7 @@ describe('ScriptGenerationStepV2 component', () => {
         scriptContractV2={null}
         scriptContractVerificationV2={null}
         onScriptContractChange={() => {}}
+        onRemediationPlanChange={vi.fn()}
         onContinue={() => {}}
       />,
     );
@@ -539,6 +543,7 @@ describe('ScriptGenerationStepV2 component', () => {
         scriptContractV2={null}
         scriptContractVerificationV2={null}
         onScriptContractChange={onContractChange}
+        onRemediationPlanChange={vi.fn()}
         onContinue={() => {}}
       />,
     );
@@ -579,6 +584,7 @@ describe('ScriptGenerationStepV2 component', () => {
         scriptContractV2={null}
         scriptContractVerificationV2={null}
         onScriptContractChange={() => {}}
+        onRemediationPlanChange={vi.fn()}
         onContinue={() => {}}
       />,
     );
@@ -608,6 +614,7 @@ describe('ScriptGenerationStepV2 component', () => {
         scriptContractV2={null}
         scriptContractVerificationV2={null}
         onScriptContractChange={() => {}}
+        onRemediationPlanChange={vi.fn()}
         onContinue={() => {}}
       />,
     );
@@ -637,6 +644,7 @@ describe('ScriptGenerationStepV2 component', () => {
         scriptContractV2={contract}
         scriptContractVerificationV2={verification}
         onScriptContractChange={() => {}}
+        onRemediationPlanChange={vi.fn()}
         onContinue={() => {}}
       />,
     );
@@ -655,6 +663,7 @@ describe('ScriptGenerationStepV2 component', () => {
         scriptContractV2={null}
         scriptContractVerificationV2={null}
         onScriptContractChange={() => {}}
+        onRemediationPlanChange={vi.fn()}
         onContinue={() => {}}
       />,
     );
@@ -679,6 +688,7 @@ describe('ScriptGenerationStepV2 component', () => {
         scriptContractV2={null}
         scriptContractVerificationV2={null}
         onScriptContractChange={() => {}}
+        onRemediationPlanChange={vi.fn()}
         onContinue={() => {}}
       />,
     );
@@ -713,6 +723,7 @@ describe('ScriptGenerationStepV2 component', () => {
         scriptContractV2={null}
         scriptContractVerificationV2={null}
         onScriptContractChange={() => {}}
+        onRemediationPlanChange={vi.fn()}
         onContinue={() => {}}
       />,
     );
@@ -729,6 +740,122 @@ describe('ScriptGenerationStepV2 component', () => {
 
     expect(screen.queryByText('Seguro')).toBeNull();
     expect(screen.queryByText(/safetyScore/)).toBeNull();
+  });
+});
+
+// ── Full integrated flow: null plan → build → review → approve ────────────────
+
+describe('Full integrated flow (null plan → build → review → approve)', () => {
+  it('builds plan, generates contract, and approves', async () => {
+    const user = userEvent.setup();
+    const { default: ScriptGenerationStepV2 } = await import('../components/ScriptGenerationStepV2');
+    const onContractChange = vi.fn();
+    const onRemediationPlanChange = vi.fn();
+    const onContinue = vi.fn();
+    const diag = makeStructuredDiagnosis();
+
+    render(
+      <ScriptGenerationStepV2
+        report={{} as any}
+        csvFields={['id', 'age', 'name']}
+        sourceDatasetFingerprint="sha256:fingerprint123"
+        structuredDiagnosis={diag}
+        remediationPlan={null}
+        scriptContractV2={null}
+        scriptContractVerificationV2={null}
+        onScriptContractChange={onContractChange}
+        onRemediationPlanChange={onRemediationPlanChange}
+        onContinue={onContinue}
+      />,
+    );
+
+    // Starts in Vista A (plan view)
+    await waitFor(() => {
+      expect(screen.getByText('Generar contrato de script')).toBeTruthy();
+    });
+
+    // Click generate → plan built, contract generated
+    await user.click(screen.getByText('Generar contrato de script'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Contrato válido')).toBeTruthy();
+    });
+
+    // Plan was propagated to parent (once from RemediationPlanStepV2 useEffect, once defensively in handleGenerate)
+    expect(onRemediationPlanChange).toHaveBeenCalledTimes(2);
+    const builtPlan = onRemediationPlanChange.mock.calls[0][0];
+    expect(builtPlan.planId).toBeTruthy();
+    expect(builtPlan.plan).toBeInstanceOf(Array);
+
+    // Contract was published
+    expect(onContractChange).toHaveBeenCalledTimes(1);
+    const [contract, verification] = onContractChange.mock.calls[0];
+    expect(contract.scriptHash).toBeTruthy();
+    expect(verification.valid).toBe(true);
+
+    // Continue button should be enabled (Vista B)
+    const continueBtn = screen.getByText('Continuar a revisión');
+    expect(continueBtn).toBeTruthy();
+    await user.click(continueBtn);
+    expect(onContinue).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ── Session restoration: fresh verification on mount ───────────────────────────
+
+describe('Session restoration fresh verification', () => {
+  it('valid restored contract: passes fresh verification on mount', async () => {
+    const { default: ScriptGenerationStepV2 } = await import('../components/ScriptGenerationStepV2');
+    const contract = makeValidContract();
+    const verification = makeValidVerification();
+    const diag = makeStructuredDiagnosis();
+    const plan = buildRemediationPlanV2(diag);
+
+    render(
+      <ScriptGenerationStepV2
+        report={{} as any}
+        csvFields={['id', 'age', 'name']}
+        sourceDatasetFingerprint="sha256:fingerprint123"
+        structuredDiagnosis={diag}
+        remediationPlan={plan}
+        scriptContractV2={contract}
+        scriptContractVerificationV2={verification}
+        onScriptContractChange={() => {}}
+        onRemediationPlanChange={vi.fn()}
+        onContinue={() => {}}
+      />,
+    );
+
+    // Should show contract view immediately (valid restored contract)
+    await waitFor(() => {
+      expect(screen.getByText('Contrato válido')).toBeTruthy();
+    });
+  });
+
+  it('invalid restored contract: contract cleared on mount', async () => {
+    const { default: ScriptGenerationStepV2 } = await import('../components/ScriptGenerationStepV2');
+    const diag = makeStructuredDiagnosis();
+
+    render(
+      <ScriptGenerationStepV2
+        report={{} as any}
+        csvFields={['id', 'age', 'name']}
+        sourceDatasetFingerprint="sha256:fingerprint123"
+        structuredDiagnosis={diag}
+        remediationPlan={null}
+        scriptContractV2={null}
+        scriptContractVerificationV2={null}
+        onScriptContractChange={() => {}}
+        onRemediationPlanChange={vi.fn()}
+        onContinue={() => {}}
+      />,
+    );
+
+    // Should show plan view (no contract)
+    await waitFor(() => {
+      expect(screen.getByText('Generar contrato de script')).toBeTruthy();
+    });
+    expect(screen.queryByText('Contrato válido')).toBeNull();
   });
 });
 

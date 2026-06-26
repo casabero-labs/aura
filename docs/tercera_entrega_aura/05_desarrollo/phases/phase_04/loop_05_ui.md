@@ -219,6 +219,134 @@ En la rama v2 queda **prohibido** llamar:
 | D18 | ScriptGenerationStepV2 es unidireccional — sin edición inline, solo generar o volver |
 | D19 | Routing por flag + contexto — `isContractsV2Enabled() && !!structuredDiagnosis?.remediationContext` |
 
+## Loop 5R.1 — Propagación del plan y restauración de sesión
+
+**SHA base:** `7ad83d1bf03d087f4be3483a2bf898e814632aae`
+**Fecha:** 2026-06-26
+**Estado:** Implementado
+
+### Objetivo
+
+1. Propagar el plan de remediación al parent state (MainPipeline)
+2. Bloquear aprobación silenciosa sin plan/contexto
+3. Verificación fresca de contratos restaurados en mount
+4. Sincronización de props siempre (no condicional a `view`)
+5. Tests de flujo integrado completo y restauración de sesión
+
+### Cambios en código
+
+#### ScriptGenerationStepV2 — `onRemediationPlanChange` prop
+
+```typescript
+export interface ScriptGenerationStepV2Props {
+  // ... existentes ...
+  onRemediationPlanChange: (plan: RemediationPlanV2) => void;
+}
+```
+
+Flujo de propagación:
+- `RemediationPlanStepV2` → useEffect interno → `onRemediationPlanChange(plan)`
+- `handleGenerate` → `onRemediationPlanChange(plan)` (defensivo, antes de buildUiScriptContext)
+- Ambos llaman al mismo callback del parent, asegurando que `remediationPlan` esté disponible
+
+#### ScriptGenerationStepV2 — useEffect sync siempre
+
+```typescript
+// ANTES (condicional a view)
+if (scriptContractV2 && view === 'decision') { ... }
+
+// DESPUÉS (siempre desde props)
+if (scriptContractV2) {
+  setView('contract');
+  setGenState({ status: 'done', contract: scriptContractV2, ... });
+} else {
+  setView('decision');
+  setGenState({ status: 'idle' });
+}
+```
+
+#### ReviewStep — Bloqueo de aprobación silenciosa
+
+```typescript
+// ANTES: return silencioso
+if (!scriptContractV2 || !remediationPlanV2 || ...) { return; }
+
+// DESPUÉS: error visible + bloqueo
+if (!scriptContractV2 || !remediationPlanV2 || ...) {
+  const missing: string[] = [];
+  if (!scriptContractV2) missing.push('contrato');
+  if (!remediationPlanV2) missing.push('plan de remediación');
+  if (!structuredDiagnosis?.remediationContext) missing.push('diagnóstico estructurado');
+  if (!sourceDatasetFingerprint) missing.push('fingerprint del dataset');
+  setV2VerifyError(`Falta información para aprobar: ${missing.join(', ')}.`);
+  setStage('pending');
+  return;
+}
+```
+
+#### MainPipeline — Fresh verification on mount
+
+```typescript
+useEffect(() => {
+  if (!initialData?.scriptContractV2 || !isContractsV2Enabled()) return;
+
+  // 1. Verificar que la clave restaurada coincide con la actual
+  if (restoredKey !== currentKey) return;
+
+  // 2. Construir contexto fresco
+  const context = buildUiScriptContext({ structuredDiagnosis, csvFields, ... });
+
+  // 3. Verificar contrato restaurado
+  const verification = verifyScriptContractV2(contract, plan, context.buildContext);
+  if (!verification.valid) → clear contract
+}, []); // Run once on mount
+```
+
+#### MainPipeline — prevRefs inicializados desde initialData
+
+```typescript
+const prevContractKeyRef = useRef<string | null>(getInitialContractKey());
+const prevDiagnosisRef = useRef<string | null>(null);
+const prevEnvelopeRef = useRef<string | null>(null);
+```
+
+### Archivos modificados (Loop 5R.1)
+
+| Archivo | Cambio |
+|---|---|
+| `src/components/ScriptGenerationStepV2.tsx` | `onRemediationPlanChange` prop, useEffect sync always |
+| `src/components/RemediationPlanStepV2.tsx` | Ya tenía `onRemediationPlanChange` (no cambió) |
+| `src/components/MainPipeline.tsx` | Fresh verification mount, prevRefs init from initialData |
+| `src/components/ReviewStep.tsx` | Error UI para plan/contexto faltante |
+
+### Tests (33 tests — 3 nuevos)
+
+| Suite | Tests |
+|---|---|
+| Full integrated flow (null plan → build → review → approve) | 1 |
+| Session restoration fresh verification | 2 |
+
+### Verificaciones
+
+| Verificación | Resultado |
+|---|---|
+| Suite completa | 1107 passed, 6 skipped (51 files) |
+| Typecheck | clean (0 errors) |
+| Build | built in ~3.5s |
+| Contracts v2 | 3/3 PASS |
+
+### Decisiones Loop 5R.1
+
+| ID | Decisión |
+|---|---|
+| D20 | `onRemediationPlanChange` se llama dos veces (useEffect + handleGenerate defensivo) — redundancia aceptada para garantizar disponibilidad antes de buildContext |
+| D21 | Fresh verification en mount solo se ejecuta si `restoredKey === currentKey` — si no coincide, se omite (ya fue invalidado) |
+| D22 | `deriveDiagnosisIdentity` extrae identidad del diagnóstico — reutilizado en plan lifecycle y fresh verification |
+| D23 | `prevContractKeyRef` se inicializa con la clave calculada desde initialData — evita falsa invalidación en mount |
+| D24 | Error de aprobación silenciosa muestra lista de campos faltantes — diagnóstico transparente para el usuario |
+
+---
+
 ## Limitaciones no bloqueantes
 
 1. Las divergencias contractuales siguen cubiertas por V35 del validator

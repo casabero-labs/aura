@@ -73,3 +73,22 @@
 - `initialData` prop en MainPipeline para restauración de sesión (one-time init)
 - Fixture de diagnóstico con `DiagnosisResponseV2` completo (`responseId`, `diagnosisBlocks`, `limitations`)
 - Fixture de issues con `automaticAuthorization` completo (`authorized`, `actionType`, `conditionsMet`, `reason`)
+
+---
+
+## Loop 5R.1 — Propagación del plan y restauración de sesión
+
+### Limitaciones
+
+1. **`onRemediationPlanChange` se llama dos veces (D20):** La redundancia entre useEffect y handleGenerate es intencional — removeable solo si se demuestra que la sincronía del useEffect es suficiente
+2. **Fresh verification solo una vez:** Se ejecuta `[]` (empty deps) — si el mount ocurre antes de que el padre tenga los datos frescos, la verificación puede omitirse
+3. **`prevRefs` no persisten entre sesiones:** Se reinicializan con cada mount de MainPipeline — no hay persistencia cross-tab
+4. **Error de aprobación no tiene retry automático:** Muestra el error pero no reintenta la verificación — el usuario debe navegar o recargar
+
+### Curados en Loop 5R.1
+
+- Propagación defensiva del plan antes de buildContext (D20)
+- Fresh verification condicionada a `restoredKey === currentKey` (D21)
+- `deriveDiagnosisIdentity` centraliza derivación de identidad (D22)
+- `prevContractKeyRef` inicializado desde initialData (D23)
+- Error de aprobación con lista de campos faltantes (D24)

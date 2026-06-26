@@ -151,6 +151,13 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
 
   const handleApproveV2 = async (script: string) => {
     if (!scriptContractV2 || !remediationPlanV2 || !structuredDiagnosis?.remediationContext || !sourceDatasetFingerprint) {
+      const missing: string[] = [];
+      if (!scriptContractV2) missing.push('contrato');
+      if (!remediationPlanV2) missing.push('plan de remediación');
+      if (!structuredDiagnosis?.remediationContext) missing.push('diagnóstico estructurado');
+      if (!sourceDatasetFingerprint) missing.push('fingerprint del dataset');
+      setV2VerifyError(`Falta información para aprobar: ${missing.join(', ')}.`);
+      setStage('pending');
       return;
     }
     if (script !== scriptContractV2.scriptText) {

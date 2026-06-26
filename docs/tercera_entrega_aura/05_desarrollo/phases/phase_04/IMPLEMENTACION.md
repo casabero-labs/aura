@@ -626,6 +626,45 @@ scriptContractVerificationV2: ScriptValidationResultV2 | null;
 
 ---
 
+## Loop 5R.1: Propagación del plan y restauración de sesión
+
+**SHA base:** `7ad83d1bf03d087f4be3483a2bf898e814632aae`
+
+### Cambios
+
+| Archivo | Descripción |
+|---|---|
+| `src/components/ScriptGenerationStepV2.tsx` | `onRemediationPlanChange` prop agregada; useEffect sync always (no condicional a `view`); handleGenerate defensivo |
+| `src/components/MainPipeline.tsx` | Fresh verification on mount para contratos restaurados; `deriveDiagnosisIdentity` helper; `prevContractKeyRef` init desde initialData |
+| `src/components/ReviewStep.tsx` | Error UI visible cuando falta plan/contexto en aprobación (antes era return silencioso) |
+| `src/__tests__/scriptGenerationStepV2.test.tsx` | 3 tests nuevos: integrated flow + session restoration valid/invalid |
+
+### Tests (33 nuevos, 1107 total)
+
+| Suite | Tests |
+|---|---|
+| Full integrated flow (null plan → build → review → approve) | 1 |
+| Session restoration fresh verification | 2 |
+| buildUiScriptContext | 7 |
+| buildScriptContractInputKey | 6 |
+| Contract pipeline (real) | 3 |
+| ScriptGenerationStepV2 component | 8 |
+| RemediationPlanStepV2 props | 3 |
+| ScriptReview v2 props | 2 |
+| Invalid inputs | 1 |
+
+### Verificaciones
+
+| Verificación | Resultado |
+|---|---|
+| Suite completa | 1107 passed, 6 skipped (51 files) |
+| Typecheck | clean (0 errors) |
+| Build | built in ~3.5s |
+| Contracts v2 | 3/3 PASS |
+| Remediation plans valid | 3/3 |
+
+---
+
 ## Loops pendientes
 
 - Loop 6: E2E + capturas

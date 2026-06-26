@@ -48,6 +48,7 @@ export interface ScriptGenerationStepV2Props {
   scriptContractV2: ScriptContractV2 | null;
   scriptContractVerificationV2: ScriptValidationResultV2 | null;
   onScriptContractChange: (contract: ScriptContractV2 | null, verification: ScriptValidationResultV2 | null) => void;
+  onRemediationPlanChange: (plan: RemediationPlanV2) => void;
   onContinue: () => void;
   onLog?: (stage: string, msg: string) => void;
 }
@@ -70,6 +71,7 @@ const ScriptGenerationStepV2: React.FC<ScriptGenerationStepV2Props> = ({
   scriptContractV2,
   scriptContractVerificationV2,
   onScriptContractChange,
+  onRemediationPlanChange,
   onContinue,
   onLog,
 }) => {
@@ -87,17 +89,16 @@ const ScriptGenerationStepV2: React.FC<ScriptGenerationStepV2Props> = ({
     return { status: 'idle' };
   });
 
-  // Sync with parent contract (invalidation sets it to null)
+  // Sync always from props — not conditional on view
   useEffect(() => {
-    if (scriptContractV2 && view === 'decision') {
+    if (scriptContractV2) {
       setView('contract');
       setGenState({
         status: 'done',
         contract: scriptContractV2,
         verification: scriptContractVerificationV2 ?? undefined,
       });
-    }
-    if (!scriptContractV2 && view === 'contract') {
+    } else {
       setView('decision');
       setGenState({ status: 'idle' });
     }
@@ -122,6 +123,10 @@ const ScriptGenerationStepV2: React.FC<ScriptGenerationStepV2Props> = ({
   const handleGenerate = useCallback(
     (plan: RemediationPlanV2) => {
       if (!contextResult.ok) return;
+
+      // Defensive: propagate plan to parent before building context
+      // (useEffect propagation is async; parent state may still be null here)
+      onRemediationPlanChange(plan);
 
       setGenState({ status: 'building' });
       onLog?.('script.v2', 'build.start');
@@ -187,7 +192,7 @@ const ScriptGenerationStepV2: React.FC<ScriptGenerationStepV2Props> = ({
         onLog?.('script.v2', `error :: ${err?.message ?? 'unknown'}`);
       }
     },
-    [contextResult, onScriptContractChange, onLog],
+    [contextResult, onScriptContractChange, onRemediationPlanChange, onLog],
   );
 
   const contractValid =
@@ -266,6 +271,7 @@ const ScriptGenerationStepV2: React.FC<ScriptGenerationStepV2Props> = ({
           structuredDiagnosis={structuredDiagnosis}
           remediationPlan={remediationPlan}
           continueLabel={genState.status === 'building' ? 'Generando...' : 'Generar contrato de script'}
+          onRemediationPlanChange={onRemediationPlanChange}
           onContinueWithPlan={handleGenerate}
           onContinue={() => {}}
         />
