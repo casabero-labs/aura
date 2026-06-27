@@ -6,14 +6,16 @@
 
 **Phase 4 cerrada y congelada en `aa167995316962a70ff41a3970326d4824d980c0`.** Evidencia E2E completa: 8/8 escenarios contractuales demostrados en navegador.
 
+**Entrega 3 consolidada hasta Phase 4.** Documento principal: `01_borrador/TERCERA_ENTREGA_AURA_CONSOLIDADA.md`.
+
 ## Phase 4 — Resumen final
 
-6 loops principales + 9 subloops correctivos. Pipeline contractual completo:
+Pipeline contractual completo:
 
-```
+```text
 RemediationPlanV2 → HITL → buildScriptCandidateV2 → validateScriptCandidateV2
 → finalizeScriptContractV2 (hash + syntax) → verifyScriptContractV2
-→ revisión humana read-only → aprobación
+→ revisión humana read-only → aprobación sin ejecución
 ```
 
 | Métrica | Resultado |
@@ -29,11 +31,19 @@ RemediationPlanV2 → HITL → buildScriptCandidateV2 → validateScriptCandidat
 
 ## Regla
 
-No iniciar Phase 5 hasta que el diseño esté completo y aprobado. Phase 5 ejecutará el script generado contra datos reales, calculará HealthDelta y medirá mejora.
+No iniciar implementación de Phase 5 hasta que el diseño esté completo y aprobado. Phase 5 ejecutará el script generado contra copia de datos, calculará HealthDelta y medirá mejora.
 
 ## Próximo paso permitido
 
-Diseñar Phase 5 sin ejecutarla todavía. Definir alcance, arquitectura, contratos y plan de pruebas.
+**Phase 5 Loop 0 — Design only.**
+
+Objetivo: diseñar runtime, sandbox, contratos, fixtures y plan de pruebas. No ejecutar scripts generados.
+
+Documentación preparada:
+
+- `05_desarrollo/phases/phase_05/PHASE5_DESIGN.md`
+- `05_desarrollo/phases/phase_05/IMPROVEMENT_RUN_CONTRACT.md`
+- `05_desarrollo/phases/phase_05/PLAN_LOOPS_PHASE5.md`
 
 ## Loops cerrados (Phase 4)
 
@@ -44,3 +54,21 @@ Diseñar Phase 5 sin ejecutarla todavía. Definir alcance, arquitectura, contrat
 | L5R.1 | `00e2e88` | Propagación plan |
 | L5R.2 | `5af5d0c` | Restauración sesión |
 | L6 | `aa16799` | Evidencia E2E (8 escenarios) |
+| Freeze final | `05878e4` | Phase 4 cerrada y congelada |
+
+## Claims de frontera
+
+Permitido en Entrega 3:
+
+- contrato de script generado y validado;
+- hash contractual verificable;
+- revisión humana read-only;
+- bloqueo ante manipulación;
+- no ejecución en Phase 4.
+
+No permitido todavía:
+
+- ejecución Python real;
+- dataset corregido;
+- HealthDelta real;
+- mejora medida.
