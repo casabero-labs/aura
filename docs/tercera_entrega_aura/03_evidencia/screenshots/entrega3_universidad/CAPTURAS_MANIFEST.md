@@ -1,7 +1,8 @@
 # Capturas Entrega 3 Universidad — AURA
 
 > **Fecha:** 2026-06-27  
-> **Commit:** PHASE4_EVIDENCE  
+> **Commit:** `9e663225f2b6d9a90fbea2e7203e110e85aad0e3`  
+> **Spec:** `src/tests/e2e/third-delivery-university-evidence.spec.ts`  
 > **Evidencia Phase 4:** `aa167995316962a70ff41a3970326d4824d980c0`  
 > **Viewport:** 1440 × 1000  
 > **Dataset principal:** `titanic.csv`  
