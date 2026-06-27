@@ -2,7 +2,7 @@
 
 > **Fecha:** 2026-06-26  
 > **Evidencia vigente:** `aa167995316962a70ff41a3970326d4824d980c0`  
-> **Freeze final:** `PHASE4_REPAIR_SHA`
+> **Freeze final:** commit contenedor de este documento
 
 ## Alcance final
 

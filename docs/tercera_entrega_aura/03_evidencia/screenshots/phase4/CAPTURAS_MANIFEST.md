@@ -1,7 +1,7 @@
 # Capturas de pantalla — Phase 4 (Script Contract v2)
 
 > **Evidencia vigente:** `aa167995316962a70ff41a3970326d4824d980c0`  
-> **SHA de reparación:** `PHASE4_REPAIR_SHA`  
+> **SHA de reparación:** Freeze final — commit contenedor de este documento  
 > **Fecha de captura:** 2026-06-26  
 > **Viewport:** 1440 × 1000  
 > **Directorio:** `docs/tercera_entrega_aura/03_evidencia/screenshots/phase4/`  
