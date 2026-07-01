@@ -52,18 +52,16 @@ No iniciar implementación de Phase 5 hasta que el diseño esté completo y apro
 
 ## Próximo paso permitido
 
-**Phase 5 Loop 3 — Ejecución de clean_dataset sobre copia controlada.**
+**Phase 5 Loop 4 — Reauditoría post-ejecución.**
 
-Objetivo: ejecutar script aprobado sobre copia de fixture usando runtime externo (Colab notebook), con execution summary y logs estructurados.
+Objetivo: reusar `EvidenceEnvelopeV2` sobre dataset limpio post-ejecución, con before/after evidence refs y auditoría reproducible.
 
 Alcance:
-- Validar preflight check + sandbox antes de ejecutar.
-- Generar notebook Colab con script aprobado y fixture.
-- Ejecutar `clean_dataset(df)` sobre copia del dataframe.
-- Producir `ExecutionSummaryV1` según contrato `ImprovementRunV1`.
-- Logs estructurados de ejecución.
-- Dataset original intacto (solo copia modificada).
-- Tests unitarios con fixture controlado.
+- Ejecutar reauditoría con `runAudit` sobre dataset post-ejecución.
+- Vincular evidence antes y después.
+- Comparar issue counts (before/after).
+- Producir `ReauditSummaryV1`.
+- Auditoría reproducible con mismo motor determinista.
 
 Criterio de cierre: typecheck limpio, build exitoso, tests pasando.
 
@@ -73,7 +71,8 @@ Criterio de cierre: typecheck limpio, build exitoso, tests pasando.
 |---|---|---|
 | L0 | `096f96d` | Decisión de runtime (Colab formal + Pyodide stretch) |
 | L1 | `9be3f68` | Preflight verifier (17 tests) |
-| L2 | este commit | Runtime sandbox mínimo (42 tests) |
+| L2 | `7fdbd89` | Runtime sandbox mínimo (42 tests) |
+| L3 | este commit | Ejecución sobre copia controlada (17 tests) |
 
 Documentación preparada:
 - `05_desarrollo/phases/phase_05/PHASE5_DESIGN.md`
@@ -82,8 +81,7 @@ Documentación preparada:
 - `05_desarrollo/phases/phase_05/LOOP0_RUNTIME_DECISION.md`
 - `05_desarrollo/phases/phase_05/CIERRE_LOOP1_PREFLIGHT.md`
 - `05_desarrollo/phases/phase_05/CIERRE_LOOP2_RUNTIME_SANDBOX.md`
-- `05_desarrollo/phases/phase_05/LOOP0_RUNTIME_DECISION.md`
-- `05_desarrollo/phases/phase_05/CIERRE_LOOP1_PREFLIGHT.md`
+- `05_desarrollo/phases/phase_05/CIERRE_LOOP3_EXECUTION_COPY.md`
 
 ## Loops cerrados (Phase 4)
 
