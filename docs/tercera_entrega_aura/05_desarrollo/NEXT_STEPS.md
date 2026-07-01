@@ -52,19 +52,17 @@ No iniciar implementación de Phase 5 hasta que el diseño esté completo y apro
 
 ## Próximo paso permitido
 
-**Phase 5 Loop 2 — Runtime Sandbox Mínimo.**
+**Phase 5 Loop 3 — Ejecución de clean_dataset sobre copia controlada.**
 
-Objetivo: implementar runtime aislado que ejecute fixture controlado sin dataset real del usuario.
+Objetivo: ejecutar script aprobado sobre copia de fixture usando runtime externo (Colab notebook), con execution summary y logs estructurados.
 
 Alcance:
-- Timeout de ejecución (30s).
-- Sin acceso a red.
-- Sin acceso a filesystem libre.
-- Whitelist de imports (pandas, numpy, json, csv, io, hashlib, re, math, datetime, collections, itertools, typing).
-- Solo función `clean_dataset(df)`.
-- Ejecución sobre copia, nunca sobre dataset original.
-- Logs estructurados.
-- Bloqueo fail-closed ante error.
+- Validar preflight check + sandbox antes de ejecutar.
+- Generar notebook Colab con script aprobado y fixture.
+- Ejecutar `clean_dataset(df)` sobre copia del dataframe.
+- Producir `ExecutionSummaryV1` según contrato `ImprovementRunV1`.
+- Logs estructurados de ejecución.
+- Dataset original intacto (solo copia modificada).
 - Tests unitarios con fixture controlado.
 
 Criterio de cierre: typecheck limpio, build exitoso, tests pasando.
@@ -74,12 +72,16 @@ Criterio de cierre: typecheck limpio, build exitoso, tests pasando.
 | Loop | SHA | Descripción |
 |---|---|---|
 | L0 | `096f96d` | Decisión de runtime (Colab formal + Pyodide stretch) |
-| L1 | este commit | Preflight verifier (17 tests) |
+| L1 | `9be3f68` | Preflight verifier (17 tests) |
+| L2 | este commit | Runtime sandbox mínimo (42 tests) |
 
 Documentación preparada:
 - `05_desarrollo/phases/phase_05/PHASE5_DESIGN.md`
 - `05_desarrollo/phases/phase_05/IMPROVEMENT_RUN_CONTRACT.md`
 - `05_desarrollo/phases/phase_05/PLAN_LOOPS_PHASE5.md`
+- `05_desarrollo/phases/phase_05/LOOP0_RUNTIME_DECISION.md`
+- `05_desarrollo/phases/phase_05/CIERRE_LOOP1_PREFLIGHT.md`
+- `05_desarrollo/phases/phase_05/CIERRE_LOOP2_RUNTIME_SANDBOX.md`
 - `05_desarrollo/phases/phase_05/LOOP0_RUNTIME_DECISION.md`
 - `05_desarrollo/phases/phase_05/CIERRE_LOOP1_PREFLIGHT.md`
 
