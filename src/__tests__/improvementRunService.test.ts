@@ -240,22 +240,24 @@ describe('computeHealthDelta', () => {
     expect(delta.summary).toContain('No issues detected');
   });
 
-  it('adds caveat when score decreases but issues also decrease', () => {
+  it('returns inconclusive when score decreases but issues decrease', () => {
     const reaudit = makeMockReauditResult(3, 1, 80, 70);
     const delta = computeHealthDelta(reaudit);
-    expect(delta.status).toBe('improved');
+    expect(delta.status).toBe('inconclusive');
     expect(delta.delta).toBe(-10);
     expect(delta.caveats.length).toBeGreaterThan(0);
-    expect(delta.caveats[0]).toContain('Score decreased');
+    expect(delta.caveats.some(c => c.includes('Score decreased'))).toBe(true);
+    expect(delta.summary).toContain('inconclusive');
   });
 
-  it('adds caveat when score increases but issues also increase', () => {
+  it('returns inconclusive when score increases but issues increase', () => {
     const reaudit = makeMockReauditResult(1, 3, 70, 80);
     const delta = computeHealthDelta(reaudit);
-    expect(delta.status).toBe('worsened');
+    expect(delta.status).toBe('inconclusive');
     expect(delta.delta).toBe(10);
     expect(delta.caveats.length).toBeGreaterThan(0);
-    expect(delta.caveats[0]).toContain('Score increased');
+    expect(delta.caveats.some(c => c.includes('Score increased'))).toBe(true);
+    expect(delta.summary).toContain('inconclusive');
   });
 
   it('adds caveat when delta is 0 with remaining issues', () => {

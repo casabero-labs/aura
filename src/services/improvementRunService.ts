@@ -93,17 +93,21 @@ export function computeHealthDelta(reauditResult: ReauditResult): HealthDeltaV1 
     summary = `Issues increased from ${issueBefore} to ${issueAfter} after Colab execution (score: ${scoreBefore} → ${scoreAfter}, delta: ${delta > 0 ? '+' : ''}${delta}).`;
   }
 
-  // Inconclusive guard: negative score delta with improved issues (unexpected)
+  // Inconclusive: score and issues move in opposite directions
   if (status === 'improved' && delta < 0) {
+    status = 'inconclusive';
+    summary = `Issues reduced from ${issueBefore} to ${issueAfter} but score decreased from ${scoreBefore} to ${scoreAfter} (delta: ${delta}). Score and issue signals contradict — HealthDelta is inconclusive.`;
     caveats.push(`Score decreased (${delta}) despite issue reduction — investigate score computation methodology.`);
   }
 
-  // Inconclusive guard: positive score delta with worsened issues (unexpected)
+  // Inconclusive: score and issues move in opposite directions
   if (status === 'worsened' && delta > 0) {
+    status = 'inconclusive';
+    summary = `Issues increased from ${issueBefore} to ${issueAfter} but score increased from ${scoreBefore} to ${scoreAfter} (delta: ${delta}). Score and issue signals contradict — HealthDelta is inconclusive.`;
     caveats.push(`Score increased (${delta}) despite issue increase — score weighting may compensate for new issues.`);
   }
 
-  // Inconclusive guard: zero delta with issues
+  // Stale score: zero delta with issues
   if (delta === 0 && issueBefore > 0 && issueAfter > 0) {
     caveats.push('Score delta is 0 — score may be capped or formula insensitive to remaining issues.');
   }
@@ -257,4 +261,56 @@ export function runImprovementFlow(
   logs.push(`[${finishedAt}] improvement flow completed`);
 
   return { improvementRun, executionResult, reauditResult, healthDelta };
+}
+
+// ── Type Guards ──
+
+export function isHealthDeltaV1(x: unknown): x is HealthDeltaV1 {
+  if (typeof x !== 'object' || x === null) return false;
+  const h = x as Record<string, unknown>;
+  return (
+    typeof h.status === 'string' &&
+    ['improved', 'unchanged', 'worsened', 'inconclusive'].includes(h.status as string) &&
+    (typeof h.scoreBefore === 'number' || h.scoreBefore === null) &&
+    (typeof h.scoreAfter === 'number' || h.scoreAfter === null) &&
+    (typeof h.delta === 'number' || h.delta === null) &&
+    typeof h.issueDelta === 'number' &&
+    typeof h.summary === 'string' &&
+    Array.isArray(h.caveats) &&
+    h.caveats.every(c => typeof c === 'string')
+  );
+}
+
+export function isImprovementRunV1(x: unknown): x is ImprovementRunV1 {
+  if (typeof x !== 'object' || x === null) return false;
+  const r = x as Record<string, unknown>;
+  return (
+    r.contractId === 'aura.improvement_run.v1' &&
+    r.contractVersion === '1.0.0' &&
+    typeof r.runId === 'string' && r.runId.startsWith('run:') &&
+    typeof r.createdAt === 'string' &&
+    typeof r.sourceDatasetFingerprint === 'string' &&
+    typeof r.sourceEvidenceEnvelopeRef === 'string' &&
+    typeof r.scriptContractRef === 'string' &&
+    typeof r.scriptHash === 'string' &&
+    typeof r.remediationPlanId === 'string' &&
+    Array.isArray(r.acceptedActionIds) &&
+    typeof r.execution === 'object' && r.execution !== null &&
+    typeof r.outputDataset === 'object' && r.outputDataset !== null &&
+    typeof r.reaudit === 'object' && r.reaudit !== null &&
+    isHealthDeltaV1(r.healthDelta) &&
+    Array.isArray(r.limitations) &&
+    typeof r.claims === 'object' && r.claims !== null &&
+    Array.isArray((r.claims as Record<string, unknown>).permitted) &&
+    Array.isArray((r.claims as Record<string, unknown>).prohibited)
+  );
+}
+
+// ── JSON Export ──
+
+export function exportImprovementRunJSON(run: ImprovementRunV1): string {
+  if (!isImprovementRunV1(run)) {
+    throw new Error('exportImprovementRunJSON: invalid ImprovementRunV1 — type guard failed');
+  }
+  return JSON.stringify(run, null, 2);
 }

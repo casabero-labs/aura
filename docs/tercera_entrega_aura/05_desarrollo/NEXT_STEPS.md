@@ -52,18 +52,14 @@ No iniciar implementación de Phase 5 hasta que el diseño esté completo y apro
 
 ## Próximo paso permitido
 
-**Phase 5 Loop 6 — Tests E2E del flujo completo + CLI/UI wrapper.**
+**Phase 5 — Cierre y Freeze.**
 
-Objetivo: validar el flujo completo con fixture controlado end-to-end y preparar punto de entrada para usar `runImprovementFlow` desde CLI o UI.
+Con L0-L6 cerrados y 158 tests pasando, Phase 5 está funcionalmente completo. El cierre debe:
 
-Alcance:
-- Tests E2E del flujo completo: execute → import Colab output → reaudit → delta → ImprovementRunV1.
-- Fixture fixture_real con beforeCsv y afterCsv reales para validar el pipeline completo.
-- Documentar `runImprovementFlow` como API pública.
-- Validación de ImprovementRunV1 contra schema o tipo formal.
-- Claims y limitaciones listos para presentación a usuario.
-
-Criterio de cierre: typecheck limpio, build exitoso, tests E2E pasando, ImprovementRunV1 exportado como JSON.
+- Freezear Phase 5 como cerrada.
+- Preparar documentación de uso del flujo `runImprovementFlow`.
+- Validar `ImprovementRunV1` contra schema JSON formal.
+- Iniciar Phase 6 (UI wrapper y dashboard de health delta) con base en Phase 5 freezed.
 
 ### Loops cerrados (Phase 5)
 
@@ -74,7 +70,8 @@ Criterio de cierre: typecheck limpio, build exitoso, tests E2E pasando, Improvem
 | L2 | `7fdbd89` | Runtime sandbox mínimo (42 tests) |
 | L3 | `eefe9c5` | Generación notebook Colab + pipeline controlado (17 tests) |
 | L4 | `8327f6a` | Reauditoría post-ejecución, ReauditSummaryV1 (39 tests) |
-| L5 | este commit | HealthDelta + ImprovementRunV1 completo (25 tests) |
+| L5 | `c8f1d46` | HealthDelta + ImprovementRunV1 completo (25 tests) |
+| L6 | este commit | E2E tests + CLI wrapper + type guards + JSON export (18 tests) |
 
 Documentación preparada:
 - `05_desarrollo/phases/phase_05/PHASE5_DESIGN.md`
@@ -86,6 +83,7 @@ Documentación preparada:
 - `05_desarrollo/phases/phase_05/CIERRE_LOOP3_EXECUTION_COPY.md`
 - `05_desarrollo/phases/phase_05/CIERRE_LOOP4_REAUDIT.md`
 - `05_desarrollo/phases/phase_05/CIERRE_LOOP5_IMPROVEMENT_RUN.md`
+- `05_desarrollo/phases/phase_05/CIERRE_LOOP6_E2E_WRAPPER.md`
 
 ## Loops cerrados (Phase 4)
 
@@ -100,22 +98,31 @@ Documentación preparada:
 
 ## Claims de frontera
 
-Permitido en estado actual:
+Permitido en estado actual (Phase 5 L0-L6 completos):
 
-- contrato de script generado y validado;
-- hash contractual verificable;
-- revisión humana read-only;
-- bloqueo ante manipulación;
-- no ejecución en Phase 4;
-- AURA exporta notebooks Colab reproducibles con trazabilidad del script aprobado;
-- se ejecutó Python externo sobre fixture controlado y el resultado fue re-auditado con runAudit oficial (score 65→26, source_debt_preserved);
-- la decisión de runtime para Phase 5 formal está documentada y aprobada.
+- Contrato de script generado, validado y firmado (L1).
+- Hash contractual verificable (L1).
+- Revisión humana read-only (L1).
+- Bloqueo ante manipulación de hash, fingerprint y coherencia HITL (L1).
+- Runtime sandbox: network, filesystem, imports validados (L2).
+- AURA exporta notebooks Colab reproducibles con trazabilidad del script aprobado (L3).
+- Colab notebook generado con privacidad y instrucciones de ejecución manual (L3).
+- Reauditoría antes/después con `runAudit` de AURA sobre fixture controlado (L4).
+- `ReauditSummaryV1` con before/after evidence refs e issue counts (L4).
+- `HealthDeltaV1` calculado sobre fixture controlado usando `runAudit` de AURA (L5).
+- `ImprovementRunV1` completo con ejecución, reaudit, delta, limitaciones y claims (L5).
+- Mejora medida solo en fixture controlado si `HealthDeltaV1.status === 'improved'` (L5).
+- Status `inconclusive` cuando score e issues se contradicen (L5 corregido en L6).
+- Type guards `isHealthDeltaV1()` e `isImprovementRunV1()` (L6).
+- Export JSON de `ImprovementRunV1` validado (L6).
+- CLI wrapper para invocar `runImprovementFlow` (L6).
 
 No permitido todavía:
 
-- ejecución Python real dentro de AURA;
-- dataset corregido por pipeline formal de Phase 5;
-- HealthDelta real;
-- mejora medida;
-- benchmark formal de utilidad;
-- validación en Colab real (pendiente de ejecución manual).
+- Ejecución Python real dentro de AURA (siempre external a Colab).
+- Dataset corregido por pipeline formal de Phase 5 (solo fixture controlado).
+- HealthDelta como medición formal externa (usa runAudit de AURA).
+- Mejora formal sobre dataset real (solo fixture controlado).
+- Validación externa independiente (mismo motor runAudit, reproducible pero no externa).
+- Benchmark formal de utilidad.
+- `improved` como claim sin caveats del contexto real.
