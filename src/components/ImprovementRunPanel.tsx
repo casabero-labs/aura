@@ -295,6 +295,18 @@ function DoneState({ result, onRunAgain }: { result: RunResult; onRunAgain: () =
         <span data-testid="run-id" style={{ fontSize: 13, fontFamily: 'monospace', color: '#166534' }}>{result.improvementRun.runId}</span>
       </div>
 
+      <div data-testid="fixture-notice" style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '10px 14px' }}>
+        <p style={{ margin: 0, fontSize: 12, color: '#166534', lineHeight: 1.5 }}>
+          <strong>NOTE:</strong> This run used a <strong>controlled fixture copy</strong> of the dataset. No original data was modified.
+        </p>
+      </div>
+
+      <div data-testid="colab-notice" style={{ background: '#fefce8', border: '1px solid #fde047', borderRadius: 8, padding: '10px 14px' }}>
+        <p style={{ margin: 0, fontSize: 12, color: '#854d0e', lineHeight: 1.5 }}>
+          <strong>NOTE:</strong> AURA does <em>not</em> execute Python. The pipeline executed externally via a Colab notebook with the controlled fixture copy.
+        </p>
+      </div>
+
       <div style={{ border: '1px solid #e5e7eb', borderRadius: 8, overflow: 'hidden' }}>
         <div style={{ background: '#f9fafb', padding: '10px 16px', borderBottom: '1px solid #e5e7eb' }}>
           <span style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>Health Delta</span>
@@ -376,6 +388,12 @@ function ErrorState({ message, onRetry }: { message: string | null; onRetry: () 
       <div style={{ background: '#fefce8', border: '1px solid #fde047', borderRadius: 8, padding: '10px 14px' }}>
         <p style={{ margin: 0, fontSize: 12, color: '#854d0e', lineHeight: 1.5 }}>
           <strong>NOTE:</strong> The original dataset was <em>not</em> modified. This run used a controlled fixture copy.
+        </p>
+      </div>
+
+      <div data-testid="colab-notice" style={{ background: '#fefce8', border: '1px solid #fde047', borderRadius: 8, padding: '10px 14px' }}>
+        <p style={{ margin: 0, fontSize: 12, color: '#854d0e', lineHeight: 1.5 }}>
+          <strong>NOTE:</strong> AURA does <em>not</em> execute Python. Pipeline execution is delegated to an external Colab notebook.
         </p>
       </div>
 
