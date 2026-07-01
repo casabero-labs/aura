@@ -52,9 +52,9 @@ No iniciar implementación de Phase 5 hasta que el diseño esté completo y apro
 
 ## Próximo paso permitido
 
-**Phase 7 L2 — Capturas de evidencia visual para cuarta entrega.**
+**Phase 7 L3 — Verificación automática de claims visibles para cuarta entrega.**
 
-Objetivo: capturar screenshots de cada estado de Health Delta (idle, running, done, error), verificar que los avisos de "controlled fixture" y "no Python in AURA" son visibles, y generar evidencia visual para stakeholder.
+Objetivo: implementar tests E2E que verifiquen la presencia de todos los claims requeridos y la ausencia de claims prohibidos en la UI de Health Delta, según el contrato E2E (`E2E_CONTRACT_PHASE7.md` sección C).
 
 Constraints Phase 7:
 - No modificar código fuente Phase 5.
@@ -119,7 +119,8 @@ Cambio de enfoque:
 | Loop | SHA | Descripción |
 |---|---|---|
 | L0 | `648193f` | Production readiness plan + E2E contract |
-| L1 | este commit | E2E scaffold: 8 smoke tests navegación + bug fix `goAudit()` en App.tsx |
+| L1 | `68e39bd` | E2E scaffold: 8 smoke tests navegación + bug fix `goAudit()` en App.tsx |
+| L2 | este commit | Capturas de evidencia visual: 7 screenshots (idle/done/running/error/mobile) |
 
 ### Loops cerrados (Phase 5)
 
