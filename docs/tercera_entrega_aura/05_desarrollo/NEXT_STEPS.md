@@ -60,12 +60,19 @@ Objetivo: envolver `runImprovementFlow` en una UI de browser y exponer el `Impro
 
 Loops planificados:
 - **L0 (hecho):** Diseño — `PHASE6_UI_WRAPPER_DESIGN.md`
-- **L1:** `ImprovementRunPanel` + `runImprovementFlow` wrapper React
-- **L2:** `HealthDeltaDashboard` — visualización score, delta, status, caveats
+- **L1 (hecho):** `ImprovementRunPanel` + `runImprovementFlow` wrapper React
+- **L2 (próximo):** `HealthDeltaDashboard` — visualización score, delta, status, caveats
 - **L3:** `ImprovementRunExportCard` + `ExecutionLogsPanel`
 - **L4:** Estados visuales completos (idle/running/error con animaciones)
 - **L5:** Integración con rutas de AURA
 - **L6:** Freeze Phase 6
+
+### Loops cerrados (Phase 6)
+
+| Loop | SHA | Descripción |
+|---|---|---|
+| L0 | `b94ee00` | Diseño — PHASE6_UI_WRAPPER_DESIGN.md |
+| L1 | este commit | ImprovementRunPanel + wrapper React (2 tests) |
 
 No ejecuta Python — siempre delega a Colab.
 
