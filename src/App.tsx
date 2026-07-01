@@ -4,6 +4,7 @@ import ChangelogModal from './components/ChangelogModal';
 import ErrorBoundary from './components/ErrorBoundary';
 import AuditLogViewer from './components/AuditLogViewer';
 import BenchmarkLab from './components/BenchmarkLab';
+import ImprovementRunPage from './components/ImprovementRunPage';
 import SettingsPanel from './components/SettingsPanel';
 import HelpCenter from './components/HelpCenter';
 import ProgressDisclosure from './components/ProgressDisclosure';
@@ -128,6 +129,7 @@ const App: React.FC = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showLab, setShowLab] = useState(false);
+  const [showImprovementRun, setShowImprovementRun] = useState(false);
   const [showHome, setShowHome] = useState(true);
   const [showAuditLog, setShowAuditLog] = useState(false);
   const [showChangelog, setShowChangelog] = useState(false);
@@ -338,6 +340,7 @@ const App: React.FC = () => {
   const goHome = () => {
     setShowHome(true);
     setShowLab(false);
+    setShowImprovementRun(false);
     setShowAuditLog(false);
     setShowSettings(false);
     setShowHelp(false);
@@ -358,6 +361,17 @@ const App: React.FC = () => {
   const goLab = () => {
     setShowHome(false);
     setShowLab(true);
+    setShowImprovementRun(false);
+    setShowAuditLog(false);
+    setShowSettings(false);
+    setShowHelp(false);
+    setShowMobileNav(false);
+  };
+
+  const goImprovementRun = () => {
+    setShowHome(false);
+    setShowLab(false);
+    setShowImprovementRun(true);
     setShowAuditLog(false);
     setShowSettings(false);
     setShowHelp(false);
@@ -436,6 +450,13 @@ const App: React.FC = () => {
             </button>
 
             <button
+              className={`nav-menu-item ${showImprovementRun ? 'active' : ''}`}
+              onClick={goImprovementRun}
+            >
+              Health Delta
+            </button>
+
+            <button
               className={`nav-menu-item ${showSettings ? 'active' : ''}`}
               onClick={goSettings}
             >
@@ -480,6 +501,9 @@ const App: React.FC = () => {
         <button className="nav-link" onClick={goLab}>
           Laboratorio
         </button>
+        <button className="nav-link" onClick={goImprovementRun}>
+          Health Delta
+        </button>
         <button className="nav-link" onClick={goSettings}>
           Configuración
         </button>
@@ -493,6 +517,10 @@ const App: React.FC = () => {
       </div>
 
       {showChangelog && <ChangelogModal onClose={() => setShowChangelog(false)} />}
+
+      {showImprovementRun && (
+        <ImprovementRunPage onBack={goAudit} />
+      )}
 
       {showLab && (report ? (
         <BenchmarkLab
@@ -528,7 +556,7 @@ const App: React.FC = () => {
       ))}
 
       {/* Main Content — only show when not in settings, help, or lab */}
-      <main className="sys-main" style={{ display: showLab || showSettings || showHelp ? 'none' : undefined }}>
+      <main className="sys-main" style={{ display: showLab || showImprovementRun || showSettings || showHelp ? 'none' : undefined }}>
         {showHome && (
           <section className="home-hero" id="home">
             <p className="home-eyebrow">diagnóstico reproducible de datos</p>
@@ -778,7 +806,7 @@ const App: React.FC = () => {
       </main>
 
       {/* Footer */}
-      <footer className="sys-footer" style={{ display: showLab || showSettings || showHelp ? 'none' : undefined }}>
+      <footer className="sys-footer" style={{ display: showLab || showImprovementRun || showSettings || showHelp ? 'none' : undefined }}>
         <span className="footer-brand">AURA</span>
         <div className="footer-links">
           <button className="footer-link" onClick={() => setShowHelp(true)}>Ayuda</button>

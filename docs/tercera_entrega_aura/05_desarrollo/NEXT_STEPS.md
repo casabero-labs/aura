@@ -64,8 +64,8 @@ Loops planificados:
 - **L2 (hecho):** `HealthDeltaDashboard` — visualización score, delta, status, caveats
 - **L3 (hecho):** `ImprovementRunExportCard` + `ExecutionLogsPanel`
 - **L4 (hecho):** Estados visuales completos (idle/running/error con animaciones)
-- **L5:** Integración con rutas de AURA
-- **L6:** Freeze Phase 6
+- **L5 (hecho):** Integración con rutas de AURA
+- **L6 (próximo):** Freeze Phase 6
 
 ### Loops cerrados (Phase 6)
 
@@ -75,7 +75,8 @@ Loops planificados:
 | L1 | `e612b71` | ImprovementRunPanel + wrapper React (2 tests) |
 | L2 | `06d4fd9` | HealthDeltaDashboard + integración en Panel (21 tests) |
 | L3 | `9a8e884` | ImprovementRunExportCard + ExecutionLogsPanel + integración Panel (31 tests) |
-| L4 | este commit | Estados visuales completos idle/running/done/error (2 tests) |
+| L4 | `ad38bd4` | Estados visuales completos idle/running/done/error (2 tests) |
+| L5 | este commit | Integración con rutas — ImprovementRunPage + nav "Health Delta" (2 tests) |
 
 No ejecuta Python — siempre delega a Colab.
 
