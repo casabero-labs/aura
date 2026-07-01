@@ -52,9 +52,9 @@ No iniciar implementación de Phase 5 hasta que el diseño esté completo y apro
 
 ## Próximo paso permitido
 
-**Cuarta entrega — Integración documental de evidencia Phase 5-7.**
+**Phase 8 — Continuación técnica y recopilación de evidencia.**
 
-Objetivo: consolidar la evidencia de Phase 5 (motor de mejora), Phase 6 (UI wrapper) y Phase 7 (production readiness QA) en el documento de cuarta entrega del TFM, usando la evidencia congelada de Phase 7 como base.
+Objetivo: continuar el desarrollo técnico y la recopilación de evidencia hasta que el usuario ordene explícitamente iniciar la cuarta entrega documental. No preparar todavía la cuarta entrega.
 
 Constraints Phase 7:
 - No modificar código fuente Phase 5.
@@ -83,7 +83,7 @@ Phase 6 congelada en SHA `b689cce5012edf33d27e2e85bb325878ab79125a`. Freeze: `do
 | L3 | `9a8e884` | ImprovementRunExportCard + ExecutionLogsPanel + integración Panel (31 tests) |
 | L4 | `ad38bd4` | Estados visuales completos idle/running/done/error (2 tests) |
 | L5 | `d07b035` | Integración con rutas — ImprovementRunPage + nav "Health Delta" (2 tests) |
-| L6 | este commit | Freeze Phase 6 — FREEZE_PHASE6.md + micro-fix nav Auditoria |
+| L6 | `b689cce` | Freeze Phase 6 — FREEZE_PHASE6.md + micro-fix nav Auditoria |
 
 No ejecuta Python — siempre delega a Colab.
 
@@ -127,7 +127,7 @@ Cambio de enfoque:
 | L3 | `5c131d3` | Claims visible E2E: 17/17 tests + notices added to DoneState/ErrorState |
 | L4 | `6a86a79` | No-regression suite: 4/4 E2E tests + goSettings() bug fix |
 | L5 | `35e5c47` | Consolidación documental: CONSOLIDACION_EVIDENCIA_PHASE7_CUARTA_ENTREGA.md |
-| L6 | este commit | Freeze Phase 7: FREEZE_PHASE7.md + placeholders corregidos |
+| L6 | `58891c2` | Freeze Phase 7: FREEZE_PHASE7.md + placeholders corregidos |
 
 ### Loops cerrados (Phase 5)
 

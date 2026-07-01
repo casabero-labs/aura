@@ -3,7 +3,7 @@
 > **Estado:** FROZEN
 > **Fecha:** 2026-07-01
 > **SHA base:** `35e5c470d2e65ba54f34a1b5c9505002fabefe7b` (Phase 7 L5)
-> **SHA freeze:** este commit
+> **SHA freeze:** `58891c215604d7a140774370d133ce06460691d5`
 > **Alcance:** Production Readiness QA + Evidence Capture para cuarta entrega
 
 ---
@@ -38,7 +38,7 @@ Phase 7 entrega:
 | L3 docs | `c43e8a548510f63b9d3d4df191c92d64ea74cfab` | Docs | NEXT_STEPS actualizado hacia L4 |
 | L4 | `6a86a790e71fedf0bb96844dad81a2dbd39584b0` | Tests + código | 4 no-regression tests + bug fix `goSettings()` |
 | L5 | `35e5c470d2e65ba54f34a1b5c9505002fabefe7b` | Docs + tests | Consolidación evidencia + REG-003 hardening + corrección SHAs |
-| **L6** | este commit | Docs | **Freeze Phase 7** — FREEZE_PHASE7.md + último cleanup de placeholders |
+| **L6** | `58891c215604d7a140774370d133ce06460691d5` | Docs | **Freeze Phase 7** — FREEZE_PHASE7.md + último cleanup de placeholders |
 
 ---
 
