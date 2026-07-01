@@ -6,14 +6,14 @@
 
 import React, { useState } from 'react';
 import HealthDeltaDashboard from './HealthDeltaDashboard';
+import ImprovementRunExportCard from './ImprovementRunExportCard';
+import ExecutionLogsPanel from './ExecutionLogsPanel';
 
 type PanelState = 'idle' | 'running' | 'done' | 'error';
 
 interface RunResult {
-  runId: string;
-  healthDelta: { status: string; scoreBefore: number | null; scoreAfter: number | null; delta: number | null; issueDelta: number; summary: string; caveats: string[] };
-  reaudit: { beforeIssueCount: number; afterIssueCount: number };
-  output: { rowCountBefore: number; rowCountAfter: number; columnCountBefore: number; columnCountAfter: number };
+  improvementRun: import('../services/improvementRunService').ImprovementRunV1;
+  logs: string[];
 }
 
 interface Props {
@@ -111,10 +111,8 @@ const ImprovementRunPanel: React.FC<Props> = ({
       });
 
       setResult({
-        runId: flow.improvementRun.runId,
-        healthDelta: flow.healthDelta,
-        reaudit: flow.reauditResult.summary,
-        output: flow.reauditResult.output,
+        improvementRun: flow.improvementRun,
+        logs: flow.improvementRun.execution.logs,
       });
       setState('done');
     } catch (err: any) {
@@ -156,25 +154,36 @@ const ImprovementRunPanel: React.FC<Props> = ({
             <h3>Run Complete</h3>
             <div style={{ marginBottom: 12 }}>
               <span style={{ fontSize: 13, color: '#6b7280' }}>Run ID: </span>
-              <span data-testid="run-id" style={{ fontSize: 13, fontWeight: 600 }}>{result.runId}</span>
+              <span data-testid="run-id" style={{ fontSize: 13, fontWeight: 600 }}>{result.improvementRun.runId}</span>
             </div>
 
             <HealthDeltaDashboard
-              status={result.healthDelta.status as any}
-              scoreBefore={result.healthDelta.scoreBefore}
-              scoreAfter={result.healthDelta.scoreAfter}
-              delta={result.healthDelta.delta}
-              issueDelta={result.healthDelta.issueDelta}
-              beforeIssueCount={result.reaudit.beforeIssueCount}
-              afterIssueCount={result.reaudit.afterIssueCount}
-              summary={result.healthDelta.summary}
-              caveats={result.healthDelta.caveats}
-              outputRowCountBefore={result.output.rowCountBefore}
-              outputRowCountAfter={result.output.rowCountAfter}
-              outputColumnCountBefore={result.output.columnCountBefore}
-              outputColumnCountAfter={result.output.columnCountAfter}
-              changedCellsEstimate={'changedCellsEstimate' in result.output ? (result.output as any).changedCellsEstimate : null}
+              status={result.improvementRun.healthDelta.status}
+              scoreBefore={result.improvementRun.healthDelta.scoreBefore}
+              scoreAfter={result.improvementRun.healthDelta.scoreAfter}
+              delta={result.improvementRun.healthDelta.delta}
+              issueDelta={result.improvementRun.healthDelta.issueDelta}
+              beforeIssueCount={result.improvementRun.reaudit.beforeIssueCount}
+              afterIssueCount={result.improvementRun.reaudit.afterIssueCount}
+              summary={result.improvementRun.healthDelta.summary}
+              caveats={result.improvementRun.healthDelta.caveats}
+              outputRowCountBefore={result.improvementRun.outputDataset.rowCountBefore}
+              outputRowCountAfter={result.improvementRun.outputDataset.rowCountAfter}
+              outputColumnCountBefore={result.improvementRun.outputDataset.columnCountBefore}
+              outputColumnCountAfter={result.improvementRun.outputDataset.columnCountAfter}
+              changedCellsEstimate={result.improvementRun.outputDataset.changedCellsEstimate}
             />
+
+            <div style={{ marginTop: 16 }}>
+              <ExecutionLogsPanel
+                logs={result.logs}
+                execution={result.improvementRun.execution}
+              />
+            </div>
+
+            <div style={{ marginTop: 16 }}>
+              <ImprovementRunExportCard improvementRun={result.improvementRun} />
+            </div>
           </div>
           <button data-testid="run-again-button" className="run-button" onClick={() => { setState('idle'); setResult(null); setErrorMessage(null); }}>Run Again</button>
         </div>
