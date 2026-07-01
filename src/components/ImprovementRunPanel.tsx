@@ -5,6 +5,7 @@
 // Uses controlled fixtures only. Delegates Python execution to Colab.
 
 import React, { useState } from 'react';
+import HealthDeltaDashboard from './HealthDeltaDashboard';
 
 type PanelState = 'idle' | 'running' | 'done' | 'error';
 
@@ -33,20 +34,6 @@ const AFTER = `Address,City,CallDateTime,CrimeId
 "456 Oak Ave","los angeles","2024-01-02",160903281
 "789 Pine Rd","chicago","2024-01-03",160903282
 `;
-
-const LABELS: Record<string, string> = {
-  improved: 'Improved',
-  unchanged: 'Unchanged',
-  worsened: 'Worsened',
-  inconclusive: 'Inconclusive',
-};
-
-const COLORS: Record<string, string> = {
-  improved: '#10b981',
-  unchanged: '#f59e0b',
-  worsened: '#ef4444',
-  inconclusive: '#f97316',
-};
 
 const ImprovementRunPanel: React.FC<Props> = ({
   beforeCsv = BEFORE,
@@ -167,31 +154,27 @@ const ImprovementRunPanel: React.FC<Props> = ({
         <div data-testid="done-state" className="done-state">
           <div data-testid="result-card" className="result-card">
             <h3>Run Complete</h3>
-            <div className="result-field"><span className="field-label">Run ID:</span><span data-testid="run-id" className="field-value">{result.runId}</span></div>
-            <div className="result-field">
-              <span className="field-label">HealthDelta Status:</span>
-              <span data-testid="delta-status" className="field-value" style={{ color: COLORS[result.healthDelta.status] ?? '#6b7280', fontWeight: 'bold' }}>
-                {LABELS[result.healthDelta.status] ?? result.healthDelta.status}
-              </span>
+            <div style={{ marginBottom: 12 }}>
+              <span style={{ fontSize: 13, color: '#6b7280' }}>Run ID: </span>
+              <span data-testid="run-id" style={{ fontSize: 13, fontWeight: 600 }}>{result.runId}</span>
             </div>
-            <div className="result-field">
-              <span className="field-label">Score:</span>
-              <span data-testid="score-before-after" className="field-value">
-                {result.healthDelta.scoreBefore} → {result.healthDelta.scoreAfter}
-              </span>
-              <span className="field-value"> (delta: {result.healthDelta.delta != null ? (result.healthDelta.delta > 0 ? '+' : '') + result.healthDelta.delta : 'N/A'})</span>
-            </div>
-            <div className="result-field">
-              <span className="field-label">Issues:</span>
-              <span data-testid="issues-before-after" className="field-value">
-                {result.reaudit.beforeIssueCount} → {result.reaudit.afterIssueCount}
-              </span>
-              <span className="field-value"> (delta: {result.healthDelta.issueDelta})</span>
-            </div>
-            {result.healthDelta.caveats.length > 0 && (
-              <div data-testid="caveats" className="caveats-box"><strong>Caveats:</strong><ul>{result.healthDelta.caveats.map((c, i) => <li key={i}>{c}</li>)}</ul></div>
-            )}
-            <div data-testid="summary-text" className="summary-text">{result.healthDelta.summary}</div>
+
+            <HealthDeltaDashboard
+              status={result.healthDelta.status as any}
+              scoreBefore={result.healthDelta.scoreBefore}
+              scoreAfter={result.healthDelta.scoreAfter}
+              delta={result.healthDelta.delta}
+              issueDelta={result.healthDelta.issueDelta}
+              beforeIssueCount={result.reaudit.beforeIssueCount}
+              afterIssueCount={result.reaudit.afterIssueCount}
+              summary={result.healthDelta.summary}
+              caveats={result.healthDelta.caveats}
+              outputRowCountBefore={result.output.rowCountBefore}
+              outputRowCountAfter={result.output.rowCountAfter}
+              outputColumnCountBefore={result.output.columnCountBefore}
+              outputColumnCountAfter={result.output.columnCountAfter}
+              changedCellsEstimate={'changedCellsEstimate' in result.output ? (result.output as any).changedCellsEstimate : null}
+            />
           </div>
           <button data-testid="run-again-button" className="run-button" onClick={() => { setState('idle'); setResult(null); setErrorMessage(null); }}>Run Again</button>
         </div>
