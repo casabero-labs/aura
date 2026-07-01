@@ -52,9 +52,9 @@ No iniciar implementación de Phase 5 hasta que el diseño esté completo y apro
 
 ## Próximo paso permitido
 
-**Phase 7 L1 — E2E harness / visual QA scaffold.**
+**Phase 7 L2 — Capturas de evidencia visual para cuarta entrega.**
 
-Objetivo: configurar herramienta E2E (Playwright o Cypress), implementar smoke tests de navegación según `E2E_CONTRACT_PHASE7.md`, y capturar primera ronda de screenshots automatizados.
+Objetivo: capturar screenshots de cada estado de Health Delta (idle, running, done, error), verificar que los avisos de "controlled fixture" y "no Python in AURA" son visibles, y generar evidencia visual para stakeholder.
 
 Constraints Phase 7:
 - No modificar código fuente Phase 5.
@@ -106,13 +106,20 @@ Cambio de enfoque:
 
 | Loop | Objetivo | Entregable |
 |---|---|---|
-| **L0** (este loop) | Production readiness plan + E2E contract | `PHASE7_PRODUCTION_READINESS_PLAN.md` + `E2E_CONTRACT_PHASE7.md` |
-| L1 | E2E harness / visual QA scaffold | Configuración Playwright/Cypress + smoke tests de navegación |
-| L2 | Capturas de evidencia visual | Screenshots de idle/running/done/error + HealthDeltaDashboard |
+| **L0** | Production readiness plan + E2E contract | `PHASE7_PRODUCTION_READINESS_PLAN.md` + `E2E_CONTRACT_PHASE7.md` |
+| **L1** | E2E harness / visual QA scaffold | `phase7-nav-smoke.spec.ts` (8 tests) + bug fix `goAudit()` |
+| **L2** (próximo) | Capturas de evidencia visual | Screenshots de idle/running/done/error + HealthDeltaDashboard |
 | L3 | Verificación de claims en UI | Tests que validan presencia/ausencia de claims específicos |
 | L4 | No-regresión suite | Tests que verifican MainPipeline, BenchmarkLab, Settings intactos |
 | L5 | Documentación de entrega | Consolidación de evidencia Phase 7 para stakeholder |
 | L6 | Freeze Phase 7 | FREEZE_PHASE7.md + cierre formal |
+
+### Loops cerrados (Phase 7)
+
+| Loop | SHA | Descripción |
+|---|---|---|
+| L0 | `648193f` | Production readiness plan + E2E contract |
+| L1 | este commit | E2E scaffold: 8 smoke tests navegación + bug fix `goAudit()` en App.tsx |
 
 ### Loops cerrados (Phase 5)
 

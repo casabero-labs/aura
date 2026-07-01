@@ -351,6 +351,7 @@ const App: React.FC = () => {
   const goAudit = () => {
     setShowHome(false);
     setShowLab(false);
+    setShowImprovementRun(false);
     setShowAuditLog(false);
     setShowSettings(false);
     setShowHelp(false);
