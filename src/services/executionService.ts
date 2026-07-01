@@ -1,13 +1,15 @@
 // ── Phase 5 Loop 3: Execution Service ──
-// Integrates preflight, sandbox, and Colab exporter to execute
-// clean_dataset(df) on a controlled copy of a fixture.
-// Does NOT execute Python directly. Delegates to external runtime.
+// Integrates preflight, sandbox, and Colab notebook generation to prepare
+// a clean_dataset(df) execution on a controlled fixture copy.
+// Does NOT execute Python directly. Delegates to external Colab runtime.
 // Does NOT modify contracts v2. Does NOT compute HealthDelta.
 
 import { preflightCheck } from './preflightCheck';
 import type { PreflightResult } from './preflightCheck';
 import { executeSandboxed, createDefaultSandboxConfig } from './runtimeSandbox';
 import type { SandboxConfig, SandboxExecutionResult } from './runtimeSandbox';
+import { buildColabNotebookJSON } from './colabExporter';
+import type { ColabNotebookParams } from './colabExporter';
 import type { ScriptContractV2, RemediationPlanV2, ScriptBuildContextV2 } from '../contracts/llm/types';
 
 export interface ExecutionSummaryV1 {
@@ -25,6 +27,11 @@ export interface ExecutionSummaryV1 {
     timeoutMs: number;
     memoryLimitMb: number | null;
     allowedImports: string[];
+  };
+  notebook?: {
+    generated: boolean;
+    json?: string;
+    error?: string;
   };
 }
 
@@ -46,10 +53,7 @@ interface ExecutionOptions {
   sandboxConfig?: SandboxConfig;
   fixtureCsv?: string;
   datasetName?: string;
-}
-
-function cloneFixture(fixture: string): string {
-  return fixture.slice(0);
+  auditSummary?: ColabNotebookParams['auditSummary'];
 }
 
 function detectCsvColumns(csv: string): string[] {
@@ -100,6 +104,7 @@ export function executeControlledRun(
           memoryLimitMb: sandboxConfig.memoryLimitMb,
           allowedImports: sandboxConfig.allowedImports,
         },
+        notebook: { generated: false },
       },
       preflightBlocked: true,
       sandboxBlocked: false,
@@ -131,6 +136,7 @@ export function executeControlledRun(
           memoryLimitMb: sandboxConfig.memoryLimitMb,
           allowedImports: sandboxConfig.allowedImports,
         },
+        notebook: { generated: false },
       },
       preflightBlocked: false,
       sandboxBlocked: true,
@@ -141,39 +147,73 @@ export function executeControlledRun(
   }
   logs.push('gate 2 passed: sandbox safe');
 
-  // ── Fixture: operate on copy, never original ──
-  const fixtureCopy = cloneFixture(fixtureCsv);
-  const rowsBefore = countCsvRows(fixtureCopy);
-  const columns = detectCsvColumns(fixtureCopy);
+  // ── Fixture: validate copy, never touch original ──
+  const rowsBefore = countCsvRows(fixtureCsv);
+  const columns = detectCsvColumns(fixtureCsv);
   logs.push(`fixture: ${rowsBefore} rows, ${columns.length} columns`);
   logs.push('operating on fixture copy — dataset original intact');
 
-  // ── Execution: delegate to Colab notebook ──
-  logs.push(`delegating to colab_notebook runtime`);
-  logs.push(`script hash: ${contract.scriptHash.slice(0, 16)}...`);
-  logs.push(`clean_dataset function: present`);
+  // ── Notebook generation: call colabExporter ──
+  logs.push('generating Colab notebook via colabExporter...');
+
+  let notebookGenerated = false;
+  let notebookJson: string | undefined;
+  let notebookError: string | undefined;
+
+  try {
+    const auditSummary = options?.auditSummary ?? {
+      score: 0,
+      rowCount: rowsBefore,
+      colCount: columns.length,
+      issueCount: 0,
+    };
+
+    const colabParams: ColabNotebookParams = {
+      datasetName,
+      csvFields: columns,
+      approvedScript: contract.scriptText,
+      auditSummary,
+    };
+
+    notebookJson = buildColabNotebookJSON(colabParams);
+    notebookGenerated = true;
+    logs.push(`notebook generated: ${notebookJson.length} chars`);
+  } catch (err) {
+    notebookError = err instanceof Error ? err.message : String(err);
+    logs.push(`notebook generation failed: ${notebookError}`);
+  }
 
   const finishedAt = new Date().toISOString();
   const durationMs = new Date(finishedAt).getTime() - new Date(startedAt).getTime();
 
-  logs.push(`[${finishedAt}] execution context prepared — ready for Colab runtime`);
+  if (notebookGenerated) {
+    logs.push(`[${finishedAt}] notebook prepared for Colab runtime`);
+    logs.push('NOTE: clean_dataset(df) executes in Google Colab, not in AURA');
+  } else {
+    logs.push(`[${finishedAt}] notebook generation failed`);
+  }
 
   return {
     execution: {
       runtime: 'colab_notebook',
       runtimeVersion: RUNTIME_VERSION,
-      status: 'success',
+      status: notebookGenerated ? 'success' : 'failed',
       startedAt,
       finishedAt,
       durationMs,
       logs,
-      error: null,
+      error: notebookError ?? null,
       sandbox: {
         networkDisabled: sandboxConfig.networkDisabled,
         filesystemRestricted: sandboxConfig.filesystemRestricted,
         timeoutMs: sandboxConfig.timeoutMs,
         memoryLimitMb: sandboxConfig.memoryLimitMb,
         allowedImports: sandboxConfig.allowedImports,
+      },
+      notebook: {
+        generated: notebookGenerated,
+        json: notebookJson,
+        error: notebookError,
       },
     },
     preflightBlocked: false,

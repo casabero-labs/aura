@@ -72,7 +72,7 @@ Criterio de cierre: typecheck limpio, build exitoso, tests pasando.
 | L0 | `096f96d` | Decisión de runtime (Colab formal + Pyodide stretch) |
 | L1 | `9be3f68` | Preflight verifier (17 tests) |
 | L2 | `7fdbd89` | Runtime sandbox mínimo (42 tests) |
-| L3 | este commit | Ejecución sobre copia controlada (17 tests) |
+| L3 | este commit | Generación notebook Colab + pipeline controlado (17 tests) |
 
 Documentación preparada:
 - `05_desarrollo/phases/phase_05/PHASE5_DESIGN.md`

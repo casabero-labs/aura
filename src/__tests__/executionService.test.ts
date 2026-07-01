@@ -1,19 +1,15 @@
 /**
- * Execution Service Tests — Phase 5 Loop 3
+ * ExecutionService Tests — Phase 5 Loop 3
  *
- * Validates controlled execution pipeline: preflight gate,
- * sandbox gate, fixture copy, ExecutionSummaryV1 output.
- * Uses controlled fixture, never real dataset.
+ * Tests the integrated pipeline: preflight gate → sandbox gate →
+ * Colab notebook generation on fixture copy.
  *
- * Note: builder-generated contracts are always safe.
- * Preflight catches hash/fingerprint tampering.
- * Sandbox is tested separately in runtimeSandbox.test.ts.
- * This file tests the INTEGRATED pipeline with builder output.
+ * Sandbox blocking is validated in Loop 2 (runtimeSandbox.test.ts).
+ * Here we focus on: integrated pipeline, preflight gate, notebook generation.
  */
 
-import { describe, it, expect } from 'vitest';
-import { executeControlledRun } from '../services/executionService';
-import type { ScriptContractV2, RemediationPlanV2, RemediationActionV2, ScriptBuildContextV2 } from '../contracts/llm/types';
+import { describe, expect, it } from 'vitest';
+import { executeControlledRun, RUNTIME_VERSION } from '../services/executionService';
 import { buildColumnRegistry } from '../contracts/llm/columnRegistry';
 import { buildScriptContext } from '../contracts/llm/scriptBuildContext';
 import {
@@ -21,21 +17,35 @@ import {
   finalizeScriptContractV2,
 } from '../contracts/llm/scriptBuilderV2';
 import { validateScriptCandidateV2 } from '../contracts/llm/scriptValidatorV2';
+import type {
+  RemediationPlanV2,
+  RemediationActionV2,
+  ScriptBuildContextV2,
+  ScriptContractV2,
+} from '../contracts/llm/types';
 
-// ── Fixture helpers ──
+const VALID_FINGERPRINT = 'sha256:testfingerprint';
+
+const FIXTURE_CSV = `Address,City,CallDateTime,CrimeId
+"123 Main St","San Francisco","2024-01-01",160903280
+"456 Oak Ave","Los Angeles","2024-01-02",160903281
+"789 Pine Rd","Chicago","2024-01-03",160903282
+`;
 
 function makeAction(
+  actionType: string,
   columnId: string | null,
+  params: Record<string, unknown>,
   approvalStatus: 'approved' | 'pending' | 'rejected' = 'approved',
   overrides: Partial<RemediationActionV2> = {},
 ): RemediationActionV2 {
   return {
-    actionId: overrides.actionId ?? `act:test_${columnId ?? 'null'}`,
+    actionId: overrides.actionId ?? `act:test_${actionType}_${columnId ?? 'null'}`,
     issueId: 'issue:test',
     ruleId: 'rule:test',
     columnId,
-    actionType: 'trim_whitespace',
-    parameters: { trimEdges: true, collapseInternalWhitespace: false } as unknown as RemediationActionV2['parameters'],
+    actionType: actionType as RemediationActionV2['actionType'],
+    parameters: params as unknown as RemediationActionV2['parameters'],
     actionability: 'auto_safe',
     evidenceRefs: [],
     approvalStatus,
@@ -43,18 +53,19 @@ function makeAction(
   };
 }
 
-function makePlan(actions: RemediationActionV2[], fingerprint?: string): RemediationPlanV2 {
+function makePlan(actions: RemediationActionV2[], overrides: Partial<RemediationPlanV2> = {}): RemediationPlanV2 {
   return {
     contractId: 'aura.remediation.v2',
     contractVersion: '2.0.0',
-    planId: 'plan:test123',
+    planId: overrides.planId ?? 'plan:test123',
     diagnosisRef: 'diag:test',
-    evidenceEnvelopeRef: 'env:testabc',
-    datasetFingerprint: fingerprint ?? 'sha256:testfingerprint',
+    evidenceEnvelopeRef: overrides.evidenceEnvelopeRef ?? 'env:testabc',
+    datasetFingerprint: overrides.datasetFingerprint ?? VALID_FINGERPRINT,
     plan: actions,
     actionabilityMap: {},
     exclusions: [],
     generatedAt: '2025-01-01T00:00:00.000Z',
+    ...overrides,
   };
 }
 
@@ -75,15 +86,12 @@ function makeBuildContext(plan: RemediationPlanV2, columns: string[]): ScriptBui
   );
 }
 
-function buildContract(columns: string[]): {
-  contract: ScriptContractV2;
-  plan: RemediationPlanV2;
-  ctx: ScriptBuildContextV2;
-} {
-  const columnRefs = buildColumnRegistry(columns);
-  const columnId = columnRefs[0].columnId;
-  const action = makeAction(columnId);
-  const plan = makePlan([action]);
+function buildValidContract(
+  actions: RemediationActionV2[],
+  columns: string[],
+  planOverrides: Partial<RemediationPlanV2> = {},
+): { contract: ScriptContractV2; plan: RemediationPlanV2; ctx: ScriptBuildContextV2 } {
+  const plan = makePlan(actions, planOverrides);
   const ctx = makeBuildContext(plan, columns);
   const candidate = buildScriptCandidateV2(plan, ctx, { generatedAt: '2025-01-01T00:00:00.000Z' });
   const validation = validateScriptCandidateV2(candidate, plan, ctx);
@@ -91,256 +99,304 @@ function buildContract(columns: string[]): {
   return { contract, plan, ctx };
 }
 
-const VALID_FINGERPRINT = 'sha256:testfingerprint';
-const WRONG_FINGERPRINT = 'sha256:wrong_fingerprint_00123456789';
+// ── Tests ──
 
-const FIXTURE_CSV = `Name,Age,City
-Alice,30,New York
-Bob,25,Los Angeles
-Charlie,35,Chicago
-`;
+describe('executionService', () => {
+  describe('gate 1: preflight blocked', () => {
+    it('blocks when fingerprint does not match', () => {
+      const colRefs = buildColumnRegistry(['Age']);
+      const action = makeAction('trim_whitespace', colRefs[0].columnId, { trimEdges: true, collapseInternalWhitespace: false }, 'approved', { actionId: 'act:a1' });
+      const { contract, plan, ctx } = buildValidContract([action], ['Age']);
+      const wrongFp = 'sha256:wrong_fingerprint_xyz';
 
-// ═══════════════════════════════════════════════════════════
-// Successful execution (builder-generated safe contracts)
-// ═══════════════════════════════════════════════════════════
+      const result = executeControlledRun(contract, plan, ctx, wrongFp);
 
-describe('Execution: successful controlled run', () => {
-  it('completes pipeline with builder-generated valid contract', () => {
-    const { contract, plan, ctx } = buildContract(['Age']);
-
-    const result = executeControlledRun(contract, plan, ctx, VALID_FINGERPRINT, {
-      fixtureCsv: FIXTURE_CSV,
-      datasetName: 'test_fixture',
+      expect(result.preflightBlocked).toBe(true);
+      expect(result.sandboxBlocked).toBe(false);
+      expect(result.execution.status).toBe('blocked');
+      expect(result.execution.error).toContain('datasetFingerprint');
+      expect(result.gates.preflight.status).toBe('blocked');
+      expect(result.fixtureApplied).toBe(false);
+      expect(result.datasetOriginalIntact).toBe(true);
     });
 
-    expect(result.execution.status).toBe('success');
-    expect(result.preflightBlocked).toBe(false);
-    expect(result.sandboxBlocked).toBe(false);
-    expect(result.fixtureApplied).toBe(true);
-    expect(result.datasetOriginalIntact).toBe(true);
-    expect(result.execution.runtime).toBe('colab_notebook');
-    expect(result.execution.error).toBeNull();
-  });
+    it('blocks when scriptHash is tampered after finalization', () => {
+      const colRefs = buildColumnRegistry(['Age']);
+      const action = makeAction('trim_whitespace', colRefs[0].columnId, { trimEdges: true, collapseInternalWhitespace: false }, 'approved', { actionId: 'act:a1' });
+      const { plan, ctx } = buildValidContract([action], ['Age']);
 
-  it('returns ExecutionSummaryV1 with all required fields', () => {
-    const { contract, plan, ctx } = buildContract(['Age']);
+      const tamperedContract: ScriptContractV2 = {
+        ...plan,
+        contractId: 'aura.script.v2',
+        contractVersion: '2.0.0',
+        remediationRef: 'plan:test',
+        datasetFingerprint: VALID_FINGERPRINT,
+        acceptedActionIds: ['act:a1'],
+        rejectedActionIds: [],
+        excludedActionIds: [],
+        columnRefs: [],
+        rendererVersion: '2.0.0',
+        placeholderVocabularyVersion: '1.0.0',
+        scriptText: `def clean_dataset(df):\n    df = df.copy()\n    return df`,
+        cleanDatasetFn: 'clean_dataset',
+        scriptHash: 'this_hash_is_tampered',
+        validationResult: { valid: true, errors: [], warnings: [], pythonSyntax: { state: 'passed' } },
+        generatedAt: '2025-01-01T00:00:00.000Z',
+      };
 
-    const result = executeControlledRun(contract, plan, ctx, VALID_FINGERPRINT, {
-      fixtureCsv: FIXTURE_CSV,
+      const result = executeControlledRun(tamperedContract, plan, ctx, VALID_FINGERPRINT);
+
+      expect(result.preflightBlocked).toBe(true);
+      expect(result.execution.status).toBe('blocked');
+      expect(result.gates.preflight.hashMatch).toBe(false);
     });
 
-    const exec = result.execution;
-    expect(exec.runtime).toBe('colab_notebook');
-    expect(exec.runtimeVersion).toBeTruthy();
-    expect(exec.status).toBe('success');
-    expect(exec.startedAt).toBeTruthy();
-    expect(exec.finishedAt).toBeTruthy();
-    expect(exec.durationMs).toBeGreaterThanOrEqual(0);
-    expect(exec.logs.length).toBeGreaterThan(0);
-    expect(exec.error).toBeNull();
-    expect(exec.sandbox.networkDisabled).toBe(true);
-    expect(exec.sandbox.filesystemRestricted).toBe(true);
-    expect(exec.sandbox.timeoutMs).toBeGreaterThan(0);
-    expect(exec.sandbox.allowedImports.length).toBeGreaterThan(0);
+    it('blocks when acceptedActionIds contains action not in plan', () => {
+      const colRefs = buildColumnRegistry(['Age']);
+      const action = makeAction('trim_whitespace', colRefs[0].columnId, { trimEdges: true, collapseInternalWhitespace: false }, 'approved', { actionId: 'act:a1' });
+      const { plan, ctx } = buildValidContract([action], ['Age']);
+
+      const phantomContract: ScriptContractV2 = {
+        ...plan,
+        contractId: 'aura.script.v2',
+        contractVersion: '2.0.0',
+        remediationRef: 'plan:test',
+        datasetFingerprint: VALID_FINGERPRINT,
+        acceptedActionIds: ['act:phantom_not_in_plan'],
+        rejectedActionIds: [],
+        excludedActionIds: [],
+        columnRefs: [],
+        rendererVersion: '2.0.0',
+        placeholderVocabularyVersion: '1.0.0',
+        scriptText: `def clean_dataset(df):\n    df = df.copy()\n    return df`,
+        cleanDatasetFn: 'clean_dataset',
+        scriptHash: 'abc123',
+        validationResult: { valid: true, errors: [], warnings: [], pythonSyntax: { state: 'passed' } },
+        generatedAt: '2025-01-01T00:00:00.000Z',
+      };
+
+      const result = executeControlledRun(phantomContract, plan, ctx, VALID_FINGERPRINT);
+
+      expect(result.preflightBlocked).toBe(true);
+      expect(result.execution.status).toBe('blocked');
+    });
   });
 
-  it('preserves fixture copy and reports dataset original intact', () => {
-    const { contract, plan, ctx } = buildContract(['Age']);
+  describe('successful execution: both gates pass + notebook generated', () => {
+    it('returns success with notebook generated when preflight and sandbox pass', () => {
+      const colRefs = buildColumnRegistry(['City']);
+      const action = makeAction('normalize_casing', colRefs[0].columnId, { strategy: 'lowercase' }, 'approved', { actionId: 'act:normalize_city' });
+      const { contract, plan, ctx } = buildValidContract([action], ['City']);
 
-    const result = executeControlledRun(contract, plan, ctx, VALID_FINGERPRINT, {
-      fixtureCsv: FIXTURE_CSV,
+      const result = executeControlledRun(contract, plan, ctx, VALID_FINGERPRINT, {
+        fixtureCsv: FIXTURE_CSV,
+        datasetName: 'Incidentes_Policiales.csv',
+      });
+
+      expect(result.preflightBlocked).toBe(false);
+      expect(result.sandboxBlocked).toBe(false);
+      expect(result.execution.status).toBe('success');
+      expect(result.execution.runtime).toBe('colab_notebook');
+      expect(result.execution.runtimeVersion).toBe(RUNTIME_VERSION);
+      expect(result.fixtureApplied).toBe(true);
+      expect(result.datasetOriginalIntact).toBe(true);
+      expect(result.gates.preflight.status).toBe('ready');
+      expect(result.gates.sandbox).not.toBeNull();
+      expect(result.gates.sandbox!.status).toBe('success');
     });
 
-    expect(result.datasetOriginalIntact).toBe(true);
-    expect(result.execution.logs.some(l => l.includes('dataset original intact'))).toBe(true);
-  });
+    it('generates a valid notebook JSON after passing both gates', () => {
+      const colRefs = buildColumnRegistry(['City']);
+      const action = makeAction('normalize_casing', colRefs[0].columnId, { strategy: 'lowercase' }, 'approved', { actionId: 'act:normalize_city' });
+      const { contract, plan, ctx } = buildValidContract([action], ['City']);
 
-  it('includes structured logs with gate passes', () => {
-    const { contract, plan, ctx } = buildContract(['Age']);
+      const result = executeControlledRun(contract, plan, ctx, VALID_FINGERPRINT, {
+        fixtureCsv: FIXTURE_CSV,
+        datasetName: 'Incidentes_Policiales.csv',
+      });
 
-    const result = executeControlledRun(contract, plan, ctx, VALID_FINGERPRINT, {
-      fixtureCsv: FIXTURE_CSV,
+      expect(result.execution.notebook).toBeDefined();
+      expect(result.execution.notebook!.generated).toBe(true);
+      expect(result.execution.notebook!.json).toBeTruthy();
+
+      const notebook = JSON.parse(result.execution.notebook!.json!);
+      expect(notebook.nbformat).toBe(4);
+      expect(notebook.nbformat_minor).toBe(5);
+      expect(notebook.cells).toBeInstanceOf(Array);
+      expect(notebook.cells.length).toBeGreaterThan(0);
     });
 
-    const logsJoined = result.execution.logs.join('\n');
-    expect(logsJoined).toContain('controlled execution started');
-    expect(logsJoined).toContain('gate 1 passed: preflight ready');
-    expect(logsJoined).toContain('gate 2 passed: sandbox safe');
-    expect(logsJoined).toContain('fixture');
-    expect(logsJoined).toContain('execution context prepared');
-  });
+    it('includes approved script in generated notebook', () => {
+      const colRefs = buildColumnRegistry(['City']);
+      const action = makeAction('normalize_casing', colRefs[0].columnId, { strategy: 'lowercase' }, 'approved', { actionId: 'act:normalize_city' });
+      const { contract, plan, ctx } = buildValidContract([action], ['City']);
 
-  it('reports runtime as colab_notebook and script details', () => {
-    const { contract, plan, ctx } = buildContract(['Age']);
+      const result = executeControlledRun(contract, plan, ctx, VALID_FINGERPRINT, {
+        fixtureCsv: FIXTURE_CSV,
+        datasetName: 'Incidentes_Policiales.csv',
+      });
 
-    const result = executeControlledRun(contract, plan, ctx, VALID_FINGERPRINT, {
-      fixtureCsv: FIXTURE_CSV,
+      const notebookJson = result.execution.notebook!.json!;
+      expect(notebookJson).toContain('def clean_dataset(df)');
+      expect(notebookJson).toContain('clean_dataset');
     });
 
-    const logsJoined = result.execution.logs.join('\n');
-    expect(result.execution.runtime).toBe('colab_notebook');
-    expect(logsJoined).toContain('delegating to colab_notebook runtime');
-    expect(logsJoined).toContain('script hash');
-    expect(logsJoined).toContain('clean_dataset function: present');
-  });
+    it('populates ExecutionSummaryV1 with correct structure', () => {
+      const colRefs = buildColumnRegistry(['City']);
+      const action = makeAction('normalize_casing', colRefs[0].columnId, { strategy: 'lowercase' }, 'approved', { actionId: 'act:normalize_city' });
+      const { contract, plan, ctx } = buildValidContract([action], ['City']);
 
-  it('reports fixture row and column counts', () => {
-    const { contract, plan, ctx } = buildContract(['Age']);
+      const result = executeControlledRun(contract, plan, ctx, VALID_FINGERPRINT, {
+        fixtureCsv: FIXTURE_CSV,
+        datasetName: 'TestDataset.csv',
+      });
 
-    const result = executeControlledRun(contract, plan, ctx, VALID_FINGERPRINT, {
-      fixtureCsv: FIXTURE_CSV,
+      const { execution } = result;
+      expect(execution.startedAt).toBeTruthy();
+      expect(execution.finishedAt).toBeTruthy();
+      expect(execution.durationMs).toBeGreaterThanOrEqual(0);
+      expect(execution.logs).toBeInstanceOf(Array);
+      expect(execution.logs.length).toBeGreaterThan(0);
+      expect(execution.sandbox.networkDisabled).toBe(true);
+      expect(execution.sandbox.filesystemRestricted).toBe(true);
+      expect(execution.sandbox.timeoutMs).toBe(30000);
+      expect(execution.sandbox.allowedImports).toContain('pandas');
+      expect(execution.error).toBeNull();
     });
 
-    const logsJoined = result.execution.logs.join('\n');
-    expect(logsJoined).toContain('fixture: 3 rows, 3 columns');
-  });
-});
+    it('includes fixture metadata in logs', () => {
+      const colRefs = buildColumnRegistry(['City']);
+      const action = makeAction('normalize_casing', colRefs[0].columnId, { strategy: 'lowercase' }, 'approved', { actionId: 'act:normalize_city' });
+      const { contract, plan, ctx } = buildValidContract([action], ['City']);
 
-// ═══════════════════════════════════════════════════════════
-// Gate 1: Preflight blocked
-// ═══════════════════════════════════════════════════════════
+      const result = executeControlledRun(contract, plan, ctx, VALID_FINGERPRINT, {
+        fixtureCsv: FIXTURE_CSV,
+        datasetName: 'Incidentes_Policiales.csv',
+      });
 
-describe('Execution: blocked by preflight', () => {
-  it('blocks when fingerprint does not match', () => {
-    const { contract, plan, ctx } = buildContract(['Age']);
-
-    const result = executeControlledRun(contract, plan, ctx, WRONG_FINGERPRINT);
-
-    expect(result.execution.status).toBe('blocked');
-    expect(result.preflightBlocked).toBe(true);
-    expect(result.sandboxBlocked).toBe(false);
-    expect(result.fixtureApplied).toBe(false);
-    expect(result.datasetOriginalIntact).toBe(true);
-    expect(result.execution.error).toContain('preflight blocked');
-    expect(result.gates.preflight?.status).toBe('blocked');
-    expect(result.gates.sandbox).toBeNull();
-  });
-
-  it('blocks when script hash is tampered', () => {
-    const { contract, plan, ctx } = buildContract(['Age']);
-    const tampered: ScriptContractV2 = { ...contract, scriptHash: 'broken_hash' };
-
-    const result = executeControlledRun(tampered, plan, ctx, VALID_FINGERPRINT);
-
-    expect(result.execution.status).toBe('blocked');
-    expect(result.preflightBlocked).toBe(true);
-    expect(result.execution.error).toContain('preflight blocked');
-  });
-
-  it('blocks when contract acceptedActionIds do not match plan', () => {
-    const { contract, plan, ctx } = buildContract(['Age']);
-    const tampered: ScriptContractV2 = { ...contract, acceptedActionIds: ['act:phantom'] };
-
-    const result = executeControlledRun(tampered, plan, ctx, VALID_FINGERPRINT);
-
-    expect(result.execution.status).toBe('blocked');
-    expect(result.preflightBlocked).toBe(true);
-  });
-});
-
-// ═══════════════════════════════════════════════════════════
-// Sandbox gate: tested in runtimeSandbox.test.ts
-// Builder-generated contracts are always sandbox-safe
-// ═══════════════════════════════════════════════════════════
-
-describe('Execution: sandbox gate', () => {
-  it('passes sandbox gate for builder-generated contract', () => {
-    const { contract, plan, ctx } = buildContract(['Age']);
-
-    const result = executeControlledRun(contract, plan, ctx, VALID_FINGERPRINT, {
-      fixtureCsv: FIXTURE_CSV,
+      expect(result.execution.logs).toContain('fixture: 3 rows, 4 columns');
+      expect(result.execution.logs).toContain('operating on fixture copy — dataset original intact');
+      expect(result.execution.logs).toContain('gate 1 passed: preflight ready');
+      expect(result.execution.logs).toContain('gate 2 passed: sandbox safe');
     });
 
-    expect(result.sandboxBlocked).toBe(false);
-    expect(result.gates.sandbox?.status).toBe('success');
-  });
-});
+    it('sets notebook.error=undefined on successful generation', () => {
+      const colRefs = buildColumnRegistry(['City']);
+      const action = makeAction('normalize_casing', colRefs[0].columnId, { strategy: 'lowercase' }, 'approved', { actionId: 'act:normalize_city' });
+      const { contract, plan, ctx } = buildValidContract([action], ['City']);
 
-// ═══════════════════════════════════════════════════════════
-// Default options
-// ═══════════════════════════════════════════════════════════
+      const result = executeControlledRun(contract, plan, ctx, VALID_FINGERPRINT, {
+        fixtureCsv: FIXTURE_CSV,
+      });
 
-describe('Execution: default options', () => {
-  it('works without fixture (empty fixture, still validated)', () => {
-    const { contract, plan, ctx } = buildContract(['Age']);
-
-    const result = executeControlledRun(contract, plan, ctx, VALID_FINGERPRINT);
-
-    expect(result.execution.status).toBe('success');
-    expect(result.fixtureApplied).toBe(true);
-    expect(result.datasetOriginalIntact).toBe(true);
-  });
-
-  it('uses default sandbox config when none provided', () => {
-    const { contract, plan, ctx } = buildContract(['Age']);
-
-    const result = executeControlledRun(contract, plan, ctx, VALID_FINGERPRINT);
-
-    expect(result.execution.sandbox.networkDisabled).toBe(true);
-    expect(result.execution.sandbox.timeoutMs).toBe(30_000);
-  });
-});
-
-// ═══════════════════════════════════════════════════════════
-// Fail-closed
-// ═══════════════════════════════════════════════════════════
-
-describe('Execution: fail-closed', () => {
-  it('fails immediately on first gate failure (preflight)', () => {
-    const { contract, plan, ctx } = buildContract(['Age']);
-
-    const result = executeControlledRun(contract, plan, ctx, WRONG_FINGERPRINT);
-
-    expect(result.execution.status).toBe('blocked');
-    expect(result.gates.sandbox).toBeNull();
-  });
-
-  it('does not apply fixture when preflight blocks', () => {
-    const { contract, plan, ctx } = buildContract(['Age']);
-
-    const result = executeControlledRun(contract, plan, ctx, WRONG_FINGERPRINT, {
-      fixtureCsv: FIXTURE_CSV,
+      expect(result.execution.notebook!.error).toBeUndefined();
     });
 
-    expect(result.fixtureApplied).toBe(false);
-    expect(result.datasetOriginalIntact).toBe(true);
+    it('logs confirm execution delegates to external Colab runtime', () => {
+      const colRefs = buildColumnRegistry(['City']);
+      const action = makeAction('normalize_casing', colRefs[0].columnId, { strategy: 'lowercase' }, 'approved', { actionId: 'act:normalize_city' });
+      const { contract, plan, ctx } = buildValidContract([action], ['City']);
+
+      const result = executeControlledRun(contract, plan, ctx, VALID_FINGERPRINT, {
+        fixtureCsv: FIXTURE_CSV,
+        datasetName: 'Incidentes_Policiales.csv',
+      });
+
+      const logsJoined = result.execution.logs.join(' ');
+      expect(logsJoined).toContain('notebook prepared');
+      expect(logsJoined).toContain('Colab');
+      expect(logsJoined).toContain('clean_dataset');
+    });
   });
 
-  it('returns blocking gate info in gates field', () => {
-    const { contract, plan, ctx } = buildContract(['Age']);
+  describe('fixture metadata', () => {
+    it('detects correct column count from CSV header', () => {
+      const colRefs = buildColumnRegistry(['City']);
+      const action = makeAction('normalize_casing', colRefs[0].columnId, { strategy: 'lowercase' }, 'approved', { actionId: 'act:normalize_city' });
+      const { contract, plan, ctx } = buildValidContract([action], ['City']);
 
-    const result = executeControlledRun(contract, plan, ctx, WRONG_FINGERPRINT);
+      const result = executeControlledRun(contract, plan, ctx, VALID_FINGERPRINT, {
+        fixtureCsv: FIXTURE_CSV,
+        datasetName: 'Test.csv',
+      });
 
-    expect(result.gates.preflight).toBeTruthy();
-    expect(result.gates.preflight.status).toBe('blocked');
-    expect(result.gates.sandbox).toBeNull();
-  });
-});
-
-// ═══════════════════════════════════════════════════════════
-// Fixture metadata
-// ═══════════════════════════════════════════════════════════
-
-describe('Execution: fixture metadata', () => {
-  it('detects columns from fixture CSV header', () => {
-    const { contract, plan, ctx } = buildContract(['Age']);
-
-    const result = executeControlledRun(contract, plan, ctx, VALID_FINGERPRINT, {
-      fixtureCsv: FIXTURE_CSV,
+      expect(result.execution.logs).toContain('fixture: 3 rows, 4 columns');
     });
 
-    const logsJoined = result.execution.logs.join('\n');
-    expect(logsJoined).toContain('fixture: 3 rows, 3 columns');
+    it('reports 0 rows for header-only CSV', () => {
+      const colRefs = buildColumnRegistry(['City']);
+      const action = makeAction('normalize_casing', colRefs[0].columnId, { strategy: 'lowercase' }, 'approved', { actionId: 'act:normalize_city' });
+      const { contract, plan, ctx } = buildValidContract([action], ['City']);
+
+      const result = executeControlledRun(contract, plan, ctx, VALID_FINGERPRINT, {
+        fixtureCsv: 'col1,col2,col3\n',
+        datasetName: 'Empty.csv',
+      });
+
+      expect(result.execution.logs).toContain('fixture: 0 rows, 3 columns');
+    });
   });
 
-  it('reports 0 rows for header-only fixture', () => {
-    const { contract, plan, ctx } = buildContract(['Age']);
+  describe('default options', () => {
+    it('uses default sandbox config when not provided', () => {
+      const colRefs = buildColumnRegistry(['City']);
+      const action = makeAction('normalize_casing', colRefs[0].columnId, { strategy: 'lowercase' }, 'approved', { actionId: 'act:normalize_city' });
+      const { contract, plan, ctx } = buildValidContract([action], ['City']);
 
-    const result = executeControlledRun(contract, plan, ctx, VALID_FINGERPRINT, {
-      fixtureCsv: 'A,B,C',
+      const result = executeControlledRun(contract, plan, ctx, VALID_FINGERPRINT);
+
+      expect(result.execution.sandbox.allowedImports).toContain('pandas');
+      expect(result.execution.sandbox.networkDisabled).toBe(true);
     });
 
-    const logsJoined = result.execution.logs.join('\n');
-    expect(logsJoined).toContain('fixture: 0 rows');
+    it('accepts empty fixtureCsv without error', () => {
+      const colRefs = buildColumnRegistry(['City']);
+      const action = makeAction('normalize_casing', colRefs[0].columnId, { strategy: 'lowercase' }, 'approved', { actionId: 'act:normalize_city' });
+      const { contract, plan, ctx } = buildValidContract([action], ['City']);
+
+      const result = executeControlledRun(contract, plan, ctx, VALID_FINGERPRINT, {
+        fixtureCsv: '',
+      });
+
+      expect(result.execution.status).toBe('success');
+      expect(result.execution.notebook!.generated).toBe(true);
+      expect(result.execution.logs).toContain('fixture: 0 rows, 0 columns');
+    });
+  });
+
+  describe('fail-closed behavior', () => {
+    it('sets fixtureApplied=false when preflight blocks', () => {
+      const colRefs = buildColumnRegistry(['Age']);
+      const action = makeAction('trim_whitespace', colRefs[0].columnId, { trimEdges: true, collapseInternalWhitespace: false }, 'approved', { actionId: 'act:a1' });
+      const { contract, plan, ctx } = buildValidContract([action], ['Age']);
+
+      const result = executeControlledRun(contract, plan, ctx, 'sha256:wrong_fp');
+
+      expect(result.fixtureApplied).toBe(false);
+      expect(result.datasetOriginalIntact).toBe(true);
+    });
+
+    it('reports both gates in result when preflight blocks', () => {
+      const colRefs = buildColumnRegistry(['Age']);
+      const action = makeAction('trim_whitespace', colRefs[0].columnId, { trimEdges: true, collapseInternalWhitespace: false }, 'approved', { actionId: 'act:a1' });
+      const { contract, plan, ctx } = buildValidContract([action], ['Age']);
+
+      const result = executeControlledRun(contract, plan, ctx, 'sha256:wrong_fp');
+
+      expect(result.gates.preflight.status).toBe('blocked');
+      expect(result.gates.sandbox).toBeNull();
+      expect(result.sandboxBlocked).toBe(false);
+    });
+
+    it('logs describe the blocking reason', () => {
+      const colRefs = buildColumnRegistry(['Age']);
+      const action = makeAction('trim_whitespace', colRefs[0].columnId, { trimEdges: true, collapseInternalWhitespace: false }, 'approved', { actionId: 'act:a1' });
+      const { contract, plan, ctx } = buildValidContract([action], ['Age']);
+
+      const result = executeControlledRun(contract, plan, ctx, 'sha256:wrong_fp');
+
+      const blockingLog = result.execution.logs.find(l => l.includes('blocked'));
+      expect(blockingLog).toBeTruthy();
+    });
   });
 });
