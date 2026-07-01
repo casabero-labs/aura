@@ -52,14 +52,18 @@ No iniciar implementación de Phase 5 hasta que el diseño esté completo y apro
 
 ## Próximo paso permitido
 
-**Phase 5 — Cierre y Freeze.**
+**Phase 6 — UI wrapper y dashboard HealthDelta.**
 
-Con L0-L6 cerrados y 158 tests pasando, Phase 5 está funcionalmente completo. El cierre debe:
+Inicia después del freeze de Phase 5. No modifica Phase 5.
 
-- Freezear Phase 5 como cerrada.
-- Preparar documentación de uso del flujo `runImprovementFlow`.
-- Validar `ImprovementRunV1` contra schema JSON formal.
-- Iniciar Phase 6 (UI wrapper y dashboard de health delta) con base en Phase 5 freezed.
+Objetivo: envolver `runImprovementFlow` en una UI de browser y exponer el `ImprovementRunV1` como dashboard de health delta visual.
+
+Alcance:
+- UI wrapper para invocar `runImprovementFlow` desde el frontend.
+- Dashboard visual de HealthDeltaV1: score antes/después, delta, issue counts, caveats.
+- Export JSON de ImprovementRunV1 desde la UI.
+- Visualización de logs de ejecución y reauditoría.
+- No ejecuta Python — siempre delega a Colab.
 
 ### Loops cerrados (Phase 5)
 
@@ -71,7 +75,8 @@ Con L0-L6 cerrados y 158 tests pasando, Phase 5 está funcionalmente completo. E
 | L3 | `eefe9c5` | Generación notebook Colab + pipeline controlado (17 tests) |
 | L4 | `8327f6a` | Reauditoría post-ejecución, ReauditSummaryV1 (39 tests) |
 | L5 | `c8f1d46` | HealthDelta + ImprovementRunV1 completo (25 tests) |
-| L6 | este commit | E2E tests + CLI wrapper + type guards + JSON export (18 tests) |
+| L6 | `8bc0ce0` | E2E tests + CLI wrapper + type guards + JSON export (18 tests) |
+| Freeze | `8bc0ce0` | Phase 5 cerrada y congelada |
 
 Documentación preparada:
 - `05_desarrollo/phases/phase_05/PHASE5_DESIGN.md`
@@ -84,6 +89,7 @@ Documentación preparada:
 - `05_desarrollo/phases/phase_05/CIERRE_LOOP4_REAUDIT.md`
 - `05_desarrollo/phases/phase_05/CIERRE_LOOP5_IMPROVEMENT_RUN.md`
 - `05_desarrollo/phases/phase_05/CIERRE_LOOP6_E2E_WRAPPER.md`
+- `05_desarrollo/phases/phase_05/FREEZE_PHASE5.md`
 
 ## Loops cerrados (Phase 4)
 
