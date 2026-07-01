@@ -4,7 +4,9 @@
 
 **Phase 3 cerrada y congelada en `d3774dd5ac98d89ca4454c693b1b0a30856cd191`.** No modificar su evidencia.
 
-**Phase 4 cerrada y congelada en `aa167995316962a70ff41a3970326d4824d980c0`.** Evidencia E2E completa: 8/8 escenarios contractuales demostrados en navegador.
+**Phase 4 cerrada y congelada en `aa167995316962a70ff41a3970326d4824d980c0`.** Evidencia E2E completa: 8/8 escenarios contractuales demostrados en navegador. Freeze final: `05878e4a960afd11d564a60f4924bfb8f0b527e7`.
+
+**Phase 5 Loop 0 completado.** Decisión de runtime documentada en `05_desarrollo/phases/phase_05/LOOP0_RUNTIME_DECISION.md`.
 
 **Entrega 3 consolidada hasta Phase 4.** Documento principal: `01_borrador/TERCERA_ENTREGA_AURA_CONSOLIDADA.md`.
 
@@ -29,21 +31,48 @@ RemediationPlanV2 → HITL → buildScriptCandidateV2 → validateScriptCandidat
 | Python | No ejecutado |
 | HealthDelta | No calculado |
 
+## Experimentos pre-Phase 5 (externos, no formales)
+
+Los siguientes experimentos se ejecutaron fuera del pipeline formal de Phase 5 como validación de concepto. No constituyen evidencia de cierre de fase:
+
+- `colabExporter.ts`: exportación de notebooks `.ipynb` (implementado y testeado).
+- `run_colab_delta_fixture.mjs`: ejecución Python externa sobre fixture controlado (10 filas).
+- Delta fixture: score 65→26, clasificado `source_debt_preserved`.
+- Protocolo de validación Colab real documentado en `PROTOCOLO_VALIDACION_COLAB_REAL.md` (pendiente de ejecución manual).
+
+## Phase 5 — Decisión de runtime (Loop 0)
+
+**Decisión: estrategia híbrida.** Runtime primario: Colab notebook exportable. Runtime secundario (stretch goal): Pyodide como feature flag.
+
+Documento completo: `05_desarrollo/phases/phase_05/LOOP0_RUNTIME_DECISION.md`.
+
 ## Regla
 
 No iniciar implementación de Phase 5 hasta que el diseño esté completo y aprobado. Phase 5 ejecutará el script generado contra copia de datos, calculará HealthDelta y medirá mejora.
 
 ## Próximo paso permitido
 
-**Phase 5 Loop 0 — Design only.**
+**Phase 5 Loop 1 — Preflight Verifier.**
 
-Objetivo: diseñar runtime, sandbox, contratos, fixtures y plan de pruebas. No ejecutar scripts generados.
+Objetivo: implementar helper `preflightCheck(contract: ScriptContractV2): PreflightResult` que valide condiciones de entrada antes de autorizar ejecución.
+
+Alcance:
+- Verificar `verifyScriptContractV2` fresco.
+- Validar coincidencia de `scriptHash` con `scriptText`.
+- Validar coincidencia de `datasetFingerprint`.
+- Validar coherencia de `acceptedActionIds` con el plan HITL.
+- Devolver `PreflightResult` con `status: 'ready' | 'blocked'` y razones de bloqueo.
+- Tests unitarios con contratos válidos e inválidos.
+- No ejecutar Python.
+- No modificar contratos v2.
+
+Criterio de cierre: typecheck limpio, build exitoso, tests pasando.
 
 Documentación preparada:
-
 - `05_desarrollo/phases/phase_05/PHASE5_DESIGN.md`
 - `05_desarrollo/phases/phase_05/IMPROVEMENT_RUN_CONTRACT.md`
 - `05_desarrollo/phases/phase_05/PLAN_LOOPS_PHASE5.md`
+- `05_desarrollo/phases/phase_05/LOOP0_RUNTIME_DECISION.md`
 
 ## Loops cerrados (Phase 4)
 
@@ -58,17 +87,22 @@ Documentación preparada:
 
 ## Claims de frontera
 
-Permitido en Entrega 3:
+Permitido en estado actual:
 
 - contrato de script generado y validado;
 - hash contractual verificable;
 - revisión humana read-only;
 - bloqueo ante manipulación;
-- no ejecución en Phase 4.
+- no ejecución en Phase 4;
+- AURA exporta notebooks Colab reproducibles con trazabilidad del script aprobado;
+- se ejecutó Python externo sobre fixture controlado y el resultado fue re-auditado con runAudit oficial (score 65→26, source_debt_preserved);
+- la decisión de runtime para Phase 5 formal está documentada y aprobada.
 
 No permitido todavía:
 
-- ejecución Python real;
-- dataset corregido;
+- ejecución Python real dentro de AURA;
+- dataset corregido por pipeline formal de Phase 5;
 - HealthDelta real;
-- mejora medida.
+- mejora medida;
+- benchmark formal de utilidad;
+- validación en Colab real (pendiente de ejecución manual).
