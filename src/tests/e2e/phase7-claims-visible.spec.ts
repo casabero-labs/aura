@@ -34,12 +34,20 @@ const PROHIBITED_PHRASES = [
   { pattern: /real data corrected/i, label: 'real data corrected' },
 ];
 
-function hasNegationNearby(text: string, phrasePattern: RegExp, window = 12): boolean {
+function hasNegationNearby(text: string, phrasePattern: RegExp, wordWindow = 12): boolean {
   const match = text.match(phrasePattern);
   if (!match) return false;
   const idx = match.index ?? 0;
-  const before = text.slice(Math.max(0, idx - window), idx).toLowerCase();
-  return /(\bnot\b|\bno\b|\bnever\b|\bdoesn't\b|\bdoes not\b|\bdid not\b|\bwas not\b|\bwere not\b)/.test(before);
+  const words = text.split(/\s+/);
+  let charTotal = 0;
+  let wordIdx = 0;
+  for (let i = 0; i < words.length; i++) {
+    if (charTotal >= idx) { wordIdx = i; break; }
+    charTotal += words[i].length + 1;
+  }
+  const startW = Math.max(0, wordIdx - wordWindow);
+  const beforeWords = words.slice(startW, wordIdx).join(' ').toLowerCase();
+  return /(\bnot\b|\bno\b|\bnever\b|\bdoesn't\b|\bdoes not\b|\bdid not\b|\bwas not\b|\bwere not\b)/.test(beforeWords);
 }
 
 function getPanelText(page: any): Promise<string> {

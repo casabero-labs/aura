@@ -52,9 +52,9 @@ No iniciar implementación de Phase 5 hasta que el diseño esté completo y apro
 
 ## Próximo paso permitido
 
-**Phase 7 L4 — No-regression suite.**
+**Phase 7 L5 — Consolidación documental de evidencia para cuarta entrega.**
 
-Objetivo: implementar tests E2E que verifiquen que MainPipeline, BenchmarkLab y Settings no se rompen al navegar por Health Delta, según el contrato E2E (`E2E_CONTRACT_PHASE7.md` sección D): `E2E-REG-001` a `E2E-REG-004`.
+Objetivo: consolidar toda la evidencia de Phase 7 (E2E contracts, screenshots, test results, claims verificados) en un documento de entrega para stakeholder, preparando FREEZE_PHASE7.md.
 
 Constraints Phase 7:
 - No modificar código fuente Phase 5.
@@ -112,8 +112,8 @@ Cambio de enfoque:
 | **L2** | Capturas de evidencia visual | Screenshots de idle/done (flujo real) + running/error (visual harness) |
 | L2B | Corrección running + error | Visual harness opt-in `?phase7Visual=` en ImprovementRunPanel |
 | L3 | Verificación de claims en UI | Tests que validan presencia/ausencia de claims específicos |
-| **L4** (próximo) | No-regresión suite | Tests que verifican MainPipeline, BenchmarkLab, Settings intactos |
-| L5 | Documentación de entrega | Consolidación de evidencia Phase 7 para stakeholder |
+| L4 | No-regresión suite | Tests que verifican MainPipeline, BenchmarkLab, Settings intactos |
+| **L5** (próximo) | Documentación de entrega | Consolidación de evidencia Phase 7 para stakeholder |
 | L6 | Freeze Phase 7 | FREEZE_PHASE7.md + cierre formal |
 
 ### Loops cerrados (Phase 7)
@@ -125,6 +125,7 @@ Cambio de enfoque:
 | L2 | `202e941` | Capturas de evidencia visual: 7 screenshots (idle/done/mobile real, running+error deficientes) |
 | L2B | `a651a36` | Corrección running+error: visual harness opt-in `?phase7Visual=` en ImprovementRunPanel |
 | L3 | `5c131d3` | Claims visible E2E: 17/17 tests + notices added to DoneState/ErrorState |
+| L4 | este commit | No-regression suite: 4/4 E2E tests + goSettings() bug fix |
 
 ### Loops cerrados (Phase 5)
 

@@ -383,6 +383,7 @@ const App: React.FC = () => {
     setShowHome(false);
     setShowSettings(true);
     setShowLab(false);
+    setShowImprovementRun(false);
     setShowAuditLog(false);
     setShowHelp(false);
     setShowMobileNav(false);
