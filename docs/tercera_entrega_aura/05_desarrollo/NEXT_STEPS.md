@@ -67,6 +67,7 @@ Constraints Phase 7:
 - No afirmar dataset real.
 - No afirmar validación externa independiente.
 - Python nunca se ejecuta dentro de AURA.
+- Visual testability harness (query param `?phase7Visual=`) permitido para captura de estados visuales transitorios (running, error).
 
 ### Loops completados (Phase 6 — congelada)
 
@@ -108,7 +109,8 @@ Cambio de enfoque:
 |---|---|---|
 | **L0** | Production readiness plan + E2E contract | `PHASE7_PRODUCTION_READINESS_PLAN.md` + `E2E_CONTRACT_PHASE7.md` |
 | **L1** | E2E harness / visual QA scaffold | `phase7-nav-smoke.spec.ts` (8 tests) + bug fix `goAudit()` |
-| **L2** (próximo) | Capturas de evidencia visual | Screenshots de idle/running/done/error + HealthDeltaDashboard |
+| **L2** | Capturas de evidencia visual | Screenshots de idle/done (flujo real) + running/error (visual harness) |
+| **L2B** (próximo) | Corrección running + error | Visual harness opt-in `?phase7Visual=` en ImprovementRunPanel |
 | L3 | Verificación de claims en UI | Tests que validan presencia/ausencia de claims específicos |
 | L4 | No-regresión suite | Tests que verifican MainPipeline, BenchmarkLab, Settings intactos |
 | L5 | Documentación de entrega | Consolidación de evidencia Phase 7 para stakeholder |
@@ -120,7 +122,8 @@ Cambio de enfoque:
 |---|---|---|
 | L0 | `648193f` | Production readiness plan + E2E contract |
 | L1 | `68e39bd` | E2E scaffold: 8 smoke tests navegación + bug fix `goAudit()` en App.tsx |
-| L2 | este commit | Capturas de evidencia visual: 7 screenshots (idle/done/running/error/mobile) |
+| L2 | `202e941` | Capturas de evidencia visual: 7 screenshots (idle/done/mobile real, running+error deficientes) |
+| L2B | este commit | Corrección running+error: visual harness opt-in `?phase7Visual=` en ImprovementRunPanel |
 
 ### Loops cerrados (Phase 5)
 

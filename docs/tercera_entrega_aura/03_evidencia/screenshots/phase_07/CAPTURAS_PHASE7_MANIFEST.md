@@ -2,14 +2,16 @@
 
 > **Carpeta:** `docs/tercera_entrega_aura/03_evidencia/screenshots/phase_07/`
 > **Fecha:** 2026-07-01
-> **SHA del test:** commit de Phase 7 L2
+> **SHA del test:** commit de Phase 7 L2B
 > **Viewport:** 1440 × 900 (desktop), 375 × 667 (mobile)
+
+> **Nota L2B:** Las capturas `healthdelta_running.png` y `healthdelta_error.png` fueron corregidas en Phase 7 L2B usando un visual testability harness opt-in con query params `?phase7Visual=running` y `?phase7Visual=error`. Estas son capturas de MOCK VISUAL — no son ejecuciones reales.
 
 ---
 
 ## Resumen
 
-Se generaron **7 capturas** de la interfaz de Health Delta para evidencia de cuarta entrega. Todas las capturas usan fixtures controlados y no acceden a datasets reales.
+Se generaron **7 capturas** de la interfaz de Health Delta para evidencia de cuarta entrega. 5 capturas usan ejecución real con fixtures controlados. 2 capturas usan mock visual (running, error) via visual testability harness.
 
 ---
 
@@ -35,12 +37,13 @@ Se generaron **7 capturas** de la interfaz de Health Delta para evidencia de cua
 | Atributo | Valor |
 |---|---|
 | Archivo | `healthdelta_running.png` |
-| Tamaño | 74678 bytes |
-| Estado visual | `done` (flujo completado — running fue <10ms) |
+| Tamaño | 58348 bytes |
+| Estado visual | `running` (visual harness — spinner + 6 pasos) |
 | Escenario E2E relacionado | `E2E-HD-004` — Running muestra los 6 pasos |
-| Qué demuestra | Panel en estado done tras ejecución real del pipeline con fixtures |
-| Claim protegido | "Colab notebook runs externally with the controlled fixture copy" visible |
-| Limitación | El estado running real fue demasiado breve para capturar (<10ms entre click y done). La captura muestra el estado done resultante. El flujo real de `runImprovementFlow` se ejecutó completamente. |
+| Qué demuestra | Spinner de running con los 6 pasos del pipeline |
+| Claim protegido | "AURA is not executing Python directly" visible en aviso amarillo |
+| Método | Visual testability harness: `?phase7Visual=running` fuerza estado running por 3 segundos |
+| Limitación | MOCK VISUAL — no es ejecución real. No ejecuta Python, no usa dataset real. Solo demuestra el estado visual. |
 
 ---
 
@@ -91,12 +94,13 @@ Se generaron **7 capturas** de la interfaz de Health Delta para evidencia de cua
 | Atributo | Valor |
 |---|---|
 | Archivo | `healthdelta_error.png` |
-| Tamaño | 59982 bytes |
-| Estado visual | idle (mock de module no interceptó correctamente) |
+| Tamaño | 62418 bytes |
+| Estado visual | `error` (visual harness — panel de error) |
 | Escenario E2E relacionado | `E2E-HD-014` — Error state debe poder simularse |
-| Qué demuestra | El estado idle del panel tras fallar el mock de error |
-| Claim protegido | N/A para este estado |
-| Limitación | El mock de `page.route` para el módulo `improvementRunService` no interceptó correctamente en el contexto de Vite dev. El estado error requiere una estrategia de mock diferente (inyección via `window.__PHASE7_MOCK_ERROR__` no fue leída por el componente). El flujo real ejecuta sin errores. |
+| Qué demuestra | Panel de error con mensaje de error, posibles causas, aviso de fixture, botones Retry y Reload |
+| Claim protegido | "The original dataset was not modified" visible en aviso amarillo |
+| Método | Visual testability harness: `?phase7Visual=error` fuerza estado error inmediatamente |
+| Limitación | MOCK VISUAL — no es un error real del pipeline. No hay ejecución real de Python ni acceso a dataset real. Solo demuestra el estado visual de error. |
 
 ---
 
@@ -119,9 +123,9 @@ Se generaron **7 capturas** de la interfaz de Health Delta para evidencia de cua
 | Estado | Captura | Método |
 |---|---|---|
 | `idle` | ✅ `healthdelta_idle.png` | Navegación real |
-| `running` | ⚠️ Captura代替 (`healthdelta_running.png` muestra done) | Flujo real demasiado rápido (<10ms) |
+| `running` | ✅ `healthdelta_running.png` | Visual harness (`?phase7Visual=running`) |
 | `done` | ✅ `healthdelta_done_dashboard.png`, `healthdelta_done_logs.png`, `healthdelta_done_export.png` | Flujo real completo con fixtures |
-| `error` | ⚠️ Captura代替 (`healthdelta_error.png` muestra idle) | Mock de módulo no interceptó |
+| `error` | ✅ `healthdelta_error.png` | Visual harness (`?phase7Visual=error`) |
 | `mobile` | ✅ `healthdelta_mobile_nav.png` | Navegación real |
 
 ---
@@ -135,13 +139,25 @@ Los estados `idle` y `done` usan la **ejecución real** del `runImprovementFlow`
 - `runAudit` síncrono y determinista (sin llamadas a LLM)
 - `executeControlledRun` y `importColabOutput` sobre fixtures
 
-### Running state
+### Running state (L2B: visual harness)
 
-El estado `running` fue **demasiado breve** para capturar: el flujo completo de `runImprovementFlow` se completó en <10ms. La captura resultante (`healthdelta_running.png`) muestra el estado `done` resultante. El flujo real se ejecutó completamente.
+**Problema L2:** El flujo real completaba en <10ms — imposible capturar spinner.
 
-### Error state
+**Solución L2B:** Se agregó un visual testability harness opt-in en `ImprovementRunPanel.tsx`:
+- Activado via `?phase7Visual=running` query param
+- Fuerza estado `running` por 3 segundos, luego transiciona a `done`
+- No ejecuta Python, no usa dataset real
+- Documentado como mock visual en el componente
 
-Se intentó usar `page.route` para interceptar el módulo `improvementRunService` y lanzar un error controlado. La interceptación no funcionó en el contexto Vite dev. El estado `error` requiere una estrategia de mock diferente (e.g., `window.__PHASE7_MOCK_ERROR__` leído por el componente).
+### Error state (L2B: visual harness)
+
+**Problema L2:** `page.route` no interceptó correctamente el módulo `improvementRunService` en contexto Vite dev.
+
+**Solución L2B:** Se agregó un visual testability harness opt-in en `ImprovementRunPanel.tsx`:
+- Activado via `?phase7Visual=error` query param
+- Fuerza estado `error` inmediatamente
+- No ejecuta Python, no usa dataset real
+- Documentado como mock visual en el componente
 
 ---
 
@@ -166,3 +182,5 @@ Estos avisos son **permanentes en todos los estados** según el diseño de Phase
 - **Flujo real:** `runImprovementFlow` con `BEFORE`/`AFTER` fixtures (3 filas, 4 columnas)
 - **LLM calls:** 0 (auditEngine.runAudit es síncrono y determinista)
 - **Python execution:** 0 (delegated to Colab external)
+- **Chrome AI / Gemini Nano:** 0 (no se usa)
+- **Visual testability harness:** `?phase7Visual=running` y `?phase7Visual=error` en `ImprovementRunPanel.tsx:55-99`

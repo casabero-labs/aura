@@ -2,7 +2,7 @@
 // Enhanced idle / running / done / error states.
 // Uses controlled fixtures only. Delegates Python execution to Colab.
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import HealthDeltaDashboard from './HealthDeltaDashboard';
 import ImprovementRunExportCard from './ImprovementRunExportCard';
 import ExecutionLogsPanel from './ExecutionLogsPanel';
@@ -51,6 +51,63 @@ const ImprovementRunPanel: React.FC<Props> = ({
   const [state, setState] = useState<PanelState>('idle');
   const [result, setResult] = useState<RunResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // ── Phase 7 L2B: Visual testability harness (opt-in, non-production) ──
+  // Activated only via ?phase7Visual=running or ?phase7Visual=error query param.
+  // Does NOT execute Python, does NOT use real datasets.
+  // For E2E visual evidence capture only.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const visualMode = params.get('phase7Visual');
+    if (!visualMode) return;
+
+    if (visualMode === 'running') {
+      setState('running');
+      const timer = setTimeout(() => {
+        setState('done');
+        setResult({
+          improvementRun: {
+            contractId: 'aura.improvement_run.v1',
+            contractVersion: '1.0.0',
+            runId: 'run:visual-harness',
+            createdAt: new Date().toISOString(),
+            sourceDatasetFingerprint: 'sha256:visual',
+            sourceEvidenceEnvelopeRef: 'env:visual',
+            scriptContractRef: 'ref:visual',
+            scriptHash: 'hash:visual',
+            remediationPlanId: 'plan:visual',
+            acceptedActionIds: [],
+            execution: { status: 'success', runtime: 'colab_notebook', logs: [] },
+            outputDataset: { rowCountBefore: 3, rowCountAfter: 3, columnCountBefore: 4, columnCountAfter: 4, changedCellsEstimate: 3 },
+            reaudit: {
+              beforeIssueCount: 3,
+              afterIssueCount: 0,
+              beforeReport: { score: 75, issues: [], rowCount: 3, colCount: 4, delimiterDetected: ',', duplicateRows: 0, fingerprint: '' },
+              afterReport: { score: 100, issues: [], rowCount: 3, colCount: 4, delimiterDetected: ',', duplicateRows: 0, fingerprint: '' },
+            },
+            healthDelta: { status: 'improved', scoreBefore: 75, scoreAfter: 100, delta: 25, issueDelta: -3, summary: 'Visual harness mock', caveats: [] },
+            limitations: [],
+            claims: { permitted: [], prohibited: [] },
+          },
+          logs: [
+            '[visual] improvement flow started',
+            '[visual] step 1: executeControlledRun',
+            '[visual] step 2: importColabOutput',
+            '[visual] step 3: runReaudit',
+            '[visual] step 4: computeHealthDelta',
+            '[visual] step 5: buildImprovementRunV1',
+            '[visual] improvement run run:visual-harness created',
+          ],
+        });
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+
+    if (visualMode === 'error') {
+      setState('error');
+      setErrorMessage('Visual harness: forced error state for E2E capture.');
+    }
+  }, []);
 
   const handleRun = async () => {
     setState('running');
