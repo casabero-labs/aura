@@ -52,18 +52,19 @@ No iniciar implementación de Phase 5 hasta que el diseño esté completo y apro
 
 ## Próximo paso permitido
 
-**Phase 5 Loop 4 — Reauditoría post-ejecución.**
+**Phase 5 Loop 5 — HealthDelta + ImprovementRunV1 completo.**
 
-Objetivo: reusar `EvidenceEnvelopeV2` sobre dataset limpio post-ejecución, con before/after evidence refs y auditoría reproducible.
+Objetivo: integrar todos los componentes de Phase 5 en un `ImprovementRunV1` que vincule ejecución, output y reauditoría, produciendo `HealthDeltaV1` documentado.
 
 Alcance:
-- Ejecutar reauditoría con `runAudit` sobre dataset post-ejecución.
-- Vincular evidence antes y después.
-- Comparar issue counts (before/after).
-- Producir `ReauditSummaryV1`.
-- Auditoría reproducible con mismo motor determinista.
+- Producir `OutputDatasetSummaryV1` a partir del output de Colab importado.
+- Producir `HealthDeltaV1` (scoreBefore/After, delta, status improved/unchanged/worsened).
+- Comparar before/after evidence refs en contexto de ImprovementRunV1.
+- Integrar `executeControlledRun` (L3) → `importColabOutput` → `runReaudit` → `HealthDeltaV1`.
+- Tests E2E del flujo completo con fixture controlado.
+- Claims finales documentados concaveats apropiados.
 
-Criterio de cierre: typecheck limpio, build exitoso, tests pasando.
+Criterio de cierre: typecheck limpio, build exitoso, tests pasando, ImprovementRunV1 exportado.
 
 ### Loops cerrados (Phase 5)
 
@@ -72,7 +73,8 @@ Criterio de cierre: typecheck limpio, build exitoso, tests pasando.
 | L0 | `096f96d` | Decisión de runtime (Colab formal + Pyodide stretch) |
 | L1 | `9be3f68` | Preflight verifier (17 tests) |
 | L2 | `7fdbd89` | Runtime sandbox mínimo (42 tests) |
-| L3 | este commit | Generación notebook Colab + pipeline controlado (17 tests) |
+| L3 | `eefe9c5` | Generación notebook Colab + pipeline controlado (17 tests) |
+| L4 | este commit | Reauditoría post-ejecución, ReauditSummaryV1 (39 tests) |
 
 Documentación preparada:
 - `05_desarrollo/phases/phase_05/PHASE5_DESIGN.md`
@@ -82,6 +84,7 @@ Documentación preparada:
 - `05_desarrollo/phases/phase_05/CIERRE_LOOP1_PREFLIGHT.md`
 - `05_desarrollo/phases/phase_05/CIERRE_LOOP2_RUNTIME_SANDBOX.md`
 - `05_desarrollo/phases/phase_05/CIERRE_LOOP3_EXECUTION_COPY.md`
+- `05_desarrollo/phases/phase_05/CIERRE_LOOP4_REAUDIT.md`
 
 ## Loops cerrados (Phase 4)
 
