@@ -65,7 +65,9 @@ Loops planificados:
 - **L3 (hecho):** `ImprovementRunExportCard` + `ExecutionLogsPanel`
 - **L4 (hecho):** Estados visuales completos (idle/running/error con animaciones)
 - **L5 (hecho):** Integración con rutas de AURA
-- **L6 (próximo):** Freeze Phase 6
+- **L6 (hecho):** Freeze Phase 6
+
+Phase 6 congelada en SHA `aa47bcf08ef6d2e1a3c4d5f6a7b8c9d0e1f2a3b4c`. Freeze: `docs/.../phase_06/FREEZE_PHASE6.md`.
 
 ### Loops cerrados (Phase 6)
 
@@ -76,9 +78,18 @@ Loops planificados:
 | L2 | `06d4fd9` | HealthDeltaDashboard + integración en Panel (21 tests) |
 | L3 | `9a8e884` | ImprovementRunExportCard + ExecutionLogsPanel + integración Panel (31 tests) |
 | L4 | `ad38bd4` | Estados visuales completos idle/running/done/error (2 tests) |
-| L5 | este commit | Integración con rutas — ImprovementRunPage + nav "Health Delta" (2 tests) |
+| L5 | `d07b035` | Integración con rutas — ImprovementRunPage + nav "Health Delta" (2 tests) |
+| L6 | este commit | Freeze Phase 6 — FREEZE_PHASE6.md + micro-fix nav Auditoria |
 
 No ejecuta Python — siempre delega a Colab.
+
+## Phase 7 — QA visual, evidencia y documentación para entrega
+
+- Capturas de pantalla de cada estado visual (idle/running/done/error).
+- Evidencia de navegación Health Delta en browser.
+- Validación de que la integración no rompe BenchmarkLab ni MainPipeline.
+- Evaluación de si `improvementRun` debe persistir en el pipeline principal de AURA.
+- Documentación de claims permitidos para stakeholders.
 
 ### Loops cerrados (Phase 5)
 

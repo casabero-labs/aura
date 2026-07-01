@@ -436,7 +436,7 @@ const App: React.FC = () => {
             </button>
 
             <button
-              className={`nav-menu-item ${!showHome && !showLab && !showAuditLog && !showSettings ? 'active' : ''}`}
+              className={`nav-menu-item ${!showHome && !showLab && !showImprovementRun && !showAuditLog && !showSettings ? 'active' : ''}`}
               onClick={goAudit}
             >
               Auditoría
