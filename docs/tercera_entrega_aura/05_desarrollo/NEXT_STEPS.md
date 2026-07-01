@@ -52,9 +52,9 @@ No iniciar implementación de Phase 5 hasta que el diseño esté completo y apro
 
 ## Próximo paso permitido
 
-**Phase 7 L3 — Verificación automática de claims visibles para cuarta entrega.**
+**Phase 7 L4 — No-regression suite.**
 
-Objetivo: implementar tests E2E que verifiquen la presencia de todos los claims requeridos y la ausencia de claims prohibidos en la UI de Health Delta, según el contrato E2E (`E2E_CONTRACT_PHASE7.md` sección C).
+Objetivo: implementar tests E2E que verifiquen que MainPipeline, BenchmarkLab y Settings no se rompen al navegar por Health Delta, según el contrato E2E (`E2E_CONTRACT_PHASE7.md` sección D): `E2E-REG-001` a `E2E-REG-004`.
 
 Constraints Phase 7:
 - No modificar código fuente Phase 5.
@@ -110,9 +110,9 @@ Cambio de enfoque:
 | **L0** | Production readiness plan + E2E contract | `PHASE7_PRODUCTION_READINESS_PLAN.md` + `E2E_CONTRACT_PHASE7.md` |
 | **L1** | E2E harness / visual QA scaffold | `phase7-nav-smoke.spec.ts` (8 tests) + bug fix `goAudit()` |
 | **L2** | Capturas de evidencia visual | Screenshots de idle/done (flujo real) + running/error (visual harness) |
-| **L2B** (próximo) | Corrección running + error | Visual harness opt-in `?phase7Visual=` en ImprovementRunPanel |
+| L2B | Corrección running + error | Visual harness opt-in `?phase7Visual=` en ImprovementRunPanel |
 | L3 | Verificación de claims en UI | Tests que validan presencia/ausencia de claims específicos |
-| L4 | No-regresión suite | Tests que verifican MainPipeline, BenchmarkLab, Settings intactos |
+| **L4** (próximo) | No-regresión suite | Tests que verifican MainPipeline, BenchmarkLab, Settings intactos |
 | L5 | Documentación de entrega | Consolidación de evidencia Phase 7 para stakeholder |
 | L6 | Freeze Phase 7 | FREEZE_PHASE7.md + cierre formal |
 
@@ -123,7 +123,8 @@ Cambio de enfoque:
 | L0 | `648193f` | Production readiness plan + E2E contract |
 | L1 | `68e39bd` | E2E scaffold: 8 smoke tests navegación + bug fix `goAudit()` en App.tsx |
 | L2 | `202e941` | Capturas de evidencia visual: 7 screenshots (idle/done/mobile real, running+error deficientes) |
-| L2B | este commit | Corrección running+error: visual harness opt-in `?phase7Visual=` en ImprovementRunPanel |
+| L2B | `a651a36` | Corrección running+error: visual harness opt-in `?phase7Visual=` en ImprovementRunPanel |
+| L3 | `5c131d3` | Claims visible E2E: 17/17 tests + notices added to DoneState/ErrorState |
 
 ### Loops cerrados (Phase 5)
 
