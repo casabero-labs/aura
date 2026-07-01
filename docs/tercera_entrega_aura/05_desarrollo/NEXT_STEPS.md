@@ -4,11 +4,15 @@
 
 **Phase 3 cerrada y congelada en `d3774dd5ac98d89ca4454c693b1b0a30856cd191`.** No modificar su evidencia.
 
-**Phase 4 cerrada y congelada en `aa167995316962a70ff41a3970326d4824d980c0`.** Evidencia E2E completa: 8/8 escenarios contractuales demostrados en navegador. Freeze final: `05878e4a960afd11d564a60f4924bfb8f0b527e7`.
+**Phase 4 cerrada y congelada en `05878e4a960afd11d564a60f4924bfb8f0b527e7`.** Evidencia E2E completa: 8/8 escenarios contractuales demostrados en navegador.
 
-**Phase 5 Loop 0 completado.** Decisión de runtime documentada en `05_desarrollo/phases/phase_05/LOOP0_RUNTIME_DECISION.md`.
+**Phase 5 cerrada y congelada en `40a376929fcaad13b1809bd0c8ba895011ceb8cb`.** Servicios de ejecución, reauditoría y health delta congelados. Freeze: `FREEZE_PHASE5.md`.
 
-**Entrega 3 consolidada hasta Phase 4.** Documento principal: `01_borrador/TERCERA_ENTREGA_AURA_CONSOLIDADA.md`.
+**Phase 6 cerrada y congelada en `b689cce5012edf33d27e2e85bb325878ab79125a`.** UI wrapper React congelado. Freeze: `FREEZE_PHASE6.md`.
+
+**Phase 7 cerrada y congelada en `58891c215604d7a140774370d133ce06460691d5`.** Production Readiness QA + Evidence Capture congelado. Freeze: `FREEZE_PHASE7.md`.
+
+**El siguiente frente es Phase 8 técnico.** La cuarta entrega documental queda en espera hasta instrucción explícita del usuario.
 
 ## Phase 4 — Resumen final
 
@@ -54,20 +58,65 @@ No iniciar implementación de Phase 5 hasta que el diseño esté completo y apro
 
 **Phase 8 — Continuación técnica y recopilación de evidencia.**
 
-Objetivo: continuar el desarrollo técnico y la recopilación de evidencia hasta que el usuario ordene explícitamente iniciar la cuarta entrega documental. No preparar todavía la cuarta entrega.
+Objetivo: continuar fortaleciendo AURA como producto técnico controlado, generando evidencia adicional antes de redactar la cuarta entrega. La cuarta entrega NO debe prepararse todavía. Solo se iniciará cuando el usuario lo solicite explícitamente.
 
-Constraints Phase 7:
-- No modificar código fuente Phase 5.
-- No modificar componentes Phase 6.
+### Reglas operativas Phase 8
+
+- Trabajar en main.
+- No crear ramas.
+- No abrir PR.
+- No modificar Phase 3, Phase 4, Phase 5, Phase 6 ni Phase 7 salvo micro-fix documental autorizado.
+- No tocar `FREEZE_PHASE5.md`, `FREEZE_PHASE6.md` ni `FREEZE_PHASE7.md`.
 - No modificar contratos v2.
-- No tocar `FREEZE_PHASE5.md` ni `FREEZE_PHASE6.md`.
-- No tocar Phase 3 ni Phase 4.
-- No agregar dependencias.
-- No afirmar production-ready todavía.
-- No afirmar dataset real.
-- No afirmar validación externa independiente.
-- Python nunca se ejecuta dentro de AURA.
-- Visual testability harness (query param `?phase7Visual=`) permitido para captura de estados visuales transitorios (running, error).
+- No afirmar production-ready.
+- No afirmar mejora sobre dataset real si no existe protocolo y evidencia.
+- No ejecutar Python dentro de AURA.
+- Python sigue siendo externo/delegado (Colab notebook).
+- No usar datos personales reales.
+- No depender de Chrome AI / Gemini Nano real en E2E estándar.
+- No descargar modelos en CI.
+- No preparar cuarta entrega.
+
+### Regla E2E Chrome AI / Gemini Nano
+
+Los E2E estándar no deben depender de Gemini Nano real ni descargar modelos. Si se requiere validar Chrome AI real, crear un spec opt-in separado usando Google Chrome real con perfil persistente dedicado. No usar el perfil personal del usuario ni ejecutar estos tests en CI normal.
+
+### Claims permitidos durante Phase 8
+
+- AURA cuenta con fases congeladas de mejora controlada (Phase 5), UI HealthDelta (Phase 6) y QA E2E (Phase 7).
+- Phase 8 busca ampliar evidencia técnica.
+- Los datasets usados deben ser controlados, sintéticos o públicos sin PII.
+- Las corridas con proveedores reales deben clasificarse según evidencia.
+- Los resultados preliminares no equivalen a producción final.
+
+### Claims prohibidos durante Phase 8
+
+- No decir que AURA está production-ready.
+- No decir que AURA corrigió datasets reales.
+- No decir que AURA ejecuta Python internamente.
+- No decir que Chrome AI / Gemini Nano siempre está disponible.
+- No decir que existe benchmark formal definitivo si no hay protocolo, repeticiones y resultados exportados.
+- No decir que hay validación externa independiente.
+- No decir que la cuarta entrega ya está en construcción.
+
+---
+
+## Phase 8 — Objetivo general
+
+Phase 8 no busca escribir la cuarta entrega. Busca ampliar evidencia técnica posterior al freeze de Phase 7. El foco será validar AURA bajo escenarios más cercanos al uso real, sin romper las fronteras ya congeladas: no afirmar producción final, no ejecutar Python dentro de AURA, no usar datasets reales sin protocolo, no depender de proveedores reales en E2E estándar y no modificar fases congeladas.
+
+### Roadmap completo de Phase 8
+
+| Loop | Nombre | Objetivo | Evidencia esperada | Estado |
+|---|---|---|---|---|
+| L0 | Phase 8 Plan + Evidence Ledger | Definir alcance, riesgos, dataset protocol y matriz de evidencia | `PHASE8_PLAN.md`, `PHASE8_EVIDENCE_LEDGER.md` | Pendiente |
+| L1 | Demo/Prod Boundary Hardening | Blindar visual harness y separar modo demo/evidencia de modo normal | tests, documentación de flags, no-regression | Pendiente |
+| L2 | Controlled Dataset Protocol | Definir dataset controlado ampliado, sin PII, con ground truth documentado | dataset protocol, schema, ground truth, claims | Pendiente |
+| L3 | Controlled Pilot Run | Ejecutar flujo completo sobre dataset controlado ampliado | audit JSON, issues CSV, script, notebook, improvement run JSON | Pendiente |
+| L4 | Provider Validation Opt-in | Validar proveedores reales solo en modo opt-in, separados de CI | Chrome AI / Ollama / cloud diagnostics, no CI dependency | Pendiente |
+| L5 | Benchmark Evidence Classification | Clasificar corridas como `attempted_failed`, `preliminary_valid` o `formal_valid` | benchmark JSON, tabla comparativa, limitaciones | Pendiente |
+| L6 | Evidence Package Export | Consolidar artefactos exportables para futura entrega | paquete de evidencia Phase 8 | Pendiente |
+| L7 | Freeze Phase 8 | Congelar Phase 8 si la evidencia queda completa | `FREEZE_PHASE8.md` | Pendiente |
 
 ### Loops completados (Phase 6 — congelada)
 
@@ -87,34 +136,20 @@ Phase 6 congelada en SHA `b689cce5012edf33d27e2e85bb325878ab79125a`. Freeze: `do
 
 No ejecuta Python — siempre delega a Colab.
 
-## Phase 7 — Production Readiness (activa)
+## Phase 7 — Production Readiness (cerrada y congelada)
 
-**Phase 6 cerrada y congelada en `b689cce5012edf33d27e2e85bb325878ab79125a`.** Freeze: `docs/.../phase_06/FREEZE_PHASE6.md`.
+**Phase 7 cerrada y congelada en `58891c215604d7a140774370d133ce06460691d5`.** Freeze: `docs/.../phase_07/FREEZE_PHASE7.md`.
 
-**Phase 7 activa desde Loop 0.** Objetivo: cerrar la brecha entre "demo académica controlada" y "preparación para producción controlada".
+Objetivo cumplido: cerrar la brecha entre "demo académica controlada" y "preparación para producción controlada".
 
-Entregables Phase 7 L0:
-- `05_desarrollo/phases/phase_07/PHASE7_PRODUCTION_READINESS_PLAN.md`
-- `05_desarrollo/phases/phase_07/E2E_CONTRACT_PHASE7.md` (43 escenarios)
-
-Cambio de enfoque:
-- De demo académica controlada → preparación para producción controlada.
-- De tests unitarios → evidencia E2E en navegador real.
-- De claims documentados → claims verificables visualmente por stakeholder.
-- De riesgos implícitos → riesgos explícitos con matriz de decisión.
-
-### Loops planificados (Phase 7)
-
-| Loop | Objetivo | Entregable |
-|---|---|---|
-| **L0** | Production readiness plan + E2E contract | `PHASE7_PRODUCTION_READINESS_PLAN.md` + `E2E_CONTRACT_PHASE7.md` |
-| **L1** | E2E harness / visual QA scaffold | `phase7-nav-smoke.spec.ts` (8 tests) + bug fix `goAudit()` |
-| **L2** | Capturas de evidencia visual | Screenshots de idle/done (flujo real) + running/error (visual harness) |
-| L2B | Corrección running + error | Visual harness opt-in `?phase7Visual=` en ImprovementRunPanel |
-| L3 | Verificación de claims en UI | Tests que validan presencia/ausencia de claims específicos |
-| L4 | No-regresión suite | Tests que verifican MainPipeline, BenchmarkLab, Settings intactos |
-| L5 | Documentación de entrega | Consolidación de evidencia Phase 7 para stakeholder |
-| L6 | Freeze Phase 7 | FREEZE_PHASE7.md + cierre formal |
+Entregables Phase 7:
+- `PHASE7_PRODUCTION_READINESS_PLAN.md` + `E2E_CONTRACT_PHASE7.md` (43 escenarios)
+- `phase7-nav-smoke.spec.ts` (8 tests navegación E2E)
+- 7 screenshots Health Delta (idle, running, done, error, mobile)
+- `phase7-claims-visible.spec.ts` (17 tests claims verificados)
+- `phase7-no-regression.spec.ts` (4 tests no-regresión)
+- `CONSOLIDACION_EVIDENCIA_PHASE7_CUARTA_ENTREGA.md`
+- `FREEZE_PHASE7.md`
 
 ### Loops cerrados (Phase 7)
 
