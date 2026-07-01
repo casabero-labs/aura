@@ -52,9 +52,9 @@ No iniciar implementación de Phase 5 hasta que el diseño esté completo y apro
 
 ## Próximo paso permitido
 
-**Phase 7 L6 — Freeze Phase 7.**
+**Cuarta entrega — Integración documental de evidencia Phase 5-7.**
 
-Objetivo: crear `FREEZE_PHASE7.md`, verificar que todos los cierres documentales referencian SHAs reales, ejecutar suite completa final de Phase 7, congelar y preparar para Phase 8+.
+Objetivo: consolidar la evidencia de Phase 5 (motor de mejora), Phase 6 (UI wrapper) y Phase 7 (production readiness QA) en el documento de cuarta entrega del TFM, usando la evidencia congelada de Phase 7 como base.
 
 Constraints Phase 7:
 - No modificar código fuente Phase 5.
@@ -114,7 +114,7 @@ Cambio de enfoque:
 | L3 | Verificación de claims en UI | Tests que validan presencia/ausencia de claims específicos |
 | L4 | No-regresión suite | Tests que verifican MainPipeline, BenchmarkLab, Settings intactos |
 | L5 | Documentación de entrega | Consolidación de evidencia Phase 7 para stakeholder |
-| **L6** (próximo) | Freeze Phase 7 | FREEZE_PHASE7.md + cierre formal |
+| L6 | Freeze Phase 7 | FREEZE_PHASE7.md + cierre formal |
 
 ### Loops cerrados (Phase 7)
 
@@ -126,7 +126,8 @@ Cambio de enfoque:
 | L2B | `a651a36` | Corrección running+error: visual harness opt-in `?phase7Visual=` en ImprovementRunPanel |
 | L3 | `5c131d3` | Claims visible E2E: 17/17 tests + notices added to DoneState/ErrorState |
 | L4 | `6a86a79` | No-regression suite: 4/4 E2E tests + goSettings() bug fix |
-| L5 | este commit | Consolidación documental: CONSOLIDACION_EVIDENCIA_PHASE7_CUARTA_ENTREGA.md |
+| L5 | `35e5c47` | Consolidación documental: CONSOLIDACION_EVIDENCIA_PHASE7_CUARTA_ENTREGA.md |
+| L6 | este commit | Freeze Phase 7: FREEZE_PHASE7.md + placeholders corregidos |
 
 ### Loops cerrados (Phase 5)
 

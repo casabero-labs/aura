@@ -1,6 +1,6 @@
 # Consolidación de Evidencia — Phase 7 para Cuarta Entrega
 
-> **SHA:** `<este>`
+> **SHA:** `35e5c470d2e65ba54f34a1b5c9505002fabefe7b`
 > **Fecha:** 2026-07-01
 > **Base:** Phase 7 L4 (`6a86a79`)
 > **Scope:** evidencia consolidada de Phase 7 (L0 a L4) para la cuarta entrega del TFM
@@ -52,7 +52,7 @@ Esta consolidación reúne toda la evidencia generada en Phase 7 — contratos, 
 | **L2B** | `a651a36` | Corrección running + error | Visual harness `?phase7Visual=` | Código | Cerrado |
 | **L3** | `5c131d3` | Claims visibles verificados | `phase7-claims-visible.spec.ts` (17 tests) + notices DoneState/ErrorState | Tests E2E | Cerrado |
 | **L4** | `6a86a79` | No-regression suite | `phase7-no-regression.spec.ts` (4 tests) + bug fix `goSettings()` | Tests E2E | Cerrado |
-| **L5** | este | Consolidación documental | `CONSOLIDACION_EVIDENCIA_PHASE7_CUARTA_ENTREGA.md`, `CIERRE_LOOP5_CONSOLIDACION_EVIDENCIA.md` | Documental | Activo |
+| **L5** | `35e5c47` | Consolidación documental | `CONSOLIDACION_EVIDENCIA_PHASE7_CUARTA_ENTREGA.md`, `CIERRE_LOOP5_CONSOLIDACION_EVIDENCIA.md` | Documental | Cerrado |
 | **L6** | — | Freeze Phase 7 | `FREEZE_PHASE7.md` | Documental | Pendiente |
 
 ---

@@ -184,5 +184,5 @@ L0:  648193f — docs: Phase 7 Loop 0 — Production Readiness Plan + E2E Contra
 L1:  68e39bd — feat: Phase 7 Loop 1 — E2E smoke tests navigation + goAudit bug fix
 L2:  202e941 — feat: Phase 7 Loop 2 — Visual evidence screenshots + CAPTURES manifest
 L2B: a651a36 — feat: Phase 7 Loop 2B — Visual harness for running and error states
-L3:  <este>  — feat: Phase 7 Loop 3 — Claims visible E2E + notices added to DoneState/ErrorState
+L3:  `5c131d3` — feat: Phase 7 Loop 3 — Claims visible E2E + notices added to DoneState/ErrorState
 ```
