@@ -52,9 +52,9 @@ No iniciar implementación de Phase 5 hasta que el diseño esté completo y apro
 
 ## Próximo paso permitido
 
-**Phase 7 L5 — Consolidación documental de evidencia para cuarta entrega.**
+**Phase 7 L6 — Freeze Phase 7.**
 
-Objetivo: consolidar toda la evidencia de Phase 7 (E2E contracts, screenshots, test results, claims verificados) en un documento de entrega para stakeholder, preparando FREEZE_PHASE7.md.
+Objetivo: crear `FREEZE_PHASE7.md`, verificar que todos los cierres documentales referencian SHAs reales, ejecutar suite completa final de Phase 7, congelar y preparar para Phase 8+.
 
 Constraints Phase 7:
 - No modificar código fuente Phase 5.
@@ -113,8 +113,8 @@ Cambio de enfoque:
 | L2B | Corrección running + error | Visual harness opt-in `?phase7Visual=` en ImprovementRunPanel |
 | L3 | Verificación de claims en UI | Tests que validan presencia/ausencia de claims específicos |
 | L4 | No-regresión suite | Tests que verifican MainPipeline, BenchmarkLab, Settings intactos |
-| **L5** (próximo) | Documentación de entrega | Consolidación de evidencia Phase 7 para stakeholder |
-| L6 | Freeze Phase 7 | FREEZE_PHASE7.md + cierre formal |
+| L5 | Documentación de entrega | Consolidación de evidencia Phase 7 para stakeholder |
+| **L6** (próximo) | Freeze Phase 7 | FREEZE_PHASE7.md + cierre formal |
 
 ### Loops cerrados (Phase 7)
 
@@ -125,7 +125,8 @@ Cambio de enfoque:
 | L2 | `202e941` | Capturas de evidencia visual: 7 screenshots (idle/done/mobile real, running+error deficientes) |
 | L2B | `a651a36` | Corrección running+error: visual harness opt-in `?phase7Visual=` en ImprovementRunPanel |
 | L3 | `5c131d3` | Claims visible E2E: 17/17 tests + notices added to DoneState/ErrorState |
-| L4 | este commit | No-regression suite: 4/4 E2E tests + goSettings() bug fix |
+| L4 | `6a86a79` | No-regression suite: 4/4 E2E tests + goSettings() bug fix |
+| L5 | este commit | Consolidación documental: CONSOLIDACION_EVIDENCIA_PHASE7_CUARTA_ENTREGA.md |
 
 ### Loops cerrados (Phase 5)
 

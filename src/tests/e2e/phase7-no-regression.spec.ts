@@ -86,6 +86,7 @@ test.describe('Phase 7 L4 — No-Regression Suite', () => {
     await page.locator('.nav-center-menu').getByRole('button', { name: 'Configuración' }).click();
     await page.waitForTimeout(800);
     await expect(page.locator('[data-testid="settings-workspace"]')).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('[data-testid="improvement-run-panel"]')).not.toBeVisible();
 
     expect(consoleErrors).toHaveLength(0);
   });

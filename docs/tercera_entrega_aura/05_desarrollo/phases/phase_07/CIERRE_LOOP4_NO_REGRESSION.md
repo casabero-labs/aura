@@ -1,6 +1,6 @@
 # Phase 7 Loop 4 — Cierre: No-Regression Suite
 
-> **SHA:** `<este>`
+> **SHA:** `6a86a790e71fedf0bb96844dad81a2dbd39584b0`
 > **Fecha:** 2026-07-01
 > **Base:** Phase 7 L3 (`5c131d3`)
 > **Estado:** CERRADO ✓
