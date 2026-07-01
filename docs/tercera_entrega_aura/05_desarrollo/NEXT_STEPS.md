@@ -52,20 +52,23 @@ No iniciar implementación de Phase 5 hasta que el diseño esté completo y apro
 
 ## Próximo paso permitido
 
-**Phase 6 — UI wrapper y dashboard HealthDelta.**
+**Phase 7 L1 — E2E harness / visual QA scaffold.**
 
-Inicia después del freeze de Phase 5. No modifica Phase 5.
+Objetivo: configurar herramienta E2E (Playwright o Cypress), implementar smoke tests de navegación según `E2E_CONTRACT_PHASE7.md`, y capturar primera ronda de screenshots automatizados.
 
-Objetivo: envolver `runImprovementFlow` en una UI de browser y exponer el `ImprovementRunV1` como dashboard de health delta visual.
+Constraints Phase 7:
+- No modificar código fuente Phase 5.
+- No modificar componentes Phase 6.
+- No modificar contratos v2.
+- No tocar `FREEZE_PHASE5.md` ni `FREEZE_PHASE6.md`.
+- No tocar Phase 3 ni Phase 4.
+- No agregar dependencias.
+- No afirmar production-ready todavía.
+- No afirmar dataset real.
+- No afirmar validación externa independiente.
+- Python nunca se ejecuta dentro de AURA.
 
-Loops planificados:
-- **L0 (hecho):** Diseño — `PHASE6_UI_WRAPPER_DESIGN.md`
-- **L1 (hecho):** `ImprovementRunPanel` + `runImprovementFlow` wrapper React
-- **L2 (hecho):** `HealthDeltaDashboard` — visualización score, delta, status, caveats
-- **L3 (hecho):** `ImprovementRunExportCard` + `ExecutionLogsPanel`
-- **L4 (hecho):** Estados visuales completos (idle/running/error con animaciones)
-- **L5 (hecho):** Integración con rutas de AURA
-- **L6 (hecho):** Freeze Phase 6
+### Loops completados (Phase 6 — congelada)
 
 Phase 6 congelada en SHA `b689cce5012edf33d27e2e85bb325878ab79125a`. Freeze: `docs/.../phase_06/FREEZE_PHASE6.md`.
 
@@ -83,13 +86,33 @@ Phase 6 congelada en SHA `b689cce5012edf33d27e2e85bb325878ab79125a`. Freeze: `do
 
 No ejecuta Python — siempre delega a Colab.
 
-## Phase 7 — QA visual, evidencia y documentación para entrega
+## Phase 7 — Production Readiness (activa)
 
-- Capturas de pantalla de cada estado visual (idle/running/done/error).
-- Evidencia de navegación Health Delta en browser.
-- Validación de que la integración no rompe BenchmarkLab ni MainPipeline.
-- Evaluación de si `improvementRun` debe persistir en el pipeline principal de AURA.
-- Documentación de claims permitidos para stakeholders.
+**Phase 6 cerrada y congelada en `b689cce5012edf33d27e2e85bb325878ab79125a`.** Freeze: `docs/.../phase_06/FREEZE_PHASE6.md`.
+
+**Phase 7 activa desde Loop 0.** Objetivo: cerrar la brecha entre "demo académica controlada" y "preparación para producción controlada".
+
+Entregables Phase 7 L0:
+- `05_desarrollo/phases/phase_07/PHASE7_PRODUCTION_READINESS_PLAN.md`
+- `05_desarrollo/phases/phase_07/E2E_CONTRACT_PHASE7.md` (43 escenarios)
+
+Cambio de enfoque:
+- De demo académica controlada → preparación para producción controlada.
+- De tests unitarios → evidencia E2E en navegador real.
+- De claims documentados → claims verificables visualmente por stakeholder.
+- De riesgos implícitos → riesgos explícitos con matriz de decisión.
+
+### Loops planificados (Phase 7)
+
+| Loop | Objetivo | Entregable |
+|---|---|---|
+| **L0** (este loop) | Production readiness plan + E2E contract | `PHASE7_PRODUCTION_READINESS_PLAN.md` + `E2E_CONTRACT_PHASE7.md` |
+| L1 | E2E harness / visual QA scaffold | Configuración Playwright/Cypress + smoke tests de navegación |
+| L2 | Capturas de evidencia visual | Screenshots de idle/running/done/error + HealthDeltaDashboard |
+| L3 | Verificación de claims en UI | Tests que validan presencia/ausencia de claims específicos |
+| L4 | No-regresión suite | Tests que verifican MainPipeline, BenchmarkLab, Settings intactos |
+| L5 | Documentación de entrega | Consolidación de evidencia Phase 7 para stakeholder |
+| L6 | Freeze Phase 7 | FREEZE_PHASE7.md + cierre formal |
 
 ### Loops cerrados (Phase 5)
 
@@ -130,7 +153,7 @@ Documentación preparada:
 
 ## Claims de frontera
 
-Permitido en estado actual (Phase 5 L0-L6 completos):
+### Permitido en estado actual (Phase 5 L0-L6 + Phase 6 L0-L6 completos):
 
 - Contrato de script generado, validado y firmado (L1).
 - Hash contractual verificable (L1).
@@ -158,3 +181,27 @@ No permitido todavía:
 - Validación externa independiente (mismo motor runAudit, reproducible pero no externa).
 - Benchmark formal de utilidad.
 - `improved` como claim sin caveats del contexto real.
+
+Permitido en Phase 6 (UI wrapper):
+- UI wrapper que invoca `runImprovementFlow` de Phase 5.
+- Visualización de `HealthDeltaV1` sobre fixture controlado.
+- Export de `ImprovementRunV1` como JSON.
+- Logs de orquestación de AURA visibles.
+- Navegación "Health Delta" integrada en AURA.
+- `improvementRun` serializado en session storage.
+
+No permitido en Phase 6:
+- No afirma dataset real o validación externa independiente.
+- No afirma que HealthDelta sea validación formal externa.
+- No afirma mejora sobre datos productivos.
+- No afirma benchmark formal de utilidad.
+- No ejecuta Python dentro de AURA.
+- No usa datasets de usuarios.
+
+Decisiones Phase 7 L0:
+- Health Delta se mantiene como workspace aislado (no integrado al pipeline principal).
+- `ImprovementRunV1` se mantiene en session storage (no estado global).
+- Navegación URL-based queda como requisito post-Phase 7.
+- Modo demo vs producción queda documentado pero no implementado.
+- Manejo de datasets reales queda planificado pero no implementado (Phase 8+).
+- Contrato E2E formal establecido (43 escenarios en `E2E_CONTRACT_PHASE7.md`).
