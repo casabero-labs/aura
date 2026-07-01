@@ -1,4 +1,0 @@
-[     788ms] [ERROR] Failed to load resource: net::ERR_SSL_VERSION_OR_CIPHER_MISMATCH @ https://api.aura.casabero.com/api/settings/ai_config:0
-[     845ms] [ERROR] Failed to load resource: net::ERR_SSL_VERSION_OR_CIPHER_MISMATCH @ https://api.aura.casabero.com/api/settings:0
-[   77813ms] [ERROR] Failed to load resource: net::ERR_SSL_VERSION_OR_CIPHER_MISMATCH @ https://api.aura.casabero.com/api/settings/ai_config:0
-[   77842ms] [ERROR] Failed to load resource: net::ERR_SSL_VERSION_OR_CIPHER_MISMATCH @ https://api.aura.casabero.com/api/settings:0

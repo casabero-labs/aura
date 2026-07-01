@@ -2,6 +2,7 @@
   "name": "datahealth-ai-auditor",
   "private": true,
   "version": "0.0.0",
+  "license": "Apache-2.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -22,8 +23,8 @@
     "@google/genai": "^1.30.0",
     "@mlc-ai/web-llm": "^0.2.83",
     "d3": "^7.9.0",
-    "jspdf": "^2.5.2",
-    "jspdf-autotable": "^3.8.4",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
     "lucide-react": "^0.555.0",
     "papaparse": "^5.5.3",
     "react": "^19.2.0",
