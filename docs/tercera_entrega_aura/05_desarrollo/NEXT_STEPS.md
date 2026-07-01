@@ -52,19 +52,18 @@ No iniciar implementación de Phase 5 hasta que el diseño esté completo y apro
 
 ## Próximo paso permitido
 
-**Phase 5 Loop 5 — HealthDelta + ImprovementRunV1 completo.**
+**Phase 5 Loop 6 — Tests E2E del flujo completo + CLI/UI wrapper.**
 
-Objetivo: integrar todos los componentes de Phase 5 en un `ImprovementRunV1` que vincule ejecución, output y reauditoría, produciendo `HealthDeltaV1` documentado.
+Objetivo: validar el flujo completo con fixture controlado end-to-end y preparar punto de entrada para usar `runImprovementFlow` desde CLI o UI.
 
 Alcance:
-- Producir `OutputDatasetSummaryV1` a partir del output de Colab importado.
-- Producir `HealthDeltaV1` (scoreBefore/After, delta, status improved/unchanged/worsened).
-- Comparar before/after evidence refs en contexto de ImprovementRunV1.
-- Integrar `executeControlledRun` (L3) → `importColabOutput` → `runReaudit` → `HealthDeltaV1`.
-- Tests E2E del flujo completo con fixture controlado.
-- Claims finales documentados concaveats apropiados.
+- Tests E2E del flujo completo: execute → import Colab output → reaudit → delta → ImprovementRunV1.
+- Fixture fixture_real con beforeCsv y afterCsv reales para validar el pipeline completo.
+- Documentar `runImprovementFlow` como API pública.
+- Validación de ImprovementRunV1 contra schema o tipo formal.
+- Claims y limitaciones listos para presentación a usuario.
 
-Criterio de cierre: typecheck limpio, build exitoso, tests pasando, ImprovementRunV1 exportado.
+Criterio de cierre: typecheck limpio, build exitoso, tests E2E pasando, ImprovementRunV1 exportado como JSON.
 
 ### Loops cerrados (Phase 5)
 
@@ -74,7 +73,8 @@ Criterio de cierre: typecheck limpio, build exitoso, tests pasando, ImprovementR
 | L1 | `9be3f68` | Preflight verifier (17 tests) |
 | L2 | `7fdbd89` | Runtime sandbox mínimo (42 tests) |
 | L3 | `eefe9c5` | Generación notebook Colab + pipeline controlado (17 tests) |
-| L4 | este commit | Reauditoría post-ejecución, ReauditSummaryV1 (39 tests) |
+| L4 | `8327f6a` | Reauditoría post-ejecución, ReauditSummaryV1 (39 tests) |
+| L5 | este commit | HealthDelta + ImprovementRunV1 completo (25 tests) |
 
 Documentación preparada:
 - `05_desarrollo/phases/phase_05/PHASE5_DESIGN.md`
@@ -85,6 +85,7 @@ Documentación preparada:
 - `05_desarrollo/phases/phase_05/CIERRE_LOOP2_RUNTIME_SANDBOX.md`
 - `05_desarrollo/phases/phase_05/CIERRE_LOOP3_EXECUTION_COPY.md`
 - `05_desarrollo/phases/phase_05/CIERRE_LOOP4_REAUDIT.md`
+- `05_desarrollo/phases/phase_05/CIERRE_LOOP5_IMPROVEMENT_RUN.md`
 
 ## Loops cerrados (Phase 4)
 
