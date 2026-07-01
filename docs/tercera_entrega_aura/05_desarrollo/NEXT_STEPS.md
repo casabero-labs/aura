@@ -52,27 +52,36 @@ No iniciar implementación de Phase 5 hasta que el diseño esté completo y apro
 
 ## Próximo paso permitido
 
-**Phase 5 Loop 1 — Preflight Verifier.**
+**Phase 5 Loop 2 — Runtime Sandbox Mínimo.**
 
-Objetivo: implementar helper `preflightCheck(contract: ScriptContractV2): PreflightResult` que valide condiciones de entrada antes de autorizar ejecución.
+Objetivo: implementar runtime aislado que ejecute fixture controlado sin dataset real del usuario.
 
 Alcance:
-- Verificar `verifyScriptContractV2` fresco.
-- Validar coincidencia de `scriptHash` con `scriptText`.
-- Validar coincidencia de `datasetFingerprint`.
-- Validar coherencia de `acceptedActionIds` con el plan HITL.
-- Devolver `PreflightResult` con `status: 'ready' | 'blocked'` y razones de bloqueo.
-- Tests unitarios con contratos válidos e inválidos.
-- No ejecutar Python.
-- No modificar contratos v2.
+- Timeout de ejecución (30s).
+- Sin acceso a red.
+- Sin acceso a filesystem libre.
+- Whitelist de imports (pandas, numpy, json, csv, io, hashlib, re, math, datetime, collections, itertools, typing).
+- Solo función `clean_dataset(df)`.
+- Ejecución sobre copia, nunca sobre dataset original.
+- Logs estructurados.
+- Bloqueo fail-closed ante error.
+- Tests unitarios con fixture controlado.
 
 Criterio de cierre: typecheck limpio, build exitoso, tests pasando.
+
+### Loops cerrados (Phase 5)
+
+| Loop | SHA | Descripción |
+|---|---|---|
+| L0 | `096f96d` | Decisión de runtime (Colab formal + Pyodide stretch) |
+| L1 | este commit | Preflight verifier (17 tests) |
 
 Documentación preparada:
 - `05_desarrollo/phases/phase_05/PHASE5_DESIGN.md`
 - `05_desarrollo/phases/phase_05/IMPROVEMENT_RUN_CONTRACT.md`
 - `05_desarrollo/phases/phase_05/PLAN_LOOPS_PHASE5.md`
 - `05_desarrollo/phases/phase_05/LOOP0_RUNTIME_DECISION.md`
+- `05_desarrollo/phases/phase_05/CIERRE_LOOP1_PREFLIGHT.md`
 
 ## Loops cerrados (Phase 4)
 
