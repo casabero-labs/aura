@@ -58,12 +58,16 @@ Inicia después del freeze de Phase 5. No modifica Phase 5.
 
 Objetivo: envolver `runImprovementFlow` en una UI de browser y exponer el `ImprovementRunV1` como dashboard de health delta visual.
 
-Alcance:
-- UI wrapper para invocar `runImprovementFlow` desde el frontend.
-- Dashboard visual de HealthDeltaV1: score antes/después, delta, issue counts, caveats.
-- Export JSON de ImprovementRunV1 desde la UI.
-- Visualización de logs de ejecución y reauditoría.
-- No ejecuta Python — siempre delega a Colab.
+Loops planificados:
+- **L0 (hecho):** Diseño — `PHASE6_UI_WRAPPER_DESIGN.md`
+- **L1:** `ImprovementRunPanel` + `runImprovementFlow` wrapper React
+- **L2:** `HealthDeltaDashboard` — visualización score, delta, status, caveats
+- **L3:** `ImprovementRunExportCard` + `ExecutionLogsPanel`
+- **L4:** Estados visuales completos (idle/running/error con animaciones)
+- **L5:** Integración con rutas de AURA
+- **L6:** Freeze Phase 6
+
+No ejecuta Python — siempre delega a Colab.
 
 ### Loops cerrados (Phase 5)
 
@@ -76,7 +80,7 @@ Alcance:
 | L4 | `8327f6a` | Reauditoría post-ejecución, ReauditSummaryV1 (39 tests) |
 | L5 | `c8f1d46` | HealthDelta + ImprovementRunV1 completo (25 tests) |
 | L6 | `8bc0ce0` | E2E tests + CLI wrapper + type guards + JSON export (18 tests) |
-| Freeze | `8bc0ce0` | Phase 5 cerrada y congelada |
+| Freeze | `40a3769` | Phase 5 cerrada y congelada |
 
 Documentación preparada:
 - `05_desarrollo/phases/phase_05/PHASE5_DESIGN.md`
