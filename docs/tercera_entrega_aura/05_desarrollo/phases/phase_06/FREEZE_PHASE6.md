@@ -3,7 +3,7 @@
 > **Estado:** CONGELADA
 > **Fecha:** 2026-07-01
 > **SHA base:** `d07b035594c18e5f3414b549469307447bb5fb0e`
-> **Freeze commit:** `aa47bcf08ef6d2e1a3c4d5f6a7b8c9d0e1f2a3b4c`
+> **Freeze commit:** `b689cce5012edf33d27e2e85bb325878ab79125a`
 
 ---
 
@@ -156,7 +156,7 @@ Phase 6 implementa un UI wrapper alrededor de `runImprovementFlow` de Phase 5, e
 
 Phase 6 L0–L5 completados exitosamente. Todos los entregables implementados, 101 tests passing (58 componentes + 43 regresión), constraints respetadas.
 
-Se congela Phase 6 en SHA `aa47bcf08ef6d2e1a3c4d5f6a7b8c9d0e1f2a3b4c`.
+Se congela Phase 6 en SHA `b689cce5012edf33d27e2e85bb325878ab79125a`.
 
 ---
 

@@ -67,7 +67,7 @@ Loops planificados:
 - **L5 (hecho):** Integración con rutas de AURA
 - **L6 (hecho):** Freeze Phase 6
 
-Phase 6 congelada en SHA `aa47bcf08ef6d2e1a3c4d5f6a7b8c9d0e1f2a3b4c`. Freeze: `docs/.../phase_06/FREEZE_PHASE6.md`.
+Phase 6 congelada en SHA `b689cce5012edf33d27e2e85bb325878ab79125a`. Freeze: `docs/.../phase_06/FREEZE_PHASE6.md`.
 
 ### Loops cerrados (Phase 6)
 
