@@ -93,6 +93,16 @@ Protocolo completo con estados, criterios, tratamiento de fallos, claims, limita
 | JSON schema validation | **OK** (benchmark_evidence_schema.json es JSON válido) |
 | Register sin formal_valid inventado | **OK** (0 entries con formal_valid) |
 
+## L5B — Typecheck Verification (2026-07-02)
+
+| Verificación | Resultado |
+|-------------|-----------|
+| `cd src && npx tsc --noEmit` | **8 errores preexistentes** |
+| Archivos afectados | `ImprovementRunPanel.tsx` (4), `ReviewStep.tsx` (1), `scriptGenerationStepV2.test.tsx` (2), `phase7-claims-visible.spec.ts` (2) |
+| Errores apuntan a L5 | **NO** — ningún error en `benchmarkEvidenceClassification.ts` ni `__tests__/benchmarkEvidenceClassification.test.ts` |
+| Errores preexistentes | **CONFIRMADO** — ninguno atribuible a L5 |
+| Decisión | L5 puede cerrarse; errores preexistentes documentados en E8-L1-007 del ledger |
+
 ## Confirmaciones
 
 - ✅ No se ejecutó benchmark formal (ninguna AI run ejecutada)
