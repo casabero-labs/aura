@@ -12,9 +12,12 @@ Libro de control de deuda técnica TypeScript. Cada entry corresponde a un error
 | Tipo | dependency_missing |
 | Impacto | Test `scriptGenerationStepV2.test.tsx` no compila; bloquea typecheck del archivo |
 | Fix propuesto | Instalar `@testing-library/react` como devDependency o asegurar que los type declarations estén disponibles |
+| Fix aplicado | `npm install` — la dependencia ya estaba en `devDependencies` de `package.json` pero no instalada en `node_modules` |
 | Loop asignado | L1 — Test Dependency Baseline Cleanup |
-| Estado | Pendiente |
+| Estado | **Resuelto** |
 | Evidencia requerida | `npx tsc --noEmit` sin error TS2307 en este archivo |
+| Evidencia | ✅ Error TS2307 eliminado. 42/42 tests pasan en `scriptGenerationStepV2.test.tsx` |
+| SHA resolución | Pendiente de commit |
 | Riesgo de regresión | Bajo — solo afecta dependencias de test, no runtime |
 
 ---
@@ -27,9 +30,12 @@ Libro de control de deuda técnica TypeScript. Cada entry corresponde a un error
 | Tipo | dependency_missing |
 | Impacto | Test `scriptGenerationStepV2.test.tsx` no compila; bloquea typecheck del archivo |
 | Fix propuesto | Instalar `@testing-library/user-event` como devDependency o asegurar que los type declarations estén disponibles |
+| Fix aplicado | `npm install` — la dependencia ya estaba en `devDependencies` de `package.json` pero no instalada en `node_modules` |
 | Loop asignado | L1 — Test Dependency Baseline Cleanup |
-| Estado | Pendiente |
+| Estado | **Resuelto** |
 | Evidencia requerida | `npx tsc --noEmit` sin error TS2307 en este archivo |
+| Evidencia | ✅ Error TS2307 eliminado. 42/42 tests pasan en `scriptGenerationStepV2.test.tsx` |
+| SHA resolución | Pendiente de commit |
 | Riesgo de regresión | Bajo — solo afecta dependencias de test, no runtime |
 
 ---
@@ -128,7 +134,7 @@ Libro de control de deuda técnica TypeScript. Cada entry corresponde a un error
 
 | Estado | Cantidad |
 | ------ | -------- |
-| Pendiente | 8 |
+| Pendiente | 6 |
 | En progreso | 0 |
-| Resuelto | 0 |
+| Resuelto | 2 |
 | **Total** | **8** |

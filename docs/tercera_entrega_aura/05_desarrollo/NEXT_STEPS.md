@@ -23,8 +23,8 @@
 | Loop | Nombre | Objetivo | Estado |
 |---|---|---|---|
 | L0 | Technical Debt Baseline Plan | Documentar baseline actual de typecheck | **Completado** |
-| L1 | Test Dependency Baseline Cleanup | Resolver dependencias faltantes en tests | **Próximo recomendado** |
-| L2 | ImprovementRunPanel Type Fixtures | Corregir mocks/tipos heredados del visual harness | Pendiente |
+| L1 | Test Dependency Baseline Cleanup | Resolver dependencias faltantes en tests | **Completado** |
+| L2 | ImprovementRunPanel Type Fixtures | Corregir mocks/tipos heredados del visual harness | **Próximo recomendado** |
 | L3 | ReviewStep Contract Cleanup | Resolver prop mismatch de ReviewStep | Pendiente |
 | L4 | E2E Typing Cleanup | Corregir tipos en phase7-claims-visible.spec.ts | Pendiente |
 | L5 | Typecheck Green Verification | Lograr `npx tsc --noEmit` sin errores | Pendiente |
@@ -32,9 +32,9 @@
 
 ### Próximo loop recomendado
 
-**Phase 9 L1 — Test Dependency Baseline Cleanup**
+**Phase 9 L2 — ImprovementRunPanel Type Fixtures**
 
-Resolver DEBT-001 y DEBT-002 instalando o configurando `@testing-library/react` y `@testing-library/user-event` como devDependencies, sin tocar otros archivos.
+Resolver DEBT-003, DEBT-004 y DEBT-005 completando los mocks visuales del harness de `ImprovementRunPanel` con los campos requeridos por `ExecutionSummaryV1`, `OutputDatasetSummaryV1` y `ReauditSummaryV1`.
 
 La cuarta entrega NO debe iniciarse sin instrucción explícita del usuario.
 
