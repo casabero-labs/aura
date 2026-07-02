@@ -56,9 +56,9 @@ No iniciar implementación de Phase 5 hasta que el diseño esté completo y apro
 
 ## Próximo paso permitido
 
-**Phase 8 — Continuación técnica y recopilación de evidencia.**
+**Phase 8 L1 — Demo/Prod Boundary Hardening**
 
-Objetivo: continuar fortaleciendo AURA como producto técnico controlado, generando evidencia adicional antes de redactar la cuarta entrega. La cuarta entrega NO debe prepararse todavía. Solo se iniciará cuando el usuario lo solicite explícitamente.
+Blindar visual harness y separar modo demo/evidencia de modo normal. Continuar fortaleciendo AURA como producto técnico controlado. La cuarta entrega NO debe prepararse todavía. Solo se iniciará cuando el usuario lo solicite explícitamente.
 
 ### Reglas operativas Phase 8
 
@@ -109,7 +109,7 @@ Phase 8 no busca escribir la cuarta entrega. Busca ampliar evidencia técnica po
 
 | Loop | Nombre | Objetivo | Evidencia esperada | Estado |
 |---|---|---|---|---|
-| L0 | Phase 8 Plan + Evidence Ledger | Definir alcance, riesgos, dataset protocol y matriz de evidencia | `PHASE8_PLAN.md`, `PHASE8_EVIDENCE_LEDGER.md` | Pendiente |
+| L0 | Phase 8 Plan + Evidence Ledger | Definir alcance, riesgos, dataset protocol y matriz de evidencia | `PHASE8_PLAN.md`, `PHASE8_EVIDENCE_LEDGER.md` | Completado |
 | L1 | Demo/Prod Boundary Hardening | Blindar visual harness y separar modo demo/evidencia de modo normal | tests, documentación de flags, no-regression | Pendiente |
 | L2 | Controlled Dataset Protocol | Definir dataset controlado ampliado, sin PII, con ground truth documentado | dataset protocol, schema, ground truth, claims | Pendiente |
 | L3 | Controlled Pilot Run | Ejecutar flujo completo sobre dataset controlado ampliado | audit JSON, issues CSV, script, notebook, improvement run JSON | Pendiente |
