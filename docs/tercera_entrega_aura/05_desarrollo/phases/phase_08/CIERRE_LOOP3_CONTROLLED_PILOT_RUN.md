@@ -102,6 +102,83 @@ Ejecutar un pilot run controlado de AURA usando el dataset sintético `controlle
 5. **Duplicados:** no detectados por engine actual.
 6. **Script no ejecutado:** el candidate script nunca se corrió en Colab real. No hay ImprovementRun ni HealthDelta.
 
+## Verificación técnica complementaria L3B
+
+### Diff exacto
+
+```bash
+git diff --name-status HEAD~1..HEAD
+```
+
+Resultado tras commit `b08a189`:
+```
+A   docs/tercera_entrega_aura/03_evidencia/phase_08/pilot_run_l3/aura_audit_controlled_customers_phase8.json
+A   docs/tercera_entrega_aura/03_evidencia/phase_08/pilot_run_l3/aura_issues_controlled_customers_phase8.csv
+A   docs/tercera_entrega_aura/03_evidencia/phase_08/pilot_run_l3/controlled_customers_phase8_detection_matrix.md
+A   docs/tercera_entrega_aura/03_evidencia/phase_08/pilot_run_l3/controlled_customers_phase8_pilot_summary.md
+A   docs/tercera_entrega_aura/03_evidencia/phase_08/pilot_run_l3/notebook_candidate_controlled_customers_phase8.json
+A   docs/tercera_entrega_aura/03_evidencia/phase_08/pilot_run_l3/pilot_run_manifest.json
+A   docs/tercera_entrega_aura/03_evidencia/phase_08/pilot_run_l3/script_candidate_controlled_customers_phase8.py
+M   docs/tercera_entrega_aura/05_desarrollo/NEXT_STEPS.md
+A   docs/tercera_entrega_aura/05_desarrollo/phases/phase_08/CIERRE_LOOP3_CONTROLLED_PILOT_RUN.md
+M   docs/tercera_entrega_aura/05_desarrollo/phases/phase_08/PHASE8_EVIDENCE_LEDGER.md
+A   src/phase8_pilot_audit.ts
+```
+
+**11 archivos en diff: 8 nuevos, 3 modificados.**
+
+### Comando Build Ejecutado
+
+```bash
+cd src && npm run build
+```
+
+**Resultado:** `✓ built in 9.88s` — build succeed sin errores.
+
+### Comando Typecheck Ejecutado
+
+```bash
+cd src && npx tsc --noEmit
+```
+
+**Resultado:** 8 errores TS — **todos preexistentes** (mismos que en L1B).
+
+| # | Archivo | Error TS | ¿Nuevo en L3? | ¿Afecta L3? |
+|---|---------|----------|----------------|--------------|
+| 1 | `__tests__/scriptGenerationStepV2.test.tsx` | TS2307: `@testing-library/react` no encontrado | NO | NO |
+| 2 | `__tests__/scriptGenerationStepV2.test.tsx` | TS2307: `@testing-library/user-event` no encontrado | NO | NO |
+| 3 | `ImprovementRunPanel.tsx:82` | TS2740: `ExecutionSummaryV1` props faltantes | NO | NO |
+| 4 | `ImprovementRunPanel.tsx:83` | TS2739: `OutputDatasetSummaryV1` props faltantes | NO | NO |
+| 5 | `ImprovementRunPanel.tsx:87` | TS2353: `beforeReport` no existe en `ReauditSummaryV1` | NO | NO |
+| 6 | `ReviewStep.tsx:477` | TS2322: `run` no existe en tipo `Props` | NO | NO |
+| 7 | `tests/e2e/phase7-claims-visible.spec.ts:55` | TS2347: función sin tipo | NO | NO |
+| 8 | `tests/e2e/phase7-claims-visible.spec.ts:59` | TS2339: `textContent` en `unknown` | NO | NO |
+
+**Ningún error apunta a `src/phase8_pilot_audit.ts`.**
+
+### Confirmación standalone
+
+```bash
+grep -R "phase8_pilot_audit" src --exclude="phase8_pilot_audit.ts"
+# Output: No imports found
+```
+
+- ✅ `src/phase8_pilot_audit.ts` es **standalone**: archivo de script único, no es módulo importable en runtime.
+- ✅ No es importado por `App.tsx` ni por ningún componente o servicio.
+- ✅ No modifica `auditEngine.ts`, `scoring`, ni contratos v2.
+- ✅ Se ejecuta manualmente vía `npx tsx phase8_pilot_audit.ts` — fuera del pipeline productivo.
+- ✅ No se toca en CI, ni en build, ni en tests normales.
+
+### Decisión Final
+
+**L3 cerrado con deuda heredada (typecheck preexistente + standalone script confirmado como no afectador).**
+
+- Build succeed ✅
+- Typecheck: 0 errores nuevos ✅
+- `phase8_pilot_audit.ts` es standalone y no se usa en runtime ✅
+- 8 errores TS son preexistentes (desde L1B) ✅
+- No se tocó producción ✅
+
 ## Próximo Loop Recomendado
 
 **Phase 8 L4 — Provider Validation Opt-in**
