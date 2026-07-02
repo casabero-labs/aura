@@ -12,13 +12,29 @@
 
 **Phase 7 cerrada y congelada en `58891c215604d7a140774370d133ce06460691d5`.** Production Readiness QA + Evidence Capture congelado. Freeze: `FREEZE_PHASE7.md`.
 
-**Phase 8 cerrada y congelada en `3d6d04bbc62d27d4382d1689c0d6289a8c363984`.** Evidence Expansion congelado. Freeze: `FREEZE_PHASE8.md`.
+**Phase 8 cerrada y congelada en `7fc32409160e5e9ee84d38bbe56db2fb4e504af4`.** Evidence Expansion congelado. Freeze: `FREEZE_PHASE8.md`.
 
 **La cuarta entrega documental NO debe prepararse. El próximo frente queda awaiting explicit user instruction.**
 
-### Próximo frente recomendado
+### Phase 9 — Technical Debt Cleanup
 
-**Phase 9 — Technical Debt Cleanup and Typecheck Baseline**, o **awaiting explicit user instruction** para decidir el próximo frente.
+**Phase 9 L0 cerrado.** Baseline de typecheck documentado: 8 errores TypeScript heredados de fases previas congeladas en 4 archivos. Plan de limpieza por loops definido.
+
+| Loop | Nombre | Objetivo | Estado |
+|---|---|---|---|
+| L0 | Technical Debt Baseline Plan | Documentar baseline actual de typecheck | **Completado** |
+| L1 | Test Dependency Baseline Cleanup | Resolver dependencias faltantes en tests | **Próximo recomendado** |
+| L2 | ImprovementRunPanel Type Fixtures | Corregir mocks/tipos heredados del visual harness | Pendiente |
+| L3 | ReviewStep Contract Cleanup | Resolver prop mismatch de ReviewStep | Pendiente |
+| L4 | E2E Typing Cleanup | Corregir tipos en phase7-claims-visible.spec.ts | Pendiente |
+| L5 | Typecheck Green Verification | Lograr `npx tsc --noEmit` sin errores | Pendiente |
+| L6 | Freeze Phase 9 | Congelar Phase 9 si typecheck queda limpio | Pendiente |
+
+### Próximo loop recomendado
+
+**Phase 9 L1 — Test Dependency Baseline Cleanup**
+
+Resolver DEBT-001 y DEBT-002 instalando o configurando `@testing-library/react` y `@testing-library/user-event` como devDependencies, sin tocar otros archivos.
 
 La cuarta entrega NO debe iniciarse sin instrucción explícita del usuario.
 
