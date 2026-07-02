@@ -1,0 +1,51 @@
+customer_id,full_name,email,phone,birth_date,registration_date,city,country,plan_type,credits_used,total_credits,company,tax_id,status,notes
+C001,Carlos Fuentes Sintetico,carlos.fuentes@example.invalid,+56-9-1111-0001,15/03/1990,12/06/2022,Santiago,CL,BASIC,120,500,SolucionesDelta,SYN-0001,ACTIVE,
+C002,Mariana Vega Sintetica,mariana.vega@example.invalid,+56-9-1111-0002,22/07/1985,05/01/2023,Valparaiso,CL,PREMIUM,3500,5000,,SYN-0002,ACTIVE,
+C003,,pedro.lopez@example.invalid,+56-9-1111-0003,01/01/1978,18/03/2021,Concepcion,CL,BASIC,0,200,TecnologiasOmega,SYN-0003,ACTIVE,Nombre faltante
+C004,Laura Diaz Sintetica,laura.diaz@test.mail.invalid,  +56-9-1111-0004  ,10/11/1995,30/08/2024,  Santiago  ,CL,PREMIUM,890,1000,ConsultoriaEpsilon,,ACTIVE,Espacios extra en ciudad y telefono
+C005,Jorge Rivas Sintetico,correo-invalido,9-111100-05,03/06/1982,25/09/2020,Antofagasta,CL,BASIC,450,500,IndustriasGamma,SYN-0005,ACTIVE,Email invalido
+C006,Ana Morales Sintetica,N/A,+56-9-1111-0006,17/12/1990,02/04/2022,Temuco,CL,ENTERPRISE,12000,12000,CorporacionZeta,SYN-0006,SUSPENDED,Email placeholder N/A
+C007,,,UNKNOWN,30/02/2000,,SIN_DATO,XXX,BASIC,75,100,,SYN-0007,PENDING,Multiples problemas
+C008,Roberto Castillo Sintetico,roberto.castillo@example.invalid,+56-9-1111-0008,,15/07/2019,LaSerena,CL,PREMIUM,600,800,,SYN-0008,ACTIVE,Fecha nacimiento nula
+C009,Sofia Herrera Sintetica,sofia.herrera@example.invalid,+56-9-1111-0009,05/15/1988,28/10/2021,Iquique,CL,BASIC,220,250,ConsultoriaEpsilon,SYN-0009,ACTIVE,
+C010,Diego Mendez Sintetico,diego.mendez@example.invalid,+56-9-1111-0010,12/01/2001,22/11/2023,PuertoMontt,CL,PREMIUM,1450,1500,LogisticaKappa,SYN-0010,ACTIVE,
+C011,Valentina Paredes Sintetica,valentina.paredes@example.invalid,+56-9-1111-0011,19/04/1993,14/08/2022,Rancagua,CL,BASIC,0,0,,,ACTIVE,Creditos nulos ambos
+C012,Eduardo Silva Sintetico,eduardo.silva@example.invalid,+56-9-1111-0012,25/09/1970,30/06/2021,Arica,CL,PREMIUM,2100,2500,SolucionesSigma,SYN-0012,ACTIVE,
+C013,Gabriela Torres Sintetica,gabriela.torres@example.invalid,+56-9-1111-0013,14/02/1989,11/05/2020,,,,BASIC,320,400,,,INACTIVE,Ciudad y pais faltantes
+C014,Felipe Rojas Sintetico,felipe.rojas@example.invalid,+56-9-1111-0014,07/08/1975,19/03/2023,Santiago,CL,BASIC,480,,TecnologiasDelta,SYN-0014,ACTIVE,Total credits null
+C015,Camila Ruiz Sintetica,camila.ruiz@example.invalid,+56-9-1111-0015,30/11/1998,05/12/2021,Valdivia,CL,PREMIUM,900,950,,SYN-0015,PENDING,
+C016,Bernardo Campos Sintetico,bernardo.campos@example.invalid,+56-9-1111-0016,22/06/1983,09/07/2023,Osorno,CL,premium,550,700,AgroIndustriaEta,SYN-0016,ACTIVE,Plan casing irregular
+C017,Daniela Fuentes Sintetica,daniela.fuentes@example.invalid,+56-9-1111-0017,18/01/2017,01/02/2024,Calama,CL,BASIC,100,150,,,ACTIVE,Edad menor 10 anios al registro
+C018,Javier Salas Sintetico,NOT-AN-EMAIL,+56-9-1111-0018,11/05/1987,16/06/2022,Copiapo,CL,BASIC,350,400,SolucionesEta,SYN-0018,ACTIVE,Email no valido
+C019,Patricia Vasquez Sintetica,patricia.vasquez@example.invalid,+56-9-1111-0019,09/10/1992,20/11/2020,,,,PREMIUM,1100,1200,,,ACTIVE,Ciudad y pais faltantes
+C020,Oscar Leon Sintetico,oscar.leon@example.invalid,9-1111-0020,26/03/1986,23/09/2022,,CL,BASIC,190,300,,SYN-0020,ACTIVE,Ciudad sin dato
+C021,Natalia Guzman Sintetica,natalia.guzman@example.invalid,001-1111-0021,04/07/1991,15/04/2023,ARICA,CL,PREMIUM,2900,3000,TransportesGamma,SYN-0021,ACTIVE,Ciudad uppercase
+C022,Ricardo Navarro Sintetico,ricardo.navarro@example.invalid,+56-9-1111-0022,13/12/1979,28/01/2021,Quilpue,CL,BASIC,670,680,,,ACTIVE,
+C023,Carolina Pena Sintetica,carolina.pena@example.invalid,+56-9-1111-0023,20/08/1994,03/02/2022,PuntaArenas,CHL,PREMIUM,1800,2000,ConsultoriaOmega,SYN-0023,ACTIVE,Pais no en lista
+C024,   Tomas Varela Sintetico  ,tomas.varela@example.invalid,+56-9-1111-0024,16/04/1981,11/09/2023,Curico,CL,BASIC,300,400,,,ACTIVE,Espacios en nombre
+C025,Maria Paz Navarro Sintetica,maria.navarro@example.invalid,+56-9-1111-0025,08/11/1996,14/07/2022,Talca,CL,ENTERPRISE,8500,9000,IndustriasKappa,SYN-0025,ACTIVE,
+C026,Andres Castro Sintetico,andres.castro@example.invalid,+56-9-1111-0026,28/02/1965,19/08/2021,Chillan,CL,BASIC,510,600,,,ACTIVE,
+C027,Paola Medina Sintetica,,56-9-1111-0027,15/05/1993,02/01/2024,LosAngeles,CL,BASIC,0,150,LogisticaDelta,SYN-0027,ACTIVE,Email en blanco (otro campo)
+C028,Hernan Duran Sintetico,hernan.duran@example.invalid,+56-9-1111-0028,09/09/1988,27/06/2023,Santiago,CL,PREMIUM,1750,1800,TecnologiasGamma,SYN-0028,ACTIVE,
+C029,Susana Rios Sintetica,susana.rios@example.invalid,+56-9-1111-0029,23/01/1960,10/03/2020,Santiago,CL,BASIC,340,400,,SYN-0029,INACTIVE,
+C030,Gustavo Carrasco Sintetico,gustavo.carrasco@example.invalid,+56-9-1111-0030,14/07/1973,17/05/2022,VinaDelMar,CL,PREMIUM,2100,2500,AgroIndustriaOmega,SYN-0030,ACTIVE,
+C031,Veronica Sepulveda Sintetica,veronica.sepulveda@example.invalid,+56-9-1111-0031,03/02/1984,08/10/2021,Santiago,CL,BASIC,150,200,,,ACTIVE,
+C032,Cesar Araya Sintetico,cesar.araya@example.invalid,+56-9-1111-0032,19/06/1977,21/04/2023,Valparaiso,,BASIC,450,,,SYN-0032,ACTIVE,Pais en blanco + total credits null
+C033,Florencia Miranda Sintetica,florencia.miranda@example.invalid,+56-9-1111-0033,10/09/1994,06/11/2022,Temuco,CL,PREMIUM,1200,1300,SolucionesZeta,,ACTIVE,
+C034,Rodrigo Ibarra Sintetico,rodrigo.ibarra@example.invalid,+56-9-1111-0034,27/03/1971,12/08/2023,Concepcion,CL,basic,375,500,,SYN-0034,ACTIVE,Plan casing
+C035,Alejandra Moya Sintetica,alejandra.moya@example.invalid,,31/12/1985,25/05/2021,Arica,CL,PREMIUM,1600,1800,CorporacionKappa,SYN-0035,ACTIVE,Telefono nulo
+C036,Ignacio Vargas Sintetico,ignacio.vargas@example.invalid,+56-9-1111-0036,17/07/2016,04/03/2025,,CL,,0,0,,,PENDING,Menor al registro (mismo anio)
+C037,Catalina Lagos Sintetica,catalina.lagos@example.invalid,+56-9-1111-0037,02/12/1991,29/09/2023,Santiago,CL,ENTERPRISE,14000,15000,ConsultoriaAlpha,SYN-0037,SUSPENDED,
+C038,Francisco Palma Sintetico,francisco.palma@example.invalid,+56-9-1111-0038,30/04/1986,23/07/2022,,CL,PREMIUM,980,1000,TransportesEpsilon,SYN-0038,ACTIVE,Ciudad nula
+C039,Renata Jara Sintetica,renata.jara@example.invalid,+56-9-1111-0039,11/08/1997,13/01/2023,Coquimbo,CL,BASIC,500,450,LogisticaSigma,,ACTIVE,Credits used mayor que total
+C040,Esteban Pinto Sintetico,esteban.pinto@example.invalid,+56-9-1111-0040,05/05/1989,31/10/2022,Santiago,CL,PREMIUM,3800,4000,IndustriasDelta,SYN-0040,ACTIVE,
+C041,C001,Carlos Fuentes Sintetico,carlos.fuentes@example.invalid,+56-9-1111-0001,15/03/1990,12/06/2022,Santiago,CL,BASIC,120,500,SolucionesDelta,SYN-0001,ACTIVE,Duplicado de C001
+C042,Sandra Espinoza Sintetica,sandra.espinoza@example.invalid,+56-9-1111-0042,14/03/19986,17/02/2022,PuenteAlto,CL,BASIC,200,300,,,ACTIVE,Ano de nacimiento con 5 digitos
+C043,Fernando Acosta Sintetico,fernando.acosta@example.invalid,+56-9-1111-0043,21/02/2075,08/04/2024,Santiago,CL,BASIC,0,0,,,PENDING,Fecha nacimiento futura
+C044,Marcela Vidal Sintetica,marcela.vidal@example.invalid,+56-9-1111-0044,08/06/1999,30/05/2022,SanBernardo,CL,invalid_plan,750,800,ConsultoriaDelta,SYN-0044,ACTIVE,Plan no existe
+C045,Alvaro Beltran Sintetico,alvaro.beltran@example.invalid,+56-9-1111-0045,25/10/1962,03/09/2021,Talcahuano,CL,BASIC,-50,500,,SYN-0045,SUSPENDED,Credits used negativo
+C046,Carla Sanhueza Sintetica,carla.sanhueza@example.invalid,,09/11/2025,26/12/2023,Santiago,CL,BASIC,80,100,,,ACTIVE,Registro fecha futura + email null
+C047,Gonzalo Aguilera Sintetico,gonzalo.aguilera@example.invalid,+56-9-1111-0047,17/04/1983,14/07/2021,  la serena  ,CL,PREMIUM,2300,2500,,SYN-0047,ACTIVE,Ciudad con espacios y casing
+C048,   N/A   ,N/A,000-0000-000,01/01/2000,01/01/2020,SIN_DATO,CL,desconocido,0,0,,,SUSPENDED,Placeholders multiples
+C049,Adriana Ojeda Sintetica,adriana.ojeda@example.invalid,+56-9-1111-0049,12/05/1992,20/08/2022,Santiago,CL,ENTERPRISE,11000,12000,,SYN-0049,ACTIVE,
+C050,Julio Saldivia Sintetico,julio.saldivia@example.invalid,+56-9-1111-0050,29/07/1987,15/06/2023,Antofagasta,CL,PREMIUM,2600,2800,SolucionesAlpha,SYN-0050,ACTIVE,

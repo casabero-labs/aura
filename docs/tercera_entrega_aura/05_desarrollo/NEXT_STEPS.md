@@ -56,9 +56,9 @@ No iniciar implementación de Phase 5 hasta que el diseño esté completo y apro
 
 ## Próximo paso permitido
 
-**Phase 8 L2 — Controlled Dataset Protocol**
+**Phase 8 L3 — Controlled Pilot Run**
 
-Definir el dataset controlado ampliado (sin PII, con ground truth documentado) que se usará en L3 (Controlled Pilot Run). Continuar fortaleciendo AURA como producto técnico controlado. La cuarta entrega NO debe prepararse todavía. Solo se iniciará cuando el usuario lo solicite explícitamente.
+Ejecutar flujo completo sobre dataset controlado ampliado. Continuar fortaleciendo AURA como producto técnico controlado. La cuarta entrega NO debe prepararse todavía. Solo se iniciará cuando el usuario lo solicite explícitamente.
 
 ### Reglas operativas Phase 8
 
@@ -111,7 +111,7 @@ Phase 8 no busca escribir la cuarta entrega. Busca ampliar evidencia técnica po
 |---|---|---|---|---|
 | L0 | Phase 8 Plan + Evidence Ledger | Definir alcance, riesgos, dataset protocol y matriz de evidencia | `PHASE8_PLAN.md`, `PHASE8_EVIDENCE_LEDGER.md` | Completado |
 | L1 | Demo/Prod Boundary Hardening | Blindar visual harness y separar modo demo/evidencia de modo normal | tests, documentación de flags, no-regression | Completado |
-| L2 | Controlled Dataset Protocol | Definir dataset controlado ampliado, sin PII, con ground truth documentado | dataset protocol, schema, ground truth, claims | Pendiente |
+| L2 | Controlled Dataset Protocol | Definir dataset controlado ampliado, sin PII, con ground truth documentado | dataset protocol, schema, ground truth, claims | Completado |
 | L3 | Controlled Pilot Run | Ejecutar flujo completo sobre dataset controlado ampliado | audit JSON, issues CSV, script, notebook, improvement run JSON | Pendiente |
 | L4 | Provider Validation Opt-in | Validar proveedores reales solo en modo opt-in, separados de CI | Chrome AI / Ollama / cloud diagnostics, no CI dependency | Pendiente |
 | L5 | Benchmark Evidence Classification | Clasificar corridas como `attempted_failed`, `preliminary_valid` o `formal_valid` | benchmark JSON, tabla comparativa, limitaciones | Pendiente |
