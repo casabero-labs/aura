@@ -6,6 +6,7 @@ import React, { useState, useEffect } from 'react';
 import HealthDeltaDashboard from './HealthDeltaDashboard';
 import ImprovementRunExportCard from './ImprovementRunExportCard';
 import ExecutionLogsPanel from './ExecutionLogsPanel';
+import { detectDemoMode, DEMO_MODE_NOTICE } from '../utils/demoMode';
 
 type PanelState = 'idle' | 'running' | 'done' | 'error';
 
@@ -52,16 +53,17 @@ const ImprovementRunPanel: React.FC<Props> = ({
   const [result, setResult] = useState<RunResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // ── Phase 7 L2B: Visual testability harness (opt-in, non-production) ──
+  // ── Phase 7 L2B + Phase 8 L1: Visual testability harness (opt-in, non-production) ──
   // Activated only via ?phase7Visual=running or ?phase7Visual=error query param.
+  // Activated only via ?demoMode=1 (Phase 8 generic).
   // Does NOT execute Python, does NOT use real datasets.
   // For E2E visual evidence capture only.
+  // Detection centralized in src/utils/demoMode.ts.
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const visualMode = params.get('phase7Visual');
-    if (!visualMode) return;
+    const demo = detectDemoMode();
+    if (!demo.active) return;
 
-    if (visualMode === 'running') {
+    if (demo.visual === 'running') {
       setState('running');
       const timer = setTimeout(() => {
         setState('done');
@@ -103,7 +105,7 @@ const ImprovementRunPanel: React.FC<Props> = ({
       return () => clearTimeout(timer);
     }
 
-    if (visualMode === 'error') {
+    if (demo.visual === 'error') {
       setState('error');
       setErrorMessage('Visual harness: forced error state for E2E capture.');
     }
@@ -191,6 +193,26 @@ const ImprovementRunPanel: React.FC<Props> = ({
         <h2>Phase 6 — Improvement Run</h2>
         <p className="panel-subtitle">Full pipeline over controlled fixture data.</p>
       </div>
+
+      {/* ── Phase 8 L1: Demo/Prod Boundary — explicit demo banner ── */}
+      {/* Only shown when an explicit demo/evidence flag is present.
+          In normal/product mode (no flag), this banner must NOT render. */}
+      {detectDemoMode().active && (
+        <div
+          data-testid="demo-mode-banner"
+          style={{
+            background: '#fef3c7',
+            border: '1px solid #fbbf24',
+            borderRadius: 8,
+            padding: '8px 14px',
+            marginBottom: 12,
+          }}
+        >
+          <p style={{ margin: 0, fontSize: 12, color: '#92400e', fontWeight: 600, lineHeight: 1.5 }}>
+            {DEMO_MODE_NOTICE}
+          </p>
+        </div>
+      )}
 
       {state === 'idle' && (
         <IdleState datasetName={datasetName} beforeCsvSize={beforeCsv.length} afterCsvSize={afterCsv.length} onRun={handleRun} />
