@@ -51,7 +51,7 @@
 | E8-L6-003 | L6 | Claims Matrix | docs/.../evidence_package_l6/PHASE8_CLAIMS_MATRIX.md | Matriz de claims permitidos vs prohibidos con evidencia y limitaciones | Documental | **Completo** | por completar al cierre | Filtro de claims para cuarta entrega | 9 allowed / 11 forbidden claims listados |
 | E8-L6-004 | L6 | Limitations & Risks | docs/.../evidence_package_l6/PHASE8_LIMITATIONS_AND_RISKS.md | Limitaciones del dataset sintético, typecheck heredado, providers, benchmark | Documental | **Completo** | por completar al cierre | Mitigación de riesgos para cuarta entrega | 10 riesgos abiertos con severidad y mitigación |
 | E8-L6-005 | L6 | README | docs/.../evidence_package_l6/PHASE8_EVIDENCE_README.md | Guía rápida de lectura, artefactos más importantes, advertencias | Documental | **Completo** | por completar al cierre | Onboarding de revisores | Orden de lectura recomendado |
-| E8-L7-001 | L7 | FREEZE_PHASE8.md | docs/tercera_entrega_aura/05_desarrollo/phases/phase_08/FREEZE_PHASE8.md | Documento de freeze | Freeze aún no aplicado | Pendiente | - | Cierre de Phase 8 | Pendiente L7 |
+| E8-L7-001 | L7 | FREEZE_PHASE8.md | docs/.../FREEZE_PHASE8.md | Acta de cierre y congelamiento de Phase 8 con SHA L0-L6, claims, limitaciones | Documental | **Completo** | por completar al cierre | Cierre formal de Phase 8 | FROZEN. Phase 8 no se modifica más. |
 
 ## Clasificación de Evidencia
 

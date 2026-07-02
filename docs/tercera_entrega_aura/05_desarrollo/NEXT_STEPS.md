@@ -12,7 +12,15 @@
 
 **Phase 7 cerrada y congelada en `58891c215604d7a140774370d133ce06460691d5`.** Production Readiness QA + Evidence Capture congelado. Freeze: `FREEZE_PHASE7.md`.
 
-**El siguiente frente es Phase 8 técnico.** La cuarta entrega documental queda en espera hasta instrucción explícita del usuario.
+**Phase 8 cerrada y congelada en `3d6d04bbc62d27d4382d1689c0d6289a8c363984`.** Evidence Expansion congelado. Freeze: `FREEZE_PHASE8.md`.
+
+**La cuarta entrega documental NO debe prepararse. El próximo frente queda awaiting explicit user instruction.**
+
+### Próximo frente recomendado
+
+**Phase 9 — Technical Debt Cleanup and Typecheck Baseline**, o **awaiting explicit user instruction** para decidir el próximo frente.
+
+La cuarta entrega NO debe iniciarse sin instrucción explícita del usuario.
 
 ## Phase 4 — Resumen final
 
@@ -59,6 +67,8 @@ No iniciar implementación de Phase 5 hasta que el diseño esté completo y apro
 **Phase 8 L7 — Freeze Phase 8**
 
 Congelar Phase 8 si la evidencia queda completa. Generar `FREEZE_PHASE8.md` con snapshot final de todos los artefactos Phase 8.
+
+**Phase 8 está cerrada y congelada. No iniciar la cuarta entrega sin instrucción explícita del usuario.** El próximo frente es Phase 9 o awaiting explicit user instruction.
 
 ### Reglas operativas Phase 8
 
@@ -116,7 +126,20 @@ Phase 8 no busca escribir la cuarta entrega. Busca ampliar evidencia técnica po
 | L4 | Provider Validation Opt-in | Validar proveedores reales solo en modo opt-in, separados de CI | Chrome AI / Ollama / cloud diagnostics, no CI dependency | Completado |
 | L5 | Benchmark Evidence Classification | Clasificar corridas como `attempted_failed`, `preliminary_valid` o `formal_valid` | benchmark JSON, tabla comparativa, limitaciones | Completado |
 | L6 | Evidence Package Export | Consolidar artefactos exportables para futura entrega | paquete de evidencia Phase 8 | Completado |
-| L7 | Freeze Phase 8 | Congelar Phase 8 si la evidencia queda completa | `FREEZE_PHASE8.md` | Pendiente |
+| L7 | Freeze Phase 8 | Congelar Phase 8 si la evidencia queda completa | `FREEZE_PHASE8.md` | Completado |
+
+### Loops cerrados (Phase 8)
+
+| Loop | SHA | Descripción |
+|------|-----|-------------|
+| L0 | `b69a620` | Plan + ledger de evidencia Phase 8 |
+| L1 | `48bf797` | Demo/prod boundary hardening |
+| L2 | `5fabb92` | Controlled dataset protocol |
+| L3 | `43c0a02` | Controlled pilot run |
+| L4 | `ac1783d` | Provider validation opt-in |
+| L5 | `5093453` | Benchmark evidence classification |
+| L6 | `3d6d04b` | Evidence package export |
+| L7 | por completar al cierre | Freeze Phase 8 |
 
 ### Loops completados (Phase 6 — congelada)
 
