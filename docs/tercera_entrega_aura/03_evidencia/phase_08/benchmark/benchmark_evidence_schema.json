@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Benchmark Evidence Record",
+  "description": "Schema for AURA benchmark evidence records. Each record classifies one provider/model/dataset run against defined evidence criteria.",
+  "type": "object",
+  "required": ["run_id", "dataset_id", "provider", "started_at", "status", "classification"],
+  "properties": {
+    "run_id": {
+      "type": "string",
+      "description": "Unique identifier for this benchmark run."
+    },
+    "dataset_id": {
+      "type": "string",
+      "description": "Dataset used in this run."
+    },
+    "dataset_type": {
+      "type": "string",
+      "enum": ["controlled_synthetic", "public", "real_private", "none"],
+      "description": "Type of dataset used. 'none' only for planned runs."
+    },
+    "provider": {
+      "type": "string",
+      "description": "AI provider used (e.g., chrome_ai, ollama, gemini)."
+    },
+    "model": {
+      "type": "string",
+      "description": "Model identifier (e.g., gemini-nano, gemma3:1b)."
+    },
+    "model_version": {
+      "type": "string",
+      "description": "Model version or hash if known."
+    },
+    "execution_mode": {
+      "type": "string",
+      "enum": ["deterministic", "cloud", "chrome_ai", "ollama_local", "webllm_experimental", "colab_delegated"],
+      "description": "How the model/audit was executed."
+    },
+    "input_mode": {
+      "type": "string",
+      "enum": ["prompt_libre", "smart_sample", "enhanced_registry", "copy_paste_bad_samples", "recommended"],
+      "description": "Input mode for prompt construction."
+    },
+    "temperature": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 2,
+      "description": "LLM temperature setting."
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 timestamp when the run started."
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 timestamp when the run completed."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["completed", "failed", "timeout", "api_error", "provider_unavailable", "model_not_downloaded", "invalid_output"],
+      "description": "Execution status of the run."
+    },
+    "classification": {
+      "type": "string",
+      "enum": ["planned", "attempted_failed", "preliminary_valid", "formal_valid"],
+      "description": "Evidence classification per Phase 8 L5 criteria."
+    },
+    "failure_reason": {
+      "type": "string",
+      "description": "Reason for failure if status is not 'completed'."
+    },
+    "latency_ms": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Total latency in milliseconds."
+    },
+    "json_valid": {
+      "type": "boolean",
+      "description": "Whether the model output is valid JSON."
+    },
+    "script_generated": {
+      "type": "boolean",
+      "description": "Whether a Python cleaning script was generated."
+    },
+    "script_valid": {
+      "type": "boolean",
+      "description": "Whether the generated script passes structural validation."
+    },
+    "hallucination_flags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "List of hallucination flags detected (phantom columns, unsupported claims, etc.)."
+    },
+    "unsupported_claims_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of unsupported claims detected in output."
+    },
+    "phantom_columns_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of hallucinated columns detected."
+    },
+    "evidence_files": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "List of evidence file paths produced by this run."
+    },
+    "limitations": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Documented limitations of this run."
+    },
+    "claims_allowed": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Claims that are permitted based on classification level."
+    },
+    "claims_forbidden": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Claims that must NOT be made based on classification level."
+    },
+    "reviewer_notes": {
+      "type": "string",
+      "description": "Optional notes from human reviewer or acceptance criteria applied."
+    }
+  }
+}
