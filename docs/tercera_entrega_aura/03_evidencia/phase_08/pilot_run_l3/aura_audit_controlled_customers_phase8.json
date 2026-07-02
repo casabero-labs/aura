@@ -1,0 +1,1501 @@
+{
+  "score": 0,
+  "rowCount": 50,
+  "colCount": 15,
+  "duplicateRows": 0,
+  "issues": [
+    {
+      "id": "integrity-null-full_name",
+      "column": "full_name",
+      "ruleName": "Valores Nulos / Vacíos",
+      "category": "Integridad y Estructura",
+      "description": "Advertencia: Faltan datos.",
+      "severity": "warning",
+      "count": 3,
+      "affectedPercentage": 6,
+      "sampleValues": [],
+      "ruleId": "rule:null-values",
+      "automaticAuthorization": {
+        "actionType": "handle_nulls",
+        "authorized": false,
+        "conditionsMet": [],
+        "reason": "Requires domain decision on null meaning"
+      }
+    },
+    {
+      "id": "hygiene-ghost-full_name",
+      "column": "full_name",
+      "category": "Higiene de Texto",
+      "ruleName": "Espacios Fantasma (Trim)",
+      "description": "Textos con espacios invisibles al inicio/final.",
+      "severity": "info",
+      "count": 2,
+      "affectedPercentage": 4,
+      "sampleValues": [
+        "   Tomas Varela Sintetico  ",
+        "   N/A   "
+      ],
+      "ruleId": "rule:trim-whitespace",
+      "automaticAuthorization": {
+        "actionType": "trim_whitespace",
+        "authorized": true,
+        "conditionsMet": [
+          "string-column",
+          "leading-or-trailing-whitespace-confirmed"
+        ],
+        "reason": "Deterministic lossless normalization"
+      }
+    },
+    {
+      "id": "hygiene-toxic-full_name",
+      "column": "full_name",
+      "category": "Higiene de Texto",
+      "ruleName": "Placeholders Tóxicos",
+      "description": "Valores como \"n/a\", \"null\" o \"999\" detectados.",
+      "severity": "warning",
+      "count": 1,
+      "affectedPercentage": 2,
+      "sampleValues": [
+        "   N/A   "
+      ],
+      "ruleId": "rule:toxic-placeholders",
+      "automaticAuthorization": {
+        "actionType": "replace_placeholders",
+        "authorized": false,
+        "conditionsMet": [],
+        "reason": "Requires domain decision on replacement"
+      }
+    },
+    {
+      "id": "semantic-long-tail-full_name",
+      "column": "full_name",
+      "category": "Semántica y Seguridad",
+      "ruleName": "Cola Larga Categórica",
+      "description": "La columna tiene alta dispersión de categorías y baja concentración en los valores principales. Puede necesitar agrupación o macro-categorías antes del análisis.",
+      "severity": "info",
+      "count": 47,
+      "affectedPercentage": 94,
+      "sampleValues": [
+        "Carlos Fuentes Sintetico",
+        "Mariana Vega Sintetica",
+        "Laura Diaz Sintetica",
+        "Jorge Rivas Sintetico",
+        "Ana Morales Sintetica"
+      ],
+      "ruleId": "rule:long-tail-categorical",
+      "automaticAuthorization": {
+        "actionType": "categorical_grouping",
+        "authorized": false,
+        "conditionsMet": [],
+        "reason": "Requires domain expertise for grouping"
+      }
+    },
+    {
+      "id": "hygiene-space-full_name",
+      "column": "full_name",
+      "category": "Higiene de Texto",
+      "ruleName": "Espacios Múltiples",
+      "description": "Cadenas con dobles espacios internos detectados.",
+      "severity": "info",
+      "count": 2,
+      "affectedPercentage": 4,
+      "sampleValues": [
+        "   Tomas Varela Sintetico  ",
+        "   N/A   "
+      ],
+      "ruleId": "rule:double-spaces",
+      "automaticAuthorization": {
+        "actionType": "normalize_spaces",
+        "authorized": false,
+        "conditionsMet": [],
+        "reason": "Deterministic whitespace normalization"
+      }
+    },
+    {
+      "id": "hygiene-symbol-full_name",
+      "column": "full_name",
+      "category": "Higiene de Texto",
+      "ruleName": "Símbolos Sospechosos",
+      "description": "Caracteres especiales detectados en columnas de ID o Nombres.",
+      "severity": "warning",
+      "count": 1,
+      "affectedPercentage": 2,
+      "sampleValues": [
+        "   N/A   "
+      ],
+      "ruleId": "rule:suspicious-symbols",
+      "automaticAuthorization": {
+        "actionType": "clean_symbols",
+        "authorized": false,
+        "conditionsMet": [],
+        "reason": "Requires domain decision on valid characters"
+      }
+    },
+    {
+      "id": "integrity-null-email",
+      "column": "email",
+      "ruleName": "Valores Nulos / Vacíos",
+      "category": "Integridad y Estructura",
+      "description": "Advertencia: Faltan datos.",
+      "severity": "warning",
+      "count": 4,
+      "affectedPercentage": 8,
+      "sampleValues": [],
+      "ruleId": "rule:null-values",
+      "automaticAuthorization": {
+        "actionType": "handle_nulls",
+        "authorized": false,
+        "conditionsMet": [],
+        "reason": "Requires domain decision on null meaning"
+      }
+    },
+    {
+      "id": "hygiene-toxic-email",
+      "column": "email",
+      "category": "Higiene de Texto",
+      "ruleName": "Placeholders Tóxicos",
+      "description": "Valores como \"n/a\", \"null\" o \"999\" detectados.",
+      "severity": "warning",
+      "count": 2,
+      "affectedPercentage": 4,
+      "sampleValues": [
+        "N/A",
+        "N/A"
+      ],
+      "ruleId": "rule:toxic-placeholders",
+      "automaticAuthorization": {
+        "actionType": "replace_placeholders",
+        "authorized": false,
+        "conditionsMet": [],
+        "reason": "Requires domain decision on replacement"
+      }
+    },
+    {
+      "id": "logic-email-email",
+      "column": "email",
+      "category": "Validez y Lógica de Negocio",
+      "ruleName": "Formato Email Inválido",
+      "description": "Cadenas sin estructura de correo.",
+      "severity": "critical",
+      "count": 3,
+      "affectedPercentage": 6,
+      "sampleValues": [
+        "correo-invalido",
+        "NOT-AN-EMAIL",
+        "Carlos Fuentes Sintetico"
+      ],
+      "ruleId": "rule:invalid-email",
+      "automaticAuthorization": {
+        "actionType": "validate_emails",
+        "authorized": false,
+        "conditionsMet": [],
+        "reason": "Format validation required"
+      }
+    },
+    {
+      "id": "integrity-null-phone",
+      "column": "phone",
+      "ruleName": "Valores Nulos / Vacíos",
+      "category": "Integridad y Estructura",
+      "description": "Advertencia: Faltan datos.",
+      "severity": "warning",
+      "count": 3,
+      "affectedPercentage": 6,
+      "sampleValues": [],
+      "ruleId": "rule:null-values",
+      "automaticAuthorization": {
+        "actionType": "handle_nulls",
+        "authorized": false,
+        "conditionsMet": [],
+        "reason": "Requires domain decision on null meaning"
+      }
+    },
+    {
+      "id": "hygiene-ghost-phone",
+      "column": "phone",
+      "category": "Higiene de Texto",
+      "ruleName": "Espacios Fantasma (Trim)",
+      "description": "Textos con espacios invisibles al inicio/final.",
+      "severity": "info",
+      "count": 1,
+      "affectedPercentage": 2,
+      "sampleValues": [
+        "  +56-9-1111-0004  "
+      ],
+      "ruleId": "rule:trim-whitespace",
+      "automaticAuthorization": {
+        "actionType": "trim_whitespace",
+        "authorized": true,
+        "conditionsMet": [
+          "string-column",
+          "leading-or-trailing-whitespace-confirmed"
+        ],
+        "reason": "Deterministic lossless normalization"
+      }
+    },
+    {
+      "id": "hygiene-toxic-phone",
+      "column": "phone",
+      "category": "Higiene de Texto",
+      "ruleName": "Placeholders Tóxicos",
+      "description": "Valores como \"n/a\", \"null\" o \"999\" detectados.",
+      "severity": "warning",
+      "count": 1,
+      "affectedPercentage": 2,
+      "sampleValues": [
+        "UNKNOWN"
+      ],
+      "ruleId": "rule:toxic-placeholders",
+      "automaticAuthorization": {
+        "actionType": "replace_placeholders",
+        "authorized": false,
+        "conditionsMet": [],
+        "reason": "Requires domain decision on replacement"
+      }
+    },
+    {
+      "id": "hygiene-space-phone",
+      "column": "phone",
+      "category": "Higiene de Texto",
+      "ruleName": "Espacios Múltiples",
+      "description": "Cadenas con dobles espacios internos detectados.",
+      "severity": "info",
+      "count": 1,
+      "affectedPercentage": 2,
+      "sampleValues": [
+        "  +56-9-1111-0004  "
+      ],
+      "ruleId": "rule:double-spaces",
+      "automaticAuthorization": {
+        "actionType": "normalize_spaces",
+        "authorized": false,
+        "conditionsMet": [],
+        "reason": "Deterministic whitespace normalization"
+      }
+    },
+    {
+      "id": "integrity-null-city",
+      "column": "city",
+      "ruleName": "Valores Nulos / Vacíos",
+      "category": "Integridad y Estructura",
+      "description": "Advertencia: Faltan datos.",
+      "severity": "warning",
+      "count": 5,
+      "affectedPercentage": 10,
+      "sampleValues": [],
+      "ruleId": "rule:null-values",
+      "automaticAuthorization": {
+        "actionType": "handle_nulls",
+        "authorized": false,
+        "conditionsMet": [],
+        "reason": "Requires domain decision on null meaning"
+      }
+    },
+    {
+      "id": "hygiene-ghost-city",
+      "column": "city",
+      "category": "Higiene de Texto",
+      "ruleName": "Espacios Fantasma (Trim)",
+      "description": "Textos con espacios invisibles al inicio/final.",
+      "severity": "info",
+      "count": 2,
+      "affectedPercentage": 4,
+      "sampleValues": [
+        "  Santiago  ",
+        "  la serena  "
+      ],
+      "ruleId": "rule:trim-whitespace",
+      "automaticAuthorization": {
+        "actionType": "trim_whitespace",
+        "authorized": true,
+        "conditionsMet": [
+          "string-column",
+          "leading-or-trailing-whitespace-confirmed"
+        ],
+        "reason": "Deterministic lossless normalization"
+      }
+    },
+    {
+      "id": "hygiene-case-city",
+      "column": "city",
+      "category": "Higiene de Texto",
+      "ruleName": "Caos de Capitalización",
+      "description": "Mismos valores escritos con distintas mayúsculas en una misma columna categórica.",
+      "severity": "info",
+      "count": 3,
+      "affectedPercentage": 6,
+      "sampleValues": [
+        "arica: Arica | ARICA"
+      ],
+      "ruleId": "rule:capitalization-chaos",
+      "automaticAuthorization": {
+        "actionType": "normalize_capitalization",
+        "authorized": false,
+        "conditionsMet": [],
+        "reason": "Requires domain decision on canonical form"
+      }
+    },
+    {
+      "id": "semantic-long-tail-city",
+      "column": "city",
+      "category": "Semántica y Seguridad",
+      "ruleName": "Cola Larga Categórica",
+      "description": "La columna tiene alta dispersión de categorías y baja concentración en los valores principales. Puede necesitar agrupación o macro-categorías antes del análisis.",
+      "severity": "info",
+      "count": 30,
+      "affectedPercentage": 60,
+      "sampleValues": [
+        "Santiago",
+        "Valparaiso",
+        "Concepcion",
+        "Antofagasta",
+        "Temuco"
+      ],
+      "ruleId": "rule:long-tail-categorical",
+      "automaticAuthorization": {
+        "actionType": "categorical_grouping",
+        "authorized": false,
+        "conditionsMet": [],
+        "reason": "Requires domain expertise for grouping"
+      }
+    },
+    {
+      "id": "hygiene-space-city",
+      "column": "city",
+      "category": "Higiene de Texto",
+      "ruleName": "Espacios Múltiples",
+      "description": "Cadenas con dobles espacios internos detectados.",
+      "severity": "info",
+      "count": 2,
+      "affectedPercentage": 4,
+      "sampleValues": [
+        "  Santiago  ",
+        "  la serena  "
+      ],
+      "ruleId": "rule:double-spaces",
+      "automaticAuthorization": {
+        "actionType": "normalize_spaces",
+        "authorized": false,
+        "conditionsMet": [],
+        "reason": "Deterministic whitespace normalization"
+      }
+    },
+    {
+      "id": "integrity-null-country",
+      "column": "country",
+      "ruleName": "Valores Nulos / Vacíos",
+      "category": "Integridad y Estructura",
+      "description": "Advertencia: Faltan datos.",
+      "severity": "warning",
+      "count": 3,
+      "affectedPercentage": 6,
+      "sampleValues": [],
+      "ruleId": "rule:null-values",
+      "automaticAuthorization": {
+        "actionType": "handle_nulls",
+        "authorized": false,
+        "conditionsMet": [],
+        "reason": "Requires domain decision on null meaning"
+      }
+    },
+    {
+      "id": "integrity-null-plan_type",
+      "column": "plan_type",
+      "ruleName": "Valores Nulos / Vacíos",
+      "category": "Integridad y Estructura",
+      "description": "Advertencia: Faltan datos.",
+      "severity": "warning",
+      "count": 3,
+      "affectedPercentage": 6,
+      "sampleValues": [],
+      "ruleId": "rule:null-values",
+      "automaticAuthorization": {
+        "actionType": "handle_nulls",
+        "authorized": false,
+        "conditionsMet": [],
+        "reason": "Requires domain decision on null meaning"
+      }
+    },
+    {
+      "id": "hygiene-case-plan_type",
+      "column": "plan_type",
+      "category": "Higiene de Texto",
+      "ruleName": "Caos de Capitalización",
+      "description": "Mismos valores escritos con distintas mayúsculas en una misma columna categórica.",
+      "severity": "info",
+      "count": 40,
+      "affectedPercentage": 80,
+      "sampleValues": [
+        "basic: BASIC | basic",
+        "premium: PREMIUM | premium"
+      ],
+      "ruleId": "rule:capitalization-chaos",
+      "automaticAuthorization": {
+        "actionType": "normalize_capitalization",
+        "authorized": false,
+        "conditionsMet": [],
+        "reason": "Requires domain decision on canonical form"
+      }
+    },
+    {
+      "id": "logic-neg-credits_used",
+      "column": "credits_used",
+      "category": "Validez y Lógica de Negocio",
+      "ruleName": "Negativos Imposibles",
+      "description": "Valores negativos en campo lógico (Edad, Precio).",
+      "severity": "critical",
+      "count": 1,
+      "affectedPercentage": 2,
+      "sampleValues": [
+        -50
+      ],
+      "ruleId": "rule:impossible-negatives",
+      "automaticAuthorization": {
+        "actionType": "filter_negatives",
+        "authorized": false,
+        "conditionsMet": [],
+        "reason": "Logical constraint violation"
+      }
+    },
+    {
+      "id": "logic-outlier-credits_used",
+      "column": "credits_used",
+      "category": "Validez y Lógica de Negocio",
+      "ruleName": "Outliers Extremos (IQR 3×)",
+      "description": "Valores desviados > 3× del rango intercuartílico.",
+      "severity": "warning",
+      "count": 4,
+      "affectedPercentage": 8,
+      "sampleValues": [
+        12000,
+        8500,
+        14000
+      ],
+      "ruleId": "rule:extreme-outliers",
+      "automaticAuthorization": {
+        "actionType": "cap_outliers",
+        "authorized": false,
+        "conditionsMet": [],
+        "reason": "Statistical outlier handling"
+      }
+    },
+    {
+      "id": "logic-outlier-total_credits",
+      "column": "total_credits",
+      "category": "Validez y Lógica de Negocio",
+      "ruleName": "Outliers Extremos (IQR 3×)",
+      "description": "Valores desviados > 3× del rango intercuartílico.",
+      "severity": "warning",
+      "count": 4,
+      "affectedPercentage": 8,
+      "sampleValues": [
+        12000,
+        9000,
+        15000
+      ],
+      "ruleId": "rule:extreme-outliers",
+      "automaticAuthorization": {
+        "actionType": "cap_outliers",
+        "authorized": false,
+        "conditionsMet": [],
+        "reason": "Statistical outlier handling"
+      }
+    },
+    {
+      "id": "logic-outlier-tukey-total_credits",
+      "column": "total_credits",
+      "category": "Validez y Lógica de Negocio",
+      "ruleName": "Outliers Leves (Tukey 1.5×)",
+      "description": "Valores desviados entre 1.5× y 3× del rango intercuartílico (mild Tukey outliers).",
+      "severity": "info",
+      "count": 1,
+      "affectedPercentage": 2,
+      "sampleValues": [],
+      "ruleId": "rule:mild-outliers",
+      "automaticAuthorization": {
+        "actionType": "review_outliers",
+        "authorized": false,
+        "conditionsMet": [],
+        "reason": "Mild statistical outlier"
+      }
+    },
+    {
+      "id": "integrity-null-company",
+      "column": "company",
+      "ruleName": "Valores Nulos / Vacíos",
+      "category": "Integridad y Estructura",
+      "description": "Crítico: 44.0% de datos faltantes.",
+      "severity": "critical",
+      "count": 22,
+      "affectedPercentage": 44,
+      "sampleValues": [],
+      "ruleId": "rule:null-values",
+      "automaticAuthorization": {
+        "actionType": "handle_nulls",
+        "authorized": false,
+        "conditionsMet": [],
+        "reason": "Requires domain decision on null meaning"
+      }
+    },
+    {
+      "id": "integrity-mixed-company",
+      "column": "company",
+      "ruleName": "Tipos Mixtos (Dirty Object)",
+      "category": "Integridad y Estructura",
+      "description": "Columna contiene mezcla de números y texto.",
+      "severity": "critical",
+      "count": 50,
+      "affectedPercentage": 100,
+      "sampleValues": [
+        400,
+        "SolucionesDelta"
+      ],
+      "ruleId": "rule:mixed-types",
+      "automaticAuthorization": {
+        "actionType": "type_correction",
+        "authorized": false,
+        "conditionsMet": [],
+        "reason": "Requires type coercion decision"
+      }
+    },
+    {
+      "id": "integrity-null-tax_id",
+      "column": "tax_id",
+      "ruleName": "Valores Nulos / Vacíos",
+      "category": "Integridad y Estructura",
+      "description": "Crítico: 32.0% de datos faltantes.",
+      "severity": "critical",
+      "count": 16,
+      "affectedPercentage": 32,
+      "sampleValues": [],
+      "ruleId": "rule:null-values",
+      "automaticAuthorization": {
+        "actionType": "handle_nulls",
+        "authorized": false,
+        "conditionsMet": [],
+        "reason": "Requires domain decision on null meaning"
+      }
+    },
+    {
+      "id": "integrity-null-notes",
+      "column": "notes",
+      "ruleName": "Valores Nulos / Vacíos",
+      "category": "Integridad y Estructura",
+      "description": "Crítico: 36.0% de datos faltantes.",
+      "severity": "critical",
+      "count": 18,
+      "affectedPercentage": 36,
+      "sampleValues": [],
+      "ruleId": "rule:null-values",
+      "automaticAuthorization": {
+        "actionType": "handle_nulls",
+        "authorized": false,
+        "conditionsMet": [],
+        "reason": "Requires domain decision on null meaning"
+      }
+    }
+  ],
+  "columnStats": {
+    "customer_id": {
+      "name": "customer_id",
+      "inferredType": "string",
+      "nullCount": 0,
+      "uniqueCount": 50,
+      "topFreq": [
+        {
+          "value": "C001",
+          "count": 1
+        },
+        {
+          "value": "C002",
+          "count": 1
+        },
+        {
+          "value": "C003",
+          "count": 1
+        },
+        {
+          "value": "C004",
+          "count": 1
+        },
+        {
+          "value": "C005",
+          "count": 1
+        }
+      ],
+      "zeros": 0,
+      "sampleValues": [
+        "C001",
+        "C026",
+        "C050"
+      ]
+    },
+    "full_name": {
+      "name": "full_name",
+      "inferredType": "string",
+      "nullCount": 3,
+      "uniqueCount": 47,
+      "topFreq": [
+        {
+          "value": "Carlos Fuentes Sintetico",
+          "count": 1
+        },
+        {
+          "value": "Mariana Vega Sintetica",
+          "count": 1
+        },
+        {
+          "value": "Laura Diaz Sintetica",
+          "count": 1
+        },
+        {
+          "value": "Jorge Rivas Sintetico",
+          "count": 1
+        },
+        {
+          "value": "Ana Morales Sintetica",
+          "count": 1
+        }
+      ],
+      "zeros": 0,
+      "sampleValues": [
+        "Carlos Fuentes Sintetico",
+        "Andres Castro Sintetico",
+        "Julio Saldivia Sintetico"
+      ]
+    },
+    "email": {
+      "name": "email",
+      "inferredType": "string",
+      "semanticType": "email",
+      "nullCount": 4,
+      "uniqueCount": 46,
+      "topFreq": [
+        {
+          "value": "carlos.fuentes@example.invalid",
+          "count": 1
+        },
+        {
+          "value": "mariana.vega@example.invalid",
+          "count": 1
+        },
+        {
+          "value": "pedro.lopez@example.invalid",
+          "count": 1
+        },
+        {
+          "value": "laura.diaz@test.mail.invalid",
+          "count": 1
+        },
+        {
+          "value": "correo-invalido",
+          "count": 1
+        }
+      ],
+      "zeros": 0,
+      "sampleValues": [
+        "carlos.fuentes@example.invalid",
+        "andres.castro@example.invalid",
+        "julio.saldivia@example.invalid"
+      ]
+    },
+    "phone": {
+      "name": "phone",
+      "inferredType": "string",
+      "semanticType": "phone",
+      "nullCount": 3,
+      "uniqueCount": 47,
+      "topFreq": [
+        {
+          "value": "+56-9-1111-0001",
+          "count": 1
+        },
+        {
+          "value": "+56-9-1111-0002",
+          "count": 1
+        },
+        {
+          "value": "+56-9-1111-0003",
+          "count": 1
+        },
+        {
+          "value": "  +56-9-1111-0004  ",
+          "count": 1
+        },
+        {
+          "value": "9-111100-05",
+          "count": 1
+        }
+      ],
+      "zeros": 0,
+      "sampleValues": [
+        "+56-9-1111-0001",
+        "+56-9-1111-0026",
+        "+56-9-1111-0050"
+      ]
+    },
+    "birth_date": {
+      "name": "birth_date",
+      "inferredType": "date",
+      "nullCount": 1,
+      "uniqueCount": 49,
+      "topFreq": [
+        {
+          "value": "15/03/1990",
+          "count": 1
+        },
+        {
+          "value": "22/07/1985",
+          "count": 1
+        },
+        {
+          "value": "01/01/1978",
+          "count": 1
+        },
+        {
+          "value": "10/11/1995",
+          "count": 1
+        },
+        {
+          "value": "03/06/1982",
+          "count": 1
+        }
+      ],
+      "zeros": 0,
+      "sampleValues": [
+        "15/03/1990",
+        "28/02/1965",
+        "29/07/1987"
+      ]
+    },
+    "registration_date": {
+      "name": "registration_date",
+      "inferredType": "date",
+      "nullCount": 1,
+      "uniqueCount": 49,
+      "topFreq": [
+        {
+          "value": "12/06/2022",
+          "count": 1
+        },
+        {
+          "value": "05/01/2023",
+          "count": 1
+        },
+        {
+          "value": "18/03/2021",
+          "count": 1
+        },
+        {
+          "value": "30/08/2024",
+          "count": 1
+        },
+        {
+          "value": "25/09/2020",
+          "count": 1
+        }
+      ],
+      "zeros": 0,
+      "sampleValues": [
+        "12/06/2022",
+        "19/08/2021",
+        "15/06/2023"
+      ]
+    },
+    "city": {
+      "name": "city",
+      "inferredType": "string",
+      "nullCount": 5,
+      "uniqueCount": 30,
+      "topFreq": [
+        {
+          "value": "Santiago",
+          "count": 10
+        },
+        {
+          "value": "Valparaiso",
+          "count": 2
+        },
+        {
+          "value": "Concepcion",
+          "count": 2
+        },
+        {
+          "value": "Antofagasta",
+          "count": 2
+        },
+        {
+          "value": "Temuco",
+          "count": 2
+        }
+      ],
+      "zeros": 0,
+      "sampleValues": [
+        "Santiago",
+        "Chillan",
+        "Antofagasta"
+      ]
+    },
+    "country": {
+      "name": "country",
+      "inferredType": "string",
+      "nullCount": 3,
+      "uniqueCount": 4,
+      "topFreq": [
+        {
+          "value": "CL",
+          "count": 44
+        },
+        {
+          "value": "XXX",
+          "count": 1
+        },
+        {
+          "value": "CHL",
+          "count": 1
+        },
+        {
+          "value": "Santiago",
+          "count": 1
+        }
+      ],
+      "zeros": 0,
+      "sampleValues": [
+        "CL",
+        "CL",
+        "CL"
+      ]
+    },
+    "plan_type": {
+      "name": "plan_type",
+      "inferredType": "string",
+      "nullCount": 3,
+      "uniqueCount": 8,
+      "topFreq": [
+        {
+          "value": "BASIC",
+          "count": 22
+        },
+        {
+          "value": "PREMIUM",
+          "count": 16
+        },
+        {
+          "value": "ENTERPRISE",
+          "count": 4
+        },
+        {
+          "value": "premium",
+          "count": 1
+        },
+        {
+          "value": "basic",
+          "count": 1
+        }
+      ],
+      "zeros": 0,
+      "sampleValues": [
+        "BASIC",
+        "BASIC",
+        "PREMIUM"
+      ]
+    },
+    "credits_used": {
+      "name": "credits_used",
+      "inferredType": "number",
+      "nullCount": 0,
+      "uniqueCount": 42,
+      "topFreq": [
+        {
+          "value": "0",
+          "count": 6
+        },
+        {
+          "value": "450",
+          "count": 2
+        },
+        {
+          "value": "2100",
+          "count": 2
+        },
+        {
+          "value": "BASIC",
+          "count": 2
+        },
+        {
+          "value": "120",
+          "count": 1
+        }
+      ],
+      "zeros": 6,
+      "sampleValues": [
+        120,
+        510,
+        2600
+      ],
+      "min": -50,
+      "max": 14000,
+      "mean": 1761.276595744681,
+      "median": 510,
+      "std": 3134.784506504107,
+      "cv": 1.7798365765365187,
+      "skewness": 2.703761760552875,
+      "q1": 150,
+      "q3": 1800,
+      "iqr": 1650,
+      "lowerFence": -4800,
+      "upperFence": 6750,
+      "outlierCount": 4,
+      "outlierSeverity": "WARNING",
+      "lowerFenceTukey": -2325,
+      "upperFenceTukey": 4275,
+      "outlierCountTukey": 4
+    },
+    "total_credits": {
+      "name": "total_credits",
+      "inferredType": "number",
+      "nullCount": 2,
+      "uniqueCount": 30,
+      "topFreq": [
+        {
+          "value": "500",
+          "count": 4
+        },
+        {
+          "value": "0",
+          "count": 4
+        },
+        {
+          "value": "2500",
+          "count": 3
+        },
+        {
+          "value": "400",
+          "count": 3
+        },
+        {
+          "value": "200",
+          "count": 2
+        }
+      ],
+      "zeros": 4,
+      "sampleValues": [
+        500,
+        600,
+        2800
+      ],
+      "min": 0,
+      "max": 15000,
+      "mean": 1920.2083333333333,
+      "median": 640,
+      "std": 3281.6284636234936,
+      "cv": 1.7089960535307334,
+      "skewness": 2.6878384336960255,
+      "q1": 300,
+      "q3": 2000,
+      "iqr": 1700,
+      "lowerFence": -4800,
+      "upperFence": 7100,
+      "outlierCount": 4,
+      "outlierSeverity": "WARNING",
+      "lowerFenceTukey": -2250,
+      "upperFenceTukey": 4550,
+      "outlierCountTukey": 5
+    },
+    "company": {
+      "name": "company",
+      "inferredType": "mixed",
+      "nullCount": 22,
+      "uniqueCount": 27,
+      "topFreq": [
+        {
+          "value": "ConsultoriaEpsilon",
+          "count": 2
+        },
+        {
+          "value": "SolucionesDelta",
+          "count": 1
+        },
+        {
+          "value": "TecnologiasOmega",
+          "count": 1
+        },
+        {
+          "value": "IndustriasGamma",
+          "count": 1
+        },
+        {
+          "value": "CorporacionZeta",
+          "count": 1
+        }
+      ],
+      "zeros": 0,
+      "sampleValues": [
+        "SolucionesDelta",
+        "SolucionesAlpha"
+      ]
+    },
+    "tax_id": {
+      "name": "tax_id",
+      "inferredType": "string",
+      "nullCount": 16,
+      "uniqueCount": 34,
+      "topFreq": [
+        {
+          "value": "SYN-0001",
+          "count": 1
+        },
+        {
+          "value": "SYN-0002",
+          "count": 1
+        },
+        {
+          "value": "SYN-0003",
+          "count": 1
+        },
+        {
+          "value": "SYN-0005",
+          "count": 1
+        },
+        {
+          "value": "SYN-0006",
+          "count": 1
+        }
+      ],
+      "zeros": 0,
+      "sampleValues": [
+        "SYN-0001",
+        "SYN-0050"
+      ]
+    },
+    "status": {
+      "name": "status",
+      "inferredType": "string",
+      "nullCount": 2,
+      "uniqueCount": 5,
+      "topFreq": [
+        {
+          "value": "ACTIVE",
+          "count": 38
+        },
+        {
+          "value": "SUSPENDED",
+          "count": 4
+        },
+        {
+          "value": "PENDING",
+          "count": 4
+        },
+        {
+          "value": "INACTIVE",
+          "count": 1
+        },
+        {
+          "value": "SYN-0001",
+          "count": 1
+        }
+      ],
+      "zeros": 0,
+      "sampleValues": [
+        "ACTIVE",
+        "ACTIVE",
+        "ACTIVE"
+      ]
+    },
+    "notes": {
+      "name": "notes",
+      "inferredType": "string",
+      "nullCount": 18,
+      "uniqueCount": 31,
+      "topFreq": [
+        {
+          "value": "ACTIVE",
+          "count": 2
+        },
+        {
+          "value": "Nombre faltante",
+          "count": 1
+        },
+        {
+          "value": "Espacios extra en ciudad y telefono",
+          "count": 1
+        },
+        {
+          "value": "Email invalido",
+          "count": 1
+        },
+        {
+          "value": "Email placeholder N/A",
+          "count": 1
+        }
+      ],
+      "zeros": 0,
+      "sampleValues": []
+    }
+  },
+  "scoreBreakdown": [
+    {
+      "reason": "Valores Nulos en [full_name]",
+      "points": 2.4,
+      "weight": 1.2,
+      "category": "Integridad y Estructura",
+      "severity": "warning",
+      "ruleId": "rule:null-values"
+    },
+    {
+      "reason": "Espacios Fantasma en [full_name]",
+      "points": 2.4000000000000004,
+      "weight": 0.8,
+      "category": "Higiene de Texto",
+      "severity": "warning",
+      "ruleId": "rule:trim-whitespace"
+    },
+    {
+      "reason": "Placeholders Tóxicos en [full_name]",
+      "points": 4,
+      "weight": 0.8,
+      "category": "Higiene de Texto",
+      "severity": "warning",
+      "ruleId": "rule:toxic-placeholders"
+    },
+    {
+      "reason": "Espacios Múltiples en [full_name]",
+      "points": 1.6,
+      "weight": 0.8,
+      "category": "Higiene de Texto",
+      "severity": "warning",
+      "ruleId": "rule:double-spaces"
+    },
+    {
+      "reason": "Símbolos Sospechosos en [full_name]",
+      "points": 4,
+      "weight": 0.8,
+      "category": "Higiene de Texto",
+      "severity": "warning",
+      "ruleId": "rule:suspicious-symbols"
+    },
+    {
+      "reason": "Valores Nulos en [email]",
+      "points": 2.4,
+      "weight": 1.2,
+      "category": "Integridad y Estructura",
+      "severity": "warning",
+      "ruleId": "rule:null-values"
+    },
+    {
+      "reason": "Placeholders Tóxicos en [email]",
+      "points": 4,
+      "weight": 0.8,
+      "category": "Higiene de Texto",
+      "severity": "warning",
+      "ruleId": "rule:toxic-placeholders"
+    },
+    {
+      "reason": "Correos Inválidos en [email]",
+      "points": 12,
+      "weight": 1.2,
+      "category": "Validez y Lógica de Negocio",
+      "severity": "warning",
+      "ruleId": "rule:invalid-email"
+    },
+    {
+      "reason": "Valores Nulos en [phone]",
+      "points": 2.4,
+      "weight": 1.2,
+      "category": "Integridad y Estructura",
+      "severity": "warning",
+      "ruleId": "rule:null-values"
+    },
+    {
+      "reason": "Espacios Fantasma en [phone]",
+      "points": 2.4000000000000004,
+      "weight": 0.8,
+      "category": "Higiene de Texto",
+      "severity": "warning",
+      "ruleId": "rule:trim-whitespace"
+    },
+    {
+      "reason": "Placeholders Tóxicos en [phone]",
+      "points": 4,
+      "weight": 0.8,
+      "category": "Higiene de Texto",
+      "severity": "warning",
+      "ruleId": "rule:toxic-placeholders"
+    },
+    {
+      "reason": "Espacios Múltiples en [phone]",
+      "points": 1.6,
+      "weight": 0.8,
+      "category": "Higiene de Texto",
+      "severity": "warning",
+      "ruleId": "rule:double-spaces"
+    },
+    {
+      "reason": "Valores Nulos en [city]",
+      "points": 2.4,
+      "weight": 1.2,
+      "category": "Integridad y Estructura",
+      "severity": "warning",
+      "ruleId": "rule:null-values"
+    },
+    {
+      "reason": "Espacios Fantasma en [city]",
+      "points": 2.4000000000000004,
+      "weight": 0.8,
+      "category": "Higiene de Texto",
+      "severity": "warning",
+      "ruleId": "rule:trim-whitespace"
+    },
+    {
+      "reason": "Caos de Mayúsculas en [city]",
+      "points": 2.4000000000000004,
+      "weight": 0.8,
+      "category": "Higiene de Texto",
+      "severity": "warning",
+      "ruleId": "rule:capitalization-chaos"
+    },
+    {
+      "reason": "Espacios Múltiples en [city]",
+      "points": 1.6,
+      "weight": 0.8,
+      "category": "Higiene de Texto",
+      "severity": "warning",
+      "ruleId": "rule:double-spaces"
+    },
+    {
+      "reason": "Valores Nulos en [country]",
+      "points": 2.4,
+      "weight": 1.2,
+      "category": "Integridad y Estructura",
+      "severity": "warning",
+      "ruleId": "rule:null-values"
+    },
+    {
+      "reason": "Valores Nulos en [plan_type]",
+      "points": 2.4,
+      "weight": 1.2,
+      "category": "Integridad y Estructura",
+      "severity": "warning",
+      "ruleId": "rule:null-values"
+    },
+    {
+      "reason": "Caos de Mayúsculas en [plan_type]",
+      "points": 2.4000000000000004,
+      "weight": 0.8,
+      "category": "Higiene de Texto",
+      "severity": "warning",
+      "ruleId": "rule:capitalization-chaos"
+    },
+    {
+      "reason": "Negativos en Campo Positivo [credits_used]",
+      "points": 12,
+      "weight": 1.2,
+      "category": "Validez y Lógica de Negocio",
+      "severity": "warning",
+      "ruleId": "rule:impossible-negatives"
+    },
+    {
+      "reason": "Outliers en [credits_used]",
+      "points": 6,
+      "weight": 1.2,
+      "category": "Validez y Lógica de Negocio",
+      "severity": "warning",
+      "ruleId": "rule:extreme-outliers"
+    },
+    {
+      "reason": "Outliers en [total_credits]",
+      "points": 6,
+      "weight": 1.2,
+      "category": "Validez y Lógica de Negocio",
+      "severity": "warning",
+      "ruleId": "rule:extreme-outliers"
+    },
+    {
+      "reason": "Outliers Leves en [total_credits]",
+      "points": 2.4,
+      "weight": 1.2,
+      "category": "Validez y Lógica de Negocio",
+      "severity": "warning",
+      "ruleId": "rule:mild-outliers"
+    },
+    {
+      "reason": "Valores Nulos en [company]",
+      "points": 12,
+      "weight": 1.2,
+      "category": "Integridad y Estructura",
+      "severity": "warning",
+      "ruleId": "rule:null-values"
+    },
+    {
+      "reason": "Tipos Mixtos en [company]",
+      "points": 12,
+      "weight": 1.2,
+      "category": "Integridad y Estructura",
+      "severity": "warning",
+      "ruleId": "rule:mixed-types"
+    },
+    {
+      "reason": "Valores Nulos en [tax_id]",
+      "points": 12,
+      "weight": 1.2,
+      "category": "Integridad y Estructura",
+      "severity": "warning",
+      "ruleId": "rule:null-values"
+    },
+    {
+      "reason": "Valores Nulos en [notes]",
+      "points": 12,
+      "weight": 1.2,
+      "category": "Integridad y Estructura",
+      "severity": "warning",
+      "ruleId": "rule:null-values"
+    }
+  ],
+  "delimiterDetected": ",",
+  "datasetProfile": {
+    "totalRows": 50,
+    "totalColumns": 15,
+    "columns": [
+      {
+        "name": "customer_id",
+        "cardinality": "unique",
+        "uniqueRatio": 1,
+        "sparsity": 0,
+        "inferredType": "string",
+        "isCandidateForCoalescence": false,
+        "pruneRecommendation": "keep"
+      },
+      {
+        "name": "full_name",
+        "cardinality": "high",
+        "uniqueRatio": 0.94,
+        "sparsity": 0.06,
+        "inferredType": "string",
+        "isCandidateForCoalescence": false,
+        "pruneRecommendation": "keep"
+      },
+      {
+        "name": "email",
+        "cardinality": "high",
+        "uniqueRatio": 0.92,
+        "sparsity": 0.08,
+        "inferredType": "string",
+        "semanticType": "email",
+        "isCandidateForCoalescence": false,
+        "pruneRecommendation": "keep"
+      },
+      {
+        "name": "phone",
+        "cardinality": "high",
+        "uniqueRatio": 0.94,
+        "sparsity": 0.06,
+        "inferredType": "string",
+        "semanticType": "phone",
+        "isCandidateForCoalescence": false,
+        "pruneRecommendation": "keep"
+      },
+      {
+        "name": "birth_date",
+        "cardinality": "unique",
+        "uniqueRatio": 0.98,
+        "sparsity": 0.02,
+        "inferredType": "date",
+        "isCandidateForCoalescence": false,
+        "pruneRecommendation": "keep"
+      },
+      {
+        "name": "registration_date",
+        "cardinality": "unique",
+        "uniqueRatio": 0.98,
+        "sparsity": 0.02,
+        "inferredType": "date",
+        "isCandidateForCoalescence": false,
+        "pruneRecommendation": "keep"
+      },
+      {
+        "name": "city",
+        "cardinality": "high",
+        "uniqueRatio": 0.6,
+        "sparsity": 0.1,
+        "inferredType": "string",
+        "isCandidateForCoalescence": false,
+        "pruneRecommendation": "keep"
+      },
+      {
+        "name": "country",
+        "cardinality": "medium",
+        "uniqueRatio": 0.08,
+        "sparsity": 0.06,
+        "inferredType": "string",
+        "isCandidateForCoalescence": false,
+        "pruneRecommendation": "keep"
+      },
+      {
+        "name": "plan_type",
+        "cardinality": "medium",
+        "uniqueRatio": 0.16,
+        "sparsity": 0.06,
+        "inferredType": "string",
+        "isCandidateForCoalescence": false,
+        "pruneRecommendation": "keep"
+      },
+      {
+        "name": "credits_used",
+        "cardinality": "high",
+        "uniqueRatio": 0.84,
+        "sparsity": 0,
+        "inferredType": "number",
+        "isCandidateForCoalescence": false,
+        "pruneRecommendation": "keep"
+      },
+      {
+        "name": "total_credits",
+        "cardinality": "high",
+        "uniqueRatio": 0.6,
+        "sparsity": 0.04,
+        "inferredType": "number",
+        "isCandidateForCoalescence": false,
+        "pruneRecommendation": "keep"
+      },
+      {
+        "name": "company",
+        "cardinality": "high",
+        "uniqueRatio": 0.54,
+        "sparsity": 0.44,
+        "inferredType": "mixed",
+        "isCandidateForCoalescence": false,
+        "pruneRecommendation": "keep"
+      },
+      {
+        "name": "tax_id",
+        "cardinality": "high",
+        "uniqueRatio": 0.68,
+        "sparsity": 0.32,
+        "inferredType": "string",
+        "isCandidateForCoalescence": false,
+        "pruneRecommendation": "keep"
+      },
+      {
+        "name": "status",
+        "cardinality": "medium",
+        "uniqueRatio": 0.1,
+        "sparsity": 0.04,
+        "inferredType": "string",
+        "isCandidateForCoalescence": false,
+        "pruneRecommendation": "keep"
+      },
+      {
+        "name": "notes",
+        "cardinality": "high",
+        "uniqueRatio": 0.62,
+        "sparsity": 0.36,
+        "inferredType": "string",
+        "isCandidateForCoalescence": false,
+        "pruneRecommendation": "keep"
+      }
+    ],
+    "coalescencePairs": [],
+    "pruningCandidates": [],
+    "generatedAt": "2026-07-02T17:53:41.413Z"
+  }
+}

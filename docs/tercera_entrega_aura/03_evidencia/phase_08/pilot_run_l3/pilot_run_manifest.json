@@ -1,0 +1,109 @@
+{
+  "pilot_run_id": "phase8_l3_controlled_customers_2026-07-02",
+  "dataset_id": "controlled_customers_phase8",
+  "dataset_version": "1.0.0",
+  "date": "2026-07-02",
+  "execution_method": "npx tsx phase8_pilot_audit.ts (deterministic audit engine only)",
+  "environment": "controlled_synthetic",
+  "pii_used": false,
+  "ai_providers_used": false,
+  "python_executed_inside_aura": false,
+  "artifacts": [
+    {
+      "id": "ART-L3-001",
+      "name": "Audit JSON",
+      "path": "aura_audit_controlled_customers_phase8.json",
+      "status": "generated",
+      "checksum": "pending_sha"
+    },
+    {
+      "id": "ART-L3-002",
+      "name": "Issues CSV",
+      "path": "aura_issues_controlled_customers_phase8.csv",
+      "status": "generated",
+      "checksum": "pending_sha"
+    },
+    {
+      "id": "ART-L3-003",
+      "name": "Detection Matrix",
+      "path": "controlled_customers_phase8_detection_matrix.md",
+      "status": "generated",
+      "checksum": "pending_sha"
+    },
+    {
+      "id": "ART-L3-004",
+      "name": "Pilot Summary",
+      "path": "controlled_customers_phase8_pilot_summary.md",
+      "status": "generated",
+      "checksum": "pending_sha"
+    },
+    {
+      "id": "ART-L3-005",
+      "name": "Script Candidate",
+      "path": "script_candidate_controlled_customers_phase8.py",
+      "status": "generated",
+      "checksum": "pending_sha"
+    },
+    {
+      "id": "ART-L3-006",
+      "name": "Notebook Candidate",
+      "path": "notebook_candidate_controlled_customers_phase8.json",
+      "status": "generated",
+      "checksum": "pending_sha"
+    },
+    {
+      "id": "ART-L3-007",
+      "name": "Improvement Run",
+      "path": "improvement_run_controlled_customers_phase8.json",
+      "status": "not_generated",
+      "reason": "Requires external Colab execution of script on fixture copy + reaudit on output fixture. Not performed in L3 (audit detection only)."
+    },
+    {
+      "id": "ART-L3-008",
+      "name": "Pilot Run Manifest",
+      "path": "pilot_run_manifest.json",
+      "status": "generated",
+      "checksum": "pending_sha"
+    }
+  ],
+  "metrics": {
+    "rows": 50,
+    "columns": 15,
+    "ground_truth_issues": 55,
+    "aura_issues_detected": 29,
+    "true_positives_grouped": 19,
+    "false_positives": 10,
+    "false_negatives": 36,
+    "precision_raw": "65% (19/29)",
+    "precision_adjusted": "76% (19/25, excluding 4 optional-field FPs)",
+    "recall_note": "35% (19/55) — misleading due to aggregation mismatch. AURA groups by column; GT records per-row."
+  },
+  "limitations": [
+    "Synthetic dataset — results do not generalize to real data",
+    "Single domain (SaaS clients in Chile)",
+    "50 rows — no scalability test",
+    "No AI providers used — cognitive issues out of scope",
+    "Date validation not performed by engine",
+    "Domain/value constraints not enforced by engine",
+    "Duplicate detection not triggered",
+    "Optional-field nulls flagged as critical",
+    "Aggregation mismatch between AURA (column-grouped) and GT (row-level)"
+  ],
+  "claims_allowed": [
+    "AURA executed on controlled synthetic dataset (50 rows, 15 cols, 0 PII)",
+    "29 issues detected grouped by column, ~47 individual GT entries covered",
+    "65% precision on raw results; 76% adjusted for optional-field FPs",
+    "Date validation, domain enforcement, and duplicate detection identified as engine gaps",
+    "Script and notebook candidates generated as controlled artifacts",
+    "Results classified as preliminary_valid"
+  ],
+  "claims_prohibited": [
+    "AURA is production-ready",
+    "AURA corrected real datasets",
+    "AURA has 100% recall on this dataset",
+    "Results are a formal benchmark",
+    "Results are independent external validation",
+    "Python was executed inside AURA",
+    "ImprovementRun was generated"
+  ]
+}

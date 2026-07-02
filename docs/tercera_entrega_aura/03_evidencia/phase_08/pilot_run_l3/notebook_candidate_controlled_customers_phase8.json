@@ -1,0 +1,247 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 5,
+  "metadata": {
+    "kernelspec": {
+      "display_name": "Python 3",
+      "language": "python",
+      "name": "python3"
+    },
+    "language_info": {
+      "name": "python",
+      "version": "3.10.0"
+    },
+    "colab": {
+      "provenance": []
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "# ⚠️ ADVERTENCIA DE PRIVACIDAD\n",
+        "\n",
+        "Este notebook se ejecuta **fuera de AURA**, en Google Colab (infraestructura de Google Cloud).\n",
+        "\n",
+        "- Los datos que cargues serán procesados en servidores de Google.\n",
+        "- Si tu dataset contiene información sensible, personal o confidencial, **no lo subas a Colab**.\n",
+        "- AURA no envía datos automáticamente. Tú decides qué archivo cargar.\n",
+        "- Para datos sensibles, descarga el script `.py` desde AURA y ejecútalo en tu entorno local (Jupyter, VS Code, terminal).\n"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "# AURA — Notebook de Limpieza de Datos\n",
+        "\n",
+        "**Dataset:** controlled_customers_phase8.csv\n",
+        "**Fecha de exportación:** 2026-07-02\n",
+        "**Score AURA:** 0/100\n",
+        "**Filas auditadas:** 50 · **Columnas:** 15\n",
+        "**Hallazgos detectados:** 29\n",
+        "",
+        "\n",
+        "---\n",
+        "\n",
+        "## Limitaciones\n",
+        "\n",
+        "- La auditoría se ejecutó en navegador sobre las filas cargadas por AURA.\n",
+        "- El script fue generado por IA y aprobado por revisión humana (HITL). **No ha sido ejecutado.**\n",
+        "- La simulación de remediación en AURA es determinista (JavaScript), no Python.\n",
+        "- Este notebook permite ejecutar el script real en Python/Pandas en Colab.\n",
+        "- Después de ejecutar, compara el delta de salud real con el delta simulado en AURA.\n"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Instrucciones\n",
+        "\n",
+        "1. Ejecuta las celdas en orden (Ctrl+Enter o Shift+Enter).\n",
+        "2. Cuando se solicite, sube el archivo CSV original (el mismo que cargaste en AURA).\n",
+        "3. El script de limpieza se ejecutará automáticamente.\n",
+        "4. El dataset corregido se descargará como `dataset_corregido.csv`.\n",
+        "5. Revisa el log de ejecución y el delta de salud.\n",
+        "6. Vuelve a AURA para re-auditar el dataset corregido y comparar resultados.\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "cell-jpuo3li"
+      },
+      "source": [
+        "# Celda 1: Subir archivo CSV\n",
+        "from google.colab import files\n",
+        "import io\n",
+        "\n",
+        "print(\"Selecciona el archivo CSV original (el mismo que cargaste en AURA):\")\n",
+        "uploaded = files.upload()\n",
+        "\n",
+        "# Obtener el nombre del archivo subido\n",
+        "filename = list(uploaded.keys())[0]\n",
+        "print(f\"Archivo cargado: {filename} ({len(uploaded[filename])} bytes)\")\n"
+      ],
+      "outputs": [],
+      "execution_count": null
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "cell-8f07xam"
+      },
+      "source": [
+        "# Celda 2: Leer CSV con Pandas\n",
+        "import pandas as pd\n",
+        "\n",
+        "df = pd.read_csv(io.BytesIO(uploaded[filename]))\n",
+        "print(f\"Filas: {len(df)}\")\n",
+        "print(f\"Columnas: {list(df.columns)}\")\n",
+        "print(f\"Tipos:\\n{df.dtypes}\")\n",
+        "df.head()\n"
+      ],
+      "outputs": [],
+      "execution_count": null
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "cell-hmvjkoy"
+      },
+      "source": [
+        "# Celda 3: Script de limpieza aprobado (HITL)\n",
+        "# Este script fue generado por IA y aprobado por revisión humana en AURA.\n",
+        "# NO MODIFICAR sin antes entender qué hace cada línea.\n",
+        "\n",
+        "import pandas as pd\n",
+        "import numpy as np\n",
+        "\n",
+        "# Script base generado por AURA desde hallazgos deterministas.\n",
+        "# Ejecutar sobre una copia del DataFrame original: df_clean = df.copy()\n",
+        "df_clean = df.copy()\n",
+        "\n",
+        "# regla=Espacios Fantasma (Trim) issue=hygiene-ghost-full_name :: Recortar espacios externos y compactar espacios internos en full_name.\n",
+        "df_clean[\"full_name\"] = df_clean[\"full_name\"].astype('string').str.strip().str.replace(r'\\s+', ' ', regex=True)\n",
+        "\n",
+        "# regla=Placeholders Tóxicos issue=hygiene-toxic-full_name :: Convertir placeholders toxicos de full_name a null.\n",
+        "df_clean[\"full_name\"] = df_clean[\"full_name\"].replace(['', 'n/a', 'N/A', 'na', 'NA', 'null', 'NULL', 'none', 'None', '?', '-', '--'], np.nan)\n",
+        "\n",
+        "# regla=Cola Larga Categórica issue=semantic-long-tail-full_name :: Revisar manualmente full_name: La columna tiene alta dispersión de categorías y baja concentración en los valores principales. Puede necesitar agrupación o macro-categorías antes del análisis.\n",
+        "# Requiere criterio humano antes de transformar esta columna.\n",
+        "\n",
+        "# regla=Espacios Múltiples issue=hygiene-space-full_name :: Recortar espacios externos y compactar espacios internos en full_name.\n",
+        "df_clean[\"full_name\"] = df_clean[\"full_name\"].astype('string').str.strip().str.replace(r'\\s+', ' ', regex=True)\n",
+        "\n",
+        "# regla=Placeholders Tóxicos issue=hygiene-toxic-email :: Convertir placeholders toxicos de email a null.\n",
+        "df_clean[\"email\"] = df_clean[\"email\"].replace(['', 'n/a', 'N/A', 'na', 'NA', 'null', 'NULL', 'none', 'None', '?', '-', '--'], np.nan)\n",
+        "\n",
+        "# regla=Espacios Fantasma (Trim) issue=hygiene-ghost-phone :: Recortar espacios externos y compactar espacios internos en phone.\n",
+        "df_clean[\"phone\"] = df_clean[\"phone\"].astype('string').str.strip().str.replace(r'\\s+', ' ', regex=True)\n",
+        "\n",
+        "# regla=Placeholders Tóxicos issue=hygiene-toxic-phone :: Convertir placeholders toxicos de phone a null.\n",
+        "df_clean[\"phone\"] = df_clean[\"phone\"].replace(['', 'n/a', 'N/A', 'na', 'NA', 'null', 'NULL', 'none', 'None', '?', '-', '--'], np.nan)\n",
+        "\n",
+        "# regla=Espacios Múltiples issue=hygiene-space-phone :: Recortar espacios externos y compactar espacios internos en phone.\n",
+        "df_clean[\"phone\"] = df_clean[\"phone\"].astype('string').str.strip().str.replace(r'\\s+', ' ', regex=True)\n",
+        "\n",
+        "# regla=Espacios Fantasma (Trim) issue=hygiene-ghost-city :: Recortar espacios externos y compactar espacios internos en city.\n",
+        "df_clean[\"city\"] = df_clean[\"city\"].astype('string').str.strip().str.replace(r'\\s+', ' ', regex=True)\n",
+        "\n",
+        "# regla=Caos de Capitalización issue=hygiene-case-city :: Normalizar casing de city para reducir categorias duplicadas.\n",
+        "df_clean[\"city\"] = df_clean[\"city\"].astype('string').str.strip().str.title()\n",
+        "\n",
+        "# regla=Cola Larga Categórica issue=semantic-long-tail-city :: Revisar manualmente city: La columna tiene alta dispersión de categorías y baja concentración en los valores principales. Puede necesitar agrupación o macro-categorías antes del análisis.\n",
+        "# Requiere criterio humano antes de transformar esta columna.\n",
+        "\n",
+        "# regla=Espacios Múltiples issue=hygiene-space-city :: Recortar espacios externos y compactar espacios internos en city.\n",
+        "df_clean[\"city\"] = df_clean[\"city\"].astype('string').str.strip().str.replace(r'\\s+', ' ', regex=True)\n",
+        "\n",
+        "# regla=Caos de Capitalización issue=hygiene-case-plan_type :: Normalizar casing de plan_type para reducir categorias duplicadas.\n",
+        "df_clean[\"plan_type\"] = df_clean[\"plan_type\"].astype('string').str.strip().str.title()\n",
+        "\n",
+        "# regla=Negativos Imposibles issue=logic-neg-credits_used :: Revisar manualmente credits_used: Valores negativos en campo lógico (Edad, Precio).\n",
+        "# Requiere criterio humano antes de transformar esta columna.\n",
+        "\n",
+        "# regla=Outliers Extremos (IQR 3×) issue=logic-outlier-credits_used :: Revisar manualmente credits_used: Valores desviados > 3× del rango intercuartílico.\n",
+        "# Requiere criterio humano antes de transformar esta columna.\n",
+        "\n",
+        "# regla=Outliers Extremos (IQR 3×) issue=logic-outlier-total_credits :: Revisar manualmente total_credits: Valores desviados > 3× del rango intercuartílico.\n",
+        "# Requiere criterio humano antes de transformar esta columna.\n",
+        "\n",
+        "# regla=Outliers Leves (Tukey 1.5×) issue=logic-outlier-tukey-total_credits :: Revisar manualmente total_credits: Valores desviados entre 1.5× y 3× del rango intercuartílico (mild Tukey outliers).\n",
+        "# Requiere criterio humano antes de transformar esta columna.\n",
+        "\n",
+        "# Resultado: df_clean contiene las transformaciones seguras propuestas por AURA.\n"
+      ],
+      "outputs": [],
+      "execution_count": null
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "cell-nptdmsm"
+      },
+      "source": [
+        "# Celda 4: Ejecutar limpieza y descargar dataset corregido\n",
+        "import hashlib\n",
+        "from datetime import datetime\n",
+        "\n",
+        "print(\"Ejecutando script de limpieza...\")\n",
+        "start_time = datetime.now()\n",
+        "\n",
+        "# Ejecutar la función de limpieza\n",
+        "df_corregido = clean_dataset(df)\n",
+        "\n",
+        "end_time = datetime.now()\n",
+        "duration = (end_time - start_time).total_seconds()\n",
+        "\n",
+        "# Calcular hash del resultado\n",
+        "csv_output = df_corregido.to_csv(index=False)\n",
+        "output_hash = hashlib.sha256(csv_output.encode()).hexdigest()\n",
+        "\n",
+        "# Guardar archivo corregido\n",
+        "output_filename = \"dataset_corregido.csv\"\n",
+        "df_corregido.to_csv(output_filename, index=False)\n",
+        "\n",
+        "print(f\"✅ Limpieza completada en {duration:.2f}s\")\n",
+        "print(f\"Filas procesadas: {len(df_corregido)}\")\n",
+        "print(f\"Hash del resultado: {output_hash[:16]}...\")\n",
+        "print(f\"Columnas: customer_id, full_name, email, phone, birth_date, registration_date, city, country, plan_type, credits_used, total_credits, company, tax_id, status, notes\")\n",
+        "\n",
+        "# Descargar archivo corregido\n",
+        "from google.colab import files\n",
+        "files.download(output_filename)\n",
+        "\n",
+        "# Mostrar primeras filas del resultado\n",
+        "df_corregido.head()\n"
+      ],
+      "outputs": [],
+      "execution_count": null
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Checklist post-ejecución\n",
+        "\n",
+        "Después de ejecutar este notebook, completa los siguientes pasos para cerrar el ciclo de evidencia:\n",
+        "\n",
+        "- [ ] Guarda el dataset corregido (`dataset_corregido.csv`).\n",
+        "- [ ] Guarda el log de ejecución (tiempo, hash, filas procesadas).\n",
+        "- [ ] **Vuelve a AURA** y carga el dataset corregido para re-auditarlo.\n",
+        "- [ ] Compara el delta de salud real (Colab) con el delta simulado (AURA).\n",
+        "- [ ] Si el delta real es menor que el simulado, revisa el script: puede contener operaciones que no mejoran la calidad.\n",
+        "- [ ] Conserva siempre una copia del dataset original sin modificar.\n",
+        "- [ ] Documenta cualquier decisión manual tomada durante la revisión del script.\n",
+        "\n",
+        "---\n",
+        "\n",
+        "*Notebook generado por AURA v0.5.0 el 2026-07-02. Dataset: controlled_customers_phase8.csv. Score: 0/100.*\n",
+        ""
+      ]
+    }
+  ]
+}
