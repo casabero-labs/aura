@@ -49,8 +49,10 @@ Libro de control de deuda técnica TypeScript. Cada entry corresponde a un error
 | Impacto | El mock visual `execution` en el harness de `ImprovementRunPanel` no cumple el contrato `ExecutionSummaryV1`; typecheck falla |
 | Fix propuesto | Completar el objeto `execution` con los campos requeridos por `ExecutionSummaryV1`: `runtimeVersion`, `startedAt`, `finishedAt`, `durationMs`, `cpuModel`, `memoryMb` |
 | Loop asignado | L2 — ImprovementRunPanel Type Fixtures |
-| Estado | Pendiente |
+| Estado | **Resuelto** |
 | Evidencia requerida | `npx tsc --noEmit` sin error TS2740 en `ImprovementRunPanel.tsx:82` |
+| Evidencia | ✅ Error TS2740 eliminado. Se completaron campos `runtimeVersion`, `startedAt`, `finishedAt`, `durationMs`, `error`, `sandbox` |
+| SHA resolución | Pendiente de commit |
 | Riesgo de regresión | Medio — al tocar el mock visual, el harness podría renderizar distinto |
 
 ---
@@ -63,9 +65,12 @@ Libro de control de deuda técnica TypeScript. Cada entry corresponde a un error
 | Tipo | mock_type_mismatch |
 | Impacto | El mock visual `outputDataset` en el harness de `ImprovementRunPanel` no cumple el contrato `OutputDatasetSummaryV1`; typecheck falla |
 | Fix propuesto | Completar el objeto `outputDataset` con los campos requeridos por `OutputDatasetSummaryV1`: `outputFingerprint`, `exportedCsvRef` |
+| Fix aplicado | Se agregaron `outputFingerprint: 'sha256:visual-fixture'` y `exportedCsvRef: null` al mock |
 | Loop asignado | L2 — ImprovementRunPanel Type Fixtures |
-| Estado | Pendiente |
+| Estado | **Resuelto** |
 | Evidencia requerida | `npx tsc --noEmit` sin error TS2739 en `ImprovementRunPanel.tsx:83` |
+| Evidencia | ✅ Error TS2739 eliminado |
+| SHA resolución | Pendiente de commit |
 | Riesgo de regresión | Medio — al tocar el mock visual, el harness podría renderizar distinto |
 
 ---
@@ -78,10 +83,12 @@ Libro de control de deuda técnica TypeScript. Cada entry corresponde a un error
 | Tipo | mock_type_mismatch |
 | Impacto | El mock visual `reaudit` incluye el campo `beforeReport` que no existe en el tipo `ReauditSummaryV1`; typecheck falla |
 | Fix propuesto | Eliminar el campo `beforeReport` del mock o renombrarlo/adaptarlo al contrato real de `ReauditSummaryV1` (que usa `beforeIssueCount`/`afterIssueCount` en lugar de reports anidados) |
+| Fix aplicado | `beforeReport` y `afterReport` eliminados. Agregados `beforeEvidenceEnvelopeRef`, `afterEvidenceEnvelopeRef`, `rulesCompared: []`. El renderizado solo consume `beforeIssueCount`/`afterIssueCount` |
 | Loop asignado | L2 — ImprovementRunPanel Type Fixtures |
-| Estado | Pendiente |
+| Estado | **Resuelto** |
 | Evidencia requerida | `npx tsc --noEmit` sin error TS2353 en `ImprovementRunPanel.tsx:87` |
-| Riesgo de regresión | Medio — el mock visual podría perder información que el harness espera renderizar |
+| Evidencia | ✅ Error TS2353 eliminado |
+| SHA resolución | Pendiente de commit |
 
 ---
 
@@ -134,7 +141,7 @@ Libro de control de deuda técnica TypeScript. Cada entry corresponde a un error
 
 | Estado | Cantidad |
 | ------ | -------- |
-| Pendiente | 6 |
+| Pendiente | 3 |
 | En progreso | 0 |
-| Resuelto | 2 |
+| Resuelto | 5 |
 | **Total** | **8** |
