@@ -474,7 +474,7 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
 
           {stage === 'completed' && improvementRun && (
             <div style={{ marginTop: 'var(--space-lg)' }}>
-              <ImprovementRunPanel run={improvementRun} />
+              <ImprovementRunPanel />
             </div>
           )}
         </div>

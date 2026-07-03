@@ -25,16 +25,16 @@
 | L0 | Technical Debt Baseline Plan | Documentar baseline actual de typecheck | **Completado** |
 | L1 | Test Dependency Baseline Cleanup | Resolver dependencias faltantes en tests | **Completado** |
 | L2 | ImprovementRunPanel Type Fixtures | Corregir mocks/tipos heredados del visual harness | **Completado** |
-| L3 | ReviewStep Contract Cleanup | Resolver prop mismatch de ReviewStep | **Próximo recomendado** |
-| L4 | E2E Typing Cleanup | Corregir tipos en phase7-claims-visible.spec.ts | Pendiente |
+| L3 | ReviewStep Contract Cleanup | Resolver prop mismatch de ReviewStep | **Completado** |
+| L4 | E2E Typing Cleanup | Corregir tipos en phase7-claims-visible.spec.ts | **Próximo recomendado** |
 | L5 | Typecheck Green Verification | Lograr `npx tsc --noEmit` sin errores | Pendiente |
 | L6 | Freeze Phase 9 | Congelar Phase 9 si typecheck queda limpio | Pendiente |
 
 ### Próximo loop recomendado
 
-**Phase 9 L3 — ReviewStep Contract Cleanup**
+**Phase 9 L4 — E2E Typing Cleanup**
 
-Resolver DEBT-006 corrigiendo el prop `run` que `ReviewStep` intenta pasar a `ImprovementRunPanel` pero que no existe en la interfaz `Props` actual de `ImprovementRunPanel`.
+Resolver DEBT-007 y DEBT-008 corrigiendo los tipos en `tests/e2e/phase7-claims-visible.spec.ts` (2 errores e2e_typing_issue restantes).
 
 La cuarta entrega NO debe iniciarse sin instrucción explícita del usuario.
 

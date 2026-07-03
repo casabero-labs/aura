@@ -99,11 +99,14 @@ Libro de control de deuda técnica TypeScript. Cada entry corresponde a un error
 | Archivo | `components/ReviewStep.tsx:477` |
 | Tipo | prop_contract_mismatch |
 | Impacto | `ReviewStep` intenta pasar `run={improvementRun}` a `ImprovementRunPanel`, pero el tipo `Props` de `ImprovementRunPanel` no incluye `run`; typecheck falla |
-| Fix propuesto | Verificar si `ImprovementRunPanel` acepta `improvementRun` (la interfaz interna `ImprovementRun` difiere del tipo exportado). Posibles fixes: (a) renombrar el prop en `ReviewStep`, (b) ajustar `ImprovementRunPanel` para aceptar `run`, o (c) verificar si el prop fue renombrado a `improvementRun` |
+| Fix propuesto | Remover la prop `run` inválida de la invocación JSX. `ImprovementRunPanel` es un componente autónomo sin prop para resultados externos |
+| Fix aplicado | Se eliminó `run={improvementRun}` de la invocación `<ImprovementRunPanel />` en `ReviewStep.tsx:477` |
 | Loop asignado | L3 — ReviewStep Contract Cleanup |
-| Estado | Pendiente |
+| Estado | **Resuelto** |
 | Evidencia requerida | `npx tsc --noEmit` sin error TS2322 en `ReviewStep.tsx:477` |
-| Riesgo de regresión | Medio — tocar props de `ImprovementRunPanel` podría afectar otros consumidores |
+| Evidencia | ✅ Error TS2322 eliminado. Typecheck: 3 → 2 errores. Build y tests pasan |
+| SHA resolución | Pendiente de commit |
+| Riesgo de regresión | Bajo — `ImprovementRunPanel` se renderiza en estado idle en ese contexto, igual que antes funcionalmente |
 
 ---
 
@@ -141,7 +144,7 @@ Libro de control de deuda técnica TypeScript. Cada entry corresponde a un error
 
 | Estado | Cantidad |
 | ------ | -------- |
-| Pendiente | 3 |
+| Pendiente | 2 |
 | En progreso | 0 |
-| Resuelto | 5 |
+| Resuelto | 6 |
 | **Total** | **8** |
