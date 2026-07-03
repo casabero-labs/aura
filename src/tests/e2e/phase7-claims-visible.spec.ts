@@ -17,7 +17,7 @@
  * - Visual harness states are MOCKS — for UI verification only.
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
 const PROHIBITED_PHRASES = [
   { pattern: /python ejecutado por aura/i, label: 'python ejecutado por aura' },
@@ -50,13 +50,13 @@ function hasNegationNearby(text: string, phrasePattern: RegExp, wordWindow = 12)
   return /(\bnot\b|\bno\b|\bnever\b|\bdoesn't\b|\bdoes not\b|\bdid not\b|\bwas not\b|\bwere not\b)/.test(beforeWords);
 }
 
-function getPanelText(page: any): Promise<string> {
-  return page.locator('.improvement-run-panel').evaluate(el => {
-    const Notices = Array.from(el.querySelectorAll<HTMLElement>(
+function getPanelText(page: Page): Promise<string> {
+  return page.locator('.improvement-run-panel').evaluate((el: HTMLElement) => {
+    const notices = el.querySelectorAll(
       '.improvement-run-notice, .improvement-run-notice-green, .limitation-banner, [data-testid="colab-notice"], [data-testid="fixture-notice"]'
-    ));
+    );
     const panelText = el.textContent ?? '';
-    const noticeTexts = Notices.map(n => n.textContent ?? '').join(' ');
+    const noticeTexts = Array.from(notices).map((n) => n.textContent ?? '').join(' ');
     return panelText + ' ' + noticeTexts;
   });
 }
@@ -66,7 +66,7 @@ const CLAIM_COLAB = /colab external|colab notebook|external colab|external runti
 const CLAIM_NO_REAL = /no real datasets|no original data|not original data|fixture only|controlled fixture|fixture copy/i;
 const CLAIM_NOT_INDEPENDENT = /not independent|not external|external colab notebook|external runtime|same audit|reaudit/i;
 
-async function goToHealthDeltaIdle(page: any) {
+async function goToHealthDeltaIdle(page: Page) {
   await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 60_000 });
   await page.locator('.sys-nav').waitFor({ state: 'visible', timeout: 15_000 });
   await page.locator('.nav-center-menu').getByRole('button', { name: 'Health Delta' }).click();

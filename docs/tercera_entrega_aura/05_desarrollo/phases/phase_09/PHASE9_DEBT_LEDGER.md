@@ -116,11 +116,14 @@ Libro de control de deuda técnica TypeScript. Cada entry corresponde a un error
 | ----- | ----- |
 | Archivo | `tests/e2e/phase7-claims-visible.spec.ts:55` |
 | Tipo | e2e_typing_issue |
-| Impacto | Llamada `querySelectorAll<HTMLElement>` con type argument en contexto `any` (dentro de `page.evaluate()`); typecheck falla con TS2347 |
-| Fix propuesto | Remover el type argument `<HTMLElement>` o castear el resultado de `querySelectorAll` después |
+| Impacto | Llamada `querySelectorAll<HTMLElement>` con type argument en contexto `page: any` dentro de `locator.evaluate()`; typecheck falla con TS2347 |
+| Fix propuesto | Tipar `page` como `Page` de Playwright y eliminar el type argument `<HTMLElement>` innecesario de `querySelectorAll` |
+| Fix aplicado | `page: any` → `page: Page`. `querySelectorAll<HTMLElement>` → `querySelectorAll(...)`. El retorno `NodeListOf<Element>` tiene `textContent` por herencia de `Node` |
 | Loop asignado | L4 — E2E Typing Cleanup |
-| Estado | Pendiente |
+| Estado | **Resuelto** |
 | Evidencia requerida | `npx tsc --noEmit` sin error TS2347 en `phase7-claims-visible.spec.ts:55` |
+| Evidencia | ✅ Error TS2347 eliminado. Typecheck: 2 → 0 errores. E2E: 17/17 pasan |
+| SHA resolución | Pendiente de commit |
 | Riesgo de regresión | Bajo — solo afecta tipado en test E2E |
 
 ---
@@ -131,11 +134,14 @@ Libro de control de deuda técnica TypeScript. Cada entry corresponde a un error
 | ----- | ----- |
 | Archivo | `tests/e2e/phase7-claims-visible.spec.ts:59` |
 | Tipo | e2e_typing_issue |
-| Impacto | Acceso a `n.textContent` donde `n` es de tipo `unknown` (elementos de `NodeListOf<HTMLElement>` en contexto `any`); typecheck falla con TS2339 |
-| Fix propuesto | Castear `n` a `HTMLElement` antes de acceder a `textContent`, o ajustar el tipado del `map` |
+| Impacto | Acceso a `n.textContent` donde `n` es de tipo `unknown` porque `Array.from(el.querySelectorAll(...))` heredaba el `any` de `page: any`; typecheck falla con TS2339 |
+| Fix propuesto | Tipar `page` como `Page` de Playwright. Con `page: Page`, `locator.evaluate` tiene firmas tipadas y `el` es `HTMLElement`; `querySelectorAll` retorna `NodeListOf<Element>` cuyos elementos tienen `textContent` |
+| Fix aplicado | `page: any` → `page: Page`. El callback `.evaluate((el: HTMLElement) => ...)` ahora tiene tipos DOM completos |
 | Loop asignado | L4 — E2E Typing Cleanup |
-| Estado | Pendiente |
+| Estado | **Resuelto** |
 | Evidencia requerida | `npx tsc --noEmit` sin error TS2339 en `phase7-claims-visible.spec.ts:59` |
+| Evidencia | ✅ Error TS2339 eliminado. Typecheck: 2 → 0 errores |
+| SHA resolución | Pendiente de commit |
 | Riesgo de regresión | Bajo — solo afecta tipado en test E2E |
 
 ---
@@ -144,7 +150,7 @@ Libro de control de deuda técnica TypeScript. Cada entry corresponde a un error
 
 | Estado | Cantidad |
 | ------ | -------- |
-| Pendiente | 2 |
+| Pendiente | 0 |
 | En progreso | 0 |
-| Resuelto | 6 |
+| Resuelto | 8 |
 | **Total** | **8** |
