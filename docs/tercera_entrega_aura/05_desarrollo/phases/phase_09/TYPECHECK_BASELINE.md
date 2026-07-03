@@ -30,13 +30,17 @@ cd src && npx tsc --noEmit
 
 **0 errores TypeScript** (DEBT-007, DEBT-008 resueltos en L4 — typecheck verde)
 
+## Total de errores (post-L5)
+
+**0 errores TypeScript verificados** (L5 verification loop — sin cambios de código)
+
 ## Archivos afectados
 
-4 archivos:
+4 archivos (todos resueltos):
 - `__tests__/scriptGenerationStepV2.test.tsx` (DEBT-001, DEBT-002 — **resueltos en L1**)
 - `components/ImprovementRunPanel.tsx` (DEBT-003, DEBT-004, DEBT-005 — **resueltos en L2**)
-- `components/ReviewStep.tsx`
-- `tests/e2e/phase7-claims-visible.spec.ts`
+- `components/ReviewStep.tsx` (DEBT-006 — **resuelto en L3**)
+- `tests/e2e/phase7-claims-visible.spec.ts` (DEBT-007, DEBT-008 — **resueltos en L4**)
 
 ## Tabla de errores
 
@@ -72,7 +76,7 @@ cd src && npx tsc --noEmit
 
 ## Notas
 
-- **Typecheck verde.** 0 errores activos post-L4. Los 8 errores del baseline L0 han sido resueltos en L1-L4.
+- **Typecheck verde verificado en L5.** 0 errores activos. Los 8 errores del baseline L0 han sido resueltos en L1-L4. L5 confirmó: `npx tsc --noEmit` → 0 errores, build exitoso, 44 unit tests pass, 17 E2E tests pass.
 - **DEBT-001 y DEBT-002 resueltos en L1.** Las dependencias `@testing-library/*` estaban declaradas en `package.json` pero no instaladas en `node_modules`. Corregido con `npm install`.
 - **DEBT-003, DEBT-004 y DEBT-005 resueltos en L2.** Mocks del visual harness en `ImprovementRunPanel.tsx` completados para cumplir `ExecutionSummaryV1`, `OutputDatasetSummaryV1` y `ReauditSummaryV1`.
 - **DEBT-006 resuelto en L3.** Prop `run` eliminada de la invocación a `ImprovementRunPanel` en `ReviewStep.tsx`. El componente no acepta `run` ni prop equivalente para resultados externos; es autónomo.

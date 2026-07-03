@@ -27,14 +27,14 @@
 | L2 | ImprovementRunPanel Type Fixtures | Corregir mocks/tipos heredados del visual harness | **Completado** |
 | L3 | ReviewStep Contract Cleanup | Resolver prop mismatch de ReviewStep | **Completado** |
 | L4 | E2E Typing Cleanup | Corregir tipos en phase7-claims-visible.spec.ts | **Completado** |
-| L5 | Typecheck Green Verification | Lograr `npx tsc --noEmit` sin errores | **Próximo recomendado** |
+| L5 | Typecheck Green Verification | Lograr `npx tsc --noEmit` sin errores | **Completado** |
 | L6 | Freeze Phase 9 | Congelar Phase 9 si typecheck queda limpio | Pendiente |
 
 ### Próximo loop recomendado
 
-**Phase 9 L5 — Typecheck Green Verification**
+**Phase 9 L6 — Freeze Phase 9**
 
-Verificar que `npx tsc --noEmit` permanece en 0 errores, ejecutar suite completa de tests, y preparar freeze de Phase 9.
+Generar `FREEZE_PHASE9.md` documentando el cierre completo de Phase 9: baseline de 8 errores, resolución en 5 loops (L1-L5), y estado final de 0 errores TypeScript.
 
 La cuarta entrega NO debe iniciarse sin instrucción explícita del usuario.
 
