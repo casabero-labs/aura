@@ -14,9 +14,9 @@ La tercera entrega académica quedó consolidada hasta Phase 4. Las fases poster
 |---|---|---|
 | Phase 5 | Cerrada y congelada | `phase_05/` |
 | Phase 6 | Cerrada y congelada | `phase_06/` |
-| Phase 7 | Cerrada y congelada | `phase_07/` |
-| Phase 8 | Cerrada y congelada | `phase_08/` |
-| Phase 9 | Cerrada y congelada | `phase_09/` |
+| Phase 7 | Cerrada y congelada | `p07/` |
+| Phase 8 | Cerrada y congelada | `p08/` |
+| Phase 9 | Cerrada y congelada | `p09/` |
 | Phase 10 | En organización | `../phase_10/` |
 
 ## Nota de migración
