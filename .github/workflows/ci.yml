@@ -3,24 +3,8 @@ name: AURA CI
 on:
   push:
     branches: [main]
-    paths:
-      - 'src/**'
-      - 'api/**'
-      - 'package.json'
-      - 'package-lock.json'
-      - '*.json'
-      - '*.yml'
-      - '*.yaml'
   pull_request:
     branches: [main]
-    paths:
-      - 'src/**'
-      - 'api/**'
-      - 'package.json'
-      - 'package-lock.json'
-      - '*.json'
-      - '*.yml'
-      - '*.yaml'
 
 jobs:
   build:
