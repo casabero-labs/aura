@@ -37,6 +37,19 @@ Regla UX:
 
 ## Próximo frente recomendado
 
+### Phase 10 L3 — Revisión humana de calibración embebida
+
+La implementación local está completa y validada técnicamente. Antes de abrir otro frente funcional:
+
+1. verificar visualmente el opt-in y el panel embebido con un dataset sintético;
+2. confirmar que la acción primaria lleva al diagnóstico normal;
+3. probar una configuración disponible y otra no disponible;
+4. revisar que el resultado persiste en la sesión sin abrir `BenchmarkLab`.
+
+Closeout: `docs/product/aura/phase_10/L3_EMBEDDED_CALIBRATION_CLOSEOUT.md`.
+
+## Frente secundario
+
 ### Documentation Maintenance L3 — Migrar Phase 9 y Phase 8
 
 Motivo: Phase 9 y Phase 8 son posteriores a la tercera entrega y no deben vivir dentro de `docs/tercera_entrega_aura/`.
@@ -49,7 +62,7 @@ Acciones recomendadas:
 4. Actualizar referencias internas.
 5. Dejar notas de migración si alguna ruta antigua queda referenciada.
 
-## Frente funcional pendiente
+## Frentes funcionales completados
 
 ### Phase 10 L2 — Integrar opt-in al pipeline ✅
 
@@ -73,6 +86,28 @@ Condiciones de completitud:
 - Laboratorio ya no aparece como módulo principal visible
 - BenchmarkLab sigue disponible internamente
 - No se preparó entrega académica
+
+### Phase 10 L3 — Experiencia embebida de calibración ✅
+
+Completado localmente. Ver `docs/product/aura/phase_10/L3_EMBEDDED_CALIBRATION_CLOSEOUT.md`.
+
+Resumen:
+
+1. El opt-in abre `CalibrationEmbeddedPanel` dentro del estado `calibration`.
+2. La acción primaria `Continuar diagnóstico normal` permanece disponible.
+3. El panel ejecuta una comparación controlada con la configuración activa.
+4. Los resultados se guardan en `benchmarkResults`.
+5. El usuario puede cerrar la calibración y volver a la explicación.
+6. `BenchmarkLab` se conserva internamente y deja de ser el destino del opt-in.
+
+Condiciones verificadas:
+
+- typecheck pasa;
+- build pasa con advertencias preexistentes de chunks;
+- tests focales de panel y pipeline pasan;
+- no se modificó `auditEngine`, scoring, contratos v2 ni freezes anteriores;
+- no se preparó entrega académica;
+- publicado en `origin/main` después de la validación local.
 
 ## Claims de producto
 

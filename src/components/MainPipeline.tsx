@@ -8,6 +8,7 @@ import ReviewStep from './ReviewStep';
 import ScriptGenerationStep from './ScriptGenerationStep';
 import ScriptGenerationStepV2 from './ScriptGenerationStepV2';
 import CalibrationOptInExplainer from './calibration/CalibrationOptInExplainer';
+import CalibrationEmbeddedPanel from './calibration/CalibrationEmbeddedPanel';
 import { runAudit } from '../services/auditEngine';
 import { parseCsv } from '../services/csvService';
 import { buildAuditEvidence, buildIngestionEvidence, createTraceRecorder, fingerprintDataset } from '../services/executionEvidence';
@@ -92,6 +93,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
   const [structuredDiagnosis, setStructuredDiagnosis] = useState<DiagnosisExecutionResult | null>(() => initialData?.structuredDiagnosis ?? null);
   const [remediationPlan, setRemediationPlan] = useState<RemediationPlanV2 | null>(() => initialData?.remediationPlan ?? null);
   const [benchmarkResults, setBenchmarkResults] = useState<BenchmarkResult[]>(() => initialData?.benchmarkResults ?? []);
+  const [isCalibrationOpen, setIsCalibrationOpen] = useState(false);
   const [improvementRun, setImprovementRun] = useState<ImprovementRun | null>(() => initialData?.improvementRun ?? null);
   const [logs, setLogs] = useState<{ time: string; msg: string }[]>(() => initialData?.logs ?? []);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -375,6 +377,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
     setScriptContractV2(null);
     setScriptContractVerificationV2(null);
     setBenchmarkResults([]); setImprovementRun(null);
+    setIsCalibrationOpen(false);
     setProcessProgressStatus('running');
     setProcessProgressStep('Leyendo archivo CSV');
     addLog(`Cargando ${uploadedFile.name}...`);
@@ -512,7 +515,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
       )}
 
       {/* ── Step 3: Calibration opt-in ── */}
-      {state === 'calibration' && report && (
+      {state === 'calibration' && report && !isCalibrationOpen && (
         <CalibrationOptInExplainer
           benchmarkCount={benchmarkResults.length}
           onContinueStandardFlow={() => {
@@ -520,9 +523,32 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
             setState('diagnosis');
           }}
           onStartCalibration={() => {
-            addLog('calibration.opt_in :: user opened experimental comparison');
-            onOpenLab?.();
+            addLog('calibration.opt_in :: user opened embedded experimental comparison');
+            setIsCalibrationOpen(true);
           }}
+        />
+      )}
+
+      {state === 'calibration' && report && isCalibrationOpen && (
+        <CalibrationEmbeddedPanel
+          report={report}
+          aiConfig={aiConfig}
+          results={benchmarkResults}
+          onResult={(result) => {
+            setBenchmarkResults((current) => [
+              result,
+              ...current.filter((existing) => existing.id !== result.id),
+            ]);
+          }}
+          onContinueStandardFlow={() => {
+            addLog('calibration.continue :: user continued standard diagnosis flow');
+            setState('diagnosis');
+          }}
+          onClose={() => {
+            addLog('calibration.close :: user returned to opt-in explanation');
+            setIsCalibrationOpen(false);
+          }}
+          onLog={(stage, message) => addLog(`${stage} :: ${message}`)}
         />
       )}
 
