@@ -1,4 +1,4 @@
-import { Brain, ClipboardCheck, FileCode2, FileText, Search, Upload } from 'lucide-react';
+import { Brain, ClipboardCheck, FileCode2, FileText, FlaskConical, Search, Upload } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { PipelineState } from './MainPipeline';
 import { PIPELINE_DEVELOPMENT_MATRIX, PipelineDevelopmentMatrixRow } from '../services/pipelineDevelopmentMatrix';
@@ -6,6 +6,7 @@ import { PIPELINE_DEVELOPMENT_MATRIX, PipelineDevelopmentMatrixRow } from '../se
 const stageIcons: Record<PipelineState, LucideIcon> = {
   upload: Upload,
   profile: Search,
+  calibration: FlaskConical,
   diagnosis: Brain,
   script: FileCode2,
   review: ClipboardCheck,

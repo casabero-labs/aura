@@ -7,6 +7,7 @@ import ProfileStep from './ProfileStep';
 import ReviewStep from './ReviewStep';
 import ScriptGenerationStep from './ScriptGenerationStep';
 import ScriptGenerationStepV2 from './ScriptGenerationStepV2';
+import CalibrationOptInExplainer from './calibration/CalibrationOptInExplainer';
 import { runAudit } from '../services/auditEngine';
 import { parseCsv } from '../services/csvService';
 import { buildAuditEvidence, buildIngestionEvidence, createTraceRecorder, fingerprintDataset } from '../services/executionEvidence';
@@ -17,7 +18,7 @@ import { AIConfig, AIProvider, AuditReport, AuditExecutionEvidence, BenchmarkRes
 import type { DiagnosisExecutionResult, RemediationPlanV2, ScriptContractV2, ScriptValidationResultV2 } from '../contracts/llm';
 import { validateRemediationPlanV2, isContractsV2Enabled, verifyScriptContractV2 } from '../contracts/llm';
 
-export type PipelineState = 'upload' | 'profile' | 'diagnosis' | 'script' | 'review' | 'export';
+export type PipelineState = 'upload' | 'profile' | 'calibration' | 'diagnosis' | 'script' | 'review' | 'export';
 
 export interface PipelineData {
   state: PipelineState;
@@ -458,7 +459,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
         currentStep={state}
         onStepClick={(step) => {
           // Allow navigation to completed or current steps
-          if (step === 'upload' || (hasData && ['profile', 'diagnosis', 'script', 'review', 'export'].includes(step))) {
+          if (step === 'upload' || (hasData && ['profile', 'calibration', 'diagnosis', 'script', 'review', 'export'].includes(step))) {
             setState(step);
           }
         }}
@@ -506,11 +507,26 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
           auditEvidence={auditEvidence}
           deterministicValidation={deterministicValidation}
           file={file}
-          onContinue={() => setState('diagnosis')}
+          onContinue={() => setState('calibration')}
         />
       )}
 
-      {/* ── Step 3: Diagnosis ── */}
+      {/* ── Step 3: Calibration opt-in ── */}
+      {state === 'calibration' && report && (
+        <CalibrationOptInExplainer
+          benchmarkCount={benchmarkResults.length}
+          onContinueStandardFlow={() => {
+            addLog('calibration.skip :: user continued standard diagnosis flow');
+            setState('diagnosis');
+          }}
+          onStartCalibration={() => {
+            addLog('calibration.opt_in :: user opened experimental comparison');
+            onOpenLab?.();
+          }}
+        />
+      )}
+
+      {/* ── Step 4: Diagnosis ── */}
       {state === 'diagnosis' && report && (
         <DiagnosisStep
           report={report}
@@ -529,7 +545,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
         />
       )}
 
-      {/* ── Step 4: Script generation ── */}
+      {/* ── Step 5: Script generation ── */}
       {state === 'script' && report && isContractsV2Enabled() && !!structuredDiagnosis?.remediationContext && (
         <ScriptGenerationStepV2
           report={report}
@@ -553,7 +569,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
         />
       )}
 
-      {/* ── Step 4: Script generation (legacy) ── */}
+      {/* ── Step 5: Script generation (legacy) ── */}
       {state === 'script' && report && (!isContractsV2Enabled() || !structuredDiagnosis?.remediationContext) && (
         <ScriptGenerationStep
           report={report}
@@ -576,7 +592,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
         />
       )}
 
-      {/* ── Step 5: Review & HITL ── */}
+      {/* ── Step 6: Review & HITL ── */}
       {state === 'review' && report && (
         <ReviewStep
           report={report}

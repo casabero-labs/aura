@@ -51,17 +51,28 @@ Acciones recomendadas:
 
 ## Frente funcional pendiente
 
-### Phase 10 L2 — Integrar opt-in al pipeline
+### Phase 10 L2 — Integrar opt-in al pipeline ✅
 
-Pendiente hasta estabilizar la deuda documental.
+Completado. Ver `docs/product/aura/phase_10/L2_INTEGRATION_CLOSEOUT.md`.
 
-Cambios esperados:
+Resumen:
 
-1. Agregar estado `calibration` al pipeline.
-2. Mostrar `CalibrationOptInExplainer` después de perfilamiento.
-3. Mantener como acción primaria `Continuar diagnóstico normal`.
-4. Retirar el laboratorio como módulo visible de navegación principal.
-5. Mantener `BenchmarkLab` internamente hasta reemplazarlo por una experiencia embebida.
+1. Estado `calibration` agregado al pipeline.
+2. `CalibrationOptInExplainer` se muestra después de perfilamiento.
+3. Acción primaria: `Continuar diagnóstico normal`.
+4. Laboratorio retirado de navegación principal (escritorio, móvil, Home CTA).
+5. `BenchmarkLab` conservado internamente para opt-in experimental.
+
+L2 solo cubre integración UX inmediata. La capa técnica de reemplazo de `BenchmarkLab` por experiencia embebida queda para L3 o L4.
+
+Condiciones de completitud:
+
+- typecheck pasa
+- build pasa
+- `calibration` está integrado al pipeline
+- Laboratorio ya no aparece como módulo principal visible
+- BenchmarkLab sigue disponible internamente
+- No se preparó entrega académica
 
 ## Claims de producto
 

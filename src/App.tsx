@@ -445,13 +445,6 @@ const App: React.FC = () => {
             </button>
 
             <button
-              className={`nav-menu-item ${showLab ? 'active' : ''}`}
-              onClick={goLab}
-            >
-              Laboratorio
-            </button>
-
-            <button
               className={`nav-menu-item ${showImprovementRun ? 'active' : ''}`}
               onClick={goImprovementRun}
             >
@@ -499,9 +492,6 @@ const App: React.FC = () => {
         </button>
         <button className="nav-link" onClick={goAudit}>
           Auditoría
-        </button>
-        <button className="nav-link" onClick={goLab}>
-          Laboratorio
         </button>
         <button className="nav-link" onClick={goImprovementRun}>
           Health Delta
@@ -568,7 +558,6 @@ const App: React.FC = () => {
             </p>
             <div className="home-actions">
               <button className="btn-p btn--lg" onClick={goAudit}>Empezar auditoría</button>
-              <button className="btn-s btn--lg" onClick={goLab}>Abrir laboratorio</button>
             </div>
             <div className="home-flow" aria-label="Resumen del proceso AURA">
               <div className="home-flow-step">
