@@ -1,0 +1,331 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/casabero-labs/aura/main/docs/product/aura/contracts/aura-technical-export.schema.json",
+  "title": "AURA Technical Export 2.0",
+  "description": "Contrato estructural independiente para el paquete técnico exportado por AURA. Valida forma y compatibilidad, no la calidad ni la verdad de los resultados.",
+  "$comment": "El bloque raíz experiment fue reemplazado por calibrationEvidence y solo se conserva como referencia de migración.",
+  "type": "object",
+  "required": [
+    "exportContract",
+    "manifest",
+    "profile",
+    "diagnosis",
+    "script",
+    "calibrationEvidence"
+  ],
+  "not": {
+    "required": [
+      "experiment"
+    ]
+  },
+  "properties": {
+    "exportContract": {
+      "type": "object",
+      "required": [
+        "name",
+        "version",
+        "generatedAt",
+        "canonicalBlocks",
+        "optionalBlocks",
+        "deprecatedBlocks",
+        "compatibility"
+      ],
+      "properties": {
+        "name": {
+          "const": "aura-technical-export"
+        },
+        "version": {
+          "const": "2.0"
+        },
+        "generatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "canonicalBlocks": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 5,
+          "prefixItems": [
+            {
+              "const": "manifest"
+            },
+            {
+              "const": "profile"
+            },
+            {
+              "const": "diagnosis"
+            },
+            {
+              "const": "script"
+            },
+            {
+              "const": "calibrationEvidence"
+            }
+          ],
+          "items": false,
+          "contains": {
+            "const": "calibrationEvidence"
+          }
+        },
+        "optionalBlocks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "deprecatedBlocks": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          },
+          "contains": {
+            "type": "object",
+            "required": [
+              "from",
+              "to",
+              "removedIn",
+              "reason"
+            ],
+            "properties": {
+              "from": {
+                "const": "experiment"
+              },
+              "to": {
+                "const": "calibrationEvidence"
+              },
+              "removedIn": {
+                "const": "2.0"
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "compatibility": {
+          "type": "object",
+          "required": [
+            "legacyAliasIncluded",
+            "migration"
+          ],
+          "properties": {
+            "legacyAliasIncluded": {
+              "const": false
+            },
+            "migration": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "manifest": {
+      "type": "object",
+      "required": [
+        "generatedAt",
+        "dataset",
+        "app",
+        "objectivesCoverage",
+        "artifacts",
+        "allowedClaims",
+        "calibrationSummary",
+        "validationSummary",
+        "limitations"
+      ],
+      "properties": {
+        "generatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "dataset": {
+          "type": "object"
+        },
+        "app": {
+          "type": "object"
+        },
+        "objectivesCoverage": {
+          "type": "array"
+        },
+        "artifacts": {
+          "type": "array"
+        },
+        "allowedClaims": {
+          "type": "object"
+        },
+        "calibrationSummary": {
+          "$ref": "#/$defs/calibrationSummary"
+        },
+        "validationSummary": {
+          "type": "object"
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "profile": {
+      "type": "object",
+      "required": [
+        "report",
+        "auditEvidence"
+      ],
+      "properties": {
+        "report": {
+          "type": "object"
+        },
+        "auditEvidence": {
+          "type": [
+            "object",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "diagnosis": {
+      "type": "object",
+      "required": [
+        "model",
+        "providerType",
+        "diagnosisText"
+      ],
+      "properties": {
+        "model": {
+          "type": "string"
+        },
+        "providerType": {
+          "enum": [
+            "cloud",
+            "chrome",
+            "ollama",
+            "webllm_experimental",
+            "local"
+          ]
+        },
+        "diagnosisText": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "script": {
+      "type": "object",
+      "required": [
+        "generatedScript",
+        "scriptValidation",
+        "approvedScript"
+      ],
+      "properties": {
+        "generatedScript": {
+          "type": "string"
+        },
+        "scriptValidation": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "approvedScript": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "calibrationEvidence": {
+      "type": "object",
+      "required": [
+        "classification",
+        "summary",
+        "results",
+        "improvementRun"
+      ],
+      "properties": {
+        "classification": {
+          "const": "experimental"
+        },
+        "summary": {
+          "$ref": "#/$defs/calibrationSummary"
+        },
+        "results": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "improvementRun": {
+          "type": [
+            "object",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "deterministicValidation": {
+      "type": "object"
+    },
+    "hitlDecision": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "calibrationSummary": {
+      "type": "object",
+      "required": [
+        "totalRuns",
+        "completedRuns",
+        "failedOrUnavailableRuns",
+        "formalRuns",
+        "status",
+        "statement",
+        "limitations"
+      ],
+      "properties": {
+        "totalRuns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "completedRuns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failedOrUnavailableRuns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "formalRuns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "status": {
+          "enum": [
+            "none",
+            "attempted",
+            "preliminary",
+            "formal"
+          ]
+        },
+        "statement": {
+          "type": "string"
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

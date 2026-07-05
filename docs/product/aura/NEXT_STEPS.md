@@ -37,18 +37,17 @@ Regla UX:
 
 ## Próximo frente recomendado
 
-### Phase 10 L5 — Revisión humana acumulada de calibración y exportación
+### Phase 10 L6 — Revisión del orquestador sobre contrato técnico 2.0
 
-Las capas L3, L4 y L5 están completas y validadas técnicamente. Antes de abrir otro frente funcional:
+Las capas L3-L6 están completas y validadas técnicamente. El siguiente control recomendado es:
 
-1. verificar visualmente el opt-in y el panel embebido con un dataset sintético;
-2. confirmar que la acción primaria lleva al diagnóstico normal;
-3. ejecutar una configuración disponible y otra no disponible;
-4. revisar en Exportar los estados `attempted`, `preliminary` y `formal`;
-5. descargar el JSON y confirmar el contrato `aura-technical-export` versión `2.0`;
-6. verificar que `calibrationEvidence` es canónico y que la migración desde `experiment` está documentada.
+1. revisar el JSON Schema independiente;
+2. contrastar sus restricciones con `buildAuraExportPackage`;
+3. confirmar que `calibrationEvidence` es obligatorio y canónico;
+4. confirmar que el bloque raíz heredado está prohibido;
+5. decidir si una fase posterior necesita validación runtime con un motor JSON Schema completo.
 
-Closeout: `docs/product/aura/phase_10/L5_EXPORT_SCHEMA_CLOSEOUT.md`.
+Closeout: `docs/product/aura/phase_10/L6_JSON_SCHEMA_CLOSEOUT.md`.
 
 ## Frente secundario
 
@@ -153,6 +152,29 @@ Condiciones verificadas:
 - no se modificó `evidenceManifest`, `auditEngine`, scoring, contratos v2 ni freezes anteriores;
 - no se preparó entrega académica;
 - publicado en `origin/main` después de la validación local.
+
+### Phase 10 L6 — JSON Schema formal para exportación técnica 2.0 ✅
+
+Completado y preparado para publicación. Ver `docs/product/aura/phase_10/L6_JSON_SCHEMA_CLOSEOUT.md`.
+
+Resumen:
+
+1. Existe JSON Schema Draft 2020-12 independiente para `aura-technical-export` 2.0.
+2. Exige los seis bloques canónicos del paquete.
+3. Verifica constantes de nombre, versión, compatibilidad y clasificación experimental.
+4. Restringe el estado de calibración a `none`, `attempted`, `preliminary` o `formal`.
+5. Prohíbe el bloque raíz heredado y documenta su migración.
+6. Un test estructural lee el schema real y lo contrasta con un paquete generado.
+
+Condiciones verificadas:
+
+- typecheck pasa;
+- build pasa con advertencias preexistentes de chunks;
+- 8 tests del filtro `exportPackage` pasan;
+- 3 tests focales de `exportPackageSchema` pasan;
+- no se modificó `exportPackage`, `evidenceManifest`, `auditEngine`, scoring, contratos v2 ni freezes anteriores;
+- no se preparó entrega académica;
+- commit y push autorizados únicamente después de las validaciones exitosas.
 
 ## Claims de producto
 
