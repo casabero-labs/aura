@@ -37,17 +37,18 @@ Regla UX:
 
 ## Próximo frente recomendado
 
-### Phase 10 L4 — Revisión humana acumulada de calibración y evidencia
+### Phase 10 L5 — Revisión humana acumulada de calibración y exportación
 
-Las capas L3 y L4 están completas y validadas técnicamente. Antes de abrir otro frente funcional:
+Las capas L3, L4 y L5 están completas y validadas técnicamente. Antes de abrir otro frente funcional:
 
 1. verificar visualmente el opt-in y el panel embebido con un dataset sintético;
 2. confirmar que la acción primaria lleva al diagnóstico normal;
 3. ejecutar una configuración disponible y otra no disponible;
 4. revisar en Exportar los estados `attempted`, `preliminary` y `formal`;
-5. descargar el JSON y confirmar que `calibrationEvidence` explica resultados y límites.
+5. descargar el JSON y confirmar el contrato `aura-technical-export` versión `2.0`;
+6. verificar que `calibrationEvidence` es canónico y que la migración desde `experiment` está documentada.
 
-Closeout: `docs/product/aura/phase_10/L4_CALIBRATION_EVIDENCE_CLOSEOUT.md`.
+Closeout: `docs/product/aura/phase_10/L5_EXPORT_SCHEMA_CLOSEOUT.md`.
 
 ## Frente secundario
 
@@ -128,6 +129,28 @@ Condiciones verificadas:
 - build pasa con advertencias preexistentes de chunks;
 - 20 tests focales de `evidenceManifest` pasan;
 - no se modificó `auditEngine`, scoring, contratos v2 ni freezes anteriores;
+- no se preparó entrega académica;
+- publicado en `origin/main` después de la validación local.
+
+### Phase 10 L5 — Contrato estable de exportación y compatibilidad JSON ✅
+
+Completado localmente. Ver `docs/product/aura/phase_10/L5_EXPORT_SCHEMA_CLOSEOUT.md`.
+
+Resumen:
+
+1. El JSON técnico declara contrato `aura-technical-export` versión `2.0`.
+2. Los bloques canónicos quedan enumerados de forma estable.
+3. `calibrationEvidence` siempre está presente, incluso sin corridas.
+4. La migración desde `experiment` se documenta en metadatos de deprecación.
+5. No se reintroduce un alias heredado silencioso.
+6. `App.tsx` delega la estructura exportada a un helper puro testeable.
+
+Condiciones verificadas:
+
+- typecheck pasa;
+- build pasa con advertencias preexistentes de chunks;
+- 5 tests focales de `exportPackage` pasan;
+- no se modificó `evidenceManifest`, `auditEngine`, scoring, contratos v2 ni freezes anteriores;
 - no se preparó entrega académica;
 - publicado en `origin/main` después de la validación local.
 

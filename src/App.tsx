@@ -13,6 +13,7 @@ import { loadFromApi, syncToApi } from './services/api';
 import { createAIProvider } from './services/aiProvider';
 import { generatePdfReport } from './services/pdfGenerator';
 import { buildEvidenceManifest } from './services/evidenceManifest';
+import { buildAuraExportPackage } from './services/exportPackage';
 import { savePipelineSession, loadPipelineSession, clearPipelineSession } from './services/pipelineSession';
 import { buildColabNotebookJSON } from './services/colabExporter';
 import { AIConfig, AuditReport, BenchmarkResult, DeterministicValidationReport, EvidenceManifest, ExecutiveReportContent, IssueSeverity } from './types';
@@ -259,39 +260,30 @@ const App: React.FC = () => {
       hitlDecision: improvementRun?.hitlDecision ?? null,
       healthDeltaPoints: improvementRun?.healthDelta?.scoreDelta,
     });
+    const exportPackage = buildAuraExportPackage({
+      manifest,
+      profile: {
+        report,
+        auditEvidence,
+      },
+      deterministicValidation,
+      hitlDecision: improvementRun?.hitlDecision ?? null,
+      diagnosis: {
+        model: aiConfig.model,
+        providerType: aiConfig.providerType,
+        diagnosisText: aiAnalysis,
+      },
+      script: {
+        generatedScript: pipelineData.cleaningScript,
+        scriptValidation,
+        approvedScript: pipelineData.approvedScript,
+      },
+      benchmarkResults,
+      improvementRun,
+    });
     downloadTextFile(
       `aura_audit_${Date.now()}.json`,
-      JSON.stringify({
-        manifest,
-        profile: {
-          report,
-          auditEvidence,
-        },
-        ...(deterministicValidation?.groundTruthMatched && {
-          deterministicValidation,
-        }),
-        ...(improvementRun?.hitlDecision && {
-          hitlDecision: improvementRun.hitlDecision,
-        }),
-        diagnosis: {
-          model: aiConfig.model,
-          providerType: aiConfig.providerType,
-          diagnosisText: aiAnalysis,
-        },
-        script: {
-          generatedScript: pipelineData.cleaningScript,
-          scriptValidation,
-          approvedScript: pipelineData.approvedScript,
-        },
-        ...(benchmarkResults.length > 0 && {
-          calibrationEvidence: {
-            classification: 'experimental',
-            summary: manifest.calibrationSummary,
-            results: benchmarkResults,
-            improvementRun,
-          },
-        }),
-      }, null, 2),
+      JSON.stringify(exportPackage, null, 2),
       'application/json;charset=utf-8'
     );
     setHasExported(true);
