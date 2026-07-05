@@ -102,6 +102,7 @@ describe('buildEvidenceManifest', () => {
     expect(manifest.objectivesCoverage).toHaveLength(5);
     expect(manifest.artifacts.length).toBeGreaterThan(0);
     expect(manifest.allowedClaims).toBeDefined();
+    expect(manifest.calibrationSummary).toBeDefined();
     expect(manifest.validationSummary).toBeDefined();
     expect(manifest.limitations.length).toBeGreaterThan(0);
   });
@@ -168,6 +169,94 @@ describe('buildEvidenceManifest', () => {
     expect(oe3!.status).toBe('partial');
   });
 
+  it('resume calibración como attempted cuando solo hay intentos fallidos o no disponibles', () => {
+    const attemptedResult: BenchmarkResult = {
+      ...stubBenchmark,
+      id: 'attempted-1',
+      status: 'unavailable',
+      evidenceStatus: 'attempted_failed',
+      error: 'Proveedor no disponible.',
+    };
+    const manifest = buildEvidenceManifest({
+      auditEvidence: stubEvidence,
+      benchmarkResults: [attemptedResult],
+    });
+
+    expect(manifest.calibrationSummary).toEqual(expect.objectContaining({
+      totalRuns: 1,
+      completedRuns: 0,
+      failedOrUnavailableRuns: 1,
+      formalRuns: 0,
+      status: 'attempted',
+    }));
+    expect(manifest.objectivesCoverage.find(o => o.id === 'OE3')!.status).toBe('partial');
+    expect(manifest.allowedClaims.calibrationEvidence).toBe('none');
+    expect(manifest.artifacts).toContain('calibrationResults (JSON)');
+  });
+
+  it('resume calibración preliminar sin exponer ranking absoluto', () => {
+    const manifest = buildEvidenceManifest({
+      auditEvidence: stubEvidence,
+      benchmarkResults: [stubBenchmark],
+    });
+
+    expect(manifest.calibrationSummary).toEqual(expect.objectContaining({
+      totalRuns: 1,
+      completedRuns: 1,
+      failedOrUnavailableRuns: 0,
+      formalRuns: 0,
+      status: 'preliminary',
+    }));
+    expect(manifest.calibrationSummary.statement).toContain('preliminar');
+    expect(manifest.calibrationSummary.statement).not.toContain('mejor');
+    expect(manifest.validationSummary).not.toHaveProperty('bestBenchmarkScore');
+  });
+
+  it('limita el estado formal a corridas formal_valid sin convertirlo en veredicto universal', () => {
+    const formalResult: BenchmarkResult = {
+      ...stubBenchmark,
+      id: 'formal-1',
+      evidenceStatus: 'formal_valid',
+    };
+    const failedResult: BenchmarkResult = {
+      ...stubBenchmark,
+      id: 'failed-1',
+      status: 'error',
+      evidenceStatus: 'attempted_failed',
+    };
+    const manifest = buildEvidenceManifest({
+      auditEvidence: stubEvidence,
+      benchmarkResults: [formalResult, failedResult],
+    });
+
+    expect(manifest.calibrationSummary).toEqual(expect.objectContaining({
+      totalRuns: 2,
+      completedRuns: 1,
+      failedOrUnavailableRuns: 1,
+      formalRuns: 1,
+      status: 'formal',
+    }));
+    expect(manifest.allowedClaims.calibrationEvidence).toBe('formal');
+    expect(manifest.calibrationSummary.limitations.join(' ')).toContain('corridas clasificadas');
+  });
+
+  it('no eleva a formal una clasificación inconsistente que terminó en error', () => {
+    const inconsistentResult: BenchmarkResult = {
+      ...stubBenchmark,
+      id: 'formal-error-1',
+      status: 'error',
+      evidenceStatus: 'formal_valid',
+    };
+    const manifest = buildEvidenceManifest({
+      auditEvidence: stubEvidence,
+      benchmarkResults: [inconsistentResult],
+    });
+
+    expect(manifest.calibrationSummary.status).toBe('attempted');
+    expect(manifest.calibrationSummary.formalRuns).toBe(0);
+    expect(manifest.allowedClaims.calibrationEvidence).toBe('none');
+  });
+
   it('marca OE4 como completed con script válido y sin revisión requerida', () => {
     const manifest = buildEvidenceManifest({
       auditEvidence: stubEvidence,
@@ -190,13 +279,13 @@ describe('buildEvidenceManifest', () => {
     expect(oe5!.status).toBe('completed');
   });
 
-  it('allowedClaims bloquea benchmark LLM formal sin corridas', () => {
+  it('allowedClaims no habilita claims de calibración sin corridas', () => {
     const manifest = buildEvidenceManifest({
       auditEvidence: stubEvidence,
       benchmarkResults: [],
     });
 
-    expect(manifest.allowedClaims.benchmarkLLM).toBe('none');
+    expect(manifest.allowedClaims.calibrationEvidence).toBe('none');
   });
 
   it('allowedClaims permite determinista formal con ground truth', () => {
@@ -209,13 +298,13 @@ describe('buildEvidenceManifest', () => {
     expect(manifest.allowedClaims.deterministicEngine).toBe('formal');
   });
 
-  it('allowedClaims deja benchmark en preliminary con corridas no formales', () => {
+  it('allowedClaims deja calibración en preliminary con corridas no formales', () => {
     const manifest = buildEvidenceManifest({
       auditEvidence: stubEvidence,
       benchmarkResults: [stubBenchmark],
     });
 
-    expect(manifest.allowedClaims.benchmarkLLM).toBe('preliminary');
+    expect(manifest.allowedClaims.calibrationEvidence).toBe('preliminary');
   });
 
   it('validationSummary incluye métricas correctas', () => {
@@ -229,22 +318,21 @@ describe('buildEvidenceManifest', () => {
     });
 
     expect(manifest.validationSummary.deterministicF1).toBeCloseTo(0.96);
-    expect(manifest.validationSummary.benchmarkFormalCount).toBe(0);
-    expect(manifest.validationSummary.benchmarkFailedCount).toBe(0);
-    expect(manifest.validationSummary.bestBenchmarkScore).toBeCloseTo(0.85);
+    expect(manifest.calibrationSummary.formalRuns).toBe(0);
+    expect(manifest.calibrationSummary.failedOrUnavailableRuns).toBe(0);
     expect(manifest.validationSummary.scriptSafetyScore).toBe(85);
     expect(manifest.validationSummary.hitlApproved).toBe(true);
     expect(manifest.validationSummary.healthDeltaPoints).toBe(15);
   });
 
-  it('incluye limitaciones relevantes sobre simulación y benchmark', () => {
+  it('incluye limitaciones relevantes sobre simulación y calibración', () => {
     const manifest = buildEvidenceManifest({
       auditEvidence: stubEvidence,
       benchmarkResults: [],
     });
 
     expect(manifest.limitations.some(l => l.includes('Simulación'))).toBe(true);
-    expect(manifest.limitations.some(l => l.includes('Benchmark'))).toBe(true);
+    expect(manifest.limitations.some(l => l.includes('calibración experimental'))).toBe(true);
     expect(manifest.limitations.some(l => l.includes('Ground truth'))).toBe(true);
   });
 

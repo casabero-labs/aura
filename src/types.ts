@@ -459,10 +459,22 @@ export type AllowedClaimLevel = 'formal' | 'preliminary' | 'none';
 
 export interface AllowedClaims {
   deterministicEngine: AllowedClaimLevel;
-  benchmarkLLM: AllowedClaimLevel;
+  calibrationEvidence: AllowedClaimLevel;
   scriptSafety: AllowedClaimLevel;
   hitlDecision: AllowedClaimLevel;
   healthDelta: AllowedClaimLevel;
+}
+
+export type CalibrationEvidenceStatus = 'none' | 'attempted' | 'preliminary' | 'formal';
+
+export interface CalibrationSummary {
+  totalRuns: number;
+  completedRuns: number;
+  failedOrUnavailableRuns: number;
+  formalRuns: number;
+  status: CalibrationEvidenceStatus;
+  statement: string;
+  limitations: string[];
 }
 
 export interface EvidenceManifest {
@@ -480,11 +492,9 @@ export interface EvidenceManifest {
   objectivesCoverage: ObjectiveCoverage[];
   artifacts: string[];
   allowedClaims: AllowedClaims;
+  calibrationSummary: CalibrationSummary;
   validationSummary: {
     deterministicF1?: number;
-    benchmarkFormalCount: number;
-    benchmarkFailedCount: number;
-    bestBenchmarkScore?: number;
     scriptSafetyScore?: number;
     hitlApproved: boolean;
     healthDeltaPoints?: number;

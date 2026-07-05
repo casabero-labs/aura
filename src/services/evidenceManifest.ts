@@ -1,6 +1,7 @@
 import {
   AuditExecutionEvidence,
   BenchmarkResult,
+  CalibrationSummary,
   DeterministicValidationReport,
   EvidenceManifest,
   HitlDecision,
@@ -9,6 +10,77 @@ import {
 } from '../types';
 
 const APP_VERSION = '0.5.0';
+
+const buildCalibrationSummary = (results: BenchmarkResult[]): CalibrationSummary => {
+  const totalRuns = results.length;
+  const completedRuns = results.filter(result => result.status === 'completed').length;
+  const failedOrUnavailableRuns = results.filter(result =>
+    result.evidenceStatus === 'attempted_failed'
+    || result.status === 'error'
+    || result.status === 'unavailable'
+  ).length;
+  const formalRuns = results.filter(result =>
+    result.status === 'completed' && result.evidenceStatus === 'formal_valid'
+  ).length;
+  const hasPreliminaryEvidence = results.some(result =>
+    result.status === 'completed' && result.evidenceStatus === 'preliminary_valid'
+  );
+
+  if (totalRuns === 0) {
+    return {
+      totalRuns,
+      completedRuns,
+      failedOrUnavailableRuns,
+      formalRuns,
+      status: 'none',
+      statement: 'No se ejecutaron corridas de calibración experimental.',
+      limitations: ['La calibración es opcional y su ausencia no bloquea el diagnóstico normal.'],
+    };
+  }
+
+  if (formalRuns > 0) {
+    return {
+      totalRuns,
+      completedRuns,
+      failedOrUnavailableRuns,
+      formalRuns,
+      status: 'formal',
+      statement: `${totalRuns} corridas registradas; ${completedRuns} completadas; ${failedOrUnavailableRuns} fallidas o no disponibles; ${formalRuns} con evidencia formal.`,
+      limitations: [
+        'El lenguaje formal se limita a las corridas clasificadas como formal_valid.',
+        'La calibración compara configuraciones observadas y no establece superioridad universal.',
+      ],
+    };
+  }
+
+  if (hasPreliminaryEvidence) {
+    return {
+      totalRuns,
+      completedRuns,
+      failedOrUnavailableRuns,
+      formalRuns,
+      status: 'preliminary',
+      statement: `${totalRuns} corridas registradas; ${completedRuns} completadas; ${failedOrUnavailableRuns} fallidas o no disponibles. La evidencia disponible es preliminar.`,
+      limitations: [
+        'Las corridas completadas no tienen clasificación formal_valid.',
+        'La calibración compara configuraciones observadas y no establece superioridad universal.',
+      ],
+    };
+  }
+
+  return {
+    totalRuns,
+    completedRuns,
+    failedOrUnavailableRuns,
+    formalRuns,
+    status: 'attempted',
+    statement: `${totalRuns} intentos registrados; ninguno produjo una corrida completada; ${failedOrUnavailableRuns} fallidos o no disponibles.`,
+    limitations: [
+      'Los intentos fallidos o no disponibles no invalidan el flujo principal.',
+      'No existe evidencia completada para comparar configuraciones.',
+    ],
+  };
+};
 
 export const buildEvidenceManifest = (params: {
   auditEvidence?: AuditExecutionEvidence | null;
@@ -22,10 +94,7 @@ export const buildEvidenceManifest = (params: {
   const { auditEvidence, deterministicValidation, benchmarkResults, scriptValidation, hitlDecision, healthDeltaPoints, remediationClassification } = params;
 
   const hasGroundTruth = deterministicValidation?.groundTruthMatched ?? false;
-  const benchmarkFormalCount = benchmarkResults.filter(r => r.evidenceStatus === 'formal_valid').length;
-  const benchmarkFailedCount = benchmarkResults.filter(r => r.evidenceStatus === 'attempted_failed' || r.status === 'error').length;
-  const bestBenchmark = benchmarkResults.filter(r => r.status === 'completed').sort((a, b) => (b.compositeScore ?? 0) - (a.compositeScore ?? 0))[0];
-  const hasSuccessfulBenchmark = benchmarkResults.some(r => r.status === 'completed');
+  const calibrationSummary = buildCalibrationSummary(benchmarkResults);
 
   // ── Objectives Coverage ──
   const objectives: ObjectiveCoverage[] = [
@@ -51,15 +120,14 @@ export const buildEvidenceManifest = (params: {
     },
     {
       id: 'OE3',
-      label: 'Diagnóstico LLM y laboratorio',
-      status: hasSuccessfulBenchmark ? (benchmarkFormalCount > 0 ? 'completed' : 'partial') : 'blocked',
-      evidence: hasSuccessfulBenchmark
-        ? `${benchmarkResults.length} corridas, ${benchmarkFormalCount} con evidencia formal, mejor score compuesto=${bestBenchmark?.compositeScore?.toFixed(2) ?? 'N/A'}.`
-        : 'Sin corridas de benchmark completadas.',
-      limitations: [
-        benchmarkFormalCount === 0 ? 'Ninguna corrida alcanzó evidencia formal.' : '',
-        !hasSuccessfulBenchmark ? 'Benchmark bloqueado: sin API keys activas o WebGPU no disponible.' : '',
-      ].filter(Boolean),
+      label: 'Diagnóstico LLM y calibración experimental',
+      status: calibrationSummary.status === 'formal'
+        ? 'completed'
+        : calibrationSummary.status === 'none'
+          ? 'blocked'
+          : 'partial',
+      evidence: calibrationSummary.statement,
+      limitations: calibrationSummary.limitations,
     },
     {
       id: 'OE4',
@@ -93,7 +161,13 @@ export const buildEvidenceManifest = (params: {
   // ── Allowed Claims ──
   const allowedClaims = {
     deterministicEngine: (auditEvidence?.ingestionStatus === 'success' && hasGroundTruth ? 'formal' : 'preliminary') as 'formal' | 'preliminary' | 'none',
-    benchmarkLLM: (benchmarkFormalCount > 0 ? 'formal' : hasSuccessfulBenchmark ? 'preliminary' : 'none') as 'formal' | 'preliminary' | 'none',
+    calibrationEvidence: (
+      calibrationSummary.status === 'formal'
+        ? 'formal'
+        : calibrationSummary.status === 'preliminary'
+          ? 'preliminary'
+          : 'none'
+    ) as 'formal' | 'preliminary' | 'none',
     scriptSafety: (scriptValidation?.valid && !scriptValidation?.requiresHumanReview ? 'formal' : scriptValidation?.hasScript ? 'preliminary' : 'none') as 'formal' | 'preliminary' | 'none',
     hitlDecision: (hitlDecision?.approved ? 'formal' : hitlDecision ? 'preliminary' : 'none') as 'formal' | 'preliminary' | 'none',
     healthDelta: (healthDeltaPoints !== undefined && hitlDecision?.approved ? 'formal' : healthDeltaPoints !== undefined ? 'preliminary' : 'none') as 'formal' | 'preliminary' | 'none',
@@ -101,7 +175,8 @@ export const buildEvidenceManifest = (params: {
 
   const limitations: string[] = [
     'Simulación de remediación sobre copia en memoria; no modifica el archivo original.',
-    'Benchmark LLM puede ser preliminar si no hay API keys o WebGPU activos.',
+    'La calibración experimental no establece un ranking absoluto entre modelos o configuraciones.',
+    'La disponibilidad de proveedores puede producir intentos fallidos sin afectar el diagnóstico normal.',
     'Ground truth disponible solo para datasets sintético y Titanic.',
     'Métricas deterministas por regla usan detección binaria (rule fired / not fired), no conteo de filas.',
   ];
@@ -120,7 +195,7 @@ export const buildEvidenceManifest = (params: {
   const artifacts: string[] = [];
   if (auditEvidence?.ingestionStatus === 'success') artifacts.push('auditEvidence (JSON)');
   if (hasGroundTruth) artifacts.push('deterministicValidation (JSON)');
-  if (hasSuccessfulBenchmark) artifacts.push('benchmarkResults (JSON)');
+  if (calibrationSummary.totalRuns > 0) artifacts.push('calibrationResults (JSON)');
   if (scriptValidation?.hasScript) artifacts.push('scriptValidation (JSON)');
   if (scriptValidation?.hasScript) artifacts.push('cleaningScript (Python)');
   if (hitlDecision?.approved) artifacts.push('hitlDecision (JSON)');
@@ -144,11 +219,9 @@ export const buildEvidenceManifest = (params: {
     objectivesCoverage: objectives,
     artifacts,
     allowedClaims,
+    calibrationSummary,
     validationSummary: {
       deterministicF1: hasGroundTruth ? deterministicValidation!.summary.macroF1 : undefined,
-      benchmarkFormalCount,
-      benchmarkFailedCount,
-      bestBenchmarkScore: bestBenchmark?.compositeScore,
       scriptSafetyScore: scriptValidation?.safetyScore,
       hitlApproved: hitlDecision?.approved ?? false,
       healthDeltaPoints,

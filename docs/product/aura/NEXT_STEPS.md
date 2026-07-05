@@ -37,16 +37,17 @@ Regla UX:
 
 ## Próximo frente recomendado
 
-### Phase 10 L3 — Revisión humana de calibración embebida
+### Phase 10 L4 — Revisión humana acumulada de calibración y evidencia
 
-La implementación local está completa y validada técnicamente. Antes de abrir otro frente funcional:
+Las capas L3 y L4 están completas y validadas técnicamente. Antes de abrir otro frente funcional:
 
 1. verificar visualmente el opt-in y el panel embebido con un dataset sintético;
 2. confirmar que la acción primaria lleva al diagnóstico normal;
-3. probar una configuración disponible y otra no disponible;
-4. revisar que el resultado persiste en la sesión sin abrir `BenchmarkLab`.
+3. ejecutar una configuración disponible y otra no disponible;
+4. revisar en Exportar los estados `attempted`, `preliminary` y `formal`;
+5. descargar el JSON y confirmar que `calibrationEvidence` explica resultados y límites.
 
-Closeout: `docs/product/aura/phase_10/L3_EMBEDDED_CALIBRATION_CLOSEOUT.md`.
+Closeout: `docs/product/aura/phase_10/L4_CALIBRATION_EVIDENCE_CLOSEOUT.md`.
 
 ## Frente secundario
 
@@ -105,6 +106,27 @@ Condiciones verificadas:
 - typecheck pasa;
 - build pasa con advertencias preexistentes de chunks;
 - tests focales de panel y pipeline pasan;
+- no se modificó `auditEngine`, scoring, contratos v2 ni freezes anteriores;
+- no se preparó entrega académica;
+- publicado en `origin/main` después de la validación local.
+
+### Phase 10 L4 — Evidencia defendible de calibración ✅
+
+Completado localmente. Ver `docs/product/aura/phase_10/L4_CALIBRATION_EVIDENCE_CLOSEOUT.md`.
+
+Resumen:
+
+1. El manifest resume calibración como `none`, `attempted`, `preliminary` o `formal`.
+2. Se conservan totales, corridas completadas, intentos fallidos/no disponibles y corridas `formal_valid`.
+3. Se eliminó el ranking heredado del manifest.
+4. El JSON técnico exporta `calibrationEvidence` con clasificación, resumen, resultados y límites.
+5. La pantalla Exportar muestra el estado de calibración sin abrir `BenchmarkLab`.
+
+Condiciones verificadas:
+
+- typecheck pasa;
+- build pasa con advertencias preexistentes de chunks;
+- 20 tests focales de `evidenceManifest` pasan;
 - no se modificó `auditEngine`, scoring, contratos v2 ni freezes anteriores;
 - no se preparó entrega académica;
 - publicado en `origin/main` después de la validación local.

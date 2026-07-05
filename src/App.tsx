@@ -284,8 +284,10 @@ const App: React.FC = () => {
           approvedScript: pipelineData.approvedScript,
         },
         ...(benchmarkResults.length > 0 && {
-          experiment: {
-            benchmarkResults,
+          calibrationEvidence: {
+            classification: 'experimental',
+            summary: manifest.calibrationSummary,
+            results: benchmarkResults,
             improvementRun,
           },
         }),
@@ -651,6 +653,18 @@ const App: React.FC = () => {
               else if (manifest.allowedClaims.healthDelta === 'preliminary') preliminaryClaims.push('Delta de salud preliminar');
               else pendingClaims.push('Delta de salud pendiente');
 
+              if (manifest.calibrationSummary.status === 'formal') {
+                formalClaims.push(`${manifest.calibrationSummary.formalRuns} corrida(s) de calibración con evidencia formal limitada`);
+              } else if (manifest.calibrationSummary.status === 'preliminary') {
+                preliminaryClaims.push(
+                  `Calibración experimental preliminar: ${manifest.calibrationSummary.completedRuns}/${manifest.calibrationSummary.totalRuns} corrida(s) completada(s)`
+                );
+              } else if (manifest.calibrationSummary.status === 'attempted') {
+                pendingClaims.push(
+                  `Calibración experimental sin resultado concluido: ${manifest.calibrationSummary.failedOrUnavailableRuns} intento(s) fallido(s) o no disponible(s)`
+                );
+              }
+
               return (
                 <>
                   <div className="stage-decision-summary" data-testid="stage-decision-summary">
@@ -668,6 +682,12 @@ const App: React.FC = () => {
                       <span className="stage-summary-label">Evidencia</span>
                       <strong>{completedObjectives >= 4 ? 'formal' : completedObjectives >= 2 ? 'parcial' : 'incompleta'}</strong>
                     </div>
+                    {manifest.calibrationSummary.totalRuns > 0 && (
+                      <div className="stage-summary-item">
+                        <span className="stage-summary-label">Calibración</span>
+                        <strong>{manifest.calibrationSummary.status}</strong>
+                      </div>
+                    )}
                   </div>
 
                   {formalClaims.length > 0 && (
