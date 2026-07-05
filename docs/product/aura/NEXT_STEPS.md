@@ -37,17 +37,17 @@ Regla UX:
 
 ## Próximo frente recomendado
 
-### Phase 10 L6 — Revisión del orquestador sobre contrato técnico 2.0
+### Phase 10 L7 — Revisión del orquestador sobre preflight de exportación 2.0
 
-Las capas L3-L6 están completas y validadas técnicamente. El siguiente control recomendado es:
+Las capas L3-L7 están completas y validadas técnicamente. El siguiente control recomendado es:
 
-1. revisar el JSON Schema independiente;
-2. contrastar sus restricciones con `buildAuraExportPackage`;
-3. confirmar que `calibrationEvidence` es obligatorio y canónico;
-4. confirmar que el bloque raíz heredado está prohibido;
-5. decidir si una fase posterior necesita validación runtime con un motor JSON Schema completo.
+1. revisar que `validateAuraExportPackage` cubre las invariantes críticas del contrato 2.0;
+2. confirmar que `App.tsx` ejecuta el preflight antes de `downloadTextFile`;
+3. verificar que un paquete inválido cancela la descarga y muestra un aviso controlado;
+4. contrastar el subconjunto runtime con el JSON Schema L6;
+5. decidir si una fase posterior necesita un motor JSON Schema completo.
 
-Closeout: `docs/product/aura/phase_10/L6_JSON_SCHEMA_CLOSEOUT.md`.
+Closeout: `docs/product/aura/phase_10/L7_EXPORT_PREFLIGHT_CLOSEOUT.md`.
 
 ## Frente secundario
 
@@ -173,6 +173,30 @@ Condiciones verificadas:
 - 8 tests del filtro `exportPackage` pasan;
 - 3 tests focales de `exportPackageSchema` pasan;
 - no se modificó `exportPackage`, `evidenceManifest`, `auditEngine`, scoring, contratos v2 ni freezes anteriores;
+- no se preparó entrega académica;
+- commit y push autorizados únicamente después de las validaciones exitosas.
+
+### Phase 10 L7 — Preflight interno del paquete exportado 2.0 ✅
+
+Completado y preparado para publicación. Ver `docs/product/aura/phase_10/L7_EXPORT_PREFLIGHT_CLOSEOUT.md`.
+
+Resumen:
+
+1. Existe un validador interno ligero para las invariantes críticas del contrato `aura-technical-export` 2.0.
+2. La validación comprueba identidad, versión, bloque canónico, compatibilidad y evidencia de calibración.
+3. El bloque raíz heredado queda rechazado.
+4. `App.tsx` ejecuta el preflight antes de iniciar la descarga.
+5. Un paquete inválido cancela el JSON y muestra una advertencia controlada.
+6. Se cubren entradas válidas, no estructuradas y violaciones contractuales con tests focales.
+
+Condiciones verificadas:
+
+- typecheck pasa;
+- build pasa con advertencias preexistentes de imports y chunks;
+- 8 tests del filtro `exportPackage` pasan;
+- 3 tests focales de `exportPackageSchema` pasan;
+- 6 tests focales de `exportContractValidation` pasan;
+- no se modificaron schema L6, `exportPackage`, `evidenceManifest`, `auditEngine`, scoring, contratos v2 ni freezes anteriores;
 - no se preparó entrega académica;
 - commit y push autorizados únicamente después de las validaciones exitosas.
 

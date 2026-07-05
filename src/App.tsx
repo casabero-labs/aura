@@ -14,6 +14,7 @@ import { createAIProvider } from './services/aiProvider';
 import { generatePdfReport } from './services/pdfGenerator';
 import { buildEvidenceManifest } from './services/evidenceManifest';
 import { buildAuraExportPackage } from './services/exportPackage';
+import { validateAuraExportPackage } from './services/exportContractValidation';
 import { savePipelineSession, loadPipelineSession, clearPipelineSession } from './services/pipelineSession';
 import { buildColabNotebookJSON } from './services/colabExporter';
 import { AIConfig, AuditReport, BenchmarkResult, DeterministicValidationReport, EvidenceManifest, ExecutiveReportContent, IssueSeverity } from './types';
@@ -224,6 +225,7 @@ const App: React.FC = () => {
   const [isPdfGenerating, setIsPdfGenerating] = useState(false);
   const [pdfProgressMsg, setPdfProgressMsg] = useState('');
   const [pdfProgressStatus, setPdfProgressStatus] = useState<'idle' | 'running' | 'success' | 'error'>('idle');
+  const [exportJsonPreflightError, setExportJsonPreflightError] = useState<string | null>(null);
   const [sessionDestroyed, setSessionDestroyed] = useState(false);
 
   const hasData = !!report;
@@ -281,6 +283,21 @@ const App: React.FC = () => {
       benchmarkResults,
       improvementRun,
     });
+    const preflight = validateAuraExportPackage(exportPackage);
+    if (!preflight.valid) {
+      console.warn('export.preflight.failed', {
+        errors: preflight.errors,
+        warnings: preflight.warnings,
+      });
+      setExportJsonPreflightError(
+        'No se descargó el JSON técnico porque el paquete no superó la validación interna. Revisa la sesión e inténtalo de nuevo.',
+      );
+      return;
+    }
+    if (preflight.warnings.length > 0) {
+      console.warn('export.preflight.warnings', preflight.warnings);
+    }
+    setExportJsonPreflightError(null);
     downloadTextFile(
       `aura_audit_${Date.now()}.json`,
       JSON.stringify(exportPackage, null, 2),
@@ -760,6 +777,17 @@ const App: React.FC = () => {
                       <button className="btn-s" onClick={handleExportJson}>
                         <FileJson size={14} /> JSON técnico
                       </button>
+                      {exportJsonPreflightError && (
+                        <div
+                          className="provider-unavailable-notice"
+                          role="alert"
+                          data-testid="export-json-preflight-warning"
+                          style={{ flexBasis: '100%' }}
+                        >
+                          <strong>JSON técnico no exportado.</strong>{' '}
+                          {exportJsonPreflightError}
+                        </div>
+                      )}
                       <button className="btn-s" onClick={handleExportIssuesCsv}>
                         <Download size={14} /> Hallazgos CSV
                       </button>
