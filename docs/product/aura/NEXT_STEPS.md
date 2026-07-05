@@ -37,17 +37,17 @@ Regla UX:
 
 ## Próximo frente recomendado
 
-### Phase 10 L7 — Revisión del orquestador sobre preflight de exportación 2.0
+### Phase 10 L8 — Revisión del orquestador sobre integración de exportación 2.0
 
-Las capas L3-L7 están completas y validadas técnicamente. El siguiente control recomendado es:
+Las capas L3-L8 están completas y validadas técnicamente. El siguiente control recomendado es:
 
-1. revisar que `validateAuraExportPackage` cubre las invariantes críticas del contrato 2.0;
-2. confirmar que `App.tsx` ejecuta el preflight antes de `downloadTextFile`;
-3. verificar que un paquete inválido cancela la descarga y muestra un aviso controlado;
-4. contrastar el subconjunto runtime con el JSON Schema L6;
-5. decidir si una fase posterior necesita un motor JSON Schema completo.
+1. revisar que el test monte la UI real de exportación de `App`;
+2. confirmar que el clic en `JSON técnico` invoca el preflight;
+3. confirmar que un fallo impide llamar `downloadTextFile`;
+4. verificar que el aviso visible no expone el detalle interno mockeado;
+5. decidir si una fase posterior necesita cubrir también el camino exitoso en interfaz.
 
-Closeout: `docs/product/aura/phase_10/L7_EXPORT_PREFLIGHT_CLOSEOUT.md`.
+Closeout: `docs/product/aura/phase_10/L8_EXPORT_PREFLIGHT_INTEGRATION_CLOSEOUT.md`.
 
 ## Frente secundario
 
@@ -197,6 +197,33 @@ Condiciones verificadas:
 - 3 tests focales de `exportPackageSchema` pasan;
 - 6 tests focales de `exportContractValidation` pasan;
 - no se modificaron schema L6, `exportPackage`, `evidenceManifest`, `auditEngine`, scoring, contratos v2 ni freezes anteriores;
+- no se preparó entrega académica;
+- commit y push autorizados únicamente después de las validaciones exitosas.
+
+### Phase 10 L8 — Prueba de integración de exportación técnica 2.0 ✅
+
+Completado y preparado para publicación. Ver `docs/product/aura/phase_10/L8_EXPORT_PREFLIGHT_INTEGRATION_CLOSEOUT.md`.
+
+Resumen:
+
+1. Existe una prueba Vitest + Testing Library del flujo de fallo de preflight.
+2. La prueba monta `App` con una sesión restaurada en etapa `export`.
+3. El clic en `JSON técnico` ejecuta el preflight mockeado.
+4. Un resultado inválido impide la llamada a `downloadTextFile`.
+5. La UI muestra `export-json-preflight-warning` con un mensaje controlado.
+6. El detalle técnico interno queda en el registro y no aparece en el texto visible.
+7. La función de descarga se extrajo sin cambios de comportamiento para permitir aislamiento determinista.
+
+Condiciones verificadas:
+
+- typecheck pasa;
+- build pasa con advertencias preexistentes de imports y chunks;
+- 8 tests del filtro `exportPackage` pasan;
+- 3 tests focales de `exportPackageSchema` pasan;
+- 6 tests focales de `exportContractValidation` pasan;
+- 1 test focal de `exportJsonPreflight` pasa;
+- no se agregaron dependencias;
+- no se modificaron schema L6, `evidenceManifest`, `auditEngine`, scoring, contratos v2 ni freezes anteriores;
 - no se preparó entrega académica;
 - commit y push autorizados únicamente después de las validaciones exitosas.
 

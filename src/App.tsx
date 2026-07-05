@@ -17,22 +17,11 @@ import { buildAuraExportPackage } from './services/exportPackage';
 import { validateAuraExportPackage } from './services/exportContractValidation';
 import { savePipelineSession, loadPipelineSession, clearPipelineSession } from './services/pipelineSession';
 import { buildColabNotebookJSON } from './services/colabExporter';
+import { downloadTextFile } from './utils/download';
 import { AIConfig, AuditReport, BenchmarkResult, DeterministicValidationReport, EvidenceManifest, ExecutiveReportContent, IssueSeverity } from './types';
 
 const countBySeverity = (report: AuditReport | null, severity: IssueSeverity) =>
   report?.issues.filter((issue) => issue.severity === severity).length ?? 0;
-
-const downloadTextFile = (filename: string, content: string, type: string) => {
-  const blob = new Blob([content], { type });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
-};
 
 const csvCell = (value: unknown) => {
   const text = value === undefined || value === null ? '' : String(value);
