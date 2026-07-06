@@ -8,6 +8,7 @@ import type {
   ScriptContractV2,
 } from './contracts/llm/types';
 import type { PipelineState } from './components/MainPipeline';
+import type { AuditReport } from './types';
 
 declare global {
   interface Window {
@@ -17,6 +18,8 @@ declare global {
     __PHASE4_SET_STATE__?(state: PipelineState): void;
     __PHASE4_TAMPER_CONTRACT__?(patch: Partial<ScriptContractV2>): void;
     __PHASE4_GET_STATE__?(): Phase4State;
+    __L9_SET_REPORT__?(report: AuditReport): void;
+    __L9_GET_EXPORT_JSON__?(): Record<string, unknown>;
   }
 }
 

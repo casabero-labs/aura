@@ -15,6 +15,8 @@ import { buildAuditEvidence, buildIngestionEvidence, createTraceRecorder, finger
 import { matchGroundTruth, buildDeterministicValidationReport } from '../services/deterministicValidation';
 import { validateCleaningScript } from '../services/scriptValidationService';
 import { buildScriptContractInputKey, buildUiScriptContext } from '../services/scriptContractUiContext';
+import { buildEvidenceManifest } from '../services/evidenceManifest';
+import { buildAuraExportPackage } from '../services/exportPackage';
 import { AIConfig, AIProvider, AuditReport, AuditExecutionEvidence, BenchmarkResult, DeterministicValidationReport, HealthDelta, ImprovementRun, ProviderMetrics, ScriptValidationResult, ProgressDisclosureStatus } from '../types';
 import type { DiagnosisExecutionResult, RemediationPlanV2, ScriptContractV2, ScriptValidationResultV2 } from '../contracts/llm';
 import { validateRemediationPlanV2, isContractsV2Enabled, verifyScriptContractV2 } from '../contracts/llm';
@@ -199,11 +201,48 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
     };
     (window as any).__PHASE4_GET_STATE__ = () => ({ ...phase4StateRef.current });
 
+    // ── Phase 9/10 L9 E2E Harness: expose minimal report + export JSON generation ──
+    // Only available when VITE_PHASE4_E2E_HARNESS is true (not for production)
+    (window as any).__L9_SET_REPORT__ = (fakeReport: AuditReport) => {
+      setReport(fakeReport);
+    };
+    (window as any).__L9_GET_EXPORT_JSON__ = () => {
+      const manifest = buildEvidenceManifest({
+        auditEvidence: auditEvidence,
+        deterministicValidation: null,
+        benchmarkResults: [],
+        scriptValidation: null,
+        hitlDecision: null,
+      });
+      return buildAuraExportPackage({
+        manifest,
+        profile: { report, auditEvidence },
+        deterministicValidation: null,
+        hitlDecision: null,
+        diagnosis: {
+          model: 'e2e-harness',
+          providerType: 'chrome',
+          diagnosisText: structuredDiagnosis?.diagnosis?.issues?.length != null
+            ? 'Diagnostico generado por harness E2E'
+            : '',
+        },
+        script: {
+          generatedScript: '',
+          scriptValidation: null,
+          approvedScript: '',
+        },
+        benchmarkResults: [],
+        improvementRun: null,
+      });
+    };
+
     return () => {
       delete (window as any).__PHASE4_INJECT__;
       delete (window as any).__PHASE4_SET_STATE__;
       delete (window as any).__PHASE4_TAMPER_CONTRACT__;
       delete (window as any).__PHASE4_GET_STATE__;
+      delete (window as any).__L9_SET_REPORT__;
+      delete (window as any).__L9_GET_EXPORT_JSON__;
     };
   }, []);
 
