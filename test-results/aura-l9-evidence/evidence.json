@@ -1,0 +1,82 @@
+{
+  "testRun": {
+    "timestamp": "2026-07-06T23:38:51.975Z",
+    "phase": "L9",
+    "dataset": "synthetic (harness-injected)",
+    "harness": "Phase4/Phase10 E2E Harness"
+  },
+  "validations": {
+    "exportContract_name_correct": {
+      "passed": true,
+      "expected": "aura-technical-export",
+      "actual": "aura-technical-export"
+    },
+    "exportContract_version_correct": {
+      "passed": true,
+      "expected": "2.0",
+      "actual": "2.0"
+    },
+    "calibrationEvidence_exists": {
+      "passed": true,
+      "actual": "present"
+    },
+    "experiment_block_absent": {
+      "passed": true,
+      "actual": "absent"
+    },
+    "calibrationEvidence_canonical": {
+      "passed": true,
+      "actual": [
+        "manifest",
+        "profile",
+        "diagnosis",
+        "script",
+        "calibrationEvidence"
+      ]
+    },
+    "deprecated_migration_declared": {
+      "passed": true,
+      "actual": [
+        {
+          "from": "experiment",
+          "to": "calibrationEvidence",
+          "removedIn": "2.0",
+          "reason": "calibrationEvidence separa clasificación, resumen, resultados y límites metodológicos."
+        }
+      ]
+    },
+    "legacyAlias_notIncluded": {
+      "passed": true,
+      "actual": false
+    }
+  },
+  "exportContract": {
+    "name": "aura-technical-export",
+    "version": "2.0",
+    "canonicalBlocks": [
+      "manifest",
+      "profile",
+      "diagnosis",
+      "script",
+      "calibrationEvidence"
+    ],
+    "deprecatedBlocks": [
+      {
+        "from": "experiment",
+        "to": "calibrationEvidence",
+        "removedIn": "2.0",
+        "reason": "calibrationEvidence separa clasificación, resumen, resultados y límites metodológicos."
+      }
+    ],
+    "compatibility": {
+      "legacyAliasIncluded": false,
+      "migration": "Leer calibrationEvidence.results en lugar de experiment.benchmarkResults y usar calibrationEvidence.summary para interpretar el nivel de evidencia."
+    }
+  },
+  "calibrationEvidence": {
+    "classification": "experimental",
+    "summaryStatus": "none",
+    "resultsCount": 0
+  },
+  "allPassed": true
+}
