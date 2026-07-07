@@ -34,9 +34,9 @@ Loops:
 
 | Loop | Foco | Estado |
 |---|---|---|
-| L13A Architecture | Documentar decision, flujo observado, flujo propuesto, riesgos y criterios | En cierre |
-| L13B Report data model | Definir modelo interno de `DiagnosticReport` desde `AuditReport`, `auditEvidence` y diagnostico asistido | Pendiente |
-| L13C Pipeline state refactor | Agregar `diagnostic_report` y separar camino principal de remediacion | Pendiente |
+| L13A Architecture | Documentar decision, flujo observado, flujo propuesto, riesgos y criterios | Cerrado |
+| L13B Report data model | Definir modelo interno de `DiagnosticReport` desde `AuditReport`, `auditEvidence` y diagnostico asistido | Cerrado |
+| L13C Pipeline state refactor | Agregar `diagnostic_report` y separar camino principal de remediacion | Siguiente |
 | L13D DiagnosticReportStep UI | Crear pantalla de perfil definitivo con acciones de exportacion principal | Pendiente |
 | L13E Professional PDF generator | Generar PDF diagnostico profesional con graficos reproducibles desde `AuditReport` / `columnStats` | Pendiente |
 | L13F Optional remediation branch | Convertir script, HITL y reauditoria en rama opcional | Pendiente |
