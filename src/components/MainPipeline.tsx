@@ -166,6 +166,9 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
     contractHash: null as string | null,
     planId: null as string | null,
   });
+
+  // ── L9 report ref: persists last report set via __L9_SET_REPORT__ ──
+  const lastReportRef = useRef<AuditReport | null>(null);
   phase4StateRef.current = {
     pipelineState: state,
     hasReport: !!report,
@@ -205,8 +208,10 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
     // Only available when VITE_PHASE4_E2E_HARNESS is true (not for production)
     (window as any).__L9_SET_REPORT__ = (fakeReport: AuditReport) => {
       setReport(fakeReport);
+      lastReportRef.current = fakeReport;
     };
-    (window as any).__L9_GET_EXPORT_JSON__ = () => {
+    (window as any).__L9_GET_EXPORT_JSON__ = (overriddenReport?: AuditReport) => {
+      const effectiveReport = overriddenReport ?? lastReportRef.current;
       const manifest = buildEvidenceManifest({
         auditEvidence: auditEvidence,
         deterministicValidation: null,
@@ -216,7 +221,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
       });
       return buildAuraExportPackage({
         manifest,
-        profile: { report, auditEvidence },
+        profile: { report: effectiveReport, auditEvidence },
         deterministicValidation: null,
         hitlDecision: null,
         diagnosis: {

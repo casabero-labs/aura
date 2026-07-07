@@ -47,7 +47,8 @@ El flujo de exportación JSON técnica `2.0` cuenta con una prueba E2E en navega
 - La prueba usa Playwright con Chromium (configurado en `playwright.config.ts`).
 - El servidor web de prueba usa `VITE_PHASE3_E2E_HARNESS=true VITE_PHASE4_E2E_HARNESS=true` para habilitar el harness de inyección.
 - Se utiliza el harness existente (`__PHASE4_INJECT__`, `__PHASE4_SET_STATE__`) más las funciones L9 (`__L9_SET_REPORT__`, `__L9_GET_EXPORT_JSON__`) para llegar al estado `export` sin pasar por el flujo completo de upload → diagnóstico → script → revisión.
-- El CSV fixture existe en `src/tests/e2e/fixtures/aura_l9_dataset_control.csv` como referencia de dataset sintético. La prueba usa harness-injected report derivado de este fixture.
+- El CSV fixture existe en `src/tests/e2e/fixtures/aura_l9_dataset_control.csv` como referencia de dataset sintético.
+- El test L9-05 lee el fixture CSV con `fs.readFileSync`, deriva filas (5) y columnas (4), y verifica que coinciden con el `fakeReport` inyectado via `__L9_SET_REPORT__`.
 - La evidencia se escribe directamente a `docs/product/aura/phase_10/l9_evidence/` (ruta estable versionada).
 - Los artefactos efímeros de Playwright van a `test-results/` (ignorados por git).
 
@@ -81,8 +82,11 @@ El flujo de exportación JSON técnica `2.0` cuenta con una prueba E2E en navega
 ### Dataset fixture usado
 
 - **Fixture**: `src/tests/e2e/fixtures/aura_l9_dataset_control.csv`
+- **Lectura real**: `fs.readFileSync(FIXTURE_CSV, 'utf8')` en el módulo del spec
+- **Derivado del fixture**: 5 filas, 4 columnas, delimitador `,`
+- **Verificado contra**: `fakeReport` inyectado via `__L9_SET_REPORT__` (`rowCount === 5`, `colCount === 4`)
 - **Registrado en evidence.json**: `aura_l9_dataset_control.csv (harness-derived)`
-- **Nota**: La prueba no carga el CSV en la UI; usa harness-injected report derivado del fixture para validar el contrato de exportación.
+- **Campos en evidence.json**: `fixtureProvenance` con `fixtureRead`, `fixtureName`, `fixtureRows`, `fixtureColumns`, `fixtureDelimiter`, `injectedReportRowCount`, `injectedReportColCount`, `fixtureReportRowCountMatch`, `fixtureReportColCountMatch`
 
 ## Pruebas ejecutadas
 

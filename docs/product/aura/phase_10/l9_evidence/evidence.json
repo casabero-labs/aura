@@ -1,9 +1,20 @@
 {
   "testRun": {
-    "timestamp": "2026-07-07T00:32:49.006Z",
+    "timestamp": "2026-07-07T01:03:19.716Z",
     "phase": "L9",
     "dataset": "aura_l9_dataset_control.csv (harness-derived)",
     "harness": "Phase4/Phase10 E2E Harness"
+  },
+  "fixtureProvenance": {
+    "fixtureRead": true,
+    "fixtureName": "aura_l9_dataset_control.csv",
+    "fixtureRows": 5,
+    "fixtureColumns": 4,
+    "fixtureDelimiter": ",",
+    "injectedReportRowCount": 5,
+    "injectedReportColCount": 4,
+    "fixtureReportRowCountMatch": true,
+    "fixtureReportColCountMatch": true
   },
   "validations": {
     "exportContract_name_correct": {
@@ -48,6 +59,17 @@
     "legacyAlias_notIncluded": {
       "passed": true,
       "actual": false
+    },
+    "fixture_provenance_verified": {
+      "passed": true,
+      "expected": {
+        "rows": 5,
+        "cols": 4
+      },
+      "actual": {
+        "rows": 5,
+        "cols": 4
+      }
     }
   },
   "exportContract": {

@@ -31,6 +31,17 @@ const DATASET_NAME = 'aura_l9_dataset_control.csv (harness-derived)';
 const fs = await import('node:fs');
 fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });
 
+const FIXTURE_CSV_CONTENT = fs.readFileSync(FIXTURE_CSV, 'utf8');
+const FIXTURE_LINES = FIXTURE_CSV_CONTENT.trim().split('\n');
+const FIXTURE_ROWS = FIXTURE_LINES.length - 1;
+const FIXTURE_HEADER_FIELDS = FIXTURE_LINES[0].match(/(".*?"|[^,]+)(?=\s*,|\s*$)/g) ?? [];
+const FIXTURE_COLUMNS = FIXTURE_HEADER_FIELDS.length;
+const FIXTURE_NAME = 'aura_l9_dataset_control.csv';
+
+if (FIXTURE_ROWS !== 5 || FIXTURE_COLUMNS !== 4) {
+  throw new Error(`Fixture dimensions mismatch: expected 5 rows x 4 columns, got ${FIXTURE_ROWS} rows x ${FIXTURE_COLUMNS} columns`);
+}
+
 async function bootToAudit(page: any) {
   await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 60_000 });
   await page.locator('.sys-nav').waitFor({ state: 'visible', timeout: 15_000 });
@@ -77,20 +88,21 @@ async function injectMinimalDiagnosis(page: any, envId: string) {
   }, envId);
 }
 
+const FAKE_REPORT = {
+  score: 88,
+  rowCount: 5,
+  colCount: 4,
+  duplicateRows: 0,
+  issues: [],
+  columnStats: {},
+  scoreBreakdown: [],
+  delimiterDetected: ',',
+};
+
 async function setFakeReport(page: any) {
-  await page.evaluate(() => {
-    const fakeReport = {
-      score: 88,
-      rowCount: 5,
-      colCount: 4,
-      duplicateRows: 0,
-      issues: [],
-      columnStats: {},
-      scoreBreakdown: [],
-      delimiterDetected: ',',
-    };
-    (window as any).__L9_SET_REPORT__(fakeReport);
-  });
+  await page.evaluate((fr: any) => {
+    (window as any).__L9_SET_REPORT__(fr);
+  }, FAKE_REPORT);
 }
 
 test.describe('Phase 10 L9 — Export Contract v2.0 E2E', () => {
@@ -193,9 +205,9 @@ test.describe('Phase 10 L9 — Export Contract v2.0 E2E', () => {
     await setFakeReport(page);
     await page.waitForTimeout(500);
 
-    const exportJson = await page.evaluate(() => {
-      return (window as any).__L9_GET_EXPORT_JSON__();
-    });
+    const exportJson = await page.evaluate((fr: any) => {
+      return (window as any).__L9_GET_EXPORT_JSON__(fr);
+    }, FAKE_REPORT);
 
     const nameOk = exportJson.exportContract?.name === 'aura-technical-export';
     const versionOk = exportJson.exportContract?.version === '2.0';
@@ -208,6 +220,9 @@ test.describe('Phase 10 L9 — Export Contract v2.0 E2E', () => {
       (b: any) => b.from === 'experiment' && b.to === 'calibrationEvidence'
     );
     const compatibilityOk = exportJson.exportContract?.compatibility?.legacyAliasIncluded === false;
+    const profileReport = exportJson.profile?.report;
+    const reportRowCountOk = profileReport?.rowCount === FIXTURE_ROWS;
+    const reportColCountOk = profileReport?.colCount === FIXTURE_COLUMNS;
 
     const evidence = {
       testRun: {
@@ -215,6 +230,17 @@ test.describe('Phase 10 L9 — Export Contract v2.0 E2E', () => {
         phase: 'L9',
         dataset: DATASET_NAME,
         harness: 'Phase4/Phase10 E2E Harness',
+      },
+      fixtureProvenance: {
+        fixtureRead: true,
+        fixtureName: FIXTURE_NAME,
+        fixtureRows: FIXTURE_ROWS,
+        fixtureColumns: FIXTURE_COLUMNS,
+        fixtureDelimiter: ',',
+        injectedReportRowCount: profileReport?.rowCount,
+        injectedReportColCount: profileReport?.colCount,
+        fixtureReportRowCountMatch: reportRowCountOk,
+        fixtureReportColCountMatch: reportColCountOk,
       },
       validations: {
         exportContract_name_correct: { passed: nameOk, expected: 'aura-technical-export', actual: exportJson.exportContract?.name },
@@ -224,6 +250,7 @@ test.describe('Phase 10 L9 — Export Contract v2.0 E2E', () => {
         calibrationEvidence_canonical: { passed: hasCalibrationCanonical, actual: canonicalBlocks },
         deprecated_migration_declared: { passed: hasMigration, actual: deprecatedBlocks },
         legacyAlias_notIncluded: { passed: compatibilityOk, actual: exportJson.exportContract?.compatibility?.legacyAliasIncluded },
+        fixture_provenance_verified: { passed: reportRowCountOk && reportColCountOk, expected: { rows: 5, cols: 4 }, actual: { rows: profileReport?.rowCount, cols: profileReport?.colCount } },
       },
       exportContract: {
         name: exportJson.exportContract?.name,
@@ -237,7 +264,7 @@ test.describe('Phase 10 L9 — Export Contract v2.0 E2E', () => {
         summaryStatus: exportJson.calibrationEvidence?.summary?.status,
         resultsCount: exportJson.calibrationEvidence?.results?.length ?? 0,
       },
-      allPassed: nameOk && versionOk && calibrationOk && experimentOk && hasCalibrationCanonical && hasMigration && compatibilityOk,
+      allPassed: nameOk && versionOk && calibrationOk && experimentOk && hasCalibrationCanonical && hasMigration && compatibilityOk && reportRowCountOk && reportColCountOk,
     };
 
     const evidencePath = path.resolve(EVIDENCE_DIR, 'evidence.json');
