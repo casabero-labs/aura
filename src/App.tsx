@@ -620,7 +620,7 @@ const App: React.FC = () => {
               <h2 className="sec-title">Tu evidencia está lista</h2>
             </div>
             <p className="section-note">
-              AURA reúne reporte diagnóstico, hallazgos y manifest técnico. Script y anexos de remediación aparecen solo si fueron generados.
+              AURA reúne informe diagnóstico, hallazgos y manifest técnico. Script, notebook y Health Delta aparecen solo si fueron generados en la rama opcional de remediación.
             </p>
 
             <div className="companion-note">

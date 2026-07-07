@@ -47,6 +47,9 @@ const DiagnosticReportStep: React.FC<DiagnosticReportStepProps> = ({
         <p className="sec-eye">perfil definitivo</p>
         <h2 className="sec-title">Diagnóstico consolidado del dataset</h2>
         <p className="section-note">{subtitleByStatus[diagnosticReport.status.diagnosticStatus]}</p>
+        <p className="section-note" style={{ fontSize: '12px', color: 'var(--ink3)' }}>
+          La remediación abre una rama opcional. Podés volver al reporte diagnóstico en cualquier momento. El informe se puede exportar sin generar script.
+        </p>
       </div>
       <div className="diagnostic-report-actions diagnostic-report-actions--top">
         <button className="btn-p" onClick={onExportMain} data-testid="diagnostic-report-export-main">

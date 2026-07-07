@@ -10,6 +10,7 @@ import ScriptGenerationStep from './ScriptGenerationStep';
 import ScriptGenerationStepV2 from './ScriptGenerationStepV2';
 import CalibrationOptInExplainer from './calibration/CalibrationOptInExplainer';
 import CalibrationEmbeddedPanel from './calibration/CalibrationEmbeddedPanel';
+import { OptionalRemediationNotice, RemediationBranchActions } from './remediation';
 import { runAudit } from '../services/auditEngine';
 import { parseCsv } from '../services/csvService';
 import { buildAuditEvidence, buildIngestionEvidence, createTraceRecorder, fingerprintDataset } from '../services/executionEvidence';
@@ -340,6 +341,13 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
     }
     prevContractKeyRef.current = key;
   }, [auditEvidence, structuredDiagnosis, remediationPlan, csvFields]);
+
+  // ── Remediation branch entry log ──
+  useEffect(() => {
+    if (state === 'script' || state === 'review') {
+      addLog('remediation.branch.entered :: user opened optional script branch');
+    }
+  }, [state]);
 
   // ── Plan lifecycle: clear on new diagnosis, validate restored plan ──
   const initialDiagnosisIdentity = deriveDiagnosisIdentity(initialData?.structuredDiagnosis ?? null);
@@ -751,76 +759,118 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
 
       {/* ── Step 6: Script generation ── */}
       {state === 'script' && report && isContractsV2Enabled() && !!structuredDiagnosis?.remediationContext && (
-        <ScriptGenerationStepV2
-          report={report}
-          csvFields={csvFields}
-          sourceDatasetFingerprint={auditEvidence?.datasetFingerprint ?? null}
-          structuredDiagnosis={structuredDiagnosis}
-          remediationPlan={remediationPlan}
-          scriptContractV2={scriptContractV2}
-          scriptContractVerificationV2={scriptContractVerificationV2}
-          onRemediationPlanChange={setRemediationPlan}
-          onScriptContractChange={(contract, verification) => {
-            setScriptContractV2(contract);
-            setScriptContractVerificationV2(verification);
-            if (contract) {
-              setCleaningScript(contract.scriptText);
-            }
-            addLog(contract ? `script.contract.v2 :: hash=${contract.scriptHash.slice(0, 12)}` : 'script.contract.v2.cleared');
-          }}
-          onLog={(stage, msg) => addLog(`${stage} :: ${msg}`)}
-          onContinue={() => setState('review')}
-        />
+        <>
+          <OptionalRemediationNotice />
+          <RemediationBranchActions
+            onBackToDiagnosticReport={() => {
+              addLog('remediation.branch.returned :: user returned to diagnostic report');
+              ensureDiagnosticReportForNavigation();
+              setState('diagnostic_report');
+            }}
+            onExportMain={() => {
+              addLog('remediation.branch.export_main :: user exported without remediation');
+              setState('export');
+            }}
+          />
+          <ScriptGenerationStepV2
+            report={report}
+            csvFields={csvFields}
+            sourceDatasetFingerprint={auditEvidence?.datasetFingerprint ?? null}
+            structuredDiagnosis={structuredDiagnosis}
+            remediationPlan={remediationPlan}
+            scriptContractV2={scriptContractV2}
+            scriptContractVerificationV2={scriptContractVerificationV2}
+            onRemediationPlanChange={setRemediationPlan}
+            onScriptContractChange={(contract, verification) => {
+              setScriptContractV2(contract);
+              setScriptContractVerificationV2(verification);
+              if (contract) {
+                setCleaningScript(contract.scriptText);
+              }
+              addLog(contract ? `script.contract.v2 :: hash=${contract.scriptHash.slice(0, 12)}` : 'script.contract.v2.cleared');
+            }}
+            onLog={(stage, msg) => addLog(`${stage} :: ${msg}`)}
+            onContinue={() => setState('review')}
+          />
+        </>
       )}
 
       {/* ── Step 6: Script generation (legacy) ── */}
       {state === 'script' && report && (!isContractsV2Enabled() || !structuredDiagnosis?.remediationContext) && (
-        <ScriptGenerationStep
-          report={report}
-          aiProvider={aiProvider}
-          diagnosisText={aiAnalysis}
-          cleaningScript={cleaningScript}
-          scriptValidation={scriptValidation}
-          structuredDiagnosis={structuredDiagnosis}
-          remediationPlan={remediationPlan}
-          onRemediationPlanChange={setRemediationPlan}
+        <>
+          <OptionalRemediationNotice />
+          <RemediationBranchActions
+            onBackToDiagnosticReport={() => {
+              addLog('remediation.branch.returned :: user returned to diagnostic report');
+              ensureDiagnosticReportForNavigation();
+              setState('diagnostic_report');
+            }}
+            onExportMain={() => {
+              addLog('remediation.branch.export_main :: user exported without remediation');
+              setState('export');
+            }}
+          />
+          <ScriptGenerationStep
+            report={report}
+            aiProvider={aiProvider}
+            diagnosisText={aiAnalysis}
+            cleaningScript={cleaningScript}
+            scriptValidation={scriptValidation}
+            structuredDiagnosis={structuredDiagnosis}
+            remediationPlan={remediationPlan}
+            onRemediationPlanChange={setRemediationPlan}
             onScriptGenerated={(script, metrics: ProviderMetrics) => {
-            setCleaningScript(script);
-            const origin = metrics.provider === 'AURA' ? 'deterministic' : 'model';
-            const validation = validateCleaningScript(report, script, origin);
-            setScriptValidation(validation);
-            addLog(`script.generado :: ${script.split('\n').length} líneas · ${metrics.latencyMs}ms · origen=${origin}`);
-          }}
-          onLog={(stage, msg) => addLog(`${stage} :: ${msg}`)}
-          onContinue={() => setState('review')}
-        />
+              setCleaningScript(script);
+              const origin = metrics.provider === 'AURA' ? 'deterministic' : 'model';
+              const validation = validateCleaningScript(report, script, origin);
+              setScriptValidation(validation);
+              addLog(`script.generado :: ${script.split('\n').length} líneas · ${metrics.latencyMs}ms · origen=${origin}`);
+            }}
+            onLog={(stage, msg) => addLog(`${stage} :: ${msg}`)}
+            onContinue={() => setState('review')}
+          />
+        </>
       )}
 
       {/* ── Step 7: Review & HITL ── */}
       {state === 'review' && report && (
-        <ReviewStep
-          report={report}
-          rawData={rawData}
-          csvFields={csvFields}
-          csvDelimiter={csvDelimiter}
-          cleaningScript={cleaningScript}
-          approvedScript={approvedScript}
-          auditEvidence={auditEvidence || undefined}
-          benchmarkResults={benchmarkResults}
-          scriptValidation={scriptValidation}
-          onScriptApproved={(script) => {
-            setApprovedScript(script);
-            addLog('Script aprobado por revisión humana');
-          }}
-          onHealthDelta={(delta) => setHealthDelta(delta)}
-          onImprovementRun={(run) => setImprovementRun(run)}
-          onLog={(stage, msg) => addLog(`${stage} :: ${msg}`)}
-          onContinue={() => setState('export')}
-          scriptContractV2={scriptContractV2}
-          remediationPlanV2={remediationPlan}
-          structuredDiagnosis={structuredDiagnosis}
-          sourceDatasetFingerprint={auditEvidence?.datasetFingerprint ?? null}
-        />
+        <>
+          <OptionalRemediationNotice />
+          <RemediationBranchActions
+            onBackToDiagnosticReport={() => {
+              addLog('remediation.branch.returned :: user returned to diagnostic report');
+              ensureDiagnosticReportForNavigation();
+              setState('diagnostic_report');
+            }}
+            onExportMain={() => {
+              addLog('remediation.branch.export_main :: user exported without remediation');
+              setState('export');
+            }}
+          />
+          <ReviewStep
+            report={report}
+            rawData={rawData}
+            csvFields={csvFields}
+            csvDelimiter={csvDelimiter}
+            cleaningScript={cleaningScript}
+            approvedScript={approvedScript}
+            auditEvidence={auditEvidence || undefined}
+            benchmarkResults={benchmarkResults}
+            scriptValidation={scriptValidation}
+            onScriptApproved={(script) => {
+              setApprovedScript(script);
+              addLog('Script aprobado por revisión humana');
+            }}
+            onHealthDelta={(delta) => setHealthDelta(delta)}
+            onImprovementRun={(run) => setImprovementRun(run)}
+            onLog={(stage, msg) => addLog(`${stage} :: ${msg}`)}
+            onContinue={() => setState('export')}
+            scriptContractV2={scriptContractV2}
+            remediationPlanV2={remediationPlan}
+            structuredDiagnosis={structuredDiagnosis}
+            sourceDatasetFingerprint={auditEvidence?.datasetFingerprint ?? null}
+          />
+        </>
       )}
     </div>
   );

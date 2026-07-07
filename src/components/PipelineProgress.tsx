@@ -28,6 +28,8 @@ const getStepStatus = (stepState: PipelineState, currentStep: PipelineState) => 
   return 'pending';
 };
 
+const optionalSteps: PipelineState[] = ['script', 'review'];
+
 const PipelineProgress = ({ currentStep, onStepClick }: PipelineProgressProps) => {
   const handleStepClick = (step: PipelineState) => {
     if (onStepClick) {
@@ -45,7 +47,7 @@ const PipelineProgress = ({ currentStep, onStepClick }: PipelineProgressProps) =
           return (
             <div key={step.state} style={{ display: 'contents' }}>
               <div
-                className={`stepper-step ${status} ${isClickable ? 'clickable' : ''}`}
+                className={`stepper-step ${status} ${isClickable ? 'clickable' : ''} ${optionalSteps.includes(step.state) ? 'stepper-step--optional' : ''}`}
                 onClick={() => handleStepClick(step.state)}
                 role={isClickable ? 'button' : undefined}
                 tabIndex={isClickable ? 0 : undefined}
