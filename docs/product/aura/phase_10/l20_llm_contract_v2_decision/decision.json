@@ -1,0 +1,35 @@
+{
+  "phase": "L20",
+  "decision": "do_not_replace_production_yet",
+  "v2Status": "experimental_candidate",
+  "baselinePhase": "L18",
+  "comparisonPhase": "L19",
+  "productionContractChanged": false,
+  "usedRealAiProvider": false,
+  "formalBenchmark": false,
+  "reason": [
+    "v2 improved the controlled Titanic fixture by recovering trim_whitespace as automatic_safe",
+    "v2 preserved all human_review items without regression",
+    "evidence is limited to one controlled fixture, mock provider and one run",
+    "broader datasets and HITL validation are required before production substitution"
+  ],
+  "l18Baseline": {
+    "automaticActions": 0,
+    "humanReviewItems": 4,
+    "finding": "trim_whitespace blocked by column ambiguity"
+  },
+  "l19V2": {
+    "automaticActions": 1,
+    "humanReviewItems": 4,
+    "trimRecovered": true,
+    "reviewPreserved": true,
+    "regressionDetected": false
+  },
+  "nextAllowedStep": "optional_flagged_v2_trial",
+  "blockedClaims": [
+    "production-ready",
+    "formal benchmark",
+    "best model",
+    "universal winner"
+  ]
+}
