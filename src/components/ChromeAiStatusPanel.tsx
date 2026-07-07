@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Brain, Activity, Download, CheckCircle, AlertCircle, FlaskConical, Eye, EyeOff, Copy, ExternalLink, ChevronDown, ChevronRight, Lock, Server, Globe } from 'lucide-react';
+import { Brain, Activity, Download, CheckCircle, AlertCircle, FlaskConical, Eye, EyeOff, Copy, ExternalLink, ChevronDown, ChevronRight, Lock, Server, Globe, HardDrive, Wrench, Info } from 'lucide-react';
 import { NormalizedAvailability } from '../services/chromeAvailability';
 import { 
   checkChromeModelStatus,
@@ -24,6 +24,7 @@ interface ChromeAiStatusPanelProps {
 }
 
 const CHROME_INTERNAL_URL = 'chrome://on-device-internals';
+const CHROME_FLAGS_URL = 'chrome://flags';
 
 export const ChromeAiStatusPanel: React.FC<ChromeAiStatusPanelProps> = ({
   compact = false,
@@ -211,7 +212,7 @@ export const ChromeAiStatusPanel: React.FC<ChromeAiStatusPanelProps> = ({
         <>
           <div className="chrome-ai-status-message">
             <p><strong>Gemini Nano se está descargando en Chrome.</strong></p>
-            <p>Puedes dejar esta pestaña abierta. AURA verificará el estado automáticamente.</p>
+            <p>Mantén Chrome abierto durante el proceso. No cierres esta pestaña.</p>
           </div>
           
           {status.downloadProgress !== undefined ? (
@@ -239,9 +240,38 @@ export const ChromeAiStatusPanel: React.FC<ChromeAiStatusPanelProps> = ({
               <div className="chrome-ai-progress-bar chrome-ai-progress-bar--indeterminate">
                 <div className="chrome-ai-progress-fill chrome-ai-progress-fill--indeterminate" />
               </div>
-              <span className="chrome-ai-progress-message">Esperando información de descarga...</span>
+              <span className="chrome-ai-progress-message">Esperando información de descarga de Chrome...</span>
             </div>
           )}
+
+          <div className="chrome-ai-diagnostic-checklist">
+            <div className="chrome-ai-checklist-title">
+              <Wrench size={12} />
+              <span>¿No avanza la descarga? Revisa esto:</span>
+            </div>
+            <ul className="chrome-ai-checklist-items">
+              <li>
+                <HardDrive size={12} />
+                <span>Espacio libre en disco: Gemini Nano requiere ~4.5 GB. Libera espacio si es necesario.</span>
+              </li>
+              <li>
+                <Info size={12} />
+                <span>Es normal que tarde varios minutos. La barra se actualiza cuando Chrome reporta progreso.</span>
+              </li>
+              <li>
+                <Activity size={12} />
+                <span>Abre <code>chrome://on-device-internals</code> para ver el estado real de descarga.</span>
+              </li>
+              <li>
+                <RefreshCwIcon size={12} />
+                <span>Si queda bloqueada más de 15 minutos, reinicia Chrome y vuelve a preparar Gemini Nano.</span>
+              </li>
+              <li>
+                <AlertCircle size={12} />
+                <span>No cierres Chrome durante la descarga. Si se completa, el modelo queda guardado localmente.</span>
+              </li>
+            </ul>
+          </div>
         </>
       )}
     </div>
@@ -253,17 +283,17 @@ export const ChromeAiStatusPanel: React.FC<ChromeAiStatusPanelProps> = ({
         <div className="chrome-ai-compact-message">
           <CheckCircle size={12} />
           <span>Gemini Nano listo</span>
-          <span className="chrome-ai-compact-note">Modo local activo</span>
+          <span className="chrome-ai-compact-note">Proveedor local en navegador</span>
         </div>
       ) : (
         <>
           <div className="chrome-ai-status-message">
-            <p><strong>Gemini Nano listo para diagnosticar.</strong></p>
-            <p>Diagnóstico local en navegador. No se envía el dataset a servidores externos mientras este modo esté activo.</p>
+            <p><strong>Gemini Nano listo para diagnóstico.</strong></p>
+            <p>El modelo se ejecuta localmente en tu navegador. Los datos crudos no se envían a servidores externos mientras este modo esté activo.</p>
           </div>
           <div className="chrome-ai-ready-indicator">
             <Lock size={14} />
-            <span>Modo local activo</span>
+            <span>Proveedor local en navegador</span>
           </div>
         </>
       )}
@@ -273,8 +303,8 @@ export const ChromeAiStatusPanel: React.FC<ChromeAiStatusPanelProps> = ({
   const renderDownloadableState = () => (
     <div className="chrome-ai-downloadable-state">
       <div className="chrome-ai-status-message">
-        <p><strong>Gemini Nano requiere descarga inicial.</strong></p>
-        <p>La primera preparación descargará el modelo (~4 GB). Después estará disponible localmente.</p>
+        <p><strong>Gemini Nano puede prepararse en este equipo.</strong></p>
+        <p>La primera preparación descargará el modelo (~4.5 GB). Chrome hará la descarga localmente. Una vez completada, el modelo queda disponible para uso inmediato.</p>
       </div>
       <button 
         className="btn-p"
@@ -291,14 +321,17 @@ export const ChromeAiStatusPanel: React.FC<ChromeAiStatusPanelProps> = ({
           </>
         )}
       </button>
+      <p className="chrome-ai-downloadable-note">
+        Mantén Chrome abierto durante el proceso. No cierres esta pestaña.
+      </p>
     </div>
   );
 
   const renderUnavailableState = () => (
     <div className="chrome-ai-unavailable-state">
       <div className="chrome-ai-status-message">
-        <p><strong>Chrome AI no está disponible.</strong></p>
-        <p>Antes de marcar como incompatible, AURA ejecutará una prueba de verificación.</p>
+        <p><strong>Gemini Nano no está disponible en este equipo.</strong></p>
+        <p>Esto no significa que AURA esté rota. El flujo determinístico y el resto de proveedores siguen funcionando.</p>
       </div>
       <div className="chrome-ai-actions-row">
         <button 
@@ -306,22 +339,52 @@ export const ChromeAiStatusPanel: React.FC<ChromeAiStatusPanelProps> = ({
           onClick={handleVerify}
           disabled={isChecking}
         >
-          <FlaskConical size={12} /> {isChecking ? 'Verificando...' : 'Probar Gemini Nano'}
+          <FlaskConical size={12} /> {isChecking ? 'Verificando...' : 'Verificar de nuevo'}
         </button>
         <button 
           className="btn-s"
           onClick={() => window.open(CHROME_INTERNAL_URL, '_blank')}
         >
-          <ExternalLink size={12} /> Abrir chrome://on-device-internals
+          <ExternalLink size={12} /> chrome://on-device-internals
         </button>
       </div>
+      <div className="chrome-ai-diagnostic-checklist">
+        <div className="chrome-ai-checklist-title">
+          <Wrench size={12} />
+          <span>Diagnóstico guiado:</span>
+        </div>
+        <ul className="chrome-ai-checklist-items">
+          <li>
+            <HardDrive size={12} />
+            <span>Revisa espacio libre en disco. Gemini Nano necesita ~4.5 GB. Sin espacio suficiente, Chrome no descargará el modelo.</span>
+          </li>
+          <li>
+            <Activity size={12} />
+            <span>Abre <code>chrome://on-device-internals</code> para ver el estado y los modelos descargados.</span>
+          </li>
+          <li>
+            <Wrench size={12} />
+            <span>Verifica en <code>chrome://flags</code> que "Prompt API" o "Built-in AI" estén habilitados.</span>
+          </li>
+          <li>
+            <AlertCircle size={12} />
+            <span>Libera espacio en el perfil de Chrome si ves que la descarga no logra completarse.</span>
+          </li>
+          <li>
+            <RefreshCwIcon size={12} />
+            <span>Reinicia Chrome después de cambiar flags o liberar espacio.</span>
+          </li>
+        </ul>
+      </div>
       <div className="chrome-ai-instructions">
-        <p><strong>Para activar Chrome AI:</strong></p>
+        <p><strong>Requisitos de activación:</strong></p>
         <ol>
-          <li>Verifica que uses Chrome 138 o superior.</li>
-          <li>Abre <code>chrome://flags</code> en una pestaña nueva.</li>
+          <li>Usa Google Chrome 138 o superior.</li>
+          <li>Abre <code>chrome://flags</code></li>
           <li>Busca "Prompt API", "Gemini Nano" o "Built-in AI".</li>
-          <li>Activa las opciones y reinicia Chrome.</li>
+          <li>Activa las opciones encontradas.</li>
+          <li>Reinicia Chrome.</li>
+          <li>Vuelve a verificar el estado desde aquí.</li>
         </ol>
       </div>
     </div>
@@ -330,30 +393,51 @@ export const ChromeAiStatusPanel: React.FC<ChromeAiStatusPanelProps> = ({
   const renderApiMissingState = () => (
     <div className="chrome-ai-api-missing-state">
       <div className="chrome-ai-status-message">
-        <p><strong>API de Chrome AI no detectada.</strong></p>
-        <p>Chrome AI requiere Chrome 138+ con flags habilitados.</p>
+        <p><strong>API de Chrome AI no detectada en este navegador.</strong></p>
+        <p>El flujo determinístico de AURA y el resto de proveedores (Ollama, Cloud) no dependen de Chrome AI. Puedes continuar sin problema.</p>
       </div>
       <div className="chrome-ai-actions-row">
         <button 
           className="btn-s"
           onClick={() => window.open(CHROME_INTERNAL_URL, '_blank')}
         >
-          <ExternalLink size={12} /> Abrir chrome://on-device-internals
+          <ExternalLink size={12} /> chrome://on-device-internals
         </button>
         <button 
           className="btn-s"
-          onClick={() => window.open('chrome://flags', '_blank')}
+          onClick={() => window.open(CHROME_FLAGS_URL, '_blank')}
         >
-          <ExternalLink size={12} /> Abrir chrome://flags
+          <ExternalLink size={12} /> chrome://flags
         </button>
       </div>
+      <div className="chrome-ai-diagnostic-checklist">
+        <div className="chrome-ai-checklist-title">
+          <Wrench size={12} />
+          <span>¿Quieres activar Chrome AI?</span>
+        </div>
+        <ul className="chrome-ai-checklist-items">
+          <li>
+            <Activity size={12} />
+            <span>Usa Google Chrome 138 o superior. Otros navegadores (Firefox, Safari, Brave) no tienen esta API.</span>
+          </li>
+          <li>
+            <Wrench size={12} />
+            <span>Abre <code>chrome://flags</code> y busca "Prompt API" o "Built-in AI". Activa las opciones.</span>
+          </li>
+          <li>
+            <RefreshCwIcon size={12} />
+            <span>Reinicia Chrome después de cambiar los flags. Luego vuelve a verificar el estado.</span>
+          </li>
+        </ul>
+      </div>
       <div className="chrome-ai-instructions">
-        <p><strong>Pasos para activar:</strong></p>
+        <p><strong>Pasos detallados:</strong></p>
         <ol>
           <li>Abre <code>chrome://flags</code></li>
           <li>Busca "Prompt API" o "Built-in AI"</li>
-          <li>Activa las opciones y reinicia Chrome</li>
-          <li>Chrome 138+ es requerido</li>
+          <li>Activa las opciones encontradas</li>
+          <li>Reinicia Chrome</li>
+          <li>Abre <code>chrome://on-device-internals</code> para confirmar</li>
         </ol>
       </div>
     </div>
@@ -363,7 +447,31 @@ export const ChromeAiStatusPanel: React.FC<ChromeAiStatusPanelProps> = ({
     <div className="chrome-ai-error-state">
       <div className="chrome-ai-status-message">
         <p><strong>Error al verificar Chrome AI.</strong></p>
-        <p>Reinicia Chrome e intenta de nuevo.</p>
+        <p>El motor determinista de AURA sigue disponible. Puedes continuar con otro proveedor mientras tanto.</p>
+      </div>
+      <div className="chrome-ai-diagnostic-checklist">
+        <div className="chrome-ai-checklist-title">
+          <Wrench size={12} />
+          <span>Posibles causas y soluciones:</span>
+        </div>
+        <ul className="chrome-ai-checklist-items">
+          <li>
+            <HardDrive size={12} />
+            <span>Falta de espacio en disco. Gemini Nano requiere ~4.5 GB libres en el perfil de Chrome.</span>
+          </li>
+          <li>
+            <Activity size={12} />
+            <span>Revisa <code>chrome://on-device-internals</code> para ver si el modelo está bloqueado o corrupto.</span>
+          </li>
+          <li>
+            <Wrench size={12} />
+            <span>Verifica en <code>chrome://flags</code> que los flags de Chrome AI sigan activos.</span>
+          </li>
+          <li>
+            <RefreshCwIcon size={12} />
+            <span>Reinicia Chrome. Si el error persiste, prueba en una ventana de incógnito para descartar extensiones.</span>
+          </li>
+        </ul>
       </div>
       <div className="chrome-ai-actions-row">
         <button 
@@ -371,7 +479,13 @@ export const ChromeAiStatusPanel: React.FC<ChromeAiStatusPanelProps> = ({
           onClick={handleVerify}
           disabled={isChecking}
         >
-          <Activity size={12} /> {isChecking ? 'Verificando...' : 'Reintentar'}
+          <Activity size={12} /> {isChecking ? 'Verificando...' : 'Volver a verificar'}
+        </button>
+        <button 
+          className="btn-s"
+          onClick={() => window.open(CHROME_INTERNAL_URL, '_blank')}
+        >
+          <ExternalLink size={12} /> chrome://on-device-internals
         </button>
       </div>
     </div>
@@ -420,7 +534,7 @@ export const ChromeAiStatusPanel: React.FC<ChromeAiStatusPanelProps> = ({
             {status.uiStatus === 'downloading' && 'Gemini Nano descargando...'}
             {status.uiStatus === 'downloadable' && 'Gemini Nano disponible'}
             {status.uiStatus === 'preparing' && 'Preparando Gemini Nano...'}
-            {(status.uiStatus === 'idle' || status.uiStatus === 'api_missing' || status.uiStatus === 'unavailable' || status.uiStatus === 'error') && 'Chrome AI'}
+            {(status.uiStatus === 'idle' || status.uiStatus === 'api_missing' || status.uiStatus === 'unavailable' || status.uiStatus === 'error') && 'Chrome AI / Gemini Nano'}
           </span>
         </div>
         <button
@@ -601,6 +715,16 @@ function ChevronUp({ size }: { size: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="18 15 12 9 6 15"></polyline>
+    </svg>
+  );
+}
+
+function RefreshCwIcon({ size }: { size: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="23 4 23 10 17 10"></polyline>
+      <polyline points="1 20 1 14 7 14"></polyline>
+      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
     </svg>
   );
 }

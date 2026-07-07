@@ -2678,6 +2678,66 @@ tr:hover td {
   margin: 0;
 }
 
+/* ─── Chrome AI Diagnostic Checklist ─── */
+
+.chrome-ai-diagnostic-checklist {
+  margin-top: var(--space-md);
+  padding: var(--space-md);
+  background: var(--bg);
+  border: 1px solid var(--border-faint);
+  border-radius: var(--radius-sm);
+}
+
+.chrome-ai-checklist-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink2);
+  margin-bottom: var(--space-sm);
+}
+
+.chrome-ai-checklist-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.chrome-ai-checklist-items li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  font-size: 12px;
+  color: var(--ink2);
+  line-height: 1.5;
+}
+
+.chrome-ai-checklist-items li svg {
+  margin-top: 2px;
+  color: var(--ink3);
+  flex-shrink: 0;
+}
+
+.chrome-ai-checklist-items li code {
+  font-size: 11px;
+  background: var(--surface);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  color: var(--ink);
+}
+
+.chrome-ai-downloadable-note {
+  font-size: 12px;
+  color: var(--ink3);
+  margin: var(--space-sm) 0 0 0;
+  font-style: italic;
+}
+
 .chrome-ai-details {
   margin-top: var(--space-md);
 }
