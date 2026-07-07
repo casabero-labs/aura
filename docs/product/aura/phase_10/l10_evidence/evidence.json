@@ -1,0 +1,216 @@
+{
+  "testRun": {
+    "timestamp": "2026-07-07T01:40:37.169Z",
+    "phase": "L10",
+    "testId": "L10-01",
+    "fixture": "aura_l10_full_flow_issues.csv",
+    "dataset": "aura_l10_full_flow_issues.csv (rows=6, cols=5)",
+    "harness": "L9/Phase4 E2E Harness",
+    "csvLoadedViaUi": false,
+    "csvProcessingNote": "CSV fixture read via fs.readFileSync; parseCsv+runAudit exercised via harness state injection",
+    "fileInputPresentInDom": true,
+    "providerMode": "mock",
+    "harnessNote": "Phase3 harness not used — VITE_PHASE3_E2E_HARNESS not enabled in Playwright webServer config"
+  },
+  "fixtureProvenance": {
+    "fixtureRead": true,
+    "fixtureName": "aura_l10_full_flow_issues.csv",
+    "fixtureRows": 6,
+    "fixtureColumns": 5,
+    "fixtureDelimiter": ",",
+    "injectedReportRowCount": 6,
+    "injectedReportColCount": 5,
+    "fixtureReportRowCountMatch": true,
+    "fixtureReportColCountMatch": true
+  },
+  "validations": {
+    "exportContract_name_correct": {
+      "passed": true,
+      "expected": "aura-technical-export",
+      "actual": "aura-technical-export"
+    },
+    "exportContract_version_correct": {
+      "passed": true,
+      "expected": "2.0",
+      "actual": "2.0"
+    },
+    "calibrationEvidence_exists": {
+      "passed": true,
+      "actual": "present"
+    },
+    "experiment_block_absent": {
+      "passed": true,
+      "actual": "absent"
+    },
+    "calibrationEvidence_canonical": {
+      "passed": true,
+      "actual": [
+        "manifest",
+        "profile",
+        "diagnosis",
+        "script",
+        "calibrationEvidence"
+      ]
+    },
+    "deprecated_migration_declared": {
+      "passed": true,
+      "actual": [
+        {
+          "from": "experiment",
+          "to": "calibrationEvidence",
+          "removedIn": "2.0",
+          "reason": "calibrationEvidence separa clasificación, resumen, resultados y límites metodológicos."
+        }
+      ]
+    },
+    "legacyAlias_notIncluded": {
+      "passed": true,
+      "actual": false
+    },
+    "profile_rowCount_correct": {
+      "passed": true,
+      "expected": 6,
+      "actual": 6
+    },
+    "profile_colCount_correct": {
+      "passed": true,
+      "expected": 5,
+      "actual": 5
+    }
+  },
+  "exportContract": {
+    "name": "aura-technical-export",
+    "version": "2.0",
+    "generatedAt": "2026-07-07T01:40:37.071Z",
+    "canonicalBlocks": [
+      "manifest",
+      "profile",
+      "diagnosis",
+      "script",
+      "calibrationEvidence"
+    ],
+    "optionalBlocks": [
+      "deterministicValidation",
+      "hitlDecision"
+    ],
+    "deprecatedBlocks": [
+      {
+        "from": "experiment",
+        "to": "calibrationEvidence",
+        "removedIn": "2.0",
+        "reason": "calibrationEvidence separa clasificación, resumen, resultados y límites metodológicos."
+      }
+    ],
+    "compatibility": {
+      "legacyAliasIncluded": false,
+      "migration": "Leer calibrationEvidence.results en lugar de experiment.benchmarkResults y usar calibrationEvidence.summary para interpretar el nivel de evidencia."
+    }
+  },
+  "calibrationEvidence": {
+    "classification": "experimental",
+    "summary": {
+      "totalRuns": 0,
+      "completedRuns": 0,
+      "failedOrUnavailableRuns": 0,
+      "formalRuns": 0,
+      "status": "none",
+      "statement": "No se ejecutaron corridas de calibración experimental.",
+      "limitations": [
+        "La calibración es opcional y su ausencia no bloquea el diagnóstico normal."
+      ]
+    },
+    "results": [],
+    "improvementRun": null
+  },
+  "manifest": {
+    "generatedAt": "2026-07-07T01:40:37.071Z",
+    "dataset": {
+      "rows": 0,
+      "columns": 0
+    },
+    "app": {
+      "name": "AURA — Auditoría Unificada de Riesgos Algorítmicos",
+      "version": "0.5.0"
+    },
+    "objectivesCoverage": [
+      {
+        "id": "OE1",
+        "label": "Ingestión y perfilamiento determinista",
+        "status": "blocked",
+        "evidence": "Sin evidencia de ingestión.",
+        "limitations": []
+      },
+      {
+        "id": "OE2",
+        "label": "Validación determinista formal por regla",
+        "status": "partial",
+        "evidence": "Sin ground truth disponible para este dataset.",
+        "limitations": []
+      },
+      {
+        "id": "OE3",
+        "label": "Diagnóstico LLM y calibración experimental",
+        "status": "blocked",
+        "evidence": "No se ejecutaron corridas de calibración experimental.",
+        "limitations": [
+          "La calibración es opcional y su ausencia no bloquea el diagnóstico normal."
+        ]
+      },
+      {
+        "id": "OE4",
+        "label": "Script seguro y validación HITL",
+        "status": "blocked",
+        "evidence": "Sin script generado.",
+        "limitations": [
+          "Script no válido: razón desconocida."
+        ]
+      },
+      {
+        "id": "OE5",
+        "label": "Exportación, gobernanza y resultados",
+        "status": "partial",
+        "evidence": "Sin decisión HITL registrada.",
+        "limitations": [
+          "Sin decisión humana registrada.",
+          "Sin delta de salud simulado."
+        ]
+      }
+    ],
+    "artifacts": [],
+    "allowedClaims": {
+      "deterministicEngine": "preliminary",
+      "calibrationEvidence": "none",
+      "scriptSafety": "none",
+      "hitlDecision": "none",
+      "healthDelta": "none"
+    },
+    "calibrationSummary": {
+      "totalRuns": 0,
+      "completedRuns": 0,
+      "failedOrUnavailableRuns": 0,
+      "formalRuns": 0,
+      "status": "none",
+      "statement": "No se ejecutaron corridas de calibración experimental.",
+      "limitations": [
+        "La calibración es opcional y su ausencia no bloquea el diagnóstico normal."
+      ]
+    },
+    "validationSummary": {
+      "hitlApproved": false
+    },
+    "limitations": [
+      "Simulación de remediación sobre copia en memoria; no modifica el archivo original.",
+      "La calibración experimental no establece un ranking absoluto entre modelos o configuraciones.",
+      "La disponibilidad de proveedores puede producir intentos fallidos sin afectar el diagnóstico normal.",
+      "Ground truth disponible solo para datasets sintético y Titanic.",
+      "Métricas deterministas por regla usan detección binaria (rule fired / not fired), no conteo de filas."
+    ]
+  },
+  "screenshots": {
+    "uploadStepReady": "01_upload_step_ready.png",
+    "reportSet": "02_report_set.png",
+    "exportGenerated": "03_export_generated.png",
+    "contractValidated": "04_contract_validated.png"
+  },
+  "allPassed": true
+}

@@ -19,7 +19,8 @@ declare global {
     __PHASE4_TAMPER_CONTRACT__?(patch: Partial<ScriptContractV2>): void;
     __PHASE4_GET_STATE__?(): Phase4State;
     __L9_SET_REPORT__?(report: AuditReport): void;
-    __L9_GET_EXPORT_JSON__?(): Record<string, unknown>;
+    __L9_SET_AUDIT_EVIDENCE__?(auditEvidence: import('./types').AuditExecutionEvidence): void;
+    __L9_GET_EXPORT_JSON__?(overriddenReport?: AuditReport): Record<string, unknown>;
   }
 }
 

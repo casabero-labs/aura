@@ -210,6 +210,9 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
       setReport(fakeReport);
       lastReportRef.current = fakeReport;
     };
+    (window as any).__L9_SET_AUDIT_EVIDENCE__ = (fakeAuditEvidence: AuditExecutionEvidence) => {
+      setAuditEvidence(fakeAuditEvidence);
+    };
     (window as any).__L9_GET_EXPORT_JSON__ = (overriddenReport?: AuditReport) => {
       const effectiveReport = overriddenReport ?? lastReportRef.current;
       const manifest = buildEvidenceManifest({
@@ -247,6 +250,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
       delete (window as any).__PHASE4_TAMPER_CONTRACT__;
       delete (window as any).__PHASE4_GET_STATE__;
       delete (window as any).__L9_SET_REPORT__;
+      delete (window as any).__L9_SET_AUDIT_EVIDENCE__;
       delete (window as any).__L9_GET_EXPORT_JSON__;
     };
   }, []);

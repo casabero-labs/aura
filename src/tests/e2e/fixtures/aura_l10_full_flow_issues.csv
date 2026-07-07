@@ -1,0 +1,7 @@
+"id","name","score","active","priority"
+1,"alpha",85.5,true,high
+2,"beta",92.0,false,medium
+3,"gamma",78.3,true,high
+4,"delta",88.7,false,low
+5,"epsilon",91.2,true,medium
+6,"zeta",,true,high
