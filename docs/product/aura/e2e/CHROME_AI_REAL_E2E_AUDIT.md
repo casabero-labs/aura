@@ -268,36 +268,102 @@ No cubierto en este fix — solo smoke. Se deja como test separado futuro (`Chro
 - Ninguno. El smoke pasa desde el primer intento con CDP.
 - El flujo completo de diagnóstico requiere fixture CSV + navegación UI, que puede ser inestable sin esperas adicionales de la app.
 
-## 17. Flujo completo AURA con Chrome AI real
+## 17. Flujo completo AURA con Chrome AI real (HARDENED)
 
-### Test agregado
+### Test
 
 `L12B-CD-02 — Chrome AI AURA diagnosis flow` en `aura-chrome-ai-real.optin.spec.ts`.
 
-### Fixture usado
+### Gate de activación
 
-`src/tests/e2e/fixtures/aura_l10_full_flow_issues.csv` (6 filas, 5 columnas sintéticas).
-
-### Comandos
+El flow test es **strict opt-in**. No corre con el solo `AURA_E2E_REAL_CHROME_AI=true`. Requiere:
 
 ```bash
 AURA_E2E_REAL_CHROME_AI=true \
+AURA_E2E_REAL_CHROME_AI_FLOW=true \
 AURA_E2E_BASE_URL="http://127.0.0.1:3000" \
 AURA_CHROME_AI_PROFILE_DIR="$HOME/.aura/chrome-ai-profile" \
-npx playwright test src/tests/e2e/aura-chrome-ai-real.optin.spec.ts --headed --reporter=list
+npx playwright test src/tests/e2e/aura-chrome-ai-real.optin.spec.ts --grep "CD-02" --headed --reporter=list
 ```
+
+Sin `AURA_E2E_REAL_CHROME_AI_FLOW=true`, el test se **salta** (`test.skip`) con razón clara.
+
+### Criterio de PASS
+
+El test requiere **TODOS** estos asserts para considerarse PASS:
+
+```ts
+expect(flow.lm).toBe(true);          // Chrome AI LanguageModel presente
+expect(flow.profile).toBe(true);     // Stage de perfil alcanzado
+expect(flow.diag).toBe(true);        // Stage de diagnóstico alcanzado
+expect(flow.generated).toBe(true);   // Diagnóstico generado
+expect(flow.result).toBe(true);      // Resultado visible en UI
+expect(flow.mock).toBe(false);       // Chrome AI real usado, no mock provider
+```
+
+### Estados posibles del test
+
+| Estado | Condición |
+|--------|-----------|
+| **SKIPPED** | `AURA_E2E_REAL_CHROME_AI_FLOW=true` no está activo |
+| **FAIL** | Harness fuerza mock provider → `flow.mock !== false` |
+| **FAIL** | Algún paso del flujo no se completa → assertion falla |
+| **PASS** | Flujo completo + Chrome AI real usado |
+
+### Nota sobre el mock provider
+
+Cuando `VITE_PHASE4_E2E_HARNESS=true` está activo en el dev server, la app usa el motor determinista y `usedMockProvider=true`. Esto causa que `expect(flow.mock).toBe(false)` falle. **Esto es correcto y esperado** — el test detecta que Chrome AI no se usó.
+
+Para obtener PASS real:
+1. El dev server debe estar corriendo **sin** `VITE_PHASE4_E2E_HARNESS`
+2. O la app debe自行 seleccionar Chrome AI como provider activo
+3. Y el diagnóstico debe completarse sin errores
+
+### Smoke test actualizado
+
+El smoke test (`CD-01`) también fue hardening:
+- `expect(ev.lm)` — LanguageModel presente
+- `expect(ev.ready)` — Modelo listo
+- `expect(ev.mock)` — Chrome AI real usado (no mock)
+
+### Fixture
+
+`src/tests/e2e/fixtures/aura_l10_full_flow_issues.csv` (6 filas, sin datos sensibles).
+
+## 18. Flow hardening (sesión actual)
+
+### Cambio realizado
+
+- Eliminación de `expect(flow.profile)` único como gate de PASS — era falso verde.
+- Agregado gate `AURA_E2E_REAL_CHROME_AI_FLOW` para CD-02.
+- CD-02 ahora tiene **6 asserts estrictos**: `lm && profile && diag && generated && result && mock === false`.
+- CD-02 se **salta** si no tiene el flag `FLOW`, no pasa como `PARTIAL`.
+- Escritura de evidence a `docs/` eliminada del smoke test.
+- Console.logs de depuración removidos del spec.
+
+### Variables de entorno
+
+| Variable | Propósito |
+|----------|-----------|
+| `AURA_E2E_REAL_CHROME_AI` | Activa smoke test (`CD-01`) |
+| `AURA_E2E_REAL_CHROME_AI_FLOW` | Activa flow test (`CD-02`) — strict |
+| `AURA_E2E_BASE_URL` | Base URL del dev server |
+| `AURA_CHROME_AI_PROFILE_DIR` | Ruta al perfil dedicado |
 
 ### Resultado
 
-- **Smoke (CD-01):** PASS — `preliminary_valid`, prompt `AURA_CHROME_AI_READY`.
-- **Flow (CD-02):** PARTIAL — requiere que el dev server esté activo al momento de conexión CDP. La app carga (`LM: true`) pero `.sys-nav` puede no estar visible si el dev server no está corriendo.
+- Typecheck: ✅
+- Build: ✅
+- Provider readiness: ✅ (8/8)
+- Smoke CD-01: ✅ PASS (`mock: false`)
+- CD-02 sin flag: ✅ SKIPPED
 
-### Bloqueadores restantes
+### Bloqueadores restantes para PASS real del flow
 
-- El flow test depende de que `http://127.0.0.1:3000` esté activo (Vite dev server con `VITE_PHASE4_E2E_HARNESS=true`).
-- La navegación por estados del pipeline (upload→profile→calibration→diagnosis) requiere que los harness functions estén disponibles, cosa que solo ocurre en build de desarrollo.
-- El smoke test no tiene esta dependencia: solo necesita `LanguageModel` en `globalThis`.
+- Dev server debe estar corriendo sin `VITE_PHASE4_E2E_HARNESS` para que la app use Chrome AI real.
+- Perfil `$HOME/.aura/chrome-ai-profile` con Gemini Nano activo.
+- Navegación completa del pipeline: upload CSV → perfil → calibración → diagnóstico.
 
-### Nota
+### Recomendación técnica inmediata
 
-El flow completo se deja como test en desarrollo. El smoke test es suficiente para validar que Gemini Nano funciona con AURA vía Chrome AI real.
+El smoke test (`CD-01`) es suficiente para validar que Gemini Nano funciona. El flow (`CD-02`) requiere que un dev server esté corriendo con harness deshabilitado y que la app esté configurada para usar Chrome AI como provider activo. No declarar flow como PASS hasta que el diagnóstico real sea generado yvalidado.
