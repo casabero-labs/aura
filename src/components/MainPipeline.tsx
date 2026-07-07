@@ -3,7 +3,7 @@ import FileUpload from './FileUpload';
 import PipelineProgress from './PipelineProgress';
 import ProgressDisclosure from './ProgressDisclosure';
 import DiagnosisStep from './DiagnosisStep';
-import DiagnosticReportGateStep from './DiagnosticReportGateStep';
+import DiagnosticReportStep from './DiagnosticReportStep';
 import ProfileStep from './ProfileStep';
 import ReviewStep from './ReviewStep';
 import ScriptGenerationStep from './ScriptGenerationStep';
@@ -739,9 +739,9 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
         />
       )}
 
-      {/* ── Step 5: Diagnostic report gate ── */}
+      {/* ── Step 5: Diagnostic report ── */}
       {state === 'diagnostic_report' && diagnosticReport && (
-        <DiagnosticReportGateStep
+        <DiagnosticReportStep
           diagnosticReport={diagnosticReport}
           onExportMain={() => setState('export')}
           onGenerateScript={() => setState('script')}

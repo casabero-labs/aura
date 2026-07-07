@@ -3,7 +3,7 @@
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
-import DiagnosticReportGateStep from '../components/DiagnosticReportGateStep';
+import DiagnosticReportStep from '../components/DiagnosticReportStep';
 import PipelineProgress from '../components/PipelineProgress';
 import { buildDiagnosticReport } from '../services/diagnosticReport';
 import { AuditReport, IssueCategory, IssueSeverity, QualityIssue } from '../types';
@@ -85,9 +85,9 @@ describe('pipeline diagnostic report state', () => {
     expect(screen.getByText('Revisión opcional')).toBeTruthy();
   });
 
-  it('DiagnosticReportGateStep renderiza score base, conteos y reglas de salida principal', () => {
+  it('DiagnosticReportStep renderiza score base, conteos y reglas de salida principal', () => {
     render(
-      <DiagnosticReportGateStep
+      <DiagnosticReportStep
         diagnosticReport={buildGateReport()}
         onExportMain={vi.fn()}
         onGenerateScript={vi.fn()}
@@ -96,26 +96,28 @@ describe('pipeline diagnostic report state', () => {
     );
 
     const stage = screen.getByTestId('diagnostic-report-stage');
-    expect(stage.textContent).toContain('Perfil definitivo del dataset');
-    expect(stage.textContent).toContain('AURA consolidó evidencia determinista y diagnóstico disponible.');
+    expect(stage.textContent).toContain('Diagnóstico consolidado del dataset');
+    expect(stage.textContent).toContain('AURA generó un reporte con evidencia determinista. El diagnóstico asistido no está disponible.');
     expect(stage.textContent).toContain('72/100');
-    expect(stage.textContent).toContain('891 / 12');
-    expect(stage.textContent).toContain('deterministic_only');
+    expect(stage.textContent).toContain('891');
+    expect(stage.textContent).toContain('12');
+    expect(stage.textContent).toContain('Solo determinista');
+    expect(stage.textContent).not.toContain('deterministic_only');
     expect(stage.textContent).toContain('Riesgos confirmados');
     expect(stage.textContent).toContain('Posibles falsos positivos contextuales');
     expect(stage.textContent).toContain('Recomendaciones');
     expect(stage.textContent).toContain('El score base no fue modificado.');
     expect(stage.textContent).toContain('El script es opcional.');
-    expect(stage.textContent).toContain('HITL solo aplica si se entra a remediación con script.');
+    expect(stage.textContent).toContain('HITL solo aplica si se entra a remediación.');
   });
 
-  it('DiagnosticReportGateStep expone acciones para exportar, remediar opcionalmente y volver', () => {
+  it('DiagnosticReportStep expone acciones para exportar, remediar opcionalmente y volver', () => {
     const onExportMain = vi.fn();
     const onGenerateScript = vi.fn();
     const onBackToDiagnosis = vi.fn();
 
     render(
-      <DiagnosticReportGateStep
+      <DiagnosticReportStep
         diagnosticReport={buildGateReport()}
         onExportMain={onExportMain}
         onGenerateScript={onGenerateScript}
@@ -123,9 +125,9 @@ describe('pipeline diagnostic report state', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /Ir a exportación principal/i }));
-    fireEvent.click(screen.getByRole('button', { name: /Generar script recomendado, opcional/i }));
-    fireEvent.click(screen.getByRole('button', { name: /Volver al diagnóstico/i }));
+    fireEvent.click(screen.getByTestId('diagnostic-report-export-main'));
+    fireEvent.click(screen.getByTestId('diagnostic-report-generate-script'));
+    fireEvent.click(screen.getByTestId('diagnostic-report-back-diagnosis'));
 
     expect(onExportMain).toHaveBeenCalledTimes(1);
     expect(onGenerateScript).toHaveBeenCalledTimes(1);

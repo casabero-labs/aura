@@ -6357,6 +6357,376 @@ tr:hover td {
   color: var(--orange);
 }
 
+/* ─── Diagnostic Report Step ─── */
+
+.diagnostic-report-stage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.diagnostic-report-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-lg);
+  align-items: start;
+}
+
+.diagnostic-report-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.diagnostic-report-actions--top {
+  justify-content: flex-end;
+  max-width: 460px;
+}
+
+.diagnostic-report-actions .btn-p,
+.diagnostic-report-actions .btn-s {
+  white-space: normal;
+  text-align: center;
+}
+
+.diagnostic-report-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: var(--space-md);
+}
+
+.diagnostic-report-summary-card--wide {
+  grid-column: span 2;
+}
+
+.diagnostic-report-summary-value {
+  font-family: var(--font-serif);
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.05;
+  color: var(--ink);
+}
+
+.diagnostic-report-governance,
+.diagnostic-report-executive,
+.diagnostic-report-section,
+.diagnostic-report-closeout {
+  padding: var(--space-lg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.diagnostic-report-governance {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.diagnostic-report-governance-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.diagnostic-report-governance ul,
+.diagnostic-report-limitations ul {
+  margin: 0;
+  padding-left: var(--space-lg);
+  color: var(--ink2);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.diagnostic-report-section-head {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-md);
+  align-items: flex-start;
+  margin-bottom: var(--space-md);
+}
+
+.diagnostic-report-section-head h3,
+.diagnostic-chart-card h4,
+.diagnostic-finding-card h4,
+.diagnostic-recommendation-card h4 {
+  font-family: var(--font-serif);
+  color: var(--ink);
+  line-height: 1.2;
+  margin: 0;
+}
+
+.diagnostic-report-section-head h3 {
+  font-size: 20px;
+}
+
+.diagnostic-report-section-copy,
+.diagnostic-report-executive > p,
+.diagnostic-chart-card > p,
+.diagnostic-recommendation-card > p,
+.diagnostic-report-closeout > p {
+  color: var(--ink2);
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0 0 var(--space-md);
+}
+
+.diagnostic-report-kicker {
+  display: inline-flex;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink3);
+  margin-bottom: var(--space-xxs);
+}
+
+.diagnostic-report-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--ink2);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.diagnostic-report-badge--warn {
+  border-color: rgba(230, 81, 0, 0.22);
+  background: rgba(230, 81, 0, 0.05);
+}
+
+.diagnostic-report-limitations {
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--border);
+}
+
+.diagnostic-report-limitations > span {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink3);
+  margin-bottom: var(--space-xs);
+}
+
+.diagnostic-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--space-md);
+}
+
+.diagnostic-chart-card,
+.diagnostic-finding-card,
+.diagnostic-recommendation-card {
+  padding: var(--space-md);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.diagnostic-chart-card-head,
+.diagnostic-finding-card-head,
+.diagnostic-recommendation-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.diagnostic-chart-card h4,
+.diagnostic-finding-card h4,
+.diagnostic-recommendation-card h4 {
+  font-size: 16px;
+}
+
+.diagnostic-chart-bars {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.diagnostic-chart-row {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.diagnostic-chart-row-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  font-size: 12px;
+  color: var(--ink2);
+}
+
+.diagnostic-chart-row-head strong {
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.diagnostic-chart-track {
+  height: 6px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--border);
+}
+
+.diagnostic-chart-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--ink-soft);
+}
+
+.diagnostic-chart-table-wrap {
+  overflow-x: auto;
+}
+
+.diagnostic-chart-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.diagnostic-chart-table th,
+.diagnostic-chart-table td {
+  padding: var(--space-xs);
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  color: var(--ink2);
+}
+
+.diagnostic-chart-table th {
+  color: var(--ink);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.diagnostic-report-findings-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-md);
+}
+
+.diagnostic-finding-list,
+.diagnostic-recommendation-list {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.diagnostic-finding-body {
+  display: grid;
+  gap: var(--space-xs);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--border);
+}
+
+.diagnostic-finding-body > div {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr);
+  gap: var(--space-xs);
+}
+
+.diagnostic-finding-body span {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink3);
+}
+
+.diagnostic-finding-body strong {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.45;
+}
+
+.diagnostic-report-tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.diagnostic-report-tag-row span {
+  display: inline-flex;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--ink2);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.diagnostic-report-empty {
+  margin: 0;
+  color: var(--ink3);
+  font-size: 13px;
+  font-style: italic;
+}
+
+.diagnostic-report-closeout {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-lg);
+}
+
+.diagnostic-report-closeout > p {
+  margin: 0;
+  max-width: 480px;
+}
+
+@media (max-width: 920px) {
+  .diagnostic-report-hero,
+  .diagnostic-report-closeout,
+  .diagnostic-report-findings-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .diagnostic-report-hero,
+  .diagnostic-report-closeout {
+    display: grid;
+  }
+
+  .diagnostic-report-actions--top {
+    justify-content: flex-start;
+    max-width: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .diagnostic-report-summary-card--wide {
+    grid-column: auto;
+  }
+
+  .diagnostic-report-section-head,
+  .diagnostic-chart-card-head,
+  .diagnostic-finding-card-head,
+  .diagnostic-recommendation-head {
+    flex-direction: column;
+  }
+
+  .diagnostic-finding-body > div {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ─── Stage Result (Casabero Hierarchy) ─── */
 
 .stage-result {
