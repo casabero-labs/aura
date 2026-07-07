@@ -1,0 +1,64 @@
+{
+  "testRun": {
+    "phase": "L11",
+    "browser": "chromium",
+    "csvLoadedViaUi": true,
+    "fileInputInteraction": "setInputFiles",
+    "harnessBeforeProfile": false,
+    "providerMode": "mock-after-profile",
+    "usedRealAiProvider": false,
+    "downloadedModels": false
+  },
+  "fixtureProvenance": {
+    "fixtureName": "aura_l11_calibration_flow.csv",
+    "fixtureRead": true,
+    "fixtureRows": 6,
+    "fixtureColumns": 5
+  },
+  "scenarios": {
+    "normalPath": {
+      "testId": "L11-01",
+      "profileReached": true,
+      "calibrationOptInVisible": true,
+      "continuedWithoutCalibration": true,
+      "calibrationBlockedNormalFlow": false,
+      "calibrationStatus": "none"
+    },
+    "embeddedCalibrationPath": {
+      "testId": "L11-02",
+      "profileReached": true,
+      "activatedExperimentalComparison": true,
+      "embeddedPanelVisible": true,
+      "benchmarkLabMainNavigationUsed": false,
+      "calibrationStatus": "preliminary",
+      "mockBenchmarkResultInjectedAfterProfile": true
+    }
+  },
+  "exportValidations": {
+    "exportContractName": true,
+    "exportContractVersion": true,
+    "calibrationEvidenceRoot": true,
+    "experimentRootAbsent": true,
+    "deprecatedMigrationDeclared": true,
+    "legacyAliasNotIncluded": true,
+    "manifestDatasetRowsCorrect": true,
+    "manifestDatasetColumnsCorrect": true,
+    "profileRowCountCorrect": true,
+    "profileColCountCorrect": true
+  },
+  "claimBoundary": {
+    "noFormalBenchmarkClaim": true,
+    "noBestModelClaim": true,
+    "noProductionReadyClaim": true,
+    "noFourthDeliveryStartedClaim": true
+  },
+  "screenshots": [
+    "docs/product/aura/phase_10/l11_evidence/screenshots/01_upload_step_ready.png",
+    "docs/product/aura/phase_10/l11_evidence/screenshots/02_profile_reached.png",
+    "docs/product/aura/phase_10/l11_evidence/screenshots/03_calibration_opt_in_visible.png",
+    "docs/product/aura/phase_10/l11_evidence/screenshots/04_continue_normal_path.png",
+    "docs/product/aura/phase_10/l11_evidence/screenshots/05_embedded_calibration_panel.png",
+    "docs/product/aura/phase_10/l11_evidence/screenshots/06_export_contract_validated.png"
+  ],
+  "allPassed": true
+}
