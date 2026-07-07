@@ -9,7 +9,7 @@ Generar diagnóstico → progreso visible → diagnóstico generado → evidenci
 ## 2. Commit auditado
 
 ```
-71be7999356ba2270808c9410f6b4795cf30e686
+db2f5bc0283fed90f753d2a8897fd8301c3761d2
 ```
 
 ## 3. Archivos modificados
