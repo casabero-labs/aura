@@ -7,7 +7,7 @@ Crear una versión experimental de contratos LLM v2 y comparar su comportamiento
 ## 2. Commit auditado
 
 ```
-(SHA — completar post-push)
+9d25cf4db5095c735c0e57e5aed161b8cc1c2081
 ```
 
 ## 3. Archivos creados/modificados
