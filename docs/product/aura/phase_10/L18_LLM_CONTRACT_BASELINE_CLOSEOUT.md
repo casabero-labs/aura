@@ -7,7 +7,7 @@ Crear un harness reproducible para evaluar el comportamiento actual del contrato
 ## 2. Commit auditado
 
 ```
-3345d580dec7d645ca42fc6014101174ddf2c42c
+0c9635360c3329bfd42791e768092c767f84074c
 ```
 
 ## 3. Archivos creados/modificados
