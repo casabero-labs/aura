@@ -75,6 +75,7 @@ const INITIAL_PIPELINE_DATA: PipelineData = {
   healthDelta: null,
   aiAnalysis: '',
   structuredDiagnosis: null,
+  diagnosticReport: null,
   remediationPlan: null,
   scriptContractV2: null,
   scriptContractVerificationV2: null,
@@ -103,6 +104,7 @@ const App: React.FC = () => {
         healthDelta: snap.healthDelta,
         aiAnalysis: snap.aiAnalysis,
         structuredDiagnosis: (snap as any).structuredDiagnosis ?? null,
+        diagnosticReport: (snap as any).diagnosticReport ?? null,
         remediationPlan: (snap as any).remediationPlan ?? null,
         scriptContractV2: (snap as any).scriptContractV2 ?? null,
         scriptContractVerificationV2: (snap as any).scriptContractVerificationV2 ?? null,
@@ -611,7 +613,7 @@ const App: React.FC = () => {
               <h2 className="sec-title">Tu evidencia está lista</h2>
             </div>
             <p className="section-note">
-              AURA reúne reporte, hallazgos, script y manifest para que puedas defender el proceso.
+              AURA reúne reporte diagnóstico, hallazgos y manifest técnico. Script y anexos de remediación aparecen solo si fueron generados.
             </p>
 
             <div className="companion-note">

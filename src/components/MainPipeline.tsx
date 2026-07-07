@@ -3,6 +3,7 @@ import FileUpload from './FileUpload';
 import PipelineProgress from './PipelineProgress';
 import ProgressDisclosure from './ProgressDisclosure';
 import DiagnosisStep from './DiagnosisStep';
+import DiagnosticReportGateStep from './DiagnosticReportGateStep';
 import ProfileStep from './ProfileStep';
 import ReviewStep from './ReviewStep';
 import ScriptGenerationStep from './ScriptGenerationStep';
@@ -17,11 +18,12 @@ import { validateCleaningScript } from '../services/scriptValidationService';
 import { buildScriptContractInputKey, buildUiScriptContext } from '../services/scriptContractUiContext';
 import { buildEvidenceManifest } from '../services/evidenceManifest';
 import { buildAuraExportPackage } from '../services/exportPackage';
+import { buildDiagnosticReport, type DiagnosticReport } from '../services/diagnosticReport';
 import { AIConfig, AIProvider, AuditReport, AuditExecutionEvidence, BenchmarkResult, DeterministicValidationReport, HealthDelta, ImprovementRun, ProviderMetrics, ScriptValidationResult, ProgressDisclosureStatus } from '../types';
 import type { DiagnosisExecutionResult, RemediationPlanV2, ScriptContractV2, ScriptValidationResultV2 } from '../contracts/llm';
 import { validateRemediationPlanV2, isContractsV2Enabled, verifyScriptContractV2 } from '../contracts/llm';
 
-export type PipelineState = 'upload' | 'profile' | 'calibration' | 'diagnosis' | 'script' | 'review' | 'export';
+export type PipelineState = 'upload' | 'profile' | 'calibration' | 'diagnosis' | 'diagnostic_report' | 'script' | 'review' | 'export';
 
 export interface PipelineData {
   state: PipelineState;
@@ -36,6 +38,7 @@ export interface PipelineData {
   healthDelta: HealthDelta | null;
   aiAnalysis: string;
   structuredDiagnosis: DiagnosisExecutionResult | null;
+  diagnosticReport: DiagnosticReport | null;
   remediationPlan: RemediationPlanV2 | null;
   scriptContractV2: ScriptContractV2 | null;
   scriptContractVerificationV2: ScriptValidationResultV2 | null;
@@ -93,6 +96,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
   const [healthDelta, setHealthDelta] = useState<HealthDelta | null>(() => initialData?.healthDelta ?? null);
   const [aiAnalysis, setAiAnalysis] = useState(() => initialData?.aiAnalysis ?? '');
   const [structuredDiagnosis, setStructuredDiagnosis] = useState<DiagnosisExecutionResult | null>(() => initialData?.structuredDiagnosis ?? null);
+  const [diagnosticReport, setDiagnosticReport] = useState<DiagnosticReport | null>(() => initialData?.diagnosticReport ?? null);
   const [remediationPlan, setRemediationPlan] = useState<RemediationPlanV2 | null>(() => initialData?.remediationPlan ?? null);
   const [benchmarkResults, setBenchmarkResults] = useState<BenchmarkResult[]>(() => initialData?.benchmarkResults ?? []);
   const [isCalibrationOpen, setIsCalibrationOpen] = useState(false);
@@ -118,6 +122,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
       state, file, report, auditEvidence, rawData, csvFields, csvDelimiter,
       cleaningScript, approvedScript, healthDelta, aiAnalysis,
       structuredDiagnosis,
+      diagnosticReport,
       remediationPlan,
       scriptContractV2,
       scriptContractVerificationV2,
@@ -127,6 +132,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
   }, [state, file, report, auditEvidence, rawData, csvFields, csvDelimiter,
       cleaningScript, approvedScript, healthDelta, aiAnalysis,
       structuredDiagnosis,
+      diagnosticReport,
       remediationPlan,
       scriptContractV2,
       scriptContractVerificationV2,
@@ -479,6 +485,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
     setReport(null); setRawData([]); setCsvFields([]); setCsvDelimiter(',');
     setAuditEvidence(null); setCleaningScript(''); setApprovedScript('');
     setHealthDelta(null); setAiAnalysis(''); setStructuredDiagnosis(null); setRemediationPlan(null); setLogs([]);
+    setDiagnosticReport(null);
     setScriptValidation(null);
     setScriptContractV2(null);
     setScriptContractVerificationV2(null);
@@ -554,6 +561,44 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
     }
   };
 
+  const buildCurrentDiagnosticReport = () => {
+    if (!report) return null;
+    return buildDiagnosticReport({
+      report,
+      auditEvidence,
+      structuredDiagnosis,
+      aiAnalysis,
+      deterministicValidation,
+      fileName: file?.name ?? null,
+    });
+  };
+
+  const buildAndOpenDiagnosticReport = () => {
+    const nextReport = buildCurrentDiagnosticReport();
+    if (!nextReport) return;
+    setDiagnosticReport(nextReport);
+    addLog(`diagnostic.report.ready :: status=${nextReport.status.diagnosticStatus}`);
+    setState('diagnostic_report');
+  };
+
+  const ensureDiagnosticReportForNavigation = () => {
+    if (diagnosticReport) return diagnosticReport;
+    const nextReport = buildCurrentDiagnosticReport();
+    if (nextReport) {
+      setDiagnosticReport(nextReport);
+      addLog(`diagnostic.report.ready :: status=${nextReport.status.diagnosticStatus}`);
+    }
+    return nextReport;
+  };
+
+  useEffect(() => {
+    if (state !== 'diagnostic_report' || !report || diagnosticReport) return;
+    const nextReport = buildCurrentDiagnosticReport();
+    if (!nextReport) return;
+    setDiagnosticReport(nextReport);
+    addLog(`diagnostic.report.ready :: status=${nextReport.status.diagnosticStatus}`);
+  }, [state, report, diagnosticReport, auditEvidence, structuredDiagnosis, aiAnalysis, deterministicValidation, file]);
+
   const hasData = !!report;
   const hasStructuredDiagnosis = !!structuredDiagnosis;
   const hasDiagnosis = hasData && (aiAnalysis.trim().length > 0 || hasStructuredDiagnosis);
@@ -568,7 +613,18 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
         currentStep={state}
         onStepClick={(step) => {
           // Allow navigation to completed or current steps
-          if (step === 'upload' || (hasData && ['profile', 'calibration', 'diagnosis', 'script', 'review', 'export'].includes(step))) {
+          if (step === 'diagnostic_report') {
+            if (hasData && ensureDiagnosticReportForNavigation()) {
+              setState(step);
+            }
+            return;
+          }
+          if (hasData && ['script', 'review', 'export'].includes(step)) {
+            ensureDiagnosticReportForNavigation();
+            setState(step);
+            return;
+          }
+          if (step === 'upload' || (hasData && ['profile', 'calibration', 'diagnosis'].includes(step))) {
             setState(step);
           }
         }}
@@ -667,17 +723,33 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
           aiProvider={aiProvider}
           analysisText={aiAnalysis}
           onAiConfigChange={onAiConfigChange || (() => {})}
-          onAnalysisComplete={(analysis) => setAiAnalysis(analysis)}
-          onStructuredDiagnosisComplete={setStructuredDiagnosis}
+          onAnalysisComplete={(analysis) => {
+            setAiAnalysis(analysis);
+            setDiagnosticReport(null);
+          }}
+          onStructuredDiagnosisComplete={(diagnosis) => {
+            setStructuredDiagnosis(diagnosis);
+            setDiagnosticReport(null);
+          }}
           onLog={(stage, msg) => addLog(`${stage} :: ${msg}`)}
-          onContinue={() => setState('script')}
+          onContinue={buildAndOpenDiagnosticReport}
           onOpenLab={onOpenLab}
           onOpenSettings={onOpenSettings}
           initialDiagnosis={structuredDiagnosis}
         />
       )}
 
-      {/* ── Step 5: Script generation ── */}
+      {/* ── Step 5: Diagnostic report gate ── */}
+      {state === 'diagnostic_report' && diagnosticReport && (
+        <DiagnosticReportGateStep
+          diagnosticReport={diagnosticReport}
+          onExportMain={() => setState('export')}
+          onGenerateScript={() => setState('script')}
+          onBackToDiagnosis={() => setState('diagnosis')}
+        />
+      )}
+
+      {/* ── Step 6: Script generation ── */}
       {state === 'script' && report && isContractsV2Enabled() && !!structuredDiagnosis?.remediationContext && (
         <ScriptGenerationStepV2
           report={report}
@@ -701,7 +773,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
         />
       )}
 
-      {/* ── Step 5: Script generation (legacy) ── */}
+      {/* ── Step 6: Script generation (legacy) ── */}
       {state === 'script' && report && (!isContractsV2Enabled() || !structuredDiagnosis?.remediationContext) && (
         <ScriptGenerationStep
           report={report}
@@ -724,7 +796,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
         />
       )}
 
-      {/* ── Step 6: Review & HITL ── */}
+      {/* ── Step 7: Review & HITL ── */}
       {state === 'review' && report && (
         <ReviewStep
           report={report}

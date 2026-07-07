@@ -35,6 +35,7 @@ const initialData: PipelineData = {
   healthDelta: null,
   aiAnalysis: '',
   structuredDiagnosis: null,
+  diagnosticReport: null,
   remediationPlan: null,
   scriptContractV2: null,
   scriptContractVerificationV2: null,

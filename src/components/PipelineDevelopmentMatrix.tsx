@@ -8,6 +8,7 @@ const stageIcons: Record<PipelineState, LucideIcon> = {
   profile: Search,
   calibration: FlaskConical,
   diagnosis: Brain,
+  diagnostic_report: ClipboardCheck,
   script: FileCode2,
   review: ClipboardCheck,
   export: FileText,

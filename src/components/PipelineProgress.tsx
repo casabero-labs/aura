@@ -1,5 +1,5 @@
 
-export type PipelineState = 'upload' | 'profile' | 'calibration' | 'diagnosis' | 'script' | 'review' | 'export';
+export type PipelineState = 'upload' | 'profile' | 'calibration' | 'diagnosis' | 'diagnostic_report' | 'script' | 'review' | 'export';
 
 interface PipelineProgressProps {
   currentStep: PipelineState;
@@ -8,15 +8,16 @@ interface PipelineProgressProps {
 
 const steps: { num: number; label: string; state: PipelineState }[] = [
   { num: 1, label: 'Carga', state: 'upload' },
-  { num: 2, label: 'Perfil', state: 'profile' },
+  { num: 2, label: 'Perfil técnico', state: 'profile' },
   { num: 3, label: 'Calibración', state: 'calibration' },
   { num: 4, label: 'Diagnóstico', state: 'diagnosis' },
-  { num: 5, label: 'Script', state: 'script' },
-  { num: 6, label: 'Revisión', state: 'review' },
-  { num: 7, label: 'Exportar', state: 'export' },
+  { num: 5, label: 'Reporte', state: 'diagnostic_report' },
+  { num: 6, label: 'Script opcional', state: 'script' },
+  { num: 7, label: 'Revisión opcional', state: 'review' },
+  { num: 8, label: 'Exportar', state: 'export' },
 ];
 
-const stepOrder: PipelineState[] = ['upload', 'profile', 'calibration', 'diagnosis', 'script', 'review', 'export'];
+const stepOrder: PipelineState[] = ['upload', 'profile', 'calibration', 'diagnosis', 'diagnostic_report', 'script', 'review', 'export'];
 
 const getStepStatus = (stepState: PipelineState, currentStep: PipelineState) => {
   const currentIndex = stepOrder.indexOf(currentStep);
