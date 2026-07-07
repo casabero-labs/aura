@@ -440,7 +440,7 @@ Sin estos condiciones, el test falla — lo cual es correcto y deseable.
   - Tercer "Continuar" → avanzar a diagnóstico
   - `[data-testid="diagnosis-stage"]` + "Generar diagnóstico" visible → generar
   - `[data-testid="stage-decision-summary"]` visible → validar resultado
-- CD-02: 9 asserts estrictos incluyendo `usedRealChromeAi` + `createCalled` + `promptCalled`.
+- CD-02: 10 asserts estrictos incluyendo `usedRealChromeAi` + `createCalled` + `promptCalled`.
 - El `installLanguageModelInterceptor` se mantiene — captura evidencia de provider real.
 
 ### Distinción clave
@@ -475,6 +475,63 @@ CD-02 se ejecuta contra `https://aura.casabero.com` SIN harness. La navegación 
 - **PRODUCT_GAP** si la producción no permite seleccionar/usar Chrome AI como provider.
 - **ENV_REQUIRED** si Chrome AI no está disponible en el entorno.
 - **FIX_REQUIRED** si falla por bug en la app.
+
+## 22. Production state reset handling (sesión actual)
+
+### Problema observado
+
+CD-02 contra producción (`https://aura.casabero.com`) falló en el primer paso de upload. La producción tiene estado persistente de una sesión anterior:
+- "PERFIL DEL DATASET" visible
+- "6 filas · 5 columnas"
+- "Generar diagnóstico" visible
+- `[data-testid="csv-file-input"]` **no existe** en DOM cuando la app está en estado avanzado
+
+### Causa
+
+El perfil Chrome dedicado (`$HOME/.aura/chrome-ai-profile`) persiste la sesión de AURA entre tests. El test esperaba estado limpio (upload step), pero la app ya tenía dataset cargado.
+
+### Solución implementada
+
+Helper `resetToUploadIfNeeded(page)` que:
+1. Detecta si `[data-testid="csv-file-input"]` es visible → estado limpio
+2. Detecta estado avanzado ("PERFIL DEL DATASET", "Riesgo moderado", "Generar diagnóstico") → click "NUEVO ANÁLISIS"
+3. Espera hasta 8s a que el input de upload se attach al DOM
+4. Si no hay input ni botón de reset → retorna `stateDetected: 'unknown'`
+
+### Resultado de CD-02 contra producción
+
+```
+stateDetected: 'advanced_existing_dataset'
+resetAttempted: true
+resetSucceeded: false   ← NUEVO ANÁLISIS no reveló [data-testid="csv-file-input"]
+uploadInputVisible: false
+```
+
+**Estado: SELECTOR_REQUIRED**
+
+Después de click en "NUEVO ANÁLISIS":
+- Texto "CARGA" no apareció
+- `[data-testid="csv-file-input"]` nunca se attachó al DOM
+- Espera de 8s agotada
+
+La producción no expone el selector `[data-testid="csv-file-input"]` después de hacer click en "NUEVO ANÁLISIS". Este selector solo existe en builds con `VITE_PHASE4_E2E_HARNESS=true`.
+
+### Pasos confirmados
+
+| Paso | Resultado |
+|------|-----------|
+| `https://aura.casabero.com` cargó | ✅ |
+| `.sys-nav` visible | ✅ |
+| Click "Empezar auditoría" | ✅ |
+| Estado avanzado detectado ("PERFIL DEL DATASET") | ✅ |
+| "NUEVO ANÁLISIS" encontrado y clickeado | ✅ |
+| `[data-testid="csv-file-input"]` attachado después del reset | ❌ nunca |
+| Upload CSV | ❌ no ejecutado |
+| LanguageModel.create llamado | ❌ no ejecutado |
+
+### Clasificación
+
+**SELECTOR_REQUIRED** — El selector de upload no está disponible en producción después de "NUEVO ANÁLISIS". No es bug de app ni de test. Es un gap de infraestructura: producción necesita exponer el input de upload de forma estable sin depender del harness de desarrollo.
 
 ### Grep final confirmado
 

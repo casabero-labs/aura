@@ -88,6 +88,56 @@ async function installLanguageModelInterceptor(page: Page): Promise<void> {
   });
 }
 
+type ResetResult =
+  | { stateDetected: 'clean_upload'; resetAttempted: false; resetSucceeded: true; uploadInputVisible: true }
+  | { stateDetected: 'advanced_existing_dataset'; resetAttempted: true; resetSucceeded: boolean; uploadInputVisible: boolean }
+  | { stateDetected: 'unknown'; resetAttempted: false; resetSucceeded: false; uploadInputVisible: false };
+
+/**
+ * Detects and resets the app to the upload step if needed.
+ * Production may have persistent state from a previous session.
+ */
+async function resetToUploadIfNeeded(page: Page): Promise<ResetResult> {
+  const uploadInput = page.locator('[data-testid="csv-file-input"]');
+
+  if (await uploadInput.isVisible({ timeout: 5000 }).catch(() => false)) {
+    return { stateDetected: 'clean_upload', resetAttempted: false, resetSucceeded: true, uploadInputVisible: true };
+  }
+
+  const advancedStateVisible =
+    await page.getByText(/PERFIL DEL DATASET/i).isVisible({ timeout: 3000 }).catch(() => false)
+    || await page.getByRole('button', { name: /(Generar|Regenerar) diagnóstico/i }).isVisible({ timeout: 3000 }).catch(() => false)
+    || await page.getByText(/Riesgo moderado|Riesgo alto|Riesgo bajo/i).isVisible({ timeout: 3000 }).catch(() => false);
+
+  const nuevoAnalisis = page.getByRole('button', { name: /NUEVO ANÁLISIS|Nuevo análisis/i });
+
+  if (advancedStateVisible || await nuevoAnalisis.isVisible({ timeout: 3000 }).catch(() => false)) {
+    if (await nuevoAnalisis.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await nuevoAnalisis.click();
+      await page.waitForTimeout(2000);
+      try {
+        await uploadInput.waitFor({ state: 'attached', timeout: 8000 });
+        const visibleAfterReset = await uploadInput.isVisible({ timeout: 5000 }).catch(() => false);
+        return {
+          stateDetected: 'advanced_existing_dataset',
+          resetAttempted: true,
+          resetSucceeded: visibleAfterReset,
+          uploadInputVisible: visibleAfterReset,
+        };
+      } catch {
+        return {
+          stateDetected: 'advanced_existing_dataset',
+          resetAttempted: true,
+          resetSucceeded: false,
+          uploadInputVisible: false,
+        };
+      }
+    }
+  }
+
+  return { stateDetected: 'unknown', resetAttempted: false, resetSucceeded: false, uploadInputVisible: false };
+}
+
 test.describe.serial('Phase 10 L12B — Chrome AI Real Opt-in (CDP)', () => {
   test.skip(!SMOKE_ACTIVE, 'Requires AURA_E2E_REAL_CHROME_AI=true + BASE_URL + PROFILE_DIR');
 
@@ -127,6 +177,10 @@ test.describe.serial('Phase 10 L12B — Chrome AI Real Opt-in (CDP)', () => {
 
     const flow = {
       lm: false,
+      initialState: 'unknown' as ResetResult['stateDetected'],
+      resetAttempted: false,
+      resetSucceeded: false,
+      uploadInputVisible: false,
       uploaded: false,
       profileStageReached: false,
       calibrationStageReached: false,
@@ -143,24 +197,33 @@ test.describe.serial('Phase 10 L12B — Chrome AI Real Opt-in (CDP)', () => {
       await page.goto(BASE_URL, { waitUntil: 'domcontentloaded', timeout: 60_000 });
       flow.lm = await page.evaluate(() => typeof (globalThis as any).LanguageModel !== 'undefined');
 
-      // ── 1. Home: click "Empezar auditoría" ──
+      // ── 0. Home: click "Empezar auditoría" ──
       await page.locator('.sys-nav').waitFor({ state: 'visible', timeout: 15_000 });
       await page.getByRole('button', { name: /Empezar auditoría/i }).click();
 
+      // ── 1. State normalization: handle persistent state from previous session ──
+      const resetState = await resetToUploadIfNeeded(page);
+      flow.initialState = resetState.stateDetected;
+      flow.resetAttempted = resetState.resetAttempted;
+      flow.resetSucceeded = resetState.resetSucceeded;
+      flow.uploadInputVisible = resetState.uploadInputVisible;
+
+      if (!flow.uploadInputVisible) {
+        throw new Error(
+          `SELECTOR_REQUIRED: upload input not visible after reset (state=${resetState.stateDetected})`,
+        );
+      }
+
       // ── 2. Upload step: upload CSV ──
-      await page.locator('[data-testid="csv-file-input"]').waitFor({ state: 'visible', timeout: 15_000 });
       await page.locator('[data-testid="csv-file-input"]').setInputFiles(DIAG_FLOW_CSV);
       flow.uploaded = true;
 
       // ── 3. Profile stage: wait for "Continuar" button to be ready ──
-      // The profile stage shows a "Continuar" button inside [data-testid="primary-stage-action"]
-      // We wait for it to appear (profile generation is async after CSV upload).
       try {
         await page.locator('[data-testid="primary-stage-action"]').getByRole('button', { name: /Continuar/i })
           .waitFor({ state: 'visible', timeout: 30_000 });
         flow.profileStageReached = true;
       } catch {
-        // Profile stage may auto-advance if fast; check for calibration button instead
         flow.profileStageReached = await page.locator('[data-testid="primary-stage-action"]').getByRole('button', { name: /Continuar/i })
           .isVisible({ timeout: 5000 }).catch(() => false);
       }
@@ -176,7 +239,6 @@ test.describe.serial('Phase 10 L12B — Chrome AI Real Opt-in (CDP)', () => {
       }
 
       // ── 5. Diagnosis stage: click "Continuar" again if visible ──
-      // After calibration, another "Continuar" may appear to advance to diagnosis
       const calBtn2 = page.locator('[data-testid="primary-stage-action"]').getByRole('button', { name: /Continuar/i });
       if (await calBtn2.isVisible({ timeout: 5000 }).catch(() => false)) {
         await calBtn2.click();
@@ -189,7 +251,6 @@ test.describe.serial('Phase 10 L12B — Chrome AI Real Opt-in (CDP)', () => {
 
       if (diagVisible) {
         flow.diagStageReached = true;
-        // Install interceptor BEFORE clicking generate — catches the app's own calls
         await installLanguageModelInterceptor(page);
         await diagBtn.click();
         flow.generated = true;
@@ -211,6 +272,7 @@ test.describe.serial('Phase 10 L12B — Chrome AI Real Opt-in (CDP)', () => {
 
     // ── Strict assertions: NO partial pass, NO manual mock flag ──
     expect(flow.lm, 'Chrome AI LanguageModel must be present').toBe(true);
+    expect(flow.uploadInputVisible, 'Upload input must be visible after reset/state normalization').toBe(true);
     expect(flow.uploaded, 'CSV must be uploaded').toBe(true);
     expect(flow.profileStageReached, 'Profile stage must be reached').toBe(true);
     expect(flow.diagStageReached, 'Diagnosis stage must be reached').toBe(true);
