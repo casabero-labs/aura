@@ -267,3 +267,37 @@ No cubierto en este fix — solo smoke. Se deja como test separado futuro (`Chro
 
 - Ninguno. El smoke pasa desde el primer intento con CDP.
 - El flujo completo de diagnóstico requiere fixture CSV + navegación UI, que puede ser inestable sin esperas adicionales de la app.
+
+## 17. Flujo completo AURA con Chrome AI real
+
+### Test agregado
+
+`L12B-CD-02 — Chrome AI AURA diagnosis flow` en `aura-chrome-ai-real.optin.spec.ts`.
+
+### Fixture usado
+
+`src/tests/e2e/fixtures/aura_l10_full_flow_issues.csv` (6 filas, 5 columnas sintéticas).
+
+### Comandos
+
+```bash
+AURA_E2E_REAL_CHROME_AI=true \
+AURA_E2E_BASE_URL="http://127.0.0.1:3000" \
+AURA_CHROME_AI_PROFILE_DIR="$HOME/.aura/chrome-ai-profile" \
+npx playwright test src/tests/e2e/aura-chrome-ai-real.optin.spec.ts --headed --reporter=list
+```
+
+### Resultado
+
+- **Smoke (CD-01):** PASS — `preliminary_valid`, prompt `AURA_CHROME_AI_READY`.
+- **Flow (CD-02):** PARTIAL — requiere que el dev server esté activo al momento de conexión CDP. La app carga (`LM: true`) pero `.sys-nav` puede no estar visible si el dev server no está corriendo.
+
+### Bloqueadores restantes
+
+- El flow test depende de que `http://127.0.0.1:3000` esté activo (Vite dev server con `VITE_PHASE4_E2E_HARNESS=true`).
+- La navegación por estados del pipeline (upload→profile→calibration→diagnosis) requiere que los harness functions estén disponibles, cosa que solo ocurre en build de desarrollo.
+- El smoke test no tiene esta dependencia: solo necesita `LanguageModel` en `globalThis`.
+
+### Nota
+
+El flow completo se deja como test en desarrollo. El smoke test es suficiente para validar que Gemini Nano funciona con AURA vía Chrome AI real.

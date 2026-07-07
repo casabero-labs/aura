@@ -94,7 +94,6 @@ export async function launchChromeWithCdp(options: {
     `--user-data-dir=${options.profileDir}`,
     `--remote-debugging-port=${cdpPort}`,
     '--no-first-run',
-    '--no-sandbox',
     '--enable-features=PromptAPI,OptimizationGuideOnDeviceModel,PromptAPIForGeminiNano,BuiltInAIOnDeviceModel',
     '--enable-optimization-guide-on-device-model',
     options.baseUrl,
@@ -121,10 +120,13 @@ export async function launchChromeWithCdp(options: {
     close: async () => {
       try { await browser.close(); } catch { /* ok */ }
       try { browserProcess.kill('SIGTERM'); } catch { /* ok */ }
-      // Force kill after grace period
-      setTimeout(() => {
-        try { browserProcess.kill('SIGKILL'); } catch { /* ok */ }
-      }, 3000);
+      // Wait for process to fully exit so port is released
+      await new Promise<void>(resolve => {
+        browserProcess.on('exit', () => resolve());
+        setTimeout(() => resolve(), 3000);
+      });
+      // Additional grace period for port release
+      await new Promise(r => setTimeout(r, 1000));
     },
   };
 }
