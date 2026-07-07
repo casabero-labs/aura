@@ -10,7 +10,7 @@ Garantizar que AURA sigue siendo usable aunque el proveedor IA real no esté dis
 ## 2. Commit auditado
 
 ```
-b7f30be6691294b2d9e8b9b66cc4e24f35bf3948
+92905736e19703480275242a50ee80554420bc92
 ```
 
 ## 3. Archivos creados/modificados
