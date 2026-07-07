@@ -202,20 +202,15 @@ Chrome lanzado directamente con los mismos flags `--enable-features` + `--enable
 
 ## 14. Recomendación concreta
 
-### **FIX REQUIRED**
+### **GO**
 
-La app y el modelo funcionan correctamente, pero el spec E2E Chrome AI real debe ser corregido:
+El fix CDP está aplicado. El spec `aura-chrome-ai-real.optin.spec.ts` ahora:
+- Lanza Chrome nativamente vía `child_process.spawn` con flags de Prompt API.
+- Conecta vía `chromium.connectOverCDP()`.
+- Espera que el modelo esté listo con `waitForLanguageModelReady()` (retry).
+- Ejecuta smoke test: session + prompt → respuesta validada.
 
-1. **Cambiar `launchPersistentContext` → `connectOverCDP`:**
-   - El spec debe lanzar Chrome directamente (no vía Playwright browser launch)
-   - O usar `launchPersistentContext` con `args` que no deshabiliten servicios críticos
-
-2. **Agregar wait para inicialización del modelo:**
-   - El modelo pasa de `"downloading"` a `"readily"` — implementar retry/wait
-
-3. **Mantener spec como opt-in:**
-   - No incluir en CI estándar
-   - Requiere Chrome + perfil dedicado + modelo descargado
+Próximo paso opcional: añadir test de flujo AURA completo con fixture CSV + diagnóstico asistido real.
 
 ## 15. Notas finales
 
@@ -226,3 +221,49 @@ La app y el modelo funcionan correctamente, pero el spec E2E Chrome AI real debe
 - No se inició cuarta entrega.
 - El perfil usado es dedicado para AURA, no personal.
 - Gemini Nano funciona correctamente cuando Chrome se lanza de forma nativa con los flags adecuados.
+
+## 16. Fix CDP aplicado
+
+### Archivo modificado
+
+`src/tests/e2e/aura-chrome-ai-real.optin.spec.ts`
+
+### Archivo creado
+
+`src/tests/e2e/helpers/chromeAiCdp.ts`
+
+### Cambio principal
+
+Se reemplazó `chromium.launchPersistentContext` (que añade `--disable-*` flags y bloquea el servicio on-device model de Chrome) por:
+
+1. Lanzar Chrome nativamente vía `child_process.spawn` con los flags requeridos de Prompt API.
+2. Conectar vía `chromium.connectOverCDP()`.
+
+### Mecanismo de lanzamiento
+
+- Chrome se lanza con `--user-data-dir=<perfil>`, `--remote-debugging-port=9222`, `--enable-features=PromptAPI,OptimizationGuideOnDeviceModel,PromptAPIForGeminiNano,BuiltInAIOnDeviceModel`.
+- Helper `waitForPort()` espera que el puerto CDP responda.
+- `waitForLanguageModelReady()` espera hasta 180s con retry en estados `downloading`, `unavailable`.
+
+### Resultado del smoke test
+
+| Métrica | Valor |
+|---------|-------|
+| `languageModelInGlobalThis` | `true` |
+| `availabilityNormalized` | `downloading` → ready |
+| `sessionCreated` | `true` |
+| `promptExecuted` | `true` |
+| `promptResponse` | `"AURA_CHROME_AI_READY"` |
+| `usedMockProvider` | `false` |
+| `evidenceStatus` | `preliminary_valid` |
+| `allPassed` | `true` |
+| `waitDurationMs` | ~9.6s |
+
+### Flujo de diagnóstico completo
+
+No cubierto en este fix — solo smoke. Se deja como test separado futuro (`Chrome AI AURA diagnosis flow real`).
+
+### Bloqueadores restantes
+
+- Ninguno. El smoke pasa desde el primer intento con CDP.
+- El flujo completo de diagnóstico requiere fixture CSV + navegación UI, que puede ser inestable sin esperas adicionales de la app.
