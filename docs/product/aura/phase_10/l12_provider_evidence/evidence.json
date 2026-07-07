@@ -1,0 +1,34 @@
+{
+  "testRun": {
+    "phase": "L12A",
+    "browser": "chromium",
+    "providerMode": "none",
+    "usedRealAiProvider": false,
+    "downloadedModels": false,
+    "csvLoadedViaUi": false,
+    "harnessAvailable": true
+  },
+  "validations": {
+    "page_loads_without_chrome_ai_api": { "passed": true, "actual": "page loaded without critical errors" },
+    "globalThis_LanguageModel_checked": { "passed": true, "actual": "typeof check performed, no crash" },
+    "deterministic_engine_works_without_ai": { "passed": true, "actual": "profile/diagnosis completed" },
+    "provider_status_ui_shows_state": { "passed": true, "actual": "settings/provider UI accessible" },
+    "no_model_downloads_in_standard_e2e": { "passed": true, "actual": "no download triggered" },
+    "no_false_gemini_nano_claim": { "passed": true, "actual": "no always-available claims found in UI" },
+    "provider_modes_enumerated": { "passed": true, "actual": "provider modes enumerated without crash" }
+  },
+  "claimBoundary": {
+    "noFormalBenchmarkClaim": true,
+    "noBestModelClaim": true,
+    "noProductionReadyClaim": true,
+    "noFourthDeliveryStartedClaim": true
+  },
+  "screenshots": [
+    "docs/product/aura/phase_10/l12_provider_evidence/screenshots/01_page_loaded_no_chrome_ai.png",
+    "docs/product/aura/phase_10/l12_provider_evidence/screenshots/02_deterministic_engine_works.png",
+    "docs/product/aura/phase_10/l12_provider_evidence/screenshots/03_provider_settings_ui.png",
+    "docs/product/aura/phase_10/l12_provider_evidence/screenshots/04_export_before_provider_state.png",
+    "docs/product/aura/phase_10/l12_provider_evidence/screenshots/05_after_deterministic_diagnosis.png"
+  ],
+  "allPassed": true
+}

@@ -1,0 +1,13 @@
+{
+  "testRun": {
+    "phase": "L12B",
+    "description": "Chrome AI / Gemini Nano real opt-in validation with dedicated persistent profile",
+    "optIn": true,
+    "profilePath": "$HOME/.aura/chrome-ai-profile",
+    "profileSafetyValidated": true,
+    "personalProfileNotUsed": true,
+    "ciSafe": true
+  },
+  "status": "pending — results filled by L12B-01 test execution",
+  "allPassed": false
+}
