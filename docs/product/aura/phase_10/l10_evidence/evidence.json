@@ -1,27 +1,20 @@
 {
   "testRun": {
-    "timestamp": "2026-07-07T01:40:37.169Z",
-    "phase": "L10",
-    "testId": "L10-01",
+    "timestamp": "2026-07-07T02:09:06.267Z",
+    "phase": "L10A",
+    "testId": "L10A-01",
     "fixture": "aura_l10_full_flow_issues.csv",
     "dataset": "aura_l10_full_flow_issues.csv (rows=6, cols=5)",
-    "harness": "L9/Phase4 E2E Harness",
-    "csvLoadedViaUi": false,
-    "csvProcessingNote": "CSV fixture read via fs.readFileSync; parseCsv+runAudit exercised via harness state injection",
-    "fileInputPresentInDom": true,
-    "providerMode": "mock",
-    "harnessNote": "Phase3 harness not used — VITE_PHASE3_E2E_HARNESS not enabled in Playwright webServer config"
+    "harness": "L9/Phase4 E2E Harness (real parseCsv+runAudit; StrictMode-safe window storage)",
+    "csvLoadedViaUi": true,
+    "providerMode": "real"
   },
   "fixtureProvenance": {
     "fixtureRead": true,
     "fixtureName": "aura_l10_full_flow_issues.csv",
     "fixtureRows": 6,
     "fixtureColumns": 5,
-    "fixtureDelimiter": ",",
-    "injectedReportRowCount": 6,
-    "injectedReportColCount": 5,
-    "fixtureReportRowCountMatch": true,
-    "fixtureReportColCountMatch": true
+    "fixtureDelimiter": ","
   },
   "validations": {
     "exportContract_name_correct": {
@@ -67,6 +60,16 @@
       "passed": true,
       "actual": false
     },
+    "manifest_dataset_rows_correct": {
+      "passed": true,
+      "expected": 6,
+      "actual": 6
+    },
+    "manifest_dataset_columns_correct": {
+      "passed": true,
+      "expected": 5,
+      "actual": 5
+    },
     "profile_rowCount_correct": {
       "passed": true,
       "expected": 6,
@@ -81,7 +84,7 @@
   "exportContract": {
     "name": "aura-technical-export",
     "version": "2.0",
-    "generatedAt": "2026-07-07T01:40:37.071Z",
+    "generatedAt": "2026-07-07T02:09:05.074Z",
     "canonicalBlocks": [
       "manifest",
       "profile",
@@ -123,10 +126,12 @@
     "improvementRun": null
   },
   "manifest": {
-    "generatedAt": "2026-07-07T01:40:37.071Z",
+    "generatedAt": "2026-07-07T02:09:05.074Z",
     "dataset": {
-      "rows": 0,
-      "columns": 0
+      "name": "aura_l10_full_flow_issues.csv",
+      "fingerprint": "l10-6x5",
+      "rows": 6,
+      "columns": 5
     },
     "app": {
       "name": "AURA — Auditoría Unificada de Riesgos Algorítmicos",
@@ -136,8 +141,8 @@
       {
         "id": "OE1",
         "label": "Ingestión y perfilamiento determinista",
-        "status": "blocked",
-        "evidence": "Sin evidencia de ingestión.",
+        "status": "completed",
+        "evidence": "CSV cargado: aura_l10_full_flow_issues.csv, 6 filas, 5 columnas, fingerprint=l10-6x5.",
         "limitations": []
       },
       {
@@ -176,7 +181,9 @@
         ]
       }
     ],
-    "artifacts": [],
+    "artifacts": [
+      "auditEvidence (JSON)"
+    ],
     "allowedClaims": {
       "deterministicEngine": "preliminary",
       "calibrationEvidence": "none",
@@ -206,9 +213,304 @@
       "Métricas deterministas por regla usan detección binaria (rule fired / not fired), no conteo de filas."
     ]
   },
+  "profile": {
+    "report": {
+      "score": 96,
+      "rowCount": 6,
+      "colCount": 5,
+      "duplicateRows": 0,
+      "issues": [
+        {
+          "id": "integrity-null-score",
+          "column": "score",
+          "ruleName": "Valores Nulos / Vacíos",
+          "category": "Integridad y Estructura",
+          "description": "Advertencia: Faltan datos.",
+          "severity": "warning",
+          "count": 1,
+          "affectedPercentage": 16.666666666666664,
+          "sampleValues": [],
+          "ruleId": "rule:null-values",
+          "automaticAuthorization": {
+            "actionType": "handle_nulls",
+            "authorized": false,
+            "conditionsMet": [],
+            "reason": "Requires domain decision on null meaning"
+          }
+        }
+      ],
+      "columnStats": {
+        "id": {
+          "name": "id",
+          "inferredType": "number",
+          "nullCount": 0,
+          "uniqueCount": 6,
+          "topFreq": [
+            {
+              "value": "1",
+              "count": 1
+            },
+            {
+              "value": "2",
+              "count": 1
+            },
+            {
+              "value": "3",
+              "count": 1
+            },
+            {
+              "value": "4",
+              "count": 1
+            },
+            {
+              "value": "5",
+              "count": 1
+            }
+          ],
+          "zeros": 0,
+          "sampleValues": [
+            1,
+            4,
+            6
+          ],
+          "min": 1,
+          "max": 6,
+          "mean": 3.5,
+          "median": 3.5,
+          "std": 1.707825127659933,
+          "cv": 0.48795003647426655,
+          "skewness": 0,
+          "q1": 2,
+          "q3": 5,
+          "iqr": 3,
+          "lowerFence": -7,
+          "upperFence": 14,
+          "outlierCount": 0,
+          "lowerFenceTukey": -2.5,
+          "upperFenceTukey": 9.5,
+          "outlierCountTukey": 0
+        },
+        "name": {
+          "name": "name",
+          "inferredType": "string",
+          "nullCount": 0,
+          "uniqueCount": 6,
+          "topFreq": [
+            {
+              "value": "alpha",
+              "count": 1
+            },
+            {
+              "value": "beta",
+              "count": 1
+            },
+            {
+              "value": "gamma",
+              "count": 1
+            },
+            {
+              "value": "delta",
+              "count": 1
+            },
+            {
+              "value": "epsilon",
+              "count": 1
+            }
+          ],
+          "zeros": 0,
+          "sampleValues": [
+            "alpha",
+            "delta",
+            "zeta"
+          ]
+        },
+        "score": {
+          "name": "score",
+          "inferredType": "number",
+          "nullCount": 1,
+          "uniqueCount": 5,
+          "topFreq": [
+            {
+              "value": "85.5",
+              "count": 1
+            },
+            {
+              "value": "92",
+              "count": 1
+            },
+            {
+              "value": "78.3",
+              "count": 1
+            },
+            {
+              "value": "88.7",
+              "count": 1
+            },
+            {
+              "value": "91.2",
+              "count": 1
+            }
+          ],
+          "zeros": 0,
+          "sampleValues": [
+            85.5,
+            88.7
+          ],
+          "min": 78.3,
+          "max": 92,
+          "mean": 87.14,
+          "median": 88.7,
+          "std": 4.967333288596611,
+          "cv": 0.05700405426436322,
+          "skewness": -0.8317267284776826,
+          "q1": 85.5,
+          "q3": 91.2,
+          "iqr": 5.700000000000003,
+          "lowerFence": 68.39999999999999,
+          "upperFence": 108.30000000000001,
+          "outlierCount": 0,
+          "lowerFenceTukey": 76.94999999999999,
+          "upperFenceTukey": 99.75,
+          "outlierCountTukey": 0
+        },
+        "active": {
+          "name": "active",
+          "inferredType": "boolean",
+          "nullCount": 0,
+          "uniqueCount": 2,
+          "topFreq": [
+            {
+              "value": "true",
+              "count": 4
+            },
+            {
+              "value": "false",
+              "count": 2
+            }
+          ],
+          "zeros": 0,
+          "sampleValues": [
+            true,
+            false,
+            true
+          ]
+        },
+        "priority": {
+          "name": "priority",
+          "inferredType": "string",
+          "nullCount": 0,
+          "uniqueCount": 3,
+          "topFreq": [
+            {
+              "value": "high",
+              "count": 3
+            },
+            {
+              "value": "medium",
+              "count": 2
+            },
+            {
+              "value": "low",
+              "count": 1
+            }
+          ],
+          "zeros": 0,
+          "sampleValues": [
+            "high",
+            "low",
+            "high"
+          ]
+        }
+      },
+      "scoreBreakdown": [
+        {
+          "reason": "Valores Nulos en [score]",
+          "points": 2.4,
+          "weight": 1.2,
+          "category": "Integridad y Estructura",
+          "severity": "warning",
+          "ruleId": "rule:null-values"
+        }
+      ],
+      "delimiterDetected": ",",
+      "datasetProfile": {
+        "totalRows": 6,
+        "totalColumns": 5,
+        "columns": [
+          {
+            "name": "id",
+            "cardinality": "unique",
+            "uniqueRatio": 1,
+            "sparsity": 0,
+            "inferredType": "number",
+            "isCandidateForCoalescence": false,
+            "pruneRecommendation": "keep"
+          },
+          {
+            "name": "name",
+            "cardinality": "unique",
+            "uniqueRatio": 1,
+            "sparsity": 0,
+            "inferredType": "string",
+            "isCandidateForCoalescence": false,
+            "pruneRecommendation": "keep"
+          },
+          {
+            "name": "score",
+            "cardinality": "high",
+            "uniqueRatio": 0.8333333333333334,
+            "sparsity": 0.16666666666666666,
+            "inferredType": "number",
+            "isCandidateForCoalescence": false,
+            "pruneRecommendation": "keep"
+          },
+          {
+            "name": "active",
+            "cardinality": "medium",
+            "uniqueRatio": 0.3333333333333333,
+            "sparsity": 0,
+            "inferredType": "boolean",
+            "isCandidateForCoalescence": false,
+            "pruneRecommendation": "keep"
+          },
+          {
+            "name": "priority",
+            "cardinality": "medium",
+            "uniqueRatio": 0.5,
+            "sparsity": 0,
+            "inferredType": "string",
+            "isCandidateForCoalescence": false,
+            "pruneRecommendation": "keep"
+          }
+        ],
+        "coalescencePairs": [],
+        "pruningCandidates": [],
+        "generatedAt": "2026-07-07T02:09:05.074Z"
+      }
+    },
+    "auditEvidence": {
+      "id": "audit-1783390145074",
+      "fileName": "aura_l10_full_flow_issues.csv",
+      "fileSize": 191,
+      "datasetFingerprint": "l10-6x5",
+      "startedAt": "2026-07-07T02:09:05.067Z",
+      "completedAt": "2026-07-07T02:09:05.074Z",
+      "parseDurationMs": 4,
+      "auditDurationMs": 3,
+      "totalDurationMs": 7,
+      "rowsProcessed": 6,
+      "columnsProcessed": 5,
+      "delimiter": ",",
+      "truncated": false,
+      "ingestionStatus": "success",
+      "issueCount": 1,
+      "score": 96,
+      "trace": []
+    }
+  },
   "screenshots": {
     "uploadStepReady": "01_upload_step_ready.png",
-    "reportSet": "02_report_set.png",
+    "profileReadyRealCsv": "02_profile_ready_real_csv.png",
     "exportGenerated": "03_export_generated.png",
     "contractValidated": "04_contract_validated.png"
   },

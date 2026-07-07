@@ -20,7 +20,10 @@ declare global {
     __PHASE4_GET_STATE__?(): Phase4State;
     __L9_SET_REPORT__?(report: AuditReport): void;
     __L9_SET_AUDIT_EVIDENCE__?(auditEvidence: import('./types').AuditExecutionEvidence): void;
+    __L9_GET_STATE__?(): { hasAuditEvidence: boolean; hasReport: boolean; rowsProcessed: number; columnsProcessed: number; rowCount: number; colCount: number };
+    __L9_PROCESS_CSV__?(csvContent: string, fileName?: string): Promise<{ rowsProcessed: number; columnsProcessed: number; score: number }>;
     __L9_GET_EXPORT_JSON__?(overriddenReport?: AuditReport): Record<string, unknown>;
+    __L9_EXPORT_JSON__?: Record<string, unknown>;
   }
 }
 

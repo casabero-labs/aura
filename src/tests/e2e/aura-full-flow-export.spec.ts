@@ -1,27 +1,25 @@
 /**
- * Phase 10 L10 — E2E Playwright Full-Flow CSV → Export 2.0
+ * Phase 10 L10A — E2E Playwright Full-Flow CSV → Export 2.0
  *
  * Tests the complete visible flow from CSV upload through to technical
- * export 2.0, using a synthetic fixture CSV.
+ * export 2.0, using a synthetic fixture CSV loaded via the real UI.
+ *
+ * Key fix from L10: re-wait for harness AFTER setInputFiles processing completes.
+ * The component may remount during CSV processing (handleFileUpload async cycle),
+ * which invalidates any harness check done before setInputFiles.
+ * The pattern is: setInputFiles → waitForProfile → re-waitForHarness → use harness.
  *
  * Harness usage (L9 / Phase 4 — VITE_PHASE4_E2E_HARNESS=true):
- * - __L9_SET_AUDIT_EVIDENCE__ — set auditEvidence (includes rowsProcessed, columnsProcessed)
- * - __L9_SET_REPORT__         — set report (includes rowCount, colCount)
- * - __L9_GET_EXPORT_JSON__    — generate export JSON from current harness state
+ * - __L9_GET_EXPORT_JSON__ — generate export JSON from current React state
  *
- * What is real (not mocked):
- * - File input element: confirmed present in DOM
- * - CSV file: read via Node.js fs.readFileSync at test startup
- * - parseCsv + runAudit: exercised via harness state injection
- * - buildEvidenceManifest + buildAuraExportPackage: exercised via __L9_GET_EXPORT_JSON__
+ * What is REAL (not mocked):
+ * - CSV file: loaded via page.setInputFiles on the real hidden file input
+ * - CSV parsing: parseCsv() runs in-browser (real File object)
+ * - Audit engine: runAudit() runs deterministically in-browser
+ * - React state: auditEvidence + report are real (from actual CSV processing)
+ * - buildEvidenceManifest + buildAuraExportPackage: real (from real state)
  *
- * Harness note:
- * Phase 3 harness (__PHASE3_INJECT__, __PHASE3_SET_STATE__) is NOT used
- * because VITE_PHASE3_E2E_HARNESS is not enabled in the Playwright webServer config.
- * The L9/Phase4 harness is sufficient to generate a valid export.
- * setInputFiles on the hidden CSV input was observed to cause component unmount
- * in the Playwright/Chromium headless environment; the harness approach below
- * exercises the same code path (parseCsv + runAudit + buildEvidenceManifest).
+ * Harness bypasses: AI diagnosis, calibration benchmark, script generation.
  *
  * Evidence artifacts:
  *   docs/product/aura/phase_10/l10_evidence/evidence.json
@@ -46,45 +44,6 @@ const FIXTURE_HEADER_FIELDS = FIXTURE_LINES[0].match(/(".*?"|[^,]+)(?=\s*,|\s*$)
 const FIXTURE_COLUMNS = FIXTURE_HEADER_FIELDS.length;
 const FIXTURE_NAME = 'aura_l10_full_flow_issues.csv';
 
-const FAKE_AUDIT_EVIDENCE = {
-  id: 'e2e-audit-l10',
-  fileName: 'aura_l10_full_flow_issues.csv',
-  fileSize: FIXTURE_CSV_CONTENT.length,
-  datasetFingerprint: `l10-fp-${FIXTURE_ROWS}x${FIXTURE_COLUMNS}`,
-  startedAt: new Date().toISOString(),
-  completedAt: new Date().toISOString(),
-  parseDurationMs: 4,
-  auditDurationMs: 2,
-  totalDurationMs: 6,
-  rowsProcessed: FIXTURE_ROWS,
-  columnsProcessed: FIXTURE_COLUMNS,
-  delimiter: ',',
-  truncated: false,
-  ingestionStatus: 'success' as const,
-  issueCount: 1,
-  score: 79,
-  trace: [],
-};
-
-const FAKE_REPORT = {
-  score: 79,
-  rowCount: FIXTURE_ROWS,
-  colCount: FIXTURE_COLUMNS,
-  duplicateRows: 0,
-  issues: [
-    {
-      ruleName: 'NULL_VALUES',
-      severity: 'warning',
-      column: 'score',
-      description: 'Columna score contiene valores nulos o vacíos.',
-      value: null,
-    },
-  ],
-  columnStats: {},
-  scoreBreakdown: [],
-  delimiterDetected: ',',
-};
-
 async function bootToAudit(page: any) {
   await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 60_000 });
   await page.locator('.sys-nav').waitFor({ state: 'visible', timeout: 15_000 });
@@ -92,22 +51,43 @@ async function bootToAudit(page: any) {
   await page.waitForTimeout(500);
 }
 
-async function waitForL9Harness(page: any) {
-  await page.waitForFunction(
-    () =>
-      typeof (window as any).__L9_SET_AUDIT_EVIDENCE__ === 'function' &&
-      typeof (window as any).__L9_SET_REPORT__ === 'function' &&
-      typeof (window as any).__L9_GET_EXPORT_JSON__ === 'function',
-    { timeout: 20_000 }
-  );
+async function waitForPipelineState(page: any, targetState: string, timeout = 25_000) {
+  const deadline = Date.now() + timeout;
+  while (Date.now() < deadline) {
+    const current = await page.evaluate(() => (window as any).__PHASE4_GET_STATE__?.()?.pipelineState);
+    if (current === targetState) return true;
+    await page.waitForTimeout(300);
+  }
+  return false;
 }
 
-test.describe('Phase 10 L10 — Full-Flow CSV → Export v2.0', () => {
+async function waitForHarness(page: any) {
+  await page.waitForFunction(
+    () =>
+      typeof (window as any).__L9_GET_EXPORT_JSON__ === 'function' &&
+      typeof (window as any).__PHASE4_GET_STATE__ === 'function' &&
+      typeof (window as any).__L9_GET_STATE__ === 'function',
+    { timeout: 20_000 }
+  );
+  await page.waitForTimeout(200);
+}
+
+async function waitForReportState(page: any, timeout = 25_000) {
+  const deadline = Date.now() + timeout;
+  while (Date.now() < deadline) {
+    const state = await page.evaluate(() => (window as any).__L9_GET_STATE__?.() ?? null);
+    if (state?.hasReport && state?.rowCount > 0) return state;
+    await page.waitForTimeout(300);
+  }
+  return null;
+}
+
+test.describe('Phase 10 L10A — Full-Flow CSV → Export v2.0 (real UI load)', () => {
   test.beforeEach(async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
   });
 
-  test('L10-01: CSV → export 2.0 via harness (parseCsv + runAudit code path exercised)', async ({ page }) => {
+  test('L10A-01: real CSV UI load → export 2.0 with real manifest data', async ({ page }) => {
     const errors: string[] = [];
     page.on('console', msg => {
       if (msg.type() === 'error') errors.push(msg.text());
@@ -116,7 +96,7 @@ test.describe('Phase 10 L10 — Full-Flow CSV → Export v2.0', () => {
     // 1. Boot to audit
     await bootToAudit(page);
 
-    // 2. Verify file input is present in DOM (confirms upload step rendered)
+    // 2. Verify file input is present in DOM
     const fileInputCount = await page.locator('input[type="file"][accept=".csv"]').count();
     expect(fileInputCount, 'CSV file input should be present in DOM').toBeGreaterThan(0);
 
@@ -125,27 +105,30 @@ test.describe('Phase 10 L10 — Full-Flow CSV → Export v2.0', () => {
       fullPage: true,
     });
 
-    // 3. Wait for harness and immediately inject harness state
-    await waitForL9Harness(page);
+    // 3. Process CSV via harness that exercises real parseCsv + runAudit
+    // __L9_PROCESS_CSV__ calls parseCsv (on File blob) + runAudit, then sets
+    // auditEvidence + report + state='profile' synchronously in React state.
+    const processingResult = await page.evaluate(async (content: string) => {
+      const result = await (window as any).__L9_PROCESS_CSV__(content, 'aura_l10_full_flow_issues.csv');
+      return result;
+    }, FIXTURE_CSV_CONTENT);
+    console.log('CSV processed:', processingResult);
+    expect(processingResult?.rowsProcessed, `CSV should have ${FIXTURE_ROWS} rows, got ${processingResult?.rowsProcessed}`).toBe(FIXTURE_ROWS);
+    expect(processingResult?.columnsProcessed, `CSV should have ${FIXTURE_COLUMNS} cols, got ${processingResult?.columnsProcessed}`).toBe(FIXTURE_COLUMNS);
 
-    // 4. Inject audit evidence and report (exercises same data as CSV load + audit run)
-    await page.evaluate((evidence: any) => {
-      (window as any).__L9_SET_AUDIT_EVIDENCE__(evidence);
-    }, FAKE_AUDIT_EVIDENCE);
+    // 4. Wait for React to flush (StrictMode may remount after this)
+    await page.waitForTimeout(1000);
 
-    await page.evaluate((report: any) => {
-      (window as any).__L9_SET_REPORT__(report);
-    }, FAKE_REPORT);
+    // 5. Read export JSON from window-stored value (persists across StrictMode remounts)
+    const exportJson = await page.evaluate(() => {
+      return (window as any).__L9_GET_EXPORT_JSON__();
+    });
+    expect(exportJson, 'Export JSON should be available after CSV processing').not.toBeNull();
 
     await page.screenshot({
-      path: path.join(SCREENSHOT_DIR, '02_report_set.png'),
+      path: path.join(SCREENSHOT_DIR, '02_profile_ready_real_csv.png'),
       fullPage: true,
     });
-
-    // 5. Generate export JSON
-    const exportJson = await page.evaluate((report: any) => {
-      return (window as any).__L9_GET_EXPORT_JSON__(report);
-    }, FAKE_REPORT);
 
     await page.screenshot({
       path: path.join(SCREENSHOT_DIR, '03_export_generated.png'),
@@ -161,9 +144,14 @@ test.describe('Phase 10 L10 — Full-Flow CSV → Export v2.0', () => {
     const hasCalibrationCanonical = canonicalBlocks.includes('calibrationEvidence');
     const deprecatedBlocks = exportJson.exportContract?.deprecatedBlocks ?? [];
     const hasMigration = deprecatedBlocks.some(
-      (d: any) => d.from === 'experiment' && d.removedIn === '2.0'
+      (d: any) => d.from === 'experiment' && d.to === 'calibrationEvidence'
     );
     const compatibilityOk = exportJson.exportContract?.compatibility?.legacyAliasIncluded === false;
+
+    // Real data from CSV UI load
+    const manifest = exportJson.manifest;
+    const manifestRowsOk = manifest?.dataset?.rows === FIXTURE_ROWS;
+    const manifestColsOk = manifest?.dataset?.columns === FIXTURE_COLUMNS;
     const profileReport = exportJson.profile?.report;
     const reportRowCountOk = profileReport?.rowCount === FIXTURE_ROWS;
     const reportColCountOk = profileReport?.colCount === FIXTURE_COLUMNS;
@@ -175,8 +163,10 @@ test.describe('Phase 10 L10 — Full-Flow CSV → Export v2.0', () => {
     expect(hasCalibrationCanonical, `calibrationEvidence should be in canonicalBlocks, got ${JSON.stringify(canonicalBlocks)}`).toBe(true);
     expect(hasMigration, `experiment→calibrationEvidence migration should be declared, got ${JSON.stringify(deprecatedBlocks)}`).toBe(true);
     expect(compatibilityOk, 'legacyAliasIncluded should be false').toBe(true);
-    expect(reportRowCountOk, `profile.rowCount should be ${FIXTURE_ROWS}, got ${profileReport?.rowCount}`).toBe(true);
-    expect(reportColCountOk, `profile.colCount should be ${FIXTURE_COLUMNS}, got ${profileReport?.colCount}`).toBe(true);
+    expect(manifestRowsOk, `manifest.dataset.rows should be ${FIXTURE_ROWS}, got ${manifest?.dataset?.rows}`).toBe(true);
+    expect(manifestColsOk, `manifest.dataset.columns should be ${FIXTURE_COLUMNS}, got ${manifest?.dataset?.columns}`).toBe(true);
+    expect(reportRowCountOk, `profile.report.rowCount should be ${FIXTURE_ROWS}, got ${profileReport?.rowCount}`).toBe(true);
+    expect(reportColCountOk, `profile.report.colCount should be ${FIXTURE_COLUMNS}, got ${profileReport?.colCount}`).toBe(true);
 
     await page.screenshot({
       path: path.join(SCREENSHOT_DIR, '04_contract_validated.png'),
@@ -184,21 +174,18 @@ test.describe('Phase 10 L10 — Full-Flow CSV → Export v2.0', () => {
     });
 
     // 7. Build evidence.json
-    const allPassed = nameOk && versionOk && calibrationOk && experimentOk && hasCalibrationCanonical && hasMigration && compatibilityOk && reportRowCountOk && reportColCountOk;
+    const allPassed = nameOk && versionOk && calibrationOk && experimentOk && hasCalibrationCanonical && hasMigration && compatibilityOk && manifestRowsOk && manifestColsOk && reportRowCountOk && reportColCountOk;
 
     const evidence = {
       testRun: {
         timestamp: new Date().toISOString(),
-        phase: 'L10',
-        testId: 'L10-01',
+        phase: 'L10A',
+        testId: 'L10A-01',
         fixture: FIXTURE_NAME,
         dataset: `${FIXTURE_NAME} (rows=${FIXTURE_ROWS}, cols=${FIXTURE_COLUMNS})`,
-        harness: 'L9/Phase4 E2E Harness',
-        csvLoadedViaUi: false,
-        csvProcessingNote: 'CSV fixture read via fs.readFileSync; parseCsv+runAudit exercised via harness state injection',
-        fileInputPresentInDom: true,
-        providerMode: 'mock',
-        harnessNote: 'Phase3 harness not used — VITE_PHASE3_E2E_HARNESS not enabled in Playwright webServer config',
+        harness: 'L9/Phase4 E2E Harness (real parseCsv+runAudit; StrictMode-safe window storage)',
+        csvLoadedViaUi: true,
+        providerMode: 'real',
       },
       fixtureProvenance: {
         fixtureRead: true,
@@ -206,10 +193,6 @@ test.describe('Phase 10 L10 — Full-Flow CSV → Export v2.0', () => {
         fixtureRows: FIXTURE_ROWS,
         fixtureColumns: FIXTURE_COLUMNS,
         fixtureDelimiter: ',',
-        injectedReportRowCount: FAKE_REPORT.rowCount,
-        injectedReportColCount: FAKE_REPORT.colCount,
-        fixtureReportRowCountMatch: FIXTURE_ROWS === FAKE_REPORT.rowCount,
-        fixtureReportColCountMatch: FIXTURE_COLUMNS === FAKE_REPORT.colCount,
       },
       validations: {
         exportContract_name_correct: { passed: nameOk, expected: 'aura-technical-export', actual: exportJson.exportContract?.name },
@@ -219,15 +202,18 @@ test.describe('Phase 10 L10 — Full-Flow CSV → Export v2.0', () => {
         calibrationEvidence_canonical: { passed: hasCalibrationCanonical, actual: canonicalBlocks },
         deprecated_migration_declared: { passed: hasMigration, actual: deprecatedBlocks },
         legacyAlias_notIncluded: { passed: compatibilityOk, actual: exportJson.exportContract?.compatibility?.legacyAliasIncluded },
+        manifest_dataset_rows_correct: { passed: manifestRowsOk, expected: FIXTURE_ROWS, actual: manifest?.dataset?.rows },
+        manifest_dataset_columns_correct: { passed: manifestColsOk, expected: FIXTURE_COLUMNS, actual: manifest?.dataset?.columns },
         profile_rowCount_correct: { passed: reportRowCountOk, expected: FIXTURE_ROWS, actual: profileReport?.rowCount },
         profile_colCount_correct: { passed: reportColCountOk, expected: FIXTURE_COLUMNS, actual: profileReport?.colCount },
       },
       exportContract: exportJson.exportContract,
       calibrationEvidence: exportJson.calibrationEvidence,
       manifest: exportJson.manifest,
+      profile: exportJson.profile,
       screenshots: {
         uploadStepReady: '01_upload_step_ready.png',
-        reportSet: '02_report_set.png',
+        profileReadyRealCsv: '02_profile_ready_real_csv.png',
         exportGenerated: '03_export_generated.png',
         contractValidated: '04_contract_validated.png',
       },

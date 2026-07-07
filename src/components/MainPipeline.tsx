@@ -213,26 +213,55 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
     (window as any).__L9_SET_AUDIT_EVIDENCE__ = (fakeAuditEvidence: AuditExecutionEvidence) => {
       setAuditEvidence(fakeAuditEvidence);
     };
-    (window as any).__L9_GET_EXPORT_JSON__ = (overriddenReport?: AuditReport) => {
-      const effectiveReport = overriddenReport ?? lastReportRef.current;
-      const manifest = buildEvidenceManifest({
-        auditEvidence: auditEvidence,
-        deterministicValidation: null,
-        benchmarkResults: [],
-        scriptValidation: null,
-        hitlDecision: null,
+    (window as any).__L9_GET_STATE__ = () => ({
+      hasAuditEvidence: !!auditEvidence,
+      hasReport: !!report,
+      rowsProcessed: auditEvidence?.rowsProcessed ?? 0,
+      columnsProcessed: auditEvidence?.columnsProcessed ?? 0,
+      rowCount: report?.rowCount ?? 0,
+      colCount: report?.colCount ?? 0,
+    });
+    (window as any).__L9_PROCESS_CSV__ = async (csvContent: string, fileName = 'fixture.csv') => {
+      const startedAt = new Date().toISOString();
+      const parseStart = performance.now();
+      const { data, meta } = await parseCsv(new File([csvContent], fileName, { type: 'text/csv' }));
+      const parseDurationMs = Math.round(performance.now() - parseStart);
+      const auditStart = performance.now();
+      const auditResult = runAudit(data, meta.fields, meta.delimiter);
+      const auditDurationMs = Math.round(performance.now() - auditStart);
+      const completedAt = new Date().toISOString();
+      const datasetFingerprint = `l10-${data.length}x${meta.fields.length}`;
+      const evidence = buildAuditEvidence({
+        fileName,
+        fileSize: csvContent.length,
+        datasetFingerprint,
+        startedAt,
+        completedAt,
+        parseDurationMs,
+        auditDurationMs,
+        rowsProcessed: data.length,
+        columnsProcessed: meta.fields.length,
+        delimiter: meta.delimiter,
+        truncated: meta.truncated,
+        ingestionStatus: 'success',
+        report: auditResult,
+        trace: [],
       });
-      return buildAuraExportPackage({
-        manifest,
-        profile: { report: effectiveReport, auditEvidence },
+      (window as any).__L9_EXPORT_JSON__ = buildAuraExportPackage({
+        manifest: buildEvidenceManifest({
+          auditEvidence: evidence,
+          deterministicValidation: null,
+          benchmarkResults: [],
+          scriptValidation: null,
+          hitlDecision: null,
+        }),
+        profile: { report: auditResult, auditEvidence: evidence },
         deterministicValidation: null,
         hitlDecision: null,
         diagnosis: {
           model: 'e2e-harness',
           providerType: 'chrome',
-          diagnosisText: structuredDiagnosis?.diagnosis?.issues?.length != null
-            ? 'Diagnostico generado por harness E2E'
-            : '',
+          diagnosisText: '',
         },
         script: {
           generatedScript: '',
@@ -242,6 +271,17 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
         benchmarkResults: [],
         improvementRun: null,
       });
+      setRawData(data);
+      setCsvFields(meta.fields);
+      setCsvDelimiter(meta.delimiter);
+      setAuditEvidence(evidence);
+      setReport(auditResult);
+      lastReportRef.current = auditResult;
+      setState('profile');
+      return { rowsProcessed: data.length, columnsProcessed: meta.fields.length, score: auditResult.score };
+    };
+    (window as any).__L9_GET_EXPORT_JSON__ = (_overriddenReport?: AuditReport) => {
+      return (window as any).__L9_EXPORT_JSON__ ?? null;
     };
 
     return () => {
@@ -251,6 +291,8 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
       delete (window as any).__PHASE4_GET_STATE__;
       delete (window as any).__L9_SET_REPORT__;
       delete (window as any).__L9_SET_AUDIT_EVIDENCE__;
+      delete (window as any).__L9_GET_STATE__;
+      delete (window as any).__L9_PROCESS_CSV__;
       delete (window as any).__L9_GET_EXPORT_JSON__;
     };
   }, []);
