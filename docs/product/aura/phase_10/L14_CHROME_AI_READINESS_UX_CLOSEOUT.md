@@ -7,7 +7,7 @@ Mejorar la experiencia del panel Chrome AI / Gemini Nano para que AURA explique 
 ## 2. Commit auditado
 
 ```
-91842e5a2a5b0ea378e891e7b5c56d71e745e0af
+71f814b7829427061f570883d1082b34c0441ee3
 ```
 
 ## 3. Archivos modificados
