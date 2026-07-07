@@ -1,0 +1,7 @@
+id,name,score,active,priority
+1,Alice,95,true,high
+2,Bob,87,true,medium
+3,Charlie,,false,low
+4,Diana,92,true,high
+5,Eve,78,true,medium
+6,Frank,85,false,low

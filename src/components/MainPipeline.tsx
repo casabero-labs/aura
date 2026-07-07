@@ -173,9 +173,11 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
   const auditEvidenceRef = useRef<AuditExecutionEvidence | null>(null);
   const reportRef = useRef<AuditReport | null>(null);
   const structuredDiagnosisRef = useRef<DiagnosisExecutionResult | null>(null);
+  const benchmarkResultsRef = useRef<BenchmarkResult[]>([]);
   auditEvidenceRef.current = auditEvidence;
   reportRef.current = report;
   structuredDiagnosisRef.current = structuredDiagnosis;
+  benchmarkResultsRef.current = benchmarkResults;
   phase4StateRef.current = {
     pipelineState: state,
     hasReport: !!report,
@@ -268,7 +270,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
       const m = buildEvidenceManifest({
         auditEvidence: auditEvidenceRef.current,
         deterministicValidation: null,
-        benchmarkResults: [],
+        benchmarkResults: benchmarkResultsRef.current,
         scriptValidation: null,
         hitlDecision: null,
       });
@@ -289,9 +291,12 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
           scriptValidation: null,
           approvedScript: '',
         },
-        benchmarkResults: [],
+        benchmarkResults: benchmarkResultsRef.current,
         improvementRun: null,
       });
+    };
+    (window as any).__L9_SET_BENCHMARK_RESULTS__ = (results: BenchmarkResult[]) => {
+      setBenchmarkResults(results);
     };
 
     return () => {
@@ -304,6 +309,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
       delete (window as any).__L9_GET_STATE__;
       delete (window as any).__L9_PROCESS_CSV__;
       delete (window as any).__L9_GET_EXPORT_JSON__;
+      delete (window as any).__L9_SET_BENCHMARK_RESULTS__;
     };
   }, []);
 

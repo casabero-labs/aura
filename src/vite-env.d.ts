@@ -23,6 +23,7 @@ declare global {
     __L9_GET_STATE__?(): { hasAuditEvidence: boolean; hasReport: boolean; rowsProcessed: number; columnsProcessed: number; rowCount: number; colCount: number };
     __L9_PROCESS_CSV__?(csvContent: string, fileName?: string): Promise<{ rowsProcessed: number; columnsProcessed: number; score: number }>;
     __L9_GET_EXPORT_JSON__?(overriddenReport?: AuditReport): Record<string, unknown>;
+    __L9_SET_BENCHMARK_RESULTS__?(results: import('./types').BenchmarkResult[]): void;
   }
 }
 

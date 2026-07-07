@@ -1,6 +1,6 @@
 {
   "testRun": {
-    "timestamp": "2026-07-07T02:20:03.731Z",
+    "timestamp": "2026-07-07T02:29:52.094Z",
     "phase": "L10B",
     "testId": "L10B-01",
     "fixture": "aura_l10_full_flow_issues.csv",
@@ -92,7 +92,7 @@
   "exportContract": {
     "name": "aura-technical-export",
     "version": "2.0",
-    "generatedAt": "2026-07-07T02:20:03.633Z",
+    "generatedAt": "2026-07-07T02:29:51.997Z",
     "canonicalBlocks": [
       "manifest",
       "profile",
@@ -134,7 +134,7 @@
     "improvementRun": null
   },
   "manifest": {
-    "generatedAt": "2026-07-07T02:20:03.633Z",
+    "generatedAt": "2026-07-07T02:29:51.997Z",
     "dataset": {
       "name": "aura_l10_full_flow_issues.csv",
       "fingerprint": "70b8e5ae",
@@ -493,19 +493,19 @@
         ],
         "coalescencePairs": [],
         "pruningCandidates": [],
-        "generatedAt": "2026-07-07T02:20:03.053Z"
+        "generatedAt": "2026-07-07T02:29:51.592Z"
       }
     },
     "auditEvidence": {
-      "id": "audit-1783390803053",
+      "id": "audit-1783391391592",
       "fileName": "aura_l10_full_flow_issues.csv",
       "fileSize": 191,
       "datasetFingerprint": "70b8e5ae",
-      "startedAt": "2026-07-07T02:20:03.032Z",
-      "completedAt": "2026-07-07T02:20:03.053Z",
-      "parseDurationMs": 16,
-      "auditDurationMs": 4,
-      "totalDurationMs": 20,
+      "startedAt": "2026-07-07T02:29:51.539Z",
+      "completedAt": "2026-07-07T02:29:51.592Z",
+      "parseDurationMs": 46,
+      "auditDurationMs": 5,
+      "totalDurationMs": 51,
       "rowsProcessed": 6,
       "columnsProcessed": 5,
       "delimiter": ",",
@@ -516,7 +516,7 @@
       "trace": [
         {
           "stage": "csv.parse.start",
-          "timestamp": "2026-07-07T02:20:03.032Z",
+          "timestamp": "2026-07-07T02:29:51.540Z",
           "elapsedMs": 1,
           "details": {
             "fileName": "aura_l10_full_flow_issues.csv",
@@ -525,30 +525,30 @@
         },
         {
           "stage": "csv.parse.end",
-          "timestamp": "2026-07-07T02:20:03.048Z",
-          "elapsedMs": 17,
+          "timestamp": "2026-07-07T02:29:51.586Z",
+          "elapsedMs": 47,
           "details": {
             "rows": 6,
             "columns": 5,
             "delimiter": ",",
             "truncated": false,
-            "durationMs": 16
+            "durationMs": 46
           }
         },
         {
           "stage": "audit.run.start",
-          "timestamp": "2026-07-07T02:20:03.049Z",
-          "elapsedMs": 17,
+          "timestamp": "2026-07-07T02:29:51.586Z",
+          "elapsedMs": 48,
           "details": {
             "datasetFingerprint": "70b8e5ae"
           }
         },
         {
           "stage": "audit.run.end",
-          "timestamp": "2026-07-07T02:20:03.053Z",
-          "elapsedMs": 21,
+          "timestamp": "2026-07-07T02:29:51.592Z",
+          "elapsedMs": 53,
           "details": {
-            "durationMs": 4,
+            "durationMs": 5,
             "score": 96,
             "issues": 1,
             "duplicateRows": 0
