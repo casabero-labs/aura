@@ -7,7 +7,7 @@ Integrar `OllamaSetupWizard` en la interfaz real de AURA (`DiagnosisStep` y `Dia
 ## 2. Commit auditado
 
 ```
-c6d979b9f7a5eb86ec31e6846482efd8c7218aad
+e7bf3742d0b9ad9c547872f2066be4478cf1ac83
 ```
 
 ## 3. Archivos modificados/creados
