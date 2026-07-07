@@ -1,0 +1,121 @@
+{
+  "phase": "L19",
+  "mode": "experimental_v2_comparison",
+  "baselinePhase": "L18",
+  "dataset": "titanic_controlled_fixture",
+  "providerMode": "mock",
+  "usedRealAiProvider": false,
+  "changedProductionContract": false,
+  "sameFixtureAsBaseline": true,
+  "sameTaskAsBaseline": true,
+  "runs": 1,
+  "baselineObserved": {
+    "automaticActions": [],
+    "humanReview": [
+      "hygiene-ghost-Name",
+      "missing_age",
+      "age_outlier",
+      "passenger_id_identifier"
+    ]
+  },
+  "v2Observed": {
+    "automaticActions": [
+      "trim_whitespace"
+    ],
+    "humanReview": [
+      "missing_age",
+      "age_outlier",
+      "high_cardinality_ticket",
+      "passenger_id_identifier"
+    ]
+  },
+  "v2Decisions": [
+    {
+      "id": "hygiene-ghost-Name",
+      "fieldRef": "Name",
+      "ruleRef": "rule:trim-whitespace",
+      "issueType": "whitespace_normalization",
+      "actionability": "automatic_safe",
+      "allowedAutomation": true,
+      "requiresHumanReview": false,
+      "riskLevel": "low",
+      "evidenceRef": "rule:trim-whitespace",
+      "rationale": "Whitespace trimming on column \"Name\" is reversible, non-destructive, and semantically neutral. Automatically authorized regardless of column name ambiguity."
+    },
+    {
+      "id": "integrity-null-Age",
+      "fieldRef": "Age",
+      "ruleRef": "rule:null-values",
+      "issueType": "data_completeness",
+      "actionability": "human_review",
+      "allowedAutomation": false,
+      "requiresHumanReview": true,
+      "riskLevel": "medium",
+      "evidenceRef": "rule:null-values",
+      "rationale": "Null values in column \"Age\" require human context to determine whether imputation, deletion, or flagging is appropriate."
+    },
+    {
+      "id": "logic-outlier-tukey-Age",
+      "fieldRef": "Age",
+      "ruleRef": "rule:mild-outliers",
+      "issueType": "outlier_detection",
+      "actionability": "human_review",
+      "allowedAutomation": false,
+      "requiresHumanReview": true,
+      "riskLevel": "medium",
+      "evidenceRef": "rule:mild-outliers",
+      "rationale": "Outlier values in column \"Age\" may represent data entry errors or legitimate extremes. Human review required to classify."
+    },
+    {
+      "id": "semantic-long-tail-Ticket",
+      "fieldRef": "Ticket",
+      "ruleRef": "rule:long-tail-categorical",
+      "issueType": "cardinality_analysis",
+      "actionability": "human_review",
+      "allowedAutomation": false,
+      "requiresHumanReview": true,
+      "riskLevel": "medium",
+      "evidenceRef": "rule:long-tail-categorical",
+      "rationale": "High cardinality in column \"Ticket\" requires human review to determine grouping strategy or identify data quality issues."
+    },
+    {
+      "id": "semantic-id-PassengerId",
+      "fieldRef": "PassengerId",
+      "ruleRef": "rule:identifier-column",
+      "issueType": "identifier_detection",
+      "actionability": "human_review",
+      "allowedAutomation": false,
+      "requiresHumanReview": true,
+      "riskLevel": "high",
+      "evidenceRef": "rule:identifier-column",
+      "rationale": "Column \"PassengerId\" is an identifier — actions on identifiers require human authorization to prevent data corruption."
+    }
+  ],
+  "expectedBehavior": {
+    "automaticActions": [
+      "trim_whitespace"
+    ],
+    "humanReview": [
+      "missing_age",
+      "age_outlier",
+      "high_cardinality_ticket",
+      "passenger_id_identifier"
+    ]
+  },
+  "comparison": {
+    "trimWhitespaceRecoveredAsAutomatic": true,
+    "humanReviewItemsPreserved": true,
+    "regressionDetected": false
+  },
+  "metrics": {
+    "automaticActionPrecision": 1,
+    "humanReviewRecall": 1
+  },
+  "limits": [
+    "mock provider only — no real LLM inference",
+    "not a formal benchmark",
+    "not a production replacement",
+    "single controlled fixture (6 rows)",
+    "v2 is experimental, not activated in production UI"
+  ]
+}
