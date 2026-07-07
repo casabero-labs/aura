@@ -24,7 +24,7 @@
 
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { launchChromeWithCdp, waitForLanguageModelReady } from './helpers/chromeAiCdp';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -39,6 +39,48 @@ const SMOKE_ACTIVE = REAL_CHROME_AI && BASE_URL.length > 0 && PROFILE_DIR.length
 const FLOW_ACTIVE = SMOKE_ACTIVE && REAL_FLOW;
 
 const DIAG_FLOW_CSV = path.resolve(__dirname, './fixtures/aura_l10_full_flow_issues.csv');
+
+/**
+ * Installs an interceptor on globalThis.LanguageModel.create that records
+ * every call made by the application (not by the test itself).
+ * This provides evidence that the app actually used Chrome AI for diagnosis.
+ *
+ * Returns a cleanup function. Call after diagnosis completes and check
+ * window.__AURA_CHROME_AI_CALLS__ for evidence.
+ */
+async function installLanguageModelInterceptor(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const lm = (globalThis as any).LanguageModel;
+    if (!lm || typeof lm.create !== 'function') return;
+
+    (window as any).__AURA_CHROME_AI_CALLS__ = {
+      createCalled: false,
+      promptCalled: false,
+      responses: [] as string[],
+    };
+
+    const originalCreate = lm.create.bind(lm);
+
+    (lm as any).create = async (...createArgs: any[]) => {
+      (window as any).__AURA_CHROME_AI_CALLS__.createCalled = true;
+      const session = await originalCreate(...createArgs);
+      const originalPrompt = session.prompt?.bind(session);
+
+      if (typeof originalPrompt === 'function') {
+        (session as any).prompt = async (...promptArgs: any[]) => {
+          (window as any).__AURA_CHROME_AI_CALLS__.promptCalled = true;
+          const response = await originalPrompt(...promptArgs);
+          (window as any).__AURA_CHROME_AI_CALLS__.responses.push(
+            typeof response === 'string' ? response.slice(0, 500) : String(response),
+          );
+          return response;
+        };
+      }
+
+      return session;
+    };
+  });
+}
 
 test.describe.serial('Phase 10 L12B — Chrome AI Real Opt-in (CDP)', () => {
   test.skip(!SMOKE_ACTIVE, 'Requires AURA_E2E_REAL_CHROME_AI=true + BASE_URL + PROFILE_DIR');
@@ -77,7 +119,18 @@ test.describe.serial('Phase 10 L12B — Chrome AI Real Opt-in (CDP)', () => {
 
     const ctx = await launchChromeWithCdp({ profileDir: PROFILE_DIR, baseUrl: BASE_URL, chromePath: CHROME_PATH, cdpPort: CDP_PORT });
 
-    const flow = { lm: false, profile: false, diag: false, generated: false, logs: false, result: false, mock: true, err: null as string | null };
+    const flow = {
+      lm: false,
+      profile: false,
+      diag: false,
+      generated: false,
+      logs: false,
+      result: false,
+      usedRealChromeAi: false,
+      realChromeAiCreateCalled: false,
+      realChromeAiPromptCalled: false,
+      err: null as string | null,
+    };
     try {
       const page = ctx.page;
       await page.goto(BASE_URL, { waitUntil: 'domcontentloaded', timeout: 60_000 });
@@ -108,12 +161,17 @@ test.describe.serial('Phase 10 L12B — Chrome AI Real Opt-in (CDP)', () => {
       if (flow.diag) {
         const genBtn = page.locator('[data-testid="diagnosis-stage"]').getByRole('button', { name: /(Generar|Regenerar) diagnóstico/i });
         if (await genBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-          flow.mock = false;
+          await installLanguageModelInterceptor(page);
           await genBtn.click();
           flow.generated = true;
-          await page.waitForTimeout(5000);
+          await page.waitForTimeout(8000);
           flow.logs = (await page.locator('[data-testid^="log-line-"]').count().catch(() => 0)) > 0;
           flow.result = await page.locator('[data-testid="stage-decision-summary"]').isVisible({ timeout: 10_000 }).catch(() => false);
+
+          const calls = await page.evaluate(() => (window as any).__AURA_CHROME_AI_CALLS__);
+          flow.realChromeAiCreateCalled = !!(calls?.createCalled);
+          flow.realChromeAiPromptCalled = !!(calls?.promptCalled);
+          flow.usedRealChromeAi = flow.realChromeAiCreateCalled && flow.realChromeAiPromptCalled;
         }
       }
     } catch (e: any) { flow.err = e.message; }
@@ -125,6 +183,8 @@ test.describe.serial('Phase 10 L12B — Chrome AI Real Opt-in (CDP)', () => {
     expect(flow.diag, 'Diagnosis stage must be reached').toBe(true);
     expect(flow.generated, 'Diagnosis must be generated').toBe(true);
     expect(flow.result, 'Diagnosis result must be visible').toBe(true);
-    expect(flow.mock, 'Must use real Chrome AI, not mock provider').toBe(false);
+    expect(flow.usedRealChromeAi, 'App must call real LanguageModel.create and prompt for diagnosis').toBe(true);
+    expect(flow.realChromeAiCreateCalled, 'LanguageModel.create must have been called by the app').toBe(true);
+    expect(flow.realChromeAiPromptCalled, 'LanguageModel session.prompt must have been called by the app').toBe(true);
   });
 });

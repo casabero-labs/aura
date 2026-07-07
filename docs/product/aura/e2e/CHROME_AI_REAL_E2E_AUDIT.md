@@ -312,31 +312,104 @@ expect(flow.mock).toBe(false);       // Chrome AI real usado, no mock provider
 
 ### Nota sobre el mock provider
 
-Cuando `VITE_PHASE4_E2E_HARNESS=true` está activo en el dev server, la app usa el motor determinista y `usedMockProvider=true`. Esto causa que `expect(flow.mock).toBe(false)` falle. **Esto es correcto y esperado** — el test detecta que Chrome AI no se usó.
+Cuando `VITE_PHASE4_E2E_HARNESS=true` está activo en el dev server, la app usa el motor determinista y NUNCA llama a `globalThis.LanguageModel.create`. Esto causa que `expect(flow.usedRealChromeAi).toBe(true)` falle. **Esto es correcto y esperado** — el test detecta que Chrome AI no se usó.
 
-Para obtener PASS real:
+Para obtener PASS real del flow:
 1. El dev server debe estar corriendo **sin** `VITE_PHASE4_E2E_HARNESS`
-2. O la app debe自行 seleccionar Chrome AI como provider activo
-3. Y el diagnóstico debe completarse sin errores
+2. La app debe自行 seleccionar Chrome AI como provider activo (`providerType === 'chrome'`)
+3. El diagnóstico debe completarse sin errores y sin usar harness
 
-### Smoke test actualizado
+## 19. Provider-real assertion fix (sesión actual)
 
-El smoke test (`CD-01`) también fue hardening:
-- `expect(ev.lm)` — LanguageModel presente
-- `expect(ev.ready)` — Modelo listo
-- `expect(ev.mock)` — Chrome AI real usado (no mock)
+### Problema detectado
 
-### Fixture
+En el commit anterior, `CD-02` asignaba `flow.mock = false` manualmente justo después de localizar el botón de generar diagnóstico:
 
-`src/tests/e2e/fixtures/aura_l10_full_flow_issues.csv` (6 filas, sin datos sensibles).
+```ts
+if (await genBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
+  flow.mock = false;  // ← ASIGNACIÓN MANUAL, no evidencia real
+  await genBtn.click();
+  flow.generated = true;
+```
 
-## 18. Flow hardening (sesión actual)
+Esto hacía que `expect(flow.mock).toBe(false)` pasara SIN importar si la app realmente usó Chrome AI o el harness determinista. Era un falso verde.
 
-### Cambio realizado
+### Método usado: instrumentación de `LanguageModel.create` en el test
+
+La app llama a `globalThis.LanguageModel.create()` a través de `ChromePromptProvider` (`src/services/providers/chromeProvider.ts`). El test intercepta esta llamada instalando un wrapper antes de que el diagnóstico se genere.
+
+**Función `installLanguageModelInterceptor(page)`:**
+1. Lee `globalThis.LanguageModel.create` original
+2. Lo reemplaza con un wrapper que:
+   - Registra `createCalled: true`
+   - Devuelve un session proxy que intercepta `session.prompt`
+   - Registra `promptCalled: true` y el contenido de la respuesta
+3. Almacena todo en `window.__AURA_CHROME_AI_CALLS__`
+4. El test lee este objeto después del diagnóstico para verificar evidencia real
+
+### Flujo corregido en CD-02
+
+```ts
+await installLanguageModelInterceptor(page);   // Instala antes del click
+await genBtn.click();
+flow.generated = true;
+await page.waitForTimeout(8000);
+// ...
+const calls = await page.evaluate(() => (window as any).__AURA_CHROME_AI_CALLS__);
+flow.realChromeAiCreateCalled = !!(calls?.createCalled);
+flow.realChromeAiPromptCalled = !!(calls?.promptCalled);
+flow.usedRealChromeAi = flow.realChromeAiCreateCalled && flow.realChromeAiPromptCalled;
+// flow.mock YA NO SE ASIGNA MANUALMENTE
+```
+
+### Criterios de PASS estrictos en CD-02
+
+```ts
+expect(flow.lm).toBe(true);                                      // LanguageModel presente
+expect(flow.profile).toBe(true);                                 // Stage perfil alcanzado
+expect(flow.diag).toBe(true);                                   // Stage diagnóstico alcanzado
+expect(flow.generated).toBe(true);                              // Diagnóstico generado
+expect(flow.result).toBe(true);                                  // Resultado visible
+expect(flow.usedRealChromeAi).toBe(true);                       // App llamó create+prompt
+expect(flow.realChromeAiCreateCalled).toBe(true);               // create fue llamado
+expect(flow.realChromeAiPromptCalled).toBe(true);               // prompt fue llamado
+```
+
+### Campo `flow.mock` eliminado
+
+Ya no existe `flow.mock` en el objeto de flujo. La inferencia de mock provider se reemplaza por evidencia observada (`usedRealChromeAi`).
+
+### Estado de CD-02 en este commit
+
+| Entorno | Resultado |
+|---------|-----------|
+| Sin `AURA_E2E_REAL_CHROME_AI_FLOW=true` | **SKIPPED** |
+| Con flag, con `VITE_PHASE4_E2E_HARNESS=true` | **FAIL** (mock detectado) |
+| Con flag, sin harness, Chrome AI activo | **PASS** (requiere validación manual) |
+
+### Resultado
+
+- Typecheck: ✅
+- Build: ✅
+- Provider readiness: ✅ (8/8)
+- Smoke CD-01: ✅ PASS
+- CD-02 sin flag: ✅ SKIPPED
+
+### Recomendación técnica inmediata
+
+El flow (`CD-02`) solo puede ser PASS real si:
+1. Dev server corriendo sin `VITE_PHASE4_E2E_HARNESS`
+2. La app tiene Chrome AI configurado como provider activo
+3. El diagnóstico se genera y `window.__AURA_CHROME_AI_CALLS__` muestra `createCalled=true` y `promptCalled=true`
+
+Sin estos condiciones, el test falla — lo cual es correcto y deseable.
+
+## 20. Flow hardening anterior (sesión previa)
+
+### Cambio realizado (sesión previa)
 
 - Eliminación de `expect(flow.profile)` único como gate de PASS — era falso verde.
 - Agregado gate `AURA_E2E_REAL_CHROME_AI_FLOW` para CD-02.
-- CD-02 ahora tiene **6 asserts estrictos**: `lm && profile && diag && generated && result && mock === false`.
 - CD-02 se **salta** si no tiene el flag `FLOW`, no pasa como `PARTIAL`.
 - Escritura de evidence a `docs/` eliminada del smoke test.
 - Console.logs de depuración removidos del spec.
@@ -349,21 +422,3 @@ El smoke test (`CD-01`) también fue hardening:
 | `AURA_E2E_REAL_CHROME_AI_FLOW` | Activa flow test (`CD-02`) — strict |
 | `AURA_E2E_BASE_URL` | Base URL del dev server |
 | `AURA_CHROME_AI_PROFILE_DIR` | Ruta al perfil dedicado |
-
-### Resultado
-
-- Typecheck: ✅
-- Build: ✅
-- Provider readiness: ✅ (8/8)
-- Smoke CD-01: ✅ PASS (`mock: false`)
-- CD-02 sin flag: ✅ SKIPPED
-
-### Bloqueadores restantes para PASS real del flow
-
-- Dev server debe estar corriendo sin `VITE_PHASE4_E2E_HARNESS` para que la app use Chrome AI real.
-- Perfil `$HOME/.aura/chrome-ai-profile` con Gemini Nano activo.
-- Navegación completa del pipeline: upload CSV → perfil → calibración → diagnóstico.
-
-### Recomendación técnica inmediata
-
-El smoke test (`CD-01`) es suficiente para validar que Gemini Nano funciona. El flow (`CD-02`) requiere que un dev server esté corriendo con harness deshabilitado y que la app esté configurada para usar Chrome AI como provider activo. No declarar flow como PASS hasta que el diagnóstico real sea generado yvalidado.
