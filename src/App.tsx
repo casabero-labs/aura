@@ -12,6 +12,7 @@ import MainPipeline, { PipelineData } from './components/MainPipeline';
 import { loadFromApi, syncToApi } from './services/api';
 import { createAIProvider } from './services/aiProvider';
 import { generatePdfReport } from './services/pdfGenerator';
+import { generateDiagnosticPdfReport } from './services/diagnosticReport';
 import { buildEvidenceManifest } from './services/evidenceManifest';
 import { buildAuraExportPackage } from './services/exportPackage';
 import { validateAuraExportPackage } from './services/exportContractValidation';
@@ -208,6 +209,7 @@ const App: React.FC = () => {
   const deterministicValidation = pipelineData.deterministicValidation;
   const improvementRun = pipelineData.improvementRun;
   const scriptValidation = pipelineData.scriptValidation;
+  const diagnosticReport = pipelineData.diagnosticReport;
 
   const criticalCount = countBySeverity(report, IssueSeverity.CRITICAL);
   const warningCount = countBySeverity(report, IssueSeverity.WARNING);
@@ -223,19 +225,24 @@ const App: React.FC = () => {
 
   // ── Export handlers ──
   const handleDownloadPdf = async () => {
-    if (!report) return;
+    if (!diagnosticReport && !report) return;
     setIsPdfGenerating(true);
     setPdfProgressStatus('running');
-    setPdfProgressMsg('Construyendo reporte PDF...');
+    setPdfProgressMsg(diagnosticReport ? 'Generando informe diagnóstico profesional...' : 'Construyendo reporte PDF...');
     try {
       // Delay state update to let the UI render the progress
       await new Promise(resolve => setTimeout(resolve, 100));
-      setPdfProgressMsg('Generando páginas del reporte...');
-      generatePdfReport(report, buildDeterministicPdfContent(report, approvedCleaningScript), aiAnalysis, scriptValidation, undefined, improvementRun?.healthDelta ?? null);
+      if (diagnosticReport) {
+        setPdfProgressMsg('Dibujando gráficos y tablas del informe...');
+        generateDiagnosticPdfReport({ diagnosticReport });
+      } else if (report) {
+        setPdfProgressMsg('Generando páginas del reporte...');
+        generatePdfReport(report, buildDeterministicPdfContent(report, approvedCleaningScript), aiAnalysis, scriptValidation, undefined, improvementRun?.healthDelta ?? null);
+      }
       setPdfProgressStatus('success');
-      setPdfProgressMsg('Reporte PDF descargado');
+      setPdfProgressMsg(diagnosticReport ? 'Informe diagnóstico PDF descargado' : 'Reporte PDF descargado');
       setHasExported(true);
-    } catch (error: any) {
+    } catch {
       setPdfProgressStatus('error');
       setPdfProgressMsg('Error al generar PDF');
     } finally {
@@ -752,12 +759,12 @@ const App: React.FC = () => {
                     <h3 className="export-downloads-title">Descargas</h3>
                     <div className="export-downloads-grid">
                       <button className="btn-p" onClick={handleDownloadPdf} disabled={isPdfGenerating}>
-                        <FileText size={14} /> {isPdfGenerating ? 'Generando reporte' : 'Reporte PDF ejecutivo'}
+                        <FileText size={14} /> {isPdfGenerating ? 'Generando informe' : 'Informe diagnóstico PDF'}
                       </button>
                       {pdfProgressStatus !== 'idle' && (
                         <div style={{ flexBasis: '100%' }}>
                           <ProgressDisclosure
-                            title={pdfProgressStatus === 'running' ? 'Generando reporte PDF ejecutivo' : pdfProgressStatus === 'success' ? 'Reporte PDF listo' : 'Error en el PDF'}
+                            title={pdfProgressStatus === 'running' ? 'Generando informe diagnóstico PDF' : pdfProgressStatus === 'success' ? 'Informe PDF listo' : 'Error en el PDF'}
                             indeterminate={pdfProgressStatus === 'running'}
                             status={pdfProgressStatus}
                             currentStep={pdfProgressMsg}

@@ -38,8 +38,8 @@ Loops:
 | L13B Report data model | Definir modelo interno de `DiagnosticReport` desde `AuditReport`, `auditEvidence` y diagnostico asistido | Cerrado |
 | L13C Pipeline state refactor | Agregar `diagnostic_report` y separar camino principal de remediacion | Cerrado |
 | L13D DiagnosticReportStep UI | Crear pantalla de perfil definitivo con acciones de exportacion principal | Cerrado |
-| L13E Professional PDF generator | Generar PDF diagnostico profesional con graficos reproducibles desde `AuditReport` / `columnStats` | Siguiente |
-| L13F Optional remediation branch | Convertir script, HITL y reauditoria en rama opcional | Pendiente |
+| L13E Professional PDF generator | Generar PDF diagnostico profesional con graficos reproducibles desde `DiagnosticReport.chartSpecs` | Cerrado |
+| L13F Optional remediation branch | Convertir script, HITL y reauditoria en rama opcional | Siguiente |
 | L13G Titanic E2E | Validar el flujo humano completo con fixture Titanic y exportes principales | Pendiente |
 
 ## Estado documental
@@ -51,7 +51,7 @@ Loops:
 ## Frontera académica
 
 - Tercera entrega: presentada y evaluada positivamente.
-- No existe cuarta entrega.
+- No existe una nueva entrega academica numerada.
 - Objetivo académico futuro: depósito definitivo.
 - No preparar entregas intermedias sin instrucción explícita.
 
@@ -64,8 +64,8 @@ Permitido:
 - Chrome AI / Gemini Nano funciona con perfil dedicado cuando Chrome se lanza de forma nativa.
 
 No permitido:
-- Declarar AURA lista para producción general.
-- Decir que AURA corrige datasets reales sin revisión humana.
-- Presentar comparaciones como benchmark definitivo sin protocolo formal.
-- Afirmar que existe una cuarta entrega en curso.
-- Declarar un modelo como ganador universal.
+- Declarar AURA lista para uso general en entornos productivos.
+- Decir que AURA corrige datasets reales sin control humano.
+- Presentar comparaciones como conclusion universal sin protocolo formal.
+- Afirmar que existe una nueva entrega academica en curso.
+- Declarar un modelo como ganador para todos los casos.
