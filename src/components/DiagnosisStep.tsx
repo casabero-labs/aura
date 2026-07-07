@@ -3,6 +3,7 @@ import { Brain, Database, Play, FlaskConical, Lock, Globe, ChevronDown, ChevronR
 import GeminiAdvisor from './GeminiAdvisor';
 import ProgressDisclosure from './ProgressDisclosure';
 import ChromeAiStatusPanel from './ChromeAiStatusPanel';
+import OllamaSetupWizard from './OllamaSetupWizard';
 import { DiagnosisHeroPanel, DiagnosisProviderPanel, DiagnosisContractPanel, TechnicalEvidencePanel } from './diagnosis';
 import { AIConfig, AIProvider, AuditReport, AuditExecutionEvidence, ProviderMetrics, LocalModelStatus, DiagnosisEvent, ProviderProgressEvent, ProgressDisclosureStatus, InputMode } from '../types';
 import { buildSmartSample, buildAnalysisPrompt } from '../services/providers/prompts';
@@ -13,6 +14,7 @@ import { detectChromeAiAvailability, NormalizedAvailability } from '../services/
 import { startNetworkMonitoring, stopNetworkMonitoring, NetworkGuardResult } from '../services/networkGuard';
 import { generateQuickReceipt, PrivacyReceipt } from '../services/privacyReceipt';
 import { runStructuredDiagnosis, isContractsV2Enabled, type DiagnosisExecutionResult } from '../contracts/llm';
+import { diagnoseOllamaLocal, type OllamaLocalDiagnostic, type OllamaLocalStatus } from '../services/ollamaLocalBridge';
 
 interface DiagnosisStepProps {
   report: AuditReport;
@@ -95,6 +97,8 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
   const [networkResult, setNetworkResult] = useState<NetworkGuardResult | null>(null);
   const [isTechnicalEvidenceOpen, setIsTechnicalEvidenceOpen] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
+  const [ollamaDiagnostic, setOllamaDiagnostic] = useState<OllamaLocalDiagnostic | null>(null);
+  const [showOllamaWizard, setShowOllamaWizard] = useState(false);
 
   const pushEvent = useCallback((level: DiagnosisEvent['level'], message: string) => {
     const event: DiagnosisEvent = {
@@ -142,8 +146,20 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
   };
 
   React.useEffect(() => {
-    aiProvider.isAvailable().then(setProviderAvailable).catch(() => setProviderAvailable(false));
-  }, [aiProvider]);
+    if (aiConfig.providerType === 'ollama') {
+      diagnoseOllamaLocal(aiConfig.ollamaBaseUrl).then(diag => {
+        setOllamaDiagnostic(diag);
+        setProviderAvailable(diag.status === 'ready');
+      }).catch(() => {
+        setProviderAvailable(false);
+      });
+    } else {
+      setOllamaDiagnostic(null);
+      if (aiConfig.providerType !== 'chrome') {
+        aiProvider.isAvailable().then(setProviderAvailable).catch(() => setProviderAvailable(false));
+      }
+    }
+  }, [aiConfig.providerType, aiConfig.ollamaBaseUrl, aiProvider]);
 
   React.useEffect(() => {
     setDraftAnalysis(analysisText);
@@ -724,6 +740,8 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
               }}
               onPrepareChrome={prepareChromeAi}
               availableModels={availableModels}
+              ollamaDiagnostic={ollamaDiagnostic}
+              onOpenOllamaWizard={() => setShowOllamaWizard(true)}
             />
 
             <DiagnosisContractPanel
@@ -799,7 +817,9 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
                 <li>El proveedor cloud no responde. Verifica la API key.</li>
               )}
               {aiConfig.providerType === 'ollama' && (
-                <li>Ollama todavía no está conectado a AURA. Completa la configuración guiada para este equipo.</li>
+                <li>{ollamaDiagnostic
+                  ? ollamaDiagnostic.message
+                  : 'Ollama todavía no está conectado a AURA. Usa el asistente de configuración guiada.'}</li>
               )}
               {aiConfig.providerType === 'webllm_experimental' && (
                 <li>WebGPU o modelo local no disponible. Requiere Chrome/Edge con soporte WebGPU.</li>
@@ -808,6 +828,9 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
             <div className="provider-unavailable-actions">
               {aiConfig.providerType === 'ollama' && (
                 <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap', marginBottom: 'var(--space-sm)' }}>
+                  <button className="btn-s btn-sm" onClick={() => setShowOllamaWizard(true)} data-testid="ollama-open-wizard-unavail">
+                    <Server size={12} /> Conectar Ollama de este equipo
+                  </button>
                   <button className="btn-s btn-sm" onClick={() => handleProviderTypeChange('cloud')}>
                     <Globe size={12} /> Usar Cloud
                   </button>
@@ -1078,6 +1101,25 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
           isOpen={isTechnicalEvidenceOpen}
           onToggle={setIsTechnicalEvidenceOpen}
         />
+
+        {showOllamaWizard && (
+          <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowOllamaWizard(false); }} data-testid="ollama-wizard-modal">
+            <div className="modal-container modal-container--lg">
+              <button className="modal-close" onClick={() => setShowOllamaWizard(false)}>
+                <X size={20} />
+              </button>
+              <OllamaSetupWizard
+                endpoint={aiConfig.ollamaBaseUrl}
+                onReady={(diag) => {
+                  setOllamaDiagnostic(diag);
+                  setProviderAvailable(true);
+                  setShowOllamaWizard(false);
+                }}
+                onCancel={() => setShowOllamaWizard(false)}
+              />
+            </div>
+          </div>
+        )}
       </section>
     </>
   );

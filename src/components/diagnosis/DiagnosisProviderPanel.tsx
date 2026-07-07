@@ -1,7 +1,8 @@
 import React from 'react';
-import { Lock, Globe, Server, Cpu } from 'lucide-react';
+import { Lock, Globe, Server, Cpu, ChevronRight, CheckCircle, AlertCircle, Activity } from 'lucide-react';
 import { AIConfig } from '../../types';
 import ChromeAiStatusPanel from '../ChromeAiStatusPanel';
+import type { OllamaLocalDiagnostic, OllamaLocalStatus } from '../../services/ollamaLocalBridge';
 
 interface DiagnosisProviderPanelProps {
   aiConfig: AIConfig;
@@ -18,6 +19,8 @@ interface DiagnosisProviderPanelProps {
   onChromeDownloadProgress: (progress: number, message: string) => void;
   onPrepareChrome: () => Promise<void>;
   availableModels: { id: string; name: string; provider?: string }[];
+  ollamaDiagnostic?: OllamaLocalDiagnostic | null;
+  onOpenOllamaWizard?: () => void;
 }
 
 const PRIVACY_NOTICES: Record<string, { icon: React.ReactNode; title: string; desc: string }> = {
@@ -53,8 +56,24 @@ export const DiagnosisProviderPanel: React.FC<DiagnosisProviderPanelProps> = ({
   onChromeDownloadProgress,
   onPrepareChrome,
   availableModels,
+  ollamaDiagnostic,
+  onOpenOllamaWizard,
 }) => {
   const currentPrivacy = PRIVACY_NOTICES[aiConfig.providerType] || PRIVACY_NOTICES.cloud;
+
+  const ollamaStatusLabel: Record<OllamaLocalStatus, string> = {
+    not_configured: 'Falta configurar OLLAMA_ORIGINS',
+    permission_required: 'Permiso de red local requerido',
+    permission_denied: 'Permiso denegado',
+    cors_blocked: 'OLLAMA_ORIGINS no configurado',
+    server_unreachable: 'Ollama no está iniciado',
+    timeout: 'Ollama no respondió',
+    model_missing: 'Modelo no instalado',
+    insecure_context: 'HTTPS requerido',
+    unsupported_browser: 'Usa Chrome o Edge',
+    ready: 'Listo',
+    unknown_error: 'Error de conexión',
+  };
 
   return (
     <div className="diagnosis-provider-panel">
@@ -128,6 +147,43 @@ export const DiagnosisProviderPanel: React.FC<DiagnosisProviderPanelProps> = ({
           onDownloadProgress={onChromeDownloadProgress}
           onPrepare={onPrepareChrome}
         />
+      )}
+
+      {aiConfig.providerType === 'ollama' && (
+        <div className="ollama-status-strip" data-testid="ollama-status-strip">
+          {!ollamaDiagnostic ? (
+            <div className="ollama-status-strip-checking">
+              <Activity size={12} className="spinning" />
+              <span>Verificando Ollama local...</span>
+            </div>
+          ) : ollamaDiagnostic.status === 'ready' ? (
+            <div className="ollama-status-strip-ready">
+              <CheckCircle size={14} style={{ color: 'var(--success)' }} />
+              <div className="ollama-status-strip-ready-text">
+                <span className="ollama-status-strip-label">Ollama conectado</span>
+                <span className="ollama-status-strip-sub">
+                  navegador → {ollamaDiagnostic.details.endpoint} · datos no enviados al backend
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="ollama-status-strip-issue">
+              <div className="ollama-status-strip-issue-left">
+                <AlertCircle size={14} style={{ color: 'var(--orange)' }} />
+                <span>{ollamaStatusLabel[ollamaDiagnostic.status] || ollamaDiagnostic.message}</span>
+              </div>
+              {onOpenOllamaWizard && (
+                <button
+                  className="btn-s btn-sm"
+                  onClick={onOpenOllamaWizard}
+                  data-testid="ollama-open-wizard-btn"
+                >
+                  Conectar Ollama <ChevronRight size={12} />
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
