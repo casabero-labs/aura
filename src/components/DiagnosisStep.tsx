@@ -94,6 +94,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
   const [showPrivacyDetails, setShowPrivacyDetails] = useState(false);
   const [networkResult, setNetworkResult] = useState<NetworkGuardResult | null>(null);
   const [isTechnicalEvidenceOpen, setIsTechnicalEvidenceOpen] = useState(false);
+  const [showConfig, setShowConfig] = useState(false);
 
   const pushEvent = useCallback((level: DiagnosisEvent['level'], message: string) => {
     const event: DiagnosisEvent = {
@@ -649,9 +650,16 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
   const isV2 = structuredDiagnosis !== null;
   const hasDiagnosis = draftAnalysis.trim().length > 0 || isV2;
 
+  const inputModeLabel = !aiConfig.inputMode || aiConfig.inputMode === 'recommended' ? 'Completo' : aiConfig.inputMode;
+  const providerName = aiConfig.providerType === 'chrome' ? 'Chrome AI / Gemini Nano'
+    : aiConfig.providerType === 'ollama' ? 'Ollama Local'
+    : aiConfig.providerType === 'webllm_experimental' ? 'WebLLM'
+    : aiConfig.cloudProvider ? `${aiConfig.cloudProvider} Cloud` : 'Cloud';
+
   return (
     <>
       <section className="diagnosis-stage-shell" data-testid="diagnosis-stage">
+        {/* 1. Header + action */}
         <DiagnosisHeroPanel
           findings={inputSummary.findings}
           critical={inputSummary.critical}
@@ -663,91 +671,71 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
           onContinue={onContinue}
         />
 
-        <DiagnosisProviderPanel
-          aiConfig={aiConfig}
-          providerAvailable={providerAvailable}
-          chromeAvailability={chromeAvailability}
-          isCheckingChrome={isCheckingChrome}
-          isPreparingChrome={isPreparingChrome}
-          chromeDownloadProgress={chromeDownloadProgress}
-          chromeDownloadMessage={chromeDownloadMessage}
-          onProviderTypeChange={handleProviderTypeChange}
-          onModelChange={handleModelChange}
-          onChromeStatusChange={(uiStatus) => {
-            setProviderAvailable(uiStatus === 'ready');
-            if (uiStatus === 'downloading') {
-              pushEvent('info', 'Chrome está descargando Gemini Nano.');
-              pushEvent('info', 'AURA verificará el estado automáticamente.');
-            }
-            if (uiStatus === 'ready') {
-              pushEvent('success', 'Gemini Nano listo para diagnóstico.');
-            }
-          }}
-          onChromeReady={() => setProviderAvailable(true)}
-          onChromeDownloadProgress={(progress, message) => {
-            setChromeDownloadProgress(progress);
-            setChromeDownloadMessage(message);
-          }}
-          onPrepareChrome={prepareChromeAi}
-          availableModels={availableModels}
-        />
+        {/* 2. Active mode summary strip */}
+        <div className="diagnosis-active-mode" data-testid="diagnosis-active-mode">
+          <div className="diagnosis-active-mode-left">
+            <span className="diagnosis-active-mode-provider">
+              <Settings size={12} />
+              <span>Modo activo: {providerName}</span>
+            </span>
+            <span className="diagnosis-active-mode-sep" />
+            <span className="diagnosis-active-mode-entry">Entrada: {inputModeLabel}</span>
+            <span className="diagnosis-active-mode-sep" />
+            <span className="diagnosis-active-mode-privacy">Datos crudos no enviados</span>
+          </div>
+          <button
+            className="diagnosis-active-mode-config-btn btn-s btn-sm"
+            onClick={() => setShowConfig(!showConfig)}
+            data-testid="diagnosis-config-toggle"
+          >
+            <Settings size={11} />
+            <span>{showConfig ? 'Ocultar configuración' : 'Cambiar configuración'}</span>
+            <ChevronDown size={11} className={`activity-console-chevron ${showConfig ? 'activity-console-chevron--open' : ''}`} />
+          </button>
+        </div>
 
-        <DiagnosisContractPanel
-          report={report}
-          aiConfig={aiConfig}
-          onInputModeChange={handleInputModeChange}
-          onOpenTechnicalEvidence={() => setIsTechnicalEvidenceOpen(true)}
-        />
+        {/* 3. Collapsible config section */}
+        {showConfig && (
+          <div className="diagnosis-config-section" data-testid="diagnosis-config-section">
+            <DiagnosisProviderPanel
+              aiConfig={aiConfig}
+              providerAvailable={providerAvailable}
+              chromeAvailability={chromeAvailability}
+              isCheckingChrome={isCheckingChrome}
+              isPreparingChrome={isPreparingChrome}
+              chromeDownloadProgress={chromeDownloadProgress}
+              chromeDownloadMessage={chromeDownloadMessage}
+              onProviderTypeChange={handleProviderTypeChange}
+              onModelChange={handleModelChange}
+              onChromeStatusChange={(uiStatus) => {
+                setProviderAvailable(uiStatus === 'ready');
+                if (uiStatus === 'downloading') {
+                  pushEvent('info', 'Chrome está descargando Gemini Nano.');
+                  pushEvent('info', 'AURA verificará el estado automáticamente.');
+                }
+                if (uiStatus === 'ready') {
+                  pushEvent('success', 'Gemini Nano listo para diagnóstico.');
+                }
+              }}
+              onChromeReady={() => setProviderAvailable(true)}
+              onChromeDownloadProgress={(progress, message) => {
+                setChromeDownloadProgress(progress);
+                setChromeDownloadMessage(message);
+              }}
+              onPrepareChrome={prepareChromeAi}
+              availableModels={availableModels}
+            />
 
-        <TechnicalEvidencePanel
-          report={report}
-          aiConfig={aiConfig}
-          isOpen={isTechnicalEvidenceOpen}
-          onToggle={setIsTechnicalEvidenceOpen}
-        />
-
-        {aiConfig.providerType === 'webllm_experimental' && currentModelStatus && (
-          <div className="local-model-status" data-testid="local-model-status">
-            <div className={`local-model-status-badge local-model-status-badge--${currentModelStatus.status}`}>
-              {currentModelStatus.status === 'ready' && <CheckCircle size={12} />}
-              {currentModelStatus.status === 'partial' && <AlertTriangle size={12} />}
-              {currentModelStatus.status === 'not_downloaded' && <Circle size={12} />}
-              {currentModelStatus.status === 'error' && <AlertCircle size={12} />}
-              {currentModelStatus.status === 'checking' && <Clock size={12} />}
-              <span className="local-model-status-label">
-                {currentModelStatus.status === 'ready' && 'Verificado y listo'}
-                {currentModelStatus.status === 'partial' && 'No verificado'}
-                {currentModelStatus.status === 'not_downloaded' && 'No descargado'}
-                {currentModelStatus.status === 'error' && 'Error de descarga'}
-                {currentModelStatus.status === 'checking' && 'Verificando...'}
-              </span>
-              <span className="local-model-status-confidence">
-                {currentModelStatus.confidence === 'high' ? 'Alta confianza' : currentModelStatus.confidence === 'medium' ? 'Confianza media' : 'Baja confianza'}
-              </span>
-            </div>
-            <p className="local-model-status-message">{currentModelStatus.message}</p>
-            <div className="local-model-status-actions">
-              <button className="btn-s btn-sm" onClick={() => checkCurrentModelStatus(aiConfig.model)} disabled={isCheckingModel}>
-                <Activity size={10} /> {isCheckingModel ? 'Verificando' : 'Verificar estado'}
-              </button>
-              {currentModelStatus.status !== 'ready' && (
-                <button className="btn-p btn-sm" onClick={() => runDiagnosis()} disabled={isLoading}>
-                  <Play size={10} /> Descargar y diagnosticar
-                </button>
-              )}
-              {(currentModelStatus.status === 'partial' || currentModelStatus.status === 'error') && (
-                <button className="btn-s btn-sm" onClick={() => handleDeleteModel(aiConfig.model)} disabled={deletingModel === aiConfig.model}>
-                  <Trash2 size={10} /> {deletingModel === aiConfig.model ? 'Eliminando...' : 'Limpiar y reintentar'}
-                </button>
-              )}
-            </div>
+            <DiagnosisContractPanel
+              report={report}
+              aiConfig={aiConfig}
+              onInputModeChange={handleInputModeChange}
+              onOpenTechnicalEvidence={() => setIsTechnicalEvidenceOpen(true)}
+            />
           </div>
         )}
 
-        {aiConfig.providerType === 'webllm_experimental' && !currentModelStatus && !isCheckingModel && (
-          <p className="local-model-status-placeholder">Verifica el estado del modelo local antes de diagnosticar.</p>
-        )}
-
+        {/* 4. Progress + console during execution */}
         {progressStatus !== 'idle' && (
           <ProgressDisclosure
             title={progressStatus === 'running' ? 'AURA está trabajando' : progressStatus === 'success' ? 'Diagnóstico completado' : 'Diagnóstico fallido'}
@@ -796,6 +784,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
           </div>
         )}
 
+        {/* 5. Provider / error notices */}
         {providerAvailable === false && aiConfig.providerType !== 'chrome' && (
           <div className="provider-unavailable-notice">
             <div className="provider-unavailable-header">
@@ -950,6 +939,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
           </div>
         )}
 
+        {/* 6. Result — protagonist when diagnosis is done */}
         {hasDiagnosis && !isLoading && (
           <div className="stage-result">
             {isV2 ? (
@@ -1027,6 +1017,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
           </div>
         )}
 
+        {/* 7. Export + continue actions */}
         {hasDiagnosis && (
           <div className="evidence-options" data-testid="primary-stage-action">
             <button className="btn-s btn-sm" onClick={exportDiagnosisPdf}>
@@ -1040,6 +1031,53 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
             </button>
           </div>
         )}
+
+        {/* 8. WebLLM local model status (collapsed at bottom if applicable) */}
+        {aiConfig.providerType === 'webllm_experimental' && currentModelStatus && (
+          <div className="local-model-status" data-testid="local-model-status">
+            <div className={`local-model-status-badge local-model-status-badge--${currentModelStatus.status}`}>
+              {currentModelStatus.status === 'ready' && <CheckCircle size={12} />}
+              {currentModelStatus.status === 'partial' && <AlertTriangle size={12} />}
+              {currentModelStatus.status === 'not_downloaded' && <Circle size={12} />}
+              {currentModelStatus.status === 'error' && <AlertCircle size={12} />}
+              {currentModelStatus.status === 'checking' && <Clock size={12} />}
+              <span className="local-model-status-label">
+                {currentModelStatus.status === 'ready' && 'Verificado y listo'}
+                {currentModelStatus.status === 'partial' && 'No verificado'}
+                {currentModelStatus.status === 'not_downloaded' && 'No descargado'}
+                {currentModelStatus.status === 'error' && 'Error de descarga'}
+                {currentModelStatus.status === 'checking' && 'Verificando...'}
+              </span>
+              <span className="local-model-status-confidence">
+                {currentModelStatus.confidence === 'high' ? 'Alta confianza' : currentModelStatus.confidence === 'medium' ? 'Confianza media' : 'Baja confianza'}
+              </span>
+            </div>
+            <p className="local-model-status-message">{currentModelStatus.message}</p>
+            <div className="local-model-status-actions">
+              <button className="btn-s btn-sm" onClick={() => checkCurrentModelStatus(aiConfig.model)} disabled={isCheckingModel}>
+                <Activity size={10} /> {isCheckingModel ? 'Verificando' : 'Verificar estado'}
+              </button>
+              {currentModelStatus.status !== 'ready' && (
+                <button className="btn-p btn-sm" onClick={() => runDiagnosis()} disabled={isLoading}>
+                  <Play size={10} /> Descargar y diagnosticar
+                </button>
+              )}
+              {(currentModelStatus.status === 'partial' || currentModelStatus.status === 'error') && (
+                <button className="btn-s btn-sm" onClick={() => handleDeleteModel(aiConfig.model)} disabled={deletingModel === aiConfig.model}>
+                  <Trash2 size={10} /> {deletingModel === aiConfig.model ? 'Eliminando...' : 'Limpiar y reintentar'}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* 9. Technical evidence — collapsed at the bottom */}
+        <TechnicalEvidencePanel
+          report={report}
+          aiConfig={aiConfig}
+          isOpen={isTechnicalEvidenceOpen}
+          onToggle={setIsTechnicalEvidenceOpen}
+        />
       </section>
     </>
   );

@@ -6624,6 +6624,73 @@ tr:hover td {
   flex-wrap: wrap;
 }
 
+/* ─── Diagnosis Active Mode Strip ─── */
+
+.diagnosis-active-mode {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  color: var(--ink2);
+  flex-wrap: wrap;
+}
+
+.diagnosis-active-mode-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.diagnosis-active-mode-provider {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.diagnosis-active-mode-provider svg {
+  color: var(--ink3);
+}
+
+.diagnosis-active-mode-sep {
+  width: 1px;
+  height: 14px;
+  background: var(--border);
+}
+
+.diagnosis-active-mode-entry,
+.diagnosis-active-mode-privacy {
+  color: var(--ink2);
+  font-size: 11px;
+}
+
+.diagnosis-active-mode-privacy {
+  color: var(--success, #16a34a);
+}
+
+.diagnosis-active-mode-config-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+/* ─── Diagnosis Config Section ─── */
+
+.diagnosis-config-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
 /* ─── Diagnosis Provider Panel ─── */
 
 .diagnosis-provider-panel {
