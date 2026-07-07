@@ -9,17 +9,21 @@
  *
  * Tests run SERIALLY — Chrome profile locks to a single instance.
  *
+ * TARGET: Production (https://aura.casabero.com)
+ * Chrome AI / Gemini Nano are local to the user's Chrome profile.
+ * AURA itself is tested against PRODUCTION.
+ *
  * SMOKE ACTIVATION:
  *   AURA_E2E_REAL_CHROME_AI=true
- *   AURA_E2E_BASE_URL="http://127.0.0.1:3000"
+ *   AURA_E2E_BASE_URL="https://aura.casabero.com"  (default)
  *   AURA_CHROME_AI_PROFILE_DIR="$HOME/.aura/chrome-ai-profile"
  *
  * FLOW ACTIVATION (additionally):
  *   AURA_E2E_REAL_CHROME_AI_FLOW=true
  *
  * Flow test is STRICT: requires Chrome AI real throughout the flow.
- * If harness forces mock provider, mock===false assertion fails → test fails.
- * Flow test does NOT use VITE_PHASE4_E2E_HARNESS (harness bypasses Chrome AI).
+ * Flow runs against PRODUCTION — NO harness, NO __PHASE4_GET_STATE__,
+ * NO dev server, NO mocks. Navigation via real UI selectors only.
  */
 
 import path from 'node:path';
@@ -31,7 +35,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const REAL_CHROME_AI = process.env.AURA_E2E_REAL_CHROME_AI?.trim().toLowerCase() === 'true';
 const REAL_FLOW = process.env.AURA_E2E_REAL_CHROME_AI_FLOW?.trim().toLowerCase() === 'true';
-const BASE_URL = process.env.AURA_E2E_BASE_URL?.trim() || '';
+const BASE_URL = process.env.AURA_E2E_BASE_URL?.trim() || 'https://aura.casabero.com';
 const PROFILE_DIR = process.env.AURA_CHROME_AI_PROFILE_DIR?.trim() || '';
 const CDP_PORT = parseInt(process.env.AURA_CHROME_REMOTE_DEBUGGING_PORT?.trim() || '9222', 10);
 const CHROME_PATH = process.env.AURA_CHROME_EXECUTABLE_PATH?.trim() || undefined;
@@ -42,11 +46,13 @@ const DIAG_FLOW_CSV = path.resolve(__dirname, './fixtures/aura_l10_full_flow_iss
 
 /**
  * Installs an interceptor on globalThis.LanguageModel.create that records
- * every call made by the application (not by the test itself).
- * This provides evidence that the app actually used Chrome AI for diagnosis.
+ * every call made by the APPLICATION (not by the test itself).
+ * This proves the app actually used Chrome AI for diagnosis.
  *
- * Returns a cleanup function. Call after diagnosis completes and check
- * window.__AURA_CHROME_AI_CALLS__ for evidence.
+ * The interceptor wraps LanguageModel.create to catch:
+ * - createCalled: whether the app created a session
+ * - promptCalled: whether session.prompt was called with the diagnosis prompt
+ * - responses: the raw text responses captured (truncated to 500 chars)
  */
 async function installLanguageModelInterceptor(page: Page): Promise<void> {
   await page.evaluate(() => {
@@ -114,17 +120,18 @@ test.describe.serial('Phase 10 L12B — Chrome AI Real Opt-in (CDP)', () => {
     expect(ev.mock, 'Must use real Chrome AI, not mock').toBe(false);
   });
 
-  test('L12B-CD-02 — Chrome AI AURA diagnosis flow', async () => {
-    test.skip(!FLOW_ACTIVE, 'Requires AURA_E2E_REAL_CHROME_AI_FLOW=true (flow test is strict: harness bypasses Chrome AI)');
+  test('L12B-CD-02 — Chrome AI AURA diagnosis flow (production)', async () => {
+    test.skip(!FLOW_ACTIVE, 'Requires AURA_E2E_REAL_CHROME_AI_FLOW=true');
 
     const ctx = await launchChromeWithCdp({ profileDir: PROFILE_DIR, baseUrl: BASE_URL, chromePath: CHROME_PATH, cdpPort: CDP_PORT });
 
     const flow = {
       lm: false,
-      profile: false,
-      diag: false,
+      uploaded: false,
+      profileStageReached: false,
+      calibrationStageReached: false,
+      diagStageReached: false,
       generated: false,
-      logs: false,
       result: false,
       usedRealChromeAi: false,
       realChromeAiCreateCalled: false,
@@ -136,55 +143,81 @@ test.describe.serial('Phase 10 L12B — Chrome AI Real Opt-in (CDP)', () => {
       await page.goto(BASE_URL, { waitUntil: 'domcontentloaded', timeout: 60_000 });
       flow.lm = await page.evaluate(() => typeof (globalThis as any).LanguageModel !== 'undefined');
 
+      // ── 1. Home: click "Empezar auditoría" ──
       await page.locator('.sys-nav').waitFor({ state: 'visible', timeout: 15_000 });
       await page.getByRole('button', { name: /Empezar auditoría/i }).click();
-      await page.waitForTimeout(500);
 
+      // ── 2. Upload step: upload CSV ──
+      await page.locator('[data-testid="csv-file-input"]').waitFor({ state: 'visible', timeout: 15_000 });
       await page.locator('[data-testid="csv-file-input"]').setInputFiles(DIAG_FLOW_CSV);
+      flow.uploaded = true;
 
-      await page.waitForFunction(
-        () => (window as any).__PHASE4_GET_STATE__?.()?.pipelineState === 'profile',
-        { timeout: 30_000 });
-      flow.profile = true;
-
-      for (const target of ['calibration', 'diagnosis'] as string[]) {
-        const reached = await page.waitForFunction(
-          (s) => (window as any).__PHASE4_GET_STATE__?.()?.pipelineState === s, target,
-          { timeout: 15_000 }).then(() => true).catch(() => false);
-        if (reached && target === 'calibration') {
-          const btn = page.locator('[data-testid="primary-stage-action"]').getByRole('button', { name: /Continuar/i });
-          if (await btn.isVisible({ timeout: 3000 }).catch(() => false)) { await btn.click(); await page.waitForTimeout(1000); }
-        }
-        if (reached && target === 'diagnosis') { flow.diag = true; }
+      // ── 3. Profile stage: wait for "Continuar" button to be ready ──
+      // The profile stage shows a "Continuar" button inside [data-testid="primary-stage-action"]
+      // We wait for it to appear (profile generation is async after CSV upload).
+      try {
+        await page.locator('[data-testid="primary-stage-action"]').getByRole('button', { name: /Continuar/i })
+          .waitFor({ state: 'visible', timeout: 30_000 });
+        flow.profileStageReached = true;
+      } catch {
+        // Profile stage may auto-advance if fast; check for calibration button instead
+        flow.profileStageReached = await page.locator('[data-testid="primary-stage-action"]').getByRole('button', { name: /Continuar/i })
+          .isVisible({ timeout: 5000 }).catch(() => false);
       }
 
-      if (flow.diag) {
-        const genBtn = page.locator('[data-testid="diagnosis-stage"]').getByRole('button', { name: /(Generar|Regenerar) diagnóstico/i });
-        if (await genBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-          await installLanguageModelInterceptor(page);
-          await genBtn.click();
-          flow.generated = true;
-          await page.waitForTimeout(8000);
-          flow.logs = (await page.locator('[data-testid^="log-line-"]').count().catch(() => 0)) > 0;
-          flow.result = await page.locator('[data-testid="stage-decision-summary"]').isVisible({ timeout: 10_000 }).catch(() => false);
-
-          const calls = await page.evaluate(() => (window as any).__AURA_CHROME_AI_CALLS__);
-          flow.realChromeAiCreateCalled = !!(calls?.createCalled);
-          flow.realChromeAiPromptCalled = !!(calls?.promptCalled);
-          flow.usedRealChromeAi = flow.realChromeAiCreateCalled && flow.realChromeAiPromptCalled;
+      // ── 4. Calibration stage: click "Continuar" if visible ──
+      if (flow.profileStageReached) {
+        const calBtn = page.locator('[data-testid="primary-stage-action"]').getByRole('button', { name: /Continuar/i });
+        if (await calBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
+          await calBtn.click();
+          flow.calibrationStageReached = true;
+          await page.waitForTimeout(2000);
         }
+      }
+
+      // ── 5. Diagnosis stage: click "Continuar" again if visible ──
+      // After calibration, another "Continuar" may appear to advance to diagnosis
+      const calBtn2 = page.locator('[data-testid="primary-stage-action"]').getByRole('button', { name: /Continuar/i });
+      if (await calBtn2.isVisible({ timeout: 5000 }).catch(() => false)) {
+        await calBtn2.click();
+        await page.waitForTimeout(2000);
+      }
+
+      // ── 6. Diagnosis stage: locate and click "Generar diagnóstico" ──
+      const diagBtn = page.locator('[data-testid="diagnosis-stage"]').getByRole('button', { name: /(Generar|Regenerar) diagnóstico/i });
+      const diagVisible = await diagBtn.isVisible({ timeout: 10_000 }).catch(() => false);
+
+      if (diagVisible) {
+        flow.diagStageReached = true;
+        // Install interceptor BEFORE clicking generate — catches the app's own calls
+        await installLanguageModelInterceptor(page);
+        await diagBtn.click();
+        flow.generated = true;
+
+        // ── 7. Wait for diagnosis result to appear ──
+        await page.waitForTimeout(10_000);
+        flow.result = await page.locator('[data-testid="stage-decision-summary"]')
+          .isVisible({ timeout: 15_000 }).catch(() => false);
+
+        // ── 8. Read Chrome AI usage evidence ──
+        const calls = await page.evaluate(() => (window as any).__AURA_CHROME_AI_CALLS__);
+        flow.realChromeAiCreateCalled = !!(calls?.createCalled);
+        flow.realChromeAiPromptCalled = !!(calls?.promptCalled);
+        flow.usedRealChromeAi = flow.realChromeAiCreateCalled && flow.realChromeAiPromptCalled;
       }
     } catch (e: any) { flow.err = e.message; }
 
     await ctx.close();
 
+    // ── Strict assertions: NO partial pass, NO manual mock flag ──
     expect(flow.lm, 'Chrome AI LanguageModel must be present').toBe(true);
-    expect(flow.profile, 'Profile stage must be reached').toBe(true);
-    expect(flow.diag, 'Diagnosis stage must be reached').toBe(true);
-    expect(flow.generated, 'Diagnosis must be generated').toBe(true);
-    expect(flow.result, 'Diagnosis result must be visible').toBe(true);
-    expect(flow.usedRealChromeAi, 'App must call real LanguageModel.create and prompt for diagnosis').toBe(true);
+    expect(flow.uploaded, 'CSV must be uploaded').toBe(true);
+    expect(flow.profileStageReached, 'Profile stage must be reached').toBe(true);
+    expect(flow.diagStageReached, 'Diagnosis stage must be reached').toBe(true);
+    expect(flow.generated, 'Diagnosis must be generated (button clicked)').toBe(true);
+    expect(flow.result, 'Diagnosis result must be visible in UI').toBe(true);
+    expect(flow.usedRealChromeAi, 'App must call real LanguageModel.create AND session.prompt for diagnosis').toBe(true);
     expect(flow.realChromeAiCreateCalled, 'LanguageModel.create must have been called by the app').toBe(true);
-    expect(flow.realChromeAiPromptCalled, 'LanguageModel session.prompt must have been called by the app').toBe(true);
+    expect(flow.realChromeAiPromptCalled, 'session.prompt must have been called by the app').toBe(true);
   });
 });

@@ -48,22 +48,21 @@ cd src && npm run build       # ✅
 # E2E estándar (Playwright)
 cd src && npx playwright test --reporter=list  # 107 tests
 
-# E2E Chrome AI real opt-in (vía launchPersistentContext)
+# E2E Chrome AI real opt-in (vía CDP, producción)
 cd src && \
 AURA_E2E_REAL_CHROME_AI=true \
-AURA_E2E_BASE_URL="http://127.0.0.1:3000" \
+AURA_E2E_BASE_URL="https://aura.casabero.com" \
 AURA_CHROME_AI_PROFILE_DIR="$HOME/.aura/chrome-ai-profile" \
 npx playwright test src/tests/e2e/aura-chrome-ai-real.optin.spec.ts --headed
 
-# Chrome AI prueba directa vía CDP
+# Chrome AI prueba directa vía CDP (producción)
 /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome \
   --user-data-dir="$HOME/.aura/chrome-ai-profile" \
   --no-first-run \
   --enable-features=PromptAPI,OptimizationGuideOnDeviceModel,PromptAPIForGeminiNano,BuiltInAIOnDeviceModel \
   --enable-optimization-guide-on-device-model \
   --remote-debugging-port=9222 \
-  --no-sandbox \
-  http://127.0.0.1:3000
+  https://aura.casabero.com
 ```
 
 ## 6. Resultado typecheck
@@ -281,7 +280,7 @@ El flow test es **strict opt-in**. No corre con el solo `AURA_E2E_REAL_CHROME_AI
 ```bash
 AURA_E2E_REAL_CHROME_AI=true \
 AURA_E2E_REAL_CHROME_AI_FLOW=true \
-AURA_E2E_BASE_URL="http://127.0.0.1:3000" \
+AURA_E2E_BASE_URL="https://aura.casabero.com" \
 AURA_CHROME_AI_PROFILE_DIR="$HOME/.aura/chrome-ai-profile" \
 npx playwright test src/tests/e2e/aura-chrome-ai-real.optin.spec.ts --grep "CD-02" --headed --reporter=list
 ```
@@ -293,12 +292,15 @@ Sin `AURA_E2E_REAL_CHROME_AI_FLOW=true`, el test se **salta** (`test.skip`) con 
 El test requiere **TODOS** estos asserts para considerarse PASS:
 
 ```ts
-expect(flow.lm).toBe(true);          // Chrome AI LanguageModel presente
-expect(flow.profile).toBe(true);     // Stage de perfil alcanzado
-expect(flow.diag).toBe(true);        // Stage de diagnóstico alcanzado
-expect(flow.generated).toBe(true);   // Diagnóstico generado
-expect(flow.result).toBe(true);      // Resultado visible en UI
-expect(flow.mock).toBe(false);       // Chrome AI real usado, no mock provider
+expect(flow.lm).toBe(true);              // Chrome AI LanguageModel presente
+expect(flow.uploaded).toBe(true);        // CSV subido
+expect(flow.profileStageReached).toBe(true); // Stage de perfil alcanzado
+expect(flow.diagStageReached).toBe(true);    // Stage de diagnóstico alcanzado
+expect(flow.generated).toBe(true);       // Diagnóstico generado (botón clickeado)
+expect(flow.result).toBe(true);          // Resultado visible en UI
+expect(flow.usedRealChromeAi).toBe(true); // App llamó create+prompt
+expect(flow.realChromeAiCreateCalled).toBe(true);   // create llamado
+expect(flow.realChromeAiPromptCalled).toBe(true);   // prompt llamado
 ```
 
 ### Estados posibles del test
@@ -420,5 +422,65 @@ Sin estos condiciones, el test falla — lo cual es correcto y deseable.
 |----------|-----------|
 | `AURA_E2E_REAL_CHROME_AI` | Activa smoke test (`CD-01`) |
 | `AURA_E2E_REAL_CHROME_AI_FLOW` | Activa flow test (`CD-02`) — strict |
-| `AURA_E2E_BASE_URL` | Base URL del dev server |
+| `AURA_E2E_BASE_URL` | Base URL (default: `https://aura.casabero.com`) |
 | `AURA_CHROME_AI_PROFILE_DIR` | Ruta al perfil dedicado |
+
+## 21. Production target correction (sesión actual)
+
+### Cambio realizado
+
+- Target cambiado de `http://127.0.0.1:3000` → `https://aura.casabero.com` como default.
+- CD-02: eliminación completa de `__PHASE4_GET_STATE__` — no disponible en producción.
+- CD-02: eliminación de `VITE_PHASE4_E2E_HARNESS` como dependencia — producción no lo tiene.
+- CD-02: navegación reescrita con selectores UI reales:
+  - `.sys-nav` visible → click "Empezar auditoría"
+  - `[data-testid="csv-file-input"]` visible → upload CSV
+  - `[data-testid="primary-stage-action"]` + "Continuar" visible → avanzar a perfil
+  - Segundo "Continuar" → avanzar a calibración
+  - Tercer "Continuar" → avanzar a diagnóstico
+  - `[data-testid="diagnosis-stage"]` + "Generar diagnóstico" visible → generar
+  - `[data-testid="stage-decision-summary"]` visible → validar resultado
+- CD-02: 9 asserts estrictos incluyendo `usedRealChromeAi` + `createCalled` + `promptCalled`.
+- El `installLanguageModelInterceptor` se mantiene — captura evidencia de provider real.
+
+### Distinción clave
+
+| Antes | Ahora |
+|-------|-------|
+| Target: `http://127.0.0.1:3000` (dev server) | Target: `https://aura.casabero.com` (producción) |
+| Navegación con `__PHASE4_GET_STATE__` (harness) | Navegación puramente UI |
+| `VITE_PHASE4_E2E_HARNESS` como requisito | Sin harness, producción real |
+| `flow.profile` único gate | 9 asserts estrictos |
+
+### Chrome AI vs. AURA producción
+
+- **Chrome AI / Gemini Nano**: local al perfil Chrome del usuario (`$HOME/.aura/chrome-ai-profile`). No se envía fuera del dispositivo.
+- **AURA**: probada contra `https://aura.casabero.com` (producción real).
+
+### Resultado
+
+| Validación | Resultado |
+|------------|-----------|
+| Typecheck | ✅ |
+| Build | ✅ |
+| Provider readiness | ✅ (8/8) |
+| Smoke CD-01 contra producción | ✅ PASS |
+| CD-02 sin flag | ✅ SKIPPED |
+
+### Estado CD-02 contra producción
+
+CD-02 se ejecuta contra `https://aura.casabero.com` SIN harness. La navegación depende exclusivamente de selectores UI presentes en producción (`data-testid`, roles de botones, visibilidad).
+
+- **SELECTOR_REQUIRED** si la UI de producción no permite navegación estable sin harness.
+- **PRODUCT_GAP** si la producción no permite seleccionar/usar Chrome AI como provider.
+- **ENV_REQUIRED** si Chrome AI no está disponible en el entorno.
+- **FIX_REQUIRED** si falla por bug en la app.
+
+### Grep final confirmado
+
+- `127.0.0.1:3000` en spec: **no existe** ✅
+- `localhost` en spec: **no existe** ✅
+- `__PHASE4_GET_STATE__` en spec: **no existe** ✅
+- `VITE_PHASE4_E2E_HARNESS` como dependencia: **no existe** ✅
+- `flow.mock = false` manual: **no existe** ✅
+- `https://aura.casabero.com` en spec: **presente como default** ✅
