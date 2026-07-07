@@ -10516,3 +10516,337 @@ tr:hover td {
 .pdf-generating-notice svg {
   animation: spin 1s linear infinite;
 }
+
+/* ─── Ollama Setup Wizard ─── */
+
+.ollama-wizard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.ollama-wizard-header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  background: var(--bg);
+  border-bottom: 1px solid var(--border-faint);
+}
+
+.ollama-wizard-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 2px 0;
+}
+
+.ollama-wizard-subtitle {
+  font-size: 13px;
+  color: var(--ink2);
+  margin: 0;
+}
+
+.ollama-wizard-steps {
+  display: flex;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--border-faint);
+}
+
+.ollama-wizard-step-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border);
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.ollama-wizard-step-dot--active {
+  background: var(--accent);
+  transform: scale(1.4);
+}
+
+.ollama-wizard-step-dot--done {
+  background: var(--success);
+}
+
+.ollama-wizard-section {
+  padding: var(--space-lg);
+}
+
+.ollama-wizard-section-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.ollama-wizard-section-header svg {
+  color: var(--ink3);
+  flex-shrink: 0;
+}
+
+.ollama-wizard-text {
+  font-size: 13px;
+  color: var(--ink2);
+  line-height: 1.6;
+  margin: 0 0 var(--space-md) 0;
+}
+
+.ollama-wizard-diagram {
+  padding: var(--space-md);
+  background: var(--bg);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-lg);
+  text-align: center;
+}
+
+.ollama-wizard-diagram-line {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  font-family: var(--font-mono);
+}
+
+.ollama-wizard-origin-box {
+  padding: var(--space-md);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-md);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  word-break: break-all;
+}
+
+.ollama-wizard-instructions {
+  margin-bottom: var(--space-md);
+}
+
+.ollama-wizard-instruction-step {
+  font-size: 13px;
+  color: var(--ink2);
+  margin: 0 0 4px 0;
+  line-height: 1.6;
+}
+
+.ollama-wizard-instruction-cmd {
+  font-size: 12px;
+  color: var(--ink);
+  font-family: var(--font-mono);
+  background: var(--bg);
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin: 4px 0;
+  display: inline-block;
+}
+
+.ollama-wizard-subsection {
+  margin-top: var(--space-md);
+  margin-bottom: var(--space-md);
+  font-size: 13px;
+  color: var(--ink2);
+}
+
+.ollama-wizard-subsection strong {
+  display: block;
+  margin-bottom: var(--space-xs);
+}
+
+.ollama-wizard-code-block {
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-md);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--ink);
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.ollama-wizard-note {
+  font-size: 12px;
+  color: var(--ink3);
+  font-style: italic;
+  margin: var(--space-md) 0;
+}
+
+.ollama-wizard-warning {
+  font-size: 12px;
+  color: var(--orange);
+  margin-top: var(--space-sm);
+}
+
+.ollama-wizard-actions {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  margin-top: var(--space-lg);
+}
+
+.ollama-wizard-os-detected {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.ollama-wizard-os-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.ollama-wizard-os-options {
+  display: flex;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+}
+
+.ollama-wizard-os-btn--active {
+  background: var(--accent) !important;
+  color: white !important;
+}
+
+.ollama-wizard-connect-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-lg) 0;
+}
+
+.ollama-wizard-error {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: rgba(211, 47, 47, 0.08);
+  border: 1px solid rgba(211, 47, 47, 0.2);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: var(--error);
+}
+
+.ollama-wizard-diagnostic {
+  padding: var(--space-lg);
+  border-radius: var(--radius-sm);
+  border: 1px solid;
+}
+
+.ollama-wizard-diagnostic--success {
+  background: rgba(46, 125, 50, 0.06);
+  border-color: rgba(46, 125, 50, 0.2);
+}
+
+.ollama-wizard-diagnostic--warning {
+  background: rgba(230, 81, 0, 0.04);
+  border-color: rgba(230, 81, 0, 0.15);
+}
+
+.ollama-wizard-diagnostic-header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.ollama-wizard-diagnostic-msg {
+  font-size: 13px;
+  color: var(--ink2);
+  margin: 4px 0 0 0;
+}
+
+.ollama-wizard-model-list {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-md);
+}
+
+.ollama-wizard-model-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink3);
+  text-transform: uppercase;
+}
+
+.ollama-wizard-model-chip {
+  font-size: 11px;
+  padding: 2px 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  font-family: var(--font-mono);
+  color: var(--ink);
+}
+
+.ollama-wizard-checklist {
+  padding: var(--space-md);
+  background: var(--bg);
+  border: 1px solid var(--border-faint);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-md);
+}
+
+.ollama-wizard-checklist-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink2);
+  margin-bottom: var(--space-sm);
+}
+
+.ollama-wizard-checklist ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ollama-wizard-checklist li {
+  font-size: 12px;
+  color: var(--ink2);
+  line-height: 1.5;
+  padding-left: 16px;
+  position: relative;
+}
+
+.ollama-wizard-checklist li::before {
+  content: '•';
+  position: absolute;
+  left: 0;
+  color: var(--ink3);
+}
+
+.ollama-wizard-ready-confirm {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--success);
+  padding: var(--space-md);
+  background: rgba(46, 125, 50, 0.06);
+  border-radius: var(--radius-sm);
+}
+
+.ollama-wizard-footer {
+  padding: var(--space-md) var(--space-lg);
+  border-top: 1px solid var(--border-faint);
+  display: flex;
+  justify-content: flex-end;
+}

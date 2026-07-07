@@ -1,101 +1,367 @@
 /**
- * ollamaLocalBridge — Shared logic for browser → Ollama local connections.
+ * Ollama Local Bridge — Browser-to-Loopback Connectivity Service
  *
- * Reusable across ollama-setup.html wizard, SettingsPanel, and ollamaProvider.
- *
- * Key responsibilities:
- * - Classify endpoint type (loopback vs LAN private)
- * - Feature-detect targetAddressSpace support
- * - Build correct fetch options per endpoint type
- * - Diagnose connection failures with actionable categories
- * - Provide step-by-step diagnostic status for the UI
+ * All calls originate from the user's browser, never from AURA's server.
+ * Architecture: Browser JS → http://127.0.0.1:11434 → Ollama local
  */
 
-export type OllamaConnectionState =
-  | 'unknown'
-  | 'ollama_unreachable'
-  | 'cors_probable'
-  | 'permission_probable'
+import { detectPlatform, PlatformInfo } from './platformDetection';
+
+export type OllamaLocalStatus =
+  | 'not_configured'
+  | 'permission_required'
+  | 'permission_denied'
+  | 'cors_blocked'
+  | 'server_unreachable'
   | 'timeout'
-  | 'mixed_content_blocked'
-  | 'endpoint_invalid'
   | 'model_missing'
-  | 'chat_failed'
+  | 'insecure_context'
+  | 'unsupported_browser'
   | 'ready'
-  | 'unknown';
+  | 'unknown_error';
 
-export interface OllamaDiagnosticStage {
-  id: string;
-  label: string;
-  status: 'pending' | 'testing' | 'success' | 'warning' | 'error';
-  message?: string;
-  durationMs?: number;
+export interface OllamaModelInfo {
+  name: string;
+  modified_at: string;
+  size: number;
 }
 
-export interface OllamaDiagnostic {
-  state: OllamaConnectionState;
-  endpoint: string;
-  model?: string;
-  strategy: string;
-  targetAddressSpace?: string;
-  error?: {
-    name: string;
-    message: string;
-    cause?: string;
+export interface OllamaLocalDiagnostic {
+  status: OllamaLocalStatus;
+  message: string;
+  recommendedActions: string[];
+  details: {
+    endpoint: string;
+    platform: PlatformInfo;
+    remoteOrigin: string;
+    connectionPath: 'browser_to_loopback';
+    dataSentToAuraBackend: false;
+    corsConfigured: boolean | null;
+    modelsInstalled: string[];
+    chatTestPassed: boolean | null;
+    errorDetail?: string;
+    checkedAt: string;
   };
-  stages: OllamaDiagnosticStage[];
-  durationMs?: number;
-  browser: string;
-  browserVersion: string;
-  isSecureContext: boolean;
-  origin: string;
-  timestamp: string;
 }
 
-export interface OllamaFetchOptions {
-  method?: string;
-  headers?: Record<string, string>;
-  body?: unknown;
-  signal?: AbortSignal;
-  targetAddressSpace?: string;
+const DEFAULT_ENDPOINT = 'http://127.0.0.1:11434';
+const LOCALHOST_ENDPOINT = 'http://localhost:11434';
+const IPV6_ENDPOINT = 'http://[::1]:11434';
+const ENDPOINT_TIMEOUT_MS = 8000;
+const RECOMMENDED_MODEL = 'qwen2.5:3b';
+const ALTERNATIVE_MODEL = 'gemma2:2b';
+
+const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost', '::1', '[::1]']);
+
+export function normalizeEndpoint(rawUrl?: string): string {
+  if (!rawUrl || !rawUrl.trim()) {
+    return DEFAULT_ENDPOINT;
+  }
+
+  let url = rawUrl.trim();
+
+  try {
+    const parsed = new URL(url);
+    parsed.hostname = parsed.hostname || '127.0.0.1';
+    if (!parsed.port) parsed.port = '11434';
+    parsed.pathname = '/';
+    url = parsed.origin;
+  } catch {
+    url = DEFAULT_ENDPOINT;
+  }
+
+  return url;
 }
 
-export interface OllamaModelsResult {
-  models: Array<{ name: string; size?: number; modified_at?: string }>;
-  endpoint: string;
+export function isLocalLoopback(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return LOOPBACK_HOSTS.has(parsed.hostname.toLowerCase()) ||
+      parsed.hostname === '127.0.0.1' ||
+      parsed.hostname === '::1' ||
+      parsed.hostname === 'localhost';
+  } catch {
+    return false;
+  }
 }
 
-export interface OllamaChatResult {
-  message: { content: string };
-  endpoint: string;
-  model: string;
+export function isPublicEndpoint(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.toLowerCase();
+    return !isLocalLoopback(url) && !host.endsWith('.local') && !host.endsWith('.lan');
+  } catch {
+    return true;
+  }
 }
 
-/**
- * Classify the address space of a URL host.
- */
+function getRequestInit(): RequestInit {
+  const init: RequestInit & { targetAddressSpace?: string } = {
+    signal: AbortSignal.timeout(ENDPOINT_TIMEOUT_MS),
+    headers: { 'Content-Type': 'application/json' },
+    targetAddressSpace: 'local' as any,
+  };
+  return init;
+}
+
+async function tryFetch(url: string, options?: RequestInit): Promise<Response> {
+  try {
+    return await fetch(url, options ?? getRequestInit());
+  } catch {
+    return await fetch(url, {
+      signal: AbortSignal.timeout(ENDPOINT_TIMEOUT_MS),
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+}
+
+export async function testOllamaEndpoint(endpoint: string): Promise<{
+  reachable: boolean;
+  status?: number;
+  error?: string;
+}> {
+  try {
+    const resp = await tryFetch(`${endpoint}/api/tags`);
+    return { reachable: resp.ok, status: resp.status };
+  } catch (e: any) {
+    return { reachable: false, error: e.message || 'fetch failed' };
+  }
+}
+
+export async function fetchOllamaModels(endpoint: string): Promise<OllamaModelInfo[]> {
+  const resp = await tryFetch(`${endpoint}/api/tags`);
+  if (!resp.ok) {
+    throw new Error(`Ollama returned ${resp.status}`);
+  }
+  const data = await resp.json();
+  return data.models || [];
+}
+
+export async function testOllamaChat(
+  endpoint: string,
+  model: string,
+): Promise<{ passed: boolean; response?: string; error?: string }> {
+  try {
+    const resp = await tryFetch(`${endpoint}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: 'user', content: 'Responde solo: OK' }],
+        stream: false,
+        keep_alive: '1m',
+      }),
+      signal: AbortSignal.timeout(15000),
+    });
+
+    if (!resp.ok) {
+      return { passed: false, error: `HTTP ${resp.status}` };
+    }
+
+    const data = await resp.json();
+    const content = data.message?.content || '';
+    return { passed: content.includes('OK'), response: content };
+  } catch (e: any) {
+    return { passed: false, error: e.message || 'chat failed' };
+  }
+}
+
+export async function diagnoseOllamaLocal(
+  baseUrl?: string,
+): Promise<OllamaLocalDiagnostic> {
+  const platform = detectPlatform();
+  const remoteOrigin = (typeof window !== 'undefined' ? window.location.origin : 'unknown');
+  const endpoint = normalizeEndpoint(baseUrl);
+
+  const baseDiagnostic: Omit<OllamaLocalDiagnostic, 'status' | 'message' | 'recommendedActions'> = {
+    details: {
+      endpoint,
+      platform,
+      remoteOrigin,
+      connectionPath: 'browser_to_loopback',
+      dataSentToAuraBackend: false,
+      corsConfigured: null,
+      modelsInstalled: [],
+      chatTestPassed: null,
+      checkedAt: new Date().toISOString(),
+    },
+  };
+
+  if (!platform.isSecureContext) {
+    return {
+      ...baseDiagnostic,
+      status: 'insecure_context',
+      message: 'AURA debe servirse sobre HTTPS para conectar con Ollama local.',
+      recommendedActions: [
+        'Accede a AURA via https://aura.casabero.com',
+        'Las conexiones a loopback requieren contexto seguro.',
+      ],
+    };
+  }
+
+  if (platform.browser === 'safari' || platform.browser === 'firefox') {
+    if (platform.browser === 'safari') {
+      return {
+        ...baseDiagnostic,
+        status: 'unsupported_browser',
+        message: 'Safari no permite conexiones a localhost desde sitios HTTPS externos.',
+        recommendedActions: [
+          'Usa Chrome o Edge para la conexión local con Ollama.',
+          'Firefox puede requerir configuración adicional de permisos.',
+        ],
+      };
+    }
+  }
+
+  if (isPublicEndpoint(endpoint)) {
+    return {
+      ...baseDiagnostic,
+      status: 'not_configured',
+      message: 'El endpoint configurado no es una dirección loopback local.',
+      recommendedActions: [
+        'Usa http://127.0.0.1:11434 como endpoint de Ollama.',
+        'Los endpoints remotos no están permitidos.',
+      ],
+    };
+  }
+
+  const endpointTest = await testOllamaEndpoint(endpoint);
+
+  if (!endpointTest.reachable) {
+    const errorMsg = endpointTest.error || 'unreachable';
+
+    if (errorMsg.includes('Failed to fetch') || errorMsg.includes('NetworkError')) {
+      if (platform.browser === 'chrome' || platform.browser === 'edge') {
+        return {
+          ...baseDiagnostic,
+          status: 'permission_required',
+          message: 'El navegador necesita permiso para conectarse a la red local.',
+          recommendedActions: [
+            'Haz clic en "Solicitar permiso y conectar" para autorizar.',
+            'En Chrome/Edge, aparece un diálogo de permiso de red local.',
+            `El origen ${remoteOrigin} necesita acceso a ${endpoint}.`,
+          ],
+        };
+      }
+    }
+
+    const corsTest = await testOllamaEndpoint(endpoint);
+    if (corsTest.error?.includes('CORS') || corsTest.status === 403 || corsTest.status === 0) {
+      return {
+        ...baseDiagnostic,
+        details: { ...baseDiagnostic.details, corsConfigured: false },
+        status: 'cors_blocked',
+        message: `Ollama no autoriza el origen ${remoteOrigin}.`,
+        recommendedActions: [
+          `Configura OLLAMA_ORIGINS="${remoteOrigin}" en tu sistema.`,
+          'Revisa las instrucciones según tu sistema operativo.',
+          'Reinicia Ollama después de configurar la variable.',
+        ],
+      };
+    }
+
+    return {
+      ...baseDiagnostic,
+      status: 'server_unreachable',
+      message: `Ollama no está respondiendo en ${endpoint}.`,
+      recommendedActions: [
+        'Asegúrate de que Ollama esté abierto e iniciado.',
+        'En macOS, abre la app Ollama desde Aplicaciones.',
+        'En Linux, ejecuta: ollama serve',
+        'En Windows, abre Ollama desde el menú Inicio.',
+      ],
+    };
+  }
+
+  let models: OllamaModelInfo[] = [];
+  try {
+    models = await fetchOllamaModels(endpoint);
+  } catch {
+    return {
+      ...baseDiagnostic,
+      status: 'timeout',
+      message: 'Ollama respondió pero /api/tags tardó demasiado.',
+      recommendedActions: [
+        'Reinicia Ollama e intenta de nuevo.',
+        'Verifica que no haya otro proceso usando el puerto 11434.',
+      ],
+    };
+  }
+
+  const modelNames = models.map(m => m.name);
+
+  const recommendedInstalled = modelNames.some(
+    n => n === RECOMMENDED_MODEL || n.startsWith(RECOMMENDED_MODEL),
+  );
+  const alternativeInstalled = modelNames.some(
+    n => n === ALTERNATIVE_MODEL || n.startsWith(ALTERNATIVE_MODEL),
+  );
+
+  if (!recommendedInstalled && !alternativeInstalled && modelNames.length === 0) {
+    return {
+      ...baseDiagnostic,
+      details: { ...baseDiagnostic.details, modelsInstalled: modelNames },
+      status: 'model_missing',
+      message: 'Ollama funciona pero no tiene modelos instalados.',
+      recommendedActions: [
+        `Ejecuta: ollama pull ${RECOMMENDED_MODEL}`,
+        `Alternativa ligera: ollama pull ${ALTERNATIVE_MODEL}`,
+        'Después de descargar, vuelve a verificar la conexión.',
+      ],
+    };
+  }
+
+  if (!recommendedInstalled && !alternativeInstalled) {
+    return {
+      ...baseDiagnostic,
+      details: { ...baseDiagnostic.details, modelsInstalled: modelNames },
+      status: 'model_missing',
+      message: `Ninguno de los modelos recomendados está instalado. Modelos encontrados: ${modelNames.join(', ')}`,
+      recommendedActions: [
+        `Ejecuta: ollama pull ${RECOMMENDED_MODEL}`,
+        'O configura AURA para usar uno de tus modelos existentes.',
+      ],
+    };
+  }
+
+  const testModel = recommendedInstalled ? RECOMMENDED_MODEL : ALTERNATIVE_MODEL;
+  const chatTest = await testOllamaChat(endpoint, testModel);
+
+  return {
+    ...baseDiagnostic,
+    details: {
+      ...baseDiagnostic.details,
+      modelsInstalled: modelNames,
+      chatTestPassed: chatTest.passed,
+      corsConfigured: true,
+      errorDetail: chatTest.error,
+    },
+    status: 'ready',
+    message: `Ollama listo. Modelo activo: ${testModel}.`,
+    recommendedActions: [
+      'Puedes continuar con el diagnóstico usando Ollama local.',
+      'Los datos no salen de este equipo.',
+    ],
+  };
+}
+
+// ── Endpoint Classification ──
+
 export function classifyEndpointHost(host: string): 'loopback' | 'private_lan' | 'public' {
-  const hostLower = host.toLowerCase();
-
-  if (
-    hostLower === 'localhost' ||
-    hostLower === '127.0.0.1' ||
-    hostLower === '::1' ||
-    hostLower === '[::1]'
-  ) {
+  const lower = host.toLowerCase().trim();
+  if (lower === 'localhost' || lower === '127.0.0.1' || lower === '::1' || lower === '[::1]') {
     return 'loopback';
   }
-
-  const ipv4Match = /^(\d+)\.(\d+)\.(\d+)\.(\d+)$/.exec(host);
-  if (ipv4Match) {
-    const b1 = parseInt(ipv4Match[1], 10);
-    const b2 = parseInt(ipv4Match[2], 10);
-
-    if (b1 === 10) return 'private_lan';
-    if (b1 === 172 && b2 >= 16 && b2 <= 31) return 'private_lan';
-    if (b1 === 192 && b2 === 168) return 'private_lan';
+  const parts = lower.split('.');
+  if (parts.length === 4) {
+    const first = parseInt(parts[0], 10);
+    const second = parseInt(parts[1], 10);
+    if (!isNaN(first) && !isNaN(second)) {
+      if (first === 10) return 'private_lan';
+      if (first === 172 && second >= 16 && second <= 31) return 'private_lan';
+      if (first === 192 && second === 168) return 'private_lan';
+    }
   }
-
   return 'public';
 }
 
@@ -117,443 +383,79 @@ export function isPrivateLanEndpoint(url: string): boolean {
   }
 }
 
-/**
- * Feature detection: does this browser support targetAddressSpace in Request?
- */
-export function supportsTargetAddressSpace(): boolean {
-  try {
-    const request = new Request('http://127.0.0.1/', {
-      targetAddressSpace: 'loopback' as string,
-    } as RequestInit);
-    return (request as any).targetAddressSpace === 'loopback';
-  } catch {
-    return false;
-  }
-}
+// ── Legacy Diagnostic Type (for test compatibility) ──
 
-const TARGET_ADDRESS_SPACE_SUPPORTED = supportsTargetAddressSpace();
-
-/**
- * Build fetch options for a given endpoint.
- * Loopback endpoints get different treatment than LAN private endpoints.
- */
-export function buildFetchOptions(
-  endpoint: string,
-  options: OllamaFetchOptions = {}
-): { url: string; init: RequestInit } {
-  const parsed = new URL(endpoint);
-  const classification = classifyEndpointHost(parsed.hostname);
-
-  let targetAddressSpace: string | undefined;
-
-  if (classification === 'loopback') {
-    targetAddressSpace = undefined;
-  } else if (classification === 'private_lan') {
-    if (TARGET_ADDRESS_SPACE_SUPPORTED) {
-      targetAddressSpace = 'local';
-    }
-  }
-
-  const init: RequestInit = {
-    method: options.method || 'GET',
-    headers: options.headers,
-    body: options.body ? JSON.stringify(options.body) : undefined,
-    signal: options.signal,
-  };
-
-  if (targetAddressSpace !== undefined && TARGET_ADDRESS_SPACE_SUPPORTED) {
-    (init as any).targetAddressSpace = targetAddressSpace;
-  }
-
-  return {
-    url: endpoint,
-    init,
-    _classification: classification,
-    _targetAddressSpace: targetAddressSpace,
-  } as any;
-}
-
-/**
- * Attempt a fetch with a specific strategy.
- * Returns { ok, status, duration, error, state }
- */
-async function attemptFetch(
-  url: string,
-  options: OllamaFetchOptions,
-  timeoutMs = 8000
-): Promise<{
-  ok: boolean;
-  status?: number;
-  durationMs: number;
-  error?: { name: string; message: string; cause?: string };
-  state: OllamaConnectionState;
-  corsFailed: boolean;
-  timeout: boolean;
-}> {
-  const start = performance.now();
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-
-  const { init } = buildFetchOptions(url, { signal: controller.signal, ...options });
-
-  let response: Response | undefined;
-  let fetchError: Error | undefined;
-
-  try {
-    response = await fetch(url, init);
-  } catch (err) {
-    fetchError = err as Error;
-  } finally {
-    clearTimeout(timer);
-  }
-
-  const durationMs = Math.round(performance.now() - start);
-
-  if (!response) {
-    const name = fetchError?.name || 'Error';
-    const message = fetchError?.message || String(fetchError);
-
-    let state: OllamaConnectionState = 'ollama_unreachable';
-    let corsFailed = false;
-
-    if (name === 'AbortError') {
-      state = 'timeout';
-    } else if (message.includes('Failed to fetch') || name === 'TypeError') {
-      if (message.includes('Mixed Content') || message.includes('mixed-content')) {
-        state = 'mixed_content_blocked';
-      } else {
-        state = 'cors_probable';
-        corsFailed = true;
-      }
-    } else if (message.includes('net::ERR_CONNECTION_REFUSED')) {
-      state = 'ollama_unreachable';
-    } else {
-      state = 'ollama_unreachable';
-    }
-
-    return {
-      ok: false,
-      durationMs,
-      error: { name, message, cause: classifyErrorCause(fetchError) },
-      state,
-      corsFailed,
-      timeout: state === 'timeout',
-    };
-  }
-
-  return {
-    ok: response.ok,
-    status: response.status,
-    durationMs,
-    state: response.ok ? 'ready' : 'ollama_unreachable',
-    corsFailed: false,
-    timeout: false,
+export interface OllamaDiagnostic {
+  state: string;
+  endpoint: string;
+  model?: string;
+  strategy: string;
+  stages: Array<{ id: string; label: string; status: 'success' | 'error' | 'warning' | 'pending'; message: string; durationMs: number }>;
+  durationMs?: number;
+  browser: string;
+  browserVersion?: string;
+  isSecureContext: boolean;
+  origin: string;
+  timestamp: string;
+  error?: {
+    name: string;
+    message: string;
+    cause: string;
   };
 }
 
-/**
- * Try with no-cors to see if server responds at all (opaque response means CORS likely).
- */
-async function probeWithNoCors(
-  url: string,
-  timeoutMs = 5000
-): Promise<{ responded: boolean; opaque: boolean }> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
+// ── Diagnostic Formatters ──
 
-  try {
-    const response = await fetch(url, {
-      method: 'GET',
-      mode: 'no-cors',
-      signal: controller.signal,
-    } as RequestInit);
-    clearTimeout(timer);
-    return { responded: true, opaque: response.type === 'opaque' };
-  } catch {
-    clearTimeout(timer);
-    return { responded: false, opaque: false };
-  }
-}
-
-function classifyErrorCause(error: Error | undefined): string {
-  if (!error) return 'unknown';
-  const msg = error.message.toLowerCase();
-  if (msg.includes('failed to fetch')) return 'network_or_cors';
-  if (msg.includes('abort')) return 'timeout';
-  if (msg.includes('mixed content')) return 'mixed_content';
-  if (msg.includes('connection refused')) return 'server_down';
-  if (msg.includes('origin')) return 'cors_origin';
-  return 'unknown';
-}
-
-function detectBrowser(): { name: string; version: string } {
-  const ua = navigator.userAgent || '';
-  const edgeMatch = ua.match(/Edg\/(\d+)/);
-  if (edgeMatch) return { name: 'Edge', version: edgeMatch[1] };
-  const chromeMatch = ua.match(/Chrome\/(\d+)/);
-  if (chromeMatch) return { name: 'Chrome', version: chromeMatch[1] };
-  const firefoxMatch = ua.match(/Firefox\/(\d+)/);
-  if (firefoxMatch) return { name: 'Firefox', version: firefoxMatch[1] };
-  const safariMatch = ua.match(/Safari\/(\d+)/);
-  if (safariMatch) return { name: 'Safari', version: safariMatch[1] };
-  return { name: 'Unknown', version: '0' };
-}
-
-/**
- * Run a full connection diagnostic for Ollama.
- * Returns detailed diagnostic object with step-by-step stages.
- */
-export async function diagnoseOllamaConnection(
-  endpoint: string,
-  model: string,
-  onStage?: (stage: OllamaDiagnosticStage) => void
-): Promise<OllamaDiagnostic> {
-  const browser = detectBrowser();
-  const baseDiagnostic = {
-    state: 'unknown' as OllamaConnectionState,
-    endpoint,
-    model,
-    strategy: '',
-    stages: [] as OllamaDiagnosticStage[],
-    browser: browser.name,
-    browserVersion: browser.version,
-    isSecureContext: window.isSecureContext,
-    origin: window.location.origin,
-    timestamp: new Date().toISOString(),
-  };
-
-  function makeStage(id: string, label: string): OllamaDiagnosticStage {
-    return { id, label, status: 'pending' };
-  }
-
-  function updateStage(stage: OllamaDiagnosticStage, status: OllamaDiagnosticStage['status'], message?: string, durationMs?: number) {
-    stage.status = status;
-    if (message) stage.message = message;
-    if (durationMs !== undefined) stage.durationMs = durationMs;
-    onStage?.(stage);
-  }
-
-  const stages = [
-    makeStage('https_context', 'Contexto HTTPS'),
-    makeStage('endpoint_loopback', 'Endpoint loopback'),
-    makeStage('api_tags', 'Respuesta de /api/tags'),
-    makeStage('cors_check', 'CORS'),
-    makeStage('model_installed', 'Modelo instalado'),
-    makeStage('api_chat', 'Respuesta de /api/chat'),
-  ];
-
-  const result: OllamaDiagnostic = { ...baseDiagnostic, stages };
-
-  updateStage(stages[0], 'testing');
-  if (!window.isSecureContext) {
-    updateStage(stages[0], 'warning', 'AURA debe abrirse via HTTPS para acceder a Ollama local.');
-    result.state = 'mixed_content_blocked';
-    return result;
-  }
-  updateStage(stages[0], 'success', 'Contexto seguro detectado.');
-
-  updateStage(stages[1], 'testing');
-  const isLoop = isLoopbackEndpoint(endpoint);
-  const isPrivateLan = isPrivateLanEndpoint(endpoint);
-  if (isLoop) {
-    updateStage(stages[1], 'success', `Loopback detectado: ${endpoint}`);
-  } else if (isPrivateLan) {
-    updateStage(stages[1], 'success', `LAN privada detectada: ${endpoint}`);
-  } else {
-    updateStage(stages[1], 'error', `Endpoint no es loopback ni LAN privada. Usa http://127.0.0.1:11434`);
-    result.state = 'endpoint_invalid';
-    return result;
-  }
-
-  const tagsUrl = `${endpoint.replace(/\/$/, '')}/api/tags`;
-  updateStage(stages[2], 'testing');
-  const tagsResult = await attemptFetch(tagsUrl, { method: 'GET' }, 8000);
-  updateStage(stages[2], tagsResult.ok ? 'success' : 'error',
-    tagsResult.ok
-      ? `Ollama responde HTTP ${tagsResult.status} (${tagsResult.durationMs}ms)`
-      : `Error: ${tagsResult.error?.message} (${tagsResult.durationMs}ms)`,
-    tagsResult.durationMs
-  );
-
-  if (!tagsResult.ok) {
-    result.state = tagsResult.state;
-    result.error = tagsResult.error;
-    result.strategy = 'fetch_without_targetAddressSpace';
-
-    if (tagsResult.state === 'cors_probable') {
-      updateStage(stages[3], 'warning', 'CORS falló. Probando con no-cors...');
-      const noCors = await probeWithNoCors(tagsUrl);
-      if (noCors.responded && noCors.opaque) {
-        updateStage(stages[3], 'error', 'Servidor responde pero CORS bloquea. Configura OLLAMA_ORIGINS.');
-        result.state = 'cors_probable';
-      } else if (!noCors.responded) {
-        updateStage(stages[3], 'error', 'Servidor no responde. Verifica que Ollama esté abierto.');
-        result.state = 'ollama_unreachable';
-      }
-    } else if (tagsResult.state === 'timeout') {
-      updateStage(stages[3], 'error', 'Timeout. Verifica que Ollama esté abierto y el endpoint sea correcto.');
-      result.state = 'timeout';
-    }
-
-    return result;
-  }
-
-  let models: Array<{ name: string; size?: number }> = [];
-  try {
-    const data = await (await fetch(tagsUrl)).json();
-    models = Array.isArray(data.models) ? data.models : [];
-  } catch { }
-
-  updateStage(stages[3], 'success', `CORS OK — Ollama acepta peticiones desde ${window.location.origin}`);
-
-  updateStage(stages[4], 'testing');
-  const installedModel = models.find(m => m.name === model || m.name.startsWith(`${model}:`));
-  if (!installedModel) {
-    updateStage(stages[4], 'warning', `Modelo ${model} no instalado. Ejecuta: ollama pull ${model}`);
-    result.state = 'model_missing';
-    return result;
-  }
-  updateStage(stages[4], 'success', `Modelo ${installedModel.name} instalado (${((installedModel.size || 0) / 1e9).toFixed(1)} GB)`);
-
-  updateStage(stages[5], 'testing');
-  const chatUrl = `${endpoint.replace(/\/$/, '')}/api/chat`;
-  const chatResult = await attemptFetch(
-    chatUrl,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: {
-        model,
-        messages: [{ role: 'user', content: 'AURA test' }],
-        options: { temperature: 0.1 },
-        stream: false,
-        keep_alive: '10m',
-      },
-    },
-    60000
-  );
-
-  if (!chatResult.ok) {
-    updateStage(stages[5], 'error', `Chat falló: ${chatResult.error?.message}`);
-    result.state = 'chat_failed';
-    result.error = chatResult.error;
-    return result;
-  }
-
-  let chatContent = '';
-  try {
-    const chatData = await (chatResult as any)._response?.json?.() || {};
-    chatContent = chatData.message?.content || '';
-  } catch { }
-
-  updateStage(stages[5], 'success', `Chat exitoso — respuesta: ${chatContent.slice(0, 50)}`);
-  result.state = 'ready';
-  return result;
-}
-
-/**
- * Simple connectivity check: is Ollama reachable at the given endpoint?
- * Uses correct strategy per endpoint type.
- */
-export async function checkOllamaReachable(endpoint: string): Promise<boolean> {
-  const url = `${endpoint.replace(/\/$/, '')}/api/tags`;
-  const result = await attemptFetch(url, { method: 'GET' }, 5000);
-  return result.ok;
-}
-
-/**
- * List models from Ollama using correct fetch strategy.
- */
-export async function listOllamaModels(endpoint: string): Promise<OllamaModelsResult> {
-  const url = `${endpoint.replace(/\/$/, '')}/api/tags`;
-  const result = await attemptFetch(url, { method: 'GET' }, 8000);
-
-  if (!result.ok) {
-    return { models: [], endpoint };
-  }
-
-  try {
-    const response = await fetch(url);
-    const data = await response.json();
-    return {
-      models: Array.isArray(data.models) ? data.models : [],
-      endpoint,
-    };
-  } catch {
-    return { models: [], endpoint };
-  }
-}
-
-/**
- * Build a copyable technical diagnostic (no sensitive data).
- */
 export function buildCopyableDiagnostic(diagnostic: OllamaDiagnostic): string {
   const lines: string[] = [
     '=== AURA · Ollama Diagnostic ===',
-    `Date: ${diagnostic.timestamp}`,
-    `Origin: ${diagnostic.origin}`,
-    `Endpoint: ${diagnostic.endpoint}`,
-    `Model: ${diagnostic.model || 'unknown'}`,
     `State: ${diagnostic.state}`,
-    `Browser: ${diagnostic.browser} ${diagnostic.browserVersion}`,
-    `Secure Context: ${diagnostic.isSecureContext}`,
-    `Strategy: ${diagnostic.strategy || 'unknown'}`,
-    `targetAddressSpace: ${diagnostic.targetAddressSpace || 'none'}`,
-    `Duration: ${diagnostic.durationMs}ms`,
-    '',
-    '--- Stages ---',
-    ...diagnostic.stages.map(
-      s => `[${s.status}] ${s.label}${s.message ? `: ${s.message}` : ''}${s.durationMs ? ` (${s.durationMs}ms)` : ''}`
-    ),
+    `Endpoint: ${diagnostic.endpoint}`,
   ];
-
+  if (diagnostic.model) lines.push(`Model: ${diagnostic.model}`);
+  lines.push(`Strategy: ${diagnostic.strategy}`);
+  lines.push(`Browser: ${diagnostic.browser}${diagnostic.browserVersion ? ' ' + diagnostic.browserVersion : ''}`);
+  lines.push(`Origin: ${diagnostic.origin}`);
+  lines.push(`Secure Context: ${diagnostic.isSecureContext}`);
+  lines.push(`Timestamp: ${diagnostic.timestamp}`);
+  if (diagnostic.durationMs !== undefined) {
+    lines.push(`Duration: ${diagnostic.durationMs}ms`);
+  }
+  lines.push('');
+  lines.push('--- Stages ---');
+  for (const stage of diagnostic.stages) {
+    lines.push(`[${stage.status}] ${stage.label}: ${stage.message} (${stage.durationMs}ms)`);
+  }
   if (diagnostic.error) {
     lines.push('');
     lines.push('--- Error ---');
     lines.push(`Name: ${diagnostic.error.name}`);
     lines.push(`Message: ${diagnostic.error.message}`);
-    if (diagnostic.error.cause) lines.push(`Cause: ${diagnostic.error.cause}`);
+    lines.push(`Cause: ${diagnostic.error.cause}`);
   }
-
+  lines.push('');
   return lines.join('\n');
 }
 
-/**
- * Get the curl command for testing Ollama from terminal (for diagnostics).
- */
 export function buildCurlCommand(endpoint: string, origin: string): string {
-  const parsed = new URL(endpoint);
-  const host = parsed.host;
-  const cleanOrigin = origin.replace(/\/$/, '');
-
-  return `curl -i \\\n  -H "Origin: ${cleanOrigin}" \\\n  http://${host}/api/tags`;
+  const base = endpoint.replace(/\/+$/, '');
+  return `curl -i -H "Origin: ${origin}" ${base}/api/tags`;
 }
 
-/**
- * Get PowerShell curl command for Windows.
- */
 export function buildPowerShellCurlCommand(endpoint: string, origin: string): string {
-  const parsed = new URL(endpoint);
-  const host = parsed.host;
-  const cleanOrigin = origin.replace(/\/$/, '');
-
-  return `curl.exe -i \`\n  -H "Origin: ${cleanOrigin}" \`\n  http://${host}/api/tags`;
+  const base = endpoint.replace(/\/+$/, '');
+  return `curl.exe -i -H "Origin: ${origin}" ${base}/api/tags`;
 }
 
-/**
- * Get the command to verify OLLAMA_ORIGINS env var for the current OS.
- */
 export function buildVerifyEnvCommand(os: string, origin: string): string {
-  const cleanOrigin = origin.replace(/\/$/, '');
-
-  switch (os) {
+  switch (os.toLowerCase()) {
     case 'macos':
-      return `launchctl getenv OLLAMA_ORIGINS\n# Esperado: ${cleanOrigin}`;
+      return `launchctl getenv OLLAMA_ORIGINS\necho "Expected: ${origin}"`;
     case 'linux':
-      return `systemctl show ollama --property=Environment\n# Esperado: OLLAMA_ORIGINS=${cleanOrigin}`;
+      return `systemctl show ollama.service --property=Environment 2>/dev/null | grep -o "OLLAMA_ORIGINS=${origin}" || echo "OLLAMA_ORIGINS=${origin} not set"`;
     case 'windows':
-      return `[Environment]::GetEnvironmentVariable("OLLAMA_ORIGINS", "User")\n# Esperado: ${cleanOrigin}`;
+      return `powershell -Command "[System.Environment]::GetEnvironmentVariable('OLLAMA_ORIGINS','User')"\necho "Expected: ${origin}"`;
     default:
-      return `# No disponible para este SO. Verifica manualmente que OLLAMA_ORIGINS incluya: ${cleanOrigin}`;
+      return 'No disponible para sistema operativo desconocido';
   }
 }
