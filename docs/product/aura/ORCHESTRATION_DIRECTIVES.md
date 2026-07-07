@@ -37,7 +37,7 @@ Sin embargo, esa documentación interna no debe confundirse automáticamente con
 
 ## 3. Entrega final académica
 
-Cuando el usuario indique: "preparamos la documentación final para la cuarta entrega", debe entenderse como la entrega definitiva.
+Cuando el usuario indique: "preparamos el depósito definitivo", debe entenderse como la entrega final del TFM.
 
 El criterio central de esa entrega será:
 

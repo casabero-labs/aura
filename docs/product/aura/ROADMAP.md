@@ -6,66 +6,46 @@ Este roadmap pertenece al desarrollo continuo de producto. No representa una ent
 
 ## Frontera académica
 
-La tercera entrega académica quedó consolidada hasta Phase 4.
+La tercera entrega académica fue presentada y evaluada positivamente. Está archivada como histórica en `docs/archive/academic/entrega_03_historica/`.
 
-Las fases posteriores se documentan aquí o en subcarpetas de `docs/product/aura/`.
+No existe cuarta entrega. El objetivo académico futuro es el depósito definitivo.
 
 ## Estado por fases
 
 | Fase | Estado | Observación |
 |---|---|---|
-| Phase 1 | Cerrada | EvidenceEnvelopeV2, código y tests |
-| Phase 2 | Cerrada | DiagnosisResponseV2, código y tests |
-| Phase 3 | Cerrada y congelada | RemediationPlanV2 + HITL |
-| Phase 4 | Cerrada y congelada | ScriptContractV2 + renderer |
-| Phase 5 | Cerrada y congelada | Ejecución delegada, reauditoría, HealthDelta e ImprovementRun sobre alcance controlado |
-| Phase 6 | Cerrada y congelada | UI wrapper para ImprovementRun/HealthDelta |
-| Phase 7 | Cerrada y congelada | QA, evidencia visual y readiness controlado |
-| Phase 8 | Cerrada y congelada | Evidence expansion y clasificación de evidencia benchmark |
-| Phase 9 | Cerrada y congelada | Limpieza de deuda TypeScript |
-| Phase 10 | En organización | Calibración experimental opcional del antiguo laboratorio |
+| Phase 1–4 | Cerradas y congeladas | Núcleo de arquitectura |
+| Phase 5–9 | Cerradas y congeladas | Expansión de producto |
+| Phase 10 | Congelada | `7f970d6f6dab46fe2c30b7e522811b8174aac385` |
 
-## Roadmap inmediato
+## Foco técnico actual
 
-### 1. Mantenimiento documental
+### 1. Validar app mediante E2E real
 
-Prioridad alta antes de nuevas features.
+- E2E estándar con Playwright (78 tests, 65 pasan).
+- E2E opt-in con Chrome AI / Gemini Nano real usando perfil dedicado.
+- Auditoría: `docs/product/aura/e2e/CHROME_AI_REAL_E2E_AUDIT.md`.
 
-- Separar definitivamente Entrega 3 de producto posterior.
-- Migrar Phase 8 y Phase 9 a `docs/product/aura/phases/`.
-- Migrar Phase 5–7 en una fase posterior.
-- Revisar documentos ambiguos de resultados, evidencia y futuras entregas.
+### 2. Corregir bloqueadores
 
-### 2. Phase 10 — Calibración opcional
+- Spec `aura-chrome-ai-real.optin.spec.ts` debe migrar de `launchPersistentContext` a `connectOverCDP`.
+- Timeouts en QA/Layout tests (no bloquean diagnóstico core).
 
-Objetivo:
+### 3. Contratos LLM v2
 
-- integrar el antiguo laboratorio como opción informada dentro del flujo principal;
-- retirar el laboratorio como módulo visible principal;
-- mantener el flujo base sin obligación de calibración.
-
-Regla de experiencia:
-
-- acción primaria: continuar diagnóstico normal;
-- acción secundaria: activar comparación experimental.
-
-### 3. Validación y evidencia
-
-Cada fase nueva debe dejar:
-
-- alcance explícito;
-- claims permitidos y prohibidos;
-- pruebas o verificación aplicable;
-- limitaciones conocidas;
-- ruta documental correcta.
+- Estado: `experimental_candidate`.
+- No sustituye producción.
+- Pendiente: más datasets, validación HITL, pruebas con proveedor real.
 
 ## Regla de organización
 
-- Entregas académicas cerradas: carpeta histórica correspondiente.
+- Entregas académicas cerradas: `docs/archive/academic/`.
 - Producto vivo: `docs/product/aura/`.
-- Evidencia experimental de producto: `docs/product/aura/evidence/`.
-- Fases de producto: `docs/product/aura/phases/` o carpeta específica de fase.
+- Evidencia experimental: `docs/product/aura/evidence/`.
+- Fases de producto: `docs/product/aura/phase_10/` o `docs/product/aura/phases/`.
 
 ## No iniciar sin instrucción explícita
 
-No preparar una cuarta entrega académica ni memoria final desde este roadmap sin instrucción directa del usuario.
+- No crear nuevas fases numeradas (Phase 11+).
+- No preparar entregas académicas intermedias.
+- No declarar production-ready ni benchmark formal definitivo.

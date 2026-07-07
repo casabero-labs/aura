@@ -4,274 +4,50 @@
 
 Este documento es la bitácora viva de desarrollo de producto de AURA. No pertenece a una entrega académica específica.
 
-La tercera entrega académica queda como carpeta histórica en `docs/tercera_entrega_aura/`.
+La tercera entrega académica quedó presentada, evaluada y archivada como histórica. No hay tercera entrega viva.
 
-## Estado de referencia
+## Estado actual
 
 | Fase | Estado | Referencia |
 |---|---|---|
-| Phase 3 | Cerrada y congelada | `d3774dd5ac98d89ca4454c693b1b0a30856cd191` |
-| Phase 4 | Cerrada y congelada | `05878e4a960afd11d564a60f4924bfb8f0b527e7` |
-| Phase 5 | Cerrada y congelada | `40a376929fcaad13b1809bd0c8ba895011ceb8cb` |
-| Phase 6 | Cerrada y congelada | `b689cce5012edf33d27e2e85bb325878ab79125a` |
-| Phase 7 | Cerrada y congelada | `58891c215604d7a140774370d133ce06460691d5` |
-| Phase 8 | Cerrada y congelada | `7fc32409160e5e9ee84d38bbe56db2fb4e504af4` |
-| Phase 9 | Cerrada y congelada | `1344935ff9bb87f73b24b8f90d8cb15052228328` |
+| Phase 5–9 | Cerradas y congeladas | Ver `FREEZE_PHASE10.md` |
+| Phase 10 | Congelada | `7f970d6f6dab46fe2c30b7e522811b8174aac385` |
 
-## Regla de frontera
+Phase 10 cubrió calibración embebida, provider readiness, UX diagnóstico, Chrome AI readiness, Ollama local bridge, contratos LLM v2 experimentales y decisión de no sustitución productiva.
 
-La evolución del producto debe documentarse aquí, no dentro de `docs/tercera_entrega_aura/`.
+## Foco técnico actual
 
-No preparar una entrega académica futura sin instrucción explícita del usuario.
+1. **E2E real con Chrome AI / Gemini Nano** usando perfil dedicado (`$HOME/.aura/chrome-ai-profile`).
+   - Auditoría: `docs/product/aura/e2e/CHROME_AI_REAL_E2E_AUDIT.md`
+   - Modelo descargado y funcional cuando Chrome se lanza de forma nativa.
+   - Pendiente: corregir spec E2E para usar `connectOverCDP` en lugar de `launchPersistentContext`.
 
-## Phase 10 — Calibración experimental opcional
+2. **Corregir bloqueadores detectados en la auditoría E2E.**
 
-Ruta principal: `docs/product/aura/phase_10/`.
+## Estado documental
 
-Objetivo: integrar el antiguo laboratorio como opción informada dentro del flujo principal de AURA, sin convertirlo en requisito ni en promesa de benchmark formal.
+- Documento fuente de verdad: `docs/product/aura/CURRENT_STATE.md`
+- Roadmap vivo: `docs/product/aura/ROADMAP.md`
+- Tercera entrega: archivada en `docs/archive/academic/entrega_03_historica/`
 
-Regla UX:
+## Frontera académica
 
-- acción principal: `Continuar diagnóstico normal`;
-- acción secundaria: `Activar comparación experimental`.
-
-## Próximo frente recomendado
-
-### Phase 10 L8 — Revisión del orquestador sobre integración de exportación 2.0
-
-Las capas L3-L8 están completas y validadas técnicamente. El siguiente control recomendado es:
-
-1. revisar que el test monte la UI real de exportación de `App`;
-2. confirmar que el clic en `JSON técnico` invoca el preflight;
-3. confirmar que un fallo impide llamar `downloadTextFile`;
-4. verificar que el aviso visible no expone el detalle interno mockeado;
-5. decidir si una fase posterior necesita cubrir también el camino exitoso en interfaz.
-
-Closeout: `docs/product/aura/phase_10/L8_EXPORT_PREFLIGHT_INTEGRATION_CLOSEOUT.md`.
-
-## Frente secundario
-
-### Documentation Maintenance L3 — Migrar Phase 9 y Phase 8
-
-Motivo: Phase 9 y Phase 8 son posteriores a la tercera entrega y no deben vivir dentro de `docs/tercera_entrega_aura/`.
-
-Acciones recomendadas:
-
-1. Mover `docs/tercera_entrega_aura/05_desarrollo/phases/phase_09/` a `docs/product/aura/phases/phase_09/`.
-2. Mover `docs/tercera_entrega_aura/05_desarrollo/phases/phase_08/` a `docs/product/aura/phases/phase_08/`.
-3. Mover `docs/tercera_entrega_aura/03_evidencia/phase_08/` a `docs/product/aura/evidence/phase_08/`.
-4. Actualizar referencias internas.
-5. Dejar notas de migración si alguna ruta antigua queda referenciada.
-
-## Frentes funcionales completados
-
-### Phase 10 L2 — Integrar opt-in al pipeline ✅
-
-Completado. Ver `docs/product/aura/phase_10/L2_INTEGRATION_CLOSEOUT.md`.
-
-Resumen:
-
-1. Estado `calibration` agregado al pipeline.
-2. `CalibrationOptInExplainer` se muestra después de perfilamiento.
-3. Acción primaria: `Continuar diagnóstico normal`.
-4. Laboratorio retirado de navegación principal (escritorio, móvil, Home CTA).
-5. `BenchmarkLab` conservado internamente para opt-in experimental.
-
-L2 solo cubre integración UX inmediata. La capa técnica de reemplazo de `BenchmarkLab` por experiencia embebida queda para L3 o L4.
-
-Condiciones de completitud:
-
-- typecheck pasa
-- build pasa
-- `calibration` está integrado al pipeline
-- Laboratorio ya no aparece como módulo principal visible
-- BenchmarkLab sigue disponible internamente
-- No se preparó entrega académica
-
-### Phase 10 L3 — Experiencia embebida de calibración ✅
-
-Completado localmente. Ver `docs/product/aura/phase_10/L3_EMBEDDED_CALIBRATION_CLOSEOUT.md`.
-
-Resumen:
-
-1. El opt-in abre `CalibrationEmbeddedPanel` dentro del estado `calibration`.
-2. La acción primaria `Continuar diagnóstico normal` permanece disponible.
-3. El panel ejecuta una comparación controlada con la configuración activa.
-4. Los resultados se guardan en `benchmarkResults`.
-5. El usuario puede cerrar la calibración y volver a la explicación.
-6. `BenchmarkLab` se conserva internamente y deja de ser el destino del opt-in.
-
-Condiciones verificadas:
-
-- typecheck pasa;
-- build pasa con advertencias preexistentes de chunks;
-- tests focales de panel y pipeline pasan;
-- no se modificó `auditEngine`, scoring, contratos v2 ni freezes anteriores;
-- no se preparó entrega académica;
-- publicado en `origin/main` después de la validación local.
-
-### Phase 10 L4 — Evidencia defendible de calibración ✅
-
-Completado localmente. Ver `docs/product/aura/phase_10/L4_CALIBRATION_EVIDENCE_CLOSEOUT.md`.
-
-Resumen:
-
-1. El manifest resume calibración como `none`, `attempted`, `preliminary` o `formal`.
-2. Se conservan totales, corridas completadas, intentos fallidos/no disponibles y corridas `formal_valid`.
-3. Se eliminó el ranking heredado del manifest.
-4. El JSON técnico exporta `calibrationEvidence` con clasificación, resumen, resultados y límites.
-5. La pantalla Exportar muestra el estado de calibración sin abrir `BenchmarkLab`.
-
-Condiciones verificadas:
-
-- typecheck pasa;
-- build pasa con advertencias preexistentes de chunks;
-- 20 tests focales de `evidenceManifest` pasan;
-- no se modificó `auditEngine`, scoring, contratos v2 ni freezes anteriores;
-- no se preparó entrega académica;
-- publicado en `origin/main` después de la validación local.
-
-### Phase 10 L5 — Contrato estable de exportación y compatibilidad JSON ✅
-
-Completado localmente. Ver `docs/product/aura/phase_10/L5_EXPORT_SCHEMA_CLOSEOUT.md`.
-
-Resumen:
-
-1. El JSON técnico declara contrato `aura-technical-export` versión `2.0`.
-2. Los bloques canónicos quedan enumerados de forma estable.
-3. `calibrationEvidence` siempre está presente, incluso sin corridas.
-4. La migración desde `experiment` se documenta en metadatos de deprecación.
-5. No se reintroduce un alias heredado silencioso.
-6. `App.tsx` delega la estructura exportada a un helper puro testeable.
-
-Condiciones verificadas:
-
-- typecheck pasa;
-- build pasa con advertencias preexistentes de chunks;
-- 5 tests focales de `exportPackage` pasan;
-- no se modificó `evidenceManifest`, `auditEngine`, scoring, contratos v2 ni freezes anteriores;
-- no se preparó entrega académica;
-- publicado en `origin/main` después de la validación local.
-
-### Phase 10 L6 — JSON Schema formal para exportación técnica 2.0 ✅
-
-Completado y preparado para publicación. Ver `docs/product/aura/phase_10/L6_JSON_SCHEMA_CLOSEOUT.md`.
-
-Resumen:
-
-1. Existe JSON Schema Draft 2020-12 independiente para `aura-technical-export` 2.0.
-2. Exige los seis bloques canónicos del paquete.
-3. Verifica constantes de nombre, versión, compatibilidad y clasificación experimental.
-4. Restringe el estado de calibración a `none`, `attempted`, `preliminary` o `formal`.
-5. Prohíbe el bloque raíz heredado y documenta su migración.
-6. Un test estructural lee el schema real y lo contrasta con un paquete generado.
-
-Condiciones verificadas:
-
-- typecheck pasa;
-- build pasa con advertencias preexistentes de chunks;
-- 8 tests del filtro `exportPackage` pasan;
-- 3 tests focales de `exportPackageSchema` pasan;
-- no se modificó `exportPackage`, `evidenceManifest`, `auditEngine`, scoring, contratos v2 ni freezes anteriores;
-- no se preparó entrega académica;
-- commit y push autorizados únicamente después de las validaciones exitosas.
-
-### Phase 10 L7 — Preflight interno del paquete exportado 2.0 ✅
-
-Completado y preparado para publicación. Ver `docs/product/aura/phase_10/L7_EXPORT_PREFLIGHT_CLOSEOUT.md`.
-
-Resumen:
-
-1. Existe un validador interno ligero para las invariantes críticas del contrato `aura-technical-export` 2.0.
-2. La validación comprueba identidad, versión, bloque canónico, compatibilidad y evidencia de calibración.
-3. El bloque raíz heredado queda rechazado.
-4. `App.tsx` ejecuta el preflight antes de iniciar la descarga.
-5. Un paquete inválido cancela el JSON y muestra una advertencia controlada.
-6. Se cubren entradas válidas, no estructuradas y violaciones contractuales con tests focales.
-
-Condiciones verificadas:
-
-- typecheck pasa;
-- build pasa con advertencias preexistentes de imports y chunks;
-- 8 tests del filtro `exportPackage` pasan;
-- 3 tests focales de `exportPackageSchema` pasan;
-- 6 tests focales de `exportContractValidation` pasan;
-- no se modificaron schema L6, `exportPackage`, `evidenceManifest`, `auditEngine`, scoring, contratos v2 ni freezes anteriores;
-- no se preparó entrega académica;
-- commit y push autorizados únicamente después de las validaciones exitosas.
-
-### Phase 10 L8 — Prueba de integración de exportación técnica 2.0 ✅
-
-Completado y preparado para publicación. Ver `docs/product/aura/phase_10/L8_EXPORT_PREFLIGHT_INTEGRATION_CLOSEOUT.md`.
-
-### Phase 10 L9 — E2E Playwright con evidencia reproducible de exportación 2.0 ✅
-
-Completado. Ver `docs/product/aura/phase_10/L9_PLAYWRIGHT_EVIDENCE_CLOSEOUT.md`.
-
-Resumen:
-
-1. Suite E2E Playwright con 5 tests valida el contrato `aura-technical-export` v2.0 en navegador real.
-2. Dataset sintético `aura_l9_dataset_control.csv` disponible como fixture.
-3. Evidencia persistida en `docs/product/aura/phase_10/l9_evidence/` (versionada).
-4. Artefactos efímeros ignorados via `.gitignore` (`/test-results/`).
-5. Funciones de harness `__L9_SET_REPORT__` y `__L9_GET_EXPORT_JSON__` añadidas para test E2E.
-
-Condiciones verificadas:
-
-- typecheck pasa;
-- build pasa con advertencias preexistentes de chunks;
-- 8 tests del filtro `exportPackage` pasan;
-- 3 tests focales de `exportPackageSchema` pasan;
-- 6 tests focales de `exportContractValidation` pasan;
-- 1 test focal de `exportJsonPreflight` pasa;
-- 5 tests E2E de Playwright pasan;
-- no se agregaron dependencias nuevas;
-- no se modificaron schema L6, `exportPackage`, `evidenceManifest`, `auditEngine`, scoring, contratos v2 ni freezes anteriores;
-- no se preparó entrega académica;
-- evidencia versionada en docs/product/aura/phase_10/l9_evidence/;
-- artefactos efímeros ignorados en .gitignore.
-
-Resumen:
-
-1. Existe una prueba Vitest + Testing Library del flujo de fallo de preflight.
-2. La prueba monta `App` con una sesión restaurada en etapa `export`.
-3. El clic en `JSON técnico` ejecuta el preflight mockeado.
-4. Un resultado inválido impide la llamada a `downloadTextFile`.
-5. La UI muestra `export-json-preflight-warning` con un mensaje controlado.
-6. El detalle técnico interno queda en el registro y no aparece en el texto visible.
-7. La función de descarga se extrajo sin cambios de comportamiento para permitir aislamiento determinista.
-
-Condiciones verificadas:
-
-- typecheck pasa;
-- build pasa con advertencias preexistentes de imports y chunks;
-- 8 tests del filtro `exportPackage` pasan;
-- 3 tests focales de `exportPackageSchema` pasan;
-- 6 tests focales de `exportContractValidation` pasan;
-- 1 test focal de `exportJsonPreflight` pasa;
-- no se agregaron dependencias;
-- no se modificaron schema L6, `evidenceManifest`, `auditEngine`, scoring, contratos v2 ni freezes anteriores;
-- no se preparó entrega académica;
-- commit y push autorizados únicamente después de las validaciones exitosas.
+- Tercera entrega: presentada y evaluada positivamente.
+- No existe cuarta entrega.
+- Objetivo académico futuro: depósito definitivo.
+- No preparar entregas intermedias sin instrucción explícita.
 
 ## Claims de producto
 
 Permitido:
-
-- AURA tiene fases técnicas congeladas y documentadas hasta Phase 9.
-- AURA conserva límites explícitos para ejecución, evidencia, proveedores y claims.
-- Las comparaciones de proveedores requieren evidencia clasificada y no deben venderse como veredicto absoluto.
+- AURA tiene fases técnicas congeladas y documentadas hasta Phase 10.
+- AURA soporta diagnóstico asistido por LLM bajo controles HITL.
+- AURA tiene evidencia reproducible de fixtures controlados.
+- Chrome AI / Gemini Nano funciona con perfil dedicado cuando Chrome se lanza de forma nativa.
 
 No permitido:
-
-- declarar AURA lista para producción general;
-- decir que AURA corrige datasets reales sin revisión humana;
-- presentar comparaciones como benchmark definitivo sin protocolo formal;
-- afirmar que la cuarta entrega ya empezó;
-- decir que el laboratorio determina el mejor modelo universal.
-
-## Nota de migración
-
-Este documento reemplaza el uso vivo de `docs/tercera_entrega_aura/05_desarrollo/NEXT_STEPS.md`.
-
-La versión dentro de `tercera_entrega_aura` debe quedar como nota congelada de frontera, no como guía activa.
+- Declarar AURA lista para producción general.
+- Decir que AURA corrige datasets reales sin revisión humana.
+- Presentar comparaciones como benchmark definitivo sin protocolo formal.
+- Afirmar que existe una cuarta entrega en curso.
+- Declarar un modelo como ganador universal.
