@@ -8,19 +8,25 @@
  * - calibrationEvidence block exists at root
  * - experiment block does NOT exist at root
  *
- * Uses synthetic dataset and E2E harness (no real AI provider, no model download).
+ * Uses synthetic dataset fixture and E2E harness (no real AI provider, no model download).
+ * The CSV fixture is read as a data source reference; the harness injects the report
+ * derived from it to bypass the expensive upload/diagnostic pipeline.
  *
  * Evidence artifacts:
- *   test-results/aura-l9-evidence/evidence.json
- *   test-results/aura-l9-evidence/screenshots/
+ *   docs/product/aura/phase_10/l9_evidence/evidence.json
+ *   docs/product/aura/phase_10/l9_evidence/screenshots/
+ *
+ * The test also writes ephemeral artifacts to test-results/ during execution.
  */
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const EVIDENCE_DIR = path.resolve(__dirname, '../../../test-results/aura-l9-evidence');
+const EVIDENCE_DIR = path.resolve(__dirname, '../../../docs/product/aura/phase_10/l9_evidence');
 const SCREENSHOT_DIR = path.resolve(EVIDENCE_DIR, 'screenshots');
+const FIXTURE_CSV = path.resolve(__dirname, './fixtures/aura_l9_dataset_control.csv');
+const DATASET_NAME = 'aura_l9_dataset_control.csv (harness-derived)';
 
 const fs = await import('node:fs');
 fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });
@@ -207,7 +213,7 @@ test.describe('Phase 10 L9 — Export Contract v2.0 E2E', () => {
       testRun: {
         timestamp: new Date().toISOString(),
         phase: 'L9',
-        dataset: 'synthetic (harness-injected)',
+        dataset: DATASET_NAME,
         harness: 'Phase4/Phase10 E2E Harness',
       },
       validations: {

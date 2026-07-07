@@ -1,8 +1,8 @@
 {
   "testRun": {
-    "timestamp": "2026-07-06T23:38:51.975Z",
+    "timestamp": "2026-07-07T00:32:49.006Z",
     "phase": "L9",
-    "dataset": "synthetic (harness-injected)",
+    "dataset": "aura_l9_dataset_control.csv (harness-derived)",
     "harness": "Phase4/Phase10 E2E Harness"
   },
   "validations": {

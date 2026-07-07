@@ -204,6 +204,33 @@ Condiciones verificadas:
 
 Completado y preparado para publicación. Ver `docs/product/aura/phase_10/L8_EXPORT_PREFLIGHT_INTEGRATION_CLOSEOUT.md`.
 
+### Phase 10 L9 — E2E Playwright con evidencia reproducible de exportación 2.0 ✅
+
+Completado. Ver `docs/product/aura/phase_10/L9_PLAYWRIGHT_EVIDENCE_CLOSEOUT.md`.
+
+Resumen:
+
+1. Suite E2E Playwright con 5 tests valida el contrato `aura-technical-export` v2.0 en navegador real.
+2. Dataset sintético `aura_l9_dataset_control.csv` disponible como fixture.
+3. Evidencia persistida en `docs/product/aura/phase_10/l9_evidence/` (versionada).
+4. Artefactos efímeros ignorados via `.gitignore` (`/test-results/`).
+5. Funciones de harness `__L9_SET_REPORT__` y `__L9_GET_EXPORT_JSON__` añadidas para test E2E.
+
+Condiciones verificadas:
+
+- typecheck pasa;
+- build pasa con advertencias preexistentes de chunks;
+- 8 tests del filtro `exportPackage` pasan;
+- 3 tests focales de `exportPackageSchema` pasan;
+- 6 tests focales de `exportContractValidation` pasan;
+- 1 test focal de `exportJsonPreflight` pasa;
+- 5 tests E2E de Playwright pasan;
+- no se agregaron dependencias nuevas;
+- no se modificaron schema L6, `exportPackage`, `evidenceManifest`, `auditEngine`, scoring, contratos v2 ni freezes anteriores;
+- no se preparó entrega académica;
+- evidencia versionada en docs/product/aura/phase_10/l9_evidence/;
+- artefactos efímeros ignorados en .gitignore.
+
 Resumen:
 
 1. Existe una prueba Vitest + Testing Library del flujo de fallo de preflight.

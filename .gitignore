@@ -37,3 +37,6 @@ repomix-output.xml
 .playwright-mcp/
 tmp/
 *.log
+
+# Playwright test artifacts (ephemeral)
+test-results/
