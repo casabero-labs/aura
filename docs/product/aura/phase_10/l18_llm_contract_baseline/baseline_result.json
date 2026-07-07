@@ -1,0 +1,49 @@
+{
+  "phase": "L18",
+  "mode": "baseline_current_contract",
+  "dataset": "titanic_controlled_fixture",
+  "providerMode": "mock",
+  "usedRealAiProvider": false,
+  "changedProductionContract": false,
+  "expectedBehavior": {
+    "automaticActions": [
+      "trim_whitespace"
+    ],
+    "humanReview": [
+      "missing_age",
+      "age_outlier",
+      "high_cardinality_ticket",
+      "passenger_id_identifier"
+    ]
+  },
+  "observedBehavior": {
+    "automaticActions": [],
+    "humanReview": [
+      "hygiene-ghost-Name",
+      "missing_age",
+      "age_outlier",
+      "passenger_id_identifier"
+    ]
+  },
+  "metrics": {
+    "automaticActionPrecision": null,
+    "humanReviewRecall": null
+  },
+  "limits": [
+    "baseline uses controlled fixture",
+    "no real AI provider — mock adapter returns template diagnosis",
+    "metrics not calculated: no real LLM inference, no ground truth comparison",
+    "not a formal benchmark",
+    "not provider comparison",
+    "not production replacement"
+  ],
+  "envelopeRef": "env:61c8c129821913445b0fb73ef306c7b2f987bf4947294b6017db03e403ccd4dd",
+  "planId": "plan:a3c0d0cd",
+  "actionabilityMap": {
+    "hygiene-ghost-Name": "review_only",
+    "integrity-null-Age": "review_only",
+    "logic-outlier-tukey-Age": "review_only",
+    "semantic-long-tail-Ticket": "not_actionable",
+    "semantic-id-PassengerId": "review_only"
+  }
+}
