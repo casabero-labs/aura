@@ -1,12 +1,14 @@
 {
   "testRun": {
-    "timestamp": "2026-07-07T02:09:06.267Z",
-    "phase": "L10A",
-    "testId": "L10A-01",
+    "timestamp": "2026-07-07T02:20:03.731Z",
+    "phase": "L10B",
+    "testId": "L10B-01",
     "fixture": "aura_l10_full_flow_issues.csv",
     "dataset": "aura_l10_full_flow_issues.csv (rows=6, cols=5)",
-    "harness": "L9/Phase4 E2E Harness (real parseCsv+runAudit; StrictMode-safe window storage)",
+    "harness": "L9/Phase4 E2E Harness (reads state via refs; used only after real file input)",
     "csvLoadedViaUi": true,
+    "fileInputInteraction": "setInputFiles",
+    "harnessProcessedCsv": false,
     "providerMode": "real"
   },
   "fixtureProvenance": {
@@ -17,6 +19,12 @@
     "fixtureDelimiter": ","
   },
   "validations": {
+    "csv_loaded_via_file_input": {
+      "passed": true
+    },
+    "real_profile_state_reached": {
+      "passed": true
+    },
     "exportContract_name_correct": {
       "passed": true,
       "expected": "aura-technical-export",
@@ -84,7 +92,7 @@
   "exportContract": {
     "name": "aura-technical-export",
     "version": "2.0",
-    "generatedAt": "2026-07-07T02:09:05.074Z",
+    "generatedAt": "2026-07-07T02:20:03.633Z",
     "canonicalBlocks": [
       "manifest",
       "profile",
@@ -126,10 +134,10 @@
     "improvementRun": null
   },
   "manifest": {
-    "generatedAt": "2026-07-07T02:09:05.074Z",
+    "generatedAt": "2026-07-07T02:20:03.633Z",
     "dataset": {
       "name": "aura_l10_full_flow_issues.csv",
-      "fingerprint": "l10-6x5",
+      "fingerprint": "70b8e5ae",
       "rows": 6,
       "columns": 5
     },
@@ -142,7 +150,7 @@
         "id": "OE1",
         "label": "Ingestión y perfilamiento determinista",
         "status": "completed",
-        "evidence": "CSV cargado: aura_l10_full_flow_issues.csv, 6 filas, 5 columnas, fingerprint=l10-6x5.",
+        "evidence": "CSV cargado: aura_l10_full_flow_issues.csv, 6 filas, 5 columnas, fingerprint=70b8e5ae.",
         "limitations": []
       },
       {
@@ -485,19 +493,19 @@
         ],
         "coalescencePairs": [],
         "pruningCandidates": [],
-        "generatedAt": "2026-07-07T02:09:05.074Z"
+        "generatedAt": "2026-07-07T02:20:03.053Z"
       }
     },
     "auditEvidence": {
-      "id": "audit-1783390145074",
+      "id": "audit-1783390803053",
       "fileName": "aura_l10_full_flow_issues.csv",
       "fileSize": 191,
-      "datasetFingerprint": "l10-6x5",
-      "startedAt": "2026-07-07T02:09:05.067Z",
-      "completedAt": "2026-07-07T02:09:05.074Z",
-      "parseDurationMs": 4,
-      "auditDurationMs": 3,
-      "totalDurationMs": 7,
+      "datasetFingerprint": "70b8e5ae",
+      "startedAt": "2026-07-07T02:20:03.032Z",
+      "completedAt": "2026-07-07T02:20:03.053Z",
+      "parseDurationMs": 16,
+      "auditDurationMs": 4,
+      "totalDurationMs": 20,
       "rowsProcessed": 6,
       "columnsProcessed": 5,
       "delimiter": ",",
@@ -505,7 +513,48 @@
       "ingestionStatus": "success",
       "issueCount": 1,
       "score": 96,
-      "trace": []
+      "trace": [
+        {
+          "stage": "csv.parse.start",
+          "timestamp": "2026-07-07T02:20:03.032Z",
+          "elapsedMs": 1,
+          "details": {
+            "fileName": "aura_l10_full_flow_issues.csv",
+            "fileSize": 191
+          }
+        },
+        {
+          "stage": "csv.parse.end",
+          "timestamp": "2026-07-07T02:20:03.048Z",
+          "elapsedMs": 17,
+          "details": {
+            "rows": 6,
+            "columns": 5,
+            "delimiter": ",",
+            "truncated": false,
+            "durationMs": 16
+          }
+        },
+        {
+          "stage": "audit.run.start",
+          "timestamp": "2026-07-07T02:20:03.049Z",
+          "elapsedMs": 17,
+          "details": {
+            "datasetFingerprint": "70b8e5ae"
+          }
+        },
+        {
+          "stage": "audit.run.end",
+          "timestamp": "2026-07-07T02:20:03.053Z",
+          "elapsedMs": 21,
+          "details": {
+            "durationMs": 4,
+            "score": 96,
+            "issues": 1,
+            "duplicateRows": 0
+          }
+        }
+      ]
     }
   },
   "screenshots": {

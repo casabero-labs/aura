@@ -1,25 +1,30 @@
 /**
- * Phase 10 L10A — E2E Playwright Full-Flow CSV → Export 2.0
+ * Phase 10 L10B — E2E Playwright Full-Flow CSV → Export 2.0 (real file input)
  *
- * Tests the complete visible flow from CSV upload through to technical
- * export 2.0, using a synthetic fixture CSV loaded via the real UI.
+ * Tests the complete visible flow from CSV upload via the real file input
+ * through to technical export 2.0, using a synthetic fixture CSV.
  *
- * Key fix from L10: re-wait for harness AFTER setInputFiles processing completes.
- * The component may remount during CSV processing (handleFileUpload async cycle),
- * which invalidates any harness check done before setInputFiles.
- * The pattern is: setInputFiles → waitForProfile → re-waitForHarness → use harness.
+ * What is REAL (not mocked, not harness):
+ * - CSV file: loaded via page.setInputFiles on the real hidden <input> (data-testid="csv-file-input")
+ * - File selection: the browser's native file input change event
+ * - Upload handler: processFile() on MainPipeline — real async parseCsv + runAudit
+ * - React state: auditEvidence, report, rawData are real (from actual CSV processing)
+ * - buildEvidenceManifest + buildAuraExportPackage: real functions called by harness
  *
- * Harness usage (L9 / Phase 4 — VITE_PHASE4_E2E_HARNESS=true):
- * - __L9_GET_EXPORT_JSON__ — generate export JSON from current React state
- *
- * What is REAL (not mocked):
- * - CSV file: loaded via page.setInputFiles on the real hidden file input
- * - CSV parsing: parseCsv() runs in-browser (real File object)
- * - Audit engine: runAudit() runs deterministically in-browser
- * - React state: auditEvidence + report are real (from actual CSV processing)
- * - buildEvidenceManifest + buildAuraExportPackage: real (from real state)
+ * Harness usage (after real upload completes):
+ * - __L9_GET_STATE__ — reads React state via refs (always fresh, survives StrictMode remounts)
+ * - __L9_GET_EXPORT_JSON__ — builds export JSON from current React state via refs
  *
  * Harness bypasses: AI diagnosis, calibration benchmark, script generation.
+ * Harness does NOT replace: file upload, CSV parsing, audit execution.
+ *
+ * Key fix from L10/L10A:
+ *   L10 used __L9_PROCESS_CSV__ which bypassed the real file input.
+ *   L10A stored export JSON in window to survive StrictMode remounts.
+ *   L10B adds refs for auditEvidence/report/structuredDiagnosis so harness
+ *   always reads FRESH state values, not stale closures from the initial mount.
+ *   With refs, setInputFiles → real processFile → state updates → refs update
+ *   on every render → harness reads current values. Works WITH StrictMode.
  *
  * Evidence artifacts:
  *   docs/product/aura/phase_10/l10_evidence/evidence.json
@@ -82,12 +87,12 @@ async function waitForReportState(page: any, timeout = 25_000) {
   return null;
 }
 
-test.describe('Phase 10 L10A — Full-Flow CSV → Export v2.0 (real UI load)', () => {
+test.describe('Phase 10 L10B — Full-Flow CSV → Export v2.0 (real file input)', () => {
   test.beforeEach(async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
   });
 
-  test('L10A-01: real CSV UI load → export 2.0 with real manifest data', async ({ page }) => {
+  test('L10B-01: real CSV file input → upload → parseCsv → runAudit → export 2.0', async ({ page }) => {
     const errors: string[] = [];
     page.on('console', msg => {
       if (msg.type() === 'error') errors.push(msg.text());
@@ -96,46 +101,52 @@ test.describe('Phase 10 L10A — Full-Flow CSV → Export v2.0 (real UI load)', 
     // 1. Boot to audit
     await bootToAudit(page);
 
-    // 2. Verify file input is present in DOM
-    const fileInputCount = await page.locator('input[type="file"][accept=".csv"]').count();
-    expect(fileInputCount, 'CSV file input should be present in DOM').toBeGreaterThan(0);
+    // 2. Verify file input is present in DOM with data-testid
+    await expect(page.locator('[data-testid="csv-file-input"]')).toBeAttached({ timeout: 10_000 });
 
     await page.screenshot({
       path: path.join(SCREENSHOT_DIR, '01_upload_step_ready.png'),
       fullPage: true,
     });
 
-    // 3. Process CSV via harness that exercises real parseCsv + runAudit
-    // __L9_PROCESS_CSV__ calls parseCsv (on File blob) + runAudit, then sets
-    // auditEvidence + report + state='profile' synchronously in React state.
-    const processingResult = await page.evaluate(async (content: string) => {
-      const result = await (window as any).__L9_PROCESS_CSV__(content, 'aura_l10_full_flow_issues.csv');
-      return result;
-    }, FIXTURE_CSV_CONTENT);
-    console.log('CSV processed:', processingResult);
-    expect(processingResult?.rowsProcessed, `CSV should have ${FIXTURE_ROWS} rows, got ${processingResult?.rowsProcessed}`).toBe(FIXTURE_ROWS);
-    expect(processingResult?.columnsProcessed, `CSV should have ${FIXTURE_COLUMNS} cols, got ${processingResult?.columnsProcessed}`).toBe(FIXTURE_COLUMNS);
+    // 3. Use setInputFiles on the real hidden file input
+    // This triggers the browser's native change event → handleChange → acceptFile → processFile
+    // processFile is the real async handler that calls parseCsv + runAudit and sets React state.
+    await page.locator('[data-testid="csv-file-input"]').setInputFiles(FIXTURE_CSV);
+    console.log('setInputFiles done');
 
-    // 4. Wait for React to flush (StrictMode may remount after this)
-    await page.waitForTimeout(1000);
+    // 4. Wait for real profile state via __PHASE4_GET_STATE__ (ref-based, survives StrictMode)
+    const profileReached = await waitForPipelineState(page, 'profile', 25_000);
+    expect(profileReached, 'Pipeline should reach profile state after CSV file input').toBe(true);
+    console.log('Profile state reached');
 
-    // 5. Read export JSON from window-stored value (persists across StrictMode remounts)
-    const exportJson = await page.evaluate(() => {
-      return (window as any).__L9_GET_EXPORT_JSON__();
-    });
-    expect(exportJson, 'Export JSON should be available after CSV processing').not.toBeNull();
+    // 5. Verify real report state via __L9_GET_STATE__ (now reads from refs — always fresh)
+    const reportState = await waitForReportState(page, 20_000);
+    expect(reportState, 'Report state should be populated after real file upload').not.toBeNull();
+    expect(reportState?.rowsProcessed, `rowsProcessed should be ${FIXTURE_ROWS}, got ${reportState?.rowsProcessed}`).toBe(FIXTURE_ROWS);
+    expect(reportState?.columnsProcessed, `columnsProcessed should be ${FIXTURE_COLUMNS}, got ${reportState?.columnsProcessed}`).toBe(FIXTURE_COLUMNS);
+    expect(reportState?.rowCount, `rowCount should be ${FIXTURE_ROWS}, got ${reportState?.rowCount}`).toBe(FIXTURE_ROWS);
+    expect(reportState?.colCount, `colCount should be ${FIXTURE_COLUMNS}, got ${reportState?.colCount}`).toBe(FIXTURE_COLUMNS);
+    console.log('Real report state verified:', reportState);
 
     await page.screenshot({
       path: path.join(SCREENSHOT_DIR, '02_profile_ready_real_csv.png'),
       fullPage: true,
     });
 
+    // 6. Get export JSON from harness (built from current React state via refs)
+    await waitForHarness(page);
+    const exportJson = await page.evaluate(() => {
+      return (window as any).__L9_GET_EXPORT_JSON__();
+    });
+    expect(exportJson, 'Export JSON should be available after real file upload').not.toBeNull();
+
     await page.screenshot({
       path: path.join(SCREENSHOT_DIR, '03_export_generated.png'),
       fullPage: true,
     });
 
-    // 6. Validations
+    // 7. Validations
     const nameOk = exportJson.exportContract?.name === 'aura-technical-export';
     const versionOk = exportJson.exportContract?.version === '2.0';
     const calibrationOk = exportJson.calibrationEvidence != null;
@@ -148,7 +159,7 @@ test.describe('Phase 10 L10A — Full-Flow CSV → Export v2.0 (real UI load)', 
     );
     const compatibilityOk = exportJson.exportContract?.compatibility?.legacyAliasIncluded === false;
 
-    // Real data from CSV UI load
+    // Real data from CSV upload
     const manifest = exportJson.manifest;
     const manifestRowsOk = manifest?.dataset?.rows === FIXTURE_ROWS;
     const manifestColsOk = manifest?.dataset?.columns === FIXTURE_COLUMNS;
@@ -173,18 +184,20 @@ test.describe('Phase 10 L10A — Full-Flow CSV → Export v2.0 (real UI load)', 
       fullPage: true,
     });
 
-    // 7. Build evidence.json
+    // 8. Build evidence.json with L10B semantics
     const allPassed = nameOk && versionOk && calibrationOk && experimentOk && hasCalibrationCanonical && hasMigration && compatibilityOk && manifestRowsOk && manifestColsOk && reportRowCountOk && reportColCountOk;
 
     const evidence = {
       testRun: {
         timestamp: new Date().toISOString(),
-        phase: 'L10A',
-        testId: 'L10A-01',
+        phase: 'L10B',
+        testId: 'L10B-01',
         fixture: FIXTURE_NAME,
         dataset: `${FIXTURE_NAME} (rows=${FIXTURE_ROWS}, cols=${FIXTURE_COLUMNS})`,
-        harness: 'L9/Phase4 E2E Harness (real parseCsv+runAudit; StrictMode-safe window storage)',
+        harness: 'L9/Phase4 E2E Harness (reads state via refs; used only after real file input)',
         csvLoadedViaUi: true,
+        fileInputInteraction: 'setInputFiles',
+        harnessProcessedCsv: false,
         providerMode: 'real',
       },
       fixtureProvenance: {
@@ -195,6 +208,8 @@ test.describe('Phase 10 L10A — Full-Flow CSV → Export v2.0 (real UI load)', 
         fixtureDelimiter: ',',
       },
       validations: {
+        csv_loaded_via_file_input: { passed: true },
+        real_profile_state_reached: { passed: profileReached },
         exportContract_name_correct: { passed: nameOk, expected: 'aura-technical-export', actual: exportJson.exportContract?.name },
         exportContract_version_correct: { passed: versionOk, expected: '2.0', actual: exportJson.exportContract?.version },
         calibrationEvidence_exists: { passed: calibrationOk, actual: calibrationOk ? 'present' : 'absent' },

@@ -169,6 +169,13 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
 
   // ── L9 report ref: persists last report set via __L9_SET_REPORT__ ──
   const lastReportRef = useRef<AuditReport | null>(null);
+  // ── L9B refs: mirror state on every render to avoid stale closures in harness ──
+  const auditEvidenceRef = useRef<AuditExecutionEvidence | null>(null);
+  const reportRef = useRef<AuditReport | null>(null);
+  const structuredDiagnosisRef = useRef<DiagnosisExecutionResult | null>(null);
+  auditEvidenceRef.current = auditEvidence;
+  reportRef.current = report;
+  structuredDiagnosisRef.current = structuredDiagnosis;
   phase4StateRef.current = {
     pipelineState: state,
     hasReport: !!report,
@@ -214,12 +221,12 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
       setAuditEvidence(fakeAuditEvidence);
     };
     (window as any).__L9_GET_STATE__ = () => ({
-      hasAuditEvidence: !!auditEvidence,
-      hasReport: !!report,
-      rowsProcessed: auditEvidence?.rowsProcessed ?? 0,
-      columnsProcessed: auditEvidence?.columnsProcessed ?? 0,
-      rowCount: report?.rowCount ?? 0,
-      colCount: report?.colCount ?? 0,
+      hasAuditEvidence: !!auditEvidenceRef.current,
+      hasReport: !!reportRef.current,
+      rowsProcessed: auditEvidenceRef.current?.rowsProcessed ?? 0,
+      columnsProcessed: auditEvidenceRef.current?.columnsProcessed ?? 0,
+      rowCount: reportRef.current?.rowCount ?? 0,
+      colCount: reportRef.current?.colCount ?? 0,
     });
     (window as any).__L9_PROCESS_CSV__ = async (csvContent: string, fileName = 'fixture.csv') => {
       const startedAt = new Date().toISOString();
@@ -247,30 +254,6 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
         report: auditResult,
         trace: [],
       });
-      (window as any).__L9_EXPORT_JSON__ = buildAuraExportPackage({
-        manifest: buildEvidenceManifest({
-          auditEvidence: evidence,
-          deterministicValidation: null,
-          benchmarkResults: [],
-          scriptValidation: null,
-          hitlDecision: null,
-        }),
-        profile: { report: auditResult, auditEvidence: evidence },
-        deterministicValidation: null,
-        hitlDecision: null,
-        diagnosis: {
-          model: 'e2e-harness',
-          providerType: 'chrome',
-          diagnosisText: '',
-        },
-        script: {
-          generatedScript: '',
-          scriptValidation: null,
-          approvedScript: '',
-        },
-        benchmarkResults: [],
-        improvementRun: null,
-      });
       setRawData(data);
       setCsvFields(meta.fields);
       setCsvDelimiter(meta.delimiter);
@@ -281,7 +264,34 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
       return { rowsProcessed: data.length, columnsProcessed: meta.fields.length, score: auditResult.score };
     };
     (window as any).__L9_GET_EXPORT_JSON__ = (_overriddenReport?: AuditReport) => {
-      return (window as any).__L9_EXPORT_JSON__ ?? null;
+      const effectiveReport = _overriddenReport ?? reportRef.current;
+      const m = buildEvidenceManifest({
+        auditEvidence: auditEvidenceRef.current,
+        deterministicValidation: null,
+        benchmarkResults: [],
+        scriptValidation: null,
+        hitlDecision: null,
+      });
+      return buildAuraExportPackage({
+        manifest: m,
+        profile: { report: effectiveReport, auditEvidence: auditEvidenceRef.current },
+        deterministicValidation: null,
+        hitlDecision: null,
+        diagnosis: {
+          model: 'e2e-harness',
+          providerType: 'chrome',
+          diagnosisText: structuredDiagnosisRef.current?.diagnosis?.issues?.length != null
+            ? 'Diagnostico generado por harness E2E'
+            : '',
+        },
+        script: {
+          generatedScript: '',
+          scriptValidation: null,
+          approvedScript: '',
+        },
+        benchmarkResults: [],
+        improvementRun: null,
+      });
     };
 
     return () => {

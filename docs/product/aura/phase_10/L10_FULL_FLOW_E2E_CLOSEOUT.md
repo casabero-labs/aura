@@ -1,63 +1,67 @@
-# Phase 10 L10A — Full-Flow CSV → Export v2.0 E2E Closeout
+# Phase 10 L10B — Full-Flow CSV → Export v2.0 E2E Closeout
+
+## Evolution
+
+| Version | Date  | Test ID   | Approach | File Input | CSV Pipeline | Status |
+|---------|-------|-----------|----------|-----------|--------------|--------|
+| L10     | early | `L10-01`  | `__L9_PROCESS_CSV__` harness bypass | No (CSV as string to harness) | harness calls real parseCsv + runAudit | Failed (StrictMode remount resets state) |
+| L10A    | mid   | `L10A-01` | `__L9_PROCESS_CSV__` + window storage | No (CSV as string to harness) | harness calls real parseCsv + runAudit | Passed (window storage survives remounts) |
+| **L10B**  | **final** | **`L10B-01`** | **Real `setInputFiles` on file input** | **Yes (`[data-testid="csv-file-input"]`)** | **Real `processFile()` → real `parseCsv` + `runAudit`** | **Passed (refs fix stale closure problem)** |
+
+## Root Cause of L10/L10A Rework
+
+The Phase 4 useEffect (with `[]` deps) sets up harness functions on `window` that close over React state variables (`auditEvidence`, `report`). With React StrictMode:
+1. The component mounts twice (double-render on dev)
+2. The useEffect runs twice, but both times it captures the INITIAL state values (null)
+3. After `setInputFiles` triggers `processFile`, React state updates but the harness closures still reference the stale initial values
+4. `__L9_GET_STATE__` always returns `hasReport: false` because `report` in its closure is still `null`
+
+**L10B fix: add refs that mirror state on every render.**
+- `auditEvidenceRef`, `reportRef`, `structuredDiagnosisRef` updated in component body (alongside existing `phase4StateRef`)
+- Refs survive StrictMode double-mount because `useRef` is not re-initialized after the first mount
+- Harness functions read from `ref.current` which always has the freshest state
 
 ## Test Identifier
-- **Phase:** L10A
+- **Phase:** L10B
 - **Test file:** `src/tests/e2e/aura-full-flow-export.spec.ts`
-- **Test ID:** `L10A-01`
+- **Test ID:** `L10B-01`
 - **Fixture:** `src/tests/e2e/fixtures/aura_l10_full_flow_issues.csv`
 
-## Objective
-Repair L10 E2E test to load CSV via real UI and produce honest evidence with `csvLoadedViaUi: true` and `manifest.dataset.rows=6`, `manifest.dataset.columns=5`.
-
-Original L10 (L10-01) used `setInputFiles()` to trigger CSV loading. This failed in React StrictMode (dev) because StrictMode double-invokes effects and continuously remounts MainPipeline, resetting all React state after the file is loaded — making harness state unreachable between remount cycles.
-
-L10A uses a new harness function `__L9_PROCESS_CSV__` that calls the real `parseCsv` + `runAudit` pipeline directly (no file input), then stores the computed export JSON in `window.__L9_EXPORT_JSON__` before React state updates (which get reset on StrictMode remounts). The export JSON persists in `window` across remounts.
+## Flow
+```
+boot → Empezar auditoría → upload step visible
+→ page.setInputFiles(data-testid="csv-file-input")     ← REAL FILE INPUT
+→ handleChange → acceptFile → processFile(uploadedFile)  ← REAL HANDLER
+→ parseCsv(uploadedFile)                                  ← REAL PARSER (async)
+→ runAudit(data, fields, delimiter)                       ← REAL AUDIT ENGINE
+→ setAuditEvidence, setReport, setState('profile')        ← REAL STATE
+→ refs update on render
+→ __L9_GET_STATE__ reads from refs → hasReport: true
+→ __L9_GET_EXPORT_JSON__ builds from refs → export 2.0
+```
 
 ## Harness Strategy
 
-### What is real (exercised via `__L9_PROCESS_CSV__`)
-- CSV parsing: `parseCsv(new File([csvContent], fileName))` runs in-browser on a real File blob
-- Audit engine: `runAudit(data, fields, delimiter)` runs deterministically in-browser
-- Audit evidence: `buildAuditEvidence()` produces real evidence with correct `rowsProcessed`/`columnsProcessed`
-- Export manifest: `buildEvidenceManifest()` produces real manifest with correct `dataset.rows`/`dataset.columns`
+### What is REAL (no harness involvement)
+- File input element: `[data-testid="csv-file-input"]` in `FileUpload.tsx`
+- File selection event: browser's native `change` event via `setInputFiles`
+- Upload handler: `processFile()` in MainPipeline.tsx
+- CSV parsing: `parseCsv(file)` — real, async, in-browser
+- Audit engine: `runAudit(data, fields)` — real, deterministic, in-browser
+- Evidence building: `buildAuditEvidence()`, `matchGroundTruth()`, `buildDeterministicValidationReport()`
+- React state: `auditEvidence`, `report`, `rawData`, `csvFields` — real values from processing
+- State refs: `auditEvidenceRef`, `reportRef`, `structuredDiagnosisRef` — updated on every render, always fresh
 
 ### What is harness-only (bypasses AI provider)
-- No real AI diagnosis — harness stores export directly
-- No model download — no AI provider called
-- Provider mode: `real` (parseCsv + runAudit are real), not `mock`
+- Export JSON construction: `__L9_GET_EXPORT_JSON__` calls `buildEvidenceManifest` + `buildAuraExportPackage` from current React state via refs
+- No real AI diagnosis, calibration benchmark, or script generation
+- Harness enters ONLY after real upload completes, to collect the export JSON
 
-### Root Cause of L10-01 Failure
-React StrictMode double-invokes effects in development. When `setInputFiles()` triggers CSV loading:
-1. `parseCsv` + `runAudit` run, `setReport`/`setAuditEvidence` update React state
-2. StrictMode unmounts MainPipeline (cleanup deletes harness functions)
-3. StrictMode remounts MainPipeline (new mount, state reset to initial)
-4. Harness functions from old mount are now no-ops
-5. `waitForHarness` finds new harness but state is empty
-
-### L10A Solution: `__L9_PROCESS_CSV__` with StrictMode-Safe Window Storage
-```typescript
-(window as any).__L9_PROCESS_CSV__ = async (csvContent: string, fileName: string) => {
-  const { data, meta } = await parseCsv(new File([csvContent], fileName, { type: 'text/csv' }));
-  const auditResult = runAudit(data, meta.fields, meta.delimiter);
-  const evidence = buildAuditEvidence({ ... report: auditResult ... });
-
-  // Store in window BEFORE React state (persists across StrictMode remounts)
-  (window as any).__L9_EXPORT_JSON__ = buildAuraExportPackage({
-    manifest: buildEvidenceManifest({ auditEvidence: evidence, ... }),
-    profile: { report: auditResult, auditEvidence: evidence },
-    ...
-  });
-
-  // These get reset by StrictMode remount but export JSON survives in window
-  setAuditEvidence(evidence);
-  setReport(auditResult);
-  setState('profile');
-
-  return { rowsProcessed: data.length, columnsProcessed: meta.fields.length, score: auditResult.score };
-};
+### Harness entry point (after real upload)
+```text
+real upload → real parseCsv → real runAudit → real state
+→ __L9_GET_EXPORT_JSON__()  ← harness reads refs, builds export
 ```
-
-The export JSON is stored in `window` (not React state) so it survives React StrictMode remount cycles.
 
 ## Fixture
 
@@ -78,8 +82,15 @@ The export JSON is stored in `window` (not React state) so it survives React Str
 ```json
 {
   "testRun": {
+    "phase": "L10B",
     "csvLoadedViaUi": true,
+    "fileInputInteraction": "setInputFiles",
+    "harnessProcessedCsv": false,
     "providerMode": "real"
+  },
+  "validations": {
+    "csv_loaded_via_file_input": { "passed": true },
+    "real_profile_state_reached": { "passed": true }
   },
   "manifest": {
     "dataset": {
@@ -92,20 +103,23 @@ The export JSON is stored in `window` (not React state) so it survives React Str
       "rowCount": 6,
       "colCount": 5
     }
-  }
+  },
+  "allPassed": true
 }
 ```
 
 ### Screenshots
-1. `01_upload_step_ready.png` — App loaded, upload step ready
-2. `02_profile_ready_real_csv.png` — CSV processed, profile step reached with real data
-3. `03_export_generated.png` — Export generated
+1. `01_upload_step_ready.png` — App loaded, upload step ready, file input attached
+2. `02_profile_ready_real_csv.png` — File uploaded via real input, profile step reached with real data
+3. `03_export_generated.png` — Export generated from real state
 4. `04_contract_validated.png` — All contract validations passed
 
 ## Validations
 
 | Validation | Expected | Pass condition |
 |---|---|---|
+| `csv_loaded_via_file_input` | `true` | setInputFiles on real input |
+| `real_profile_state_reached` | `true` | `__PHASE4_GET_STATE__().pipelineState === 'profile'` |
 | `exportContract.name` | `'aura-technical-export'` | exact match |
 | `exportContract.version` | `'2.0'` | exact match |
 | `calibrationEvidence` at root | present | `!= null` |
@@ -123,22 +137,29 @@ The export JSON is stored in `window` (not React state) so it survives React Str
 - No real data — all fixture data synthetic
 - No model download — harness bypasses AI provider
 - No real AI provider — parseCsv + runAudit are deterministic in-browser
-- No changes to `auditEngine` (except bug-justified StrictMode workaround), scoring, v2 contracts, Phase 5-9 freezes
+- No changes to `auditEngine` (except StrictMode-compatible refs in harness), scoring, v2 contracts, Phase 5-9 freezes
 - No touches to `docs/tercera_entrega_aura/`
 - No fourth delivery claims
 
-## Risks
+## Risks & Notes
 
-- Harness exercises real parseCsv + runAudit but bypasses the actual file input UI interaction (no `input[type=file]` involved). The CSV data is passed as a string to the harness, not via a real file selection event.
-- `providerMode: 'real'` refers to the deterministic audit engine (parseCsv + runAudit), not an AI provider.
+- `harnessProcessedCsv: false` — `setInputFiles` triggered the real `processFile` handler. No CSV data was injected via harness.
+- `csvLoadedViaUi: true` — the CSV was loaded via `page.setInputFiles` on the real hidden `<input>`. The `onChange` event fired natively.
+- The harness (`__L9_GET_EXPORT_JSON__`) reads from refs that mirror current React state. This is not a mock — the report and auditEvidence were generated by real `parseCsv` + `runAudit` called from `processFile`.
+- `providerMode: 'real'` refers to the deterministic audit engine, not an AI provider.
+- The fixture fingerprint in evidence is `70b8e5ae` (from `fingerprintDataset()`), not `l10-6x5` (which was the L10A harness hardcoded value). This confirms real pipeline execution.
 
 ## Run Commands
 
 ```text
 cd src && npm run typecheck
 cd src && npm run build
-cd src && npm run test:e2e -- aura-export-contract.spec.ts   # L9 tests (8/8)
-cd src && npm run test:e2e -- aura-full-flow-export.spec.ts  # L10A test (1/1)
+cd src && npm test -- --run exportPackage
+cd src && npm test -- --run exportPackageSchema
+cd src && npm test -- --run exportContractValidation
+cd src && npm test -- --run exportJsonPreflight
+cd src && npm run test:e2e -- aura-export-contract.spec.ts   # L9 tests (5/5 pass)
+cd src && npm run test:e2e -- aura-full-flow-export.spec.ts  # L10B test (1/1 pass)
 ```
 
 ## Greps
