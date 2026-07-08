@@ -147,7 +147,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
 
   React.useEffect(() => {
     if (aiConfig.providerType === 'ollama') {
-      diagnoseOllamaLocal(aiConfig.ollamaBaseUrl).then(diag => {
+      diagnoseOllamaLocal(aiConfig.ollamaBaseUrl, aiConfig.model).then(diag => {
         setOllamaDiagnostic(diag);
         setProviderAvailable(diag.status === 'ready');
       }).catch(() => {
@@ -159,7 +159,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
         aiProvider.isAvailable().then(setProviderAvailable).catch(() => setProviderAvailable(false));
       }
     }
-  }, [aiConfig.providerType, aiConfig.ollamaBaseUrl, aiProvider]);
+  }, [aiConfig.providerType, aiConfig.ollamaBaseUrl, aiConfig.model, aiProvider]);
 
   React.useEffect(() => {
     setDraftAnalysis(analysisText);
@@ -1178,6 +1178,9 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
                 endpoint={aiConfig.ollamaBaseUrl}
                 onReady={(diag) => {
                   setOllamaDiagnostic(diag);
+                  if (diag.details.selectedModel) {
+                    onAiConfigChange({ ...aiConfig, model: diag.details.selectedModel });
+                  }
                   setProviderAvailable(true);
                   setShowOllamaWizard(false);
                 }}

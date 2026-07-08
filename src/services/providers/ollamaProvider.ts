@@ -133,7 +133,21 @@ export class OllamaProvider implements AIProvider {
       });
 
       if (!response.ok) {
-        throw new Error(`Ollama error: ${response.status} ${response.statusText}`);
+        let detail = '';
+        try {
+          const bodyText = await response.text();
+          if (bodyText) {
+            try {
+              const bodyJson = JSON.parse(bodyText);
+              detail = bodyJson.error || bodyJson.message || bodyText;
+            } catch {
+              detail = bodyText.slice(0, 200);
+            }
+          }
+        } catch {
+          detail = '';
+        }
+        throw new Error(`Ollama error ${response.status}${detail ? ': ' + detail : ''}`);
       }
 
       const data = await response.json();
@@ -203,7 +217,21 @@ export class OllamaProvider implements AIProvider {
       });
 
       if (!response.ok) {
-        throw new Error(`Ollama error: ${response.status}`);
+        let detail = '';
+        try {
+          const bodyText = await response.text();
+          if (bodyText) {
+            try {
+              const bodyJson = JSON.parse(bodyText);
+              detail = bodyJson.error || bodyJson.message || bodyText;
+            } catch {
+              detail = bodyText.slice(0, 200);
+            }
+          }
+        } catch {
+          detail = '';
+        }
+        throw new Error(`Ollama error ${response.status}${detail ? ': ' + detail : ''}`);
       }
 
       const reader = response.body?.getReader();

@@ -80,6 +80,34 @@ export function normalizeAiProviderError(
     rawMessage.includes('localhost:11434') ||
     rawMessage.includes('127.0.0.1:11434')
   ) {
+    const hasHttpError = /\b4\d{2}\b/.test(rawMessage) || /\b5\d{2}\b/.test(rawMessage);
+
+    if (hasHttpError) {
+      const modelMatch = rawMessage.match(/model[:\s]+([^\s,]+)/i);
+      const modelName = modelMatch ? modelMatch[1] : null;
+      return {
+        title: 'El modelo de Ollama rechazó la solicitud',
+        message: modelName
+          ? `Ollama está conectado pero el modelo "${modelName}" no pudo procesar la solicitud. Esto puede ocurrir si el modelo no está descargado o no es compatible con la versión de Ollama.`
+          : 'Ollama está conectado pero el modelo activo rechazó la solicitud. Verifica que el modelo esté descargado y sea compatible.',
+        cause: rawMessage,
+        recommendedActions: modelName
+          ? [
+              `Verifica que "${modelName}" esté descargado: ollama list`,
+              `Si no está, descárgalo con: ollama pull ${modelName}`,
+              'Revisa que la versión de Ollama sea reciente: ollama --version',
+            ]
+          : [
+              'Verifica que el modelo esté descargado: ollama list',
+              'Revisa que la versión de Ollama sea reciente: ollama --version',
+              'Descarga el modelo recomendado: ollama pull qwen2.5:3b',
+            ],
+        technicalMessage,
+        evidenceStatus: 'attempted_failed',
+        category: 'ollama_unavailable',
+      };
+    }
+
     return {
       title: 'Ollama local no disponible',
       message: 'AURA no pudo comunicarse con Ollama local. El servidor debe estar abierto en localhost:11434 y el modelo seleccionado debe estar descargado.',
