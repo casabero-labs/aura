@@ -262,7 +262,7 @@ test.describe('L13G — Titanic E2E Diagnostic Report Pipeline', () => {
 
     await expect(page.locator('[data-testid="diagnostic-report-stage"]')).toBeVisible({ timeout: 10_000 });
 
-    // Enter optional remediation branch: click "Generar script recomendado, opcional"
+    // Enter optional remediation branch: click "Configurar remediación opcional (Script / Limpieza)"
     await page.getByTestId('diagnostic-report-generate-script').click();
 
     // Wait for optional remediation notice in script state

@@ -7,6 +7,7 @@ interface DiagnosticFindingGroupProps {
   findings: DiagnosticFinding[];
   testId: string;
   falsePositiveContext?: boolean;
+  children?: React.ReactNode;
 }
 
 const severityLabels: Record<IssueSeverity, string> = {
@@ -30,6 +31,7 @@ const DiagnosticFindingGroup = ({
   findings,
   testId,
   falsePositiveContext = false,
+  children,
 }: DiagnosticFindingGroupProps) => (
   <section className="diagnostic-report-section" data-testid={testId}>
     <div className="diagnostic-report-section-head">
@@ -89,6 +91,7 @@ const DiagnosticFindingGroup = ({
         ))}
       </div>
     )}
+    {children}
   </section>
 );
 

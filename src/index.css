@@ -6372,6 +6372,14 @@ tr:hover td {
   align-items: start;
 }
 
+.diagnostic-report-hero-desc {
+  font-size: 14px;
+  color: var(--ink2);
+  line-height: 1.6;
+  max-width: 720px;
+  margin: var(--space-xs) 0 0 0;
+}
+
 .diagnostic-report-actions {
   display: flex;
   flex-wrap: wrap;
@@ -6389,6 +6397,206 @@ tr:hover td {
 .diagnostic-report-actions .btn-s {
   white-space: normal;
   text-align: center;
+}
+
+/* Summary strip — mirrors L15A/L15B pattern */
+
+.diagnostic-report-summary-strip {
+  display: flex;
+  gap: var(--space-lg);
+  padding: var(--space-md) 0;
+  border-top: 1px solid var(--border-faint);
+  border-bottom: 1px solid var(--border-faint);
+  flex-wrap: wrap;
+}
+
+.diagnostic-report-summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  max-width: 220px;
+}
+
+.diagnostic-report-summary-value {
+  font-size: 24px;
+  font-weight: 700;
+  font-family: var(--font-serif);
+  color: var(--ink);
+  line-height: 1.05;
+}
+
+.diagnostic-report-summary-value--critical {
+  color: var(--error);
+}
+
+.diagnostic-report-summary-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink3);
+}
+
+/* Overflow toggle inside a finding group */
+
+.diagnostic-report-overflow-toggle {
+  margin-top: var(--space-sm);
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--ink2);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.diagnostic-report-overflow-toggle:hover {
+  background: var(--surface-hover);
+  color: var(--ink);
+}
+
+/* Technical evidence disclosure */
+
+.diagnostic-report-tech-disclosure {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.diagnostic-report-tech-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-lg);
+  cursor: pointer;
+  user-select: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  list-style: none;
+}
+
+.diagnostic-report-tech-summary::-webkit-details-marker { display: none; }
+.diagnostic-report-tech-summary::marker { content: ''; }
+.diagnostic-report-tech-summary:hover { background: var(--surface-hover); }
+
+.diagnostic-report-tech-chevron {
+  color: var(--ink3);
+  transition: transform var(--transition-base);
+  flex-shrink: 0;
+}
+
+.diagnostic-report-tech-disclosure[open] .diagnostic-report-tech-chevron {
+  transform: rotate(180deg);
+}
+
+.diagnostic-report-tech-hint {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--ink3);
+  margin-left: auto;
+  text-align: right;
+  max-width: 50%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.diagnostic-report-tech-body {
+  padding: var(--space-md) var(--space-lg) var(--space-lg);
+  border-top: 1px solid var(--border-faint);
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.diagnostic-report-tech-section {
+  background: var(--surface);
+  border: 1px solid var(--border-faint);
+  border-radius: var(--radius-sm);
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.diagnostic-report-tech-section h4 {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink3);
+  margin: 0;
+}
+
+.diagnostic-report-tech-meta {
+  display: grid;
+  grid-template-columns: minmax(140px, max-content) 1fr;
+  gap: 4px var(--space-md);
+  margin: 0;
+  font-size: 12px;
+}
+
+.diagnostic-report-tech-meta dt {
+  color: var(--ink3);
+  font-weight: 600;
+}
+
+.diagnostic-report-tech-meta dd {
+  margin: 0;
+  color: var(--ink2);
+  word-break: break-all;
+}
+
+.diagnostic-report-tech-meta code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink);
+}
+
+.diagnostic-report-tech-readiness {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+  color: var(--ink2);
+}
+
+.diagnostic-report-tech-note {
+  font-size: 12px;
+  color: var(--ink3);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.diagnostic-report-tech-pre {
+  background: var(--bg);
+  border: 1px solid var(--border-faint);
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--ink2);
+  max-height: 240px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+}
+
+.diagnostic-report-tech-pre--scroll {
+  max-height: 360px;
 }
 
 .diagnostic-report-summary-grid {
