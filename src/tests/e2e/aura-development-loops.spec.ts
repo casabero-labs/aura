@@ -46,10 +46,10 @@ test('AURA: flujo completo perfil → diagnóstico → script → revisar → ex
     } else if (hasSkip) {
       await skipBtn.click();
     } else {
-      // Fallback: try clicking stepper to bypass diagnosis
-      const scriptStepper = page.locator('.stepper-step').filter({ hasText: 'Script' });
-      if (await scriptStepper.isVisible().catch(() => false)) {
-        await scriptStepper.click();
+      // Fallback: try clicking the new "Reporte diagnóstico" stepper to bypass diagnosis
+      const reportStepper = page.locator('.stepper-step').filter({ hasText: /Reporte diagnóstico/i });
+      if (await reportStepper.isVisible().catch(() => false)) {
+        await reportStepper.click();
       } else {
         throw new Error('Neither "Continuar al reporte diagnóstico" nor "Continuar sin diagnóstico" appeared');
       }
@@ -59,10 +59,10 @@ test('AURA: flujo completo perfil → diagnóstico → script → revisar → ex
     if (hasSkip) {
       await skipBtn.click();
     } else {
-      // Fallback: try clicking stepper to bypass diagnosis
-      const scriptStepper = page.locator('.stepper-step').filter({ hasText: 'Script' });
-      if (await scriptStepper.isVisible().catch(() => false)) {
-        await scriptStepper.click();
+      // Fallback: try clicking the new "Reporte diagnóstico" stepper to bypass diagnosis
+      const reportStepper = page.locator('.stepper-step').filter({ hasText: /Reporte diagnóstico/i });
+      if (await reportStepper.isVisible().catch(() => false)) {
+        await reportStepper.click();
       } else {
         throw new Error('Diagnosis button disabled and "Continuar sin diagnóstico" not available');
       }

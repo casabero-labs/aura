@@ -77,12 +77,27 @@ const buildGateReport = () => buildDiagnosticReport({
 });
 
 describe('pipeline diagnostic report state', () => {
-  it('PipelineProgress acepta diagnostic_report y muestra la rama opcional', () => {
+  it('PipelineProgress muestra el flujo principal de 5 pasos en diagnostic_report', () => {
     render(<PipelineProgress currentStep="diagnostic_report" />);
 
-    expect(screen.getByText('Reporte')).toBeTruthy();
-    expect(screen.getByText('Script opcional')).toBeTruthy();
-    expect(screen.getByText('Revisión opcional')).toBeTruthy();
+    expect(screen.getByText('Carga')).toBeTruthy();
+    expect(screen.getByText('Perfil base')).toBeTruthy();
+    expect(screen.getByText('Diagnóstico')).toBeTruthy();
+    expect(screen.getByText('Reporte diagnóstico')).toBeTruthy();
+    expect(screen.getByText('Exportación')).toBeTruthy();
+  });
+
+  it('PipelineProgress muestra el badge de rama opcional en estado script', () => {
+    render(<PipelineProgress currentStep="script" />);
+
+    expect(screen.getByText('Rama opcional: Remediación')).toBeTruthy();
+    expect(screen.queryByText('Script opcional')).toBeNull();
+  });
+
+  it('PipelineProgress muestra el badge de Laboratorio en estado calibration', () => {
+    render(<PipelineProgress currentStep="calibration" />);
+
+    expect(screen.getByText('Laboratorio / Calibración experimental')).toBeTruthy();
   });
 
   it('DiagnosticReportStep renderiza score base, conteos y reglas de salida principal', () => {

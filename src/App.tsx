@@ -408,6 +408,33 @@ const App: React.FC = () => {
     setSessionDestroyed(true);
   };
 
+  const handleNewAnalysis = () => {
+    if (typeof window !== 'undefined' && typeof window.confirm === 'function') {
+      const confirmed = window.confirm(
+        'Esto limpiará el análisis actual del navegador y volverá a la carga inicial. ¿Deseas continuar?',
+      );
+      if (!confirmed) return;
+    }
+    clearPipelineSession();
+    setPipelineData(INITIAL_PIPELINE_DATA);
+    setShowHome(true);
+    setShowLab(false);
+    setShowImprovementRun(false);
+    setShowAuditLog(false);
+    setShowSettings(false);
+    setShowHelp(false);
+    setShowChangelog(false);
+    setShowMobileNav(false);
+    setHasExported(false);
+    setPdfProgressStatus('idle');
+    setPdfProgressMsg('');
+    setSessionDestroyed(false);
+    setExportJsonPreflightError(null);
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    }
+  };
+
   return (
     <ErrorBoundary><div className="aura-system">
       {showAuditLog && <AuditLogViewer onClose={() => setShowAuditLog(false)} />}
@@ -479,7 +506,12 @@ const App: React.FC = () => {
             </label>
 
             {hasData && (
-              <button className="nav-reset-cta" onClick={() => window.location.reload()}>
+              <button
+                className="nav-reset-cta"
+                onClick={handleNewAnalysis}
+                data-testid="nav-new-analysis"
+                type="button"
+              >
                 Nuevo análisis
               </button>
             )}

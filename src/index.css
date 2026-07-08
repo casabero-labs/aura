@@ -5545,8 +5545,10 @@ tr:hover td {
 
 .stepper {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 6px;
   padding: var(--space-md) var(--space-md);
   width: 100%;
   border-bottom: 1px solid var(--border-faint);
@@ -5561,10 +5563,12 @@ tr:hover td {
 .stepper-step {
   display: flex;
   align-items: center;
-  padding: 4px var(--space-sm);
-  border-radius: var(--radius-xs);
-  transition: color var(--transition-fast);
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast), background var(--transition-fast);
   min-width: 0;
+  border: 1px solid transparent;
 }
 
 .stepper-step.done {
@@ -5574,6 +5578,8 @@ tr:hover td {
 .stepper-step.active {
   color: var(--ink);
   font-weight: 600;
+  background: var(--surface);
+  border-color: var(--border);
 }
 
 .stepper-step.pending {
@@ -5586,6 +5592,7 @@ tr:hover td {
 
 .stepper-step.clickable:hover {
   color: var(--ink);
+  background: var(--surface-hover);
 }
 
 .stepper-step:focus-visible {
@@ -5593,20 +5600,72 @@ tr:hover td {
   outline-offset: 2px;
 }
 
+.stepper-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 9999px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  background: var(--border-faint);
+  color: var(--ink2);
+  flex-shrink: 0;
+}
+
+.stepper-step.active .stepper-index {
+  background: var(--ink);
+  color: var(--bg);
+}
+
+.stepper-step.done .stepper-index {
+  background: transparent;
+  color: var(--ink3);
+  border: 1px solid var(--border);
+}
+
 .stepper-label {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: inherit;
   color: inherit;
   text-align: center;
   white-space: nowrap;
+  letter-spacing: 0.01em;
 }
 
 .stepper-line {
   height: 1px;
   background: var(--border);
   flex: 1;
-  max-width: 24px;
+  max-width: 32px;
   margin: 0;
+  min-width: 12px;
+}
+
+.stepper-branch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink3);
+  background: var(--surface);
+  border: 1px solid var(--border-faint);
+  border-radius: 9999px;
+}
+
+.stepper-branch-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--orange);
+  display: inline-block;
 }
 
 /* ─── Downloaded Models List (DiagnosisStep) ─── */
