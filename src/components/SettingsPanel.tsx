@@ -187,6 +187,17 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
     setOllamaLoading(false);
   };
 
+  const handleUseOllamaModel = (modelName: string) => {
+    const updated = {
+      ...localConfig,
+      model: modelName,
+      ollamaModel: modelName,
+    };
+    setLocalConfig(updated);
+    localStorage.setItem('aura_ollama_model', modelName);
+    onSave(updated);
+  };
+
   const handleOllamaPull = async () => {
     const model = ollamaPullModel || localConfig.model || 'qwen2.5:3b';
     setOllamaPullProgress({ stage: 'downloading', progress: 0, message: 'Iniciando descarga...' });
@@ -233,6 +244,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
   const activeChromeProgressMessage = chromeProgressMessage(chromeDiagnostic, chromeProgress);
   const chromeProgressValue = chromeProgress?.progress;
   const shouldShowChromeProgress = chromeDiagnostic?.status === 'downloading' || isPreparingChrome || !!chromeProgress;
+  const currentModelInstalled = ollamaConnected === true && ollamaModels.length > 0
+    && ollamaModels.some(m => m.name === localConfig.model);
 
   return (
     <main className="settings-workspace" data-testid="settings-workspace">
@@ -422,7 +435,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                     data-testid="ollama-endpoint-input"
                   />
                   <button className="btn-s btn-sm" onClick={handleFetchOllamaModels} disabled={ollamaLoading} data-testid="ollama-test-connection">
-                    <RefreshCw size={10} className={ollamaLoading ? 'animate-spin' : ''} /> Probar
+                    <RefreshCw size={10} className={ollamaLoading ? 'animate-spin' : ''} /> Probar y refrescar
                   </button>
                 </div>
               </div>
@@ -461,7 +474,11 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                 <label className="settings-label">Modelo Ollama</label>
                 <select
                   value={localConfig.model}
-                  onChange={(e) => setLocalConfig({ ...localConfig, model: e.target.value, ollamaModel: e.target.value })}
+                  onChange={(e) => {
+                    const modelName = e.target.value;
+                    setLocalConfig({ ...localConfig, model: modelName, ollamaModel: modelName });
+                    localStorage.setItem('aura_ollama_model', modelName);
+                  }}
                   className="settings-select"
                   data-testid="ollama-model-select"
                 >
@@ -477,11 +494,31 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
               {ollamaConnected && ollamaModels.length > 0 && (
                 <div className="settings-field">
                   <label className="settings-label">Modelos instalados ({ollamaModels.length})</label>
+                  {ollamaConnected === true && !currentModelInstalled && (
+                    <div className="settings-status-card settings-status-card--warn" style={{ marginBottom: 'var(--space-sm)' }} data-testid="ollama-model-missing-warning">
+                      <AlertTriangle size={14} className="settings-status-icon" />
+                      <p>El modelo configurado ya no está instalado en Ollama. Selecciona uno de los modelos detectados.</p>
+                    </div>
+                  )}
                   <div className="settings-model-cards">
                     {ollamaModels.slice(0, 10).map(m => (
                       <div key={m.name} className="settings-model-card settings-model-card--compact">
-                        <strong>{m.name}</strong>
-                        <span className="settings-model-card-meta">{(m.size / 1e9).toFixed(1)} GB</span>
+                        <div>
+                          <strong>{m.name}</strong>
+                          {m.name === localConfig.model && (
+                            <span className="settings-model-card-active" data-testid={`ollama-model-active-${m.name.replace(/[^a-zA-Z0-9]/g, '_')}`}>
+                              <CheckCircle size={10} /> activo
+                            </span>
+                          )}
+                          <span className="settings-model-card-meta">{(m.size / 1e9).toFixed(1)} GB</span>
+                        </div>
+                        <button
+                          className="btn-s btn-sm"
+                          onClick={() => handleUseOllamaModel(m.name)}
+                          data-testid={`ollama-use-model-${m.name.replace(/[^a-zA-Z0-9]/g, '_')}`}
+                        >
+                          Usar este modelo
+                        </button>
                       </div>
                     ))}
                   </div>
