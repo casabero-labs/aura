@@ -9215,6 +9215,195 @@ tr:hover td {
   }
 }
 
+/* ── L15A-L15E responsive — new components introduced by progressive-disclosure loops ── */
+
+@media (max-width: 768px) {
+  .profile-summary-strip,
+  .diagnosis-summary-strip,
+  .diagnostic-report-summary-strip {
+    gap: var(--space-md);
+  }
+
+  .profile-summary-item,
+  .diagnosis-summary-item,
+  .diagnostic-report-summary-item {
+    max-width: 160px;
+  }
+
+  .profile-summary-value,
+  .diagnosis-summary-value,
+  .diagnostic-report-summary-value {
+    font-size: 20px;
+  }
+
+  .stepper-index {
+    min-width: 16px;
+    height: 16px;
+    font-size: 9px;
+  }
+
+  .stepper-label {
+    font-size: 10px;
+  }
+
+  .stepper-step {
+    padding: 4px 6px;
+    gap: 4px;
+  }
+
+  .stepper-branch {
+    font-size: 10px;
+    padding: 3px 8px;
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  .diagnosis-tech-disclosure-body,
+  .diagnostic-report-tech-body {
+    padding: var(--space-sm) var(--space-md) var(--space-md);
+  }
+
+  .diagnosis-tech-section,
+  .diagnostic-report-tech-section {
+    padding: var(--space-sm);
+  }
+
+  .diagnosis-tech-pre,
+  .diagnostic-report-tech-pre {
+    font-size: 10px;
+    max-height: 180px;
+  }
+
+  .export-delivery-card-head {
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
+
+  .export-delivery-card-head h4 {
+    font-size: 13px;
+  }
+
+  .export-delivery-block {
+    padding: var(--space-md);
+  }
+
+  .export-session-block {
+    padding: var(--space-md);
+  }
+
+  .export-session-block-desc {
+    font-size: 12px;
+  }
+
+  .export-manifest-checklist {
+    padding: var(--space-sm);
+  }
+}
+
+@media (max-width: 640px) {
+  .profile-summary-strip,
+  .diagnosis-summary-strip,
+  .diagnostic-report-summary-strip {
+    gap: var(--space-sm);
+    padding: var(--space-sm) 0;
+  }
+
+  .profile-summary-item,
+  .diagnosis-summary-item,
+  .diagnostic-report-summary-item {
+    max-width: 120px;
+  }
+
+  .profile-summary-value,
+  .diagnosis-summary-value,
+  .diagnostic-report-summary-value {
+    font-size: 17px;
+  }
+
+  .stepper-label {
+    font-size: 9px;
+  }
+
+  .stepper-index {
+    min-width: 14px;
+    height: 14px;
+    font-size: 8px;
+  }
+
+  .stepper-step {
+    padding: 3px 4px;
+    gap: 3px;
+  }
+
+  .stepper-line {
+    max-width: 16px;
+    min-width: 8px;
+  }
+
+  .stepper-branch {
+    font-size: 9px;
+    padding: 2px 6px;
+  }
+
+  .diagnosis-hero-panel,
+  .export-closure {
+    padding: var(--space-md);
+  }
+
+  .diagnosis-active-mode {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-xs);
+  }
+
+  .diagnosis-active-mode-left {
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+  }
+
+  .diagnosis-active-mode-config-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .diagnostic-report-hero {
+    grid-template-columns: 1fr;
+    gap: var(--space-sm);
+  }
+
+  .diagnostic-report-actions--top {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .diagnostic-report-actions--top .btn-p,
+  .diagnostic-report-actions--top .btn-s {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .export-delivery-card {
+    padding: var(--space-sm);
+  }
+
+  .export-delivery-card-head p {
+    font-size: 11px;
+  }
+
+  .export-delivery-block {
+    padding: var(--space-sm);
+  }
+
+  .export-session-block {
+    padding: var(--space-sm);
+  }
+
+  .export-governance-limitations {
+    padding: var(--space-sm);
+    font-size: 12px;
+  }
+}
+
 @media (max-width: 768px) {
   .dev-loop-intent,
   .dev-loop-grid {
