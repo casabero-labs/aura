@@ -106,7 +106,7 @@ describe('JSON technical export preflight integration', () => {
       screen.getByRole('button', { name: 'Empezar auditoría' }),
     );
     await user.click(
-      screen.getByRole('button', { name: 'JSON técnico' }),
+      screen.getByRole('button', { name: 'Descargar JSON' }),
     );
 
     expect(validateAuraExportPackage).toHaveBeenCalledOnce();

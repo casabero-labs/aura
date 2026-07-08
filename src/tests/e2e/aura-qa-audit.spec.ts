@@ -260,16 +260,16 @@ test.describe('AURA QA — Human-first audit (LOOP 07C)', () => {
     const exportStage = await page.locator('[data-testid="export-stage"]').isVisible().catch(() => false);
     log(`- Export stage visible: ${exportStage ? 'PASS' : 'FAIL'}`);
 
-    const exportTitle = await page.getByText(/Tu evidencia está lista/i).isVisible().catch(() => false);
-    log(`- Export title "Tu evidencia está lista": ${exportTitle ? 'PASS' : 'FAIL'}`);
+    const exportTitle = await page.getByText(/Paquete final del análisis/i).isVisible().catch(() => false);
+    log(`- Export title "Paquete final del análisis": ${exportTitle ? 'PASS' : 'FAIL'}`);
 
-    const exportDownloads = await page.locator('.export-downloads').isVisible().catch(() => false);
-    log(`- Export downloads section visible: ${exportDownloads ? 'PASS' : 'FAIL'}`);
+    const exportDownloads = await page.locator('.export-delivery-block').first().isVisible().catch(() => false);
+    log(`- Export delivery block visible: ${exportDownloads ? 'PASS' : 'FAIL'}`);
 
-    const pdfBtn = await page.getByRole('button', { name: /Reporte PDF ejecutivo/i }).isVisible().catch(() => false);
+    const pdfBtn = await page.getByRole('button', { name: /Descargar PDF/i }).isVisible().catch(() => false);
     log(`- PDF button visible: ${pdfBtn ? 'PASS' : 'FAIL'}`);
 
-    const jsonBtn = await page.getByRole('button', { name: /JSON técnico/i }).isVisible().catch(() => false);
+    const jsonBtn = await page.getByRole('button', { name: /Descargar JSON/i }).isVisible().catch(() => false);
     log(`- JSON button visible: ${jsonBtn ? 'PASS' : 'FAIL'}`);
 
     const exportOverflowX = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 5);

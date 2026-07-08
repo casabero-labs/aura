@@ -644,21 +644,16 @@ const App: React.FC = () => {
           </section>
         )}
 
-        {/* Export Section */}
+        {/* ── Export Section ── */}
         {!showHome && report && pipelineState === 'export' && (
           <section className="export-closure" id="export-section" data-testid="export-stage">
             <div className="export-closure-header">
-              <p className="sec-eye">exportación</p>
-              <h2 className="sec-title">Tu evidencia está lista</h2>
+              <p className="sec-eye">EXPORTACIÓN</p>
+              <h2 className="sec-title">Paquete final del análisis</h2>
             </div>
-            <p className="section-note">
-              AURA reúne informe diagnóstico, hallazgos y manifest técnico. Script, notebook y Health Delta aparecen solo si fueron generados en la rama opcional de remediación.
+            <p className="section-note export-closure-hero-desc">
+              Descarga el informe diagnóstico y los archivos de trazabilidad generados durante el flujo local de AURA.
             </p>
-
-            <div className="companion-note">
-              <ShieldCheck size={16} />
-              <p>Aquí no prometemos más de lo que la evidencia permite. Si algo quedó preliminar o pendiente, AURA lo muestra.</p>
-            </div>
 
             {(() => {
               const manifest = buildEvidenceManifest({
@@ -704,152 +699,257 @@ const App: React.FC = () => {
                 );
               }
 
+              const hasRemediationArtifacts = !!(
+                approvedCleaningScript || improvementRun?.healthDelta
+              );
+
               return (
                 <>
-                  <div className="stage-decision-summary" data-testid="stage-decision-summary">
-                    <div className="stage-summary-item">
-                      <span className="stage-summary-label">Paquete</span>
-                      <strong style={{ color: statusColor }}>{statusLabel}</strong>
+                  {/* ── Block 1 — Informe principal ── */}
+                  <div className="export-delivery-block" data-testid="export-main-block">
+                    <p className="export-delivery-block-eyebrow">Informe principal</p>
+                    <h3 className="export-delivery-block-title">Descargas del flujo principal</h3>
+                    <div className="export-delivery-cards">
+                      <article className="export-delivery-card export-delivery-card--primary">
+                        <div className="export-delivery-card-head">
+                          <FileText size={20} />
+                          <div>
+                            <h4>Reporte Diagnóstico PDF</h4>
+                            <p>Informe profesional con resumen ejecutivo, riesgos, gráficos, recomendaciones y gobernanza.</p>
+                          </div>
+                        </div>
+                        <div className="export-delivery-card-action">
+                          {isPdfGenerating ? (
+                            <>
+                              <span className="export-delivery-status export-delivery-status--generating">Generando…</span>
+                              <ProgressDisclosure
+                                title="Generando informe diagnóstico PDF"
+                                indeterminate={pdfProgressStatus === 'running'}
+                                status={pdfProgressStatus}
+                                currentStep={pdfProgressMsg}
+                                compact
+                              />
+                            </>
+                          ) : (
+                            <button className="btn-p btn-sm" onClick={handleDownloadPdf} disabled={isPdfGenerating} data-testid="export-download-pdf">
+                              Descargar PDF
+                            </button>
+                          )}
+                        </div>
+                      </article>
+
+                      <article className="export-delivery-card">
+                        <div className="export-delivery-card-head">
+                          <FileJson size={18} />
+                          <div>
+                            <h4>JSON Técnico de Gobernanza</h4>
+                            <p>Paquete estructurado con perfil, diagnóstico, script aprobado, manifiesto y validaciones para auditoría y trazabilidad.</p>
+                          </div>
+                        </div>
+                        {exportJsonPreflightError ? (
+                          <div className="provider-unavailable-notice" role="alert" data-testid="export-json-preflight-warning">
+                            <strong>JSON técnico no exportado.</strong>{' '}
+                            {exportJsonPreflightError}
+                          </div>
+                        ) : (
+                          <div className="export-delivery-card-action">
+                            <button className="btn-s btn-sm" onClick={handleExportJson} data-testid="export-download-json">
+                              Descargar JSON
+                            </button>
+                          </div>
+                        )}
+                      </article>
+
+                      <article className="export-delivery-card">
+                        <div className="export-delivery-card-head">
+                          <Download size={18} />
+                          <div>
+                            <h4>Hallazgos Críticos en CSV</h4>
+                            <p>Todos los hallazgos del motor determinista en formato tabular para integración con hojas de cálculo o herramientas externas.</p>
+                          </div>
+                        </div>
+                        <div className="export-delivery-card-action">
+                          <button className="btn-s btn-sm" onClick={handleExportIssuesCsv}>
+                            Descargar CSV
+                          </button>
+                        </div>
+                      </article>
                     </div>
-                    <div className="stage-summary-item">
-                      <span className="stage-summary-label">Script</span>
-                      <strong style={{ color: approvedCleaningScript ? 'var(--success)' : 'var(--ink3)' }}>
-                        {approvedCleaningScript ? 'Aprobado' : 'Pendiente'}
-                      </strong>
+                  </div>
+
+                  {/* ── Claims ── */}
+                  {(formalClaims.length > 0 || preliminaryClaims.length > 0 || pendingClaims.length > 0) && (
+                    <div className="export-delivery-block" data-testid="export-claims-block">
+                      <p className="export-delivery-block-eyebrow">Qué puedes afirmar</p>
+                      <h3 className="export-delivery-block-title">Resumen de gobernanza</h3>
+
+                      {formalClaims.length > 0 && (
+                        <div className="export-governance-group">
+                          <div className="export-governance-group-head">
+                            <CheckCircle2 size={14} style={{ color: 'var(--success)' }} />
+                            <strong>Afirmaciones respaldadas</strong>
+                          </div>
+                          <ul>
+                            {formalClaims.map((claim) => (
+                              <li key={claim}>{claim}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {preliminaryClaims.length > 0 && (
+                        <div className="export-governance-group export-governance-group--preliminary">
+                          <div className="export-governance-group-head">
+                            <AlertTriangle size={14} style={{ color: 'var(--orange)' }} />
+                            <strong>En revisión</strong>
+                          </div>
+                          <ul>
+                            {preliminaryClaims.map((claim) => (
+                              <li key={claim}>{claim}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {pendingClaims.length > 0 && (
+                        <div className="export-governance-group export-governance-group--pending">
+                          <div className="export-governance-group-head">
+                            <XCircle size={14} style={{ color: 'var(--ink3)' }} />
+                            <strong>No debes afirmar todavía</strong>
+                          </div>
+                          <ul>
+                            {pendingClaims.map((claim) => (
+                              <li key={claim}>{claim}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {manifest.limitations.length > 0 && (
+                        <div className="export-governance-limitations">
+                          <span>Limitaciones conocidas</span>
+                          <ul>
+                            {manifest.limitations.slice(0, 3).map((lim) => (
+                              <li key={lim}>{lim}</li>
+                            ))}
+                            {manifest.limitations.length > 3 && (
+                              <li className="export-governance-limitations-more">
+                                +{manifest.limitations.length - 3} limitaciones más en los detalles técnicos
+                              </li>
+                            )}
+                          </ul>
+                        </div>
+                      )}
                     </div>
-                    <div className="stage-summary-item">
-                      <span className="stage-summary-label">Evidencia</span>
-                      <strong>{completedObjectives >= 4 ? 'formal' : completedObjectives >= 2 ? 'parcial' : 'incompleta'}</strong>
-                    </div>
-                    {manifest.calibrationSummary.totalRuns > 0 && (
-                      <div className="stage-summary-item">
-                        <span className="stage-summary-label">Calibración</span>
-                        <strong>{manifest.calibrationSummary.status}</strong>
+                  )}
+
+                  {/* ── Block 2 — Anexos de remediación opcional ── */}
+                  <div className="export-delivery-block" data-testid="export-remediation-block">
+                    <p className="export-delivery-block-eyebrow">
+                      Anexos de remediación opcional
+                    </p>
+                    {hasRemediationArtifacts ? (
+                      <div className="export-remediation-cards">
+                        {approvedCleaningScript && (
+                          <article className="export-delivery-card">
+                            <div className="export-delivery-card-head">
+                              <FileCode2 size={18} />
+                              <div>
+                                <h4>Script aprobado</h4>
+                                <p>Script de limpieza validado y aprobado por revisión humana.</p>
+                              </div>
+                            </div>
+                            <div className="export-delivery-card-action">
+                              <button className="btn-s btn-sm" onClick={handleExportApprovedScript}>
+                                Descargar script
+                              </button>
+                            </div>
+                          </article>
+                        )}
+                        {approvedCleaningScript && (
+                          <article className="export-delivery-card">
+                            <div className="export-delivery-card-head">
+                              <BookOpen size={18} />
+                              <div>
+                                <h4>Notebook Colab</h4>
+                                <p>Notebook ejecutable con el script aprobado, instrucciones de reauditoría y resumen del dataset.</p>
+                              </div>
+                            </div>
+                            <div className="export-delivery-card-action">
+                              <button className="btn-s btn-sm" onClick={handleExportColab}>
+                                Descargar notebook
+                              </button>
+                            </div>
+                          </article>
+                        )}
+                        {improvementRun?.healthDelta && (
+                          <article className="export-delivery-card">
+                            <div className="export-delivery-card-head">
+                              <FlaskConical size={18} />
+                              <div>
+                                <h4>Delta de salud</h4>
+                                <p>Comparación del score antes y después de la remediación opcional.</p>
+                              </div>
+                            </div>
+                            <div className="export-delivery-card-action">
+                              <span className="export-delivery-score-delta" style={{ color: improvementRun.healthDelta.scoreDelta > 0 ? 'var(--success)' : 'var(--ink3)' }}>
+                                {improvementRun.healthDelta.scoreDelta > 0 ? '+' : ''}{improvementRun.healthDelta.scoreDelta} puntos
+                              </span>
+                            </div>
+                          </article>
+                        )}
                       </div>
+                    ) : (
+                      <>
+                        <h3 className="export-delivery-block-title">Esta sesión no generó anexos</h3>
+                        <p className="export-delivery-empty">
+                          No hay anexos de remediación opcional porque este flujo no generó script ni revisión humana. La remediación es una rama opcional que nace desde el reporte diagnóstico.
+                        </p>
+                      </>
                     )}
                   </div>
 
-                  {formalClaims.length > 0 && (
-                    <div className="export-human-summary">
-                      <h3 className="export-human-summary-title">Qué puedes afirmar</h3>
-                      <ul className="export-human-summary-list">
-                        {formalClaims.map((claim) => (
-                          <li key={claim}>
-                            <CheckCircle2 size={14} style={{ color: 'var(--success)' }} />
-                            {claim}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {preliminaryClaims.length > 0 && (
-                    <div className="export-human-summary export-human-summary--preliminary">
-                      <h3 className="export-human-summary-title">Qué está en revisión</h3>
-                      <ul className="export-human-summary-list">
-                        {preliminaryClaims.map((claim) => (
-                          <li key={claim}>
-                            <AlertTriangle size={14} style={{ color: 'var(--orange)' }} />
-                            {claim}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {pendingClaims.length > 0 && (
-                    <div className="export-human-summary export-human-summary--pending">
-                      <h3 className="export-human-summary-title">Qué no debes afirmar todavía</h3>
-                      <ul className="export-human-summary-list">
-                        {pendingClaims.map((claim) => (
-                          <li key={claim}>
-                            <XCircle size={14} style={{ color: 'var(--ink3)' }} />
-                            {claim}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {manifest.limitations.length > 0 && (
-                    <div className="export-limitations">
-                      <span className="export-limitations-title">Limitaciones conocidas</span>
-                      <ul>
-                        {manifest.limitations.slice(0, 3).map((lim) => (
-                          <li key={lim}>{lim}</li>
-                        ))}
-                        {manifest.limitations.length > 3 && (
-                          <li className="export-limitations-more">
-                            +{manifest.limitations.length - 3} limitaciones más en detalles técnicos
-                          </li>
-                        )}
-                      </ul>
-                    </div>
-                  )}
-
-                  <div className="export-downloads">
-                    <h3 className="export-downloads-title">Descargas</h3>
-                    <div className="export-downloads-grid">
-                      <button className="btn-p" onClick={handleDownloadPdf} disabled={isPdfGenerating}>
-                        <FileText size={14} /> {isPdfGenerating ? 'Generando informe' : 'Informe diagnóstico PDF'}
-                      </button>
-                      {pdfProgressStatus !== 'idle' && (
-                        <div style={{ flexBasis: '100%' }}>
-                          <ProgressDisclosure
-                            title={pdfProgressStatus === 'running' ? 'Generando informe diagnóstico PDF' : pdfProgressStatus === 'success' ? 'Informe PDF listo' : 'Error en el PDF'}
-                            indeterminate={pdfProgressStatus === 'running'}
-                            status={pdfProgressStatus}
-                            currentStep={pdfProgressMsg}
-                            compact
-                          />
-                        </div>
-                      )}
-                      <button className="btn-s" onClick={handleExportJson}>
-                        <FileJson size={14} /> JSON técnico
-                      </button>
-                      {exportJsonPreflightError && (
-                        <div
-                          className="provider-unavailable-notice"
-                          role="alert"
-                          data-testid="export-json-preflight-warning"
-                          style={{ flexBasis: '100%' }}
-                        >
-                          <strong>JSON técnico no exportado.</strong>{' '}
-                          {exportJsonPreflightError}
-                        </div>
-                      )}
-                      <button className="btn-s" onClick={handleExportIssuesCsv}>
-                        <Download size={14} /> Hallazgos CSV
-                      </button>
-                      <button className="btn-s" onClick={handleExportApprovedScript} disabled={!approvedCleaningScript}>
-                        <FileCode2 size={14} /> Script aprobado
-                      </button>
-                      <button className="btn-s" onClick={handleExportColab} disabled={!approvedCleaningScript}>
-                        <BookOpen size={14} /> Notebook Colab
-                      </button>
-                      <button className="btn-s" onClick={handleDestroySession} style={{ borderColor: 'var(--error)', color: 'var(--error)' }}>
-                        Cerrar y destruir sesión
-                      </button>
-                    </div>
-                  </div>
-
-                  <details className="technical-details" style={{ marginTop: 'var(--space-lg)' }} data-testid="technical-details">
-                    <summary className="technical-details-summary">
-                      <ChevronDown size={14} className="technical-details-chevron" />
-                      <span>Detalles técnicos</span>
-                      <span className="technical-details-hint">cobertura técnica de evidencia y manifest</span>
+                  {/* ── Block 3 — Evidencia técnica y trazabilidad (collapsed) ── */}
+                  <details className="export-tech-disclosure" data-testid="export-tech-disclosure">
+                    <summary className="export-tech-disclosure-summary">
+                      <ChevronDown size={14} className="export-tech-disclosure-chevron" />
+                      <span>Evidencia técnica y trazabilidad</span>
+                      <span className="export-tech-disclosure-hint">manifiesto, cobertura de objetivos, metadatos</span>
                     </summary>
-                    <div className="technical-details-body">
-                      <div className="objectives-checklist">
-                        <span className="objectives-checklist-title">Cobertura técnica de evidencia</span>
+                    <div className="export-tech-disclosure-body">
+                      <div className="export-manifest-status" data-testid="stage-decision-summary">
+                        <div className="export-manifest-item">
+                          <span className="export-manifest-label">Paquete</span>
+                          <strong style={{ color: statusColor }}>{statusLabel}</strong>
+                        </div>
+                        <div className="export-manifest-item">
+                          <span className="export-manifest-label">Script</span>
+                          <strong style={{ color: approvedCleaningScript ? 'var(--success)' : 'var(--ink3)' }}>
+                            {approvedCleaningScript ? 'Aprobado' : 'Pendiente'}
+                          </strong>
+                        </div>
+                        <div className="export-manifest-item">
+                          <span className="export-manifest-label">Evidencia</span>
+                          <strong>{completedObjectives >= 4 ? 'formal' : completedObjectives >= 2 ? 'parcial' : 'incompleta'}</strong>
+                        </div>
+                        {manifest.calibrationSummary.totalRuns > 0 && (
+                          <div className="export-manifest-item">
+                            <span className="export-manifest-label">Calibración</span>
+                            <strong>{manifest.calibrationSummary.status}</strong>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="export-manifest-checklist">
+                        <span className="export-manifest-checklist-title">Cobertura técnica de evidencia</span>
                         {manifest.objectivesCoverage.map((obj) => (
-                          <div key={obj.id} className={`obj-row obj-row--${obj.status}`}>
+                          <div key={obj.id} className={`export-manifest-row export-manifest-row--${obj.status}`}>
                             {obj.status === 'completed' ? <CheckCircle2 size={14} /> : obj.status === 'partial' ? <AlertTriangle size={14} /> : <XCircle size={14} />}
                             <div>
                               <strong>{obj.id}: {obj.label}</strong>
                               <p>{obj.evidence}</p>
                               {obj.limitations.length > 0 && (
-                                <ul className="obj-limitations">
+                                <ul className="export-manifest-limitations">
                                   {obj.limitations.map((lim) => <li key={lim}>{lim}</li>)}
                                 </ul>
                               )}
@@ -859,6 +959,23 @@ const App: React.FC = () => {
                       </div>
                     </div>
                   </details>
+
+                  {/* ── Block 4 — Gestión segura de sesión ── */}
+                  <div className="export-session-block" data-testid="export-session-block">
+                    <p className="export-delivery-block-eyebrow">Gestión segura de sesión</p>
+                    <h3 className="export-delivery-block-title">Cerrar el análisis actual</h3>
+                    <p className="export-session-block-desc">
+                      Los datos se procesan localmente en el navegador. Puedes cerrar la sesión para eliminar el análisis actual y volver a la carga inicial.
+                    </p>
+                    <button
+                      className="btn-s"
+                      onClick={handleDestroySession}
+                      style={{ borderColor: 'var(--error)', color: 'var(--error)', width: 'fit-content' }}
+                      data-testid="export-destroy-session"
+                    >
+                      Cerrar sesión y destruir datos locales
+                    </button>
+                  </div>
                 </>
               );
             })()}

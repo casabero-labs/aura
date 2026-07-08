@@ -108,19 +108,19 @@ test('AURA: flujo completo perfil → diagnóstico → script → revisar → ex
   await reviewStage.locator('[data-testid="primary-stage-action"]').getByRole('button', { name: /Preparar exportación/i }).click();
   await page.waitForTimeout(300);
   await expect(page.locator('[data-testid="export-stage"]')).toBeVisible();
-  await expect(page.getByRole('button', { name: /Reporte PDF ejecutivo/i })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Descargar PDF/i })).toBeVisible();
 
   // ── Task 5: Real download checks ──
   const [jsonDownload] = await Promise.all([
     page.waitForEvent('download'),
-    page.getByRole('button', { name: /JSON técnico/i }).click(),
+    page.getByRole('button', { name: /Descargar JSON/i }).click(),
   ]);
   expect(jsonDownload.suggestedFilename()).toMatch(/\.json$/);
 
   // ── Task 5b: Colab notebook download ──
   const [colabDownload] = await Promise.all([
     page.waitForEvent('download'),
-    page.getByRole('button', { name: /Notebook Colab/i }).click(),
+    page.getByRole('button', { name: /Descargar notebook/i }).click(),
   ]);
   expect(colabDownload.suggestedFilename()).toMatch(/\.ipynb$/);
   // Verify notebook contains nbformat and privacy warning
@@ -162,10 +162,10 @@ test('AURA: flujo completo perfil → diagnóstico → script → revisar → ex
   // ── Task 3+5: Session restore — reload should keep export state ──
   await page.reload({ waitUntil: 'commit', timeout: 30_000 });
   await expect(page.locator('[data-testid="export-stage"]')).toBeVisible({ timeout: 10_000 });
-  await expect(page.getByText(/Tu evidencia está lista/i)).toBeVisible();
+  await expect(page.getByText(/Paquete final del análisis/i)).toBeVisible();
 
   // ── Task 3+5: Session destroy — destroys session and shows upload ──
-  await page.getByRole('button', { name: /Cerrar y destruir sesión/i }).click();
+  await page.getByRole('button', { name: /Cerrar sesión y destruir datos locales/i }).click();
   await expect(page.getByText(/Sesión destruida/i)).toBeVisible({ timeout: 5000 });
 
   // Reload after destroy should show fresh upload

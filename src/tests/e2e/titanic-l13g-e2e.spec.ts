@@ -162,16 +162,16 @@ test.describe('L13G — Titanic E2E Diagnostic Report Pipeline', () => {
     const exportText = await page.locator('[data-testid="export-stage"]').textContent();
 
     // Export section mentions optional remediation
-    expect(exportText).toContain('rama opcional de remediación');
+    expect(exportText).toContain('Anexos de remediación opcional');
 
     // Main export buttons visible
-    await expect(page.getByRole('button', { name: /Informe diagnóstico PDF/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /JSON técnico/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Hallazgos CSV/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Descargar PDF/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Descargar JSON/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Descargar CSV/i })).toBeVisible();
 
     // Script approved and Colab should be disabled without approvedCleaningScript
-    const scriptBtn = page.getByRole('button', { name: /Script aprobado/i });
-    const colabBtn = page.getByRole('button', { name: /Notebook Colab/i });
+    const scriptBtn = page.getByRole('button', { name: /Descargar script/i });
+    const colabBtn = page.getByRole('button', { name: /Descargar notebook/i });
     await expect(scriptBtn).toBeVisible();
     await expect(scriptBtn).toBeDisabled();
     await expect(colabBtn).toBeVisible();
@@ -202,7 +202,7 @@ test.describe('L13G — Titanic E2E Diagnostic Report Pipeline', () => {
 
     // PDF download
     const pdfDownloadPromise = page.waitForEvent('download', { timeout: 15_000 }).catch(() => null);
-    await page.getByRole('button', { name: /Informe diagnóstico PDF/i }).click();
+    await page.getByRole('button', { name: /Descargar PDF/i }).click();
     const pdfDownload = await pdfDownloadPromise;
 
     if (pdfDownload) {
@@ -219,7 +219,7 @@ test.describe('L13G — Titanic E2E Diagnostic Report Pipeline', () => {
 
     // JSON download
     const jsonDownloadPromise = page.waitForEvent('download', { timeout: 15_000 }).catch(() => null);
-    await page.getByRole('button', { name: /JSON técnico/i }).click();
+    await page.getByRole('button', { name: /Descargar JSON/i }).click();
     const jsonDownload = await jsonDownloadPromise;
 
     if (jsonDownload) {
@@ -231,7 +231,7 @@ test.describe('L13G — Titanic E2E Diagnostic Report Pipeline', () => {
 
     // CSV download
     const csvDownloadPromise = page.waitForEvent('download', { timeout: 15_000 }).catch(() => null);
-    await page.getByRole('button', { name: /Hallazgos CSV/i }).click();
+    await page.getByRole('button', { name: /Descargar CSV/i }).click();
     const csvDownload = await csvDownloadPromise;
 
     if (csvDownload) {

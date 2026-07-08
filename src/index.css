@@ -6111,10 +6111,397 @@ tr:hover td {
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
   padding: var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
 }
 
 .export-closure-header {
+  margin-bottom: 0;
+}
+
+.export-closure-hero-desc {
+  max-width: 720px;
+  line-height: 1.6;
+  font-size: 14px;
+  color: var(--ink2);
+}
+
+/* ─── Export delivery blocks ─── */
+
+.export-delivery-block {
+  background: var(--bg);
+  border: 1px solid var(--border-faint);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.export-delivery-block-eyebrow {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink3);
+  margin: 0;
+}
+
+.export-delivery-block-title {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+}
+
+.export-delivery-empty {
+  font-size: 13px;
+  color: var(--ink2);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Delivery cards inside a block */
+
+.export-delivery-cards,
+.export-remediation-cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.export-delivery-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.export-delivery-card--primary {
+  border-color: var(--ink-soft, var(--accent));
+}
+
+.export-delivery-card-head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+}
+
+.export-delivery-card-head svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--ink2);
+}
+
+.export-delivery-card--primary .export-delivery-card-head svg {
+  color: var(--ink);
+}
+
+.export-delivery-card-head h4 {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0 0 2px 0;
+}
+
+.export-delivery-card-head p {
+  font-size: 12px;
+  color: var(--ink2);
+  line-height: 1.45;
+  margin: 0;
+  max-width: 600px;
+}
+
+.export-delivery-card-action {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+  padding-top: var(--space-xs);
+  border-top: 1px solid var(--border-faint);
+}
+
+.export-delivery-status {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink3);
+}
+
+.export-delivery-status--generating {
+  color: var(--blue, #0077cc);
+}
+
+.export-delivery-score-delta {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+/* Governance groups (claims) */
+
+.export-governance-group {
+  background: var(--surface);
+  border: 1px solid var(--border-faint);
+  border-radius: var(--radius-sm);
+  padding: var(--space-md);
+}
+
+.export-governance-group--preliminary {
+  border-color: var(--orange);
+}
+
+.export-governance-group--pending {
+  border-color: var(--ink3);
+}
+
+.export-governance-group-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
   margin-bottom: var(--space-sm);
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.export-governance-group ul {
+  margin: 0;
+  padding: 0 0 0 var(--space-lg);
+  list-style: none;
+}
+
+.export-governance-group li {
+  font-size: 13px;
+  color: var(--ink2);
+  line-height: 1.5;
+}
+
+.export-governance-group li::before {
+  content: '— ';
+  color: var(--ink3);
+}
+
+.export-governance-limitations {
+  margin-top: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--surface);
+  border: 1px solid var(--border-faint);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: var(--ink2);
+}
+
+.export-governance-limitations > span {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink3);
+  margin-bottom: var(--space-xs);
+}
+
+.export-governance-limitations ul {
+  margin: 0;
+  padding: 0 0 0 var(--space-lg);
+}
+
+.export-governance-limitations-more {
+  color: var(--ink3);
+  font-style: italic;
+  list-style: none;
+}
+
+/* ─── Evidencia técnica y trazabilidad disclosure ─── */
+
+.export-tech-disclosure {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.export-tech-disclosure-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-lg);
+  cursor: pointer;
+  user-select: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  list-style: none;
+}
+
+.export-tech-disclosure-summary::-webkit-details-marker { display: none; }
+.export-tech-disclosure-summary::marker { content: ''; }
+.export-tech-disclosure-summary:hover { background: var(--surface-hover); }
+
+.export-tech-disclosure-chevron {
+  color: var(--ink3);
+  transition: transform var(--transition-base);
+  flex-shrink: 0;
+}
+
+.export-tech-disclosure[open] .export-tech-disclosure-chevron {
+  transform: rotate(180deg);
+}
+
+.export-tech-disclosure-hint {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--ink3);
+  margin-left: auto;
+  text-align: right;
+  max-width: 50%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.export-tech-disclosure-body {
+  padding: var(--space-md) var(--space-lg) var(--space-lg);
+  border-top: 1px solid var(--border-faint);
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.export-manifest-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  background: var(--surface);
+  border: 1px solid var(--border-faint);
+  border-radius: var(--radius-sm);
+}
+
+.export-manifest-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 80px;
+}
+
+.export-manifest-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink3);
+}
+
+.export-manifest-item strong {
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.export-manifest-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background: var(--surface);
+  border: 1px solid var(--border-faint);
+  border-radius: var(--radius-sm);
+}
+
+.export-manifest-checklist-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink3);
+  margin-bottom: var(--space-xs);
+}
+
+.export-manifest-row {
+  display: flex;
+  gap: var(--space-sm);
+  font-size: 13px;
+}
+
+.export-manifest-row--completed { color: var(--ink2); }
+.export-manifest-row--partial { color: var(--ink2); }
+.export-manifest-row--failed { color: var(--ink3); }
+
+.export-manifest-row strong {
+  display: block;
+  font-size: 12px;
+  color: var(--ink);
+  margin-bottom: 2px;
+}
+
+.export-manifest-row p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink2);
+}
+
+.export-manifest-limitations {
+  margin: 4px 0 0 0;
+  padding: 0 0 0 var(--space-md);
+  font-size: 11px;
+  color: var(--ink3);
+}
+
+/* ─── Gestión segura de sesión block ─── */
+
+.export-session-block {
+  background: var(--bg);
+  border: 1px solid var(--error-border, var(--error));
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.export-session-block .export-delivery-block-eyebrow {
+  color: var(--error);
+}
+
+.export-session-block-desc {
+  font-size: 13px;
+  color: var(--ink2);
+  line-height: 1.5;
+  margin: 0;
+  max-width: 640px;
+}
+
+/* ─── Section note (generic, reused) ─── */
+
+.export-closure .section-note {
+  margin: 0;
+  font-size: 14px;
+  color: var(--ink2);
+  line-height: 1.5;
+}
+
+/* Keep the existing legend for the old references; hide them */
+
+.stage-decision-summary {
+  display: none;
+}
+
+.export-closure .stage-decision-summary {
+  display: flex;
+}
+
+.export-human-summary,
+.export-limitations,
+.export-downloads,
+.objectives-checklist {
+  display: none;
 }
 
 .export-status-strip {
