@@ -96,7 +96,7 @@ describe('pipeline diagnostic report state', () => {
     );
 
     const stage = screen.getByTestId('diagnostic-report-stage');
-    expect(stage.textContent).toContain('Diagnóstico consolidado del dataset');
+    expect(stage.textContent).toContain('Informe diagnóstico de calidad del dato');
     expect(stage.textContent).toContain('AURA generó un reporte con evidencia determinista. El diagnóstico asistido no está disponible.');
     expect(stage.textContent).toContain('72/100');
     expect(stage.textContent).toContain('891');

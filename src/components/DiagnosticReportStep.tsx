@@ -263,7 +263,7 @@ const DiagnosticReportStep: React.FC<DiagnosticReportStepProps> = ({
       <div className="diagnostic-report-hero" data-testid="diagnostic-report-header">
         <div>
           <p className="sec-eye">REPORTE DIAGNÓSTICO</p>
-          <h2 className="sec-title">Diagnóstico consolidado del dataset</h2>
+          <h2 className="sec-title">Informe diagnóstico de calidad del dato</h2>
           <p className="section-note">{subtitleByStatus[diagnosticReport.status.diagnosticStatus]}</p>
           <p className="section-note diagnostic-report-hero-desc">
             AURA consolida los hallazgos deterministas y la interpretación asistida por IA en un informe legible, trazable y orientado a decisión.

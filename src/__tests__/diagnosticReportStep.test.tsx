@@ -178,7 +178,7 @@ describe('DiagnosticReportStep', () => {
   it('renderiza header y cards principales', () => {
     renderStep();
 
-    expect(screen.getByTestId('diagnostic-report-header').textContent).toContain('Diagnóstico consolidado del dataset');
+    expect(screen.getByTestId('diagnostic-report-header').textContent).toContain('Informe diagnóstico de calidad del dato');
     const cards = screen.getByTestId('diagnostic-report-summary-cards');
     expect(cards.textContent).toContain('72/100');
     expect(cards.textContent).toContain('891');

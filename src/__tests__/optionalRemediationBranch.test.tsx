@@ -114,8 +114,8 @@ describe('RemediationBranchActions', () => {
       />,
     );
 
-    expect(screen.getByTestId('remediation-back-diagnostic-report').textContent).toContain('Volver al perfil definitivo');
-    expect(screen.getByTestId('remediation-export-main').textContent).toContain('Ir a exportación principal');
+    expect(screen.getByTestId('remediation-back-diagnostic-report').textContent).toContain('Volver al reporte diagnóstico');
+    expect(screen.getByTestId('remediation-export-main').textContent).toContain('Ir a Exportación');
   });
 });
 

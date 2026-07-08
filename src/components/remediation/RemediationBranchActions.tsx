@@ -25,7 +25,7 @@ const RemediationBranchActions: React.FC<RemediationBranchActionsProps> = ({
         onClick={onBackToDiagnosticReport}
         data-testid="remediation-back-diagnostic-report"
       >
-        <ArrowLeft size={14} /> Volver al perfil definitivo
+        <ArrowLeft size={14} /> Volver al reporte diagnóstico
       </button>
     )}
     {showExportMain && (
@@ -34,7 +34,7 @@ const RemediationBranchActions: React.FC<RemediationBranchActionsProps> = ({
         onClick={onExportMain}
         data-testid="remediation-export-main"
       >
-        <ArrowRight size={14} /> Ir a exportación principal
+        <ArrowRight size={14} /> Ir a Exportación
       </button>
     )}
   </div>

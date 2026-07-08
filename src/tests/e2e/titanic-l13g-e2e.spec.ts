@@ -282,8 +282,8 @@ test.describe('L13G — Titanic E2E Diagnostic Report Pipeline', () => {
 
     await expect(backBtn).toBeVisible();
     await expect(exportBtn).toBeVisible();
-    await expect(backBtn).toContainText('Volver al perfil definitivo');
-    await expect(exportBtn).toContainText('Ir a exportación principal');
+    await expect(backBtn).toContainText('Volver al reporte diagnóstico');
+    await expect(exportBtn).toContainText('Ir a Exportación');
 
     // Navigate back to diagnostic report from remediation branch
     await backBtn.click();
