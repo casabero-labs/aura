@@ -137,8 +137,12 @@ export {
 // ── Diagnosis v2 ──
 export {
   buildDiagnosisPromptV2,
+  buildCompactDiagnosisPromptV2,
   canonicalJson,
   buildEnvelopeRef,
+  estimatePromptTokens,
+  shouldUseCompactPrompt,
+  CHROME_TOKEN_BUDGET,
 } from './diagnosisPromptV2';
 
 export {

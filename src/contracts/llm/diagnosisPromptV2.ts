@@ -14,11 +14,32 @@
  */
 
 import { sha256hex } from './hash';
+import type { AIProvider } from '../../types';
 import type {
   EvidenceEnvelopeV2,
   DiagnosisPromptPackageV2,
   DiagnosisPromptOptionsV2,
 } from './types';
+
+export const CHROME_TOKEN_BUDGET = 4096;
+
+export function estimatePromptTokens(text: string): number {
+  return Math.ceil(text.length / 4);
+}
+
+export function shouldUseCompactPrompt(
+  prompt: string,
+  providerType: AIProvider['type'],
+  numCtx?: number,
+): boolean {
+  if (providerType === 'chrome') {
+    return estimatePromptTokens(prompt) > CHROME_TOKEN_BUDGET;
+  }
+  if (providerType === 'ollama' && numCtx !== undefined) {
+    return estimatePromptTokens(prompt) > numCtx - 2048;
+  }
+  return false;
+}
 
 // ── Canonical Serialization ──
 
@@ -178,6 +199,156 @@ export function buildDiagnosisPromptV2(
     responseSchema: RESPONSE_SCHEMA as Record<string, unknown>,
     generatedAt: new Date().toISOString(),
   };
+}
+
+const COMPACT_MAX_ISSUES = 10;
+const COMPACT_MAX_COLUMNS = 20;
+const COMPACT_MAX_SAMPLES_PER_ISSUE = 1;
+
+export function buildCompactDiagnosisPromptV2(
+  envelope: EvidenceEnvelopeV2,
+  options?: DiagnosisPromptOptionsV2,
+): DiagnosisPromptPackageV2 {
+  const evidenceEnvelopeRef = buildEnvelopeRef(envelope);
+
+  const systemInstruction = buildSystemInstruction();
+  const userPayload = buildCompactUserPayload(envelope, evidenceEnvelopeRef, options);
+
+  const fullPrompt = systemInstruction + '\n\n' + userPayload;
+  const promptHash = sha256hex(fullPrompt);
+
+  return {
+    contractId: 'aura.diagnosis.v2',
+    contractVersion: '2.0.0',
+    evidenceEnvelopeRef,
+    promptVersion: PROMPT_VERSION,
+    promptHash,
+    systemInstruction,
+    userPayload,
+    responseSchema: RESPONSE_SCHEMA as Record<string, unknown>,
+    generatedAt: new Date().toISOString(),
+  };
+}
+
+function buildCompactUserPayload(
+  envelope: EvidenceEnvelopeV2,
+  evidenceEnvelopeRef: string,
+  options?: DiagnosisPromptOptionsV2,
+): string {
+  const issueCount = envelope.issues.length;
+  const columnCount = envelope.columns.length;
+  const rowCount = envelope.datasetSummary.rowCount;
+
+  const sortedIssues = [...envelope.issues]
+    .sort((a, b) => b.affectedPercentage - a.affectedPercentage)
+    .slice(0, COMPACT_MAX_ISSUES);
+
+  const issuesSummary = sortedIssues.map((iss, i) => {
+    const col = envelope.columns.find(c => c.columnId === iss.columnId);
+    const colName = col ? col.name : '(dataset-level)';
+    return [
+      `${i + 1}. issueId: "${iss.issueId}"`,
+      `   ruleId: "${iss.ruleId}"`,
+      `   columnId: ${iss.columnId ? `"${iss.columnId}"` : 'null'} (${colName})`,
+      `   scope: "${iss.scope}"`,
+      `   actionability: "${iss.actionability}"`,
+      `   authorized: ${iss.automaticAuthorization.authorized}`,
+      `   severity: "${iss.severity}"`,
+      `   count: ${iss.count}`,
+      `   affectedPercentage: ${iss.affectedPercentage}`,
+      `   ruleName: "${iss.ruleName}"`,
+      `   description: "${iss.description}"`,
+      `   evidenceRefs: [${iss.evidenceRefs.map(r => `"${r}"`).join(', ')}]`,
+    ].join('\n');
+  }).join('\n\n');
+
+  const columnsSummary = envelope.columns.map((col, i) => {
+    const dup = col.isDuplicate ? ' (DUPLICATE)' : '';
+    const amb = col.isAmbiguous ? ' (AMBIGUOUS)' : '';
+    return `${i + 1}. columnId: "${col.columnId}" name: "${col.name}"${dup}${amb}`;
+  }).join('\n');
+
+  const columnStatsSummary = Object.values(envelope.evidence.columnStats || {}).slice(0, COMPACT_MAX_COLUMNS).map((cs, i) => {
+    const col = envelope.columns[i];
+    return [
+      `${col?.name || 'unknown'}: type=${cs.inferredType || 'unknown'}, distinct=${cs.distinctCount ?? 0}, nulls=${cs.nullCount ?? 0} (${((cs.nullPercentage ?? 0)).toFixed(1)}%)`,
+    ].join('');
+  }).join('\n');
+
+  const maxConf = options?.maxConfidence ?? 1;
+
+  const compactData = {
+    truncationManifest: envelope.truncationManifest,
+    columnCount,
+    rowCount,
+    columnStats: Object.fromEntries(
+      Object.entries(envelope.evidence.columnStats || {}).slice(0, COMPACT_MAX_COLUMNS).map(([colId, cs]) => [
+        colId,
+        {
+          inferredType: cs.inferredType,
+          distinctCount: cs.distinctCount,
+          nullCount: cs.nullCount,
+          nullPercentage: cs.nullPercentage,
+        },
+      ])
+    ),
+    issues: sortedIssues.map(iss => {
+      const col = envelope.columns.find(c => c.columnId === iss.columnId);
+      const evidence = envelope.evidence.samples.filter(s => s.issueId === iss.issueId);
+      return {
+        issueId: iss.issueId,
+        ruleId: iss.ruleId,
+        columnId: iss.columnId,
+        scope: iss.scope,
+        category: iss.category,
+        ruleName: iss.ruleName,
+        description: iss.description,
+        count: iss.count,
+        affectedPercentage: iss.affectedPercentage,
+        severity: iss.severity,
+        columnName: col?.name ?? null,
+        evidenceRefs: iss.evidenceRefs,
+        evidenceSamples: evidence.slice(0, COMPACT_MAX_SAMPLES_PER_ISSUE).map(s => ({
+          ref: s.evidenceRef,
+          values: s.values,
+        })),
+        actionability: iss.actionability,
+        automaticAuthorization: iss.automaticAuthorization,
+      };
+    }),
+  };
+
+  return `=== EVIDENCE ENVELOPE ===
+envelopeRef: ${evidenceEnvelopeRef}
+datasetSummary:
+  rowCount: ${rowCount}
+  colCount: ${columnCount}
+  issues: ${issueCount}
+
+=== KNOWN COLUMNS (${columnCount}) ===
+${columnsSummary}
+
+=== DETECTED ISSUES (${issueCount}) ===
+${issuesSummary}
+
+=== UNTRUSTED_DATA ===
+${JSON.stringify(compactData)}
+
+=== TASK ===
+For each issue above, produce a DiagnosisIssueV2 and a corresponding DiagnosisBlockV2.
+
+Rules:
+- evidenceEnvelopeRef MUST be exactly: ${evidenceEnvelopeRef}
+- responseId: use a unique short identifier
+- confidence: a number between 0 and ${maxConf} reflecting your certainty in the diagnosis
+- requiresHumanReview: true if actionability is "review_only", authorized is false, evidence is absent, or column is ambiguous/duplicated
+- hypothesis: a concise explanation of what might cause this issue (max 500 chars)
+- limits: list any diagnostic limitations (max ${Math.min(10, sortedIssues.length)} items each)
+- observation: factual summary from the evidence (max 1000 chars)
+- recommendation: DESCRIPTIVE guidance only — NO code, NO commands, NO action parameters (max 1000 chars)
+- limitations: list any global analysis limitations (max ${Math.min(20, sortedIssues.length * 2)} items)
+
+Respond with a single JSON object matching the schema. Output ONLY the JSON.`;
 }
 
 // ── System Instruction ──

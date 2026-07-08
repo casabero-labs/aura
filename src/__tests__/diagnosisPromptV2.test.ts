@@ -1,14 +1,18 @@
 /**
  * Diagnosis Prompt v2 — Unit Tests.
  *
- * Tests: buildDiagnosisPromptV2, canonicalJson, buildEnvelopeRef.
+ * Tests: buildDiagnosisPromptV2, buildCompactDiagnosisPromptV2, canonicalJson, buildEnvelopeRef, estimatePromptTokens, shouldUseCompactPrompt.
  */
 
 import { describe, it, expect } from 'vitest';
 import {
   buildDiagnosisPromptV2,
+  buildCompactDiagnosisPromptV2,
   canonicalJson,
   buildEnvelopeRef,
+  estimatePromptTokens,
+  shouldUseCompactPrompt,
+  CHROME_TOKEN_BUDGET,
 } from '../contracts/llm/diagnosisPromptV2';
 import { _buildEvidenceEnvelopeV2 } from '../contracts/llm/evidenceEnvelopeV2';
 import type { AuditReportInput } from '../contracts/llm/evidenceEnvelopeV2';
@@ -273,5 +277,94 @@ describe('Privacy policy enforcement in UNTRUSTED_DATA', () => {
     for (const issue of untrustedData.issues) {
       expect(issue.evidenceSamples || []).toHaveLength(0);
     }
+  });
+});
+
+describe('estimatePromptTokens', () => {
+  it('returns Math.ceil(text.length / 4)', () => {
+    expect(estimatePromptTokens('hello')).toBe(2);
+    expect(estimatePromptTokens('hellohellohellohello')).toBe(5);
+    expect(estimatePromptTokens('hellohellohellohelloh')).toBe(6);
+    expect(estimatePromptTokens('')).toBe(0);
+    expect(estimatePromptTokens('a'.repeat(100))).toBe(25);
+  });
+});
+
+describe('shouldUseCompactPrompt', () => {
+  it('chrome: returns true when prompt tokens > CHROME_TOKEN_BUDGET', () => {
+    const largePrompt = 'a'.repeat(CHROME_TOKEN_BUDGET * 4 + 1);
+    expect(shouldUseCompactPrompt(largePrompt, 'chrome')).toBe(true);
+  });
+
+  it('chrome: returns false when prompt tokens <= CHROME_TOKEN_BUDGET', () => {
+    const smallPrompt = 'a'.repeat(CHROME_TOKEN_BUDGET * 4 - 1);
+    expect(shouldUseCompactPrompt(smallPrompt, 'chrome')).toBe(false);
+  });
+
+  it('ollama: returns true when prompt tokens > numCtx - 2048', () => {
+    const numCtx = 16384;
+    const largePrompt = 'a'.repeat(numCtx * 4);
+    expect(shouldUseCompactPrompt(largePrompt, 'ollama', numCtx)).toBe(true);
+  });
+
+  it('ollama: returns false when prompt tokens <= numCtx - 2048', () => {
+    const numCtx = 16384;
+    const smallPrompt = 'a'.repeat((numCtx - 2048) * 4 - 1);
+    expect(shouldUseCompactPrompt(smallPrompt, 'ollama', numCtx)).toBe(false);
+  });
+
+  it('ollama: returns false when numCtx is undefined', () => {
+    const largePrompt = 'a'.repeat(100000);
+    expect(shouldUseCompactPrompt(largePrompt, 'ollama')).toBe(false);
+  });
+
+  it('cloud: returns false regardless of prompt size', () => {
+    const largePrompt = 'a'.repeat(100000);
+    expect(shouldUseCompactPrompt(largePrompt, 'cloud')).toBe(false);
+  });
+});
+
+describe('buildCompactDiagnosisPromptV2', () => {
+  it('returns a valid DiagnosisPromptPackageV2', () => {
+    const pkg = buildCompactDiagnosisPromptV2(envelope);
+    expect(pkg.contractId).toBe('aura.diagnosis.v2');
+    expect(pkg.contractVersion).toBe('2.0.0');
+    expect(pkg.evidenceEnvelopeRef).toMatch(/^env:/);
+    expect(pkg.promptVersion).toBe('1.0.0');
+    expect(pkg.promptHash).toMatch(/^[a-f0-9]{64}$/);
+    expect(pkg.systemInstruction.length).toBeGreaterThan(100);
+    expect(pkg.userPayload.length).toBeGreaterThan(50);
+  });
+
+  it('has same evidenceEnvelopeRef as full prompt', () => {
+    const fullPkg = buildDiagnosisPromptV2(envelope);
+    const compactPkg = buildCompactDiagnosisPromptV2(envelope);
+    expect(compactPkg.evidenceEnvelopeRef).toBe(fullPkg.evidenceEnvelopeRef);
+  });
+
+  it('userPayload contains envelope ref', () => {
+    const pkg = buildCompactDiagnosisPromptV2(envelope);
+    expect(pkg.userPayload).toContain(pkg.evidenceEnvelopeRef);
+  });
+
+  it('userPayload contains no pretty-printed JSON (compact)', () => {
+    const fullPkg = buildDiagnosisPromptV2(envelope);
+    const compactPkg = buildCompactDiagnosisPromptV2(envelope);
+    expect(compactPkg.userPayload).not.toContain('\n    ');
+    expect(fullPkg.userPayload).toContain('\n    ');
+  });
+});
+
+describe('compact vs full prompt size', () => {
+  it('compact prompt is smaller than full prompt', () => {
+    const fullPkg = buildDiagnosisPromptV2(envelope);
+    const compactPkg = buildCompactDiagnosisPromptV2(envelope);
+    expect(compactPkg.userPayload.length).toBeLessThan(fullPkg.userPayload.length);
+  });
+
+  it('compact prompt hash differs from full prompt hash', () => {
+    const fullPkg = buildDiagnosisPromptV2(envelope);
+    const compactPkg = buildCompactDiagnosisPromptV2(envelope);
+    expect(compactPkg.promptHash).not.toBe(fullPkg.promptHash);
   });
 });

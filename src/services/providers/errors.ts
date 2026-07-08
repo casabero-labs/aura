@@ -230,6 +230,28 @@ export function normalizeAiProviderError(
   ) {
     const lower = rawMessage.toLowerCase();
 
+    // Context window exceeded (The input is too large)
+    if (
+      lower.includes('input is too large') ||
+      lower.includes('too large') ||
+      lower.includes('context') && lower.includes('exceed') ||
+      lower.includes('exceed') && lower.includes('context')
+    ) {
+      return {
+        title: 'La entrada excede la ventana de contexto del modelo local.',
+        message: 'El prompt excede la capacidad de contexto del modelo Gemini Nano local. Los datos de entrada son demasiado grandes para el modelo.',
+        cause: rawMessage,
+        recommendedActions: [
+          'Usa un dataset con menos columnas o filas.',
+          'Reduce el número de issues detectados antes de диагностика.',
+          'Como alternativa, usa Cloud o Ollama para диагностика de grandes volúmenes.',
+        ],
+        technicalMessage,
+        evidenceStatus: 'attempted_failed',
+        category: 'generic',
+      };
+    }
+
     // User activation required
     if (lower.includes('activation') || lower.includes('user')) {
       return {

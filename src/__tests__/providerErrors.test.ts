@@ -169,6 +169,39 @@ describe('normalizeAiProviderError', () => {
     });
   });
 
+  describe('Chrome AI context errors', () => {
+    it('normalizes "The input is too large" for chrome provider', () => {
+      const error = new Error('The input is too large');
+      const result = normalizeAiProviderError(error, { ...baseConfig, providerType: 'chrome' });
+
+      expect(result.title).toBe('La entrada excede la ventana de contexto del modelo local.');
+      expect(result.category).toBe('generic');
+      expect(result.recommendedActions.some(a => a.includes('Cloud') || a.includes('Ollama'))).toBe(true);
+    });
+
+    it('normalizes "input is too large" lowercase for chrome provider', () => {
+      const error = new Error('The input is too large for the model');
+      const result = normalizeAiProviderError(error, { ...baseConfig, providerType: 'chrome' });
+
+      expect(result.title).toBe('La entrada excede la ventana de contexto del modelo local.');
+      expect(result.message).toContain('Gemini Nano');
+    });
+
+    it('normalizes context exceed error for chrome provider', () => {
+      const error = new Error('Context window exceeded');
+      const result = normalizeAiProviderError(error, { ...baseConfig, providerType: 'chrome' });
+
+      expect(result.title).toBe('La entrada excede la ventana de contexto del modelo local.');
+    });
+
+    it('normalizes exceed context error for chrome provider', () => {
+      const error = new Error('prompt exceeds context limit');
+      const result = normalizeAiProviderError(error, { ...baseConfig, providerType: 'chrome' });
+
+      expect(result.title).toBe('La entrada excede la ventana de contexto del modelo local.');
+    });
+  });
+
   describe('Pre-normalized errors', () => {
     it('preserves already normalized errors from WebLLMProvider', () => {
       const preNormalized = {

@@ -11,6 +11,9 @@ import type {
 import {
   buildEvidenceEnvelopeV2,
   buildDiagnosisPromptV2,
+  buildCompactDiagnosisPromptV2,
+  shouldUseCompactPrompt,
+  estimatePromptTokens,
   runDiagnosisPipeline,
 } from './index';
 import { isContractsV2Enabled } from './contractRegistry';
@@ -103,7 +106,16 @@ export async function runStructuredDiagnosis(
   };
 
   const envelope = buildEvidenceEnvelopeV2(report, envelopeOptions);
-  const promptPackage = buildDiagnosisPromptV2(envelope, promptOptions);
+  const fullPromptPackage = buildDiagnosisPromptV2(envelope, promptOptions);
+  const fullPrompt = fullPromptPackage.systemInstruction + '\n\n' + fullPromptPackage.userPayload;
+
+  const providerType = options.provider.type;
+  const estimatedTokens = estimatePromptTokens(fullPrompt);
+  const useCompactPrompt = shouldUseCompactPrompt(fullPrompt, providerType);
+
+  const promptPackage = useCompactPrompt
+    ? buildCompactDiagnosisPromptV2(envelope, promptOptions)
+    : fullPromptPackage;
 
   const adapter = new AIProviderDiagnosisAdapter({ provider: options.provider });
 
@@ -111,8 +123,8 @@ export async function runStructuredDiagnosis(
   let rawResponseHash = '';
 
   const pipelineAdapter = async (_pkg: DiagnosisPromptPackageV2): Promise<string> => {
-    const fullPrompt = promptPackage.systemInstruction + '\n\n' + promptPackage.userPayload;
-    const { text, metrics } = await adapter.diagnoseWithProgress(fullPrompt, (event) => {
+    const promptText = promptPackage.systemInstruction + '\n\n' + promptPackage.userPayload;
+    const { text, metrics } = await adapter.diagnoseWithProgress(promptText, (event) => {
       options.onProgress?.(event);
     });
     capturedMetrics = metrics;
