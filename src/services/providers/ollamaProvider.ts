@@ -8,7 +8,7 @@
  */
 
 import { AuditReport, AIProvider, ProviderMetrics, ExecutiveReportContent, ProviderProgressEvent, AIConfig } from '../../types';
-import { buildAnalysisPrompt, buildExecutivePrompt } from './prompts';
+import { buildAnalysisPrompt, buildExecutivePrompt, buildCompactAnalysisPrompt } from './prompts';
 import { normalizeAiProviderError } from './errors';
 
 export interface OllamaModel {
@@ -20,6 +20,9 @@ export interface OllamaModel {
 const DEFAULT_BASE_URL = 'http://localhost:11434';
 const DEFAULT_MODEL = 'qwen2.5:3b';
 const DEFAULT_KEEP_ALIVE = '10m';
+const DEFAULT_NUM_CTX = 16384;
+const DEFAULT_NUM_PREDICT = 1200;
+const COMPACT_MARGIN = 2048;
 
 export const OLLAMA_SUGGESTED_MODELS = [
   'qwen2.5:3b',
@@ -37,6 +40,8 @@ export class OllamaProvider implements AIProvider {
   private temperature: number;
   private baseUrl: string;
   private aiConfig?: AIConfig;
+  private numCtx: number;
+  private numPredict: number;
 
   constructor(
     model: string = DEFAULT_MODEL,
@@ -48,6 +53,25 @@ export class OllamaProvider implements AIProvider {
     this.temperature = temperature;
     this.baseUrl = baseUrl;
     this.aiConfig = aiConfig;
+    this.numCtx = aiConfig?.ollamaNumCtx ?? DEFAULT_NUM_CTX;
+    this.numPredict = aiConfig?.ollamaNumPredict ?? DEFAULT_NUM_PREDICT;
+  }
+
+  private buildOptions(): Record<string, unknown> {
+    return {
+      temperature: this.temperature,
+      num_ctx: this.numCtx,
+      num_predict: this.numPredict,
+    };
+  }
+
+  private estimatePromptTokens(text: string): number {
+    return Math.ceil(text.length / 4);
+  }
+
+  private needsCompactPrompt(promptText: string): boolean {
+    const estimated = this.estimatePromptTokens(promptText);
+    return estimated > this.numCtx - COMPACT_MARGIN;
   }
 
   async isAvailable(): Promise<boolean> {
@@ -126,7 +150,7 @@ export class OllamaProvider implements AIProvider {
         body: JSON.stringify({
           model: this.model,
           messages: [{ role: 'user', content: prompt }],
-          options: { temperature: this.temperature },
+          options: this.buildOptions(),
           keep_alive: DEFAULT_KEEP_ALIVE,
           stream: false,
         }),
@@ -210,7 +234,7 @@ export class OllamaProvider implements AIProvider {
         body: JSON.stringify({
           model: this.model,
           messages: [{ role: 'user', content: prompt }],
-          options: { temperature: this.temperature },
+          options: this.buildOptions(),
           keep_alive: DEFAULT_KEEP_ALIVE,
           stream: true,
         }),
@@ -296,7 +320,10 @@ export class OllamaProvider implements AIProvider {
       return this.emptyMetrics();
     }
 
-    const prompt = buildAnalysisPrompt(report);
+    const fullPrompt = buildAnalysisPrompt(report);
+    const prompt = this.needsCompactPrompt(fullPrompt)
+      ? buildCompactAnalysisPrompt(report)
+      : fullPrompt;
     const startTime = performance.now();
     let firstTokenTime = 0;
     let tokensGenerated = 0;
@@ -308,7 +335,7 @@ export class OllamaProvider implements AIProvider {
         body: JSON.stringify({
           model: this.model,
           messages: [{ role: 'user', content: prompt }],
-          options: { temperature: this.temperature },
+          options: this.buildOptions(),
           keep_alive: DEFAULT_KEEP_ALIVE,
           stream: true,
         }),
@@ -376,13 +403,13 @@ export class OllamaProvider implements AIProvider {
       body: JSON.stringify({
         model: this.model,
         messages: [{ role: 'user', content: prompt }],
-        options: { temperature: this.temperature },
+        options: this.buildOptions(),
         keep_alive: DEFAULT_KEEP_ALIVE,
         stream: false,
       }),
     });
 
-    if (!response.ok) throw new Error(`Ollama error: ${response.status}`);
+    if (!response.ok) throw new Error(`Ollama error ${response.status}`);
     const data = await response.json();
     const text = data.message?.content || '';
 
@@ -424,17 +451,17 @@ export class OllamaProvider implements AIProvider {
     let tokensGenerated = 0;
     let fullText = '';
 
-    const response = await fetch(`${this.baseUrl}/api/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: this.model,
-        messages: [{ role: 'user', content: prompt }],
-        options: { temperature: this.temperature },
-        keep_alive: DEFAULT_KEEP_ALIVE,
-        stream: true,
-      }),
-    });
+      const response = await fetch(`${this.baseUrl}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: this.model,
+          messages: [{ role: 'user', content: prompt }],
+          options: this.buildOptions(),
+          keep_alive: DEFAULT_KEEP_ALIVE,
+          stream: true,
+        }),
+      });
 
     const reader = response.body?.getReader();
     if (!reader) throw new Error('No streaming');

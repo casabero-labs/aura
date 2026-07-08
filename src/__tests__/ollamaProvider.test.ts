@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { OllamaProvider } from '../services/providers/ollamaProvider';
+import { buildCompactAnalysisPrompt } from '../services/providers/prompts';
+import type { AuditReport } from '../types';
 
 describe('OllamaProvider', () => {
   const baseUrl = 'http://localhost:11434';
@@ -139,5 +141,175 @@ describe('OllamaProvider', () => {
 
       fetchSpy.mockRestore();
     });
+  });
+
+  describe('num_ctx and num_predict options', () => {
+    it('passes num_ctx and num_predict to /api/chat', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(() =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({ message: { content: 'ok' } }),
+        } as Response)
+      );
+
+      const provider = new OllamaProvider(model, 0.1, baseUrl, {
+        ollamaNumCtx: 32768,
+        ollamaNumPredict: 2048,
+      } as any);
+
+      await provider.generateText('hello');
+
+      expect(fetchSpy).toHaveBeenCalled();
+      const call = fetchSpy.mock.calls[0];
+      const body = JSON.parse(call[1].body as string);
+      expect(body.options).toMatchObject({
+        temperature: 0.1,
+        num_ctx: 32768,
+        num_predict: 2048,
+      });
+
+      fetchSpy.mockRestore();
+    });
+
+    it('uses default num_ctx 16384 and num_predict 1200 when not configured', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(() =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({ message: { content: 'ok' } }),
+        } as Response)
+      );
+
+      const provider = new OllamaProvider(model, 0.1, baseUrl);
+
+      await provider.generateText('hello');
+
+      const call = fetchSpy.mock.calls[0];
+      const body = JSON.parse(call[1].body as string);
+      expect(body.options).toMatchObject({
+        num_ctx: 16384,
+        num_predict: 1200,
+      });
+
+      fetchSpy.mockRestore();
+    });
+
+    it('prompt of ~11256 tokens passes with num_ctx 16384 (not oversized)', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(() =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({ message: { content: 'ok' } }),
+        } as Response)
+      );
+
+      const provider = new OllamaProvider(model, 0.1, baseUrl, {
+        ollamaNumCtx: 16384,
+      } as any);
+
+      // ~11256 tokens = ~45024 chars (11256 * 4)
+      const bigPrompt = 'x'.repeat(45024);
+
+      await provider.generateText(bigPrompt);
+
+      expect(fetchSpy).toHaveBeenCalled();
+      const call = fetchSpy.mock.calls[0];
+      const body = JSON.parse(call[1].body as string);
+      expect(body.options.num_ctx).toBe(16384);
+
+      fetchSpy.mockRestore();
+    });
+  });
+
+  describe('generateText exceed context error', () => {
+    it('error message from exceed_context_size is descriptive', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(() =>
+        Promise.resolve({
+          ok: false,
+          status: 400,
+          text: () => Promise.resolve(JSON.stringify({
+            error: 'Error: request exceeded context window size'
+          })),
+        } as Response)
+      );
+
+      const provider = new OllamaProvider(model, 0.1, baseUrl);
+
+      try {
+        await provider.generateText('hello');
+        expect.fail('should have thrown');
+      } catch (e: any) {
+        expect(e.message).toMatch(/exceed.*context/i);
+      }
+
+      fetchSpy.mockRestore();
+    });
+  });
+});
+
+describe('buildCompactAnalysisPrompt', () => {
+  const mockReport: AuditReport = {
+    rowCount: 1000,
+    colCount: 20,
+    delimiterDetected: ',',
+    score: 72,
+    duplicateRows: 3,
+    columnStats: Object.fromEntries(
+      Array.from({ length: 20 }, (_, i) => [
+        `col_${i}`,
+        {
+          name: `col_${i}`,
+          inferredType: 'string',
+          nullCount: i * 10,
+          uniqueCount: 100,
+          topFreq: [{ value: `val_${i}`, count: 50 }],
+          sampleValues: [`sample_${i}_0`, `sample_${i}_1`, `sample_${i}_2`],
+        }
+      ])
+    ),
+    issues: Array.from({ length: 5 }, (_, i) => ({
+      id: `issue_${i}`,
+      ruleName: `RULE_${i}`,
+      ruleId: `R${i}`,
+      category: 'Higiene de Texto' as any,
+      column: `col_${i}`,
+      severity: 'warning' as any,
+      count: 10,
+      affectedPercentage: 5.0,
+      description: `Issue ${i}`,
+      sampleValues: [`bad_${i}_0`, `bad_${i}_1`, `bad_${i}_2`],
+    })),
+    scoreBreakdown: [],
+  };
+
+  it('builds compact prompt without crashing', () => {
+    const result = buildCompactAnalysisPrompt(mockReport);
+    expect(typeof result).toBe('string');
+    expect(result.length).toBeGreaterThan(0);
+    expect(result).toContain('Analisis compacto');
+  });
+
+  it('limits columns to 20 or fewer', () => {
+    const result = buildCompactAnalysisPrompt(mockReport);
+    const parsed = JSON.parse(result.match(/\{[\s\S]*\}/)?.[0] || '{}');
+    expect(parsed.columns.length).toBeLessThanOrEqual(20);
+  });
+
+  it('limits bad samples to 1 per issue', () => {
+    const result = buildCompactAnalysisPrompt(mockReport);
+    const parsed = JSON.parse(result.match(/\{[\s\S]*\}/)?.[0] || '{}');
+    for (const issue of parsed.issues) {
+      expect(Array.isArray(issue.samples)).toBe(true);
+    }
+  });
+
+  it('prompt is shorter than full JSON pretty-print would be', () => {
+    const compact = buildCompactAnalysisPrompt(mockReport);
+    // The compact JSON should be single-line (no pretty print)
+    const compactJsonMatch = compact.match(/JSON \(compacto\):\s*(\{[\s\S]*?\})\s*$/m);
+    expect(compactJsonMatch).toBeTruthy();
+    const compactJson = compactJsonMatch![1];
+    expect(compactJson).not.toContain('\n');
   });
 });

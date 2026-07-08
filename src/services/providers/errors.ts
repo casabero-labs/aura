@@ -80,6 +80,31 @@ export function normalizeAiProviderError(
     rawMessage.includes('localhost:11434') ||
     rawMessage.includes('127.0.0.1:11434')
   ) {
+    const hasContextError =
+      rawMessage.includes('exceed') && rawMessage.includes('context') ||
+      rawMessage.includes('context') && rawMessage.includes('size') ||
+      rawMessage.includes('num_ctx') ||
+      rawMessage.includes('context_window') ||
+      /\btokens?\b.*\bexceed/i.test(rawMessage);
+
+    if (hasContextError) {
+      const ctxMatch = rawMessage.match(/(\d+)\s*tokens?/) || rawMessage.match(/context[:\s]+(\d+)/i);
+      const tokensStr = ctxMatch ? ctxMatch[1] : 'desconocido';
+      return {
+        title: 'Ventana de contexto insuficiente',
+        message: `El prompt (${tokensStr} tokens aprox.) excede la ventana de contexto del modelo local (${tokensStr} tokens). Intenta con un dataset más pequeño o configura num_ctx mayor en Ollama.`,
+        cause: rawMessage,
+        recommendedActions: [
+          'Aumenta num_ctx en Ollama: ollama run qwen2.5:3b num_ctx 32768',
+          'O usa un dataset con menos columnas/filas',
+          'O conecta Ollama local para diagnosis manual',
+        ],
+        technicalMessage,
+        evidenceStatus: 'attempted_failed',
+        category: 'ollama_unavailable',
+      };
+    }
+
     const hasHttpError = /\b4\d{2}\b/.test(rawMessage) || /\b5\d{2}\b/.test(rawMessage);
 
     if (hasHttpError) {

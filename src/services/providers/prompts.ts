@@ -10,6 +10,11 @@
 
 import { AuditReport, InputMode, PromptContractConfig } from '../../types';
 
+const COMPACT_MAX_SAMPLES = 1;
+const COMPACT_MAX_BAD_SAMPLES = 1;
+const COMPACT_MAX_COLUMNS = 20;
+const COMPACT_MAX_ISSUES = 10;
+
 /**
  * Construye el "Smart Sample" — el registro de datos mejorado
  * que se inyecta en el prompt del LLM.
@@ -421,4 +426,62 @@ export const buildExecutivePrompt = (report: AuditReport): string => {
       ]
     }
   `;
+};
+
+/**
+ * Compact analysis prompt for when the full prompt exceeds context window.
+ * Reduces:
+ * - Columns to max COMPACT_MAX_COLUMNS (prioritizing those with issues)
+ * - Sample values to 1 per column/issue
+ * - Bad samples to 1 per issue
+ * - Uses inline JSON (no pretty print)
+ * - Removes top_freq arrays
+ */
+export const buildCompactAnalysisPrompt = (report: AuditReport): string => {
+  const issueColumns = new Set(report.issues.map(i => i.column).filter(Boolean));
+
+  const columnsWithIssues = Object.values(report.columnStats)
+    .filter(c => issueColumns.has(c.name))
+    .slice(0, COMPACT_MAX_COLUMNS);
+
+  const allColumns = Object.values(report.columnStats)
+    .filter(c => !issueColumns.has(c.name))
+    .slice(0, Math.max(0, COMPACT_MAX_COLUMNS - columnsWithIssues.length));
+
+  const compactColumns = [...columnsWithIssues, ...allColumns].map(c => ({
+    name: c.name,
+    type: c.inferredType,
+    nulls: c.nullCount,
+    unique: c.uniqueCount,
+    samples: c.sampleValues?.slice(0, COMPACT_MAX_SAMPLES),
+  }));
+
+  const compactIssues = report.issues.slice(0, COMPACT_MAX_ISSUES).map(i => ({
+    rule: i.ruleName,
+    column: i.column,
+    count: i.count,
+    samples: i.sampleValues.slice(0, COMPACT_MAX_BAD_SAMPLES),
+  }));
+
+  const compactSummary = {
+    rows: report.rowCount,
+    cols: report.colCount,
+    score: report.score,
+    columns: compactColumns,
+    issues: compactIssues,
+  };
+
+  const compactJson = JSON.stringify(compactSummary);
+
+  return `Analisis compacto de calidad de datos (contexto limitado).
+
+Contexto: ${report.rowCount} filas, ${report.colCount} columnas, score ${report.score}/100.
+
+JSON (compacto):
+${compactJson}
+
+Responde en espanol, formato:
+## Hallazgos
+## Acciones recomendadas
+## Limitaciones`;
 };

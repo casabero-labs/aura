@@ -220,6 +220,8 @@ export interface AIConfig {
   apiKey?: string;
   ollamaBaseUrl?: string;
   ollamaModel?: string;
+  ollamaNumCtx?: number;
+  ollamaNumPredict?: number;
   modelDownloadState?: Record<string, ModelDownloadState>;
   promptContract?: PromptContractConfig;
   inputMode?: InputMode;
