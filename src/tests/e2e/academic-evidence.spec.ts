@@ -76,7 +76,7 @@ test.describe('Evidencia académica AURA', () => {
       (window as any).__PHASE4_INJECT__(d, null, { analysisText: 'Diagnóstico estructurado (harness determinista).' });
     }, fixture.diagnosis);
     await page.waitForTimeout(2000);
-    await page.locator('.profile-actions').getByRole('button', { name: /Generar diagnóstico/i }).click();
+    await page.locator('.profile-actions').getByRole('button', { name: /Continuar al diagnóstico/i }).click();
     await page.waitForTimeout(600);
     await expect(page.locator('[data-testid="diagnosis-stage"]')).toBeVisible({ timeout: 10_000 });
     await page.waitForTimeout(3000);
@@ -92,7 +92,7 @@ test.describe('Evidencia académica AURA', () => {
       (window as any).__PHASE4_INJECT__(d, null, { analysisText: 'Diagnóstico estructurado (harness determinista).' });
     }, fixture.diagnosis);
     await page.waitForTimeout(2000);
-    await page.locator('.profile-actions').getByRole('button', { name: /Generar diagnóstico/i }).click();
+    await page.locator('.profile-actions').getByRole('button', { name: /Continuar al diagnóstico/i }).click();
     await page.waitForTimeout(600);
     await expect(page.locator('[data-testid="diagnosis-stage"]')).toBeVisible({ timeout: 10_000 });
     await page.waitForTimeout(3000);

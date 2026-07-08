@@ -30,7 +30,7 @@ test.describe('AURA QA — Human-first screenshots', () => {
     }
 
     // Go to Diagnosis
-    await page.locator('.profile-actions').getByRole('button', { name: /Generar diagnóstico/i }).click();
+    await page.locator('.profile-actions').getByRole('button', { name: /Continuar al diagnóstico/i }).click();
     await page.waitForTimeout(300);
     await page.screenshot({ path: path.join(screenshotDir, '03-aura-diagnosis-desktop.png'), fullPage: false });
 
@@ -167,7 +167,7 @@ test.describe('AURA QA — Human-first screenshots', () => {
     await page.screenshot({ path: path.join(aestheticDir, '02-profile-desktop.png'), fullPage: false });
 
     // 03 — Diagnosis (go to diagnosis)
-    await page.locator('.profile-actions').getByRole('button', { name: /Generar diagnóstico/i }).click();
+    await page.locator('.profile-actions').getByRole('button', { name: /Continuar al diagnóstico/i }).click();
     await page.waitForTimeout(400);
     await page.screenshot({ path: path.join(aestheticDir, '03-diagnosis-desktop.png'), fullPage: false });
 

@@ -90,8 +90,8 @@ test.describe('AURA QA — Human-first audit (LOOP 07C)', () => {
     const findingsVisible = await page.locator('.profile-priorities-list').isVisible().catch(() => false);
     log(`- Top priorities visible: ${findingsVisible ? 'PASS' : 'FAIL'}`);
 
-    const genDiagBtn = await page.locator('.profile-actions').getByRole('button', { name: /Generar diagnóstico/i }).isVisible().catch(() => false);
-    log(`- CTA Generar diagnóstico visible: ${genDiagBtn ? 'PASS' : 'FAIL'}`);
+    const genDiagBtn = await page.locator('.profile-actions').getByRole('button', { name: /Continuar al diagnóstico/i }).isVisible().catch(() => false);
+    log(`- CTA Continuar al diagnóstico visible: ${genDiagBtn ? 'PASS' : 'FAIL'}`);
 
     const macroF1 = await page.getByText('Macro F1').isVisible().catch(() => true);
     log(`- Macro F1 hidden (in collapsed details): ${macroF1 ? 'FAIL' : 'PASS'}`);
@@ -106,7 +106,7 @@ test.describe('AURA QA — Human-first audit (LOOP 07C)', () => {
     log(`- Horizontal overflow on profile: ${profileOverflowX ? 'WARN' : 'PASS'}`);
 
     // Go to Diagnosis
-    await page.locator('.profile-actions').getByRole('button', { name: /Generar diagnóstico/i }).click();
+    await page.locator('.profile-actions').getByRole('button', { name: /Continuar al diagnóstico/i }).click();
     await page.waitForTimeout(300);
 
     // ── Stage 2: Diagnosis ──

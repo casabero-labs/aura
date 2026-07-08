@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { ArrowRight, ChevronDown } from 'lucide-react';
+import { ArrowRight, ChevronDown, AlertOctagon, AlertTriangle, Info, BarChart3, Columns3 } from 'lucide-react';
 import BoxPlot from './BoxPlot';
 import ColumnStatsPanel from './ColumnStatsPanel';
 import DatasetProfile from './DatasetProfile';
@@ -25,6 +25,8 @@ const ProfileStep: React.FC<ProfileStepProps> = ({ report, auditEvidence, determ
 
   const criticalCount = report ? report.issues.filter(i => i.severity === IssueSeverity.CRITICAL).length : 0;
   const warningCount = report ? report.issues.filter(i => i.severity === IssueSeverity.WARNING).length : 0;
+  const infoCount = report ? report.issues.filter(i => i.severity === IssueSeverity.INFO).length : 0;
+  const totalFindings = report ? report.issues.length : 0;
 
   // Solo mostrar los 3 hallazgos más importantes
   const topPriorities = useMemo(() => {
@@ -36,6 +38,20 @@ const ProfileStep: React.FC<ProfileStepProps> = ({ report, auditEvidence, determ
         return w[a.severity] - w[b.severity] || b.affectedPercentage - a.affectedPercentage;
       })
       .slice(0, 3);
+  }, [report]);
+
+  // Top columnas afectadas (por número de hallazgos, deduplicado)
+  const topAffectedColumns = useMemo(() => {
+    if (!report) return [];
+    const counts = new Map<string, number>();
+    report.issues.forEach((issue) => {
+      if (!issue.column) return;
+      counts.set(issue.column, (counts.get(issue.column) || 0) + 1);
+    });
+    return Array.from(counts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([column, count]) => ({ column, count }));
   }, [report]);
 
   // Calcular estado textual del dataset
@@ -91,14 +107,39 @@ const ProfileStep: React.FC<ProfileStepProps> = ({ report, auditEvidence, determ
 
       {!isError && report && (
         <>
-          {/* A. Header editorial corto */}
-          <div className="profile-editorial-header">
-            <p className="profile-editorial-eyebrow">perfil del dataset</p>
-            <h1 className="profile-editorial-title">Análisis de calidad y estructura</h1>
+          {/* A. Hero del paso (eyebrow, título, descripción) */}
+          <div className="profile-editorial-header" data-testid="profile-hero">
+            <p className="profile-editorial-eyebrow">PERFIL BASE</p>
+            <h1 className="profile-editorial-title">Perfil técnico del dataset</h1>
+            <p className="profile-editorial-desc">
+              AURA analizó la estructura y calidad inicial del archivo mediante reglas deterministas reproducibles.
+            </p>
           </div>
 
-          {/* B. Resumen de decisión */}
-          <section className="profile-decision-summary">
+          {/* B. Resumen del dataset (archivo, filas, columnas, hallazgos) */}
+          <div className="profile-summary-strip" data-testid="profile-summary-strip">
+            <div className="profile-summary-item">
+              <span className="profile-summary-value" style={{ fontSize: '15px', wordBreak: 'break-all' }}>
+                {file?.name || auditEvidence.fileName || 'Archivo sin nombre'}
+              </span>
+              <span className="profile-summary-label">archivo</span>
+            </div>
+            <div className="profile-summary-item">
+              <span className="profile-summary-value">{report.rowCount.toLocaleString('es-CO')}</span>
+              <span className="profile-summary-label">filas</span>
+            </div>
+            <div className="profile-summary-item">
+              <span className="profile-summary-value">{report.colCount}</span>
+              <span className="profile-summary-label">columnas</span>
+            </div>
+            <div className="profile-summary-item">
+              <span className="profile-summary-value profile-summary-value--critical">{totalFindings}</span>
+              <span className="profile-summary-label">hallazgos</span>
+            </div>
+          </div>
+
+          {/* C. Resumen de decisión (score, estado, distribución por severidad) */}
+          <section className="profile-decision-summary" data-testid="profile-decision-summary">
             <div className="profile-decision-score">
               <div className="profile-decision-score-ring" style={{ '--score-color': scoreColor } as React.CSSProperties}>
                 <span className="profile-decision-score-value" style={{ color: scoreColor }}>
@@ -107,16 +148,73 @@ const ProfileStep: React.FC<ProfileStepProps> = ({ report, auditEvidence, determ
               </div>
               <div className="profile-decision-status">
                 <span className="profile-decision-status-label">{datasetStatus.label}</span>
-                <span className="profile-decision-status-desc">{report.rowCount.toLocaleString('es-CO')} filas · {report.colCount} columnas</span>
+                <span className="profile-decision-status-desc">
+                  Puntuación general del motor determinista (0-100)
+                </span>
               </div>
             </div>
             <p className="profile-decision-description">{datasetStatus.description}</p>
+
+            {/* Distribución por severidad — visible por defecto */}
+            {totalFindings > 0 && (
+              <div className="profile-severity-bars" data-testid="profile-severity-bars" style={{ marginTop: 'var(--space-md)' }}>
+                <div className="profile-severity-row">
+                  <span className="profile-sev-icon" style={{ color: 'var(--error)' }}><AlertOctagon size={12} /></span>
+                  <span className="profile-sev-label">crítico</span>
+                  <span className="profile-sev-count" style={{ color: 'var(--error)' }}>{criticalCount}</span>
+                  <span className="profile-sev-bar-bg">
+                    <span className="profile-sev-bar-fill" style={{ width: `${totalFindings ? (criticalCount / totalFindings) * 100 : 0}%`, background: 'var(--error)' }} />
+                  </span>
+                </div>
+                <div className="profile-severity-row">
+                  <span className="profile-sev-icon" style={{ color: 'var(--orange)' }}><AlertTriangle size={12} /></span>
+                  <span className="profile-sev-label">advertencia</span>
+                  <span className="profile-sev-count" style={{ color: 'var(--orange)' }}>{warningCount}</span>
+                  <span className="profile-sev-bar-bg">
+                    <span className="profile-sev-bar-fill" style={{ width: `${totalFindings ? (warningCount / totalFindings) * 100 : 0}%`, background: 'var(--orange)' }} />
+                  </span>
+                </div>
+                <div className="profile-severity-row">
+                  <span className="profile-sev-icon" style={{ color: 'var(--ink3)' }}><Info size={12} /></span>
+                  <span className="profile-sev-label">informativo</span>
+                  <span className="profile-sev-count" style={{ color: 'var(--ink3)' }}>{infoCount}</span>
+                  <span className="profile-sev-bar-bg">
+                    <span className="profile-sev-bar-fill" style={{ width: `${totalFindings ? (infoCount / totalFindings) * 100 : 0}%`, background: 'var(--ink3)' }} />
+                  </span>
+                </div>
+              </div>
+            )}
           </section>
 
-          {/* C. Prioridades de limpieza */}
+          {/* D. Columnas más afectadas (visible por defecto) */}
+          {topAffectedColumns.length > 0 && (
+            <section className="profile-priorities" data-testid="profile-affected-columns">
+              <h2 className="profile-priorities-title">
+                <Columns3 size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />
+                Columnas más afectadas
+              </h2>
+              <div className="profile-priorities-list">
+                {topAffectedColumns.map(({ column, count }) => (
+                  <div key={column} className="profile-priority-item">
+                    <div className="profile-priority-header">
+                      <span className="profile-priority-column">{column}</span>
+                      <span className="profile-priority-severity profile-priority-severity--warning">
+                        {count} {count === 1 ? 'hallazgo' : 'hallazgos'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* E. Prioridades de limpieza (top hallazgos) */}
           {topPriorities.length > 0 && (
-            <section className="profile-priorities">
-              <h2 className="profile-priorities-title">Prioridades de limpieza</h2>
+            <section className="profile-priorities" data-testid="profile-priorities">
+              <h2 className="profile-priorities-title">
+                <BarChart3 size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />
+                Prioridades principales
+              </h2>
               <div className="profile-priorities-list">
                 {topPriorities.map(issue => (
                   <div key={issue.id} className="profile-priority-item">
@@ -134,27 +232,33 @@ const ProfileStep: React.FC<ProfileStepProps> = ({ report, auditEvidence, determ
             </section>
           )}
 
-          {/* D. Acción principal */}
-          <div className="profile-actions">
-            <button className="btn-p profile-actions-primary" onClick={onContinue}>
-              Generar diagnóstico <ArrowRight size={14} />
+          {/* F. CTA principal — único botón prominente hacia Diagnóstico */}
+          <div className="profile-actions" data-testid="profile-actions">
+            <button
+              className="btn-p profile-actions-primary"
+              onClick={onContinue}
+              type="button"
+              data-testid="profile-continue-diagnosis"
+            >
+              Continuar al diagnóstico <ArrowRight size={14} />
             </button>
-            <button 
+            <button
               className="btn-s profile-actions-secondary"
               onClick={() => {
                 const details = document.querySelector('.technical-details') as HTMLDetailsElement;
                 if (details) details.open = true;
               }}
+              type="button"
             >
-              Ver evidencia técnica
+              Ver detalles técnicos
             </button>
           </div>
 
-          {/* ── TECHNICAL DETAILS (collapsed por defecto) ── */}
-          <details className="technical-details">
+          {/* ── TECHNICAL DETAILS (closed by default) ── */}
+          <details className="technical-details" data-testid="profile-tech-disclosure">
             <summary className="technical-details-summary">
               <ChevronDown size={14} className="technical-details-chevron" />
-              <span>Evidencia técnica completa</span>
+              <span>Datos técnicos del perfil</span>
               <span className="technical-details-hint">ingestión, caracterización, validación, reglas y hallazgos</span>
             </summary>
             <div className="technical-details-body">

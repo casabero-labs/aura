@@ -100,8 +100,9 @@ test.describe('Phase 10 L11 — Embedded Calibration Pipeline E2E', () => {
       fullPage: true,
     });
 
-    // 3. Click "Generar diagnóstico" → navigate to calibration state
-    await page.getByRole('button', { name: /Generar diagnóstico/i }).click();
+    // 3. Profile → Diagnóstico (L15B: calibration ya no está en el flujo principal;
+    //    para validar el opt-in se inyecta el estado 'calibration' vía harness)
+    await page.evaluate(() => (window as any).__PHASE3_SET_STATE__('calibration'));
     await page.waitForTimeout(500);
 
     // 4. Verify calibration opt-in explainer is visible
@@ -162,8 +163,9 @@ test.describe('Phase 10 L11 — Embedded Calibration Pipeline E2E', () => {
     const profileReached = await uploadCsvAndWaitForProfile(page);
     expect(profileReached, 'Profile state should be reached after CSV upload').toBe(true);
 
-    // 3. Click "Generar diagnóstico" → navigate to calibration state
-    await page.getByRole('button', { name: /Generar diagnóstico/i }).click();
+    // 3. Profile → inyectar estado 'calibration' (L15B movió calibration fuera del
+    //    flujo principal; el opt-in se valida aquí mediante inyección directa)
+    await page.evaluate(() => (window as any).__PHASE3_SET_STATE__('calibration'));
     await page.waitForTimeout(500);
 
     // 4. Verify calibration opt-in explainer is visible

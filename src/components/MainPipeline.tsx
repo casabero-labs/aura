@@ -680,7 +680,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
           auditEvidence={auditEvidence}
           deterministicValidation={deterministicValidation}
           file={file}
-          onContinue={() => setState('calibration')}
+          onContinue={() => setState('diagnosis')}
         />
       )}
 
