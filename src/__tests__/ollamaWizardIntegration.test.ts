@@ -119,6 +119,18 @@ describe('Ollama wizard integration - pure logic', () => {
       expect(savedEndpoint).toBe('http://127.0.0.1:11434');
       expect(savedModel).toBe('llama3:3b');
     });
+
+    it('persists a non-recommended model (e.g. mistral:7b)', () => {
+      const model = 'mistral:7b';
+      localStorage.setItem('aura_ollama_model', model);
+      expect(localStorage.getItem('aura_ollama_model')).toBe(model);
+    });
+
+    it('persists a heavy model name (hf.co/yuxinlu1/gemma-4-12B-coder-fable5-composer2.5-v1-GGUF:Q8_0)', () => {
+      const model = 'hf.co/yuxinlu1/gemma-4-12B-coder-fable5-composer2.5-v1-GGUF:Q8_0';
+      localStorage.setItem('aura_ollama_model', model);
+      expect(localStorage.getItem('aura_ollama_model')).toBe(model);
+    });
   });
 
   describe('navigation guard for Ollama redirect', () => {

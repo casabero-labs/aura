@@ -7,7 +7,10 @@ import {
   buildCurlCommand,
   buildPowerShellCurlCommand,
   buildVerifyEnvCommand,
+  isModelHeavy,
+  diagnoseOllamaLocal,
   type OllamaDiagnostic,
+  type OllamaLocalDiagnostic,
 } from '../services/ollamaLocalBridge';
 
 describe('ollamaLocalBridge', () => {
@@ -231,6 +234,27 @@ describe('ollamaLocalBridge', () => {
   });
 });
 
+describe('isModelHeavy', () => {
+  it('returns true for models larger than 10 GB', () => {
+    const elevenGB = 11 * 1024 * 1024 * 1024;
+    expect(isModelHeavy(elevenGB)).toBe(true);
+  });
+
+  it('returns false for models smaller than 10 GB', () => {
+    const oneGB = 1 * 1024 * 1024 * 1024;
+    expect(isModelHeavy(oneGB)).toBe(false);
+  });
+
+  it('returns false for exactly 10 GB (boundary)', () => {
+    const tenGB = 10 * 1024 * 1024 * 1024;
+    expect(isModelHeavy(tenGB)).toBe(false);
+  });
+
+  it('handles zero size', () => {
+    expect(isModelHeavy(0)).toBe(false);
+  });
+});
+
 describe('ollamaLocalBridge module shape', () => {
   it('all exported functions are callable', () => {
     expect(typeof classifyEndpointHost).toBe('function');
@@ -240,5 +264,173 @@ describe('ollamaLocalBridge module shape', () => {
     expect(typeof buildCurlCommand).toBe('function');
     expect(typeof buildPowerShellCurlCommand).toBe('function');
     expect(typeof buildVerifyEnvCommand).toBe('function');
+    expect(typeof isModelHeavy).toBe('function');
+    expect(typeof diagnoseOllamaLocal).toBe('function');
+  });
+});
+
+describe('diagnoseOllamaLocal with selectedModel', () => {
+  const endpoint = 'http://127.0.0.1:11434';
+
+  function createFetchMock(models: Array<{ name: string; modified_at: string; size: number }>, chatOk: boolean = true) {
+    return vi.spyOn(globalThis, 'fetch').mockImplementation((url: string | Request, init?: any) => {
+      const urlStr = typeof url === 'string' ? url : url.url;
+      if (urlStr.includes('/api/tags')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({ models }),
+        } as Response);
+      }
+      if (urlStr.includes('/api/chat')) {
+        if (!chatOk) {
+          return Promise.resolve({
+            ok: false,
+            status: 400,
+            json: () => Promise.resolve({}),
+          } as Response);
+        }
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({ message: { content: 'OK' } }),
+        } as Response);
+      }
+      return Promise.reject(new Error('unexpected fetch: ' + urlStr));
+    });
+  }
+
+  beforeEach(() => {
+    vi.stubGlobal('window', {
+      location: { origin: 'https://aura.casabero.com' },
+      isSecureContext: true,
+    });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('uses selectedModel when it is installed', async () => {
+    const fetchSpy = createFetchMock([
+      { name: 'qwen2.5:3b', modified_at: '2026-01-01T00:00:00Z', size: 2 * 1024 * 1024 * 1024 },
+      { name: 'llama3.2:3b', modified_at: '2026-01-01T00:00:00Z', size: 2 * 1024 * 1024 * 1024 },
+    ]);
+
+    const result = await diagnoseOllamaLocal(endpoint, 'llama3.2:3b');
+    expect(result.status).toBe('ready');
+    expect(result.details.selectedModel).toBe('llama3.2:3b');
+    expect(result.details.modelsInstalled).toContain('qwen2.5:3b');
+    expect(result.details.modelsInstalled).toContain('llama3.2:3b');
+
+    // Verify the chat request used the selected model
+    const chatCalls = fetchSpy.mock.calls.filter(c => String(c[0]).includes('/api/chat'));
+    expect(chatCalls.length).toBeGreaterThanOrEqual(1);
+    const body = JSON.parse(chatCalls[0][1].body as string);
+    expect(body.model).toBe('llama3.2:3b');
+
+    fetchSpy.mockRestore();
+  });
+
+  it('auto-selects qwen2.5:3b when no selectedModel and qwen is installed', async () => {
+    const fetchSpy = createFetchMock([
+      { name: 'qwen2.5:3b', modified_at: '2026-01-01T00:00:00Z', size: 2 * 1024 * 1024 * 1024 },
+    ]);
+
+    const result = await diagnoseOllamaLocal(endpoint);
+    expect(result.status).toBe('ready');
+    expect(result.details.selectedModel).toBe('qwen2.5:3b');
+
+    fetchSpy.mockRestore();
+  });
+
+  it('auto-selects gemma2:2b when qwen not installed but gemma is', async () => {
+    const fetchSpy = createFetchMock([
+      { name: 'gemma2:2b', modified_at: '2026-01-01T00:00:00Z', size: 1.5 * 1024 * 1024 * 1024 },
+    ]);
+
+    const result = await diagnoseOllamaLocal(endpoint);
+    expect(result.status).toBe('ready');
+    expect(result.details.selectedModel).toBe('gemma2:2b');
+
+    fetchSpy.mockRestore();
+  });
+
+  it('falls back to first installed model when no recommended models exist', async () => {
+    const fetchSpy = createFetchMock([
+      { name: 'mistral:7b', modified_at: '2026-01-01T00:00:00Z', size: 4 * 1024 * 1024 * 1024 },
+    ]);
+
+    const result = await diagnoseOllamaLocal(endpoint);
+    expect(result.status).toBe('ready');
+    expect(result.details.selectedModel).toBe('mistral:7b');
+    expect(result.message).toContain('mistral:7b');
+
+    fetchSpy.mockRestore();
+  });
+
+  it('returns model_missing when no models are installed', async () => {
+    const fetchSpy = createFetchMock([]);
+
+    const result = await diagnoseOllamaLocal(endpoint);
+    expect(result.status).toBe('model_missing');
+
+    fetchSpy.mockRestore();
+  });
+
+  it('rejects selectedModel that is not in installed list and falls back', async () => {
+    const fetchSpy = createFetchMock([
+      { name: 'gemma2:2b', modified_at: '2026-01-01T00:00:00Z', size: 1.5 * 1024 * 1024 * 1024 },
+    ]);
+
+    const result = await diagnoseOllamaLocal(endpoint, 'nonexistent:99b');
+    expect(result.status).toBe('ready');
+    expect(result.details.selectedModel).toBe('gemma2:2b');
+
+    fetchSpy.mockRestore();
+  });
+
+  it('returns model_missing when selectedModel is provided but no models installed', async () => {
+    const fetchSpy = createFetchMock([]);
+
+    const result = await diagnoseOllamaLocal(endpoint, 'qwen2.5:3b');
+    expect(result.status).toBe('model_missing');
+
+    fetchSpy.mockRestore();
+  });
+
+  it('handles the heavy model: hf.co/yuxinlu1/gemma-4-12B-coder-fable5-composer2.5-v1-GGUF:Q8_0', async () => {
+    const heavyModelName = 'hf.co/yuxinlu1/gemma-4-12B-coder-fable5-composer2.5-v1-GGUF:Q8_0';
+    const heavySize = 12 * 1024 * 1024 * 1024; // 12 GB
+
+    const fetchSpy = createFetchMock([
+      { name: heavyModelName, modified_at: '2026-01-01T00:00:00Z', size: heavySize },
+    ]);
+
+    const result = await diagnoseOllamaLocal(endpoint, heavyModelName);
+    expect(result.status).toBe('ready');
+    expect(result.details.selectedModel).toBe(heavyModelName);
+    expect(result.details.selectedModelSize).toBe(heavySize);
+
+    const isHeavy = isModelHeavy(result.details.selectedModelSize!);
+    expect(isHeavy).toBe(true);
+
+    const chatCalls = fetchSpy.mock.calls.filter(c => String(c[0]).includes('/api/chat'));
+    expect(chatCalls.length).toBeGreaterThanOrEqual(1);
+    const body = JSON.parse(chatCalls[0][1].body as string);
+    expect(body.model).toBe(heavyModelName);
+
+    fetchSpy.mockRestore();
+  });
+
+  it('includes selectedModelSize in diagnostic details', async () => {
+    const fetchSpy = createFetchMock([
+      { name: 'phi3:mini', modified_at: '2026-01-01T00:00:00Z', size: 2.5 * 1024 * 1024 * 1024 },
+    ]);
+
+    const result = await diagnoseOllamaLocal(endpoint, 'phi3:mini');
+    expect(result.details.selectedModelSize).toBe(2.5 * 1024 * 1024 * 1024);
+
+    fetchSpy.mockRestore();
   });
 });

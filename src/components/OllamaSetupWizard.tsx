@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   Server, Terminal, CheckCircle, AlertCircle, Activity, ExternalLink,
-  ChevronDown, ChevronUp, Shield, Globe, HardDrive, Zap, Wrench, Lock, Info,
+  ChevronDown, ChevronUp, Shield, Globe, HardDrive, Zap, Wrench, Lock, Info, Download,
 } from 'lucide-react';
 import {
-  diagnoseOllamaLocal, OllamaLocalDiagnostic, OllamaLocalStatus,
+  diagnoseOllamaLocal, fetchOllamaModels, isModelHeavy,
+  OllamaLocalDiagnostic, OllamaLocalStatus, OllamaModelInfo,
   normalizeEndpoint, isLocalLoopback,
 } from '../services/ollamaLocalBridge';
 import { detectOS, detectBrowser, DesktopOS, BrowserFamily, PlatformInfo, getOSLabel } from '../services/platformDetection';
@@ -84,6 +85,10 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
   const [diagnostic, setDiagnostic] = useState<OllamaLocalDiagnostic | null>(null);
   const [isChecking, setIsChecking] = useState(false);
   const [errorDetail, setErrorDetail] = useState<string | null>(null);
+  const [installedModels, setInstalledModels] = useState<OllamaModelInfo[]>([]);
+  const [selectedModel, setSelectedModel] = useState<string | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
 
   useEffect(() => {
     setPlatform({
@@ -106,11 +111,28 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
     }
   }, [currentOS]);
 
+  const handleScanModels = useCallback(async () => {
+    setIsScanning(true);
+    setScanError(null);
+    try {
+      const ep = normalizeEndpoint(endpoint);
+      const models = await fetchOllamaModels(ep);
+      setInstalledModels(models);
+      if (models.length === 0) {
+        setScanError('No se encontraron modelos instalados. Descarga uno para continuar.');
+      }
+    } catch (e: any) {
+      setScanError(e.message || 'Error al escanear modelos');
+    } finally {
+      setIsScanning(false);
+    }
+  }, [endpoint]);
+
   const handleDiagnose = useCallback(async () => {
     setIsChecking(true);
     setErrorDetail(null);
     try {
-      const result = await diagnoseOllamaLocal(endpoint);
+      const result = await diagnoseOllamaLocal(endpoint, selectedModel || undefined);
       setDiagnostic(result);
       if (result.status === 'ready') {
         onReady?.(result);
@@ -120,7 +142,7 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
     } finally {
       setIsChecking(false);
     }
-  }, [endpoint, onReady]);
+  }, [endpoint, selectedModel, onReady]);
 
   const totalSteps = 5;
 
@@ -243,17 +265,115 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
         </div>
       )}
 
-      {/* Step 3: Model */}
+      {/* Step 3: Model Selection */}
       {step === 3 && (
         <div className="ollama-wizard-section">
           <div className="ollama-wizard-section-header">
             <Zap size={14} />
-            <strong>Modelo recomendado</strong>
+            <strong>Seleccionar modelo</strong>
+          </div>
+          <p className="ollama-wizard-text">
+            Escanea los modelos instalados en Ollama o descarga uno nuevo.
+            {selectedModel && (
+              <span style={{ display: 'block', marginTop: '8px', color: 'var(--success)', fontWeight: 600 }}>
+                Modelo seleccionado: {selectedModel}
+              </span>
+            )}
+          </p>
+
+          {installedModels.length === 0 && !scanError && !isScanning && (
+            <div className="ollama-wizard-connect-area">
+              <button
+                className="btn-p"
+                onClick={handleScanModels}
+                disabled={isScanning}
+                data-testid="ollama-scan-btn"
+              >
+                {isScanning ? (
+                  <><Activity size={16} className="spinning" /> Escaneando...</>
+                ) : (
+                  <><Activity size={16} /> Escanear modelos instalados</>
+                )}
+              </button>
+            </div>
+          )}
+
+          {isScanning && (
+            <div className="ollama-wizard-diagnostic ollama-wizard-diagnostic--warning" style={{ marginTop: '12px' }}>
+              <div className="ollama-wizard-diagnostic-header">
+                <Activity size={16} className="spinning" />
+                <span>Escaneando modelos en Ollama...</span>
+              </div>
+            </div>
+          )}
+
+          {scanError && installedModels.length === 0 && (
+            <div className="ollama-wizard-diagnostic ollama-wizard-diagnostic--warning" style={{ marginTop: '12px' }}>
+              <div className="ollama-wizard-diagnostic-header">
+                <AlertCircle size={16} style={{ color: 'var(--orange)' }} />
+                <span>{scanError}</span>
+              </div>
+            </div>
+          )}
+
+          {installedModels.length > 0 && (
+            <div className="ollama-wizard-model-list" style={{ marginTop: '12px' }}>
+              <span className="ollama-wizard-model-label">Modelos instalados:</span>
+              {installedModels.map(m => {
+                const isHeavy = isModelHeavy(m.size);
+                const sizeGB = (m.size / (1024 * 1024 * 1024)).toFixed(1);
+                const isSelected = selectedModel === m.name;
+                return (
+                  <div
+                    key={m.name}
+                    className={`ollama-wizard-model-chip ${isSelected ? 'ollama-wizard-model-chip--selected' : ''}`}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '8px',
+                      padding: '8px 12px', marginBottom: '8px',
+                      border: isSelected ? '2px solid var(--success)' : '1px solid var(--border)',
+                      borderRadius: '6px', cursor: 'pointer',
+                      background: isSelected ? 'var(--surface-success, #f0faf0)' : 'var(--surface1)',
+                    }}
+                    onClick={() => setSelectedModel(m.name)}
+                    data-testid={`ollama-model-${m.name.replace(/[^a-zA-Z0-9]/g, '-')}`}
+                  >
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 600, fontSize: '13px' }}>{m.name}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--ink3)' }}>
+                        {sizeGB} GB{isHeavy && ' · Modelo pesado'}
+                      </div>
+                    </div>
+                    {isHeavy && (
+                      <span
+                        style={{ fontSize: '10px', color: 'var(--orange)', fontWeight: 600, whiteSpace: 'nowrap', padding: '2px 6px', borderRadius: '4px', background: 'var(--warning-bg, #fff3cd)' }}
+                        title="Este modelo pesa más de 10 GB. Puede consumir mucha memoria RAM/VRAM."
+                      >
+                        {'>'}10 GB
+                      </span>
+                    )}
+                    {isSelected && (
+                      <CheckCircle size={16} style={{ color: 'var(--success)', flexShrink: 0 }} />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {installedModels.length > 0 && !selectedModel && (
+            <p className="ollama-wizard-note" style={{ marginTop: '8px' }}>
+              Selecciona un modelo de la lista para usarlo en el diagnóstico.
+            </p>
+          )}
+
+          <div className="ollama-wizard-section-header" style={{ marginTop: 'var(--space-md)' }}>
+            <Download size={14} />
+            <strong>Descargar modelo recomendado</strong>
           </div>
           <p className="ollama-wizard-text">
             AURA funciona mejor con modelos de ~3B parámetros para diagnóstico local rápido.
           </p>
-          <div className="ollama-wizard-code-block">
+          <div className="ollama-wizard-code-block" style={{ marginBottom: '8px' }}>
             <code>ollama pull qwen2.5:3b</code>
           </div>
           <p className="ollama-wizard-text" style={{ fontSize: '12px', color: 'var(--ink3)' }}>
@@ -263,11 +383,19 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
             <code>ollama pull gemma2:2b</code>
           </div>
           <p className="ollama-wizard-note">
-            Después de descargar el modelo, continúa para verificar la conexión.
+            Después de descargar, pulsa "Escanear modelos instalados" para detectarlo.
           </p>
           <div className="ollama-wizard-actions">
             <button className="btn-s btn-sm" onClick={() => setStep(2)}>Atrás</button>
-            <button className="btn-p" onClick={() => setStep(4)}>Ya tengo el modelo instalado</button>
+            <button
+              className="btn-p"
+              onClick={() => setStep(4)}
+              disabled={!selectedModel}
+              title={!selectedModel ? 'Selecciona un modelo instalado primero' : undefined}
+              data-testid="ollama-step3-continue"
+            >
+              {selectedModel ? `Usar ${selectedModel}` : 'Selecciona un modelo'}
+            </button>
           </div>
         </div>
       )}
@@ -317,6 +445,23 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
                   <p className="ollama-wizard-diagnostic-msg">{diagnostic.message}</p>
                 </div>
               </div>
+
+              {diagnostic.details.selectedModel && (
+                <div className="ollama-wizard-model-list" style={{ marginTop: '8px', marginBottom: '8px' }}>
+                  <span className="ollama-wizard-model-label">Modelo activo:</span>
+                  <code className="ollama-wizard-model-chip" style={{ background: 'var(--accent-bg, #e8f0fe)', fontWeight: 600 }}>
+                    {diagnostic.details.selectedModel}
+                  </code>
+                  {diagnostic.details.selectedModelSize != null && isModelHeavy(diagnostic.details.selectedModelSize) && (
+                    <span
+                      style={{ fontSize: '11px', color: 'var(--orange)', marginLeft: '8px', padding: '2px 6px', borderRadius: '4px', background: 'var(--warning-bg, #fff3cd)' }}
+                      title="Modelo pesado: puede consumir mucha memoria RAM/VRAM"
+                    >
+                      {'>'}10 GB — modelo pesado
+                    </span>
+                  )}
+                </div>
+              )}
 
               {diagnostic.details.modelsInstalled.length > 0 && (
                 <div className="ollama-wizard-model-list">

@@ -38,6 +38,8 @@ export interface OllamaLocalDiagnostic {
     dataSentToAuraBackend: false;
     corsConfigured: boolean | null;
     modelsInstalled: string[];
+    selectedModel?: string;
+    selectedModelSize?: number | null;
     chatTestPassed: boolean | null;
     errorDetail?: string;
     checkedAt: string;
@@ -50,6 +52,7 @@ const IPV6_ENDPOINT = 'http://[::1]:11434';
 const ENDPOINT_TIMEOUT_MS = 8000;
 const RECOMMENDED_MODEL = 'qwen2.5:3b';
 const ALTERNATIVE_MODEL = 'gemma2:2b';
+const MODEL_HEAVY_BYTES = 10 * 1024 * 1024 * 1024; // 10 GB
 
 const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost', '::1', '[::1]']);
 
@@ -93,6 +96,10 @@ export function isPublicEndpoint(url: string): boolean {
   } catch {
     return true;
   }
+}
+
+export function isModelHeavy(size: number): boolean {
+  return size > MODEL_HEAVY_BYTES;
 }
 
 function getRequestInit(): RequestInit {
@@ -168,6 +175,7 @@ export async function testOllamaChat(
 
 export async function diagnoseOllamaLocal(
   baseUrl?: string,
+  selectedModel?: string,
 ): Promise<OllamaLocalDiagnostic> {
   const platform = detectPlatform();
   const remoteOrigin = (typeof window !== 'undefined' ? window.location.origin : 'unknown');
@@ -290,17 +298,10 @@ export async function diagnoseOllamaLocal(
 
   const modelNames = models.map(m => m.name);
 
-  const recommendedInstalled = modelNames.some(
-    n => n === RECOMMENDED_MODEL || n.startsWith(RECOMMENDED_MODEL),
-  );
-  const alternativeInstalled = modelNames.some(
-    n => n === ALTERNATIVE_MODEL || n.startsWith(ALTERNATIVE_MODEL),
-  );
-
-  if (!recommendedInstalled && !alternativeInstalled && modelNames.length === 0) {
+  if (modelNames.length === 0) {
     return {
       ...baseDiagnostic,
-      details: { ...baseDiagnostic.details, modelsInstalled: modelNames },
+      details: { ...baseDiagnostic.details, modelsInstalled: [] },
       status: 'model_missing',
       message: 'Ollama funciona pero no tiene modelos instalados.',
       recommendedActions: [
@@ -311,20 +312,30 @@ export async function diagnoseOllamaLocal(
     };
   }
 
-  if (!recommendedInstalled && !alternativeInstalled) {
-    return {
-      ...baseDiagnostic,
-      details: { ...baseDiagnostic.details, modelsInstalled: modelNames },
-      status: 'model_missing',
-      message: `Ninguno de los modelos recomendados está instalado. Modelos encontrados: ${modelNames.join(', ')}`,
-      recommendedActions: [
-        `Ejecuta: ollama pull ${RECOMMENDED_MODEL}`,
-        'O configura AURA para usar uno de tus modelos existentes.',
-      ],
-    };
+  const recommendedInstalled = modelNames.some(
+    n => n === RECOMMENDED_MODEL || n.startsWith(RECOMMENDED_MODEL),
+  );
+  const alternativeInstalled = modelNames.some(
+    n => n === ALTERNATIVE_MODEL || n.startsWith(ALTERNATIVE_MODEL),
+  );
+
+  let testModel: string;
+  let testModelSize: number | null = null;
+
+  if (selectedModel && modelNames.includes(selectedModel)) {
+    testModel = selectedModel;
+    const info = models.find(m => m.name === selectedModel);
+    testModelSize = info?.size ?? null;
+  } else if (recommendedInstalled) {
+    testModel = RECOMMENDED_MODEL;
+  } else if (alternativeInstalled) {
+    testModel = ALTERNATIVE_MODEL;
+  } else {
+    testModel = modelNames[0];
+    const info = models.find(m => m.name === testModel);
+    testModelSize = info?.size ?? null;
   }
 
-  const testModel = recommendedInstalled ? RECOMMENDED_MODEL : ALTERNATIVE_MODEL;
   const chatTest = await testOllamaChat(endpoint, testModel);
 
   return {
@@ -332,6 +343,8 @@ export async function diagnoseOllamaLocal(
     details: {
       ...baseDiagnostic.details,
       modelsInstalled: modelNames,
+      selectedModel: testModel,
+      selectedModelSize: testModelSize,
       chatTestPassed: chatTest.passed,
       corsConfigured: true,
       errorDetail: chatTest.error,
