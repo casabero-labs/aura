@@ -41,7 +41,8 @@ Loops:
 | L13E Professional PDF generator | Generar PDF diagnostico profesional con graficos reproducibles desde `DiagnosticReport.chartSpecs` | Cerrado |
 | L13F Optional remediation branch | Convertir script, HITL y reauditoria en rama opcional | Cerrado |
 | L13G Titanic E2E | Validar el flujo humano completo con fixture Titanic y exportes principales | Cerrado |
-| L13H Freeze Diagnostic Pipeline | Congelar pipeline diagnostico con documentacion de freeze | Siguiente |
+| L13H Freeze Diagnostic Pipeline | Congelar pipeline diagnostico con documentacion de freeze | Cerrado |
+| L14 Evidence Pack | Preparar paquete de evidencia academica del pipeline diagnostico estabilizado | Siguiente |
 
 ## Estado documental
 
