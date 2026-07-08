@@ -39,7 +39,7 @@ Tras analizar la base de código actual (`MainPipeline.tsx`, `App.tsx`, `Pipelin
 | Phase 10 L13 | Cerrado | Diagnostic Report Pipeline estabilizado |
 | L13H | Cerrado | Pipeline diagnóstico congelado |
 | L14 Evidence Pack | Pausado | No iniciar hasta reorganizar UX/UI |
-| Nuevo frente | **Activo** | UX/UI Main Flow Reorganization |
+| UX/UI Main Flow (L15A-L15F) | Cerrado | Freeze: `phase_10/L15G_UX_MAIN_FLOW_FREEZE.md` |
 
 ### Phase 10 L13 — Diagnostic Report Pipeline (cerrado)
 
