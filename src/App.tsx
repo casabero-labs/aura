@@ -1,4 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
+
+declare const __AURA_BUILD_SHA__: string;
+declare const __AURA_BUILD_TIME__: string;
+
+if (typeof __AURA_BUILD_SHA__ !== 'undefined') {
+  console.log(
+    `%c[AURA] Build: ${__AURA_BUILD_SHA__} | ${__AURA_BUILD_TIME__}`,
+    'color: #888; font-size: 11px; font-family: monospace;',
+  );
+}
 import { ChevronDown, ClipboardList, Download, FileCode2, FileJson, FileText, FlaskConical, HelpCircle, Settings, Layers, History, CheckCircle2, ShieldCheck, AlertTriangle, XCircle, Sun, Moon, BookOpen } from 'lucide-react';
 import ChangelogModal from './components/ChangelogModal';
 import ErrorBoundary from './components/ErrorBoundary';
