@@ -8,7 +8,30 @@ La tercera entrega académica quedó presentada, evaluada y archivada como hist�
 
 Este archivo define el siguiente frente operativo del producto. Cualquier agente debe consultar este documento antes de implementar nuevos loops.
 
-## Estado actual
+---
+
+## Análisis de Fricción UX/UI del Estado Actual
+
+Tras analizar la base de código actual (`MainPipeline.tsx`, `App.tsx`, `PipelineProgress.tsx` y los componentes de pantalla), se identifican los siguientes problemas de sobrecarga cognitiva y diseño que motivan este rediseño:
+
+1. **Pipeline Stepper Lineal y Saturado (8 Pasos)**:
+   - *Fricción*: `PipelineProgress.tsx` y `MainPipeline.tsx` muestran un flujo de 8 pasos como si todos fueran obligatorios y secuenciales (`upload → profile → calibration → diagnosis → diagnostic_report → script → review → export`).
+   - *Impacto*: El usuario siente que la calibración experimental (paso 3) y la remediación con scripts/revisión HITL (pasos 6 y 7) son requisitos obligatorios para obtener el reporte. Además, al saltarse la remediación, el stepper marca los pasos intermedios como completados ("done") falsamente debido a su lógica de comparación de índices puramente lineal.
+2. **Responsabilidad de Exportación Fragmentada**:
+   - *Fricción*: `MainPipeline.tsx` maneja los estados de la UI del paso 1 al 7, pero el paso final de `export` es renderizado por `App.tsx` al evaluar `pipelineState === 'export'`.
+   - *Impacto*: Falta de cohesión de código y saltos visuales bruscos al final del pipeline. La lógica de generación y descarga de paquetes debe vivir dentro de la secuencia lógica del pipeline.
+3. **Exposición Prematura de Acciones en Footer**:
+   - *Fricción*: Los botones de exportación consolidada y el botón destructivo "Cerrar sesión y destruir datos" están en el footer de `App.tsx`, haciéndose visibles desde la pantalla de carga del CSV.
+   - *Impacto*: Confunde la línea temporal del usuario, permitiendo descargas vacías o clics en destrucción de sesión antes de iniciar el análisis.
+4. **Sobrecarga de Datos Técnicos en Perfil de Calidad**:
+   - *Fricción*: `ProfileStep.tsx` muestra de entrada metadatos técnicos crudos (estimación de memoria, encoding) y prioridades de remediación con lenguaje imperativo de limpieza ("Prioridades de limpieza").
+   - *Impacto*: El usuario no técnico se siente abrumado. Hay parálisis de decisión al presentar dos CTAs equivalentes: "Calibrar calidad IA" y "Generar diagnóstico".
+5. **Desviaciones en Diagnóstico y Calibración**:
+   - *Fricción*: En `DiagnosisStep.tsx`, el botón "Continuar con script" compite directamente con "Continuar al reporte", lo que desvía la atención del verdadero entregable final (el reporte de gobernanza). En la calibración, se muestran métricas avanzadas de investigación académica (F1-score, Exact Match, Precision, Recall) sin la debida abstracción para usuarios de negocio.
+
+---
+
+## Estado actual del desarrollo
 
 | Frente | Estado | Lectura correcta |
 |---|---|---|
@@ -84,6 +107,22 @@ AURA primero explica el dataset. Después, si el usuario lo decide, propone cóm
 
 ---
 
+## Principios de Diseño UX/UI (Progressive Disclosure & Simplicity)
+
+Para resolver la sobrecarga de información y guiar al usuario de manera intuitiva, se aplicarán los siguientes principios de diseño en todo el flujo:
+
+1. **Revelación Progresiva (Progressive Disclosure)**:
+   - La pantalla mostrará por defecto únicamente el **80% de la información clave** que el usuario necesita para avanzar y entender el estado de su archivo.
+   - El **20% restante (detalles técnicos, explicaciones matemáticas, configuraciones avanzadas o logs raw)** se mantendrá oculto tras interacciones secundarias explícitas (paneles colapsables con transiciones suaves, tooltips de ayuda contextual, botones de pestañas o drawers deslizantes).
+2. **Jerarquía Visual Clara mediante Layouts Limpios**:
+   - Mayor contraste tipográfico y uso de tamaños y pesos visuales para priorizar los títulos y los Scores principales.
+   - Agrupación por contenedores visuales con bordes sutiles y fondos tipo *glassmorphism* (en lugar de listas interminables y textos planos).
+3. **Eliminación de la Tensión de Decisión (Fewer CTAs)**:
+   - Cada pantalla tendrá **un único CTA primario prominente** (botón lleno, color de acento).
+   - Acciones secundarias como volver atrás o configurar opciones avanzadas usarán estilos visualmente más ligeros (botones con bordes, enlaces o botones de texto).
+
+---
+
 ## Ponderación de prioridades
 
 | Prioridad | Frente | Peso | Motivo |
@@ -142,135 +181,126 @@ Desde Configuración/Lab:
 
 ### 1. Upload / Carga
 
-**Debe contener:**
-- dropzone;
-- validación CSV;
-- privacidad local;
-- estado de procesamiento;
-- mensaje de que AURA no modifica el archivo original.
+*Propósito Visual*: Foco absoluto en la carga del archivo con feedback inmediato de seguridad y privacidad local.
 
-**No debe contener:**
-- calibración;
-- configuración IA;
-- script;
-- promesas de limpieza;
-- explicaciones largas.
-
-**Microcopy recomendado:**
-
-> Carga un CSV para generar un perfil técnico local. AURA no modifica tu archivo original.
+* **Siempre Visible (Flujo Principal)**:
+  * Dropzone central con diseño limpio (bordes punteados, icono de carga animado al hover).
+  * Mensaje de privacidad de alta visibilidad: *"Procesamiento 100% local. Tus datos no salen de tu navegador."*
+  * Microcopy destacado: *"Carga un CSV para generar un perfil técnico local. AURA no modifica tu archivo original."*
+  * Formatos y límites compactos: `.csv · Max 50MB`.
+* **Revelación Progresiva (Details-on-Demand)**:
+  * Pequeño acordeón informativo al pie: *"¿Cómo procesa AURA tus datos?"*. Al expandirse de manera fluida, explica de forma compacta el parseo local con PapaParse y la auditoría determinista en memoria del navegador.
+* **Layout & Composición**:
+  * Diseño de tarjeta centralizada con fondo ligeramente translúcido sobre el gradiente de la aplicación.
+* **Lo que se elimina/mueve de esta pantalla**:
+  * Sin enlaces a configuraciones de IA ni opciones de calibración.
 
 ---
 
 ### 2. Profile / Perfil base
 
-**Debe contener:**
-- score base determinista;
-- filas y columnas;
-- tipos de datos;
-- hallazgos prioritarios;
-- evidencia técnica colapsada;
-- CTA: *Interpretar hallazgos* / *Generar diagnóstico*.
+*Propósito Visual*: Ofrecer un diagnóstico numérico determinista inmediato de la calidad del dataset y listar las áreas críticas que requieren atención, sin abrumar con código ni formatos internos.
 
-**Cambios de lenguaje:**
-- "Requiere limpieza" → "Requiere revisión".
-- "Prioridades de limpieza" → "Hallazgos prioritarios".
-- "Generar diagnóstico" puede mantenerse o evolucionar a "Interpretar hallazgos".
-
-**No debe contener:**
-- remediación;
-- script;
-- benchmark visible;
-- calibración como paso obligatorio.
+* **Siempre Visible (Flujo Principal)**:
+  * **Score de Calidad Determinista**: Representado mediante un gráfico de dona estilizado (verde para alta calidad, amarillo para regular, rojo para baja) que muestra el puntaje (0-100%).
+  * **Ficha de Datos Limpia**: Bloques visuales simples con: Filas, Columnas, Tipos de datos detectados (ej. *3 de Texto, 2 Numéricos, 1 Fecha*).
+  * **Hallazgos Prioritarios**: Tarjetas resumidas agrupadas por severidad (Crítico, Medio, Bajo). Cada tarjeta muestra el nombre del hallazgo (ej. *Valores faltantes*) y el número de registros o columnas afectadas.
+  * **CTA Primario**: Botón principal destacado con el texto: *"Interpretar hallazgos →"* (conduce a Diagnóstico).
+  * **CTA Secundario**: Botón de texto simple *"← Cargar otro archivo"* a la izquierda.
+* **Revelación Progresiva (Details-on-Demand)**:
+  * **Ficha Técnica Avanzada**: Detalles como el tamaño estimado de memoria y el tipo de codificación (encoding) se ocultan dentro de un tooltip de información junto a la Ficha de Datos.
+  * **Detalle del Hallazgo (Drawer o Acordeón)**: Al hacer clic en una tarjeta de hallazgo prioritario, se despliega un panel lateral o acordeón con la descripción detallada del problema, las columnas específicas afectadas y ejemplos de filas inválidas.
+* **Layout & Composición**:
+  * Layout de dos columnas en pantallas medianas/grandes: columna izquierda para el Score y Ficha de Datos; columna derecha para la lista de Hallazgos Prioritarios.
+* **Lo que se elimina/mueve de esta pantalla**:
+  * Se elimina el botón "Calibrar calidad IA →" del flujo de navegación inferior.
+  * Se elimina cualquier referencia a scripts de remediación o sugerencias imperativas de limpieza de datos en este punto.
 
 ---
 
 ### 3. Diagnosis / Diagnóstico
 
-**Debe contener:**
-- resumen de entrada;
-- proveedor activo compacto;
-- botón generar diagnóstico;
-- progreso;
-- fallback determinista;
-- resultado breve;
-- CTA: *Continuar al reporte diagnóstico*.
+*Propósito Visual*: Configurar y ejecutar el análisis asistido por LLM de forma controlada y transparente.
 
-**No debe contener:**
-- botón "Continuar con script";
-- PDF/JSON consolidado propios;
-- configuración avanzada ocupando el flujo central;
-- wizard de proveedor como protagonista del flujo.
-
-**Configuración de proveedor:**
-
-Debe moverse o reducirse a resumen compacto con enlace a Configuración.
+* **Siempre Visible (Flujo Principal)**:
+  * **Resumen del Dataset**: Pequeña tira horizontal con el nombre del archivo, filas y número de hallazgos para contextualizar.
+  * **Proveedor Activo (Compacto)**: Fila con el logo o nombre del modelo seleccionado (ej. *Google Gemini 1.5 Flash*) y un enlace discreto *"Cambiar configuración"* en estilo botón de texto.
+  * **Acción de Ejecución**: Botón central prominente *"🔍 Generar Diagnóstico Asistido"*.
+  * **Pantalla de Progreso**: Durante el análisis, se muestra una barra de carga acompañada de un *log* de eventos de procesamiento humano-legible (ej. *Preparando smart sample...*, *Consultando proveedor cognitivo...*).
+  * **CTA de Navegación (Post-ejecución)**: Botón principal *"Continuar al reporte diagnóstico →"* una vez terminado el análisis.
+* **Revelación Progresiva (Details-on-Demand)**:
+  * **Smart Sample Explainer**: Explicación de cómo AURA selecciona una muestra inteligente representativa y la anonimiza. Se coloca bajo un tooltip interactivo junto al título de "Muestra de análisis".
+  * **Métricas de Rendimiento y Prompt Raw**: Tiempo de respuesta exacto y tokens consumidos se colocan en letra pequeña al pie del resultado. El prompt exacto enviado al LLM y la respuesta JSON cruda se mueven dentro de una sección colapsable al final titulada *"Datos de auditoría y diagnóstico para desarrolladores"*.
+* **Lo que se elimina/mueve de esta pantalla**:
+  * Se elimina por completo el botón "Continuar con script →".
+  * Se eliminan los botones inline para exportar PDF o JSON en este paso (se posponen para la pantalla final de Exportación).
 
 ---
 
 ### 4. Diagnostic Report / Reporte diagnóstico
 
-**Debe contener:**
-- resumen ejecutivo;
-- score base;
-- principios de gobernanza;
-- riesgos confirmados;
-- posibles falsos positivos;
-- revisión humana requerida;
-- recomendaciones;
-- CTA principal: *Exportar informe diagnóstico*;
-- CTA secundario: *Explorar remediación opcional*.
+*Propósito Visual*: El centro absoluto del producto AURA. Presenta las conclusiones interpretadas por el LLM respaldadas por el motor determinista de forma legible y procesable.
 
-**Debe ser el centro del producto.**
-
-**Debe dejar claro:**
-- el score base no fue modificado por LLM;
-- el diagnóstico contextualiza, no reemplaza evidencia;
-- exportar no exige script;
-- HITL solo aplica si se entra a remediación.
+* **Siempre Visible (Flujo Principal)**:
+  * **Resumen Ejecutivo**: Una síntesis de 2-3 párrafos generada por el LLM sobre el estado del dataset.
+  * **Visualización de Calidad**: Gráficos interactivos limpios que muestran la distribución de problemas por columna y por tipo de regla.
+  * **Secciones Clave del Reporte**:
+    1. *Riesgos Confirmados*: Problemas reales detectados con su impacto de negocio.
+    2. *Posibles Falsos Positivos*: Alertas automáticas que la IA sugiere descartar tras analizar el contexto semántico.
+    3. *Puntos de Revisión Humana*: Elementos ambiguos que requieren supervisión directa.
+  * **Gobernanza y Responsabilidad**: Declaración de que la IA asiste pero el control final es humano (HITL).
+  * **CTAs de Navegación**:
+    * **CTA Primario**: Botón grande *"Ir a la Exportación →"* (lleva a la pantalla final de Exportar).
+    * **CTA Secundario**: Enlace estilizado *"Configurar remediación opcional (Script / Limpieza)"* para los usuarios que deseen generar herramientas de código para mejorar el dataset.
+* **Revelación Progresiva (Details-on-Demand)**:
+  * **Principios de Gobernanza**: Los principios metodológicos de AURA (Factualidad, Reproducibilidad) se muestran como iconos interactivos que revelan su texto completo al hacer hover o clic.
+  * **Datos de Respaldo por Riesgo**: Al hacer clic en un riesgo confirmado, se expande la evidencia exacta generada por la Capa 1 (filas afectadas, columnas y regla infringida).
+* **Layout & Compositions**:
+  * Pestañas superiores (Tabs) para separar las vistas: `[Vista General (Texto)]` y `[Análisis Gráfico (Métricas)]`. Esto evita que los gráficos empujen el texto del reporte hacia abajo de la pantalla, manteniendo la lectura limpia.
+* **Lo que se elimina/mueve de esta pantalla**:
+  * Se eliminan los botones de exportación individual directamente de los bloques de contenido para centralizar la acción en el siguiente paso.
 
 ---
 
 ### 5. Export / Exportación
 
-**Debe organizarse en tres bloques:**
+*Propósito Visual*: Proveer al usuario de un paquete organizado de entregables estructurados, libre de distracciones, y cerrar de forma segura la sesión local de datos.
 
-1. **Informe principal:**
-   - Informe diagnóstico PDF;
-   - JSON técnico;
-   - Hallazgos CSV.
-
-2. **Anexos de remediación opcional:**
-   - Script aprobado;
-   - Notebook Colab;
-   - Health Delta, si existe.
-
-3. **Gestión de sesión:**
-   - Cerrar y destruir sesión.
-
-**Debe quedar claro:**
-
-Los anexos opcionales solo están disponibles si se completó la rama opcional de remediación.
+* **Siempre Visible (Flujo Principal)**:
+  * **Bloque 1: Informe Principal (Siempre Disponible)**:
+    * Botón de descarga para el **Reporte Diagnóstico PDF** (diseño corporativo, incluye gráficos y conclusiones).
+    * Botón de descarga para el **JSON Técnico de Gobernanza** (ideal para integraciones y trazabilidad).
+    * Botón de descarga para los **Hallazgos Críticos en CSV**.
+  * **Bloque 2: Gestión de Sesión (Separado visualmente)**:
+    * Botón destacado en color de advertencia (rojo sutil/bordeado) para *"Cerrar sesión y destruir datos locales"*, con aviso de que los datos no se guardan en el servidor.
+* **Revelación Progresiva (Details-on-Demand / Condicional)**:
+  * **Bloque 3: Anexos de Remediación Opcional (Condicional)**:
+    * Si el usuario optó por seguir la rama de remediación y generó un script, este bloque se vuelve visible de forma elegante mostrando la descarga del **Script de Limpieza (.py/Pandas)** y el **Notebook de Colab interactivo**.
+  * **Manifiesto de Evidencia Estructurada**: Un acordeón técnico al pie titulado *"Ver metadatos de trazabilidad y criptografía (Evidencia Capa 1)"* que muestra los hashes de los archivos y los registros de ejecución.
+* **Layout & Composición**:
+  * Distribución en tarjetas independientes (Cards) para separar claramente el "Informe de Calidad" de los "Anexos de Remediación" y de las "Acciones de Control de Datos" (Destrucción de sesión).
+* **Lo que se elimina/mueve de esta pantalla**:
+  * No hay CTAs para volver a procesar archivos en la misma pantalla sin antes pasar por la destrucción de sesión o un reinicio explícito del pipeline.
 
 ---
 
-### 6. Remediación opcional
+### 6. Remediación Opcional (Rama de Remediación)
 
-No es paso principal.
+*Propósito Visual*: Ofrecer herramientas interactivas de código y edición para aquellos usuarios que decidan corregir su dataset basándose en el reporte, garantizando que el usuario tenga control total sobre las modificaciones (Human-in-the-loop).
 
-**Debe organizar:**
-- revisar acciones sugeridas;
-- aprobar/rechazar acciones;
-- generar script;
-- revisar script;
-- aprobar;
-- exportar anexos.
-
-**Debe quedar claro:**
-- no es obligatoria;
-- no bloquea PDF;
-- no bloquea exportación principal;
-- HITL solo aplica aquí.
+* **Siempre Visible (Flujo Principal)**:
+  * **Plan de Acción Sugerido**: Lista de acciones correctivas propuestas por el LLM basadas en el reporte diagnóstico (ej. *Imputar nulos en la columna Edad usando la media*).
+  * **Control Humano (HITL)**: Casillas de verificación o interruptores (toggle switches) individuales para **Aprobar / Rechazar** cada acción propuesta antes de codificarla.
+  * **Generador de Código**: Botón central *"Generar Script de Remediación"* que crea el código Pandas correspondiente solo para las acciones aprobadas.
+  * **Visor del Script**: Área de código con resaltado de sintaxis que muestra el script generado.
+  * **CTAs de Navegación**:
+    * Botón principal *"Aprobar y continuar a la Exportación →"* (retorna al flujo principal en el paso de Exportar, activando los Anexos).
+    * Botón secundario *"← Cancelar y volver al reporte"* en la parte superior.
+* **Revelación Progresiva (Details-on-Demand)**:
+  * **Explicación del Código**: Un pequeño texto explicativo en lenguaje natural de lo que hace cada función de Pandas dentro del script, colapsado por defecto bajo un enlace *"Ver explicación de la lógica del script"*.
+  * **Validación de Código (Preflight)**: Resultados del análisis estático del script (comprobación de sintaxis y seguridad) mostrados en un panel colapsable de estado técnico.
+* **Lo que se elimina/mueve de esta pantalla**:
+  * Se elimina cualquier lenguaje que indique que el script es obligatorio para terminar la sesión de AURA.
 
 ---
 
