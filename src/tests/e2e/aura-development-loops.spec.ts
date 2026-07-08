@@ -31,7 +31,7 @@ test('AURA: flujo completo perfil → diagnóstico → script → revisar → ex
   const diagnosisGenBtn = diagnosisSection.getByRole('button', { name: /(Generar|Regenerar) diagnóstico/i });
   const diagnosisBtnEnabled = await diagnosisGenBtn.isEnabled().catch(() => false);
 
-  const continueBtn = page.locator('[data-testid="primary-stage-action"]').getByRole('button', { name: /Continuar a propuesta/i });
+  const continueBtn = page.locator('[data-testid="primary-stage-action"]').getByRole('button', { name: /Continuar al reporte diagnóstico/i });
   const skipBtn = page.locator('.provider-error-notice, .provider-unavailable-notice').getByRole('button', { name: /Continuar sin diagnóstico/i });
 
   if (diagnosisBtnEnabled) {
@@ -51,7 +51,7 @@ test('AURA: flujo completo perfil → diagnóstico → script → revisar → ex
       if (await scriptStepper.isVisible().catch(() => false)) {
         await scriptStepper.click();
       } else {
-        throw new Error('Neither "Continuar a propuesta" nor "Continuar sin diagnóstico" appeared');
+        throw new Error('Neither "Continuar al reporte diagnóstico" nor "Continuar sin diagnóstico" appeared');
       }
     }
   } else {

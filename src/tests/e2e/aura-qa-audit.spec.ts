@@ -137,7 +137,7 @@ test.describe('AURA QA — Human-first audit (LOOP 07C)', () => {
       .isEnabled()
       .catch(() => false);
 
-    const continueBtn = page.locator('[data-testid="primary-stage-action"]').getByRole('button', { name: /Continuar a propuesta/i });
+    const continueBtn = page.locator('[data-testid="primary-stage-action"]').getByRole('button', { name: /Continuar al reporte diagnóstico/i });
     const skipBtn = page.locator('.provider-error-notice, .provider-unavailable-notice').getByRole('button', { name: /Continuar sin diagnóstico/i });
 
     let primaryCta = false;
@@ -170,7 +170,7 @@ test.describe('AURA QA — Human-first audit (LOOP 07C)', () => {
         await skipBtn.click();
       }
     }
-    log(`- Primary CTA (Continuar a propuesta) visible after diagnosis: ${primaryCta ? 'PASS' : 'FAIL'}`);
+    log(`- Primary CTA (Continuar al reporte diagnóstico) visible after diagnosis: ${primaryCta ? 'PASS' : 'FAIL'}`);
 
     const diagOverflowX = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 5);
     log(`- Horizontal overflow on diagnosis: ${diagOverflowX ? 'WARN' : 'PASS'}`);

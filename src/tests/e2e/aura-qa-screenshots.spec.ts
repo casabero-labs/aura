@@ -40,7 +40,7 @@ test.describe('AURA QA — Human-first screenshots', () => {
     const diagnosisGenBtn = diagnosisStage.getByRole('button', { name: /(Generar|Regenerar) diagnóstico/i });
     const diagnosisBtnEnabled = await diagnosisGenBtn.isEnabled().catch(() => false);
 
-    const continueBtn = page.locator('[data-testid="primary-stage-action"]').getByRole('button', { name: /Continuar a propuesta/i });
+    const continueBtn = page.locator('[data-testid="primary-stage-action"]').getByRole('button', { name: /Continuar al reporte diagnóstico/i });
     const skipBtn = diagnosisStage.getByRole('button', { name: /Continuar sin diagnóstico/i });
 
     if (diagnosisBtnEnabled) {
@@ -60,7 +60,7 @@ test.describe('AURA QA — Human-first screenshots', () => {
         if (hasSkipNow) {
           await skipBtn.click();
         } else {
-          throw new Error('Neither "Continuar a propuesta" nor "Continuar sin diagnóstico" appeared');
+          throw new Error('Neither "Continuar al reporte diagnóstico" nor "Continuar sin diagnóstico" appeared');
         }
       }
     } else {
@@ -177,7 +177,7 @@ test.describe('AURA QA — Human-first screenshots', () => {
     const diagnosisGenBtn4 = diagnosisStage.getByRole('button', { name: /(Generar|Regenerar) diagnóstico/i });
     const diagnosisBtnEnabled4 = await diagnosisGenBtn4.isEnabled().catch(() => false);
 
-    const continueBtn4 = page.locator('[data-testid="primary-stage-action"]').getByRole('button', { name: /Continuar a propuesta/i });
+    const continueBtn4 = page.locator('[data-testid="primary-stage-action"]').getByRole('button', { name: /Continuar al reporte diagnóstico/i });
     const skipBtn4 = diagnosisStage.getByRole('button', { name: /Continuar sin diagnóstico/i });
 
     if (diagnosisBtnEnabled4) {
@@ -197,7 +197,7 @@ test.describe('AURA QA — Human-first screenshots', () => {
         if (hasSkipNow4) {
           await skipBtn4.click();
         } else {
-          throw new Error('Neither "Continuar a propuesta" nor "Continuar sin diagnóstico" appeared');
+          throw new Error('Neither "Continuar al reporte diagnóstico" nor "Continuar sin diagnóstico" appeared');
         }
       }
     } else {

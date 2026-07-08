@@ -105,7 +105,7 @@ test.describe('Phase 3 — Third Delivery Evidence Screenshots', () => {
 
     await page.waitForTimeout(3000);
 
-    const contBtn = diagnosisStage.locator('button').filter({ hasText: /Continuar a propuesta/i });
+    const contBtn = diagnosisStage.locator('button').filter({ hasText: /Continuar al reporte diagnóstico/i });
     await contBtn.waitFor({ state: 'visible', timeout: 10_000 });
     await contBtn.click();
 
@@ -138,7 +138,7 @@ test.describe('Phase 3 — Third Delivery Evidence Screenshots', () => {
 
     await page.waitForTimeout(3000);
 
-    const contBtn = diagnosisStage.locator('button').filter({ hasText: /Continuar a propuesta/i });
+    const contBtn = diagnosisStage.locator('button').filter({ hasText: /Continuar al reporte diagnóstico/i });
     await contBtn.waitFor({ state: 'visible', timeout: 10_000 });
     await contBtn.click();
 

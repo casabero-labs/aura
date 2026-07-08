@@ -673,6 +673,12 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
         error: normalized.message,
       });
     } finally {
+      // Asegura que el timer visual de progreso no siga empujando eventos
+      // después de éxito, error o cancelación del flujo.
+      if (progressTimer) {
+        clearInterval(progressTimer);
+        progressTimer = undefined;
+      }
       setIsLoading(false);
     }
   }, [aiConfig?.model, aiConfig?.providerType, aiConfig?.cloudProvider, aiConfig?.temperature, aiProvider, isLoading, onAnalysisComplete, onStructuredDiagnosisComplete, onLog, onMetrics, report, auditEvidence, diagnosisPrompt, pushEvent]);

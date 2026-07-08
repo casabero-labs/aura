@@ -1,5 +1,5 @@
 import React from 'react';
-import { Brain, Settings, ChevronDown } from 'lucide-react';
+import { Brain, Settings, ChevronDown, RefreshCw } from 'lucide-react';
 
 interface DiagnosisHeroPanelProps {
   fileName: string;
@@ -98,18 +98,38 @@ export const DiagnosisHeroPanel: React.FC<DiagnosisHeroPanelProps> = ({
         </button>
       </div>
 
-      {/* Único CTA primario prominente */}
+      {/* CTA del hero:
+          - Antes del diagnóstico: btn-p "Generar diagnóstico asistido"
+          - Durante ejecución: btn-p deshabilitado "Diagnosticando..."
+          - Después del diagnóstico: btn-s "Regenerar diagnóstico asistido"
+            (el CTA primario "Continuar al reporte diagnóstico →" se renderiza
+            fuera del hero en DiagnosisStep; el hero nunca compite con él) */}
       <div className="diagnosis-hero-actions">
-        <button
-          className="btn-p"
-          onClick={onGenerateDiagnosis}
-          disabled={isLoading || providerAvailable === false}
-          style={{ width: 'fit-content', display: 'flex', alignItems: 'center', gap: '6px' }}
-          type="button"
-        >
-          <Brain size={14} />
-          {isLoading ? 'Diagnosticando...' : hasDiagnosis ? 'Regenerar diagnóstico asistido' : 'Generar diagnóstico asistido'}
-        </button>
+        {hasDiagnosis ? (
+          <button
+            className="btn-s btn-sm"
+            onClick={onGenerateDiagnosis}
+            disabled={isLoading || providerAvailable === false}
+            style={{ width: 'fit-content', display: 'flex', alignItems: 'center', gap: '6px' }}
+            type="button"
+            data-testid="diagnosis-regenerate"
+          >
+            <RefreshCw size={12} />
+            {isLoading ? 'Diagnosticando...' : 'Regenerar diagnóstico asistido'}
+          </button>
+        ) : (
+          <button
+            className="btn-p"
+            onClick={onGenerateDiagnosis}
+            disabled={isLoading || providerAvailable === false}
+            style={{ width: 'fit-content', display: 'flex', alignItems: 'center', gap: '6px' }}
+            type="button"
+            data-testid="diagnosis-generate"
+          >
+            <Brain size={14} />
+            {isLoading ? 'Diagnosticando...' : 'Generar diagnóstico asistido'}
+          </button>
+        )}
       </div>
     </div>
   );
