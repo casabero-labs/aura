@@ -9908,6 +9908,183 @@ tr:hover td {
 .activity-event--error .activity-event-message { color: var(--error); }
 .activity-event--success .activity-event-message { color: var(--success); }
 
+/* ─── Diagnosis Terminal (live progress while loading) ─── */
+
+.diagnosis-terminal {
+  margin-top: var(--space-md);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: #0d1117;
+  color: #c9d1d9;
+  overflow: hidden;
+}
+
+.diagnosis-terminal-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  background: #161b22;
+  border-bottom: 1px solid #30363d;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #8b949e;
+}
+
+.diagnosis-terminal-body {
+  padding: var(--space-sm) var(--space-md);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  max-height: 180px;
+  overflow-y: auto;
+  line-height: 1.6;
+}
+
+.diagnosis-terminal-row {
+  display: flex;
+  gap: var(--space-sm);
+  padding: 2px 0;
+}
+
+.diagnosis-terminal-time {
+  color: #569cd6;
+  flex-shrink: 0;
+  min-width: 70px;
+}
+
+.diagnosis-terminal-message {
+  color: #c9d1d9;
+  flex: 1;
+}
+
+.diagnosis-terminal-row--success .diagnosis-terminal-message { color: #4ec9b0; }
+.diagnosis-terminal-row--warning .diagnosis-terminal-message { color: #dcdcaa; }
+.diagnosis-terminal-row--error .diagnosis-terminal-message { color: #f48771; }
+
+/* ─── Diagnosis Tech Disclosure (audit trail, collapsed by default) ─── */
+
+.diagnosis-tech-disclosure {
+  margin-top: var(--space-md);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.diagnosis-tech-disclosure > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  cursor: pointer;
+  list-style: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink2);
+  background: var(--surface);
+  transition: background var(--transition-fast);
+}
+
+.diagnosis-tech-disclosure > summary::-webkit-details-marker { display: none; }
+.diagnosis-tech-disclosure > summary::marker { content: ''; }
+.diagnosis-tech-disclosure > summary:hover { background: var(--surface-hover); }
+
+.diagnosis-tech-disclosure-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  border-top: 1px solid var(--border-faint);
+  background: var(--bg);
+}
+
+.diagnosis-tech-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+  background: var(--surface);
+  border: 1px solid var(--border-faint);
+  border-radius: var(--radius-sm);
+}
+
+.diagnosis-tech-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink3);
+  margin: 0;
+}
+
+.diagnosis-tech-row {
+  display: flex;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--ink2);
+}
+
+.diagnosis-tech-row span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono);
+}
+
+.diagnosis-tech-pre {
+  background: var(--bg);
+  border: 1px solid var(--border-faint);
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--ink2);
+  max-height: 240px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+}
+
+.diagnosis-tech-pre--scroll {
+  max-height: 320px;
+}
+
+.diagnosis-tech-events {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.diagnosis-tech-event {
+  display: flex;
+  gap: var(--space-sm);
+  padding: 2px 0;
+}
+
+.diagnosis-tech-event-time {
+  color: var(--ink3);
+  flex-shrink: 0;
+  min-width: 70px;
+}
+
+.diagnosis-tech-event-message {
+  color: var(--ink2);
+  flex: 1;
+}
+
+.diagnosis-tech-event--success .diagnosis-tech-event-message { color: var(--success); }
+.diagnosis-tech-event--error .diagnosis-tech-event-message { color: var(--error); }
+.diagnosis-tech-event--warning .diagnosis-tech-event-message { color: var(--warning); }
+
 /* ─── Settings Workspace ─── */
 
 .settings-workspace {

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Brain, Database, Play, FlaskConical, Lock, Globe, ChevronDown, ChevronRight, FileCode2, Trash2, HardDrive, X, AlertTriangle, ShieldAlert, ListChecks, FileJson, FileText, Settings, Activity, CheckCircle, Circle, Clock, AlertCircle, Server, Shield, Eye, EyeOff, Download, RefreshCw } from 'lucide-react';
+import { Brain, Database, Play, FlaskConical, Lock, Globe, ChevronDown, ChevronRight, FileCode2, Trash2, HardDrive, X, AlertTriangle, ShieldAlert, ListChecks, FileJson, FileText, Settings, Activity, CheckCircle, Circle, Clock, AlertCircle, Server, Shield, Eye, EyeOff, Download, RefreshCw, Hash } from 'lucide-react';
 import GeminiAdvisor from './GeminiAdvisor';
 import ProgressDisclosure from './ProgressDisclosure';
 import ChromeAiStatusPanel from './ChromeAiStatusPanel';
@@ -33,13 +33,14 @@ interface DiagnosisStepProps {
   initialDiagnosis?: DiagnosisExecutionResult | null;
 }
 
-export const buildDiagnosisInputSummary = (report: AuditReport) => {
-  const critical = report.issues.filter((issue) => issue.severity === 'critical').length;
-  const warning = report.issues.filter((issue) => issue.severity === 'warning').length;
-  const affectedColumns = new Set(report.issues.map((issue) => issue.column).filter(Boolean)).size;
+export const buildDiagnosisInputSummary = (report: AuditReport | null | undefined) => {
+  const issues = report?.issues ?? [];
+  const critical = issues.filter((issue) => issue.severity === 'critical').length;
+  const warning = issues.filter((issue) => issue.severity === 'warning').length;
+  const affectedColumns = new Set(issues.map((issue) => issue.column).filter(Boolean)).size;
 
   return {
-    findings: report.issues.length,
+    findings: issues.length,
     critical,
     warning,
     affectedColumns,
@@ -73,7 +74,6 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
   const [isCheckingModel, setIsCheckingModel] = useState(false);
   const [modelStatuses, setModelStatuses] = useState<Record<string, LocalModelStatus>>({});
   const [diagnosisEvents, setDiagnosisEvents] = useState<DiagnosisEvent[]>([]);
-  const [showActivityConsole, setShowActivityConsole] = useState(false);
   const [progressStatus, setProgressStatus] = useState<ProgressDisclosureStatus>('idle');
   const [progressValue, setProgressValue] = useState<number | undefined>(undefined);
   const [progressStep, setProgressStep] = useState<string>('');
@@ -411,10 +411,9 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
     setError(null);
     setDraftAnalysis('');
     setDiagnosisEvents([]);
-    setShowActivityConsole(true);
     setProgressValue(undefined);
     setProgressIndeterminate(true);
-    setProgressStep('Preparando evidencia estructurada');
+    setProgressStep('Preparando contexto del dataset...');
     setProgressStatus('running');
     let finalText = '';
 
@@ -422,18 +421,36 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
     const promptHash = computePromptHash(prompt);
     const inputHash = computeInputHash(report);
 
-    pushEvent('info', 'AURA está preparando la evidencia estructurada.');
-    onLog?.('diagnosis', `Iniciando diagnóstico con ${aiConfig.model} (${aiConfig.providerType})`);
+    pushEvent('info', 'Preparando contexto del dataset...');
+    onLog?.('diagnosis', `Iniciando diagnóstico con ${aiConfig?.model} (${aiConfig?.providerType})`);
+
+    // Simulated human-friendly progress steps during execution
+    let progressTimer: any;
+    let stepCount = 0;
+    const stepsList = [
+      'Analizando hallazgos críticos...',
+      'Construyendo diagnóstico asistido...',
+      'Organizando resumen ejecutivo...',
+      'Finalizando salida diagnóstica...'
+    ];
+
+    progressTimer = setInterval(() => {
+      if (stepCount < stepsList.length) {
+        const nextStep = stepsList[stepCount];
+        pushEvent('info', nextStep);
+        setProgressStep(nextStep);
+        stepCount++;
+      } else {
+        clearInterval(progressTimer);
+      }
+    }, 2500);
 
     try {
       if (isContractsV2Enabled()) {
-        pushEvent('info', 'Iniciando Diagnosis v2 (contrato estructurado)...');
-        setProgressStep('Preparando Diagnosis v2');
-
         let chromeMonitoringStarted = false;
 
         try {
-          if (aiConfig.providerType === 'chrome') {
+          if (aiConfig?.providerType === 'chrome') {
             startNetworkMonitoring();
             chromeMonitoringStarted = true;
           }
@@ -658,7 +675,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [aiConfig.model, aiConfig.providerType, aiConfig.cloudProvider, aiConfig.temperature, aiProvider, isLoading, onAnalysisComplete, onStructuredDiagnosisComplete, onLog, onMetrics, report, auditEvidence, diagnosisPrompt, pushEvent]);
+  }, [aiConfig?.model, aiConfig?.providerType, aiConfig?.cloudProvider, aiConfig?.temperature, aiProvider, isLoading, onAnalysisComplete, onStructuredDiagnosisComplete, onLog, onMetrics, report, auditEvidence, diagnosisPrompt, pushEvent]);
 
   const isCloud = aiConfig.providerType === 'cloud';
   const isOllama = aiConfig.providerType === 'ollama';
@@ -675,42 +692,22 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
   return (
     <>
       <section className="diagnosis-stage-shell" data-testid="diagnosis-stage">
-        {/* 1. Header + action */}
+        {/* 1. Header + active provider + single primary CTA */}
         <DiagnosisHeroPanel
+          fileName={auditEvidence?.fileName || 'Archivo sin nombre'}
+          rowCount={report?.rowCount ?? 0}
+          colCount={report?.colCount ?? 0}
           findings={inputSummary.findings}
-          critical={inputSummary.critical}
-          warning={inputSummary.warning}
-          affectedColumns={inputSummary.affectedColumns}
           hasDiagnosis={hasDiagnosis}
           isLoading={isLoading}
           onGenerateDiagnosis={runDiagnosis}
-          onContinue={onContinue}
+          providerName={providerName}
+          providerAvailable={providerAvailable}
+          showConfig={showConfig}
+          onToggleConfig={() => setShowConfig((prev) => !prev)}
         />
 
-        {/* 2. Active mode summary strip */}
-        <div className="diagnosis-active-mode" data-testid="diagnosis-active-mode">
-          <div className="diagnosis-active-mode-left">
-            <span className="diagnosis-active-mode-provider">
-              <Settings size={12} />
-              <span>Modo activo: {providerName}</span>
-            </span>
-            <span className="diagnosis-active-mode-sep" />
-            <span className="diagnosis-active-mode-entry">Entrada: {inputModeLabel}</span>
-            <span className="diagnosis-active-mode-sep" />
-            <span className="diagnosis-active-mode-privacy">Datos crudos no enviados</span>
-          </div>
-          <button
-            className="diagnosis-active-mode-config-btn btn-s btn-sm"
-            onClick={() => setShowConfig(!showConfig)}
-            data-testid="diagnosis-config-toggle"
-          >
-            <Settings size={11} />
-            <span>{showConfig ? 'Ocultar configuración' : 'Cambiar configuración'}</span>
-            <ChevronDown size={11} className={`activity-console-chevron ${showConfig ? 'activity-console-chevron--open' : ''}`} />
-          </button>
-        </div>
-
-        {/* 3. Collapsible config section */}
+        {/* 2. Collapsible config section (reused pre-existing panels) */}
         {showConfig && (
           <div className="diagnosis-config-section" data-testid="diagnosis-config-section">
             <DiagnosisProviderPanel
@@ -753,7 +750,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
           </div>
         )}
 
-        {/* 4. Progress + console during execution */}
+        {/* 3. Progress disclosure during execution */}
         {progressStatus !== 'idle' && (
           <ProgressDisclosure
             title={progressStatus === 'running' ? 'AURA está trabajando' : progressStatus === 'success' ? 'Diagnóstico completado' : 'Diagnóstico fallido'}
@@ -766,39 +763,21 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
           />
         )}
 
-        {isLoading && (
-          <div className="diagnosis-loading">
-            <span className="pulse-dot" />
-            Generando diagnóstico con {aiConfig.model}...
-          </div>
-        )}
-
-        {diagnosisEvents.length > 0 && (
-          <div className={`diagnosis-activity-console ${showActivityConsole ? 'diagnosis-activity-console--expanded' : 'diagnosis-activity-console--collapsed'}`} data-testid="diagnosis-activity-console">
-            <button
-              className="diagnosis-activity-toggle"
-              onClick={() => setShowActivityConsole(!showActivityConsole)}
-            >
+        {/* 4. Styled terminal log while loading (visible alongside the progress bar) */}
+        {isLoading && diagnosisEvents.length > 0 && (
+          <div className="diagnosis-terminal" data-testid="diagnosis-terminal">
+            <div className="diagnosis-terminal-header">
               <Activity size={12} />
-              <span>Actividad de AURA ({diagnosisEvents.length} eventos)</span>
-              <ChevronDown size={12} className={`activity-console-chevron ${showActivityConsole ? 'activity-console-chevron--open' : ''}`} />
-            </button>
-            {showActivityConsole && (
-              <div className="diagnosis-activity-events">
-                {diagnosisEvents.map((event, i) => (
-                  <div key={i} className={`activity-event activity-event--${event.level}`}>
-                    <span className="activity-event-time">{new Date(event.timestamp).toLocaleTimeString()}</span>
-                    <span className="activity-event-icon">
-                      {event.level === 'info' && <Circle size={8} />}
-                      {event.level === 'success' && <CheckCircle size={8} />}
-                      {event.level === 'warning' && <AlertTriangle size={8} />}
-                      {event.level === 'error' && <AlertCircle size={8} />}
-                    </span>
-                    <span className="activity-event-message">{event.message}</span>
-                  </div>
-                ))}
-              </div>
-            )}
+              <span>Progreso de la interfaz</span>
+            </div>
+            <div className="diagnosis-terminal-body">
+              {diagnosisEvents.map((event, i) => (
+                <div key={i} className={`diagnosis-terminal-row diagnosis-terminal-row--${event.level}`}>
+                  <span className="diagnosis-terminal-time">{new Date(event.timestamp).toLocaleTimeString()}</span>
+                  <span className="diagnosis-terminal-message">{event.message}</span>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -903,29 +882,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
           </div>
         )}
 
-        {/* Chrome AI Guided UX Section - New Status Panel */}
-        {aiConfig.providerType === 'chrome' && (
-          <ChromeAiStatusPanel
-            onStatusChange={(uiStatus) => {
-              setProviderAvailable(uiStatus === 'ready');
-              if (uiStatus === 'downloading') {
-                pushEvent('info', 'Chrome está descargando Gemini Nano.');
-                pushEvent('info', 'AURA verificará el estado automáticamente.');
-              }
-              if (uiStatus === 'ready') {
-                pushEvent('success', 'Gemini Nano listo para diagnóstico.');
-              }
-            }}
-            onReady={() => {
-              setProviderAvailable(true);
-            }}
-            onDownloadProgress={(progress, message) => {
-              setChromeDownloadProgress(progress);
-              setChromeDownloadMessage(message);
-            }}
-            onPrepare={prepareChromeAi}
-          />
-        )}
+        {/* Chrome AI Status Panel is now rendered compact inside the technical disclosure. */}
 
         {error && normalizedError && (
           <div className="provider-error-notice">
@@ -1031,7 +988,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
                 />
               </>
             )}
-            {lastMetrics && (
+            {lastMetrics && hasDiagnosis && !isLoading && (
               <div className="stage-result-metrics">
                 <span>{(lastMetrics.latencyMs / 1000).toFixed(1)}s</span>
                 <span>{lastMetrics.tokensGenerated} tokens</span>
@@ -1040,67 +997,170 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
           </div>
         )}
 
-        {/* 7. Export + continue actions */}
-        {hasDiagnosis && (
+        {/* 7. Single primary forward CTA — no inline PDF/JSON exports */}
+        {hasDiagnosis && !isLoading && (
           <div className="evidence-options" data-testid="primary-stage-action">
-            <button className="btn-s btn-sm" onClick={exportDiagnosisPdf}>
-              <FileText size={12} /> PDF consolidado
-            </button>
-            <button className="btn-s btn-sm" onClick={exportDiagnosisJson}>
-              <FileJson size={12} /> JSON consolidado
-            </button>
-            <button className="btn-p btn-sm" onClick={onContinue}>
-              Continuar a propuesta <Play size={12} />
+            <button className="btn-p" onClick={onContinue} type="button">
+              Continuar al reporte diagnóstico → <Play size={14} />
             </button>
           </div>
         )}
 
-        {/* 8. WebLLM local model status (collapsed at bottom if applicable) */}
-        {aiConfig.providerType === 'webllm_experimental' && currentModelStatus && (
-          <div className="local-model-status" data-testid="local-model-status">
-            <div className={`local-model-status-badge local-model-status-badge--${currentModelStatus.status}`}>
-              {currentModelStatus.status === 'ready' && <CheckCircle size={12} />}
-              {currentModelStatus.status === 'partial' && <AlertTriangle size={12} />}
-              {currentModelStatus.status === 'not_downloaded' && <Circle size={12} />}
-              {currentModelStatus.status === 'error' && <AlertCircle size={12} />}
-              {currentModelStatus.status === 'checking' && <Clock size={12} />}
-              <span className="local-model-status-label">
-                {currentModelStatus.status === 'ready' && 'Verificado y listo'}
-                {currentModelStatus.status === 'partial' && 'No verificado'}
-                {currentModelStatus.status === 'not_downloaded' && 'No descargado'}
-                {currentModelStatus.status === 'error' && 'Error de descarga'}
-                {currentModelStatus.status === 'checking' && 'Verificando...'}
-              </span>
-              <span className="local-model-status-confidence">
-                {currentModelStatus.confidence === 'high' ? 'Alta confianza' : currentModelStatus.confidence === 'medium' ? 'Confianza media' : 'Baja confianza'}
-              </span>
+        {/* 8. Progressive disclosure — technical details and audit trail (closed by default) */}
+        <details className="diagnosis-tech-disclosure" data-testid="diagnosis-tech-disclosure">
+          <summary className="diagnosis-tech-disclosure-summary">
+            <FileCode2 size={12} />
+            <span>Datos técnicos y auditoría del diagnóstico</span>
+          </summary>
+          <div className="diagnosis-tech-disclosure-body">
+            {/* LLM metrics */}
+            {lastMetrics && (
+              <div className="diagnosis-tech-section">
+                <h4 className="diagnosis-tech-section-title">Métricas del modelo</h4>
+                <div className="diagnosis-tech-row">
+                  <span><Clock size={11} /> Latencia: {(lastMetrics.latencyMs / 1000).toFixed(1)}s</span>
+                  <span><Activity size={11} /> Tokens generados: {lastMetrics.tokensGenerated}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Hashes */}
+            <div className="diagnosis-tech-section">
+              <h4 className="diagnosis-tech-section-title">Hashes de auditoría</h4>
+              <div className="diagnosis-tech-row">
+                <span><Hash size={11} /> Prompt: {computePromptHash(diagnosisPrompt).substring(0, 16)}…</span>
+                <span><Hash size={11} /> Input: {computeInputHash(report).substring(0, 16)}…</span>
+              </div>
             </div>
-            <p className="local-model-status-message">{currentModelStatus.message}</p>
-            <div className="local-model-status-actions">
-              <button className="btn-s btn-sm" onClick={() => checkCurrentModelStatus(aiConfig.model)} disabled={isCheckingModel}>
-                <Activity size={10} /> {isCheckingModel ? 'Verificando' : 'Verificar estado'}
-              </button>
-              {currentModelStatus.status !== 'ready' && (
-                <button className="btn-p btn-sm" onClick={() => runDiagnosis()} disabled={isLoading}>
-                  <Play size={10} /> Descargar y diagnosticar
-                </button>
+
+            {/* Smart sample preview */}
+            <div className="diagnosis-tech-section">
+              <h4 className="diagnosis-tech-section-title">Smart sample (preview técnico)</h4>
+              <pre className="diagnosis-tech-pre">
+                {JSON.stringify(smartSample, null, 2).substring(0, 1200)}
+                {JSON.stringify(smartSample, null, 2).length > 1200 ? '\n…' : ''}
+              </pre>
+            </div>
+
+            {/* Raw prompt */}
+            <div className="diagnosis-tech-section">
+              <h4 className="diagnosis-tech-section-title">Prompt enviado al modelo</h4>
+              <pre className="diagnosis-tech-pre diagnosis-tech-pre--scroll">
+                {diagnosisPrompt}
+              </pre>
+            </div>
+
+            {/* Raw response */}
+            <div className="diagnosis-tech-section">
+              <h4 className="diagnosis-tech-section-title">Respuesta cruda del proveedor</h4>
+              {structuredDiagnosis ? (
+                <pre className="diagnosis-tech-pre diagnosis-tech-pre--scroll">
+                  {JSON.stringify(structuredDiagnosis, null, 2)}
+                </pre>
+              ) : (
+                <pre className="diagnosis-tech-pre diagnosis-tech-pre--scroll">
+                  {draftAnalysis}
+                </pre>
               )}
-              {(currentModelStatus.status === 'partial' || currentModelStatus.status === 'error') && (
-                <button className="btn-s btn-sm" onClick={() => handleDeleteModel(aiConfig.model)} disabled={deletingModel === aiConfig.model}>
-                  <Trash2 size={10} /> {deletingModel === aiConfig.model ? 'Eliminando...' : 'Limpiar y reintentar'}
-                </button>
-              )}
+            </div>
+
+            {/* Activity log (post-completion) */}
+            {diagnosisEvents.length > 0 && !isLoading && (
+              <div className="diagnosis-tech-section">
+                <h4 className="diagnosis-tech-section-title">Registro de actividad</h4>
+                <div className="diagnosis-tech-events">
+                  {diagnosisEvents.map((event, i) => (
+                    <div key={i} className={`diagnosis-tech-event diagnosis-tech-event--${event.level}`}>
+                      <span className="diagnosis-tech-event-time">
+                        {new Date(event.timestamp).toLocaleTimeString()}
+                      </span>
+                      <span className="diagnosis-tech-event-message">{event.message}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* WebLLM local model status (moved here, kept untouched) */}
+            {aiConfig.providerType === 'webllm_experimental' && currentModelStatus && (
+              <div className="diagnosis-tech-section">
+                <h4 className="diagnosis-tech-section-title">Modelo local WebLLM</h4>
+                <div className="local-model-status" data-testid="local-model-status">
+                  <div className={`local-model-status-badge local-model-status-badge--${currentModelStatus.status}`}>
+                    {currentModelStatus.status === 'ready' && <CheckCircle size={12} />}
+                    {currentModelStatus.status === 'partial' && <AlertTriangle size={12} />}
+                    {currentModelStatus.status === 'not_downloaded' && <Circle size={12} />}
+                    {currentModelStatus.status === 'error' && <AlertCircle size={12} />}
+                    {currentModelStatus.status === 'checking' && <Clock size={12} />}
+                    <span className="local-model-status-label">
+                      {currentModelStatus.status === 'ready' && 'Verificado y listo'}
+                      {currentModelStatus.status === 'partial' && 'No verificado'}
+                      {currentModelStatus.status === 'not_downloaded' && 'No descargado'}
+                      {currentModelStatus.status === 'error' && 'Error de descarga'}
+                      {currentModelStatus.status === 'checking' && 'Verificando...'}
+                    </span>
+                    <span className="local-model-status-confidence">
+                      {currentModelStatus.confidence === 'high' ? 'Alta confianza' : currentModelStatus.confidence === 'medium' ? 'Confianza media' : 'Baja confianza'}
+                    </span>
+                  </div>
+                  <p className="local-model-status-message">{currentModelStatus.message}</p>
+                  <div className="local-model-status-actions">
+                    <button className="btn-s btn-sm" onClick={() => checkCurrentModelStatus(aiConfig.model)} disabled={isCheckingModel}>
+                      <Activity size={10} /> {isCheckingModel ? 'Verificando' : 'Verificar estado'}
+                    </button>
+                    {currentModelStatus.status !== 'ready' && (
+                      <button className="btn-p btn-sm" onClick={() => runDiagnosis()} disabled={isLoading}>
+                        <Play size={10} /> Descargar y diagnosticar
+                      </button>
+                    )}
+                    {(currentModelStatus.status === 'partial' || currentModelStatus.status === 'error') && (
+                      <button className="btn-s btn-sm" onClick={() => handleDeleteModel(aiConfig.model)} disabled={deletingModel === aiConfig.model}>
+                        <Trash2 size={10} /> {deletingModel === aiConfig.model ? 'Eliminando...' : 'Limpiar y reintentar'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Chrome AI status panel (compact, for state mgmt/download tracking) */}
+            {aiConfig.providerType === 'chrome' && (
+              <div className="diagnosis-tech-section">
+                <h4 className="diagnosis-tech-section-title">Estado de Chrome AI</h4>
+                <ChromeAiStatusPanel
+                  compact
+                  onStatusChange={(uiStatus) => {
+                    setProviderAvailable(uiStatus === 'ready');
+                    if (uiStatus === 'downloading') {
+                      pushEvent('info', 'Chrome está descargando Gemini Nano.');
+                      pushEvent('info', 'AURA verificará el estado automáticamente.');
+                    }
+                    if (uiStatus === 'ready') {
+                      pushEvent('success', 'Gemini Nano listo para diagnóstico.');
+                    }
+                  }}
+                  onReady={() => setProviderAvailable(true)}
+                  onDownloadProgress={(progress, message) => {
+                    setChromeDownloadProgress(progress);
+                    setChromeDownloadMessage(message);
+                  }}
+                  onPrepare={prepareChromeAi}
+                />
+              </div>
+            )}
+
+            {/* Technical evidence panel (pre-existing, fully reused) */}
+            <div className="diagnosis-tech-section">
+              <h4 className="diagnosis-tech-section-title">Expediente técnico detallado</h4>
+              <TechnicalEvidencePanel
+                report={report}
+                aiConfig={aiConfig}
+                isOpen={isTechnicalEvidenceOpen}
+                onToggle={setIsTechnicalEvidenceOpen}
+              />
             </div>
           </div>
-        )}
-
-        {/* 9. Technical evidence — collapsed at the bottom */}
-        <TechnicalEvidencePanel
-          report={report}
-          aiConfig={aiConfig}
-          isOpen={isTechnicalEvidenceOpen}
-          onToggle={setIsTechnicalEvidenceOpen}
-        />
+        </details>
 
         {showOllamaWizard && (
           <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowOllamaWizard(false); }} data-testid="ollama-wizard-modal">
