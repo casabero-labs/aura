@@ -183,28 +183,28 @@ describe('DiagnosticReportStep', () => {
     expect(cards.textContent).toContain('72/100');
     expect(cards.textContent).toContain('891');
     expect(cards.textContent).toContain('12');
-    expect(cards.textContent).toContain('Total de hallazgos');
+    expect(cards.textContent).toContain('Hallazgos');
   });
 
   it('no muestra estados técnicos crudos como llm_diagnosis_available', () => {
     renderStep();
 
     const stageText = screen.getByTestId('diagnostic-report-stage').textContent ?? '';
-    expect(stageText).toContain('Diagnóstico asistido disponible');
+    expect(stageText).toContain('Diagnóstico estructurado');
     expect(stageText).not.toContain('llm_diagnosis_available');
   });
 
   it('muestra que score base no fue modificado', () => {
     renderStep();
 
-    expect(screen.getByTestId('diagnostic-report-governance').textContent).toContain('El score base no fue modificado.');
+    expect(screen.getByTestId('diagnostic-report-governance').textContent).toContain('Score base calculado por motor determinista.');
   });
 
   it('muestra que script es opcional', () => {
     renderStep();
 
     const stageText = screen.getByTestId('diagnostic-report-stage').textContent ?? '';
-    expect(stageText).toContain('El script es opcional.');
+    expect(stageText).toContain('El informe principal puede cerrarse sin generar script.');
     expect(stageText).toContain('Script no es necesario para cerrar el análisis.');
   });
 
@@ -212,8 +212,16 @@ describe('DiagnosticReportStep', () => {
     renderStep();
 
     const summary = screen.getByTestId('diagnostic-report-executive-summary');
-    expect(summary.textContent).toContain('Contrato estructurado v2');
+    expect(summary.textContent).toContain('Diagnóstico estructurado');
     expect(summary.textContent).toContain('El dataset presenta riesgos de ausencia y outliers');
+  });
+
+  it('renderiza una decisión ejecutiva antes del detalle técnico', () => {
+    renderStep();
+
+    const decision = screen.getByTestId('diagnostic-report-decision');
+    expect(decision.textContent).toContain('Revisión humana antes de publicar o corregir datos');
+    expect(decision.textContent).toContain('Informe + anexos técnicos');
   });
 
   it('renderiza al menos una chartSpec', () => {

@@ -215,7 +215,8 @@ export const addKpiGrid = (ctx: PdfLayoutContext, items: KpiItem[]) => {
 export const addGovernanceCallout = (ctx: PdfLayoutContext, title: string, items: string[]) => {
   const { doc, theme } = ctx;
   const width = getContentWidth(ctx);
-  const height = 14 + items.length * 5;
+  const itemLines = items.map((item) => doc.splitTextToSize(item, width - 12));
+  const height = 14 + itemLines.reduce((sum, lines) => sum + Math.max(1, lines.length) * 4.8 + 1, 0);
   ensureSpace(ctx, height + 4);
   doc.setFillColor(theme.colors.panel);
   doc.setDrawColor(theme.colors.accentSoft);
@@ -227,8 +228,11 @@ export const addGovernanceCallout = (ctx: PdfLayoutContext, title: string, items
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.2);
   doc.setTextColor(theme.colors.muted);
-  items.forEach((item, index) => {
-    doc.text(`• ${item}`, theme.margin.left + 5, ctx.cursorY + 13 + index * 5);
+  let y = ctx.cursorY + 13;
+  itemLines.forEach((lines) => {
+    doc.text('-', theme.margin.left + 5, y);
+    doc.text(lines, theme.margin.left + 9, y);
+    y += lines.length * 4.8 + 1;
   });
   ctx.cursorY += height + 8;
 };

@@ -23,12 +23,17 @@ import type {
   DiagnosticReport,
   DiagnosticStatus,
 } from './types';
+import {
+  buildLegacyExecutiveSummary,
+  cleanDiagnosticText,
+  splitDiagnosticSentences,
+  truncatePresentationText,
+} from './presentation';
 
 const REPORT_VERSION = '0.1.0-l13b';
 const TOP_ISSUES_LIMIT = 10;
 const TOP_COLUMNS_LIMIT = 8;
 const TOP_CHART_ROWS_LIMIT = 8;
-const LEGACY_TEXT_LIMIT = 1200;
 
 const SEVERITY_ORDER: Record<IssueSeverity, number> = {
   [IssueSeverity.CRITICAL]: 0,
@@ -228,12 +233,11 @@ const buildDiagnosisSummary = ({
 
   const legacyText = aiAnalysis.trim();
   if (legacyText.length > 0) {
-    const truncated = truncateText(legacyText.replace(/\s+/g, ' '), LEGACY_TEXT_LIMIT);
     return {
       source: 'legacy_text',
       provider: null,
       model: null,
-      executiveSummary: truncated,
+      executiveSummary: buildLegacyExecutiveSummary(report, legacyText),
       observations: splitLegacyObservations(legacyText),
       limitations: [
         'Diagnostico legacy en texto libre: no contiene referencias estructuradas verificables por contrato v2.',
@@ -644,16 +648,15 @@ const falsePositiveFinding = (finding: Omit<DiagnosticFinding, 'confidence' | 's
 });
 
 const splitLegacyObservations = (legacyText: string): DiagnosticObservation[] => {
-  const clean = legacyText.replace(/[#*_`>-]/g, ' ').replace(/\s+/g, ' ').trim();
+  const clean = cleanDiagnosticText(legacyText);
   if (!clean) return [];
-  return clean
-    .split(/(?<=[.!?])\s+/)
+  return splitDiagnosticSentences(clean, 8)
     .filter(Boolean)
     .slice(0, 6)
     .map((sentence, index) => ({
       id: `legacy-observation-${index + 1}`,
       title: `Observacion legacy ${index + 1}`,
-      text: truncateText(sentence, 320),
+      text: truncatePresentationText(sentence, 320),
       requiresHumanReview: true,
     }));
 };

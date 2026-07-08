@@ -652,7 +652,7 @@ const App: React.FC = () => {
               <h2 className="sec-title">Paquete final del análisis</h2>
             </div>
             <p className="section-note export-closure-hero-desc">
-              Descarga el informe diagnóstico y los archivos de trazabilidad generados durante el flujo local de AURA.
+              Cierra el análisis con un informe legible para decisión y conserva los anexos técnicos solo como respaldo auditable.
             </p>
 
             {(() => {
@@ -707,15 +707,15 @@ const App: React.FC = () => {
                 <>
                   {/* ── Block 1 — Informe principal ── */}
                   <div className="export-delivery-block" data-testid="export-main-block">
-                    <p className="export-delivery-block-eyebrow">Informe principal</p>
-                    <h3 className="export-delivery-block-title">Descargas del flujo principal</h3>
+                    <p className="export-delivery-block-eyebrow">Documento principal</p>
+                    <h3 className="export-delivery-block-title">Informe defendible para compartir</h3>
                     <div className="export-delivery-cards">
                       <article className="export-delivery-card export-delivery-card--primary">
                         <div className="export-delivery-card-head">
                           <FileText size={20} />
                           <div>
-                            <h4>Reporte Diagnóstico PDF</h4>
-                            <p>Informe profesional con resumen ejecutivo, riesgos, gráficos, recomendaciones y gobernanza.</p>
+                            <h4>Informe diagnóstico PDF</h4>
+                            <p>Documento curado con decisión ejecutiva, riesgos priorizados, gráficos, recomendaciones y límites metodológicos.</p>
                           </div>
                         </div>
                         <div className="export-delivery-card-action">
@@ -742,8 +742,8 @@ const App: React.FC = () => {
                         <div className="export-delivery-card-head">
                           <FileJson size={18} />
                           <div>
-                            <h4>JSON Técnico de Gobernanza</h4>
-                            <p>Paquete estructurado con perfil, diagnóstico, script aprobado, manifiesto y validaciones para auditoría y trazabilidad.</p>
+                            <h4>Anexo JSON técnico</h4>
+                            <p>Paquete estructurado para auditoría, trazabilidad, validaciones y reproducción técnica.</p>
                           </div>
                         </div>
                         {exportJsonPreflightError ? (
@@ -764,8 +764,8 @@ const App: React.FC = () => {
                         <div className="export-delivery-card-head">
                           <Download size={18} />
                           <div>
-                            <h4>Hallazgos Críticos en CSV</h4>
-                            <p>Todos los hallazgos del motor determinista en formato tabular para integración con hojas de cálculo o herramientas externas.</p>
+                            <h4>Anexo CSV de hallazgos</h4>
+                            <p>Tabla de hallazgos deterministas para hojas de cálculo, QA o integración externa.</p>
                           </div>
                         </div>
                         <div className="export-delivery-card-action">

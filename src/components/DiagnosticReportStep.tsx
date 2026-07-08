@@ -1,6 +1,10 @@
 import React, { useMemo, useState } from 'react';
-import { ArrowRight, FileCode2, RotateCcw, ShieldCheck, ChevronDown, FileSpreadsheet, Rows3, Columns3, BarChart3, AlertOctagon } from 'lucide-react';
-import type { DiagnosticReport, DiagnosticFinding } from '../services/diagnosticReport';
+import { ArrowRight, FileCode2, RotateCcw, ShieldCheck, ChevronDown } from 'lucide-react';
+import type { DiagnosticReport, DiagnosticFinding, DiagnosticPresentation } from '../services/diagnosticReport';
+import {
+  buildDiagnosticPresentation,
+  formatDiagnosticSourceLabel,
+} from '../services/diagnosticReport';
 import {
   DiagnosticFindingGroup,
   DiagnosticRecommendationsPanel,
@@ -22,21 +26,6 @@ const subtitleByStatus: Record<DiagnosticReport['status']['diagnosticStatus'], s
   deterministic_only: 'AURA generó un reporte con evidencia determinista. El diagnóstico asistido no está disponible.',
   llm_diagnosis_unavailable: 'AURA generó el reporte con evidencia determinista y registró la indisponibilidad del diagnóstico asistido.',
 };
-
-const sourceLabels: Record<DiagnosticReport['diagnosisSummary']['source'], string> = {
-  structured_v2: 'Contrato estructurado v2',
-  legacy_text: 'Diagnóstico legacy en texto libre',
-  unavailable: 'Evidencia determinista sin diagnóstico asistido',
-};
-
-const governancePrinciples = [
-  'La IA asiste la interpretación, pero no reemplaza la revisión humana. Las decisiones finales sobre corrección, exclusión o transformación de datos deben ser validadas por una persona responsable.',
-  'El score base no fue modificado.',
-  'El diagnóstico contextualiza, no reemplaza la evidencia.',
-  'El script es opcional.',
-  'HITL solo aplica si se entra a remediación.',
-  'No se corrigen datos automáticamente desde esta pantalla.',
-];
 
 const severityOrder: Record<DiagnosticFinding['severity'], number> = {
   critical: 0,
@@ -180,7 +169,7 @@ const TechnicalEvidenceDisclosure: React.FC<{ report: DiagnosticReport }> = ({ r
         <ChevronDown size={14} className="diagnostic-report-tech-chevron" />
         <span>Evidencia técnica del reporte</span>
         <span className="diagnostic-report-tech-hint">
-          metadatos, trazabilidad, especificación de gráficos y JSON del informe
+          metadatos, trazabilidad, especificación de gráficos y payload serializado
         </span>
       </summary>
       <div className="diagnostic-report-tech-body">
@@ -202,7 +191,7 @@ const TechnicalEvidenceDisclosure: React.FC<{ report: DiagnosticReport }> = ({ r
             <dt>Score modificado</dt>
             <dd><code>{report.metadata.scoreModified ? 'Sí' : 'No'}</code></dd>
             <dt>Estado del motor</dt>
-            <dd><code>{sourceLabels[report.diagnosisSummary.source]}</code></dd>
+            <dd><code>{formatDiagnosticSourceLabel(report.diagnosisSummary.source)}</code></dd>
             {report.diagnosisSummary.provider && (
               <>
                 <dt>Proveedor del diagnóstico</dt>
@@ -232,14 +221,14 @@ const TechnicalEvidenceDisclosure: React.FC<{ report: DiagnosticReport }> = ({ r
         </section>
 
         <section className="diagnostic-report-tech-section">
-          <h4>Especificación de gráficos (raw)</h4>
+          <h4>Especificación de gráficos</h4>
           <pre className="diagnostic-report-tech-pre">
             {JSON.stringify(report.chartSpecs, null, 2)}
           </pre>
         </section>
 
         <section className="diagnostic-report-tech-section">
-          <h4>JSON del informe</h4>
+          <h4>Payload técnico serializado</h4>
           <p className="diagnostic-report-tech-note">
             Vista orientada a auditoría y desarrollo. No requiere el usuario final para tomar la decisión de exportación.
           </p>
@@ -252,49 +241,87 @@ const TechnicalEvidenceDisclosure: React.FC<{ report: DiagnosticReport }> = ({ r
   );
 };
 
+const DiagnosticDecisionBrief: React.FC<{ presentation: DiagnosticPresentation }> = ({ presentation }) => (
+  <section
+    className={`diagnostic-report-decision diagnostic-report-decision--${presentation.decision.tone}`}
+    data-testid="diagnostic-report-decision"
+  >
+    <div>
+      <p className="sec-eye">{presentation.decision.eyebrow}</p>
+      <h3>{presentation.decision.title}</h3>
+      <p>{presentation.decision.body}</p>
+    </div>
+    <div className="diagnostic-report-decision-aside">
+      <span>Salida recomendada</span>
+      <strong>Informe + anexos técnicos</strong>
+      <p>Remediar solo después de revisión humana.</p>
+    </div>
+  </section>
+);
+
+const GovernanceSummary: React.FC<{ presentation: DiagnosticPresentation }> = ({ presentation }) => (
+  <div className="diagnostic-report-governance-grid" data-testid="diagnostic-report-governance">
+    <section className="diagnostic-report-governance-card">
+      <div className="diagnostic-report-governance-head">
+        <ShieldCheck size={16} />
+        <strong>Qué puedes afirmar</strong>
+      </div>
+      <ul>
+        {presentation.supportedClaims.map((claim) => <li key={claim}>{claim}</li>)}
+      </ul>
+    </section>
+    <section className="diagnostic-report-governance-card diagnostic-report-governance-card--pending">
+      <div className="diagnostic-report-governance-head">
+        <strong>Qué falta antes de remediar</strong>
+      </div>
+      <ul>
+        {presentation.pendingClaims.map((claim) => <li key={claim}>{claim}</li>)}
+      </ul>
+    </section>
+  </div>
+);
+
 const DiagnosticReportStep: React.FC<DiagnosticReportStepProps> = ({
   diagnosticReport,
   onExportMain,
   onGenerateScript,
   onBackToDiagnosis,
-}) => (
-  <>
-    <section className="section diagnostic-report-stage" data-testid="diagnostic-report-stage">
-      <div className="diagnostic-report-hero" data-testid="diagnostic-report-header">
-        <div>
-          <p className="sec-eye">REPORTE DIAGNÓSTICO</p>
-          <h2 className="sec-title">Informe diagnóstico de calidad del dato</h2>
-          <p className="section-note">{subtitleByStatus[diagnosticReport.status.diagnosticStatus]}</p>
-          <p className="section-note diagnostic-report-hero-desc">
-            AURA consolida los hallazgos deterministas y la interpretación asistida por IA en un informe legible, trazable y orientado a decisión.
-          </p>
+}) => {
+  const presentation = useMemo(() => buildDiagnosticPresentation(diagnosticReport), [diagnosticReport]);
+  const observations = diagnosticReport.diagnosisSummary.observations.slice(0, 3);
+
+  return (
+    <>
+      <section className="section diagnostic-report-stage" data-testid="diagnostic-report-stage">
+        <div className="diagnostic-report-hero" data-testid="diagnostic-report-header">
+          <div>
+            <p className="sec-eye">REPORTE DIAGNÓSTICO</p>
+            <h2 className="sec-title">Informe diagnóstico de calidad del dato</h2>
+            <p className="section-note">{subtitleByStatus[diagnosticReport.status.diagnosticStatus]}</p>
+            <p className="section-note diagnostic-report-hero-desc">
+              AURA consolida los hallazgos deterministas y la interpretación asistida por IA en un informe legible, trazable y orientado a decisión.
+            </p>
+          </div>
+          <div className="diagnostic-report-actions diagnostic-report-actions--top">
+            <button className="btn-p" onClick={onExportMain} data-testid="diagnostic-report-export-main">
+              <ArrowRight size={14} /> Ir a la Exportación
+            </button>
+            <button className="btn-s" onClick={onGenerateScript} data-testid="diagnostic-report-generate-script">
+              <FileCode2 size={14} /> Configurar remediación opcional (Script / Limpieza)
+            </button>
+            <button className="btn-s" onClick={onBackToDiagnosis} data-testid="diagnostic-report-back-diagnosis">
+              <RotateCcw size={14} /> Volver al diagnóstico
+            </button>
+          </div>
         </div>
-        <div className="diagnostic-report-actions diagnostic-report-actions--top">
-          <button className="btn-p" onClick={onExportMain} data-testid="diagnostic-report-export-main">
-            <ArrowRight size={14} /> Ir a la Exportación
-          </button>
-          <button className="btn-s" onClick={onGenerateScript} data-testid="diagnostic-report-generate-script">
-            <FileCode2 size={14} /> Configurar remediación opcional (Script / Limpieza)
-          </button>
-          <button className="btn-s" onClick={onBackToDiagnosis} data-testid="diagnostic-report-back-diagnosis">
-            <RotateCcw size={14} /> Volver al diagnóstico
-          </button>
-        </div>
-      </div>
 
       <DatasetSummaryStrip report={diagnosticReport} />
 
       <DiagnosticReportSummaryCards diagnosticReport={diagnosticReport} />
 
-      <div className="diagnostic-report-governance" data-testid="diagnostic-report-governance">
-        <div className="diagnostic-report-governance-head">
-          <ShieldCheck size={16} />
-          <strong>Principios de gobernanza</strong>
-        </div>
-        <ul>
-          {governancePrinciples.map((principle) => <li key={principle}>{principle}</li>)}
-        </ul>
-      </div>
+      <DiagnosticDecisionBrief presentation={presentation} />
+
+      <GovernanceSummary presentation={presentation} />
 
       <section className="diagnostic-report-executive" data-testid="diagnostic-report-executive-summary">
         <div className="diagnostic-report-section-head">
@@ -302,11 +329,21 @@ const DiagnosticReportStep: React.FC<DiagnosticReportStepProps> = ({
             <p className="sec-eye">resumen ejecutivo</p>
             <h3>Resumen ejecutivo</h3>
           </div>
-          <span className="diagnostic-report-badge">{sourceLabels[diagnosticReport.diagnosisSummary.source]}</span>
+          <span className="diagnostic-report-badge">{presentation.sourceLabel}</span>
         </div>
-        {diagnosticReport.diagnosisSummary.executiveSummary ? (
+        {presentation.executiveSummary ? (
           <>
-            <p>{diagnosticReport.diagnosisSummary.executiveSummary}</p>
+            <p>{presentation.executiveSummary}</p>
+            {observations.length > 0 && (
+              <div className="diagnostic-report-observations">
+                <span>Lecturas relevantes</span>
+                <ol>
+                  {observations.map((observation) => (
+                    <li key={observation.id}>{observation.text}</li>
+                  ))}
+                </ol>
+              </div>
+            )}
             {diagnosticReport.diagnosisSummary.limitations.length > 0 && (
               <div className="diagnostic-report-limitations">
                 <span>Limitaciones visibles</span>
@@ -376,7 +413,8 @@ const DiagnosticReportStep: React.FC<DiagnosticReportStepProps> = ({
     </section>
 
     <TechnicalEvidenceDisclosure report={diagnosticReport} />
-  </>
-);
+    </>
+  );
+};
 
 export default DiagnosticReportStep;

@@ -23,17 +23,18 @@ const updateCursorAfterTable = (ctx: PdfLayoutContext) => {
 
 const commonStyles = (ctx: PdfLayoutContext) => ({
   font: 'helvetica',
-  fontSize: 7.6,
-  cellPadding: 2,
+  fontSize: 7.8,
+  cellPadding: 2.4,
   overflow: 'linebreak' as const,
   lineColor: ctx.theme.colors.border,
   textColor: ctx.theme.colors.muted,
 });
 
 const headStyles = (ctx: PdfLayoutContext) => ({
-  fillColor: ctx.theme.colors.ink,
-  textColor: ctx.theme.colors.white,
+  fillColor: ctx.theme.colors.panel,
+  textColor: ctx.theme.colors.ink,
   fontStyle: 'bold' as const,
+  lineWidth: 0.15,
 });
 
 const tableMargin = (ctx: PdfLayoutContext) => ({
@@ -46,9 +47,11 @@ const tableMargin = (ctx: PdfLayoutContext) => ({
 const booleanLabel = (value: boolean) => (value ? 'Sí' : 'No');
 
 const severityLabel = (value: string) => {
-  if (value === 'critical') return 'Crítica';
-  if (value === 'warning') return 'Advertencia';
-  if (value === 'info') return 'Info';
+  const normalized = value.toLowerCase();
+  if (normalized === 'critical') return 'Crítica';
+  if (normalized === 'warning') return 'Advertencia';
+  if (normalized === 'info') return 'Info';
+  if (normalized === 'good') return 'Correcto';
   return value;
 };
 
@@ -72,7 +75,7 @@ const addEmptyTableState = (ctx: PdfLayoutContext, message = 'Sin registros para
 
 export const addTopIssuesTable = (ctx: PdfLayoutContext, report: DiagnosticReport) => {
   ensureSpace(ctx, 26);
-  const rows = report.evidenceBase.topIssues.map((issue) => [
+  const rows = report.evidenceBase.topIssues.slice(0, 6).map((issue) => [
     truncateText(issue.ruleName, 54),
     severityLabel(issue.severity),
     truncateText(issue.category, 42),
@@ -122,7 +125,7 @@ export const addFindingsTable = (
     return;
   }
 
-  const rows = safeFindings.map((finding) => [
+  const rows = safeFindings.slice(0, 8).map((finding) => [
     truncateText(finding.title, 58),
     severityLabel(finding.severity),
     truncateText(finding.columns.join(', ') || 'Dataset', 34),
@@ -210,11 +213,6 @@ export const addTechnicalAnnexTables = (ctx: PdfLayoutContext, report: Diagnosti
     ['delimiter', report.metadata.delimiter],
     ['scoreBase', String(report.metadata.scoreBase)],
     ['scoreModified', String(report.metadata.scoreModified)],
-    ['pdfReady', String(report.exportReadiness.pdfReady)],
-    ['jsonReady', String(report.exportReadiness.jsonReady)],
-    ['issuesCsvReady', String(report.exportReadiness.issuesCsvReady)],
-    ['scriptExportsReady', String(report.exportReadiness.scriptExportsReady)],
-    ['missingInputs', report.exportReadiness.missingInputs.join(', ') || 'Ninguno'],
   ];
 
   autoTable(ctx.doc, {
@@ -243,7 +241,7 @@ export const addTechnicalAnnexTables = (ctx: PdfLayoutContext, report: Diagnosti
   autoTable(ctx.doc, {
     startY: ctx.cursorY,
     margin: tableMargin(ctx),
-    head: [['Chart spec', 'Tipo', 'Fuente', 'Filas', 'Descripción']],
+    head: [['Gráfico', 'Tipo', 'Fuente', 'Filas', 'Descripción']],
     body: chartRows,
     theme: 'grid',
     styles: commonStyles(ctx),
@@ -252,7 +250,7 @@ export const addTechnicalAnnexTables = (ctx: PdfLayoutContext, report: Diagnosti
   });
   updateCursorAfterTable(ctx);
 
-  const nullRows = report.evidenceBase.topNullColumns.map((column) => [
+  const nullRows = report.evidenceBase.topNullColumns.slice(0, 4).map((column) => [
     column.column,
     formatNumber(column.nullCount),
     formatPercent(column.nullPercentage),
@@ -273,7 +271,7 @@ export const addTechnicalAnnexTables = (ctx: PdfLayoutContext, report: Diagnosti
     updateCursorAfterTable(ctx);
   }
 
-  const cardinalityRows = report.evidenceBase.topCardinalityColumns.map((column) => [
+  const cardinalityRows = report.evidenceBase.topCardinalityColumns.slice(0, 4).map((column) => [
     column.column,
     formatNumber(column.uniqueCount),
     formatPercent(column.uniquePercentage),
@@ -294,15 +292,16 @@ export const addTechnicalAnnexTables = (ctx: PdfLayoutContext, report: Diagnosti
     updateCursorAfterTable(ctx);
   }
 
-  const outlierRows = report.evidenceBase.outlierColumns.map((column) => [
+  const outlierRows = report.evidenceBase.outlierColumns.slice(0, 4).map((column) => [
     column.column,
     formatNumber(column.outlierCount),
     formatPercent(column.outlierPercentage),
-    column.outlierSeverity ?? 'N/A',
-    column.lowerFence === undefined ? 'N/A' : String(column.lowerFence),
-    column.upperFence === undefined ? 'N/A' : String(column.upperFence),
+    column.outlierSeverity ? severityLabel(column.outlierSeverity) : 'sin dato',
+    column.lowerFence === undefined ? 'no aplica' : String(column.lowerFence),
+    column.upperFence === undefined ? 'no aplica' : String(column.upperFence),
   ]);
   if (outlierRows.length > 0) {
+    ensureSpace(ctx, 38);
     autoTable(ctx.doc, {
       startY: ctx.cursorY,
       margin: tableMargin(ctx),
@@ -316,5 +315,7 @@ export const addTechnicalAnnexTables = (ctx: PdfLayoutContext, report: Diagnosti
     updateCursorAfterTable(ctx);
   }
 
-  addFindingsTable(ctx, report.findingGroups.optionalRemediationCandidates);
+  if (report.findingGroups.optionalRemediationCandidates.length > 0) {
+    addFindingsTable(ctx, report.findingGroups.optionalRemediationCandidates);
+  }
 };

@@ -278,6 +278,23 @@ describe('buildDiagnosticReport', () => {
     expect(diagnosticReport.diagnosisSummary.observations.length).toBeGreaterThan(0);
   });
 
+  it('cura markdown crudo en diagnósticos legacy antes de presentarlo', () => {
+    const diagnosticReport = buildDiagnosticReport({
+      report: buildTitanicReport(),
+      auditEvidence,
+      aiAnalysis: [
+        '## Estado de ejecución',
+        'Análisis completo del registro técnico.',
+        '* **Regla:** Valores nulos **Columna:** Age **Riesgo:** Sesgo analítico.',
+      ].join('\n'),
+    });
+
+    expect(diagnosticReport.diagnosisSummary.executiveSummary).toContain('AURA consolidó');
+    expect(diagnosticReport.diagnosisSummary.executiveSummary).not.toContain('##');
+    expect(diagnosticReport.diagnosisSummary.executiveSummary).not.toContain('**');
+    expect(diagnosticReport.diagnosisSummary.observations.map((observation) => observation.text).join(' ')).not.toContain('**');
+  });
+
   it('genera chartSpecs serializables', () => {
     const diagnosticReport = buildDiagnosticReport({
       report: buildTitanicReport(),

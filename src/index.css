@@ -6185,6 +6185,14 @@ tr:hover td {
 
 .export-delivery-card--primary {
   border-color: var(--ink-soft, var(--accent));
+  background: var(--bg);
+  padding: var(--space-lg);
+}
+
+.export-delivery-card--primary .export-delivery-card-head h4 {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  line-height: 1.2;
 }
 
 .export-delivery-card-head {
@@ -7063,6 +7071,94 @@ tr:hover td {
   color: var(--ink);
 }
 
+.diagnostic-report-summary-note {
+  display: block;
+  margin-top: var(--space-xs);
+  font-size: 11px;
+  color: var(--ink3);
+}
+
+.diagnostic-report-decision {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  gap: var(--space-lg);
+  align-items: start;
+  padding: var(--space-xl);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--ink);
+  border-radius: var(--radius-md);
+}
+
+.diagnostic-report-decision--critical {
+  border-left-color: var(--ink);
+}
+
+.diagnostic-report-decision--warning {
+  border-left-color: var(--ink-soft);
+}
+
+.diagnostic-report-decision--stable {
+  border-left-color: var(--success);
+}
+
+.diagnostic-report-decision h3 {
+  font-family: var(--font-serif);
+  font-size: 26px;
+  line-height: 1.12;
+  color: var(--ink);
+  margin: 0 0 var(--space-sm);
+}
+
+.diagnostic-report-decision p {
+  margin: 0;
+  color: var(--ink2);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.diagnostic-report-decision-aside {
+  padding: var(--space-md);
+  background: var(--bg);
+  border: 1px solid var(--border-faint);
+  border-radius: var(--radius-sm);
+}
+
+.diagnostic-report-decision-aside span,
+.diagnostic-report-observations > span {
+  display: block;
+  margin-bottom: var(--space-xs);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink3);
+}
+
+.diagnostic-report-decision-aside strong {
+  display: block;
+  color: var(--ink);
+  font-size: 14px;
+  margin-bottom: var(--space-xs);
+}
+
+.diagnostic-report-governance-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-md);
+}
+
+.diagnostic-report-governance-card {
+  padding: var(--space-lg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.diagnostic-report-governance-card--pending {
+  background: var(--bg);
+}
+
 .diagnostic-report-governance,
 .diagnostic-report-executive,
 .diagnostic-report-section,
@@ -7084,6 +7180,7 @@ tr:hover td {
   gap: var(--space-xs);
   color: var(--ink);
   font-size: 13px;
+  margin-bottom: var(--space-sm);
 }
 
 .diagnostic-report-governance ul,
@@ -7093,6 +7190,11 @@ tr:hover td {
   color: var(--ink2);
   font-size: 13px;
   line-height: 1.55;
+}
+
+.diagnostic-report-governance-card li + li,
+.diagnostic-report-observations li + li {
+  margin-top: var(--space-xs);
 }
 
 .diagnostic-report-section-head {
@@ -7162,6 +7264,22 @@ tr:hover td {
   margin-top: var(--space-md);
   padding-top: var(--space-md);
   border-top: 1px solid var(--border);
+}
+
+.diagnostic-report-observations {
+  margin-top: var(--space-md);
+  padding: var(--space-md);
+  background: var(--bg);
+  border: 1px solid var(--border-faint);
+  border-radius: var(--radius-sm);
+}
+
+.diagnostic-report-observations ol {
+  margin: 0;
+  padding-left: var(--space-lg);
+  color: var(--ink2);
+  font-size: 13px;
+  line-height: 1.55;
 }
 
 .diagnostic-report-limitations > span {
@@ -7349,7 +7467,9 @@ tr:hover td {
 @media (max-width: 920px) {
   .diagnostic-report-hero,
   .diagnostic-report-closeout,
-  .diagnostic-report-findings-grid {
+  .diagnostic-report-findings-grid,
+  .diagnostic-report-decision,
+  .diagnostic-report-governance-grid {
     grid-template-columns: 1fr;
   }
 
@@ -10543,13 +10663,21 @@ tr:hover td {
 
 @media print {
   /* Ocultar elementos interactivos */
+  .sys-nav,
+  .nav-links,
+  .sys-footer,
+  .theme-toggle,
+  .nav-reset-cta,
   .profile-actions,
   .technical-details summary,
   .btn-p,
   .btn-s,
   .settings-close-btn,
   .nav-menu-item,
-  .mobile-nav-toggle {
+  .mobile-nav-toggle,
+  .diagnostic-report-tech-disclosure,
+  .export-tech-disclosure,
+  .export-session-block {
     display: none !important;
   }
 
@@ -10572,6 +10700,57 @@ tr:hover td {
     line-height: 1.4;
     color: #000;
     background: #fff;
+  }
+
+  .sys-main {
+    max-width: none;
+    padding: 0;
+  }
+
+  .diagnostic-report-stage,
+  .export-closure {
+    background: #fff !important;
+    border: 0 !important;
+    padding: 0 !important;
+    gap: 12pt !important;
+  }
+
+  .diagnostic-report-hero,
+  .diagnostic-report-decision,
+  .diagnostic-report-governance-grid,
+  .diagnostic-report-summary-grid,
+  .diagnostic-report-executive,
+  .diagnostic-report-section,
+  .diagnostic-report-closeout,
+  .export-delivery-block {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .diagnostic-report-decision,
+  .diagnostic-report-governance-card,
+  .diagnostic-report-executive,
+  .diagnostic-report-section,
+  .export-delivery-block,
+  .export-delivery-card {
+    background: #fff !important;
+    border-color: #ccc !important;
+  }
+
+  .diagnostic-report-findings-grid,
+  .diagnostic-report-governance-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .diagnostic-chart-grid,
+  .export-delivery-cards,
+  .export-remediation-cards {
+    display: block !important;
+  }
+
+  .diagnostic-chart-card,
+  .export-delivery-card {
+    margin-bottom: 8pt;
   }
 
   .profile-editorial-title {

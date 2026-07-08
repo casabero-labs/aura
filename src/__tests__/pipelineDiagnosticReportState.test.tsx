@@ -116,14 +116,14 @@ describe('pipeline diagnostic report state', () => {
     expect(stage.textContent).toContain('72/100');
     expect(stage.textContent).toContain('891');
     expect(stage.textContent).toContain('12');
-    expect(stage.textContent).toContain('Solo determinista');
+    expect(stage.textContent).toContain('Evidencia determinista');
     expect(stage.textContent).not.toContain('deterministic_only');
     expect(stage.textContent).toContain('Riesgos confirmados');
     expect(stage.textContent).toContain('Posibles falsos positivos contextuales');
     expect(stage.textContent).toContain('Recomendaciones');
-    expect(stage.textContent).toContain('El score base no fue modificado.');
-    expect(stage.textContent).toContain('El script es opcional.');
-    expect(stage.textContent).toContain('HITL solo aplica si se entra a remediación.');
+    expect(stage.textContent).toContain('Score base calculado por motor determinista.');
+    expect(stage.textContent).toContain('El informe principal puede cerrarse sin generar script.');
+    expect(stage.textContent).toContain('La corrección automática no está autorizada desde esta pantalla.');
   });
 
   it('DiagnosticReportStep expone acciones para exportar, remediar opcionalmente y volver', () => {

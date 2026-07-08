@@ -142,8 +142,8 @@ test.describe('L13G — Titanic E2E Diagnostic Report Pipeline', () => {
     expect(reportText).toContain('12');
 
     // Governance
-    expect(reportText).toContain('score base no fue modificado');
-    expect(reportText).toContain('script es opcional');
+    expect(reportText).toContain('Score base calculado por motor determinista');
+    expect(reportText).toContain('El informe principal puede cerrarse sin generar script');
 
     // Finding groups
     expect(reportText).toContain('Posibles falsos positivos contextuales');
@@ -163,19 +163,16 @@ test.describe('L13G — Titanic E2E Diagnostic Report Pipeline', () => {
 
     // Export section mentions optional remediation
     expect(exportText).toContain('Anexos de remediación opcional');
+    expect(exportText).toContain('Esta sesión no generó anexos');
 
     // Main export buttons visible
     await expect(page.getByRole('button', { name: /Descargar PDF/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /Descargar JSON/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /Descargar CSV/i })).toBeVisible();
 
-    // Script approved and Colab should be disabled without approvedCleaningScript
-    const scriptBtn = page.getByRole('button', { name: /Descargar script/i });
-    const colabBtn = page.getByRole('button', { name: /Descargar notebook/i });
-    await expect(scriptBtn).toBeVisible();
-    await expect(scriptBtn).toBeDisabled();
-    await expect(colabBtn).toBeVisible();
-    await expect(colabBtn).toBeDisabled();
+    // Main export path stays clean when no remediation script was generated.
+    await expect(page.getByRole('button', { name: /Descargar script/i })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /Descargar notebook/i })).toHaveCount(0);
   });
 
   test('L13G-02: descargas principales — PDF, JSON, CSV desde export', async ({ page }) => {
