@@ -31,6 +31,7 @@ function makeReadyPreflight(): PreflightResult {
     hashMatch: true,
     fingerprintMatch: true,
     acceptedActionsCoherent: true,
+    executableActionsPresent: true,
     reasons: [],
   };
 }
@@ -42,6 +43,7 @@ function makeBlockedPreflight(): PreflightResult {
     hashMatch: false,
     fingerprintMatch: false,
     acceptedActionsCoherent: false,
+    executableActionsPresent: false,
     reasons: ['contract is null or undefined'],
   };
 }
@@ -520,6 +522,7 @@ def clean_dataset(df):
       hashMatch: false,
       fingerprintMatch: true,
       acceptedActionsCoherent: true,
+      executableActionsPresent: true,
       reasons: ['scriptHash mismatch: stored abc… ≠ recomputed def…'],
     };
 

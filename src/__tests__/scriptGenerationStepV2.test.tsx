@@ -137,6 +137,59 @@ function makeStructuredDiagnosis(columns?: ColumnRef[]): DiagnosisExecutionResul
   };
 }
 
+function makeExecutableStructuredDiagnosis(): DiagnosisExecutionResult {
+  const cols = buildColumnRegistry(['id', 'age', 'name']);
+  const target = cols[1];
+  const ctx: RemediationContextV2 = {
+    evidenceEnvelopeRef: 'env:testabc',
+    datasetFingerprint: 'sha256:fingerprint123',
+    columns: cols,
+    issues: [
+      {
+        issueId: `issue:${target.columnId}`,
+        ruleId: 'rule:trim-whitespace',
+        columnId: target.columnId,
+        scope: 'column',
+        evidenceRefs: [],
+        actionability: 'auto_safe',
+        automaticAuthorization: {
+          authorized: true,
+          actionType: 'trim_whitespace',
+          conditionsMet: ['test-fixture'],
+          reason: 'Auto-authorized executable fixture',
+        },
+      },
+    ],
+  };
+
+  return {
+    version: 2 as const,
+    diagnosis: {
+      contractId: 'aura.diagnosis.v2',
+      contractVersion: '2.0.0',
+      responseId: 'diag:test',
+      evidenceEnvelopeRef: 'env:testabc',
+      issues: ctx.issues.map((i) => ({
+        issueId: i.issueId,
+        evidenceRefs: i.evidenceRefs,
+        hypothesis: 'Whitespace can be trimmed deterministically',
+        confidence: 0.9,
+        requiresHumanReview: false,
+        limits: [],
+      })),
+      diagnosisBlocks: [],
+      limitations: [],
+      generatedAt: '2025-01-01T00:00:00.000Z',
+    },
+    metrics: { latencyMs: 0, tokensGenerated: 0, model: 'test', provider: 'test', isLocal: false },
+    promptHash: 'sha256:prompt',
+    evidenceEnvelopeRef: 'env:testabc',
+    promptVersion: '1.0',
+    rawResponseHash: 'sha256:response',
+    remediationContext: ctx,
+  };
+}
+
 function makeValidContract(overrides: Partial<ScriptContractV2> = {}): ScriptContractV2 {
   const colRefs = buildColumnRegistry(['id', 'age', 'name']);
   return {
@@ -753,7 +806,7 @@ describe('Full integrated flow (null plan → build → review → approve)', ()
     const onContractChange = vi.fn();
     const onRemediationPlanChange = vi.fn();
     const onContinue = vi.fn();
-    const diag = makeStructuredDiagnosis();
+    const diag = makeExecutableStructuredDiagnosis();
 
     render(
       <ScriptGenerationStepV2
@@ -775,18 +828,20 @@ describe('Full integrated flow (null plan → build → review → approve)', ()
       expect(screen.getByText('Generar contrato de script')).toBeTruthy();
     });
 
-    // Click generate → plan built, contract generated
+    // Approve one renderable action, then generate → executable contract generated
+    await user.click(screen.getByRole('button', { name: /Aprobar/i }));
     await user.click(screen.getByText('Generar contrato de script'));
 
     await waitFor(() => {
       expect(screen.getByText('Contrato válido')).toBeTruthy();
     });
 
-    // Plan was propagated to parent (once from RemediationPlanStepV2 useEffect, once defensively in handleGenerate)
-    expect(onRemediationPlanChange).toHaveBeenCalledTimes(2);
-    const builtPlan = onRemediationPlanChange.mock.calls[0][0];
+    // Plan was propagated to parent during build, approval, and defensive generation.
+    expect(onRemediationPlanChange.mock.calls.length).toBeGreaterThanOrEqual(3);
+    const builtPlan = onRemediationPlanChange.mock.calls.at(-1)?.[0];
     expect(builtPlan.planId).toBeTruthy();
     expect(builtPlan.plan).toBeInstanceOf(Array);
+    expect(builtPlan.plan.some((action: RemediationActionV2) => action.approvalStatus === 'approved')).toBe(true);
 
     // Contract was published
     expect(onContractChange).toHaveBeenCalledTimes(1);
@@ -795,7 +850,7 @@ describe('Full integrated flow (null plan → build → review → approve)', ()
     expect(verification.valid).toBe(true);
 
     // Continue button should be enabled (Vista B)
-    const continueBtn = screen.getByText('Continuar a revisión');
+    const continueBtn = screen.getByRole('button', { name: /Continuar a revisión/i });
     expect(continueBtn).toBeTruthy();
     await user.click(continueBtn);
     expect(onContinue).toHaveBeenCalledTimes(1);
@@ -1156,7 +1211,7 @@ describe('Full flow to ReviewStep', () => {
 
   it('null plan → build → generate → review → approve', async () => {
     const user = userEvent.setup();
-    const diag = makeStructuredDiagnosis();
+    const diag = makeExecutableStructuredDiagnosis();
 
     const initialData = {
       state: 'script' as const,
@@ -1213,7 +1268,8 @@ describe('Full flow to ReviewStep', () => {
       expect(screen.getByText('Generar contrato de script')).toBeTruthy();
     });
 
-    // Step 2: Click generate → contract built
+    // Step 2: Approve one renderable action and generate → executable contract built
+    await user.click(screen.getByRole('button', { name: /Aprobar/i }));
     await user.click(screen.getByText('Generar contrato de script'));
 
     await waitFor(() => {
@@ -1221,7 +1277,7 @@ describe('Full flow to ReviewStep', () => {
     });
 
     // Step 3: Continue to review step
-    await user.click(screen.getByText('Continuar a revisión'));
+    await user.click(screen.getByRole('button', { name: /Continuar a revisión/i }));
 
     // Step 4: ReviewStep renders with approve button
     await waitFor(() => {
@@ -1399,5 +1455,8 @@ describe('data-testid contract details', () => {
     const acceptedEl = screen.getByTestId('partition-accepted');
     expect(acceptedEl).toBeTruthy();
     expect(acceptedEl.querySelector('strong')?.textContent?.trim()).toBe('0');
+    expect(screen.getByTestId('script-contract-no-executable')).toBeTruthy();
+    const blockedReviewButton = screen.getByRole('button', { name: /Sin acciones ejecutables/i }) as HTMLButtonElement;
+    expect(blockedReviewButton.disabled).toBe(true);
   });
 });

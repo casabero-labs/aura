@@ -137,6 +137,7 @@ describe('PreflightCheck: ready status', () => {
     expect(result.hashMatch).toBe(true);
     expect(result.fingerprintMatch).toBe(true);
     expect(result.acceptedActionsCoherent).toBe(true);
+    expect(result.executableActionsPresent).toBe(true);
     expect(result.reasons).toEqual([]);
   });
 
@@ -149,6 +150,7 @@ describe('PreflightCheck: ready status', () => {
 
     expect(result.status).toBe('ready');
     expect(result.acceptedActionsCoherent).toBe(true);
+    expect(result.executableActionsPresent).toBe(true);
   });
 
   it('excludes rejected and pending actions from acceptedActionIds', () => {
@@ -161,6 +163,7 @@ describe('PreflightCheck: ready status', () => {
 
     expect(result.status).toBe('ready');
     expect(result.acceptedActionsCoherent).toBe(true);
+    expect(result.executableActionsPresent).toBe(true);
   });
 });
 
@@ -377,7 +380,7 @@ describe('PreflightCheck: multiple block reasons', () => {
 // ═══════════════════════════════════════════════════════════
 
 describe('PreflightCheck: edge cases', () => {
-  it('ready with empty plan and empty acceptedActionIds', () => {
+  it('blocks empty plan because no executable actions are present', () => {
     const plan = makePlan([]);
     const ctx = makeBuildContext(plan, ['Age']);
     const candidate = buildScriptCandidateV2(plan, ctx, { generatedAt: '2025-01-01T00:00:00.000Z' });
@@ -386,9 +389,32 @@ describe('PreflightCheck: edge cases', () => {
 
     const result = preflightCheck(contract, plan, ctx, VALID_FINGERPRINT);
 
-    expect(result.status).toBe('ready');
+    expect(result.status).toBe('blocked');
     expect(result.acceptedActionsCoherent).toBe(true);
-    expect(result.reasons).toEqual([]);
+    expect(result.executableActionsPresent).toBe(false);
+    expect(result.reasons).toEqual(['no executable actions accepted in script contract']);
+  });
+
+  it('keeps approved non-renderable actions coherent but blocked as non-executable', () => {
+    const { action } = makeActionWithColumn(
+      'requires_human_review',
+      ['Age'],
+      0,
+      { reasonCode: 'review_only_rule' },
+      'approved',
+      { actionId: 'act:review_only' },
+    );
+    const { contract, plan, ctx } = validContractFixture(['Age'], [action]);
+
+    const result = preflightCheck(contract, plan, ctx, VALID_FINGERPRINT);
+
+    expect(result.status).toBe('blocked');
+    expect(result.verification.valid).toBe(true);
+    expect(result.hashMatch).toBe(true);
+    expect(result.fingerprintMatch).toBe(true);
+    expect(result.acceptedActionsCoherent).toBe(true);
+    expect(result.executableActionsPresent).toBe(false);
+    expect(result.reasons).toEqual(['no executable actions accepted in script contract']);
   });
 
   it('hashMatch is false and blocked when scriptText is altered', () => {

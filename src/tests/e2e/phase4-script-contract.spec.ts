@@ -36,6 +36,21 @@ async function gs(p: any) {
   await p.waitForTimeout(1000);
   await expect(p.locator('[data-testid="remediation-stage"]')).toBeVisible({ timeout: 10_000 });
 }
+async function approveFirstRenderable(p: any) {
+  const r = p.locator('[data-testid="remediation-stage"]');
+  const approveBtns = r.locator('button').filter({ hasText: 'Aprobar' });
+  await expect(approveBtns.first()).toBeVisible({ timeout: 10_000 });
+  await approveBtns.first().click();
+  await p.waitForTimeout(300);
+}
+function approveFirstAction(plan: any) {
+  return {
+    ...plan,
+    plan: plan.plan.map((a: any, index: number) => (
+      index === 0 ? { ...a, approvalStatus: 'approved' as const } : a
+    )),
+  };
+}
 async function scroll(p: any) {
   await p.locator('[data-testid="review-stage"]').evaluate((el: HTMLElement) => {
     const pre = el.querySelector('.script-code');
@@ -81,6 +96,7 @@ test.describe('Phase 4 — Script Contract v2', () => {
     const rf = await page.evaluate(() => (window as any).__PHASE4_GET_STATE__?.().fingerprint);
     const { diagnosis, plan } = buildPhase4TitanicFixture(rf);
     await inj(page, diagnosis, plan); await gs(page);
+    await approveFirstRenderable(page);
     await page.getByText('Generar contrato de script').click();
     await expect(page.getByText('Contrato válido')).toBeVisible({ timeout: 15_000 });
 
@@ -90,7 +106,7 @@ test.describe('Phase 4 — Script Contract v2', () => {
     expect(fullHash).toMatch(/^[a-f0-9]{64}$/);
 
     await expect(page.getByTestId('syntax-state')).toContainText('not_run');
-    await expect(page.getByText('Continuar a revisión')).toBeEnabled();
+    await expect(page.getByRole('button', { name: /Continuar a revisión/i })).toBeEnabled();
     await expect(page.getByText('Seguro')).toHaveCount(0);
     await expect(page.getByText(/safetyScore/)).toHaveCount(0);
     await expect(page.getByText('Remediación simulada')).toHaveCount(0);
@@ -103,13 +119,15 @@ test.describe('Phase 4 — Script Contract v2', () => {
     const rf = await page.evaluate(() => (window as any).__PHASE4_GET_STATE__?.().fingerprint);
     const { diagnosis, plan } = buildPhase4TitanicFixture(rf);
     await inj(page, diagnosis, plan); await gs(page);
+    await approveFirstRenderable(page);
     await page.getByText('Generar contrato de script').click();
     await expect(page.getByText('Contrato válido')).toBeVisible({ timeout: 15_000 });
 
     const refs = buildColumnRegistry(COLS);
     const ctx = buildScriptContext(diagnosis.remediationContext!, refs, rf);
-    const candidate = buildScriptCandidateV2(plan, ctx);
-    const expected = finalizeScriptContractV2(candidate, validateScriptCandidateV2(candidate, plan, ctx));
+    const approvedPlan = approveFirstAction(plan);
+    const candidate = buildScriptCandidateV2(approvedPlan, ctx);
+    const expected = finalizeScriptContractV2(candidate, validateScriptCandidateV2(candidate, approvedPlan, ctx));
 
     const accepted = parseInt((await page.getByTestId('partition-accepted').locator('strong').textContent())?.trim() ?? '0');
     const rejected = parseInt((await page.getByTestId('partition-rejected').locator('strong').textContent())?.trim() ?? '0');
@@ -129,13 +147,15 @@ test.describe('Phase 4 — Script Contract v2', () => {
     const rf = await page.evaluate(() => (window as any).__PHASE4_GET_STATE__?.().fingerprint);
     const { diagnosis, plan } = buildPhase4TitanicFixture(rf);
     await inj(page, diagnosis, plan); await gs(page);
+    await approveFirstRenderable(page);
     await page.getByText('Generar contrato de script').click();
     await expect(page.getByText('Contrato válido')).toBeVisible({ timeout: 15_000 });
 
     const refs = buildColumnRegistry(COLS);
     const ctx = buildScriptContext(diagnosis.remediationContext!, refs, rf);
-    const candidate = buildScriptCandidateV2(plan, ctx);
-    const expected = finalizeScriptContractV2(candidate, validateScriptCandidateV2(candidate, plan, ctx));
+    const approvedPlan = approveFirstAction(plan);
+    const candidate = buildScriptCandidateV2(approvedPlan, ctx);
+    const expected = finalizeScriptContractV2(candidate, validateScriptCandidateV2(candidate, approvedPlan, ctx));
 
     const rawLines = await page.locator('.script-line code').allTextContents();
     const actual = rawLines.map(l => l.trim() === '' ? '' : l).join('\n');
@@ -159,6 +179,7 @@ test.describe('Phase 4 — Script Contract v2', () => {
     const rf = await page.evaluate(() => (window as any).__PHASE4_GET_STATE__?.().fingerprint);
     const { diagnosis, plan } = buildPhase4TitanicFixture(rf);
     await inj(page, diagnosis, plan); await gs(page);
+    await approveFirstRenderable(page);
     await page.getByText('Generar contrato de script').click();
     await expect(page.getByText('Contrato válido')).toBeVisible({ timeout: 15_000 });
 
@@ -185,6 +206,7 @@ test.describe('Phase 4 — Script Contract v2', () => {
     const rf = await page.evaluate(() => (window as any).__PHASE4_GET_STATE__?.().fingerprint);
     const { diagnosis, plan } = buildPhase4TitanicFixture(rf);
     await inj(page, diagnosis, plan); await gs(page);
+    await approveFirstRenderable(page);
     await page.getByText('Generar contrato de script').click();
     await expect(page.getByText('Contrato válido')).toBeVisible({ timeout: 15_000 });
 
@@ -287,5 +309,7 @@ test.describe('Phase 4 — Script Contract v2', () => {
     expect(actual08).toContain('def clean_dataset');
     expect(actual08).toContain('df.copy()');
     expect(actual08).toContain('return df_clean');
+    await expect(page.getByTestId('script-contract-no-executable')).toBeVisible();
+    await expect(page.getByRole('button', { name: /Sin acciones ejecutables/i })).toBeDisabled();
   });
 });

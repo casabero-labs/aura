@@ -133,7 +133,7 @@ function makeMockExecutionResult(): ControlledExecutionResult {
     fixtureApplied: true,
     datasetOriginalIntact: true,
     gates: {
-      preflight: { status: 'ready', verification: { valid: true, errors: [] }, hashMatch: true, fingerprintMatch: true, acceptedActionsCoherent: true, reasons: [] },
+      preflight: { status: 'ready', verification: { valid: true, errors: [] }, hashMatch: true, fingerprintMatch: true, acceptedActionsCoherent: true, executableActionsPresent: true, reasons: [] },
       sandbox: { status: 'success', startedAt: '2025-01-01T00:00:00.000Z', finishedAt: '2025-01-01T00:00:01.000Z', durationMs: 1000, logs: [], error: null, sandbox: { timeoutMs: 30000, networkDisabled: true, filesystemRestricted: true, memoryLimitMb: 512, allowedImports: ['pandas'] }, preflightBlocked: false, importViolations: [], hasCleanDataset: true, networkAccessDetected: false, filesystemAccessDetected: false, dangerousBuiltinsDetected: [] },
     },
   };

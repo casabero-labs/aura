@@ -164,6 +164,11 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
       setV2VerifyError('El código no coincide con el contrato. No se puede aprobar.');
       return;
     }
+    if ((scriptContractV2.acceptedActionIds?.length ?? 0) === 0) {
+      setV2VerifyError('El contrato no contiene acciones ejecutables. Vuelve al plan y aprueba una acción renderizable antes de aprobar el script.');
+      setStage('pending');
+      return;
+    }
     setStage('validating');
     try {
       const contextResult = buildUiScriptContext({
@@ -549,6 +554,10 @@ function V2Review({
           <strong style={{ color: v2Approved ? 'var(--success)' : 'var(--ink3)' }}>
             {v2Approved ? 'Contrato válido' : 'Pendiente de revisión'}
           </strong>
+        </div>
+        <div className="stage-summary-item">
+          <span className="stage-summary-label">acciones</span>
+          <strong>{scriptContract.acceptedActionIds.length}</strong>
         </div>
         <div className="stage-summary-item">
           <span className="stage-summary-label">hash</span>

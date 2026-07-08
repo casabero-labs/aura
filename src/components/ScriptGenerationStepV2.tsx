@@ -195,10 +195,14 @@ const ScriptGenerationStepV2: React.FC<ScriptGenerationStepV2Props> = ({
     [contextResult, onScriptContractChange, onRemediationPlanChange, onLog],
   );
 
-  const contractValid =
+  const contractValid = Boolean(
     genState.status === 'done' &&
     genState.contract &&
-    genState.verification?.valid === true;
+    genState.verification?.valid === true,
+  );
+  const executableActionCount = genState.contract?.acceptedActionIds.length ?? 0;
+  const hasExecutableActions = contractValid && executableActionCount > 0;
+  const canContinueToReview = contractValid && hasExecutableActions;
 
   const partition = useMemo(() => {
     if (!genState.contract) return null;
@@ -397,6 +401,21 @@ const ScriptGenerationStepV2: React.FC<ScriptGenerationStepV2Props> = ({
         </div>
       )}
 
+      {contractValid && !hasExecutableActions && (
+        <div
+          className="companion-note"
+          data-testid="script-contract-no-executable"
+          style={{ marginBottom: 'var(--space-md)' }}
+        >
+          <AlertTriangle size={14} style={{ color: 'var(--orange)' }} />
+          <p>
+            <strong>Sin acciones ejecutables.</strong> El contrato es verificable, pero el
+            script solo conserva el dataset. Vuelve al plan y aprueba una acción
+            automática renderizable antes de revisar el script.
+          </p>
+        </div>
+      )}
+
       {excludedActions.length > 0 && (
         <div
           style={{
@@ -568,10 +587,11 @@ const ScriptGenerationStepV2: React.FC<ScriptGenerationStepV2Props> = ({
       >
         <button
           className="btn-p btn-sm"
-          disabled={!contractValid}
+          disabled={!canContinueToReview}
           onClick={onContinue}
         >
-          Continuar a revisión <ArrowRight size={12} />
+          {canContinueToReview ? 'Continuar a revisión' : 'Sin acciones ejecutables'}{' '}
+          <ArrowRight size={12} />
         </button>
         <button
           className="btn-s btn-sm"

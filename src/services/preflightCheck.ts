@@ -6,6 +6,12 @@ import type { ScriptContractV2, RemediationPlanV2, ScriptBuildContextV2 } from '
 import { verifyScriptContractV2, computeScriptHashV2 } from '../contracts/llm';
 import type { ScriptContractCandidateV2 } from '../contracts/llm/types';
 
+const NON_EXECUTABLE_APPROVED_EXCLUSION_REASONS = new Set([
+  'unsupported_action',
+  'missing_column',
+  'ambiguous_column',
+]);
+
 export interface PreflightResult {
   status: 'ready' | 'blocked';
   verification: {
@@ -15,6 +21,7 @@ export interface PreflightResult {
   hashMatch: boolean;
   fingerprintMatch: boolean;
   acceptedActionsCoherent: boolean;
+  executableActionsPresent: boolean;
   reasons: string[];
 }
 
@@ -31,6 +38,7 @@ export function preflightCheck(
       hashMatch: false,
       fingerprintMatch: false,
       acceptedActionsCoherent: false,
+      executableActionsPresent: false,
       reasons: ['contract is null or undefined'],
     };
   }
@@ -65,8 +73,17 @@ export function preflightCheck(
   }
 
   const acceptedActionsCoherent = validateAcceptedActionsCoherence(contract, remediationPlan, reasons);
+  const executableActionsPresent = Array.isArray(contract.acceptedActionIds) && contract.acceptedActionIds.length > 0;
+  if (!executableActionsPresent) {
+    reasons.push('no executable actions accepted in script contract');
+  }
 
-  const blocked = !verification.valid || !hashMatch || !fingerprintMatch || !acceptedActionsCoherent;
+  const blocked =
+    !verification.valid ||
+    !hashMatch ||
+    !fingerprintMatch ||
+    !acceptedActionsCoherent ||
+    !executableActionsPresent;
 
   return {
     status: blocked ? 'blocked' : 'ready',
@@ -77,6 +94,7 @@ export function preflightCheck(
     hashMatch,
     fingerprintMatch,
     acceptedActionsCoherent,
+    executableActionsPresent,
     reasons,
   };
 }
@@ -94,6 +112,12 @@ function validateAcceptedActionsCoherence(
   );
 
   const contractSet = new Set(contract.acceptedActionIds);
+  const excludedReasonsById = new Map(
+    (Array.isArray(contract.excludedActionIds) ? contract.excludedActionIds : []).map(ex => [
+      ex.actionId,
+      ex.reason,
+    ]),
+  );
   const violations: string[] = [];
 
   for (const id of contractSet) {
@@ -109,6 +133,10 @@ function validateAcceptedActionsCoherence(
 
   for (const id of approvedIds) {
     if (!contractSet.has(id)) {
+      const exclusionReason = excludedReasonsById.get(id);
+      if (exclusionReason && NON_EXECUTABLE_APPROVED_EXCLUSION_REASONS.has(exclusionReason)) {
+        continue;
+      }
       violations.push(`approved action ${id} missing from contract acceptedActionIds`);
     }
   }
