@@ -5,10 +5,10 @@
 | Ítem | Valor |
 |------|-------|
 | **Estado** | Congelado |
-| **HEAD auditado** | `6baccb6a1286081d13609761bb7bc45c3623329a` |
+| **HEAD auditado** | `6ce9d4d539ecedc194b6e34b97f44044d5ab66a2` |
 | **Fecha** | 2026-07-09 |
-| **Repositorio** | Working dir con cambios locales L25-L30 (no committeados) |
-| **Issues abiertas** | 0 (issues #20-#23 revisadas en L26) |
+| **Repositorio** | Limpio / HEAD = origin/main |
+| **Issues abiertas** | #24 pendiente de cierre administrativo (código ejecutado, commit y push hechos) |
 
 ## 2. SHAs principales
 
@@ -29,12 +29,12 @@
 | L19 | LLM v2 experimental comparison | `9d25cf4db5095c735c0e57e5aed161b8cc1c2081` |
 | L19 doc-fix | LLM v2 comparison doc fix | `059e780aea8365cd633017c7d867c3f279e6de42` |
 | L20 | LLM contract v2 decision | `b55069fd6cb310fef1ff29402e2ae023a4e322d0` |
-| L25 | Calibration Settings/Lab Integration | `6baccb6a1286081d13609761bb7bc45c3623329a` |
-| L26 | Provider Final QA | `6baccb6a1286081d13609761bb7bc45c3623329a` |
-| L27 | Production Deployment Verification | `6baccb6a1286081d13609761bb7bc45c3623329a` |
-| L28 | Visual Evidence Pack | `6baccb6a1286081d13609761bb7bc45c3623329a` |
-| L29 | Final Product QA | `6baccb6a1286081d13609761bb7bc45c3623329a` |
-| **L30 (freeze)** | **Freeze Phase 10 cierre L25-L30** | **(este commit / working dir)** |
+| L25 | Calibration Settings/Lab Integration | `6ce9d4d539ecedc194b6e34b97f44044d5ab66a2` |
+| L26 | Provider Final QA | `6ce9d4d539ecedc194b6e34b97f44044d5ab66a2` |
+| L27 | Production Deployment Verification | `6ce9d4d539ecedc194b6e34b97f44044d5ab66a2` |
+| L28 | Visual Evidence Pack | `6ce9d4d539ecedc194b6e34b97f44044d5ab66a2` |
+| L29 | Final Product QA | `6ce9d4d539ecedc194b6e34b97f44044d5ab66a2` |
+| **L30 (freeze)** | **Freeze Phase 10 cierre L25-L30** | `6ce9d4d539ecedc194b6e34b97f44044d5ab66a2` |
 
 ## 3. Capacidades cerradas
 
@@ -146,7 +146,7 @@ Phase 10 cubrió desde calibración embebida (L11) hasta cierre productivo L25-L
 Cierre L25-L30:
 - **L25**: Laboratorio avanzado en Configuración. `SettingsPanel` acepta `onOpenLab`, sección "Laboratorio avanzado / Calibración experimental de modelos", botón "Abrir laboratorio experimental". Laboratorio removido de navegación desktop y mobile. `BenchmarkLab` vivo internamente. Calibración no devuelta al stepper principal.
 - **L26**: Provider Final QA. Tests Ollama + Chrome AI + SettingsPanel pasan (24/24). Issues #20-#23 revisadas.
-- **L27**: Build verificado localmente. SHA: `6baccb6a1286081d13609761bb7bc45c3623329a`. Producción pendiente de validación en `aura.casabero.com`.
+- **L27**: Build verificado localmente. SHA: `6ce9d4d539ecedc194b6e34b97f44044d5ab66a2`. Producción pendiente de validación en `aura.casabero.com`.
 - **L28**: Capturas visuales pendientes (requieren navegador real).
 - **L29**: QA final. Typecheck ✅, build ✅, vitest 1565/1580 pass. E2E nav smoke pendiente por entorno Windows.
 - **L30**: Freeze documental con este archivo.
