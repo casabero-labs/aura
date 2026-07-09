@@ -458,13 +458,6 @@ const App: React.FC = () => {
             </button>
 
             <button
-              className={`nav-menu-item ${showLab ? 'active' : ''}`}
-              onClick={goLab}
-            >
-              Laboratorio
-            </button>
-
-            <button
               className={`nav-menu-item ${showImprovementRun ? 'active' : ''}`}
               onClick={goImprovementRun}
             >
@@ -518,9 +511,6 @@ const App: React.FC = () => {
         <button className="nav-link" onClick={goAudit}>
           Auditoría
         </button>
-        <button className="nav-link" onClick={goLab}>
-          Laboratorio
-        </button>
         <button className="nav-link" onClick={goImprovementRun}>
           Health Delta
         </button>
@@ -538,7 +528,7 @@ const App: React.FC = () => {
 
       {/* Settings and help stay inside the persistent app shell. */}
       {showSettings && (
-        <SettingsPanel config={aiConfig} onSave={setAiConfig} onClose={() => setShowSettings(false)} />
+        <SettingsPanel config={aiConfig} onSave={setAiConfig} onClose={() => setShowSettings(false)} onOpenLab={goLab} />
       )}
 
       {showHelp && (

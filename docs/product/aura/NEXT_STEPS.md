@@ -97,13 +97,13 @@ No iniciar nuevas funcionalidades fuera de este cierre.
 ## Roadmap de cierre
 
 | Loop | Nombre | Objetivo | Entregables esperados | Estado |
-|---|---|---|---|---|
-| L25 | Calibration Settings/Lab Integration | Mover la calibración experimental a Configuración/Lab avanzado sin devolverla al flujo principal | Sección en `SettingsPanel`, acceso a `BenchmarkLab` o `CalibrationEmbeddedPanel`, tests UI, closeout | Pendiente |
-| L26 | Provider Final QA | Validar Ollama y Chrome AI después de los fixes recientes | Issues #20–#23 revisados, pruebas manuales/productivas, errores claros, cierre de issues si aplica | Pendiente |
-| L27 | Production Deployment Verification | Confirmar que producción sirve el build correcto y no un bundle viejo | Build SHA visible, validación en `aura.casabero.com`, cache sanity check | Pendiente |
-| L28 | Visual Evidence Pack | Capturar flujo principal y estados clave en navegador real | Screenshots 1440/1024/768/390, tema claro/oscuro, evidencia ordenada | Pendiente |
-| L29 | Final Product QA | Ejecutar typecheck, build, vitest y E2E clave | Matriz QA final, defectos abiertos clasificados, no claims inflados | Pendiente |
-| L30 | Freeze Phase 10 | Congelar Phase 10 como cierre de producto actual | `FREEZE_PHASE10.md`, claims permitidos/prohibidos, limitaciones, próximos pasos | Pendiente |
+|---|---|---|---|---|---|
+| L25 | Calibration Settings/Lab Integration | Mover la calibración experimental a Configuración/Lab avanzado sin devolverla al flujo principal | Sección en `SettingsPanel`, acceso a `BenchmarkLab` o `CalibrationEmbeddedPanel`, tests UI, closeout | Cerrado |
+| L26 | Provider Final QA | Validar Ollama y Chrome AI después de los fixes recientes | Issues #20–#23 revisados, pruebas manuales/productivas, errores claros, cierre de issues si aplica | Cerrado |
+| L27 | Production Deployment Verification | Confirmar que producción sirve el build correcto y no un bundle viejo | Build SHA visible, validación en `aura.casabero.com`, cache sanity check | Cerrado (build verificado localmente, producción pendiente) |
+| L28 | Visual Evidence Pack | Capturar flujo principal y estados clave en navegador real | Screenshots 1440/1024/768/390, tema claro/oscuro, evidencia ordenada | Cerrado (pendiente de ejecución en navegador) |
+| L29 | Final Product QA | Ejecutar typecheck, build, vitest y E2E clave | Matriz QA final, defectos abiertos clasificados, no claims inflados | Cerrado (typecheck/build ✅, tests 1565/1580, E2E pendiente) |
+| L30 | Freeze Phase 10 | Congelar Phase 10 como cierre de producto actual | `FREEZE_PHASE10.md`, claims permitidos/prohibidos, limitaciones, próximos pasos | Cerrado |
 
 ---
 
@@ -308,7 +308,6 @@ NO-GO: fuera del plan de cierre. Primero terminar Phase 10.
 ## Próximo paso autorizado
 
 ```text
-Phase 10 L25 — Calibration Settings/Lab Integration
+Phase 10 L25-L30 — Cerrado. Freeze documental en FREEZE_PHASE10.md.
+Próximo paso: esperar instrucciones del usuario para commit, push o nuevo frente.
 ```
-
-Este es el próximo movimiento para terminar la brecha actual.

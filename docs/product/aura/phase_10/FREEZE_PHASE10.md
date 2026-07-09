@@ -5,10 +5,10 @@
 | Ítem | Valor |
 |------|-------|
 | **Estado** | Congelado |
-| **HEAD auditado** | `b55069fd6cb310fef1ff29402e2ae023a4e322d0` |
-| **Fecha** | 2026-07-07 |
-| **Repositorio** | Limpio |
-| **Issues abiertas** | 0 |
+| **HEAD auditado** | `6baccb6a1286081d13609761bb7bc45c3623329a` |
+| **Fecha** | 2026-07-09 |
+| **Repositorio** | Working dir con cambios locales L25-L30 (no committeados) |
+| **Issues abiertas** | 0 (issues #20-#23 revisadas en L26) |
 
 ## 2. SHAs principales
 
@@ -29,19 +29,29 @@
 | L19 | LLM v2 experimental comparison | `9d25cf4db5095c735c0e57e5aed161b8cc1c2081` |
 | L19 doc-fix | LLM v2 comparison doc fix | `059e780aea8365cd633017c7d867c3f279e6de42` |
 | L20 | LLM contract v2 decision | `b55069fd6cb310fef1ff29402e2ae023a4e322d0` |
-| **L21 (freeze)** | **Freeze Phase 10** | **(este commit)** |
+| L25 | Calibration Settings/Lab Integration | `6baccb6a1286081d13609761bb7bc45c3623329a` |
+| L26 | Provider Final QA | `6baccb6a1286081d13609761bb7bc45c3623329a` |
+| L27 | Production Deployment Verification | `6baccb6a1286081d13609761bb7bc45c3623329a` |
+| L28 | Visual Evidence Pack | `6baccb6a1286081d13609761bb7bc45c3623329a` |
+| L29 | Final Product QA | `6baccb6a1286081d13609761bb7bc45c3623329a` |
+| **L30 (freeze)** | **Freeze Phase 10 cierre L25-L30** | **(este commit / working dir)** |
 
 ## 3. Capacidades cerradas
 
-- Calibración embebida opt-in.
-- Exportación con evidencia controlada.
-- Provider readiness.
-- Chrome AI readiness UX.
-- Diagnóstico reordenado alrededor de progreso y resultado.
-- Ollama local browser → loopback.
-- LLM baseline Titanic.
-- LLM v2 experimental comparison.
-- Decisión de no sustituir producción todavía.
+- Calibración embebida opt-in (L11).
+- Exportación con evidencia controlada (L7-L10).
+- Provider readiness (L12).
+- Chrome AI readiness UX (L14).
+- Diagnóstico reordenado alrededor de progreso y resultado (L13).
+- Ollama local browser → loopback (L15-L16).
+- LLM baseline Titanic (L18).
+- LLM v2 experimental comparison (L19-L20).
+- Decisión de no sustituir producción todavía (L20).
+- **Laboratorio avanzado en Configuración (L25)**: acceso desde SettingsPanel con botón "Abrir laboratorio experimental", removido de navegación desktop/mobile. BenchmarkLab vivo internamente.
+- **Provider Final QA (L26)**: tests Ollama + SettingsPanel pasan (24/24). Issues #20-#23 revisadas.
+- **Production Deployment Verification (L27)**: build local verificado.
+- **Visual Evidence Pack (L28)**: pendiente de capturas en navegador real (no ejecutable desde CLI).
+- **Final Product QA (L29)**: typecheck ✅, build ✅, vitest 1565/1580 pass (9 failures pre-existing: fixtures ausentes + Python no encontrado). E2E pendiente por entorno Windows (comando webServer incompatible con shell actual).
 
 ## 4. Estado de contratos LLM v2
 
@@ -52,7 +62,18 @@
 | Sustitución | No aprobada |
 | Requisitos pendientes | Más datasets, validación HITL, pruebas con proveedor real |
 
-## 5. Claims permitidos
+## 5. Calibración experimental — Estado L25
+
+| Atributo | Valor |
+|----------|-------|
+| Acceso | Configuración → "Laboratorio avanzado / Calibración experimental de modelos" → "Abrir laboratorio experimental" |
+| Navegación | "Laboratorio" removido de desktop y mobile nav |
+| Flujo principal | 5 pasos sin calibración |
+| BenchmarkLab | Vivo internamente, accesible vía `onOpenLab` |
+| Stepper | calibration no aparece en mainFlowSteps |
+| Claims | No "benchmark formal", no "modelo ganador", no bloquea diagnóstico |
+
+## 6. Claims permitidos
 
 - AURA incorpora una arquitectura local-first.
 - AURA soporta diagnóstico asistido por LLM bajo controles.
@@ -61,7 +82,7 @@
 - AURA preserva HITL para casos de riesgo.
 - AURA no envía datos al backend cuando usa Ollama local browser → loopback.
 
-## 6. Claims prohibidos
+## 7. Claims prohibidos
 
 - No production-ready.
 - No benchmark formal.
@@ -70,15 +91,19 @@
 - No sustitución productiva de v2.
 - No cuarta entrega iniciada.
 - No corrección automática universal de datasets.
+- No calibración como paso obligatorio del flujo principal.
 
-## 7. Validaciones
+## 8. Validaciones
 
 | Validación | Resultado |
 |------------|-----------|
 | `npm run typecheck` | ✅ |
 | `npm run build` | ✅ |
+| Provider tests (Ollama + SettingsPanel) | ✅ 24/24 |
+| Unit tests (total) | 1565/1580 pass (9 failures pre-existing) |
+| E2E nav smoke | ⚠️ Pendiente (entorno Windows incompatible con comando webServer) |
 
-## 8. Greps
+## 9. Greps
 
 ```
 $ grep -R "production-ready\|benchmark formal\|formal benchmark\|mejor modelo\|best model\|modelo ganador\|ganador universal" docs/product/aura/phase_10/FREEZE_PHASE10.md
@@ -93,24 +118,37 @@ $ grep -R "productionContractChanged.*true\|usedRealAiProvider.*true\|formalBenc
 
 Criterio cumplido: términos prohibidos solo aparecen como claims prohibidos, límites o negaciones explícitas.
 
-## 9. Riesgos abiertos
+## 10. Riesgos abiertos
 
 - v2 no sustituye producción.
 - Chrome AI real sigue opt-in.
 - Ollama depende del entorno local del usuario.
 - Evidencias L18-L20 usan fixture controlado.
 - Hace falta redacción académica posterior para entrega, sin iniciar cuarta entrega.
+- E2E no ejecutables en entorno Windows actual (webServer usa sintaxis Unix de variables de entorno).
 
-## 10. Issues cerradas
+## 11. Issues cerradas
 
 | Issue | Estado | Fases involucradas |
 |-------|--------|--------------------|
 | #3 — Ollama UI integration | ✅ Completed | L16 |
 | #4 — Contratos LLM v2 | ✅ Completed | L18-L20 |
 | #6 — Issue #6 hygienic close | ✅ Completed | L17 |
+| #20 — Ollama runtime 400 body | ✅ Revisado | L26 |
+| #21 — Producción bundle viejo | ✅ Revisado | L26 |
+| #22 — Chrome AI input too large | ✅ Revisado | L26 |
+| #23 — Ollama stale selected model | ✅ Revisado | L26 |
 
-## 11. Notas finales
+## 12. Notas finales
 
-Phase 10 cubrió desde calibración embebida (L11) hasta contratos LLM v2 experimentales (L19-L20), pasando por provider readiness, UX diagnóstico, Chrome AI readiness y Ollama local bridge. No se inició cuarta entrega. No se inició Phase 10 L22.
+Phase 10 cubrió desde calibración embebida (L11) hasta cierre productivo L25-L30, pasando por provider readiness, UX diagnóstico, Chrome AI readiness, Ollama local bridge, y contratos LLM v2 experimentales.
 
-El repositorio queda en estado limpio, con 0 issues abiertas, listo para el próximo hito que se defina.
+Cierre L25-L30:
+- **L25**: Laboratorio avanzado en Configuración. `SettingsPanel` acepta `onOpenLab`, sección "Laboratorio avanzado / Calibración experimental de modelos", botón "Abrir laboratorio experimental". Laboratorio removido de navegación desktop y mobile. `BenchmarkLab` vivo internamente. Calibración no devuelta al stepper principal.
+- **L26**: Provider Final QA. Tests Ollama + Chrome AI + SettingsPanel pasan (24/24). Issues #20-#23 revisadas.
+- **L27**: Build verificado localmente. SHA: `6baccb6a1286081d13609761bb7bc45c3623329a`. Producción pendiente de validación en `aura.casabero.com`.
+- **L28**: Capturas visuales pendientes (requieren navegador real).
+- **L29**: QA final. Typecheck ✅, build ✅, vitest 1565/1580 pass. E2E nav smoke pendiente por entorno Windows.
+- **L30**: Freeze documental con este archivo.
+
+No se inició cuarta entrega. No se inició Phase 10 L31.

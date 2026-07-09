@@ -21,7 +21,6 @@ test.describe('Phase 7 L1 — E2E Smoke: Navigation + Health Delta', () => {
 
       await expect(navCenterMenu.getByRole('button', { name: 'Home' })).toBeVisible();
       await expect(navCenterMenu.getByRole('button', { name: 'Auditoría' })).toBeVisible();
-      await expect(navCenterMenu.getByRole('button', { name: 'Laboratorio' })).toBeVisible();
       await expect(navCenterMenu.getByRole('button', { name: 'Health Delta' })).toBeVisible();
       await expect(navCenterMenu.getByRole('button', { name: 'Configuración' })).toBeVisible();
     });
@@ -34,12 +33,18 @@ test.describe('Phase 7 L1 — E2E Smoke: Navigation + Health Delta', () => {
       await expect(auditoriaBtn).toHaveClass(/active/);
     });
 
-    test('E2E-NAV-003 — Laboratorio abre correctamente', async ({ page }) => {
+    test('E2E-NAV-003 — Laboratorio accesible desde Configuración', async ({ page }) => {
       const navCenterMenu = page.locator('.nav-center-menu');
-      const labBtn = navCenterMenu.getByRole('button', { name: 'Laboratorio' });
+      const configBtn = navCenterMenu.getByRole('button', { name: 'Configuración' });
 
-      await labBtn.click();
-      await expect(labBtn).toHaveClass(/active/);
+      await configBtn.click();
+      await expect(configBtn).toHaveClass(/active/);
+
+      const labSummary = page.getByText('Laboratorio avanzado / Calibración experimental');
+      await labSummary.click();
+
+      const openLabBtn = page.getByRole('button', { name: /Abrir laboratorio experimental/i });
+      await expect(openLabBtn).toBeVisible();
     });
 
     test('E2E-NAV-004 — Health Delta abre correctamente', async ({ page }) => {
