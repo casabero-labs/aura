@@ -107,6 +107,85 @@ No iniciar nuevas funcionalidades fuera de este cierre.
 
 ---
 
+## Propuesta académica post-freeze — Matriz de evaluación TFM
+
+Naturaleza: backlog metodológico para el TFM. No inicia una cuarta entrega académica, no modifica el score determinista y no debe bloquear L25–L30.
+
+### Objetivo
+
+Construir una matriz reproducible para comparar varias pasadas de diagnóstico sobre un mismo dataset controlado. La matriz debe permitir observar qué hizo cada modelo, con qué configuración, bajo qué método de entrada y con qué calidad frente a una referencia esperada.
+
+### Unidad experimental
+
+Una fila representa una pasada completa:
+
+```text
+dataset controlado + método de entrada + proveedor/modelo + parámetros + versión de prompt + resultado
+```
+
+### Columnas mínimas de la matriz
+
+| Bloque | Campos propuestos |
+|---|---|
+| Identificación | `run_id`, `dataset_id`, `dataset_version`, `dataset_fingerprint`, `fecha`, `operador` |
+| Entrada | `metodo_entrada`, `filas`, `columnas`, `tipo_dataset`, `perfil_base_hash` |
+| Modelo | `provider`, `model`, `model_version`, `temperature`, `top_p`, `seed`, `prompt_version`, `contract_version` |
+| Ejecución | `latency_ms`, `input_tokens`, `output_tokens`, `diagnostic_status`, `errores`, `reintentos` |
+| Hallazgos | `expected_findings`, `detected_findings`, `tp`, `fp`, `fn`, `tn`, `precision`, `recall`, `f1` |
+| Severidad | `severity_expected`, `severity_detected`, `severity_match_rate`, `critical_missed`, `critical_overcalled` |
+| Explicación | `claridad_0_4`, `trazabilidad_0_4`, `accionabilidad_0_4`, `sobrecarga_texto_0_4`, `alucinacion_detectada` |
+| Visualización | `d3_sugerido`, `chart_specs_generadas`, `grafico_necesario`, `grafico_util_0_4` |
+| Remediación | `script_sugerido`, `script_generado`, `script_aprobado`, `hitl_requerido`, `riesgo_script` |
+| Exportación | `pdf_generado`, `json_generado`, `csv_generado`, `artifact_paths`, `observaciones` |
+
+### Escala de calificación
+
+Usar escala ordinal 0–4 para evaluación humana:
+
+| Valor | Lectura |
+|---|---|
+| 0 | Ausente o incorrecto |
+| 1 | Débil, incompleto o confuso |
+| 2 | Aceptable con limitaciones claras |
+| 3 | Bueno y defendible |
+| 4 | Muy bueno, claro, trazable y útil |
+
+Dimensiones recomendadas:
+
+- Cobertura de hallazgos esperados.
+- Precisión frente a falsos positivos.
+- Detección de críticos.
+- Calidad de explicación.
+- Trazabilidad a evidencia determinista.
+- Utilidad de visualizaciones D3 cuando existan.
+- Sobriedad de la salida: no saturar con texto innecesario.
+- Utilidad del PDF final como evidencia académica.
+
+### Métricas calculables
+
+```text
+precision = TP / (TP + FP)
+recall    = TP / (TP + FN)
+f1        = 2 * precision * recall / (precision + recall)
+severity_match_rate = severidades_correctas / hallazgos_esperados
+```
+
+La comparación no debe declarar “mejor modelo universal”. Solo debe sostener conclusiones acotadas al dataset, configuración, fecha y protocolo usados.
+
+### Artefactos esperados
+
+- CSV/JSON con la matriz de pasadas.
+- PDF resumido por dataset controlado.
+- Gráficos D3 solo cuando aporten comparación real.
+- Carpeta de evidencia con prompts, versiones, resultados y exports.
+- Nota metodológica con limitaciones y criterios de lectura.
+
+### Criterio de inicio
+
+Iniciar esta matriz solo después de congelar Phase 10 o cuando el usuario lo pida explícitamente como frente académico. Hasta entonces queda documentada como propuesta metodológica.
+
+---
+
 ## Detalle obligatorio de L25 — Calibración en Configuración/Lab
 
 ### Objetivo
