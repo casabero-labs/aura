@@ -449,16 +449,6 @@ const App: React.FC = () => {
     <ErrorBoundary><div className="aura-system">
       {showAuditLog && <AuditLogViewer onClose={() => setShowAuditLog(false)} />}
 
-      {/* Settings — full workspace when active */}
-      {showSettings && (
-        <SettingsPanel config={aiConfig} onSave={setAiConfig} onClose={() => setShowSettings(false)} />
-      )}
-
-      {/* Help — full workspace when active */}
-      {showHelp && (
-        <HelpCenter onClose={() => setShowHelp(false)} />
-      )}
-
       {/* Navigation */}
       <nav className="sys-nav">
         {/* Bloque Izquierdo: Branding */}
@@ -488,6 +478,13 @@ const App: React.FC = () => {
               onClick={goAudit}
             >
               Auditoría
+            </button>
+
+            <button
+              className={`nav-menu-item ${showLab ? 'active' : ''}`}
+              onClick={goLab}
+            >
+              Laboratorio
             </button>
 
             <button
@@ -544,6 +541,9 @@ const App: React.FC = () => {
         <button className="nav-link" onClick={goAudit}>
           Auditoría
         </button>
+        <button className="nav-link" onClick={goLab}>
+          Laboratorio
+        </button>
         <button className="nav-link" onClick={goImprovementRun}>
           Health Delta
         </button>
@@ -558,6 +558,15 @@ const App: React.FC = () => {
           {theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
         </button>
       </div>
+
+      {/* Settings and help stay inside the persistent app shell. */}
+      {showSettings && (
+        <SettingsPanel config={aiConfig} onSave={setAiConfig} onClose={() => setShowSettings(false)} />
+      )}
+
+      {showHelp && (
+        <HelpCenter onClose={() => setShowHelp(false)} />
+      )}
 
       {showChangelog && <ChangelogModal onClose={() => setShowChangelog(false)} />}
 

@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { ArrowRight, ChevronDown, AlertOctagon, AlertTriangle, Info, BarChart3, Columns3 } from 'lucide-react';
+import { ArrowRight, ChevronDown, BarChart3, Columns3 } from 'lucide-react';
 import BoxPlot from './BoxPlot';
 import ColumnStatsPanel from './ColumnStatsPanel';
 import DatasetProfile from './DatasetProfile';
@@ -9,6 +9,7 @@ import FindingsTable from './FindingsTable';
 import IngestionEvidenceCard from './IngestionEvidenceCard';
 import ProfileEvidencePackage from './ProfileEvidencePackage';
 import RuleActivationMatrix from './RuleActivationMatrix';
+import SeverityDistributionChart from './SeverityDistributionChart';
 import { AuditExecutionEvidence, AuditReport, DeterministicValidationReport, IssueSeverity } from '../types';
 
 interface ProfileStepProps {
@@ -157,32 +158,11 @@ const ProfileStep: React.FC<ProfileStepProps> = ({ report, auditEvidence, determ
 
             {/* Distribución por severidad — visible por defecto */}
             {totalFindings > 0 && (
-              <div className="profile-severity-bars" data-testid="profile-severity-bars" style={{ marginTop: 'var(--space-md)' }}>
-                <div className="profile-severity-row">
-                  <span className="profile-sev-icon" style={{ color: 'var(--error)' }}><AlertOctagon size={12} /></span>
-                  <span className="profile-sev-label">crítico</span>
-                  <span className="profile-sev-count" style={{ color: 'var(--error)' }}>{criticalCount}</span>
-                  <span className="profile-sev-bar-bg">
-                    <span className="profile-sev-bar-fill" style={{ width: `${totalFindings ? (criticalCount / totalFindings) * 100 : 0}%`, background: 'var(--error)' }} />
-                  </span>
-                </div>
-                <div className="profile-severity-row">
-                  <span className="profile-sev-icon" style={{ color: 'var(--orange)' }}><AlertTriangle size={12} /></span>
-                  <span className="profile-sev-label">advertencia</span>
-                  <span className="profile-sev-count" style={{ color: 'var(--orange)' }}>{warningCount}</span>
-                  <span className="profile-sev-bar-bg">
-                    <span className="profile-sev-bar-fill" style={{ width: `${totalFindings ? (warningCount / totalFindings) * 100 : 0}%`, background: 'var(--orange)' }} />
-                  </span>
-                </div>
-                <div className="profile-severity-row">
-                  <span className="profile-sev-icon" style={{ color: 'var(--ink3)' }}><Info size={12} /></span>
-                  <span className="profile-sev-label">informativo</span>
-                  <span className="profile-sev-count" style={{ color: 'var(--ink3)' }}>{infoCount}</span>
-                  <span className="profile-sev-bar-bg">
-                    <span className="profile-sev-bar-fill" style={{ width: `${totalFindings ? (infoCount / totalFindings) * 100 : 0}%`, background: 'var(--ink3)' }} />
-                  </span>
-                </div>
-              </div>
+              <SeverityDistributionChart
+                critical={criticalCount}
+                warning={warningCount}
+                info={infoCount}
+              />
             )}
           </section>
 
@@ -329,7 +309,7 @@ const ProfileStep: React.FC<ProfileStepProps> = ({ report, auditEvidence, determ
                   <span className="profile-block-index">03</span>
                   <div>
                     <p className="sec-eye">hallazgos y evidencia</p>
-                    <h2 id="profile-findings-title" className="sec-title">Problemas observados y paquete estructurado.</h2>
+                    <h2 id="profile-findings-title" className="sec-title">Hallazgos observados.</h2>
                   </div>
                 </div>
 

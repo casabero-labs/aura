@@ -4,7 +4,7 @@ import GeminiAdvisor from './GeminiAdvisor';
 import ProgressDisclosure from './ProgressDisclosure';
 import ChromeAiStatusPanel from './ChromeAiStatusPanel';
 import OllamaSetupWizard from './OllamaSetupWizard';
-import { DiagnosisHeroPanel, DiagnosisProviderPanel, DiagnosisContractPanel, TechnicalEvidencePanel } from './diagnosis';
+import { DiagnosisHeroPanel, TechnicalEvidencePanel } from './diagnosis';
 import { AIConfig, AIProvider, AuditReport, AuditExecutionEvidence, ProviderMetrics, LocalModelStatus, DiagnosisEvent, ProviderProgressEvent, ProgressDisclosureStatus, InputMode } from '../types';
 import { buildSmartSample, buildAnalysisPrompt } from '../services/providers/prompts';
 import { AVAILABLE_MODELS, LOCAL_MODELS, getLocalModelStatus, markPreloadVerified, clearPreloadVerification, deleteDownloadedModel, getChromeAiDiagnostic } from '../services/aiProvider';
@@ -96,7 +96,6 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
   const [showPrivacyDetails, setShowPrivacyDetails] = useState(false);
   const [networkResult, setNetworkResult] = useState<NetworkGuardResult | null>(null);
   const [isTechnicalEvidenceOpen, setIsTechnicalEvidenceOpen] = useState(false);
-  const [showConfig, setShowConfig] = useState(false);
   const [ollamaDiagnostic, setOllamaDiagnostic] = useState<OllamaLocalDiagnostic | null>(null);
   const [showOllamaWizard, setShowOllamaWizard] = useState(false);
 
@@ -376,34 +375,6 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
       cloudProvider: type === 'cloud' ? (aiConfig.cloudProvider || 'google') : undefined,
     });
   };
-
-  const handleModelChange = (modelId: string) => {
-    const cloudModel = AVAILABLE_MODELS.cloud.find(m => m.id === modelId);
-    onAiConfigChange({
-      ...aiConfig,
-      model: modelId,
-      cloudProvider: cloudModel
-        ? (cloudModel.provider.toLowerCase() as AIConfig['cloudProvider'])
-        : aiConfig.cloudProvider,
-    });
-  };
-
-  const handleInputModeChange = (inputMode: InputMode) => {
-    onAiConfigChange({
-      ...aiConfig,
-      inputMode,
-    });
-  };
-
-  const availableModels = aiConfig.providerType === 'chrome'
-    ? [{ id: 'gemini-nano', name: 'Gemini Nano (Chrome Built-in)', provider: 'Chrome AI' }]
-    : aiConfig.providerType === 'ollama'
-    ? [{ id: aiConfig.model, name: aiConfig.model, family: 'Ollama' }]
-    : AVAILABLE_MODELS.cloud.filter(m => {
-        if (!aiConfig.apiKey) return false;
-        if (m.provider === 'Google') return aiConfig.cloudProvider === 'google';
-        return true;
-      });
 
   const runDiagnosis = useCallback(async () => {
     if (isLoading) return;
@@ -689,7 +660,6 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
   const isV2 = structuredDiagnosis !== null;
   const hasDiagnosis = draftAnalysis.trim().length > 0 || isV2;
 
-  const inputModeLabel = !aiConfig.inputMode || aiConfig.inputMode === 'recommended' ? 'Completo' : aiConfig.inputMode;
   const providerName = aiConfig.providerType === 'chrome' ? 'Chrome AI / Gemini Nano'
     : aiConfig.providerType === 'ollama' ? 'Ollama Local'
     : aiConfig.providerType === 'webllm_experimental' ? 'WebLLM'
@@ -709,52 +679,8 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
           onGenerateDiagnosis={runDiagnosis}
           providerName={providerName}
           providerAvailable={providerAvailable}
-          showConfig={showConfig}
-          onToggleConfig={() => setShowConfig((prev) => !prev)}
+          onOpenSettings={onOpenSettings}
         />
-
-        {/* 2. Collapsible config section (reused pre-existing panels) */}
-        {showConfig && (
-          <div className="diagnosis-config-section" data-testid="diagnosis-config-section">
-            <DiagnosisProviderPanel
-              aiConfig={aiConfig}
-              providerAvailable={providerAvailable}
-              chromeAvailability={chromeAvailability}
-              isCheckingChrome={isCheckingChrome}
-              isPreparingChrome={isPreparingChrome}
-              chromeDownloadProgress={chromeDownloadProgress}
-              chromeDownloadMessage={chromeDownloadMessage}
-              onProviderTypeChange={handleProviderTypeChange}
-              onModelChange={handleModelChange}
-              onChromeStatusChange={(uiStatus) => {
-                setProviderAvailable(uiStatus === 'ready');
-                if (uiStatus === 'downloading') {
-                  pushEvent('info', 'Chrome está descargando Gemini Nano.');
-                  pushEvent('info', 'AURA verificará el estado automáticamente.');
-                }
-                if (uiStatus === 'ready') {
-                  pushEvent('success', 'Gemini Nano listo para diagnóstico.');
-                }
-              }}
-              onChromeReady={() => setProviderAvailable(true)}
-              onChromeDownloadProgress={(progress, message) => {
-                setChromeDownloadProgress(progress);
-                setChromeDownloadMessage(message);
-              }}
-              onPrepareChrome={prepareChromeAi}
-              availableModels={availableModels}
-              ollamaDiagnostic={ollamaDiagnostic}
-              onOpenOllamaWizard={() => setShowOllamaWizard(true)}
-            />
-
-            <DiagnosisContractPanel
-              report={report}
-              aiConfig={aiConfig}
-              onInputModeChange={handleInputModeChange}
-              onOpenTechnicalEvidence={() => setIsTechnicalEvidenceOpen(true)}
-            />
-          </div>
-        )}
 
         {/* 3. Progress disclosure during execution */}
         {progressStatus !== 'idle' && (

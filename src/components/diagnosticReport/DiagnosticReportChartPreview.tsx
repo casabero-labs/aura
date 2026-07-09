@@ -1,3 +1,4 @@
+import * as d3 from 'd3';
 import type { DiagnosticChartSpec } from '../../services/diagnosticReport';
 
 interface DiagnosticReportChartPreviewProps {
@@ -32,6 +33,7 @@ const getSeriesLabel = (chart: DiagnosticChartSpec, row: Record<string, string |
 
 const ChartRows = ({ chart }: { chart: DiagnosticChartSpec }) => {
   const maxValue = Math.max(1, ...chart.data.map((row) => getSeriesValue(chart, row)));
+  const x = d3.scaleLinear().domain([0, maxValue]).range([4, 100]);
 
   if (chart.kind === 'table') {
     const headers = Array.from(new Set(chart.data.flatMap((row) => Object.keys(row))));
@@ -62,7 +64,7 @@ const ChartRows = ({ chart }: { chart: DiagnosticChartSpec }) => {
       {chart.data.length === 0 && <p className="diagnostic-report-empty">Sin datos para previsualizar.</p>}
       {chart.data.map((row, index) => {
         const value = getSeriesValue(chart, row);
-        const width = Math.max(4, Math.round((value / maxValue) * 100));
+        const width = Math.round(x(value));
         return (
           <div className="diagnostic-chart-row" key={`${chart.id}-${index}`}>
             <div className="diagnostic-chart-row-head">

@@ -108,7 +108,7 @@ describe('buildDiagnosisPromptV2', () => {
     expect(pkg.contractId).toBe('aura.diagnosis.v2');
     expect(pkg.contractVersion).toBe('2.0.0');
     expect(pkg.evidenceEnvelopeRef).toMatch(/^env:/);
-    expect(pkg.promptVersion).toBe('1.0.0');
+    expect(pkg.promptVersion).toBe('1.1.0');
     expect(pkg.promptHash).toMatch(/^[a-f0-9]{64}$/);
     expect(pkg.systemInstruction.length).toBeGreaterThan(100);
     expect(pkg.userPayload.length).toBeGreaterThan(50);
@@ -145,6 +145,7 @@ describe('buildDiagnosisPromptV2', () => {
     expect(schema.additionalProperties).toBe(false);
     expect(schema.properties.issues.items.additionalProperties).toBe(false);
     expect(schema.properties.diagnosisBlocks.items.additionalProperties).toBe(false);
+    expect(schema.properties.visualizations.items.additionalProperties).toBe(false);
   });
 
   it('promptHash is deterministic for same input', () => {
@@ -161,6 +162,13 @@ describe('buildDiagnosisPromptV2', () => {
   it('prompt declares no new columns/rules', () => {
     const pkg = buildDiagnosisPromptV2(envelope);
     expect(pkg.systemInstruction).toContain('CANNOT create new columns');
+  });
+
+  it('prompt lets the model decide PDF visualizations declaratively', () => {
+    const pkg = buildDiagnosisPromptV2(envelope);
+    expect(pkg.userPayload).toContain('visualizations: include an array');
+    expect(pkg.userPayload).toContain('top_null_columns');
+    expect(pkg.systemInstruction).toContain('MUST NOT write D3');
   });
 });
 

@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Activity,
   AlertTriangle,
   ArrowLeft,
   CheckCircle,
@@ -15,10 +14,10 @@ import {
   Save,
   Server,
   Shield,
-  Zap,
   RefreshCw,
 } from 'lucide-react';
-import { AIConfig, CloudProvider, ProviderProgressEvent } from '../types';
+import type { LucideIcon } from 'lucide-react';
+import { AIConfig, CloudProvider, InputMode, ProviderProgressEvent } from '../types';
 import { AVAILABLE_MODELS, OLLAMA_MODELS, getChromeAiDiagnostic } from '../services/aiProvider';
 import type { ChromeAiDiagnostic } from '../services/aiProvider';
 import { OLLAMA_SUGGESTED_MODELS, OllamaProvider } from '../services/providers/ollamaProvider';
@@ -45,6 +44,66 @@ const PROVIDER_TABS = [
   { id: 'ollama' as const, label: 'Ollama local', icon: Server, desc: 'Modelos locales vía Ollama. Requiere servidor abierto.' },
   { id: 'cloud' as const, label: 'Cloud', icon: Cloud, desc: 'Mayor capacidad. API key requerida. Paquete estructurado.' },
 ];
+
+const INPUT_MODE_OPTIONS: { value: InputMode; label: string; desc: string }[] = [
+  {
+    value: 'smart_sample',
+    label: 'Smart sample',
+    desc: 'Equilibrio recomendado: columnas, estadísticas básicas, reglas activadas y muestras limitadas.',
+  },
+  {
+    value: 'recommended',
+    label: 'Completo',
+    desc: 'Más evidencia para informe final o validación detallada. Puede consumir más contexto.',
+  },
+  {
+    value: 'enhanced_registry',
+    label: 'Registro extendido',
+    desc: 'Más señales técnicas: tipos semánticos, frecuencias, IQR y reglas con porcentajes.',
+  },
+  {
+    value: 'copy_paste_bad_samples',
+    label: 'Muestras problemáticas',
+    desc: 'Incluye valores observados problemáticos para forzar trazabilidad textual.',
+  },
+  {
+    value: 'prompt_libre',
+    label: 'Mínimo experimental',
+    desc: 'Contexto reducido para pruebas rápidas. Menos trazabilidad.',
+  },
+];
+
+type ProviderChoice = (typeof PROVIDER_TABS)[number]['id'];
+
+const PROVIDER_SUMMARY: Record<ProviderChoice, {
+  label: string;
+  Icon: LucideIcon;
+  decision: string;
+  dataRoute: string;
+}> = {
+  chrome: {
+    label: 'Chrome AI',
+    Icon: Shield,
+    decision: 'Inferencia local dentro del navegador. Ideal si Gemini Nano ya está disponible.',
+    dataRoute: 'local / navegador',
+  },
+  ollama: {
+    label: 'Ollama local',
+    Icon: Server,
+    decision: 'Inferencia local vía servidor Ollama. Mantiene el dataset en este equipo.',
+    dataRoute: 'local / localhost',
+  },
+  cloud: {
+    label: 'Cloud',
+    Icon: Cloud,
+    decision: 'Mayor capacidad para diagnósticos extensos. Usa solo el paquete estructurado.',
+    dataRoute: 'externo / paquete',
+  },
+};
+
+const isProviderChoice = (providerType: AIConfig['providerType']): providerType is ProviderChoice => (
+  providerType === 'chrome' || providerType === 'ollama' || providerType === 'cloud'
+);
 
 const chromeStatusTone = (status?: ChromeAiDiagnostic['status']) => {
   if (status === 'available') return 'ok';
@@ -232,6 +291,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
   };
 
   const promptContract = normalizePromptContract(localConfig.promptContract);
+  const activeInputMode = localConfig.inputMode || 'smart_sample';
+  const activeInputModeOption = INPUT_MODE_OPTIONS.find(option => option.value === activeInputMode) || INPUT_MODE_OPTIONS[0];
   const updatePromptContract = (patch: Partial<typeof promptContract>) => {
     setLocalConfig({
       ...localConfig,
@@ -240,7 +301,32 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
   };
 
   const recommendedProvider = ollamaConnected ? 'ollama' : chromeDiagnostic?.status === 'available' ? 'chrome' : 'cloud';
+  const activeProviderType: ProviderChoice = isProviderChoice(localConfig.providerType) ? localConfig.providerType : 'cloud';
+  const activeProvider = PROVIDER_SUMMARY[activeProviderType];
+  const recommendedProviderMeta = PROVIDER_SUMMARY[recommendedProvider];
+  const ActiveProviderIcon = activeProvider.Icon;
+  const recommendationMatchesActive = activeProviderType === recommendedProvider;
   const ollamaBaseUrl = localConfig.ollamaBaseUrl || 'http://localhost:11434';
+  const activeModelLabel = activeProviderType === 'chrome'
+    ? 'gemini-nano'
+    : activeProviderType === 'ollama'
+      ? localConfig.ollamaModel || localConfig.model || 'qwen2.5:3b'
+      : `${localConfig.cloudProvider || 'google'} / ${localConfig.model || 'sin modelo'}`;
+  const activeProviderStatus = activeProviderType === 'chrome'
+    ? chromeDiagnostic?.status === 'available'
+      ? 'Listo local'
+      : chromeDiagnostic?.status === 'downloading'
+        ? 'Descargando modelo'
+        : 'Requiere verificación'
+    : activeProviderType === 'ollama'
+      ? ollamaConnected === true
+        ? 'Conectado local'
+        : ollamaConnected === false
+          ? 'Sin conexión'
+          : 'Verificando'
+      : localConfig.apiKey || localConfig.cloudProvider === 'openrouter'
+        ? 'Cloud configurado'
+        : 'API key pendiente';
   const activeChromeProgressMessage = chromeProgressMessage(chromeDiagnostic, chromeProgress);
   const chromeProgressValue = chromeProgress?.progress;
   const shouldShowChromeProgress = chromeDiagnostic?.status === 'downloading' || isPreparingChrome || !!chromeProgress;
@@ -267,22 +353,28 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
 
       <div className="settings-workspace-body">
         <section className="settings-workspace-section">
-          <h2 className="settings-section-title">Recomendación rápida</h2>
-          <div className="settings-recommendation-card">
-            <div className="settings-recommendation-icon">
-              {recommendedProvider === 'ollama' ? <Server size={20} /> : recommendedProvider === 'chrome' ? <Shield size={20} /> : <Zap size={20} />}
-            </div>
+          <h2 className="settings-section-title">Proveedor activo</h2>
+          <div className="settings-active-provider-card">
             <div>
-              <strong>
-                {recommendedProvider === 'ollama' ? 'Ollama local (recomendado)' : recommendedProvider === 'chrome' ? 'Chrome AI (recomendado)' : 'Cloud (recomendado)'}
-              </strong>
-              <p>
-                {recommendedProvider === 'ollama'
-                  ? 'Ollama responde en localhost. Máxima privacidad con modelos locales sin depender del navegador.'
-                  : recommendedProvider === 'chrome'
-                    ? 'Chrome AI está disponible en este navegador. Procesa localmente sin enviar datos a terceros.'
-                    : 'Usa Cloud para mayor velocidad y capacidad. Requiere una API key del proveedor que elijas.'}
-              </p>
+              <div className="settings-active-provider-title">
+                <span className="settings-active-provider-icon">
+                  <ActiveProviderIcon size={18} />
+                </span>
+                <div>
+                  <strong>{activeProvider.label}</strong>
+                  <span className="settings-active-provider-status">{activeProviderStatus}</span>
+                </div>
+              </div>
+              <p>{activeProvider.decision}</p>
+              {!recommendationMatchesActive && (
+                <p className="settings-active-provider-note">
+                  AURA recomienda {recommendedProviderMeta.label} por disponibilidad actual, pero el diagnóstico usará {activeProvider.label} hasta que cambies el proveedor.
+                </p>
+              )}
+            </div>
+            <div className="settings-active-provider-side">
+              <span className="settings-active-provider-meta">{activeProvider.dataRoute}</span>
+              <span className="settings-active-provider-meta">modelo: {activeModelLabel}</span>
             </div>
           </div>
         </section>
@@ -615,6 +707,26 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
               </div>
             </div>
           )}
+        </section>
+
+        <section className="settings-workspace-section">
+          <h2 className="settings-section-title">Método de entrada</h2>
+          <p className="settings-section-desc">
+            Define qué evidencia recibirá el modelo durante el diagnóstico. No cambia el CSV ni el perfil determinista.
+          </p>
+          <div className="settings-field">
+            <label className="settings-label">Evidencia para el diagnóstico</label>
+            <select
+              value={activeInputMode}
+              onChange={(e) => setLocalConfig({ ...localConfig, inputMode: e.target.value as InputMode })}
+              className="settings-select"
+            >
+              {INPUT_MODE_OPTIONS.map(option => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+            <p className="settings-input-mode-desc">{activeInputModeOption.desc}</p>
+          </div>
         </section>
 
         <section className="settings-workspace-section">

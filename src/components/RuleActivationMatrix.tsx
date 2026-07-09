@@ -14,17 +14,6 @@ const categoryConfig: Record<string, string> = {
   [IssueCategory.SEMANTIC]:  'SEMÁNTICA',
 };
 
-const categoryColor = (cat: string): string => {
-  switch (cat) {
-    case IssueCategory.INTEGRITY: return '#e74c3c';
-    case IssueCategory.HYGIENE:   return '#f39c12';
-    case IssueCategory.TYPES:     return '#3498db';
-    case IssueCategory.LOGIC:     return '#9b59b6';
-    case IssueCategory.SEMANTIC:  return '#e67e22';
-    default: return 'var(--ink2)';
-  }
-};
-
 const RULES_ID_MAP: Record<string, string> = {
   'Filas Duplicadas': 'R01',
   'Valores Nulos / Vacíos': 'R02',
@@ -120,9 +109,9 @@ const RuleActivationMatrix: React.FC<RuleActivationMatrixProps> = ({ issues }) =
 
       <div className="rule-coverage-grid">
         {totalByCat.map(({ cat, count, critical, warning, info, affectedColumns, rules }) => (
-          <div key={cat} className="rule-coverage-card" style={{ borderTopColor: categoryColor(cat) }}>
+          <div key={cat} className="rule-coverage-card">
             <div className="rule-coverage-card-head">
-              <span style={{ color: categoryColor(cat) }}>{categoryConfig[cat]}</span>
+              <span>{categoryConfig[cat]}</span>
               <strong>{count}</strong>
             </div>
             <div className="rule-coverage-card-stats">

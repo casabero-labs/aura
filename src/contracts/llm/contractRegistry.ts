@@ -71,6 +71,7 @@ export const REGISTRY: Record<ContractId, ContractMetadata> = {
         responseId: { type: 'string' },
         issues: { type: 'array' },
         diagnosisBlocks: { type: 'array' },
+        visualizations: { type: 'array' },
         limitations: { type: 'array' },
         generatedAt: { type: 'string' },
       }

@@ -276,6 +276,7 @@ export interface DiagnosisResponseV2 {
   responseId: string;
   issues: DiagnosisIssueV2[];
   diagnosisBlocks: DiagnosisBlockV2[];
+  visualizations?: DiagnosisVisualizationV2[];
   limitations: string[];
   generatedAt: string;
 }
@@ -296,6 +297,30 @@ export interface DiagnosisBlockV2 {
   scope: IssueScope;
   observation: string;
   recommendation: string;
+}
+
+export type DiagnosisVisualizationKindV2 =
+  | 'bar'
+  | 'horizontal_bar'
+  | 'pie'
+  | 'table';
+
+export type DiagnosisVisualizationDataSourceV2 =
+  | 'severity_counts'
+  | 'category_counts'
+  | 'column_type_counts'
+  | 'top_null_columns'
+  | 'top_affected_issues'
+  | 'top_cardinality_columns';
+
+export interface DiagnosisVisualizationV2 {
+  visualizationId: string;
+  includeInPdf: boolean;
+  dataSource: DiagnosisVisualizationDataSourceV2;
+  kind: DiagnosisVisualizationKindV2;
+  title: string;
+  rationale: string;
+  issueIds: string[];
 }
 
 // ── Diagnosis Prompt Types ──

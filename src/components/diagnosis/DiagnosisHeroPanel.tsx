@@ -1,5 +1,5 @@
 import React from 'react';
-import { Brain, Settings, ChevronDown, RefreshCw } from 'lucide-react';
+import { Brain, Settings, RefreshCw } from 'lucide-react';
 
 interface DiagnosisHeroPanelProps {
   fileName: string;
@@ -11,8 +11,7 @@ interface DiagnosisHeroPanelProps {
   onGenerateDiagnosis: () => void;
   providerName: string;
   providerAvailable: boolean | null;
-  showConfig: boolean;
-  onToggleConfig: () => void;
+  onOpenSettings?: () => void;
 }
 
 export const DiagnosisHeroPanel: React.FC<DiagnosisHeroPanelProps> = ({
@@ -25,8 +24,7 @@ export const DiagnosisHeroPanel: React.FC<DiagnosisHeroPanelProps> = ({
   onGenerateDiagnosis,
   providerName,
   providerAvailable,
-  showConfig,
-  onToggleConfig,
+  onOpenSettings,
 }) => {
   return (
     <div className="diagnosis-hero-panel" data-testid="diagnosis-hero-panel">
@@ -87,14 +85,13 @@ export const DiagnosisHeroPanel: React.FC<DiagnosisHeroPanelProps> = ({
         </div>
         <button
           className="diagnosis-active-mode-config-btn btn-s btn-sm"
-          onClick={onToggleConfig}
+          onClick={onOpenSettings}
           data-testid="diagnosis-config-toggle"
           type="button"
           style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
         >
           <Settings size={11} />
-          <span>{showConfig ? 'Ocultar configuración' : 'Cambiar configuración'}</span>
-          <ChevronDown size={11} className={`activity-console-chevron ${showConfig ? 'activity-console-chevron--open' : ''}`} />
+          <span>Configurar</span>
         </button>
       </div>
 
@@ -136,4 +133,3 @@ export const DiagnosisHeroPanel: React.FC<DiagnosisHeroPanelProps> = ({
 };
 
 export default DiagnosisHeroPanel;
-

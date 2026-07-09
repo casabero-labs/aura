@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { AlertTriangle, ChevronDown, Filter, Info, ShieldAlert } from 'lucide-react';
+import { Filter } from 'lucide-react';
 import { IssueCategory, IssueSeverity, QualityIssue } from '../types';
 
 interface FindingsTableProps {
@@ -12,13 +12,6 @@ const severityLabel: Record<IssueSeverity, string> = {
   [IssueSeverity.WARNING]: 'Advertencia',
   [IssueSeverity.INFO]: 'Informativo',
   [IssueSeverity.GOOD]: 'Correcto',
-};
-
-const severityIcon: Record<IssueSeverity, React.ReactNode> = {
-  [IssueSeverity.CRITICAL]: <ShieldAlert size={13} />,
-  [IssueSeverity.WARNING]: <AlertTriangle size={13} />,
-  [IssueSeverity.INFO]: <Info size={13} />,
-  [IssueSeverity.GOOD]: <Info size={13} />,
 };
 
 const explainImpact = (issue: QualityIssue) => {
@@ -135,10 +128,9 @@ const FindingsTable: React.FC<FindingsTableProps> = ({ issues, rowCount }) => {
           <div className="findings-empty">No hay hallazgos para los filtros seleccionados.</div>
         )}
         {sortedIssues.map((issue) => (
-          <details key={issue.id} className={`finding-card finding-card-${issue.severity}`}>
-            <summary>
+          <article key={issue.id} className={`finding-card finding-card-${issue.severity}`}>
+            <div className="finding-card-summary">
               <span className={`benchmark-status benchmark-status-${issue.severity}`}>
-                {severityIcon[issue.severity]}
                 {severityLabel[issue.severity]}
               </span>
               <span className="finding-card-main">
@@ -150,27 +142,13 @@ const FindingsTable: React.FC<FindingsTableProps> = ({ issues, rowCount }) => {
                 <span>{issue.count.toLocaleString('es-CO')} / {rowCount.toLocaleString('es-CO')}</span>
                 <span>{issue.affectedPercentage.toFixed(2)}%</span>
               </span>
-              <ChevronDown size={14} className="finding-card-chevron" />
-            </summary>
-            <div className="finding-card-body">
-              <div>
-                <span>familia</span>
-                <strong>{issue.category}</strong>
-              </div>
-              <div>
-                <span>evidencia</span>
-                <strong>{sampleText(issue)}</strong>
-              </div>
-              <div>
-                <span>acción sugerida</span>
-                <strong>{suggestAction(issue)}</strong>
-              </div>
-              <div>
-                <span>lectura</span>
-                <strong>{explainImpact(issue)}</strong>
-              </div>
             </div>
-          </details>
+            <div className="finding-card-body">
+              <span>{issue.category}</span>
+              <span>Evidencia: {sampleText(issue)}</span>
+              <span>{suggestAction(issue)} · {explainImpact(issue)}</span>
+            </div>
+          </article>
         ))}
       </div>
     </section>

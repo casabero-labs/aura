@@ -29,11 +29,13 @@ import {
   splitDiagnosticSentences,
   truncatePresentationText,
 } from './presentation';
+import type { DiagnosisVisualizationV2 } from '../../contracts/llm';
 
 const REPORT_VERSION = '0.1.0-l13b';
 const TOP_ISSUES_LIMIT = 10;
 const TOP_COLUMNS_LIMIT = 8;
 const TOP_CHART_ROWS_LIMIT = 8;
+const TOP_CHART_SPECS_LIMIT = 6;
 
 const SEVERITY_ORDER: Record<IssueSeverity, number> = {
   [IssueSeverity.CRITICAL]: 0,
@@ -129,7 +131,7 @@ export const buildDiagnosticReport = ({
     diagnosisSummary,
     findingGroups,
     recommendations,
-    chartSpecs: buildChartSpecs(evidenceBase),
+    chartSpecs: buildChartSpecs(evidenceBase, structuredDiagnosis),
     exportReadiness: {
       pdfReady: true,
       jsonReady: true,
@@ -476,7 +478,35 @@ const buildRecommendations = (
   return recommendations;
 };
 
-const buildChartSpecs = (evidenceBase: DiagnosticEvidenceBase): DiagnosticChartSpec[] => [
+const buildChartSpecs = (
+  evidenceBase: DiagnosticEvidenceBase,
+  structuredDiagnosis: DiagnosisExecutionResult | null,
+): DiagnosticChartSpec[] => {
+  const deterministicCharts = buildDeterministicChartSpecs(evidenceBase);
+  const visualizationDecision = structuredDiagnosis?.diagnosis.visualizations;
+
+  if (!Array.isArray(visualizationDecision)) {
+    return deterministicCharts;
+  }
+
+  const chartsById = new Map(deterministicCharts.map((chart) => [chart.id, chart]));
+  const selectedCharts: DiagnosticChartSpec[] = [];
+  const seenDataSources = new Set<string>();
+
+  for (const visualization of visualizationDecision) {
+    if (!visualization.includeInPdf || seenDataSources.has(visualization.dataSource)) continue;
+    const baseChart = chartsById.get(visualization.dataSource);
+    if (!baseChart) continue;
+
+    seenDataSources.add(visualization.dataSource);
+    selectedCharts.push(toDiagnosisSelectedChart(baseChart, visualization));
+    if (selectedCharts.length >= TOP_CHART_SPECS_LIMIT) break;
+  }
+
+  return selectedCharts;
+};
+
+const buildDeterministicChartSpecs = (evidenceBase: DiagnosticEvidenceBase): DiagnosticChartSpec[] => [
   {
     id: 'severity_counts',
     title: 'Hallazgos por severidad',
@@ -555,6 +585,24 @@ const buildChartSpecs = (evidenceBase: DiagnosticEvidenceBase): DiagnosticChartS
     source: 'column_stats',
   },
 ];
+
+const toDiagnosisSelectedChart = (
+  baseChart: DiagnosticChartSpec,
+  visualization: DiagnosisVisualizationV2,
+): DiagnosticChartSpec => ({
+  ...baseChart,
+  id: `diagnosis_${slugify(visualization.visualizationId || visualization.dataSource)}`,
+  title: truncateText(visualization.title, 90) || baseChart.title,
+  description: truncateText(visualization.rationale, 220) || baseChart.description,
+  kind: visualization.kind,
+  source: 'diagnosis',
+  notes: [
+    `Seleccionada por diagnostico asistido desde ${visualization.dataSource}.`,
+    ...(visualization.issueIds.length > 0
+      ? [`Relacionada con ${visualization.issueIds.slice(0, 6).join(', ')}.`]
+      : ['Contexto agregado de dataset.']),
+  ],
+});
 
 const getDiagnosticStatus = (
   structuredDiagnosis: DiagnosisExecutionResult | null,

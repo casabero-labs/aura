@@ -313,6 +313,71 @@ describe('buildDiagnosticReport', () => {
     expect(diagnosticReport.chartSpecs.every((chart) => Array.isArray(chart.data))).toBe(true);
   });
 
+  it('usa la decision LLM para seleccionar graficas del PDF cuando visualizations existe', () => {
+    const diagnosisWithVisualization: DiagnosisExecutionResult = {
+      ...structuredDiagnosis,
+      diagnosis: {
+        ...structuredDiagnosis.diagnosis,
+        visualizations: [
+          {
+            visualizationId: 'missingness-focus',
+            includeInPdf: true,
+            dataSource: 'top_null_columns',
+            kind: 'horizontal_bar',
+            title: 'Ausencia prioritaria',
+            rationale: 'La ausencia domina el diagnostico y debe verse en el PDF.',
+            issueIds: ['issue-null-age'],
+          },
+          {
+            visualizationId: 'unused-category-chart',
+            includeInPdf: false,
+            dataSource: 'category_counts',
+            kind: 'bar',
+            title: 'Categoria no necesaria',
+            rationale: 'No aporta mas claridad ejecutiva.',
+            issueIds: [],
+          },
+        ],
+      },
+    };
+
+    const diagnosticReport = buildDiagnosticReport({
+      report: buildTitanicReport(),
+      auditEvidence,
+      structuredDiagnosis: diagnosisWithVisualization,
+    });
+
+    expect(diagnosticReport.chartSpecs).toHaveLength(1);
+    expect(diagnosticReport.chartSpecs[0]).toMatchObject({
+      id: 'diagnosis_missingness-focus',
+      title: 'Ausencia prioritaria',
+      kind: 'horizontal_bar',
+      source: 'diagnosis',
+      xKey: 'nullPercentage',
+      yKey: 'column',
+    });
+    expect(diagnosticReport.chartSpecs[0].data[0]).toHaveProperty('column', 'Cabin');
+    expect(diagnosticReport.chartSpecs[0].notes?.join(' ')).toContain('Seleccionada por diagnostico asistido');
+  });
+
+  it('respeta visualizations vacio como decision de no incluir graficas asistidas', () => {
+    const diagnosisWithoutCharts: DiagnosisExecutionResult = {
+      ...structuredDiagnosis,
+      diagnosis: {
+        ...structuredDiagnosis.diagnosis,
+        visualizations: [],
+      },
+    };
+
+    const diagnosticReport = buildDiagnosticReport({
+      report: buildTitanicReport(),
+      auditEvidence,
+      structuredDiagnosis: diagnosisWithoutCharts,
+    });
+
+    expect(diagnosticReport.chartSpecs).toEqual([]);
+  });
+
   it('ordena topNullColumns correctamente', () => {
     const diagnosticReport = buildDiagnosticReport({
       report: buildTitanicReport(),

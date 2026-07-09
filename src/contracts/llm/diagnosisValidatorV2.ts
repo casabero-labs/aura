@@ -66,6 +66,22 @@ const EXECUTABLE_PATTERNS = [
   /\bpathlib\./i,
 ];
 
+const VISUALIZATION_DATA_SOURCES = new Set([
+  'severity_counts',
+  'category_counts',
+  'column_type_counts',
+  'top_null_columns',
+  'top_affected_issues',
+  'top_cardinality_columns',
+]);
+
+const VISUALIZATION_KINDS = new Set([
+  'bar',
+  'horizontal_bar',
+  'pie',
+  'table',
+]);
+
 function containsExecutable(text: string): boolean {
   return EXECUTABLE_PATTERNS.some(p => p.test(text));
 }
@@ -243,6 +259,7 @@ function validateAgainstSchema(response: unknown): ValidationErrorV2[] {
       responseId: { type: 'string', minLength: 1, maxLength: 128 },
       issues: { type: 'array', maxItems: 50 },
       diagnosisBlocks: { type: 'array', maxItems: 50 },
+      visualizations: { type: 'array', maxItems: 6 },
       limitations: { type: 'array', maxItems: 20 },
       generatedAt: { type: 'string' },
     },
@@ -323,6 +340,47 @@ function validateAgainstSchema(response: unknown): ValidationErrorV2[] {
     }
   }
 
+  // visualizations array items (optional)
+  if ('visualizations' in obj) {
+    const visualizations = obj.visualizations as unknown;
+    if (!Array.isArray(visualizations)) {
+      errors.push(err('DIAGNOSIS_SCHEMA_INVALID', 'visualizations', 'Must be an array', visualizations));
+    } else {
+      if (visualizations.length > 6) {
+        errors.push(err('DIAGNOSIS_SCHEMA_INVALID', 'visualizations', 'Exceeds maxItems 6', visualizations.length));
+      }
+      for (let i = 0; i < visualizations.length; i++) {
+        const visualizationItem = visualizations[i];
+        if (typeof visualizationItem !== 'object' || visualizationItem === null || Array.isArray(visualizationItem)) {
+          errors.push(err('DIAGNOSIS_SCHEMA_INVALID', `visualizations[${i}]`, 'Visualization must be an object', visualizationItem));
+          continue;
+        }
+        validateObjectAgainstSchema(visualizationItem as Record<string, unknown>, {
+          type: 'object',
+          additionalProperties: false,
+          required: ['visualizationId', 'includeInPdf', 'dataSource', 'kind', 'title', 'rationale', 'issueIds'],
+          properties: {
+            visualizationId: { type: 'string', minLength: 1, maxLength: 96 },
+            includeInPdf: { type: 'boolean' },
+            dataSource: { type: 'string', enum: [...VISUALIZATION_DATA_SOURCES] },
+            kind: { type: 'string', enum: [...VISUALIZATION_KINDS] },
+            title: { type: 'string', minLength: 1, maxLength: 120 },
+            rationale: { type: 'string', minLength: 1, maxLength: 400 },
+            issueIds: { type: 'array', maxItems: 20 },
+          },
+        }, `visualizations[${i}]`, errors, ['visualizationId', 'includeInPdf', 'dataSource', 'kind', 'title', 'rationale', 'issueIds'], 'DIAGNOSIS_SCHEMA_INVALID');
+
+        const visualization = visualizationItem as Record<string, unknown>;
+        const issueIds = visualization.issueIds as unknown[];
+        if (Array.isArray(issueIds)) {
+          for (let j = 0; j < issueIds.length; j++) {
+            validateValueAgainstSchema(issueIds[j], { type: 'string', minLength: 1, maxLength: 128 }, `visualizations[${i}].issueIds[${j}]`, errors, 'DIAGNOSIS_SCHEMA_INVALID');
+          }
+        }
+      }
+    }
+  }
+
   // limitations array items
   const limitations = obj.limitations as unknown[];
   if (Array.isArray(limitations)) {
@@ -391,6 +449,10 @@ export function validateDiagnosisResponseV2(
   // 6. limitations
   if (!Array.isArray(response.limitations)) {
     errors.push(err('DIAGNOSIS_SCHEMA_INVALID', 'limitations', 'Must be an array', response.limitations));
+  }
+
+  if (response.visualizations !== undefined && !Array.isArray(response.visualizations)) {
+    errors.push(err('DIAGNOSIS_SCHEMA_INVALID', 'visualizations', 'Must be an array when provided', response.visualizations));
   }
 
   // 7. generatedAt — must be a valid ISO 8601 timestamp
@@ -674,7 +736,76 @@ export function validateDiagnosisResponseV2(
     }
   }
 
-  // 13. Executable content in limitations
+  // 13. Optional visualization recommendations for PDF charts.
+  if (response.visualizations !== undefined) {
+    if (!Array.isArray(response.visualizations)) {
+      errors.push(err('DIAGNOSIS_SCHEMA_INVALID', 'visualizations', 'Must be an array', response.visualizations));
+    } else {
+      if (response.visualizations.length > 6) {
+        errors.push(err('DIAGNOSIS_SCHEMA_INVALID', 'visualizations', 'Exceeds maxItems 6', response.visualizations.length));
+      }
+
+      for (let i = 0; i < response.visualizations.length; i++) {
+        const visualization = response.visualizations[i];
+        const base = `visualizations[${i}]`;
+
+        if (!visualization.visualizationId || typeof visualization.visualizationId !== 'string') {
+          errors.push(err('DIAGNOSIS_SCHEMA_INVALID', `${base}.visualizationId`, 'Must be non-empty string', visualization.visualizationId));
+        } else {
+          if (visualization.visualizationId.length > 96) {
+            errors.push(err('DIAGNOSIS_SCHEMA_INVALID', `${base}.visualizationId`, 'Exceeds maxLength 96', visualization.visualizationId));
+          }
+          if (containsExecutable(visualization.visualizationId)) {
+            errors.push(err('DIAGNOSIS_EXECUTABLE_CONTENT', `${base}.visualizationId`, 'Contains executable content', visualization.visualizationId.slice(0, 100)));
+          }
+        }
+
+        if (typeof visualization.includeInPdf !== 'boolean') {
+          errors.push(err('DIAGNOSIS_SCHEMA_INVALID', `${base}.includeInPdf`, 'Must be boolean', visualization.includeInPdf));
+        }
+
+        if (!VISUALIZATION_DATA_SOURCES.has(visualization.dataSource)) {
+          errors.push(err('DIAGNOSIS_SCHEMA_INVALID', `${base}.dataSource`, 'Unknown visualization dataSource', visualization.dataSource));
+        }
+
+        if (!VISUALIZATION_KINDS.has(visualization.kind)) {
+          errors.push(err('DIAGNOSIS_SCHEMA_INVALID', `${base}.kind`, 'Unknown visualization kind', visualization.kind));
+        }
+
+        for (const [key, maxLength] of [['title', 120], ['rationale', 400]] as const) {
+          const text = visualization[key];
+          if (!text || typeof text !== 'string') {
+            errors.push(err('DIAGNOSIS_SCHEMA_INVALID', `${base}.${key}`, 'Must be non-empty string', text));
+            continue;
+          }
+          if (text.length > maxLength) {
+            errors.push(err('DIAGNOSIS_SCHEMA_INVALID', `${base}.${key}`, `Exceeds maxLength ${maxLength}`, text));
+          }
+          if (containsExecutable(text)) {
+            errors.push(err('DIAGNOSIS_EXECUTABLE_CONTENT', `${base}.${key}`, 'Contains executable content', text.slice(0, 100)));
+          }
+        }
+
+        if (!Array.isArray(visualization.issueIds)) {
+          errors.push(err('DIAGNOSIS_SCHEMA_INVALID', `${base}.issueIds`, 'Must be an array', visualization.issueIds));
+        } else {
+          if (visualization.issueIds.length > 20) {
+            errors.push(err('DIAGNOSIS_SCHEMA_INVALID', `${base}.issueIds`, 'Exceeds maxItems 20', visualization.issueIds.length));
+          }
+          for (let j = 0; j < visualization.issueIds.length; j++) {
+            const issueId = visualization.issueIds[j];
+            if (typeof issueId !== 'string' || issueId.trim().length === 0) {
+              errors.push(err('DIAGNOSIS_SCHEMA_INVALID', `${base}.issueIds[${j}]`, 'Must be non-empty string', issueId));
+            } else if (!envelopeIssueIds.has(issueId)) {
+              errors.push(err('DIAGNOSIS_REFERENCE_INVALID', `${base}.issueIds[${j}]`, 'issueId does not exist in envelope', issueId));
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // 14. Executable content in limitations
   for (let i = 0; i < (response.limitations || []).length; i++) {
     const lim = response.limitations[i];
     if (typeof lim !== 'string') {

@@ -110,6 +110,34 @@ describe('validateDiagnosisResponseV2 — valid cases', () => {
     const result = validateDiagnosisResponseV2(resp, envelope);
     expect(result.valid).toBe(true);
   });
+
+  it('accepts declarative visualization recommendations for the PDF', () => {
+    const resp = validResponse({
+      visualizations: [
+        {
+          visualizationId: 'age-missingness-focus',
+          includeInPdf: true,
+          dataSource: 'top_null_columns',
+          kind: 'horizontal_bar',
+          title: 'Ausencia por columna',
+          rationale: 'Aclara donde se concentra la ausencia antes de imputar.',
+          issueIds: [issue2.issueId],
+        },
+        {
+          visualizationId: 'no-extra-chart',
+          includeInPdf: false,
+          dataSource: 'category_counts',
+          kind: 'bar',
+          title: 'No incluir',
+          rationale: 'La distribucion no aporta contexto adicional.',
+          issueIds: [],
+        },
+      ],
+    });
+
+    const result = validateDiagnosisResponseV2(resp, envelope);
+    expect(result.valid).toBe(true);
+  });
 });
 
 describe('validateDiagnosisResponseV2 — reference errors', () => {
@@ -178,6 +206,26 @@ describe('validateDiagnosisResponseV2 — reference errors', () => {
     const result = validateDiagnosisResponseV2(resp, envelope);
     expect(result.valid).toBe(false);
     expect(result.errors.some(e => e.message.includes('Duplicate'))).toBe(true);
+  });
+
+  it('rejects visualization issueIds that are not in the envelope', () => {
+    const resp = validResponse({
+      visualizations: [
+        {
+          visualizationId: 'bad-chart',
+          includeInPdf: true,
+          dataSource: 'top_null_columns',
+          kind: 'horizontal_bar',
+          title: 'Grafica invalida',
+          rationale: 'Referencia un hallazgo inexistente.',
+          issueIds: ['missing-issue'],
+        },
+      ],
+    });
+
+    const result = validateDiagnosisResponseV2(resp, envelope);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some(e => e.path.includes('visualizations[0].issueIds[0]'))).toBe(true);
   });
 });
 

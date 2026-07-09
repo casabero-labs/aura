@@ -1,3 +1,4 @@
+import * as d3 from 'd3';
 import type { DiagnosticChartSpec } from './types';
 import {
   PdfLayoutContext,
@@ -28,6 +29,12 @@ const labelFor = (row: Record<string, string | number | boolean | null>, key: st
 
 const valueFor = (row: Record<string, string | number | boolean | null>, key: string) =>
   asNumber(row[key]);
+
+const rowKey = (chart: DiagnosticChartSpec, row: Record<string, string | number | boolean | null>, index: number) =>
+  `${labelFor(row, chart.xKey)}-${labelFor(row, chart.yKey)}-${index}`;
+
+const buildColorScale = (keys: string[]) =>
+  d3.scaleOrdinal<string, string>().domain(keys).range(palette);
 
 const drawEmptyState = (ctx: PdfLayoutContext) => {
   const { doc, theme } = ctx;
@@ -69,11 +76,14 @@ export const drawHorizontalBarChart = (ctx: PdfLayoutContext, chart: DiagnosticC
   const valueWidth = 22;
   const barWidth = getContentWidth(ctx) - labelWidth - valueWidth - 8;
   const maxValue = Math.max(...rows.map((row) => valueFor(row, chart.xKey)), 1);
+  const xScale = d3.scaleLinear().domain([0, maxValue]).nice().range([0, barWidth]);
+  const color = buildColorScale(rows.map((row, index) => rowKey(chart, row, index)));
 
   rows.forEach((row, index) => {
     ensureSpace(ctx, 8);
     const value = valueFor(row, chart.xKey);
-    const bar = Math.max(2, (value / maxValue) * barWidth);
+    const key = rowKey(chart, row, index);
+    const bar = Math.max(2, xScale(value));
     const y = ctx.cursorY;
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7.5);
@@ -81,7 +91,7 @@ export const drawHorizontalBarChart = (ctx: PdfLayoutContext, chart: DiagnosticC
     doc.text(labelFor(row, chart.yKey), theme.margin.left, y + 4);
     doc.setFillColor('#eee8df');
     doc.rect(theme.margin.left + labelWidth, y, barWidth, 4.5, 'F');
-    doc.setFillColor(palette[index % palette.length]);
+    doc.setFillColor(color(key));
     doc.rect(theme.margin.left + labelWidth, y, bar, 4.5, 'F');
     doc.setTextColor(theme.colors.ink);
     doc.text(formatValue(value, chart.valueSuffix), theme.margin.left + labelWidth + barWidth + 4, y + 4);
@@ -102,19 +112,23 @@ export const drawVerticalBarChart = (ctx: PdfLayoutContext, chart: DiagnosticCha
   const width = getContentWidth(ctx);
   const chartHeight = 34;
   const baseY = ctx.cursorY + chartHeight;
-  const barGap = 3;
-  const barWidth = Math.max(8, (width - barGap * (rows.length - 1)) / rows.length);
   const maxValue = Math.max(...rows.map((row) => valueFor(row, chart.yKey)), 1);
+  const keys = rows.map((row, index) => rowKey(chart, row, index));
+  const xScale = d3.scaleBand<string>().domain(keys).range([0, width]).padding(0.22);
+  const yScale = d3.scaleLinear().domain([0, maxValue]).nice().range([chartHeight, 0]);
+  const color = buildColorScale(keys);
 
   doc.setDrawColor(theme.colors.border);
   doc.line(theme.margin.left, baseY, theme.margin.left + width, baseY);
 
   rows.forEach((row, index) => {
     const value = valueFor(row, chart.yKey);
-    const barHeight = Math.max(2, (value / maxValue) * chartHeight);
-    const x = theme.margin.left + index * (barWidth + barGap);
+    const key = keys[index];
+    const barWidth = Math.max(6, xScale.bandwidth());
+    const barHeight = Math.max(2, chartHeight - yScale(value));
+    const x = theme.margin.left + (xScale(key) ?? 0);
     const y = baseY - barHeight;
-    doc.setFillColor(palette[index % palette.length]);
+    doc.setFillColor(color(key));
     doc.rect(x, y, barWidth, barHeight, 'F');
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(7);
@@ -138,14 +152,36 @@ export const drawDistributionList = (ctx: PdfLayoutContext, chart: DiagnosticCha
   }
 
   const { doc, theme } = ctx;
-  const total = rows.reduce((sum, row) => sum + valueFor(row, chart.yKey), 0) || 1;
   const width = getContentWidth(ctx);
+  const points = rows.map((row, index) => ({
+    row,
+    key: rowKey(chart, row, index),
+    value: valueFor(row, chart.yKey),
+  }));
+  const total = d3.sum(points, (point) => point.value) || 1;
+  const segments = d3.pie<(typeof points)[number]>()
+    .value((point) => point.value)
+    .sort(null)(points);
+  const xScale = d3.scaleLinear().domain([0, total]).range([0, width]);
+  const color = buildColorScale(points.map((point) => point.key));
 
-  rows.forEach((row, index) => {
+  ensureSpace(ctx, 9);
+  let offset = 0;
+  segments.forEach((segment) => {
+    const value = segment.data.value;
+    const segmentWidth = Math.max(value > 0 ? 1.2 : 0, xScale(value));
+    doc.setFillColor(color(segment.data.key));
+    doc.rect(theme.margin.left + offset, ctx.cursorY, segmentWidth, 4.2, 'F');
+    offset += segmentWidth;
+  });
+  ctx.cursorY += 10;
+
+  points.forEach((point) => {
+    const row = point.row;
     ensureSpace(ctx, 8);
     const value = valueFor(row, chart.yKey);
     const share = (value / total) * 100;
-    doc.setFillColor(palette[index % palette.length]);
+    doc.setFillColor(color(point.key));
     doc.circle(theme.margin.left + 2.5, ctx.cursorY + 2.5, 2.2, 'F');
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7.8);

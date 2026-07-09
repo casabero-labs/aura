@@ -163,6 +163,41 @@ const RESPONSE_SCHEMA = {
         },
       },
     },
+    visualizations: {
+      type: 'array',
+      maxItems: 6,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['visualizationId', 'includeInPdf', 'dataSource', 'kind', 'title', 'rationale', 'issueIds'],
+        properties: {
+          visualizationId: { type: 'string', minLength: 1, maxLength: 96 },
+          includeInPdf: { type: 'boolean' },
+          dataSource: {
+            type: 'string',
+            enum: [
+              'severity_counts',
+              'category_counts',
+              'column_type_counts',
+              'top_null_columns',
+              'top_affected_issues',
+              'top_cardinality_columns',
+            ],
+          },
+          kind: {
+            type: 'string',
+            enum: ['bar', 'horizontal_bar', 'pie', 'table'],
+          },
+          title: { type: 'string', minLength: 1, maxLength: 120 },
+          rationale: { type: 'string', minLength: 1, maxLength: 400 },
+          issueIds: {
+            type: 'array',
+            maxItems: 20,
+            items: { type: 'string', minLength: 1, maxLength: 128 },
+          },
+        },
+      },
+    },
     limitations: {
       type: 'array',
       maxItems: 20,
@@ -174,7 +209,7 @@ const RESPONSE_SCHEMA = {
 
 // ── Prompt Builder ──
 
-const PROMPT_VERSION = '1.0.0';
+const PROMPT_VERSION = '1.1.0';
 
 export function buildDiagnosisPromptV2(
   envelope: EvidenceEnvelopeV2,
@@ -376,6 +411,7 @@ CRITICAL RULES — VIOLATING ANY OF THESE IS AN ERROR:
    - NO eval() or exec()
    - NO import statements
    - NO Pandas, numpy, or any library calls
+   You MAY recommend a chart using the visualizations field, but you MUST NOT write D3, JavaScript, SVG, or rendering code.
 
 4. You CANNOT decide or authorize actions:
    - NO actionId
@@ -493,6 +529,15 @@ function buildUserPayload(
         automaticAuthorization: iss.automaticAuthorization,
       };
     }),
+    allowedVisualizationDataSources: [
+      'severity_counts',
+      'category_counts',
+      'column_type_counts',
+      'top_null_columns',
+      'top_affected_issues',
+      'top_cardinality_columns',
+    ],
+    allowedVisualizationKinds: ['bar', 'horizontal_bar', 'pie', 'table'],
   };
 
   return `=== EVIDENCE ENVELOPE ===
@@ -523,6 +568,12 @@ Rules:
 - limits: list any diagnostic limitations (max ${Math.min(10, envelope.issues.length)} items each)
 - observation: factual summary from the evidence (max 1000 chars)
 - recommendation: DESCRIPTIVE guidance only — NO code, NO commands, NO action parameters (max 1000 chars)
+- visualizations: include an array. Use [] if charts would not clarify the diagnosis. If a chart helps the PDF report, add a declarative recommendation only:
+  * includeInPdf: true only when it materially improves comprehension
+  * dataSource: one of severity_counts, category_counts, column_type_counts, top_null_columns, top_affected_issues, top_cardinality_columns
+  * kind: one of bar, horizontal_bar, pie, table
+  * issueIds: only existing issueId values, or [] for dataset-level context
+  AURA will render selected visualizations with D3 internally. Do NOT write D3/JavaScript/SVG/code.
 - limitations: list any global analysis limitations (max ${Math.min(20, envelope.issues.length * 2)} items)
 
 Respond with a single JSON object matching the schema. Output ONLY the JSON.`;
