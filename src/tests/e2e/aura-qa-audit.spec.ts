@@ -260,8 +260,8 @@ test.describe('AURA QA — Human-first audit (LOOP 07C)', () => {
     const exportStage = await page.locator('[data-testid="export-stage"]').isVisible().catch(() => false);
     log(`- Export stage visible: ${exportStage ? 'PASS' : 'FAIL'}`);
 
-    const exportTitle = await page.getByText(/Paquete final del análisis/i).isVisible().catch(() => false);
-    log(`- Export title "Paquete final del análisis": ${exportTitle ? 'PASS' : 'FAIL'}`);
+    const exportTitle = await page.getByText(/Exportación de resultados/i).isVisible().catch(() => false);
+    log(`- Export title "Exportación de resultados": ${exportTitle ? 'PASS' : 'FAIL'}`);
 
     const exportDownloads = await page.locator('.export-delivery-block').first().isVisible().catch(() => false);
     log(`- Export delivery block visible: ${exportDownloads ? 'PASS' : 'FAIL'}`);

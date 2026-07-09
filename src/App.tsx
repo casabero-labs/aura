@@ -9,7 +9,7 @@ if (typeof __AURA_BUILD_SHA__ !== 'undefined') {
     'color: #888; font-size: 11px; font-family: monospace;',
   );
 }
-import { ChevronDown, ClipboardList, Download, FileCode2, FileJson, FileText, FlaskConical, HelpCircle, Settings, Layers, History, CheckCircle2, ShieldCheck, AlertTriangle, XCircle, Sun, Moon, BookOpen } from 'lucide-react';
+import { Download, FileJson, FileText, FlaskConical, Sun, Moon } from 'lucide-react';
 import ChangelogModal from './components/ChangelogModal';
 import ErrorBoundary from './components/ErrorBoundary';
 import AuditLogViewer from './components/AuditLogViewer';
@@ -27,7 +27,6 @@ import { buildEvidenceManifest } from './services/evidenceManifest';
 import { buildAuraExportPackage } from './services/exportPackage';
 import { validateAuraExportPackage } from './services/exportContractValidation';
 import { savePipelineSession, loadPipelineSession, clearPipelineSession } from './services/pipelineSession';
-import { buildColabNotebookJSON } from './services/colabExporter';
 import { downloadTextFile } from './utils/download';
 import { AIConfig, AuditReport, BenchmarkResult, DeterministicValidationReport, EvidenceManifest, ExecutiveReportContent, IssueSeverity } from './types';
 
@@ -138,7 +137,6 @@ const App: React.FC = () => {
   const [showAuditLog, setShowAuditLog] = useState(false);
   const [showChangelog, setShowChangelog] = useState(false);
   const [showMobileNav, setShowMobileNav] = useState(false);
-  const [brandScrolled, setBrandScrolled] = useState(false);
   const [labBenchmarkResults, setLabBenchmarkResults] = useState<BenchmarkResult[]>([]);
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     const saved = localStorage.getItem('aura_theme') || localStorage.getItem('casabero-theme');
@@ -156,13 +154,6 @@ const App: React.FC = () => {
       savePipelineSession(pipelineData);
     }
   }, [pipelineData]);
-
-  useEffect(() => {
-    const onScroll = () => setBrandScrolled(window.scrollY > 24);
-    onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
 
   // ── AI Config (para settings panel) ──
   const [aiConfig, setAiConfig] = useState<AIConfig>(() => {
@@ -243,8 +234,12 @@ const App: React.FC = () => {
       // Delay state update to let the UI render the progress
       await new Promise(resolve => setTimeout(resolve, 100));
       if (diagnosticReport) {
-        setPdfProgressMsg('Dibujando gráficos y tablas del informe...');
-        generateDiagnosticPdfReport({ diagnosticReport });
+        setPdfProgressMsg('Componiendo informe y anexos finales...');
+        generateDiagnosticPdfReport({
+          diagnosticReport,
+          pythonScript: approvedCleaningScript || pipelineData.cleaningScript || undefined,
+          pythonScriptApproved: Boolean(approvedCleaningScript),
+        });
       } else if (report) {
         setPdfProgressMsg('Generando páginas del reporte...');
         generatePdfReport(report, buildDeterministicPdfContent(report, approvedCleaningScript), aiAnalysis, scriptValidation, undefined, improvementRun?.healthDelta ?? null);
@@ -325,30 +320,6 @@ const App: React.FC = () => {
     ]);
     const csv = [header, ...rows].map((row) => row.map(csvCell).join(',')).join('\n');
     downloadTextFile(`aura_issues_${Date.now()}.csv`, csv, 'text/csv;charset=utf-8');
-    setHasExported(true);
-  };
-
-  const handleExportApprovedScript = () => {
-    if (!approvedCleaningScript) return;
-    downloadTextFile(`aura_script_aprobado_${Date.now()}.py`, approvedCleaningScript, 'text/x-python;charset=utf-8');
-    setHasExported(true);
-  };
-
-  const handleExportColab = () => {
-    if (!approvedCleaningScript || !report) return;
-    const notebook = buildColabNotebookJSON({
-      datasetName: file?.name ?? 'dataset.csv',
-      csvFields,
-      approvedScript: approvedCleaningScript,
-      auditSummary: {
-        score: report.score,
-        rowCount: report.rowCount,
-        colCount: report.colCount,
-        issueCount: report.issues.length,
-        truncated: auditEvidence?.truncated ?? false,
-      },
-    });
-    downloadTextFile(`aura_colab_${Date.now()}.ipynb`, notebook, 'application/x-ipynb+json;charset=utf-8');
     setHasExported(true);
   };
 
@@ -453,14 +424,20 @@ const App: React.FC = () => {
       <nav className="sys-nav">
         {/* Bloque Izquierdo: Branding */}
         <div className="nav-brand" onClick={goHome} aria-label="Ir al inicio">
-          <span className={`nav-logo ${brandScrolled ? 'nav-logo--hidden' : ''}`}>AURA</span>
-          <span className={`nav-logo-mark ${brandScrolled ? 'nav-logo-mark--visible' : ''}`} aria-hidden="true">
-            <svg className="aura-mark" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.55">
-              <ellipse cx="32" cy="32" rx="24" ry="8.5" />
-              <ellipse cx="32" cy="32" rx="24" ry="8.5" transform="rotate(60 32 32)" />
-              <ellipse cx="32" cy="32" rx="24" ry="8.5" transform="rotate(-60 32 32)" />
+          <span className="nav-logo-mark nav-logo-mark--visible" aria-hidden="true">
+            <svg className="aura-mark aura-data-mark" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="10" y="10" width="44" height="44" rx="8" />
+              <path d="M20 44V32" />
+              <path d="M32 44V24" />
+              <path d="M44 44V18" />
+              <path d="M18 24l10 6 8-10 10 6" />
+              <circle cx="18" cy="24" r="1.8" fill="currentColor" stroke="none" />
+              <circle cx="28" cy="30" r="1.8" fill="currentColor" stroke="none" />
+              <circle cx="36" cy="20" r="1.8" fill="currentColor" stroke="none" />
+              <circle cx="46" cy="26" r="1.8" fill="currentColor" stroke="none" />
             </svg>
           </span>
+          <span className="nav-logo">AURA</span>
         </div>
 
         <div className="nav-right-cluster">
@@ -648,7 +625,7 @@ const App: React.FC = () => {
         )}
 
         {/* Main Pipeline — Phase 1: Upload + Diagnostic */}
-        {!showHome && (
+        {!showHome && pipelineState !== 'export' && (
           <section id="sistema" className="audit-workspace">
             <MainPipeline
               aiConfig={aiConfig}
@@ -668,336 +645,97 @@ const App: React.FC = () => {
           <section className="export-closure" id="export-section" data-testid="export-stage">
             <div className="export-closure-header">
               <p className="sec-eye">EXPORTACIÓN</p>
-              <h2 className="sec-title">Paquete final del análisis</h2>
+              <h2 className="sec-title">Exportación de resultados</h2>
             </div>
             <p className="section-note export-closure-hero-desc">
-              Cierra el análisis con un informe legible para decisión y conserva los anexos técnicos solo como respaldo auditable.
+              Descarga los resultados del análisis y cierra la sesión local cuando ya no necesites conservar los datos en el navegador.
             </p>
 
-            {(() => {
-              const manifest = buildEvidenceManifest({
-                auditEvidence,
-                deterministicValidation,
-                benchmarkResults,
-                scriptValidation,
-                hitlDecision: improvementRun?.hitlDecision ?? null,
-                healthDeltaPoints: improvementRun?.healthDelta?.scoreDelta,
-              });
-              const completedObjectives = manifest.objectivesCoverage.filter(o => o.status === 'completed').length;
-              const statusLabel = completedObjectives >= 4 ? 'Completo' : completedObjectives >= 2 ? 'Parcial' : 'Incompleto';
-              const statusColor = completedObjectives >= 4 ? 'var(--success)' : completedObjectives >= 2 ? 'var(--orange)' : 'var(--error)';
-
-              const formalClaims = [];
-              const preliminaryClaims = [];
-              const pendingClaims = [];
-
-              if (manifest.allowedClaims.deterministicEngine === 'formal') formalClaims.push('Motor determinista verificado');
-              else if (manifest.allowedClaims.deterministicEngine === 'preliminary') preliminaryClaims.push('Motor determinista preliminar');
-              else pendingClaims.push('Motor determinista pendiente');
-
-              if (manifest.allowedClaims.scriptSafety === 'formal') formalClaims.push('Script seguro verificado');
-              else if (manifest.allowedClaims.scriptSafety === 'preliminary') preliminaryClaims.push('Script seguro preliminar');
-              else pendingClaims.push('Script seguro pendiente');
-
-              if (manifest.allowedClaims.hitlDecision === 'formal') formalClaims.push('Decisión humana registrada');
-              else pendingClaims.push('Decisión humana pendiente');
-
-              if (manifest.allowedClaims.healthDelta === 'formal') formalClaims.push('Delta de salud formal');
-              else if (manifest.allowedClaims.healthDelta === 'preliminary') preliminaryClaims.push('Delta de salud preliminar');
-              else pendingClaims.push('Delta de salud pendiente');
-
-              if (manifest.calibrationSummary.status === 'formal') {
-                formalClaims.push(`${manifest.calibrationSummary.formalRuns} corrida(s) de calibración con evidencia formal limitada`);
-              } else if (manifest.calibrationSummary.status === 'preliminary') {
-                preliminaryClaims.push(
-                  `Calibración experimental preliminar: ${manifest.calibrationSummary.completedRuns}/${manifest.calibrationSummary.totalRuns} corrida(s) completada(s)`
-                );
-              } else if (manifest.calibrationSummary.status === 'attempted') {
-                pendingClaims.push(
-                  `Calibración experimental sin resultado concluido: ${manifest.calibrationSummary.failedOrUnavailableRuns} intento(s) fallido(s) o no disponible(s)`
-                );
-              }
-
-              const hasRemediationArtifacts = !!(
-                approvedCleaningScript || improvementRun?.healthDelta
-              );
-
-              return (
-                <>
-                  {/* ── Block 1 — Informe principal ── */}
-                  <div className="export-delivery-block" data-testid="export-main-block">
-                    <p className="export-delivery-block-eyebrow">Documento principal</p>
-                    <h3 className="export-delivery-block-title">Informe defendible para compartir</h3>
-                    <div className="export-delivery-cards">
-                      <article className="export-delivery-card export-delivery-card--primary">
-                        <div className="export-delivery-card-head">
-                          <FileText size={20} />
-                          <div>
-                            <h4>Informe diagnóstico PDF</h4>
-                            <p>Documento curado con decisión ejecutiva, riesgos priorizados, gráficos, recomendaciones y límites metodológicos.</p>
-                          </div>
-                        </div>
-                        <div className="export-delivery-card-action">
-                          {isPdfGenerating ? (
-                            <>
-                              <span className="export-delivery-status export-delivery-status--generating">Generando…</span>
-                              <ProgressDisclosure
-                                title="Generando informe diagnóstico PDF"
-                                indeterminate={pdfProgressStatus === 'running'}
-                                status={pdfProgressStatus}
-                                currentStep={pdfProgressMsg}
-                                compact
-                              />
-                            </>
-                          ) : (
-                            <button className="btn-p btn-sm" onClick={handleDownloadPdf} disabled={isPdfGenerating} data-testid="export-download-pdf">
-                              Descargar PDF
-                            </button>
-                          )}
-                        </div>
-                      </article>
-
-                      <article className="export-delivery-card">
-                        <div className="export-delivery-card-head">
-                          <FileJson size={18} />
-                          <div>
-                            <h4>Anexo JSON técnico</h4>
-                            <p>Paquete estructurado para auditoría, trazabilidad, validaciones y reproducción técnica.</p>
-                          </div>
-                        </div>
-                        {exportJsonPreflightError ? (
-                          <div className="provider-unavailable-notice" role="alert" data-testid="export-json-preflight-warning">
-                            <strong>JSON técnico no exportado.</strong>{' '}
-                            {exportJsonPreflightError}
-                          </div>
-                        ) : (
-                          <div className="export-delivery-card-action">
-                            <button className="btn-s btn-sm" onClick={handleExportJson} data-testid="export-download-json">
-                              Descargar JSON
-                            </button>
-                          </div>
-                        )}
-                      </article>
-
-                      <article className="export-delivery-card">
-                        <div className="export-delivery-card-head">
-                          <Download size={18} />
-                          <div>
-                            <h4>Anexo CSV de hallazgos</h4>
-                            <p>Tabla de hallazgos deterministas para hojas de cálculo, QA o integración externa.</p>
-                          </div>
-                        </div>
-                        <div className="export-delivery-card-action">
-                          <button className="btn-s btn-sm" onClick={handleExportIssuesCsv}>
-                            Descargar CSV
-                          </button>
-                        </div>
-                      </article>
+            <div className="export-delivery-block" data-testid="export-main-block">
+              <p className="export-delivery-block-eyebrow">Resultados</p>
+              <h3 className="export-delivery-block-title">Archivos disponibles</h3>
+              <div className="export-delivery-cards">
+                <article className="export-delivery-card export-delivery-card--primary">
+                  <div className="export-delivery-card-head">
+                    <FileText size={20} />
+                    <div>
+                      <h4>Informe diagnóstico PDF</h4>
+                      <p>Documento de lectura con resumen ejecutivo, hallazgos priorizados, gráficos y límites metodológicos.</p>
                     </div>
                   </div>
-
-                  {/* ── Claims ── */}
-                  {(formalClaims.length > 0 || preliminaryClaims.length > 0 || pendingClaims.length > 0) && (
-                    <div className="export-delivery-block" data-testid="export-claims-block">
-                      <p className="export-delivery-block-eyebrow">Qué puedes afirmar</p>
-                      <h3 className="export-delivery-block-title">Resumen de gobernanza</h3>
-
-                      {formalClaims.length > 0 && (
-                        <div className="export-governance-group">
-                          <div className="export-governance-group-head">
-                            <CheckCircle2 size={14} style={{ color: 'var(--success)' }} />
-                            <strong>Afirmaciones respaldadas</strong>
-                          </div>
-                          <ul>
-                            {formalClaims.map((claim) => (
-                              <li key={claim}>{claim}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-
-                      {preliminaryClaims.length > 0 && (
-                        <div className="export-governance-group export-governance-group--preliminary">
-                          <div className="export-governance-group-head">
-                            <AlertTriangle size={14} style={{ color: 'var(--orange)' }} />
-                            <strong>En revisión</strong>
-                          </div>
-                          <ul>
-                            {preliminaryClaims.map((claim) => (
-                              <li key={claim}>{claim}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-
-                      {pendingClaims.length > 0 && (
-                        <div className="export-governance-group export-governance-group--pending">
-                          <div className="export-governance-group-head">
-                            <XCircle size={14} style={{ color: 'var(--ink3)' }} />
-                            <strong>No debes afirmar todavía</strong>
-                          </div>
-                          <ul>
-                            {pendingClaims.map((claim) => (
-                              <li key={claim}>{claim}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-
-                      {manifest.limitations.length > 0 && (
-                        <div className="export-governance-limitations">
-                          <span>Limitaciones conocidas</span>
-                          <ul>
-                            {manifest.limitations.slice(0, 3).map((lim) => (
-                              <li key={lim}>{lim}</li>
-                            ))}
-                            {manifest.limitations.length > 3 && (
-                              <li className="export-governance-limitations-more">
-                                +{manifest.limitations.length - 3} limitaciones más en los detalles técnicos
-                              </li>
-                            )}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* ── Block 2 — Anexos de remediación opcional ── */}
-                  <div className="export-delivery-block" data-testid="export-remediation-block">
-                    <p className="export-delivery-block-eyebrow">
-                      Anexos de remediación opcional
-                    </p>
-                    {hasRemediationArtifacts ? (
-                      <div className="export-remediation-cards">
-                        {approvedCleaningScript && (
-                          <article className="export-delivery-card">
-                            <div className="export-delivery-card-head">
-                              <FileCode2 size={18} />
-                              <div>
-                                <h4>Script aprobado</h4>
-                                <p>Script de limpieza validado y aprobado por revisión humana.</p>
-                              </div>
-                            </div>
-                            <div className="export-delivery-card-action">
-                              <button className="btn-s btn-sm" onClick={handleExportApprovedScript}>
-                                Descargar script
-                              </button>
-                            </div>
-                          </article>
-                        )}
-                        {approvedCleaningScript && (
-                          <article className="export-delivery-card">
-                            <div className="export-delivery-card-head">
-                              <BookOpen size={18} />
-                              <div>
-                                <h4>Notebook Colab</h4>
-                                <p>Notebook ejecutable con el script aprobado, instrucciones de reauditoría y resumen del dataset.</p>
-                              </div>
-                            </div>
-                            <div className="export-delivery-card-action">
-                              <button className="btn-s btn-sm" onClick={handleExportColab}>
-                                Descargar notebook
-                              </button>
-                            </div>
-                          </article>
-                        )}
-                        {improvementRun?.healthDelta && (
-                          <article className="export-delivery-card">
-                            <div className="export-delivery-card-head">
-                              <FlaskConical size={18} />
-                              <div>
-                                <h4>Delta de salud</h4>
-                                <p>Comparación del score antes y después de la remediación opcional.</p>
-                              </div>
-                            </div>
-                            <div className="export-delivery-card-action">
-                              <span className="export-delivery-score-delta" style={{ color: improvementRun.healthDelta.scoreDelta > 0 ? 'var(--success)' : 'var(--ink3)' }}>
-                                {improvementRun.healthDelta.scoreDelta > 0 ? '+' : ''}{improvementRun.healthDelta.scoreDelta} puntos
-                              </span>
-                            </div>
-                          </article>
-                        )}
-                      </div>
-                    ) : (
+                  <div className="export-delivery-card-action">
+                    {isPdfGenerating ? (
                       <>
-                        <h3 className="export-delivery-block-title">Esta sesión no generó anexos</h3>
-                        <p className="export-delivery-empty">
-                          No hay anexos de remediación opcional porque este flujo no generó script ni revisión humana. La remediación es una rama opcional que nace desde el reporte diagnóstico.
-                        </p>
+                        <span className="export-delivery-status export-delivery-status--generating">Generando…</span>
+                        <ProgressDisclosure
+                          title="Generando informe diagnóstico PDF"
+                          indeterminate={pdfProgressStatus === 'running'}
+                          status={pdfProgressStatus}
+                          currentStep={pdfProgressMsg}
+                          compact
+                        />
                       </>
+                    ) : (
+                      <button className="btn-p btn-sm" onClick={handleDownloadPdf} disabled={isPdfGenerating} data-testid="export-download-pdf">
+                        Descargar PDF
+                      </button>
                     )}
                   </div>
+                </article>
 
-                  {/* ── Block 3 — Evidencia técnica y trazabilidad (collapsed) ── */}
-                  <details className="export-tech-disclosure" data-testid="export-tech-disclosure">
-                    <summary className="export-tech-disclosure-summary">
-                      <ChevronDown size={14} className="export-tech-disclosure-chevron" />
-                      <span>Evidencia técnica y trazabilidad</span>
-                      <span className="export-tech-disclosure-hint">manifiesto, cobertura de objetivos, metadatos</span>
-                    </summary>
-                    <div className="export-tech-disclosure-body">
-                      <div className="export-manifest-status" data-testid="stage-decision-summary">
-                        <div className="export-manifest-item">
-                          <span className="export-manifest-label">Paquete</span>
-                          <strong style={{ color: statusColor }}>{statusLabel}</strong>
-                        </div>
-                        <div className="export-manifest-item">
-                          <span className="export-manifest-label">Script</span>
-                          <strong style={{ color: approvedCleaningScript ? 'var(--success)' : 'var(--ink3)' }}>
-                            {approvedCleaningScript ? 'Aprobado' : 'Pendiente'}
-                          </strong>
-                        </div>
-                        <div className="export-manifest-item">
-                          <span className="export-manifest-label">Evidencia</span>
-                          <strong>{completedObjectives >= 4 ? 'formal' : completedObjectives >= 2 ? 'parcial' : 'incompleta'}</strong>
-                        </div>
-                        {manifest.calibrationSummary.totalRuns > 0 && (
-                          <div className="export-manifest-item">
-                            <span className="export-manifest-label">Calibración</span>
-                            <strong>{manifest.calibrationSummary.status}</strong>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="export-manifest-checklist">
-                        <span className="export-manifest-checklist-title">Cobertura técnica de evidencia</span>
-                        {manifest.objectivesCoverage.map((obj) => (
-                          <div key={obj.id} className={`export-manifest-row export-manifest-row--${obj.status}`}>
-                            {obj.status === 'completed' ? <CheckCircle2 size={14} /> : obj.status === 'partial' ? <AlertTriangle size={14} /> : <XCircle size={14} />}
-                            <div>
-                              <strong>{obj.id}: {obj.label}</strong>
-                              <p>{obj.evidence}</p>
-                              {obj.limitations.length > 0 && (
-                                <ul className="export-manifest-limitations">
-                                  {obj.limitations.map((lim) => <li key={lim}>{lim}</li>)}
-                                </ul>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                <article className="export-delivery-card">
+                  <div className="export-delivery-card-head">
+                    <FileJson size={18} />
+                    <div>
+                      <h4>JSON técnico</h4>
+                      <p>Datos estructurados para auditoría, reproducción técnica o integración externa.</p>
                     </div>
-                  </details>
+                  </div>
+                  {exportJsonPreflightError ? (
+                    <div className="provider-unavailable-notice" role="alert" data-testid="export-json-preflight-warning">
+                      <strong>JSON técnico no exportado.</strong>{' '}
+                      {exportJsonPreflightError}
+                    </div>
+                  ) : (
+                    <div className="export-delivery-card-action">
+                      <button className="btn-s btn-sm" onClick={handleExportJson} data-testid="export-download-json">
+                        Descargar JSON
+                      </button>
+                    </div>
+                  )}
+                </article>
 
-                  {/* ── Block 4 — Gestión segura de sesión ── */}
-                  <div className="export-session-block" data-testid="export-session-block">
-                    <p className="export-delivery-block-eyebrow">Gestión segura de sesión</p>
-                    <h3 className="export-delivery-block-title">Cerrar el análisis actual</h3>
-                    <p className="export-session-block-desc">
-                      Los datos se procesan localmente en el navegador. Puedes cerrar la sesión para eliminar el análisis actual y volver a la carga inicial.
-                    </p>
-                    <button
-                      className="btn-s"
-                      onClick={handleDestroySession}
-                      style={{ borderColor: 'var(--error)', color: 'var(--error)', width: 'fit-content' }}
-                      data-testid="export-destroy-session"
-                    >
-                      Cerrar sesión y destruir datos locales
+                <article className="export-delivery-card">
+                  <div className="export-delivery-card-head">
+                    <Download size={18} />
+                    <div>
+                      <h4>CSV de hallazgos</h4>
+                      <p>Tabla simple de hallazgos para hojas de cálculo o revisión QA.</p>
+                    </div>
+                  </div>
+                  <div className="export-delivery-card-action">
+                    <button className="btn-s btn-sm" onClick={handleExportIssuesCsv}>
+                      Descargar CSV
                     </button>
                   </div>
-                </>
-              );
-            })()}
+                </article>
+              </div>
+            </div>
+
+            <div className="export-session-block" data-testid="export-session-block">
+              <p className="export-delivery-block-eyebrow">Sesión local</p>
+              <h3 className="export-delivery-block-title">Cerrar y destruir datos locales</h3>
+              <p className="export-session-block-desc">
+                El análisis se conserva en el navegador para que puedas volver al flujo. Al cerrar, AURA elimina la sesión local y vuelve a la carga inicial.
+              </p>
+              <button
+                className="btn-s export-destroy-button"
+                onClick={handleDestroySession}
+                data-testid="export-destroy-session"
+              >
+                Cerrar sesión y destruir datos locales
+              </button>
+            </div>
           </section>
         )}
       </main>

@@ -1,9 +1,10 @@
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf';
 import { describe, expect, it, vi } from 'vitest';
 import { generateDiagnosticPdfReport } from '../services/diagnosticReport';
 import type {
   DiagnosticChartSpec,
   DiagnosticFinding,
+  GenerateDiagnosticPdfReportParams,
   DiagnosticRecommendation,
   DiagnosticReport,
 } from '../services/diagnosticReport';
@@ -231,7 +232,10 @@ const buildDiagnosticReportFixture = (overrides: DiagnosticReportFixtureOverride
   };
 };
 
-const renderPdf = (diagnosticReport: DiagnosticReport) => {
+const renderPdf = (
+  diagnosticReport: DiagnosticReport,
+  options: Partial<Omit<GenerateDiagnosticPdfReportParams, 'diagnosticReport' | 'save'>> = {},
+) => {
   let capturedDoc: jsPDF | null = null;
   let capturedFilename = '';
   const save = vi.fn((doc: jsPDF, filename: string) => {
@@ -239,7 +243,7 @@ const renderPdf = (diagnosticReport: DiagnosticReport) => {
     capturedFilename = filename;
   });
 
-  const result = generateDiagnosticPdfReport({ diagnosticReport, save });
+  const result = generateDiagnosticPdfReport({ diagnosticReport, save, ...options });
 
   return { result, save, capturedDoc, capturedFilename };
 };
@@ -347,5 +351,25 @@ describe('generateDiagnosticPdfReport', () => {
     });
 
     expect(() => renderPdf(diagnosticReport)).not.toThrow();
+  });
+
+  it('incluye script Python como anexo final cuando existe', () => {
+    const diagnosticReport = buildDiagnosticReportFixture();
+    const pythonScript = [
+      'import pandas as pd',
+      '',
+      'def limpiar_dataset(df: pd.DataFrame) -> pd.DataFrame:',
+      '    resultado = df.copy()',
+      '    resultado = resultado.drop_duplicates()',
+      '    return resultado',
+    ].join('\n');
+
+    const { result, capturedDoc } = renderPdf(diagnosticReport, {
+      pythonScript,
+      pythonScriptApproved: true,
+    });
+
+    expect(result.pageCount).toBeGreaterThanOrEqual(2);
+    expect(capturedDoc?.getNumberOfPages()).toBe(result.pageCount);
   });
 });

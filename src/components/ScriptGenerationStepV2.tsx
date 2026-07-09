@@ -539,10 +539,14 @@ const ScriptGenerationStepV2: React.FC<ScriptGenerationStepV2Props> = ({
         </div>
 
         <div className="script-code-shell">
+          <div className="script-code-head">
+            <span className="script-code-filename">limpieza_dataset.py</span>
+            <span className="script-code-language">Python</span>
+          </div>
           <div className="script-scroll custom-scrollbar">
             <pre className="script-code">
               {scriptLines.map((line, index) => (
-                <span key={`${index}-${line}`} className="script-line">
+                <span key={`${index}-${line}`} className="script-line script-line--plain">
                   <span className="line-number">
                     {String(index + 1).padStart(2, '0')}
                   </span>

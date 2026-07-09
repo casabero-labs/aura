@@ -1,4 +1,4 @@
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf';
 import type { DiagnosticReport } from './types';
 import { drawChartSpec } from './pdfCharts';
 import {
@@ -35,6 +35,8 @@ type SaveCallback = (doc: jsPDF, filename: string) => void;
 
 export interface GenerateDiagnosticPdfReportParams {
   diagnosticReport: DiagnosticReport;
+  pythonScript?: string | null;
+  pythonScriptApproved?: boolean;
   save?: SaveCallback;
 }
 
@@ -59,6 +61,13 @@ const buildFilename = (report: DiagnosticReport) => {
   return `aura_informe_diagnostico_${base}.pdf`;
 };
 
+const formatPdfDate = (value: string) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return truncateText(value, 42);
+  const pad = (part: number) => String(part).padStart(2, '0');
+  return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+};
+
 const drawCover = (ctx: PdfLayoutContext, report: DiagnosticReport) => {
   const { doc, theme } = ctx;
   const pageWidth = getPageWidth(doc);
@@ -66,82 +75,80 @@ const drawCover = (ctx: PdfLayoutContext, report: DiagnosticReport) => {
   const contentWidth = getContentWidth(ctx);
   const presentation = buildDiagnosticPresentation(report);
 
-  doc.setFillColor(theme.colors.panel);
+  doc.setFillColor(theme.colors.white);
   doc.rect(0, 0, pageWidth, pageHeight, 'F');
 
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
-  doc.setTextColor(theme.colors.accent);
-  doc.text('AURA', theme.margin.left, 38);
-
   doc.setFontSize(28);
+  doc.setFont('helvetica', 'bold');
   doc.setTextColor(theme.colors.ink);
-  doc.text('Informe diagnostico', theme.margin.left, 58);
-  doc.text('de calidad del dato', theme.margin.left, 70);
+  doc.text('Informe diagnostico', theme.margin.left, 48);
+  doc.text('de calidad del dato', theme.margin.left, 60);
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(11);
+  doc.setFontSize(10);
   doc.setTextColor(theme.colors.muted);
-  doc.text(truncateText(report.metadata.fileName ?? 'Dataset sin nombre de archivo', 88), theme.margin.left, 84);
+  doc.text(truncateText(report.metadata.fileName ?? 'Dataset sin nombre de archivo', 96), theme.margin.left, 75);
+
+  doc.setDrawColor(theme.colors.border);
+  doc.line(theme.margin.left, 87, pageWidth - theme.margin.right, 87);
 
   const decisionY = 108;
-  doc.setFillColor(theme.colors.white);
-  doc.setDrawColor(theme.colors.border);
-  doc.roundedRect(theme.margin.left, decisionY, contentWidth, 64, 2.5, 2.5, 'FD');
+  const scoreX = pageWidth - theme.margin.right - 38;
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
   doc.setTextColor(theme.colors.accent);
-  doc.text(presentation.decision.eyebrow.toUpperCase(), theme.margin.left + 8, decisionY + 12);
+  doc.text(presentation.decision.eyebrow.toUpperCase(), theme.margin.left, decisionY);
   doc.setFontSize(15);
   doc.setTextColor(theme.colors.ink);
-  doc.text(doc.splitTextToSize(presentation.decision.title, contentWidth - 72), theme.margin.left + 8, decisionY + 23);
+  doc.text(doc.splitTextToSize(presentation.decision.title, contentWidth - 64), theme.margin.left, decisionY + 11);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(theme.colors.muted);
-  doc.text(doc.splitTextToSize(presentation.decision.body, contentWidth - 72), theme.margin.left + 8, decisionY + 39);
+  doc.text(doc.splitTextToSize(presentation.decision.body, contentWidth - 64), theme.margin.left, decisionY + 28);
 
-  const scoreX = pageWidth - theme.margin.right - 48;
-  doc.setDrawColor(theme.colors.accentSoft);
-  doc.roundedRect(scoreX, decisionY + 10, 40, 38, 2, 2, 'S');
+  doc.setDrawColor(theme.colors.border);
+  doc.rect(scoreX, decisionY - 2, 38, 32, 'S');
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(25);
+  doc.setFontSize(22);
   doc.setTextColor(report.metadata.scoreBase >= 80 ? theme.colors.good : report.metadata.scoreBase >= 50 ? theme.colors.warning : theme.colors.critical);
-  doc.text(`${report.metadata.scoreBase}`, scoreX + 20, decisionY + 27, { align: 'center' });
+  doc.text(`${report.metadata.scoreBase}`, scoreX + 19, decisionY + 14, { align: 'center' });
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
   doc.setTextColor(theme.colors.faint);
-  doc.text('score base', scoreX + 20, decisionY + 35, { align: 'center' });
+  doc.text('score base', scoreX + 19, decisionY + 23, { align: 'center' });
 
   const kpis = [
-    ['Fecha', report.metadata.generatedAt],
+    ['Fecha', formatPdfDate(report.metadata.generatedAt)],
     ['Fingerprint', report.metadata.sourceDatasetFingerprint],
     ['Filas / columnas', `${formatNumber(report.metadata.rowCount)} / ${formatNumber(report.metadata.colCount)}`],
     ['Estado diagnóstico', formatDiagnosticStatusLabel(report.status.diagnosticStatus)],
   ];
 
-  let y = 198;
+  let y = 166;
   kpis.forEach(([label, value]) => {
+    doc.setDrawColor(theme.colors.border);
+    doc.setLineWidth(0.15);
+    doc.line(theme.margin.left, y + 4, pageWidth - theme.margin.right, y + 4);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8);
-    doc.setTextColor(theme.colors.accent);
-    doc.text(label, theme.margin.left + 16, y);
+    doc.setTextColor(theme.colors.faint);
+    doc.text(label.toUpperCase(), theme.margin.left, y);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(theme.colors.ink);
-    doc.text(truncateText(value, 92), theme.margin.left + 62, y);
-    y += 11;
+    doc.text(truncateText(value, 92), theme.margin.left + 54, y);
+    y += 12;
   });
 
-  doc.setFillColor(theme.colors.white);
   doc.setDrawColor(theme.colors.border);
-  doc.roundedRect(theme.margin.left, pageHeight - 74, contentWidth, 28, 2, 2, 'FD');
+  doc.line(theme.margin.left, pageHeight - 67, pageWidth - theme.margin.right, pageHeight - 67);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
   doc.setTextColor(theme.colors.ink);
-  doc.text('Gobernanza del score', theme.margin.left + 6, pageHeight - 61);
+  doc.text('Gobernanza del score', theme.margin.left, pageHeight - 56);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.setTextColor(theme.colors.muted);
-  doc.text('Score no modificado por IA. El diagnostico contextualiza evidencia, no recalcula la calificacion.', theme.margin.left + 6, pageHeight - 53);
+  doc.text('Score no modificado por IA. El diagnostico contextualiza evidencia, no recalcula la calificacion.', theme.margin.left, pageHeight - 48);
 
   ctx.cursorY = pageHeight - theme.margin.bottom;
 };
@@ -286,8 +293,80 @@ const addTechnicalAnnex = (ctx: PdfLayoutContext, report: DiagnosticReport) => {
   addTechnicalAnnexTables(ctx, report);
 };
 
+const addPythonScriptAppendix = (ctx: PdfLayoutContext, script: string, approved: boolean) => {
+  const source = script.trimEnd();
+  if (!source.trim()) return;
+
+  const { doc, theme } = ctx;
+  addNewPage(ctx);
+  addSectionTitle(ctx, 'Anexo: script Python', approved ? 'script aprobado' : 'script generado');
+  addParagraph(
+    ctx,
+    approved
+      ? 'Script incluido como anexo operativo aprobado por revisión humana. El PDF no ejecuta el código; conserva la trazabilidad para revisión, reproducción y auditoría.'
+      : 'Script incluido como anexo operativo generado, pendiente de aprobación humana. No debe ejecutarse sin revisión explícita.',
+    { fontSize: 8.6 },
+  );
+
+  const blockX = theme.margin.left;
+  const blockWidth = getContentWidth(ctx);
+  const lineNumberWidth = 13;
+  const codeX = blockX + lineNumberWidth + 6;
+  const codeWidth = blockWidth - lineNumberWidth - 10;
+  const headerHeight = 10;
+
+  const drawCodeHeader = (continuation = false) => {
+    ensureSpace(ctx, headerHeight + 4);
+    doc.setFillColor(theme.colors.white);
+    doc.setDrawColor(theme.colors.border);
+    doc.rect(blockX, ctx.cursorY, blockWidth, headerHeight, 'FD');
+    doc.setFont('courier', 'bold');
+    doc.setFontSize(7.5);
+    doc.setTextColor(theme.colors.ink);
+    doc.text(continuation ? 'limpieza_dataset.py (continuacion)' : 'limpieza_dataset.py', blockX + 4, ctx.cursorY + 6.3);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(theme.colors.faint);
+    doc.text(approved ? 'Python - aprobado' : 'Python - pendiente HITL', blockX + blockWidth - 4, ctx.cursorY + 6.3, { align: 'right' });
+    ctx.cursorY += headerHeight + 2;
+  };
+
+  const ensureCodeSpace = (neededHeight: number) => {
+    if (ctx.cursorY + neededHeight > getPageHeight(doc) - theme.margin.bottom) {
+      addNewPage(ctx);
+      addSectionTitle(ctx, 'Script Python', 'continuación');
+      drawCodeHeader(true);
+    }
+  };
+
+  drawCodeHeader(false);
+
+  source.replace(/\t/g, '  ').split(/\r?\n/).forEach((line, index) => {
+    const wrapped = doc.splitTextToSize(line || ' ', codeWidth) as string[];
+    const rowHeight = Math.max(4.4, wrapped.length * 4.4);
+    ensureCodeSpace(rowHeight + 1.8);
+
+    if (index % 2 === 0) {
+      doc.setFillColor(theme.colors.panel);
+      doc.rect(blockX, ctx.cursorY - 3.1, blockWidth, rowHeight + 1.8, 'F');
+    }
+
+    doc.setFont('courier', 'normal');
+    doc.setFontSize(7.2);
+    doc.setTextColor(theme.colors.faint);
+    doc.text(String(index + 1).padStart(3, '0'), blockX + lineNumberWidth - 2, ctx.cursorY, { align: 'right' });
+    doc.setTextColor(theme.colors.ink);
+    doc.text(wrapped, codeX, ctx.cursorY);
+    ctx.cursorY += rowHeight + 1.8;
+  });
+
+  ctx.cursorY += 6;
+};
+
 export const generateDiagnosticPdfReport = ({
   diagnosticReport,
+  pythonScript,
+  pythonScriptApproved = false,
   save = defaultSave,
 }: GenerateDiagnosticPdfReportParams): GenerateDiagnosticPdfReportResult => {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
@@ -311,6 +390,9 @@ export const generateDiagnosticPdfReport = ({
   addOptionalActions(ctx, diagnosticReport);
   addMethodologyLimitations(ctx, diagnosticReport);
   addTechnicalAnnex(ctx, diagnosticReport);
+  if (pythonScript?.trim()) {
+    addPythonScriptAppendix(ctx, pythonScript, pythonScriptApproved);
+  }
 
   applyPageChrome(doc, theme);
 

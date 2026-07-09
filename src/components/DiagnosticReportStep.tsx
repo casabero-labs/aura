@@ -9,7 +9,6 @@ import {
   DiagnosticFindingGroup,
   DiagnosticRecommendationsPanel,
   DiagnosticReportChartPreview,
-  DiagnosticReportSummaryCards,
 } from './diagnosticReport';
 
 interface DiagnosticReportStepProps {
@@ -167,9 +166,9 @@ const TechnicalEvidenceDisclosure: React.FC<{ report: DiagnosticReport }> = ({ r
     <details className="diagnostic-report-tech-disclosure" data-testid="diagnostic-report-tech-disclosure">
       <summary className="diagnostic-report-tech-summary">
         <ChevronDown size={14} className="diagnostic-report-tech-chevron" />
-        <span>Evidencia técnica del reporte</span>
+        <span>Trazabilidad técnica del informe</span>
         <span className="diagnostic-report-tech-hint">
-          metadatos, trazabilidad, especificación de gráficos y payload serializado
+          metadatos, gráficos y payload serializado para auditoría
         </span>
       </summary>
       <div className="diagnostic-report-tech-body">
@@ -252,9 +251,9 @@ const DiagnosticDecisionBrief: React.FC<{ presentation: DiagnosticPresentation }
       <p>{presentation.decision.body}</p>
     </div>
     <div className="diagnostic-report-decision-aside">
-      <span>Salida recomendada</span>
-      <strong>Informe + anexos técnicos</strong>
-      <p>Remediar solo después de revisión humana.</p>
+      <span>Siguiente paso</span>
+      <strong>Exportar resultados</strong>
+      <p>El cierre no exige script de limpieza.</p>
     </div>
   </section>
 );
@@ -264,7 +263,7 @@ const GovernanceSummary: React.FC<{ presentation: DiagnosticPresentation }> = ({
     <section className="diagnostic-report-governance-card">
       <div className="diagnostic-report-governance-head">
         <ShieldCheck size={16} />
-        <strong>Qué puedes afirmar</strong>
+        <strong>Soporte del informe</strong>
       </div>
       <ul>
         {presentation.supportedClaims.map((claim) => <li key={claim}>{claim}</li>)}
@@ -272,13 +271,31 @@ const GovernanceSummary: React.FC<{ presentation: DiagnosticPresentation }> = ({
     </section>
     <section className="diagnostic-report-governance-card diagnostic-report-governance-card--pending">
       <div className="diagnostic-report-governance-head">
-        <strong>Qué falta antes de remediar</strong>
+        <strong>Pendiente antes de remediar</strong>
       </div>
       <ul>
         {presentation.pendingClaims.map((claim) => <li key={claim}>{claim}</li>)}
       </ul>
     </section>
   </div>
+);
+
+const ReportDisclosure: React.FC<{
+  title: string;
+  hint: string;
+  testId?: string;
+  children: React.ReactNode;
+}> = ({ title, hint, testId, children }) => (
+  <details className="diagnostic-report-disclosure" data-testid={testId}>
+    <summary className="diagnostic-report-disclosure-summary">
+      <ChevronDown size={14} className="diagnostic-report-disclosure-chevron" />
+      <span>{title}</span>
+      <span className="diagnostic-report-disclosure-hint">{hint}</span>
+    </summary>
+    <div className="diagnostic-report-disclosure-body">
+      {children}
+    </div>
+  </details>
 );
 
 const DiagnosticReportStep: React.FC<DiagnosticReportStepProps> = ({
@@ -306,9 +323,6 @@ const DiagnosticReportStep: React.FC<DiagnosticReportStepProps> = ({
             <button className="btn-p" onClick={onExportMain} data-testid="diagnostic-report-export-main">
               <ArrowRight size={14} /> Ir a la Exportación
             </button>
-            <button className="btn-s" onClick={onGenerateScript} data-testid="diagnostic-report-generate-script">
-              <FileCode2 size={14} /> Configurar remediación opcional (Script / Limpieza)
-            </button>
             <button className="btn-s" onClick={onBackToDiagnosis} data-testid="diagnostic-report-back-diagnosis">
               <RotateCcw size={14} /> Volver al diagnóstico
             </button>
@@ -317,11 +331,7 @@ const DiagnosticReportStep: React.FC<DiagnosticReportStepProps> = ({
 
       <DatasetSummaryStrip report={diagnosticReport} />
 
-      <DiagnosticReportSummaryCards diagnosticReport={diagnosticReport} />
-
       <DiagnosticDecisionBrief presentation={presentation} />
-
-      <GovernanceSummary presentation={presentation} />
 
       <section className="diagnostic-report-executive" data-testid="diagnostic-report-executive-summary">
         <div className="diagnostic-report-section-head">
@@ -362,54 +372,69 @@ const DiagnosticReportStep: React.FC<DiagnosticReportStepProps> = ({
         )}
       </section>
 
-      <DiagnosticReportChartPreview chartSpecs={diagnosticReport.chartSpecs} />
+      <ReportDisclosure
+        title="Ver gráficos del informe"
+        hint="visualizaciones solo cuando aportan lectura"
+        testId="diagnostic-report-chart-disclosure"
+      >
+        <DiagnosticReportChartPreview chartSpecs={diagnosticReport.chartSpecs} />
+      </ReportDisclosure>
 
-      <div className="diagnostic-report-findings-grid">
-        <FindingsGroupWithOverflow
-          title="Riesgos confirmados"
-          description="Hallazgos deterministas que se mantienen como riesgos relevantes del dataset."
-          findings={diagnosticReport.findingGroups.confirmedRisks}
-          testId="diagnostic-report-confirmed-risks"
-        />
-        <FindingsGroupWithOverflow
-          title="Posibles falsos positivos contextuales"
-          description="Candidatos que podrían requerir contexto adicional antes de remediar o descartar."
-          findings={diagnosticReport.findingGroups.possibleFalsePositiveCandidates}
-          testId="diagnostic-report-false-positive-candidates"
-          falsePositiveContext
-        />
-        <FindingsGroupWithOverflow
-          title="Requieren revisión humana"
-          description="Elementos donde la decisión de dominio no debe automatizarse."
-          findings={diagnosticReport.findingGroups.humanReviewRequired}
-          testId="diagnostic-report-human-review"
-        />
-        <FindingsGroupWithOverflow
-          title="Candidatos de remediación opcional"
-          description="Hallazgos donde AURA puede ayudar a preparar un script, sin convertirlo en requisito."
-          findings={diagnosticReport.findingGroups.optionalRemediationCandidates}
-          testId="diagnostic-report-optional-remediation"
-        />
-      </div>
+      <ReportDisclosure
+        title="Ver hallazgos agrupados"
+        hint="riesgos, falsos positivos y revisión humana"
+        testId="diagnostic-report-findings-disclosure"
+      >
+        <div className="diagnostic-report-findings-grid">
+          <FindingsGroupWithOverflow
+            title="Riesgos confirmados"
+            description="Hallazgos deterministas que se mantienen como riesgos relevantes del dataset."
+            findings={diagnosticReport.findingGroups.confirmedRisks}
+            testId="diagnostic-report-confirmed-risks"
+          />
+          <FindingsGroupWithOverflow
+            title="Posibles falsos positivos contextuales"
+            description="Candidatos que podrían requerir contexto adicional antes de remediar o descartar."
+            findings={diagnosticReport.findingGroups.possibleFalsePositiveCandidates}
+            testId="diagnostic-report-false-positive-candidates"
+            falsePositiveContext
+          />
+          <FindingsGroupWithOverflow
+            title="Requieren revisión humana"
+            description="Elementos donde la decisión de dominio no debe automatizarse."
+            findings={diagnosticReport.findingGroups.humanReviewRequired}
+            testId="diagnostic-report-human-review"
+          />
+          <FindingsGroupWithOverflow
+            title="Candidatos de remediación opcional"
+            description="Hallazgos donde AURA puede ayudar a preparar un script, sin convertirlo en requisito."
+            findings={diagnosticReport.findingGroups.optionalRemediationCandidates}
+            testId="diagnostic-report-optional-remediation"
+          />
+        </div>
+      </ReportDisclosure>
 
-      <DiagnosticRecommendationsPanel recommendations={diagnosticReport.recommendations} />
+      <ReportDisclosure
+        title="Ver recomendaciones y límites"
+        hint="acciones sugeridas y alcance defendible"
+        testId="diagnostic-report-recommendations-disclosure"
+      >
+        <DiagnosticRecommendationsPanel recommendations={diagnosticReport.recommendations} />
+        <GovernanceSummary presentation={presentation} />
+      </ReportDisclosure>
 
-      <div className="diagnostic-report-closeout">
-        <p>
-          Exportar no exige script. Script no es necesario para cerrar el análisis.
-        </p>
-        <div className="diagnostic-report-actions">
-          <button className="btn-p" onClick={onExportMain}>
-            <ArrowRight size={14} /> Ir a la Exportación
-          </button>
-          <button className="btn-s" onClick={onGenerateScript}>
-            <FileCode2 size={14} /> Configurar remediación opcional (Script / Limpieza)
-          </button>
-          <button className="btn-s" onClick={onBackToDiagnosis}>
-            <RotateCcw size={14} /> Volver al diagnóstico
+      <ReportDisclosure
+        title="Remediación opcional"
+        hint="preparar script solo si decides limpiar después de revisar"
+        testId="diagnostic-report-remediation-disclosure"
+      >
+        <div className="diagnostic-report-remediation-lite">
+          <p>La exportación del informe no depende de un script. Usa esta opción solo si quieres preparar una limpieza revisable aparte.</p>
+          <button className="btn-s" onClick={onGenerateScript} data-testid="diagnostic-report-generate-script">
+            <FileCode2 size={14} /> Preparar script revisable
           </button>
         </div>
-      </div>
+      </ReportDisclosure>
     </section>
 
     <TechnicalEvidenceDisclosure report={diagnosticReport} />

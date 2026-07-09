@@ -164,6 +164,10 @@ const ScriptReview: React.FC<ScriptReviewProps> = ({
       </div>
 
       <div className="script-code-shell">
+        <div className="script-code-head">
+          <span className="script-code-filename">limpieza_dataset.py</span>
+          <span className="script-code-language">{language}</span>
+        </div>
         {isEditing ? (
           <textarea
             className="script-editor"
@@ -182,7 +186,7 @@ const ScriptReview: React.FC<ScriptReviewProps> = ({
               {lines.map((line, index) => {
                 const kind = operations[index];
                 return (
-                  <span key={`${index}-${line}`} className="script-line">
+                  <span key={`${index}-${line}`} className={`script-line ${kind ? '' : 'script-line--plain'}`}>
                     <span className="line-number">{String(index + 1).padStart(2, '0')}</span>
                     {kind && <span className={`line-op ${operationMeta[kind].className}`}>{operationMeta[kind].label}</span>}
                     <code dangerouslySetInnerHTML={{ __html: highlightPython(line) || ' ' }} />

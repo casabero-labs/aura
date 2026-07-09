@@ -8,7 +8,7 @@ import {
   truncateText,
 } from './pdfLayout';
 
-const palette = ['#a26e3c', '#4f6f91', '#b97627', '#587a8c', '#8b6f9b', '#7b7b55', '#9b2f2f', '#47745a'];
+const palette = ['#2563eb', '#0f766e', '#7c3aed', '#0891b2', '#64748b', '#16a34a', '#dc2626', '#ca8a04'];
 
 const asNumber = (value: unknown) => {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
@@ -89,7 +89,7 @@ export const drawHorizontalBarChart = (ctx: PdfLayoutContext, chart: DiagnosticC
     doc.setFontSize(7.5);
     doc.setTextColor(theme.colors.muted);
     doc.text(labelFor(row, chart.yKey), theme.margin.left, y + 4);
-    doc.setFillColor('#eee8df');
+    doc.setFillColor(theme.colors.panel);
     doc.rect(theme.margin.left + labelWidth, y, barWidth, 4.5, 'F');
     doc.setFillColor(color(key));
     doc.rect(theme.margin.left + labelWidth, y, bar, 4.5, 'F');

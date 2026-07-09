@@ -942,7 +942,8 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
         <details className="diagnosis-tech-disclosure" data-testid="diagnosis-tech-disclosure">
           <summary className="diagnosis-tech-disclosure-summary">
             <FileCode2 size={12} />
-            <span>Datos técnicos y auditoría del diagnóstico</span>
+            <span>Trazabilidad técnica opcional</span>
+            <span className="diagnosis-tech-disclosure-hint">prompt, hashes y muestras para reproducir el diagnóstico</span>
           </summary>
           <div className="diagnosis-tech-disclosure-body">
             {/* LLM metrics */}

@@ -73,7 +73,7 @@ describe('SettingsPanel - Ollama model reconciliation', () => {
     render(<SettingsPanel config={baseConfig} onSave={onSave} onClose={onClose} />);
 
     await waitFor(() => {
-      expect(screen.getByText(/conectado/i)).toBeTruthy();
+      expect(screen.getByText(/Conectado local/i)).toBeTruthy();
     });
 
     expect(screen.queryByTestId('ollama-model-missing-warning')).toBeNull();

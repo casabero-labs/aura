@@ -117,19 +117,12 @@ test('AURA: flujo completo perfil → diagnóstico → script → revisar → ex
   ]);
   expect(jsonDownload.suggestedFilename()).toMatch(/\.json$/);
 
-  // ── Task 5b: Colab notebook download ──
-  const [colabDownload] = await Promise.all([
+  // ── Task 5b: CSV findings download ──
+  const [csvDownload] = await Promise.all([
     page.waitForEvent('download'),
-    page.getByRole('button', { name: /Descargar notebook/i }).click(),
+    page.getByRole('button', { name: /Descargar CSV/i }).click(),
   ]);
-  expect(colabDownload.suggestedFilename()).toMatch(/\.ipynb$/);
-  // Verify notebook contains nbformat and privacy warning
-  const colabBody = await colabDownload.createReadStream();
-  const chunks: Buffer[] = [];
-  for await (const chunk of colabBody) { chunks.push(Buffer.from(chunk)); }
-  const notebookText = Buffer.concat(chunks).toString('utf-8');
-  expect(notebookText).toContain('"nbformat": 4');
-  expect(notebookText).toContain('ADVERTENCIA DE PRIVACIDAD');
+  expect(csvDownload.suggestedFilename()).toMatch(/\.csv$/);
 
   expect(errors.length).toBe(0);
 
@@ -162,7 +155,7 @@ test('AURA: flujo completo perfil → diagnóstico → script → revisar → ex
   // ── Task 3+5: Session restore — reload should keep export state ──
   await page.reload({ waitUntil: 'commit', timeout: 30_000 });
   await expect(page.locator('[data-testid="export-stage"]')).toBeVisible({ timeout: 10_000 });
-  await expect(page.getByText(/Paquete final del análisis/i)).toBeVisible();
+  await expect(page.getByText(/Exportación de resultados/i)).toBeVisible();
 
   // ── Task 3+5: Session destroy — destroys session and shows upload ──
   await page.getByRole('button', { name: /Cerrar sesión y destruir datos locales/i }).click();

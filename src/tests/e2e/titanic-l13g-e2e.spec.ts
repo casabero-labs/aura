@@ -147,11 +147,12 @@ test.describe('L13G — Titanic E2E Diagnostic Report Pipeline', () => {
 
     // Finding groups
     expect(reportText).toContain('Posibles falsos positivos contextuales');
-    expect(reportText).toContain('Exportar no exige script');
+    expect(reportText).toContain('El cierre no exige script de limpieza');
 
     // Action buttons
     await expect(page.getByTestId('diagnostic-report-export-main')).toBeVisible();
-    await expect(page.getByTestId('diagnostic-report-generate-script')).toBeVisible();
+    await expect(page.getByTestId('diagnostic-report-remediation-disclosure')).toBeVisible();
+    await expect(page.getByTestId('diagnostic-report-generate-script')).not.toBeVisible();
 
     // Go to export main
     await page.getByTestId('diagnostic-report-export-main').click();
@@ -161,9 +162,11 @@ test.describe('L13G — Titanic E2E Diagnostic Report Pipeline', () => {
 
     const exportText = await page.locator('[data-testid="export-stage"]').textContent();
 
-    // Export section mentions optional remediation
-    expect(exportText).toContain('Anexos de remediación opcional');
-    expect(exportText).toContain('Esta sesión no generó anexos');
+    // Export section stays focused on result delivery and session closure
+    expect(exportText).toContain('Exportación de resultados');
+    expect(exportText).toContain('Cerrar y destruir datos locales');
+    expect(exportText).not.toContain('Anexos de remediación opcional');
+    expect(exportText).not.toContain('Qué puedes afirmar');
 
     // Main export buttons visible
     await expect(page.getByRole('button', { name: /Descargar PDF/i })).toBeVisible();
@@ -259,7 +262,9 @@ test.describe('L13G — Titanic E2E Diagnostic Report Pipeline', () => {
 
     await expect(page.locator('[data-testid="diagnostic-report-stage"]')).toBeVisible({ timeout: 10_000 });
 
-    // Enter optional remediation branch: click "Configurar remediación opcional (Script / Limpieza)"
+    // Enter optional remediation branch from progressive disclosure
+    await page.getByTestId('diagnostic-report-remediation-disclosure').locator('summary').click();
+    await expect(page.getByTestId('diagnostic-report-generate-script')).toBeVisible();
     await page.getByTestId('diagnostic-report-generate-script').click();
 
     // Wait for optional remediation notice in script state
@@ -329,8 +334,8 @@ test.describe('L13G — Titanic E2E Diagnostic Report Pipeline', () => {
     // Export button still available
     await expect(page.getByTestId('diagnostic-report-export-main')).toBeVisible();
 
-    // Script button still available (it's optional, not blocked by deterministic-only)
-    await expect(page.getByTestId('diagnostic-report-generate-script')).toBeVisible();
+    // Script action remains available only inside the optional remediation disclosure.
+    await expect(page.getByTestId('diagnostic-report-remediation-disclosure')).toBeVisible();
 
     // Click export — should work without any AI diagnosis
     await page.getByTestId('diagnostic-report-export-main').click();

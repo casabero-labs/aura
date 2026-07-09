@@ -1,14 +1,7 @@
 import React, { useMemo } from 'react';
 import { ArrowRight, ChevronDown, BarChart3, Columns3 } from 'lucide-react';
-import BoxPlot from './BoxPlot';
 import ColumnStatsPanel from './ColumnStatsPanel';
-import DatasetProfile from './DatasetProfile';
-import DeterministicEngineSummary from './DeterministicEngineSummary';
-import DeterministicValidationPanel from './DeterministicValidationPanel';
-import FindingsTable from './FindingsTable';
 import IngestionEvidenceCard from './IngestionEvidenceCard';
-import ProfileEvidencePackage from './ProfileEvidencePackage';
-import RuleActivationMatrix from './RuleActivationMatrix';
 import SeverityDistributionChart from './SeverityDistributionChart';
 import { AuditExecutionEvidence, AuditReport, DeterministicValidationReport, IssueSeverity } from '../types';
 
@@ -20,8 +13,7 @@ interface ProfileStepProps {
   onContinue: () => void;
 }
 
-const ProfileStep: React.FC<ProfileStepProps> = ({ report, auditEvidence, deterministicValidation, file, onContinue }) => {
-  const hasIqrColumns = report ? Object.values(report.columnStats).some((column) => column.inferredType === 'number' && column.iqr && column.iqr > 0) : false;
+const ProfileStep: React.FC<ProfileStepProps> = ({ report, auditEvidence, file, onContinue }) => {
   const isError = auditEvidence.ingestionStatus === 'error';
 
   const criticalCount = report ? report.issues.filter(i => i.severity === IssueSeverity.CRITICAL).length : 0;
@@ -111,9 +103,9 @@ const ProfileStep: React.FC<ProfileStepProps> = ({ report, auditEvidence, determ
           {/* A. Hero del paso (eyebrow, título, descripción) */}
           <div className="profile-editorial-header" data-testid="profile-hero">
             <p className="profile-editorial-eyebrow">PERFIL BASE</p>
-            <h1 className="profile-editorial-title">Perfil técnico del dataset</h1>
+            <h1 className="profile-editorial-title">Perfil inicial del dataset</h1>
             <p className="profile-editorial-desc">
-              AURA analizó la estructura y calidad inicial del archivo mediante reglas deterministas reproducibles.
+              AURA revisó volumen, columnas y señales principales de riesgo. El detalle interpretativo queda para el diagnóstico.
             </p>
           </div>
 
@@ -230,7 +222,7 @@ const ProfileStep: React.FC<ProfileStepProps> = ({ report, auditEvidence, determ
               }}
               type="button"
             >
-              Ver detalles técnicos
+              Ver columnas detectadas
             </button>
           </div>
 
@@ -238,84 +230,23 @@ const ProfileStep: React.FC<ProfileStepProps> = ({ report, auditEvidence, determ
           <details className="technical-details" data-testid="profile-tech-disclosure">
             <summary className="technical-details-summary">
               <ChevronDown size={14} className="technical-details-chevron" />
-              <span>Datos técnicos del perfil</span>
-              <span className="technical-details-hint">ingestión, caracterización, validación, reglas y hallazgos</span>
+              <span>Columnas detectadas</span>
+              <span className="technical-details-hint">detalle opcional; el diagnóstico explica el significado</span>
             </summary>
             <div className="technical-details-body">
-
-              <section className="profile-block" aria-labelledby="ingestion-evidence-section-title">
-                <div className="profile-block-header">
-                  <span className="profile-block-index">00</span>
-                  <div>
-                    <p className="sec-eye">ingestión</p>
-                    <h2 id="ingestion-evidence-section-title" className="sec-title">Contrato de ingestión y metadatos del archivo.</h2>
-                  </div>
-                </div>
-                <IngestionEvidenceCard evidence={auditEvidence} />
-              </section>
 
               <section className="profile-block" aria-labelledby="profile-characterization-title">
                 <div className="profile-block-header">
                   <span className="profile-block-index">01</span>
                   <div>
-                    <p className="sec-eye">caracterización</p>
-                    <h2 id="profile-characterization-title" className="sec-title">Estructura y perfil estadístico del dataset.</h2>
+                    <p className="sec-eye">estructura</p>
+                    <h2 id="profile-characterization-title" className="sec-title">Tipos y cobertura por columna.</h2>
                   </div>
                 </div>
-                <DatasetProfile
-                  report={report}
-                  fileName={file?.name}
-                  fileSize={file?.size}
-                  parseDurationMs={auditEvidence.parseDurationMs}
-                  auditDurationMs={auditEvidence.auditDurationMs}
-                  datasetFingerprint={auditEvidence.datasetFingerprint}
-                />
 
                 <section className="section section-nested profile-statistics-group" id="column-profile">
                   <ColumnStatsPanel columnStats={report.columnStats} totalRows={report.rowCount} />
                 </section>
-
-                {hasIqrColumns && (
-                  <section className="section section-nested profile-statistics-group" id="boxplot">
-                    <BoxPlot columnStats={report.columnStats} />
-                  </section>
-                )}
-              </section>
-
-              <section className="profile-block" aria-labelledby="profile-validation-title">
-                <div className="profile-block-header">
-                  <span className="profile-block-index">02</span>
-                  <div>
-                    <p className="sec-eye">validación determinista</p>
-                    <h2 id="profile-validation-title" className="sec-title">Reglas aplicadas y score reproducible.</h2>
-                  </div>
-                </div>
-
-                <DeterministicEngineSummary report={report} auditEvidence={auditEvidence} />
-
-                {deterministicValidation && (
-                  <section className="section section-nested" id="deterministic-validation">
-                    <DeterministicValidationPanel validationReport={deterministicValidation} />
-                  </section>
-                )}
-
-                <section className="section section-nested" id="rule-matrix">
-                  <RuleActivationMatrix issues={report.issues} />
-                </section>
-              </section>
-
-              <section className="profile-block" aria-labelledby="profile-findings-title">
-                <div className="profile-block-header">
-                  <span className="profile-block-index">03</span>
-                  <div>
-                    <p className="sec-eye">hallazgos y evidencia</p>
-                    <h2 id="profile-findings-title" className="sec-title">Hallazgos observados.</h2>
-                  </div>
-                </div>
-
-                <FindingsTable issues={report.issues} rowCount={report.rowCount} />
-
-                <ProfileEvidencePackage report={report} />
               </section>
 
             </div>

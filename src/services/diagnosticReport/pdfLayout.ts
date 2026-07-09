@@ -1,4 +1,4 @@
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf';
 
 export interface PdfTheme {
   margin: {
@@ -37,23 +37,23 @@ export interface KpiItem {
 
 export const createPdfTheme = (): PdfTheme => ({
   margin: {
-    top: 24,
-    right: 16,
+    top: 22,
+    right: 18,
     bottom: 22,
-    left: 16,
+    left: 18,
   },
   colors: {
-    ink: '#252320',
-    muted: '#68645f',
-    faint: '#9a948c',
-    border: '#ded8cf',
-    panel: '#f7f4ef',
-    accent: '#a26e3c',
-    accentSoft: '#ead8c4',
+    ink: '#20242b',
+    muted: '#4f5967',
+    faint: '#858d99',
+    border: '#d9dde3',
+    panel: '#f5f6f8',
+    accent: '#20242b',
+    accentSoft: '#c8ced6',
     critical: '#9b2f2f',
     warning: '#b97627',
-    info: '#4f6f91',
-    good: '#3f7045',
+    info: '#3f6f91',
+    good: '#2f6f55',
     white: '#ffffff',
   },
 });
@@ -93,16 +93,16 @@ export const addPageHeader = (doc: jsPDF, theme: PdfTheme, title = 'AURA - Infor
   const pageWidth = getPageWidth(doc);
   doc.setDrawColor(theme.colors.border);
   doc.setLineWidth(0.2);
-  doc.line(theme.margin.left, 14, pageWidth - theme.margin.right, 14);
+  doc.line(theme.margin.left, 13, pageWidth - theme.margin.right, 13);
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
   doc.setTextColor(theme.colors.accent);
-  doc.text('AURA', theme.margin.left, 10);
+  doc.text('AURA', theme.margin.left, 9.5);
 
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(theme.colors.faint);
-  doc.text(title, pageWidth - theme.margin.right, 10, { align: 'right' });
+  doc.text(title, pageWidth - theme.margin.right, 9.5, { align: 'right' });
 };
 
 export const addPageFooter = (doc: jsPDF, theme: PdfTheme, pageNumber: number, pageCount: number) => {
@@ -115,7 +115,7 @@ export const addPageFooter = (doc: jsPDF, theme: PdfTheme, pageNumber: number, p
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.setTextColor(theme.colors.faint);
-  doc.text('Reporte diagnóstico generado desde evidencia técnica y contexto disponible.', theme.margin.left, pageHeight - 10);
+  doc.text('AURA - Informe diagnóstico', theme.margin.left, pageHeight - 10);
   doc.text(`Página ${pageNumber} de ${pageCount}`, pageWidth - theme.margin.right, pageHeight - 10, { align: 'right' });
 };
 
@@ -142,9 +142,11 @@ export const addSectionTitle = (ctx: PdfLayoutContext, title: string, eyebrow?: 
   doc.setFontSize(14);
   doc.setTextColor(theme.colors.ink);
   doc.text(title, theme.margin.left, ctx.cursorY);
-  doc.setDrawColor(theme.colors.accentSoft);
-  doc.setLineWidth(0.5);
-  doc.line(theme.margin.left, ctx.cursorY + 3, getPageWidth(doc) - theme.margin.right, ctx.cursorY + 3);
+  const titleWidth = doc.getTextWidth(title);
+  const lineStart = Math.min(theme.margin.left + titleWidth + 8, getPageWidth(doc) - theme.margin.right - 24);
+  doc.setDrawColor(theme.colors.border);
+  doc.setLineWidth(0.3);
+  doc.line(lineStart, ctx.cursorY - 1.5, getPageWidth(doc) - theme.margin.right, ctx.cursorY - 1.5);
   ctx.cursorY += 11;
 };
 
@@ -192,9 +194,9 @@ export const addKpiGrid = (ctx: PdfLayoutContext, items: KpiItem[]) => {
     const row = Math.floor(index / columns);
     const x = theme.margin.left + col * (width + gap);
     const y = ctx.cursorY + row * (rowHeight + gap);
-    doc.setFillColor(theme.colors.panel);
+    doc.setFillColor(theme.colors.white);
     doc.setDrawColor(theme.colors.border);
-    doc.roundedRect(x, y, width, rowHeight, 1.5, 1.5, 'FD');
+    doc.rect(x, y, width, rowHeight, 'FD');
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(13);
     doc.setTextColor(theme.colors.ink);
@@ -218,9 +220,12 @@ export const addGovernanceCallout = (ctx: PdfLayoutContext, title: string, items
   const itemLines = items.map((item) => doc.splitTextToSize(item, width - 12));
   const height = 14 + itemLines.reduce((sum, lines) => sum + Math.max(1, lines.length) * 4.8 + 1, 0);
   ensureSpace(ctx, height + 4);
-  doc.setFillColor(theme.colors.panel);
-  doc.setDrawColor(theme.colors.accentSoft);
-  doc.roundedRect(theme.margin.left, ctx.cursorY, width, height, 2, 2, 'FD');
+  doc.setFillColor(theme.colors.white);
+  doc.setDrawColor(theme.colors.border);
+  doc.rect(theme.margin.left, ctx.cursorY, width, height, 'FD');
+  doc.setDrawColor(theme.colors.accent);
+  doc.setLineWidth(0.8);
+  doc.line(theme.margin.left, ctx.cursorY, theme.margin.left, ctx.cursorY + height);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
   doc.setTextColor(theme.colors.ink);

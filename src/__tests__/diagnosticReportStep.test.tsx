@@ -175,15 +175,15 @@ const renderStep = (callbacks = {
 };
 
 describe('DiagnosticReportStep', () => {
-  it('renderiza header y cards principales', () => {
+  it('renderiza header y resumen principal', () => {
     renderStep();
 
     expect(screen.getByTestId('diagnostic-report-header').textContent).toContain('Informe diagnóstico de calidad del dato');
-    const cards = screen.getByTestId('diagnostic-report-summary-cards');
-    expect(cards.textContent).toContain('72/100');
-    expect(cards.textContent).toContain('891');
-    expect(cards.textContent).toContain('12');
-    expect(cards.textContent).toContain('Hallazgos');
+    const summary = screen.getByTestId('diagnostic-report-summary-strip');
+    expect(summary.textContent).toContain('72/100');
+    expect(summary.textContent).toContain('891');
+    expect(summary.textContent).toContain('12');
+    expect(summary.textContent).toContain('hallazgos');
   });
 
   it('no muestra estados técnicos crudos como llm_diagnosis_available', () => {
@@ -205,7 +205,8 @@ describe('DiagnosticReportStep', () => {
 
     const stageText = screen.getByTestId('diagnostic-report-stage').textContent ?? '';
     expect(stageText).toContain('El informe principal puede cerrarse sin generar script.');
-    expect(stageText).toContain('Script no es necesario para cerrar el análisis.');
+    expect(stageText).toContain('El cierre no exige script de limpieza.');
+    expect(stageText).toContain('La exportación del informe no depende de un script.');
   });
 
   it('renderiza resumen ejecutivo', () => {
@@ -221,7 +222,16 @@ describe('DiagnosticReportStep', () => {
 
     const decision = screen.getByTestId('diagnostic-report-decision');
     expect(decision.textContent).toContain('Revisión humana antes de publicar o corregir datos');
-    expect(decision.textContent).toContain('Informe + anexos técnicos');
+    expect(decision.textContent).toContain('Exportar resultados');
+  });
+
+  it('mantiene detalle secundario bajo revelación progresiva', () => {
+    renderStep();
+
+    expect(screen.getByTestId('diagnostic-report-chart-disclosure').tagName).toBe('DETAILS');
+    expect(screen.getByTestId('diagnostic-report-findings-disclosure').tagName).toBe('DETAILS');
+    expect(screen.getByTestId('diagnostic-report-recommendations-disclosure').tagName).toBe('DETAILS');
+    expect(screen.getByTestId('diagnostic-report-remediation-disclosure').tagName).toBe('DETAILS');
   });
 
   it('renderiza al menos una chartSpec', () => {
