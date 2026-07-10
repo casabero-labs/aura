@@ -230,6 +230,23 @@ git commit -m "feat: define OE4 campaign contracts"
 
 ## Task 3: Actualizar el registro de modelos y la telemetría real de Ollama
 
+**Estado:** cerrada en implementación el 10 de julio de 2026.
+
+**Resultado:** el registro distingue los tres modelos formales Unsloth
+`UD-Q4_K_XL` de las alternativas operativas y conserva `qwen2.5:3b`. Ollama
+ahora entrega `thinking` separado de la respuesta final y mapea los conteos y
+duraciones nativos (`prompt_eval_count`, `eval_count` y tiempos en nanosegundos)
+a métricas en milisegundos sin estimarlos cuando la API los informa. El
+preflight formal valida los tres identificadores, versiones cliente/servidor,
+espacio libre, digest local y respuesta smoke, y escribe un recibo JSON al pasar.
+
+**Validación:** 23/23 pruebas focales, 1620 pruebas completas aprobadas, 6
+omitidas, typecheck y build correctos. La prueba contra el
+entorno real se detiene correctamente antes de la campaña: cliente Ollama
+`0.31.1` y servidor `0.20.3` no coinciden. Además, los tres modelos formales aún
+no están instalados; esto es preparación ambiental de Task 12, no una razón para
+falsear el cierre de implementación de Task 3.
+
 **Files:**
 
 - Modify: `src/services/modelRegistry.ts`
@@ -280,6 +297,10 @@ npm run typecheck
 git add services/modelRegistry.ts services/providers/ollamaProvider.ts types.ts scripts/validate-ollama.mjs __tests__/ollamaProvider.test.ts __tests__/finalEvaluationModels.test.ts
 git commit -m "feat: pin modern Ollama evaluation models"
 ```
+
+Para el preflight formal se usa el comando sin `--model`; así se verifican los
+tres modelos congelados y, al pasar, se genera
+`experiments/final-evaluation/preflight/ollama-preflight.latest.json`.
 
 ## Task 4: Construir los tres contratos formales de entrada con una salida común
 

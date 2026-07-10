@@ -53,8 +53,18 @@ array contiene `51/2/2`. Los conteos derivados se calculan desde el array.
 
 ## Estado
 
-**Tasks 1 y 2 cerradas el 10 de julio de 2026:** hashes, oráculos, tres modelos,
-tres modos, matriz, orden balanceado y warm-ups están congelados. Los contratos
+**Tasks 1–3 cerradas en implementación el 10 de julio de 2026:** hashes,
+oráculos, tres modelos, tres modos, matriz, orden balanceado y warm-ups están
+congelados. Los contratos
 `aura.experiment-campaign.v1` y `aura.experiment-run.v1` preservan cada corrida y
-su historial append-only. OE4 continúa **parcial** hasta completar las Tasks 3–12,
+su historial append-only. El registro distingue modelos formales de alternativas
+operativas, y el proveedor conserva tokens, duraciones y `thinking` nativos de
+Ollama. El preflight genera un recibo con versiones, espacio libre, digests y
+smokes cuando todos los gates pasan. OE4 continúa **parcial** hasta completar las Tasks 4–12,
 ejecutar las 45 unidades reales y exportar el expediente final válido.
+
+El intento real del 10 de julio quedó bloqueado antes de la campaña por una
+desalineación reproducible: cliente Ollama `0.31.1` y servidor `0.20.3`. Los tres
+modelos formales tampoco están instalados todavía. No se sustituyen por mocks:
+se corrige el entorno en Task 12 y se repite `npm run ollama:validate` desde
+`src/` hasta producir `preflight/ollama-preflight.latest.json`.

@@ -172,6 +172,28 @@ describe('OllamaProvider', () => {
       fetchSpy.mockRestore();
     });
 
+    it('passes top_p to /api/chat and uses the OE4 default when not configured', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(() =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({ message: { content: 'ok' } }),
+        } as Response)
+      );
+
+      const provider = new OllamaProvider(model, 0.1, baseUrl);
+
+      await provider.generateText('hello');
+
+      const call = fetchSpy.mock.calls[0];
+      const body = JSON.parse(call[1].body as string) as {
+        options: Record<string, unknown>;
+      };
+      expect(body.options.top_p).toBe(0.9);
+
+      fetchSpy.mockRestore();
+    });
+
     it('uses default num_ctx 16384 and num_predict 1200 when not configured', async () => {
       const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(() =>
         Promise.resolve({
@@ -242,6 +264,45 @@ describe('OllamaProvider', () => {
       } catch (e: any) {
         expect(e.message).toMatch(/exceed.*context/i);
       }
+
+      fetchSpy.mockRestore();
+    });
+  });
+
+  describe('native Ollama telemetry', () => {
+    it('preserves thinking separately and maps native token and duration fields', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(() =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({
+            message: {
+              content: 'Diagnóstico final',
+              thinking: 'Razonamiento interno separado',
+            },
+            prompt_eval_count: 320,
+            eval_count: 180,
+            total_duration: 6_500_000_000,
+            load_duration: 1_250_000_000,
+            prompt_eval_duration: 840_000_000,
+            eval_duration: 4_200_000_000,
+          }),
+        } as Response)
+      );
+
+      const provider = new OllamaProvider(model, 0.1, baseUrl);
+      const result = await provider.generateText('hello');
+
+      expect(result.text).toBe('Diagnóstico final');
+      expect(result.thinking).toBe('Razonamiento interno separado');
+      expect(result.metrics).toMatchObject({
+        promptTokens: 320,
+        tokensGenerated: 180,
+        totalDurationMs: 6500,
+        loadDurationMs: 1250,
+        promptEvalDurationMs: 840,
+        evalDurationMs: 4200,
+      });
 
       fetchSpy.mockRestore();
     });

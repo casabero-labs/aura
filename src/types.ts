@@ -222,6 +222,7 @@ export interface AIConfig {
   ollamaModel?: string;
   ollamaNumCtx?: number;
   ollamaNumPredict?: number;
+  ollamaTopP?: number;
   modelDownloadState?: Record<string, ModelDownloadState>;
   promptContract?: PromptContractConfig;
   inputMode?: InputMode;
@@ -253,8 +254,21 @@ export interface ProviderMetrics {
   latencyMs: number;
   firstTokenMs: number;
   tokensGenerated: number;
+  promptTokens?: number;
+  totalDurationMs?: number;
+  loadDurationMs?: number;
+  promptEvalDurationMs?: number;
+  evalDurationMs?: number;
+  reasoningTokens?: number | null;
   isLocal: boolean;
   timestamp: string;
+}
+
+export interface ProviderTextResult {
+  text: string;
+  /** Reasoning trace returned separately by thinking-capable providers. */
+  thinking?: string;
+  metrics: ProviderMetrics;
 }
 
 export interface BenchmarkResult {
@@ -533,10 +547,10 @@ export interface AIProvider {
   ): Promise<{ content: ExecutiveReportContent; metrics: ProviderMetrics }>;
 
   /** Respuesta libre para benchmarks de prompt no controlado */
-  generateText(prompt: string): Promise<{ text: string; metrics: ProviderMetrics }>;
+  generateText(prompt: string): Promise<ProviderTextResult>;
 
   /** Respuesta libre con callback de progreso observable */
-  generateTextWithProgress?(prompt: string, onProgress: (event: ProviderProgressEvent) => void): Promise<{ text: string; metrics: ProviderMetrics }>;
+  generateTextWithProgress?(prompt: string, onProgress: (event: ProviderProgressEvent) => void): Promise<ProviderTextResult>;
 
   /** Verifica si el proveedor está disponible en el entorno actual */
   isAvailable(): Promise<boolean>;

@@ -6,6 +6,8 @@
  * with the frozen public artifact.
  */
 
+import { FINAL_EVALUATION_OLLAMA_MODEL_IDS } from '../modelRegistry';
+
 export const OE4_FINAL_EVALUATION_PROTOCOL_ID = 'aura.oe4.final-evaluation.v1';
 export const OE4_FINAL_EVALUATION_PROTOCOL_VERSION = '1.0.0';
 export const OE4_FINAL_EVALUATION_DATASET_ID = 'controlled_customers_phase8';
@@ -17,11 +19,7 @@ export const OE4_DATASET_SCHEMA_SHA256 =
 export const OE4_GROUND_TRUTH_SOURCE_SHA256 =
   '38c846856860519d248b42e53afe3cacacff714f115af6cec4b3d050fe79040d';
 
-export const OE4_MODELS = [
-  'hf.co/unsloth/Qwen3-8B-GGUF:UD-Q4_K_XL',
-  'hf.co/unsloth/gemma-3-4b-it-qat-GGUF:UD-Q4_K_XL',
-  'hf.co/unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF:UD-Q4_K_XL',
-] as const;
+export const OE4_MODELS = FINAL_EVALUATION_OLLAMA_MODEL_IDS;
 
 /**
  * Three distinct, already implemented input compositions:

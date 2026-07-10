@@ -36,6 +36,9 @@ export interface OllamaModelDef {
   name: string;
   family: string;
   recommended?: boolean;
+  formalEvaluation: boolean;
+  quantization?: 'UD-Q4_K_XL';
+  repository?: string;
 }
 
 /**
@@ -89,15 +92,51 @@ export const CHROME_MODELS: ChromeModelDef[] = [
   { id: 'gemini-nano', name: 'Gemini Nano (Chrome Built-in)', provider: 'Chrome AI' },
 ];
 
+export const FINAL_EVALUATION_OLLAMA_MODEL_IDS = [
+  'hf.co/unsloth/Qwen3-8B-GGUF:UD-Q4_K_XL',
+  'hf.co/unsloth/gemma-3-4b-it-qat-GGUF:UD-Q4_K_XL',
+  'hf.co/unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF:UD-Q4_K_XL',
+] as const;
+
+/** Exact frozen models for the OE4 final campaign. */
+export const FINAL_EVALUATION_OLLAMA_MODELS: readonly OllamaModelDef[] = [
+  {
+    id: FINAL_EVALUATION_OLLAMA_MODEL_IDS[0],
+    name: 'Qwen 3 8B · OE4 (UD-Q4_K_XL)',
+    family: 'Qwen3',
+    formalEvaluation: true,
+    quantization: 'UD-Q4_K_XL',
+    repository: 'huggingface.co/unsloth/Qwen3-8B-GGUF',
+  },
+  {
+    id: FINAL_EVALUATION_OLLAMA_MODEL_IDS[1],
+    name: 'Gemma 3 4B IT QAT · OE4 (UD-Q4_K_XL)',
+    family: 'Gemma 3',
+    formalEvaluation: true,
+    quantization: 'UD-Q4_K_XL',
+    repository: 'huggingface.co/unsloth/gemma-3-4b-it-qat-GGUF',
+  },
+  {
+    id: FINAL_EVALUATION_OLLAMA_MODEL_IDS[2],
+    name: 'DeepSeek R1 0528 Qwen3 8B · OE4 (UD-Q4_K_XL)',
+    family: 'DeepSeek R1',
+    formalEvaluation: true,
+    quantization: 'UD-Q4_K_XL',
+    repository: 'huggingface.co/unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF',
+  },
+] as const;
+
 /**
- * Ollama local models (suggested, user can type custom).
+ * Ollama local models. Formal OE4 models are explicit; the previous lightweight
+ * choices remain available for ordinary operation and smoke testing.
  */
 export const OLLAMA_MODELS: OllamaModelDef[] = [
-  { id: 'qwen2.5:3b', name: 'Qwen 2.5 3B', family: 'Qwen', recommended: true },
-  { id: 'llama3.2:3b', name: 'Llama 3.2 3B', family: 'Llama', recommended: true },
-  { id: 'mistral:7b', name: 'Mistral 7B', family: 'Mistral' },
-  { id: 'gemma2:2b', name: 'Gemma 2 2B', family: 'Gemma' },
-  { id: 'phi3:mini', name: 'Phi-3 Mini', family: 'Phi' },
+  ...FINAL_EVALUATION_OLLAMA_MODELS,
+  { id: 'qwen2.5:3b', name: 'Qwen 2.5 3B', family: 'Qwen', recommended: true, formalEvaluation: false },
+  { id: 'llama3.2:3b', name: 'Llama 3.2 3B', family: 'Llama', recommended: true, formalEvaluation: false },
+  { id: 'mistral:7b', name: 'Mistral 7B', family: 'Mistral', formalEvaluation: false },
+  { id: 'gemma2:2b', name: 'Gemma 2 2B', family: 'Gemma', formalEvaluation: false },
+  { id: 'phi3:mini', name: 'Phi-3 Mini', family: 'Phi', formalEvaluation: false },
 ];
 
 /**

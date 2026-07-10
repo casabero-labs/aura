@@ -7,14 +7,32 @@
  * Security: only localhost endpoints by default.
  */
 
-import { AuditReport, AIProvider, ProviderMetrics, ExecutiveReportContent, ProviderProgressEvent, AIConfig } from '../../types';
+import { AuditReport, AIProvider, ProviderMetrics, ExecutiveReportContent, ProviderProgressEvent, AIConfig, ProviderTextResult } from '../../types';
 import { buildAnalysisPrompt, buildExecutivePrompt, buildCompactAnalysisPrompt } from './prompts';
 import { normalizeAiProviderError } from './errors';
+import { OLLAMA_MODELS } from '../modelRegistry';
 
 export interface OllamaModel {
   name: string;
+  model?: string;
   modified_at: string;
   size: number;
+  digest?: string;
+  details?: {
+    format?: string;
+    family?: string;
+    parameter_size?: string;
+    quantization_level?: string;
+  };
+}
+
+interface OllamaUsageFields {
+  total_duration?: number;
+  load_duration?: number;
+  prompt_eval_count?: number;
+  prompt_eval_duration?: number;
+  eval_count?: number;
+  eval_duration?: number;
 }
 
 const DEFAULT_BASE_URL = 'http://localhost:11434';
@@ -22,15 +40,15 @@ const DEFAULT_MODEL = 'qwen2.5:3b';
 const DEFAULT_KEEP_ALIVE = '10m';
 const DEFAULT_NUM_CTX = 16384;
 const DEFAULT_NUM_PREDICT = 1200;
+const DEFAULT_TOP_P = 0.9;
 const COMPACT_MARGIN = 2048;
 
-export const OLLAMA_SUGGESTED_MODELS = [
-  'qwen2.5:3b',
-  'llama3.2:3b',
-  'mistral:7b',
-  'gemma2:2b',
-  'phi3:mini',
-];
+export const OLLAMA_SUGGESTED_MODELS = OLLAMA_MODELS.map((model) => model.id);
+
+const nanosecondsToMilliseconds = (value: number | undefined): number | undefined =>
+  typeof value === 'number' && Number.isFinite(value)
+    ? Math.round(value / 1_000_000)
+    : undefined;
 
 export class OllamaProvider implements AIProvider {
   readonly name = 'Ollama';
@@ -42,6 +60,7 @@ export class OllamaProvider implements AIProvider {
   private aiConfig?: AIConfig;
   private numCtx: number;
   private numPredict: number;
+  private topP: number;
 
   constructor(
     model: string = DEFAULT_MODEL,
@@ -55,11 +74,13 @@ export class OllamaProvider implements AIProvider {
     this.aiConfig = aiConfig;
     this.numCtx = aiConfig?.ollamaNumCtx ?? DEFAULT_NUM_CTX;
     this.numPredict = aiConfig?.ollamaNumPredict ?? DEFAULT_NUM_PREDICT;
+    this.topP = aiConfig?.ollamaTopP ?? DEFAULT_TOP_P;
   }
 
   private buildOptions(): Record<string, unknown> {
     return {
       temperature: this.temperature,
+      top_p: this.topP,
       num_ctx: this.numCtx,
       num_predict: this.numPredict,
     };
@@ -72,6 +93,29 @@ export class OllamaProvider implements AIProvider {
   private needsCompactPrompt(promptText: string): boolean {
     const estimated = this.estimatePromptTokens(promptText);
     return estimated > this.numCtx - COMPACT_MARGIN;
+  }
+
+  private buildMetrics(
+    observedLatencyMs: number,
+    firstTokenMs: number,
+    generatedText: string,
+    usage: OllamaUsageFields = {},
+  ): ProviderMetrics {
+    return {
+      provider: this.name,
+      model: this.model,
+      latencyMs: Math.round(observedLatencyMs),
+      firstTokenMs: Math.round(firstTokenMs),
+      tokensGenerated: usage.eval_count ?? Math.round(generatedText.length / 4),
+      promptTokens: usage.prompt_eval_count,
+      totalDurationMs: nanosecondsToMilliseconds(usage.total_duration),
+      loadDurationMs: nanosecondsToMilliseconds(usage.load_duration),
+      promptEvalDurationMs: nanosecondsToMilliseconds(usage.prompt_eval_duration),
+      evalDurationMs: nanosecondsToMilliseconds(usage.eval_duration),
+      reasoningTokens: null,
+      isLocal: true,
+      timestamp: new Date().toISOString(),
+    };
   }
 
   async isAvailable(): Promise<boolean> {
@@ -139,7 +183,7 @@ export class OllamaProvider implements AIProvider {
     }
   }
 
-  async generateText(prompt: string): Promise<{ text: string; metrics: ProviderMetrics }> {
+  async generateText(prompt: string): Promise<ProviderTextResult> {
     const startTime = performance.now();
     let fullText = '';
 
@@ -176,20 +220,14 @@ export class OllamaProvider implements AIProvider {
 
       const data = await response.json();
       fullText = data.message?.content || '';
+      const thinking = data.message?.thinking || undefined;
 
       const totalTime = performance.now() - startTime;
 
       return {
         text: fullText,
-        metrics: {
-          provider: this.name,
-          model: this.model,
-          latencyMs: Math.round(totalTime),
-          firstTokenMs: Math.round(totalTime),
-          tokensGenerated: Math.round(fullText.length / 4),
-          isLocal: true,
-          timestamp: new Date().toISOString(),
-        },
+        thinking,
+        metrics: this.buildMetrics(totalTime, totalTime, fullText, data),
       };
     } catch (error) {
       const normalized = this.aiConfig
@@ -210,7 +248,7 @@ export class OllamaProvider implements AIProvider {
   async generateTextWithProgress(
     prompt: string,
     onProgress: (event: ProviderProgressEvent) => void,
-  ): Promise<{ text: string; metrics: ProviderMetrics }> {
+  ): Promise<ProviderTextResult> {
     onProgress({ stage: 'checking', message: 'Verificando conexión con Ollama' });
 
     if (!(await this.isAvailable())) {
@@ -224,6 +262,8 @@ export class OllamaProvider implements AIProvider {
     let firstTokenTime = 0;
     let tokensGenerated = 0;
     let fullText = '';
+    let thinking = '';
+    let usage: OllamaUsageFields = {};
 
     try {
       onProgress({ stage: 'generating', message: 'Generando respuesta' });
@@ -277,6 +317,9 @@ export class OllamaProvider implements AIProvider {
           try {
             const event = JSON.parse(line);
             const content = event.message?.content || '';
+            const thinkingChunk = event.message?.thinking || '';
+            if (thinkingChunk) thinking += thinkingChunk;
+            usage = { ...usage, ...event };
             if (content) {
               if (firstTokenTime === 0) {
                 firstTokenTime = performance.now() - startTime;
@@ -295,15 +338,13 @@ export class OllamaProvider implements AIProvider {
 
       return {
         text: fullText,
-        metrics: {
-          provider: this.name,
-          model: this.model,
-          latencyMs: Math.round(totalTime),
-          firstTokenMs: Math.round(firstTokenTime),
-          tokensGenerated,
-          isLocal: true,
-          timestamp: new Date().toISOString(),
-        },
+        thinking: thinking || undefined,
+        metrics: this.buildMetrics(
+          totalTime,
+          firstTokenTime,
+          fullText,
+          usage.eval_count === undefined ? { ...usage, eval_count: tokensGenerated } : usage,
+        ),
       };
     } catch (error) {
       onProgress({ stage: 'error', message: (error as Error).message });
@@ -327,6 +368,7 @@ export class OllamaProvider implements AIProvider {
     const startTime = performance.now();
     let firstTokenTime = 0;
     let tokensGenerated = 0;
+    let usage: OllamaUsageFields = {};
 
     try {
       const response = await fetch(`${this.baseUrl}/api/chat`, {
@@ -360,6 +402,7 @@ export class OllamaProvider implements AIProvider {
           try {
             const event = JSON.parse(line);
             const content = event.message?.content || '';
+            usage = { ...usage, ...event };
             if (content) {
               if (firstTokenTime === 0) firstTokenTime = performance.now() - startTime;
               tokensGenerated += Math.round(content.length / 4);
@@ -376,15 +419,12 @@ export class OllamaProvider implements AIProvider {
     }
 
     const totalTime = performance.now() - startTime;
-    return {
-      provider: this.name,
-      model: this.model,
-      latencyMs: Math.round(totalTime),
-      firstTokenMs: Math.round(firstTokenTime),
-      tokensGenerated,
-      isLocal: true,
-      timestamp: new Date().toISOString(),
-    };
+    return this.buildMetrics(
+      totalTime,
+      firstTokenTime,
+      '',
+      usage.eval_count === undefined ? { ...usage, eval_count: tokensGenerated } : usage,
+    );
   }
 
   async generateExecutiveReport(
@@ -425,15 +465,7 @@ export class OllamaProvider implements AIProvider {
 
     return {
       content,
-      metrics: {
-        provider: this.name,
-        model: this.model,
-        latencyMs: Math.round(totalTime),
-        firstTokenMs: Math.round(totalTime),
-        tokensGenerated: Math.round(text.length / 4),
-        isLocal: true,
-        timestamp: new Date().toISOString(),
-      },
+      metrics: this.buildMetrics(totalTime, totalTime, text, data),
     };
   }
 
@@ -450,6 +482,7 @@ export class OllamaProvider implements AIProvider {
     let firstTokenTime = 0;
     let tokensGenerated = 0;
     let fullText = '';
+    let usage: OllamaUsageFields = {};
 
       const response = await fetch(`${this.baseUrl}/api/chat`, {
         method: 'POST',
@@ -482,6 +515,7 @@ export class OllamaProvider implements AIProvider {
         try {
           const event = JSON.parse(line);
           const content = event.message?.content || '';
+          usage = { ...usage, ...event };
           if (content) {
             if (firstTokenTime === 0) firstTokenTime = performance.now() - startTime;
             tokensGenerated += Math.round(content.length / 4);
@@ -506,15 +540,12 @@ export class OllamaProvider implements AIProvider {
 
     return {
       content,
-      metrics: {
-        provider: this.name,
-        model: this.model,
-        latencyMs: Math.round(totalTime),
-        firstTokenMs: Math.round(firstTokenTime),
-        tokensGenerated,
-        isLocal: true,
-        timestamp: new Date().toISOString(),
-      },
+      metrics: this.buildMetrics(
+        totalTime,
+        firstTokenTime,
+        fullText,
+        usage.eval_count === undefined ? { ...usage, eval_count: tokensGenerated } : usage,
+      ),
     };
   }
 
