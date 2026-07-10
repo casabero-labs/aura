@@ -66,7 +66,7 @@ Consolidar AURA como una arquitectura local-first, reproducible y evaluable para
 | OE1 | **Alineado** | Carga y auditoría en navegador, fingerprint, trazas, políticas `local_full`, `cloud_minimized` y `cloud_no_samples` | Validar el flujo humano final y describir con precisión qué información sale del navegador |
 | OE2 | **Alineado con evidencia por refrescar** | `auditEngine.ts`, `deterministicValidation.ts`, datasets controlados y tests con macro F1 ≥ 0.90 | Regenerar un único artefacto de métricas actual; los JSON históricos contienen valores contradictorios |
 | OE3 | **Alineado con límites** | Contratos de evidencia, prompt budget, diagnóstico estructurado, detectores de alucinación y fallback determinista | Ejecutar corridas reales bajo protocolo y medir anclaje, referencias inválidas y claims sin soporte |
-| OE4 | **Parcial — brecha principal** | Laboratorio y cinco modos de entrada implementados; L18–L20 usan fixture y proveedor mock | Ejecutar la matriz real con tres modelos, cinco modos, repeticiones y conclusiones acotadas |
+| OE4 | **Parcial — brecha principal** | Laboratorio operativo y base experimental v1 congelada; L18–L20 usan fixture y proveedor mock | Implementar el corredor formal y ejecutar la matriz real con tres modelos, tres modos y cinco repeticiones |
 | OE5 | **Alineado** | `RemediationPlanV2`, decisiones approve/reject, revisión HITL y bloqueo fail-closed | Aplicar una rúbrica humana explícita a los scripts representativos del experimento final |
 | OE6 | **Alineado con validación controlada** | `ScriptContractV2`, renderer, validación de columnas, hash y scripts revisables | Ejecutar scripts aprobados sobre copias controladas, reauditar y medir el resultado sin afirmar corrección automática universal |
 
@@ -141,12 +141,22 @@ Solo existen cuatro bloques. Se ejecutan en orden y no se abre trabajo nuevo fue
 - Dataset único: `controlled_customers_phase8.csv`, 50 filas, 15 columnas y SHA-256 `7438bbdc96499d04bd7e485d6450f740304a7c878dce7d1a720dc4d9f2025faf`.
 - Oráculos previos: preservar el ground truth histórico, registrar su discrepancia 50/3/2 declarada frente a 51/2/2 real, normalizar a `ruleId + columnId + scope` y congelar una política de remediaciones esperadas, permitidas, prohibidas y sujetas a HITL.
 - Modelos locales exactos, todos Unsloth `UD-Q4_K_XL`: `Qwen3-8B`, `gemma-3-4b-it-qat` y `DeepSeek-R1-0528-Qwen3-8B`.
-- Modos de entrada: `prompt_libre`, `smart_sample`, `enhanced_registry`, `copy_paste_bad_samples` y `recommended`.
-- Matriz: tres modelos × cinco modos × cinco repeticiones = 75 corridas; cada corrida produce diagnóstico y script, hasta 150 llamadas LLM evaluadas.
+- Modos formales: `prompt_libre`, `smart_sample` y `recommended`. `enhanced_registry` y `copy_paste_bad_samples` quedan disponibles fuera de la campaña, pero se excluyen por redundancia experimental.
+- Matriz: tres modelos × tres modos × cinco repeticiones = 45 corridas; cada corrida produce diagnóstico y script, hasta 90 llamadas LLM evaluadas.
 - Pipeline simétrico: todos los modos usan `aura.diagnosis.v2` y la misma etapa `aura.script.v2`; solo cambia la composición de evidencia de entrada.
 - Configuración común: temperatura 0.2, `top_p` 0.9, contexto 16384 y máximo 1600 tokens por llamada, con versiones y digests congelados.
 - Persistencia: IndexedDB append-only, pausa y reanudación; fallos y reintentos nunca se sobrescriben.
-- Evaluación dinámica: las 75 corridas reciben métricas automáticas y rúbrica humana. Se selecciona por regla de mediana F1 un representante por celda modelo–entrada, 15 scripts en total, para HITL y ejecución externa sobre copias.
+- Evaluación dinámica: las 45 corridas reciben métricas automáticas y rúbrica humana. Se selecciona por regla de mediana F1 un representante por celda modelo–entrada, 9 scripts en total, para HITL y ejecución externa sobre copias.
+
+**Checkpoint del 10 de julio de 2026 — Task 1 cerrada:**
+
+- base congelada en `experiments/final-evaluation/` con hashes exactos de dataset, esquema y ground truth;
+- 32 claves canónicas: 16 `engine_exposed`, 7 `engine_supported_not_exposed` y 9 `out_of_engine_scope`;
+- F1 primario con denominador común de 16 claves en los tres modos; fidelidad de evidencia separada por visibilidad real;
+- remediaciones limitadas a `RemediationActionTypeV2`; unicidad de `customer_id` y toda capacidad no soportada pasan por HITL;
+- protocolo JSON y constante TypeScript semánticamente idénticos, con orden balanceado y 15 warm-ups excluidos;
+- validación del checkpoint: 23/23 pruebas focales y suite completa con 1597 pruebas aprobadas y 6 omitidas;
+- OE4 no se considera cerrado: faltan las tareas 2–12, la campaña real y sus artefactos formales.
 
 **Métricas obligatorias:**
 
@@ -166,7 +176,7 @@ Solo existen cuatro bloques. Se ejecutan en orden y no se abre trabajo nuevo fue
 - Derivar `runs.csv`, `report.md`, `report.pdf` y `manifest.json` desde esa fuente.
 - Reportar mejores resultados por dimensión; el score compuesto queda como indicador exploratorio y no elige un ganador universal.
 
-**Gate:** las 75 unidades fueron intentadas, toda salida completada tiene evaluación automática y humana, los 15 representantes tienen resolución explícita, no existe drift de configuración y los cinco artefactos son consistentes. Si un modelo falla, se registra; no se reemplaza por mock ni se oculta.
+**Gate:** las 45 unidades fueron intentadas, toda salida completada tiene evaluación automática y humana, los 9 representantes tienen resolución explícita, no existe drift de configuración y los cinco artefactos son consistentes. Si un modelo falla, se registra; no se reemplaza por mock ni se oculta.
 
 ### Bloque 4 — Cierre humano, evidencia visual y documento final
 
@@ -217,7 +227,7 @@ AURA queda cerrada para redactar la entrega cuando se cumplan simultáneamente e
 - typecheck, build y Vitest verdes;
 - E2E focal completamente verde y flujo humano validado;
 - cifras deterministas regeneradas y consistentes;
-- evaluación real de al menos tres LLM y cinco modos de entrada cerrada con resultados y limitaciones;
+- evaluación real de tres LLM y tres modos de entrada cerrada con resultados y limitaciones;
 - PDF, JSON y CSV descargados y revisados;
 - issues #19–#24 cerrados o reclasificados explícitamente;
 - documento final redactable sin depender de claims no demostrados.

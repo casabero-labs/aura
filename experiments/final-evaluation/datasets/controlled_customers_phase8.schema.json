@@ -1,0 +1,145 @@
+{
+  "dataset_id": "controlled_customers_phase8",
+  "version": "1.0.0",
+  "description": "Dataset sintetico controlado de clientes para Phase 8 L3 — Controlled Pilot Run. Sin PII. Incluye errores intencionales para validar AURA.",
+  "source": "synthetic",
+  "pii_free": true,
+  "rows": 50,
+  "columns": [
+    {
+      "name": "customer_id",
+      "type": "string",
+      "required": true,
+      "unique": true,
+      "domain": "CXXX donde XXX es numero de 3 digitos",
+      "rule": "format_CXXX",
+      "description": "Identificador unico del cliente. Formato C + 3 digitos."
+    },
+    {
+      "name": "full_name",
+      "type": "string",
+      "required": true,
+      "unique": false,
+      "domain": "Nombre + Apellido con patron sintetico",
+      "rule": "not_null, no_placeholder",
+      "description": "Nombre completo del cliente. No debe ser vacio ni contener placeholders."
+    },
+    {
+      "name": "email",
+      "type": "string",
+      "required": true,
+      "unique": false,
+      "domain": "Formato email valido con dominio .invalid o sintetico",
+      "rule": "valid_email_format, not_null, no_placeholder",
+      "description": "Correo electronico de contacto. Debe tener formato valido (local-part@domain.tld)."
+    },
+    {
+      "name": "phone",
+      "type": "string",
+      "required": true,
+      "unique": false,
+      "domain": "+56-9-XXXX-XXXX normalizado",
+      "rule": "normalized_format, not_null, no_placeholder",
+      "description": "Telefono de contacto. Formato esperado: +56-9-XXXX-XXXX."
+    },
+    {
+      "name": "birth_date",
+      "type": "date",
+      "required": true,
+      "unique": false,
+      "domain": "DD/MM/YYYY, entre 1900 y anio actual - 10",
+      "rule": "valid_date_format, not_future, reasonable_age",
+      "description": "Fecha de nacimiento. No debe ser futura ni imposible (edad < 120 anios)."
+    },
+    {
+      "name": "registration_date",
+      "type": "date",
+      "required": true,
+      "unique": false,
+      "domain": "DD/MM/YYYY, entre 2020 y hoy",
+      "rule": "valid_date_format, not_future, not_before_2020",
+      "description": "Fecha de registro en el sistema. No futura, no anterior a 2020."
+    },
+    {
+      "name": "city",
+      "type": "string",
+      "required": true,
+      "unique": false,
+      "domain": "Ciudades de Chile: Santiago, Valparaiso, Concepcion, Antofagasta, Temuco, LaSerena, Iquique, PuertoMontt, Rancagua, Arica, Valdivia, Osorno, Calama, Copiapo, Quilpue, PuntaArenas, Curico, Talca, Chillan, LosAngeles, VinaDelMar, Coquimbo, PuenteAlto, SanBernardo, Talcahuano",
+      "rule": "allowed_values, not_null, no_placeholder",
+      "description": "Ciudad de residencia. Debe estar en la lista de ciudades permitidas para el negocio simulado."
+    },
+    {
+      "name": "country",
+      "type": "string",
+      "required": true,
+      "unique": false,
+      "domain": "CL (default para el negocio simulado)",
+      "rule": "allowed_values: CL",
+      "description": "Codigo ISO de pais. En este dataset controlado solo se espera CL."
+    },
+    {
+      "name": "plan_type",
+      "type": "string",
+      "required": true,
+      "unique": false,
+      "domain": "BASIC, PREMIUM, ENTERPRISE",
+      "rule": "allowed_values: BASIC|PREMIUM|ENTERPRISE, uppercase",
+      "description": "Tipo de plan contratado. Valores permitidos: BASIC, PREMIUM, ENTERPRISE."
+    },
+    {
+      "name": "credits_used",
+      "type": "integer",
+      "required": true,
+      "unique": false,
+      "domain": ">= 0",
+      "rule": "non_negative_integer, lte:total_credits",
+      "description": "Creditos consumidos. Debe ser >= 0 y no superar total_credits."
+    },
+    {
+      "name": "total_credits",
+      "type": "integer",
+      "required": true,
+      "unique": false,
+      "domain": ">= 0, >= credits_used",
+      "rule": "non_negative_integer, not_null",
+      "description": "Creditos totales contratados. Debe ser >= 0 y >= credits_used."
+    },
+    {
+      "name": "company",
+      "type": "string",
+      "required": false,
+      "unique": false,
+      "domain": "Nombre de empresa sintetico o vacio",
+      "rule": "optional",
+      "description": "Empresa asociada al cliente. Campo opcional."
+    },
+    {
+      "name": "tax_id",
+      "type": "string",
+      "required": false,
+      "unique": false,
+      "domain": "SYN-XXXX si esta presente",
+      "rule": "format_SYN-XXXX",
+      "description": "Identificador tributario sintetico. Formato SYN- seguido de 4 digitos."
+    },
+    {
+      "name": "status",
+      "type": "string",
+      "required": true,
+      "unique": false,
+      "domain": "ACTIVE, INACTIVE, SUSPENDED, PENDING",
+      "rule": "allowed_values: ACTIVE|INACTIVE|SUSPENDED|PENDING",
+      "description": "Estado del cliente en el sistema."
+    },
+    {
+      "name": "notes",
+      "type": "string",
+      "required": false,
+      "unique": false,
+      "domain": "Texto libre o vacio",
+      "rule": "optional",
+      "description": "Notas adicionales. Campo opcional."
+    }
+  ]
+}

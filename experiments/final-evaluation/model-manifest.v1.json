@@ -1,0 +1,53 @@
+{
+  "manifestId": "aura.oe4.model-manifest.v1",
+  "version": "1.0.0",
+  "frozenAt": "2026-07-10",
+  "quantization": "UD-Q4_K_XL",
+  "models": [
+    {
+      "id": "hf.co/unsloth/Qwen3-8B-GGUF:UD-Q4_K_XL",
+      "family": "Qwen3",
+      "parameterCount": "8B",
+      "repository": "huggingface.co/unsloth/Qwen3-8B-GGUF",
+      "quantization": "UD-Q4_K_XL",
+      "referenceSizeGB": 5.14,
+      "expectedGgufSha256": "34a514d08f7449cb4a694a707aaa2eedccb7bb68290121bf5e5a569b2abe71c3",
+      "expectedGgufFile": "Qwen3-8B-UD-Q4_K_XL.gguf",
+      "localOllamaDigest": null
+    },
+    {
+      "id": "hf.co/unsloth/gemma-3-4b-it-qat-GGUF:UD-Q4_K_XL",
+      "family": "Gemma 3",
+      "parameterCount": "4B IT QAT",
+      "repository": "huggingface.co/unsloth/gemma-3-4b-it-qat-GGUF",
+      "quantization": "UD-Q4_K_XL",
+      "referenceSizeGB": 2.54,
+      "expectedGgufSha256": "ccd7e4b76a749936b1bea6aabd6118e6a16c61354acc09b367aec2aae8382c72",
+      "expectedGgufFile": "gemma-3-4b-it-qat-UD-Q4_K_XL.gguf",
+      "localOllamaDigest": null
+    },
+    {
+      "id": "hf.co/unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF:UD-Q4_K_XL",
+      "family": "DeepSeek R1 0528",
+      "parameterCount": "8B (Qwen3-8B base)",
+      "repository": "huggingface.co/unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF",
+      "quantization": "UD-Q4_K_XL",
+      "referenceSizeGB": 5.12,
+      "expectedGgufSha256": "f040f922dfd89f0adc57a16309a7c407d39ad099a3997f47c1370ee1f33c380a",
+      "expectedGgufFile": "DeepSeek-R1-0528-Qwen3-8B-UD-Q4_K_XL.gguf",
+      "localOllamaDigest": null
+    }
+  ],
+  "ollama": {
+    "clientVersion": null,
+    "serverVersion": null,
+    "observedAt": null,
+    "note": "clientVersion, serverVersion, observedAt, and per-model localOllamaDigest will be captured during the formal preflight (Task 12). Any mismatch with the expected identifiers or digests forces a new campaign."
+  },
+  "hardware": {
+    "referenceMachine": "MacBook Air M4",
+    "cpuCores": 10,
+    "memoryGB": 16,
+    "executionMode": "single-model-loaded-sequentially"
+  }
+}

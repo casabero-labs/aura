@@ -2,9 +2,9 @@
 
 > **For Execution:** Use `executing-plans` or `subagent-driven-development`.
 
-**Goal:** Convertir el Laboratorio de AURA en el consolidador reproducible de la campaña final de 75 corridas LLM y generar el expediente verificable que cierre OE4.
+**Goal:** Convertir el Laboratorio de AURA en el consolidador reproducible de la campaña final de 45 corridas LLM y generar el expediente verificable que cierre OE4.
 
-**Architecture:** Mantener el frontend local-first y los contratos v2. El Laboratorio crea campañas versionadas, ejecuta simétricamente diagnóstico y script mediante Ollama, persiste eventos y respuestas en IndexedDB, evalúa contra oráculos congelados, selecciona 15 scripts representativos para HITL y ejecución externa, y deriva JSON, CSV, Markdown y PDF desde una fuente canónica.
+**Architecture:** Mantener el frontend local-first y los contratos v2. El Laboratorio crea campañas versionadas, ejecuta simétricamente diagnóstico y script mediante Ollama, persiste eventos y respuestas en IndexedDB, evalúa contra oráculos congelados, selecciona 9 scripts representativos para HITL y ejecución externa, y deriva JSON, CSV, Markdown y PDF desde una fuente canónica.
 
 **Tech Stack:** React 19, TypeScript, Vitest, Playwright, IndexedDB, Ollama, contratos `aura.evidence.v2`/`aura.diagnosis.v2`/`aura.script.v2`, PapaParse y jsPDF.
 
@@ -21,6 +21,8 @@
 - No hacer push si typecheck, build, pruebas focales y greps de claims no pasan.
 
 ## Task 1: Congelar dataset, oráculos y protocolo v1
+
+**Estado:** cerrado el 10 de julio de 2026. Los artefactos están en `experiments/final-evaluation/`; la prueba focal valida 23 invariantes del protocolo y los oráculos.
 
 **Files:**
 
@@ -42,18 +44,18 @@ import { describe, expect, it } from 'vitest';
 import { FINAL_EVALUATION_PROTOCOL } from '../services/benchmark/finalEvaluationProtocol';
 
 describe('final evaluation protocol', () => {
-  it('freezes the controlled dataset and exactly 75 run units', () => {
+  it('freezes the controlled dataset and exactly 45 run units', () => {
     expect(FINAL_EVALUATION_PROTOCOL.dataset.sha256).toBe(
       '7438bbdc96499d04bd7e485d6450f740304a7c878dce7d1a720dc4d9f2025faf',
     );
     expect(FINAL_EVALUATION_PROTOCOL.models).toHaveLength(3);
-    expect(FINAL_EVALUATION_PROTOCOL.inputModes).toHaveLength(5);
+    expect(FINAL_EVALUATION_PROTOCOL.inputModes).toHaveLength(3);
     expect(FINAL_EVALUATION_PROTOCOL.repetitions).toBe(5);
     expect(
       FINAL_EVALUATION_PROTOCOL.models.length *
       FINAL_EVALUATION_PROTOCOL.inputModes.length *
       FINAL_EVALUATION_PROTOCOL.repetitions,
-    ).toBe(75);
+    ).toBe(45);
   });
 });
 ```
@@ -90,8 +92,6 @@ export const FINAL_EVALUATION_PROTOCOL = {
   inputModes: [
     'prompt_libre',
     'smart_sample',
-    'enhanced_registry',
-    'copy_paste_bad_samples',
     'recommended',
   ],
   repetitions: 5,
@@ -125,7 +125,7 @@ Add tests that read the frozen public artifacts through fixtures or generated im
 - unique canonical finding keys;
 - every remediation entry points to a diagnostic-oracle key;
 - all 55 source issues have a mapping or an explicit exclusion reason;
-- the primary F1 denominator contains only `engine_exposed` canonical keys and is identical for all five modes;
+- the primary F1 denominator contains only `engine_exposed` canonical keys and is identical for all three modes;
 - out-of-engine findings remain in engine coverage and are excluded from primary LLM FN counts;
 - protocol JSON and TypeScript protocol serialize to the same values.
 
@@ -275,7 +275,7 @@ git add services/modelRegistry.ts services/providers/ollamaProvider.ts types.ts 
 git commit -m "feat: pin modern Ollama evaluation models"
 ```
 
-## Task 4: Construir los cinco contratos de entrada con una salida común
+## Task 4: Construir los tres contratos formales de entrada con una salida común
 
 **Files:**
 
@@ -290,7 +290,7 @@ git commit -m "feat: pin modern Ollama evaluation models"
 const packages = MODES.map(mode => buildExperimentInputPackage(report, envelope, mode));
 
 expect(new Set(packages.map(pkg => pkg.responseSchemaHash))).toHaveLength(1);
-expect(new Set(packages.map(pkg => pkg.inputHash))).toHaveLength(5);
+expect(new Set(packages.map(pkg => pkg.inputHash))).toHaveLength(3);
 expect(packages.every(pkg => pkg.contractId === 'aura.diagnosis.v2')).toBe(true);
 ```
 
@@ -303,7 +303,7 @@ cd /Users/casabero/Documents/GitHub/aura/src
 npm test -- --run __tests__/experimentInputModes.test.ts __tests__/inputModes.test.ts
 ```
 
-### Step 3: Implement the five adapters
+### Step 3: Implement the three formal adapters
 
 Return a frozen `InputContractSnapshotV1` containing:
 
@@ -342,11 +342,11 @@ git commit -m "feat: normalize OE4 input modes"
 - Test: `src/__tests__/experimentSchedule.test.ts`
 - Test: `src/__tests__/experimentRunner.test.ts`
 
-### Step 1: Test the 75-unit schedule
+### Step 1: Test the 45-unit schedule
 
 Assert:
 
-- exactly 75 unique run IDs;
+- exactly 45 unique run IDs;
 - every model–mode pair appears five times;
 - model order follows the predeclared rotation;
 - each model block has one excluded warm-up;
@@ -385,7 +385,7 @@ await store.append(scriptCompleted(script));
 await store.append(runCompleted());
 ```
 
-Do not use the asymmetric shortcut currently present for `prompt_libre` and `copy_paste_bad_samples`. Keep the old operational function compatible, but route formal campaigns only through `experimentRunner.ts`.
+Every formal mode must execute the same diagnosis + script sequence. Keep the existing operational modes compatible, but route formal campaigns only through `experimentRunner.ts`.
 
 ### Step 5: Run and commit
 
@@ -514,7 +514,7 @@ git add services/benchmark/diagnosticOracleEvaluator.ts services/benchmark/scrip
 git commit -m "feat: score OE4 diagnosis and scripts"
 ```
 
-## Task 8: Seleccionar 15 representantes e integrar HITL, ejecución y reauditoría
+## Task 8: Seleccionar 9 representantes e integrar HITL, ejecución y reauditoría
 
 **Files:**
 
@@ -532,7 +532,7 @@ const selected = selectCellRepresentative(fiveRunsWithF1([0.2, 0.8, 0.5, 0.5, 0.
 expect(selected.repetition).toBe(3); // median F1; lower repetition wins tie
 ```
 
-Assert exactly 15 representatives for a complete campaign and `blocked` when no representative is execution-eligible.
+Assert exactly 9 representatives for a complete campaign and `blocked` when no representative is execution-eligible.
 
 ### Step 2: Write the failing execution-bridge test
 
@@ -589,7 +589,7 @@ git commit -m "feat: connect OE4 runs to HITL evidence"
 
 ### Step 1: Write failing aggregation tests
 
-Assert a 3 × 5 matrix, five attempts per cell, per-dimension best results, descriptive statistics and no universal `winner` field.
+Assert a 3 × 3 matrix, five attempts per cell, per-dimension best results, descriptive statistics and no universal `winner` field.
 
 ### Step 2: Write failing artifact consistency tests
 
@@ -654,7 +654,7 @@ git commit -m "feat: export OE4 TFM evidence package"
 Using the in-memory store and fake provider, prove that a person can:
 
 1. create the frozen campaign;
-2. see 75 planned cells;
+2. see 45 planned units;
 3. start, pause and resume;
 4. inspect raw diagnosis/script and metrics;
 5. rate clarity, traceability and actionability;
@@ -674,8 +674,8 @@ npm test -- --run __tests__/BenchmarkCampaignLab.test.tsx
 The main view shows:
 
 - protocol and preflight;
-- progress `attempted / 75`, completed, failed and pending review;
-- matrix 3 × 5 with five repetitions per cell;
+- progress `attempted / 45`, completed, failed and pending review;
+- matrix 3 × 3 with five repetitions per cell;
 - current stage and safe pause;
 - run detail with raw/parsed outputs and evidence anchors;
 - rubric and representative status;
@@ -716,7 +716,7 @@ open lab → create campaign → run test unit → reload browser → campaign r
 
 ### Step 2: Add the real opt-in smoke
 
-The opt-in spec uses `AURA_OE4_REAL=1`, Ollama and one frozen model. It checks exact model ID, two real calls, true token fields and persistence. It remains a smoke test, not the 75-run campaign.
+The opt-in spec uses `AURA_OE4_REAL=1`, Ollama and one frozen model. It checks exact model ID, two real calls, true token fields and persistence. It remains a smoke test, not the 45-run campaign.
 
 ### Step 3: Run
 
@@ -761,16 +761,16 @@ npm run ollama:validate -- --protocol=../experiments/final-evaluation/protocol.v
 
 Record versions, local digests, commit, hardware and free memory. Do not proceed on any mismatch.
 
-### Step 2: Execute the 75-run campaign from the Laboratory
+### Step 2: Execute the 45-run campaign from the Laboratory
 
-- Run all five blocks.
+- Run all five repetition blocks.
 - Pause only between units.
 - Do not edit prompts/configuration.
 - Preserve failures and linked retries.
 - Complete human rubric for every completed run.
-- Select the 15 representatives by code, not by manual preference.
+- Select the 9 representatives by code, not by manual preference.
 
-### Step 3: Resolve the 15 dynamic representatives
+### Step 3: Resolve the 9 dynamic representatives
 
 - Review every representative through HITL.
 - Reject or block unsafe scripts explicitly.
@@ -796,7 +796,7 @@ Required greps:
 
 ```bash
 rg -n "mejor modelo universal|AURA ejecuta Python|production-ready" experiments/final-evaluation/results/<campaign-id> docs/plans README.md
-rg -n '"formalValidity": "formal_valid"|75|15' experiments/final-evaluation/results/<campaign-id>/campaign.json experiments/final-evaluation/results/<campaign-id>/manifest.json
+rg -n '"formalValidity": "formal_valid"|45|9' experiments/final-evaluation/results/<campaign-id>/campaign.json experiments/final-evaluation/results/<campaign-id>/manifest.json
 ```
 
 The first grep must return no prohibited claim outside an explicitly negated limitation. The second must prove the expected counts and formal gate.
@@ -821,11 +821,11 @@ Expected: `main` pushed, worktree clean, and the final TFM can cite the frozen c
 
 ## Definition of done
 
-- The Laboratory owns a resumable 75-run campaign and preserves every initial failure.
+- The Laboratory owns a resumable 45-run campaign and preserves every initial failure.
 - The exact three Unsloth models and quantizations are verified locally.
 - All input modes produce diagnosis and script under common output contracts.
 - Every completed run has automatic metrics and a 0–4 human rubric.
-- Exactly 15 predetermined representatives have an explicit HITL/execution resolution.
+- Exactly 9 predetermined representatives have an explicit HITL/execution resolution.
 - The canonical JSON derives consistent CSV, Markdown, PDF and manifest artifacts.
 - The UI journey is proven through a browser and the real Ollama path has a passing smoke.
 - Typecheck, build, Vitest, focal Playwright, claim greps, Graphify update, commit and push all succeed.

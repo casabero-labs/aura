@@ -60,7 +60,7 @@ Los oráculos se congelan antes de la primera corrida formal. Cualquier correcci
 La campaña no mezclará limitaciones del motor determinista con desempeño del LLM:
 
 1. **Cobertura del motor:** compara las 55 incidencias fuente con lo que AURA puede detectar. Las incidencias de enum de dominio, relaciones entre columnas, validez calendárica estricta, unicidad de ID o formato telefónico no emitible quedan como `out_of_engine_scope`; permanecen contabilizadas, pero no se convierten en FN del LLM.
-2. **F1 diagnóstico primario:** usa el mismo denominador de claves canónicas `engine_exposed` para los cinco modos: hallazgos respaldados por el ground truth y realmente presentes en la auditoría congelada que alimenta al LLM. `prompt_libre` puede obtener menor recall por recibir menos evidencia; esa diferencia es parte del efecto experimental de la composición de entrada.
+2. **F1 diagnóstico primario:** usa el mismo denominador de claves canónicas `engine_exposed` para los tres modos: hallazgos respaldados por el ground truth y realmente presentes en la auditoría congelada que alimenta al LLM. `prompt_libre` puede obtener menor recall por recibir menos evidencia; esa diferencia es parte del efecto experimental de la composición de entrada.
 3. **Fidelidad a la evidencia:** mide si el modelo reproduce correctamente los hallazgos realmente incluidos en el snapshot de entrada y evita columnas, reglas o claims inexistentes.
 4. **Descubrimiento extendido:** registra por separado un hallazgo correcto fuera de la evidencia determinista cuando esté sustentado por estadísticas o muestras visibles. Nunca se suma al F1 primario ni convierte una inferencia sin soporte en TP.
 
@@ -71,17 +71,17 @@ La campaña no mezclará limitaciones del motor determinista con desempeño del 
 La matriz principal es:
 
 ```text
-1 dataset × 3 modelos × 5 modos de entrada × 5 repeticiones = 75 corridas
-75 diagnósticos + 75 generaciones de script = hasta 150 llamadas LLM evaluadas
+1 dataset × 3 modelos × 3 modos de entrada × 5 repeticiones = 45 corridas
+45 diagnósticos + 45 generaciones de script = hasta 90 llamadas LLM evaluadas
 ```
 
-Los cinco modos son:
+Los tres modos formales son:
 
 1. `prompt_libre`: resumen mínimo, columnas y tarea; funciona como línea base de contexto limitado.
 2. `smart_sample`: contrato AURA y muestra inteligente.
-3. `enhanced_registry`: contrato AURA con registro técnico ampliado.
-4. `copy_paste_bad_samples`: composición centrada en bad samples controlados.
-5. `recommended`: composición AURA recomendada con evidencia, reglas y muestras balanceadas.
+3. `recommended`: composición AURA recomendada con registro técnico, evidencia, reglas y bad samples.
+
+`enhanced_registry` y `copy_paste_bad_samples` se mantienen en la aplicación por compatibilidad, pero no entran a la campaña formal: son variantes intermedias contenidas por `recommended` y aumentarían el coste sin añadir un contraste necesario para responder OE4.
 
 Todos los modos usan el mismo schema de salida `aura.diagnosis.v2` y la misma segunda etapa de generación de `aura.script.v2`. Solo cambia la evidencia de entrada. La bifurcación actual que deja `prompt_libre` y `copy_paste_bad_samples` con una sola llamada debe desaparecer del corredor formal.
 
@@ -99,7 +99,7 @@ La configuración común prima el control experimental. Si una guía de un model
 
 ### Orden y calentamiento
 
-Las cinco repeticiones forman bloques. El orden de modelos rota mediante un cuadrado latino y los cinco modos se ordenan con una semilla predeclarada dentro de cada bloque. Antes de cada bloque de modelo se ejecuta un warm-up excluido de las métricas. Esto limita el sesgo por orden y evita cargar simultáneamente los tres modelos.
+Las cinco repeticiones forman bloques. El orden de modelos rota mediante el orden balanceado congelado en el protocolo y los tres modos se ordenan con una semilla predeclarada dentro de cada bloque. Antes de cada bloque de modelo se ejecuta un warm-up excluido de las métricas. Esto limita el sesgo por orden y evita cargar simultáneamente los tres modelos.
 
 ## 5. Qué guarda el Laboratorio
 
@@ -121,7 +121,7 @@ Los registros serán append-only: un fallo o reintento nunca sobrescribe el inte
 
 ## 6. Persistencia y recuperación
 
-El Laboratorio usará IndexedDB, no `localStorage`, porque las 150 respuestas pueden superar los límites de almacenamiento pequeño. La campaña se podrá pausar, cerrar y reanudar sin perder resultados.
+El Laboratorio usará IndexedDB, no `localStorage`, porque las respuestas, scripts y trazas completas pueden superar los límites de almacenamiento pequeño. La campaña se podrá pausar, cerrar y reanudar sin perder resultados.
 
 Estados mínimos:
 
@@ -175,7 +175,7 @@ El dataset no se guarda dentro de cada corrida; se conserva su referencia y fing
 
 ### Rúbrica humana 0–4
 
-Las 75 respuestas completadas reciben tres calificaciones independientes:
+Las 45 respuestas completadas reciben tres calificaciones independientes:
 
 - claridad;
 - trazabilidad;
@@ -185,9 +185,9 @@ Anclajes comunes: 0 = ausente o engañosa; 1 = deficiente; 2 = parcial pero util
 
 ## 8. Ejecución dinámica representativa
 
-Las 75 corridas generan diagnóstico y script, y las 75 reciben métricas automáticas y rúbrica humana. No se ejecutarán manualmente 75 scripts.
+Las 45 corridas generan diagnóstico y script, y las 45 reciben métricas automáticas y rúbrica humana. No se ejecutarán manualmente 45 scripts.
 
-Se seleccionará un representante por cada celda modelo–modo de entrada: 15 scripts en total. La regla, fijada antes de ver resultados finales, será:
+Se seleccionará un representante por cada celda modelo–modo de entrada: 9 scripts en total. La regla, fijada antes de ver resultados finales, será:
 
 1. ordenar las cinco repeticiones completadas por F1 diagnóstico;
 2. seleccionar la mediana;
@@ -198,7 +198,7 @@ Cada representante pasa por HITL. Solo un script aprobado y que supere preflight
 
 ## 9. Análisis y reporte
 
-El reporte final presenta una matriz 3 × 5 y separa cuatro dimensiones:
+El reporte final presenta una matriz 3 × 3 y separa cuatro dimensiones:
 
 1. calidad diagnóstica;
 2. fidelidad y seguridad del script;
@@ -226,9 +226,9 @@ Los artefactos finales se congelan bajo `experiments/final-evaluation/results/<c
 La campaña solo se marca `formal_valid` cuando:
 
 - dataset, oráculos, modelos, runtime, prompts y configuración están congelados;
-- las 75 unidades fueron intentadas y los fallos permanecen visibles;
+- las 45 unidades fueron intentadas y los fallos permanecen visibles;
 - toda salida completada tiene evaluación automática y rúbrica humana;
-- los 15 representantes están aprobados, rechazados o bloqueados explícitamente;
+- los 9 representantes están aprobados, rechazados o bloqueados explícitamente;
 - toda ejecución aprobada tiene salida importada, reauditoría y delta;
 - no existe drift de hashes o configuración durante la campaña;
 - JSON, CSV, Markdown, PDF y manifiesto se generan y validan.
