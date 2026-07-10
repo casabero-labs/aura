@@ -79,7 +79,7 @@ GEMINI_API_KEY=tu_clave_aqui
 | OE5 | Gobernanza HITL | Revisión y aprobación humana antes de generar o ejecutar scripts |
 | OE6 | Scripts revisables | Python/Pandas trazable desde hallazgos y decisiones aprobadas |
 
-La formulación completa, el estado de alineación y la hoja de ruta final están en [`docs/plans/2026-07-09-cierre-definitivo-aura.md`](./docs/plans/2026-07-09-cierre-definitivo-aura.md).
+La formulación completa, el estado de alineación y la hoja de ruta final están en [`docs/plans/2026-07-09-cierre-definitivo-aura.md`](./docs/plans/2026-07-09-cierre-definitivo-aura.md). El protocolo aprobado para cerrar OE4 está definido en [`docs/plans/2026-07-10-laboratorio-oe4-evaluacion-llm-design.md`](./docs/plans/2026-07-10-laboratorio-oe4-evaluacion-llm-design.md) y su ejecución TDD en [`docs/plans/2026-07-10-laboratorio-oe4-evaluacion-llm.md`](./docs/plans/2026-07-10-laboratorio-oe4-evaluacion-llm.md).
 
 ## Licencia
 

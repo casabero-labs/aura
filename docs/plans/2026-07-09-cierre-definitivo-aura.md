@@ -133,33 +133,39 @@ Solo existen cuatro bloques. Se ejecutan en orden y no se abre trabajo nuevo fue
 
 **Objetivos:** OE3, OE4 y OE6; OE4 es la brecha académica principal.
 
-**Diseño mínimo acordado:**
+**Diseño definitivo aprobado el 10 de julio de 2026:**
 
-- Dataset: un único dataset controlado con fingerprint, score inicial, ground truth y política de remediación esperada congelados antes de las corridas.
-- Modelos: al menos tres LLM; la selección exacta debe evitar mezclar diferencias de modelo con diferencias innecesarias de infraestructura.
+- Fuente de diseño: `docs/plans/2026-07-10-laboratorio-oe4-evaluacion-llm-design.md`.
+- Plan ejecutable: `docs/plans/2026-07-10-laboratorio-oe4-evaluacion-llm.md`.
+- Consolidador oficial: el Laboratorio de AURA guarda campañas, no resultados aislados. Conserva configuración, contratos, prompts y hashes, diagnóstico, script, métricas, revisión humana, ejecución controlada, reauditoría y artefactos.
+- Dataset único: `controlled_customers_phase8.csv`, 50 filas, 15 columnas y SHA-256 `7438bbdc96499d04bd7e485d6450f740304a7c878dce7d1a720dc4d9f2025faf`.
+- Oráculos previos: normalizar el ground truth histórico a `ruleId + columnId + scope` y congelar una política de remediaciones esperadas, permitidas, prohibidas y sujetas a HITL.
+- Modelos locales exactos, todos Unsloth `UD-Q4_K_XL`: `Qwen3-8B`, `gemma-3-4b-it-qat` y `DeepSeek-R1-0528-Qwen3-8B`.
 - Modos de entrada: `prompt_libre`, `smart_sample`, `enhanced_registry`, `copy_paste_bad_samples` y `recommended`.
-- Corridas: cinco repeticiones por cada combinación modelo–modo de entrada; 75 corridas diagnósticas en el diseño de tres modelos.
-- Pipeline simétrico: toda corrida produce diagnóstico y después script mediante la misma segunda etapa; ningún modo recibe menos llamadas o un contrato de salida distinto.
-- Controles: misma versión de tarea, schema de salida, temperatura, límites, hardware, runtime y versión de modelo.
+- Matriz: tres modelos × cinco modos × cinco repeticiones = 75 corridas; cada corrida produce diagnóstico y script, hasta 150 llamadas LLM evaluadas.
+- Pipeline simétrico: todos los modos usan `aura.diagnosis.v2` y la misma etapa `aura.script.v2`; solo cambia la composición de evidencia de entrada.
+- Configuración común: temperatura 0.2, `top_p` 0.9, contexto 16384 y máximo 1600 tokens por llamada, con versiones y digests congelados.
+- Persistencia: IndexedDB append-only, pausa y reanudación; fallos y reintentos nunca se sobrescriben.
+- Evaluación dinámica: las 75 corridas reciben métricas automáticas y rúbrica humana. Se selecciona por regla de mediana F1 un representante por celda modelo–entrada, 15 scripts en total, para HITL y ejecución externa sobre copias.
 
 **Métricas obligatorias:**
 
-- tasa de ejecución válida, latencia y estabilidad entre repeticiones;
-- cumplimiento del contrato JSON;
-- hallazgos esperados/detectados, TP, FP, FN, precisión, recall y F1 cuando el ground truth lo permita;
-- columnas o reglas inventadas;
+- TP, FP, FN, precisión, recall y F1 del diagnóstico contra el oráculo normalizado;
+- cumplimiento del contrato y schema, columnas o reglas inventadas y claims sin soporte;
+- anclaje a reglas, columnas, evidencias y bad samples reales;
+- latencia y tokens por etapa, errores, timeouts, estabilidad y recuperación;
+- validez, seguridad y cobertura del script frente al oráculo de remediación;
+- score, issues, forma y celdas antes/después para representantes aprobados y ejecutados;
 - claridad, trazabilidad y accionabilidad en escala humana 0–4;
-- validez del script, referencias de columnas, acciones inseguras y cobertura de remediaciones esperadas;
-- score e issues antes/después al ejecutar únicamente scripts aprobados sobre una copia controlada;
-- errores, reintentos, versión de modelo, prompt y configuración.
+- modelo, cuantización, digest, runtime, prompts, hashes y configuración de cada intento.
 
 **Artefactos:**
 
-- Crear `experiments/results/final_llm_evaluation.csv`.
-- Crear `experiments/results/final_llm_evaluation.json`.
-- Crear `experiments/results/final_llm_evaluation.md` con método, resultados y límites.
+- Crear `experiments/final-evaluation/results/<campaign-id>/campaign.json` como fuente canónica.
+- Derivar `runs.csv`, `report.md`, `report.pdf` y `manifest.json` desde esa fuente.
+- Reportar mejores resultados por dimensión; el score compuesto queda como indicador exploratorio y no elige un ganador universal.
 
-**Gate:** existen corridas reales, reproducibles y comparables. Si un proveedor no funciona, se registra como resultado fallido; no se reemplaza por mock ni se oculta.
+**Gate:** las 75 unidades fueron intentadas, toda salida completada tiene evaluación automática y humana, los 15 representantes tienen resolución explícita, no existe drift de configuración y los cinco artefactos son consistentes. Si un modelo falla, se registra; no se reemplaza por mock ni se oculta.
 
 ### Bloque 4 — Cierre humano, evidencia visual y documento final
 
