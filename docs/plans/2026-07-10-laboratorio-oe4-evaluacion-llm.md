@@ -108,13 +108,13 @@ The diagnostic oracle must separate:
 ```ts
 evaluation: {
   engineCoverage: 'all_55_source_issues',
-  primaryDiagnosticF1: 'engine_detectable_canonical_keys',
+  primaryDiagnosticF1: 'engine_exposed_canonical_keys',
   evidenceFidelity: 'findings_visible_in_run_input_snapshot',
   extendedDiscovery: 'supported_outside_engine_evidence_reported_separately',
 }
 ```
 
-Every source issue must keep `sourceIssueIds`, `reachability`, `primaryEligible` and `visibleEvidenceModes`. Unsupported enum, cross-column, strict-calendar, ID-uniqueness and phone-format cases remain accounted for as `out_of_engine_scope`; they do not become LLM false negatives.
+Every source issue must keep `sourceIssueIds`, `reachability`, `primaryEligible` and `visibleEvidenceModes`. `reachability` is one of `engine_exposed`, `engine_supported_not_exposed` or `out_of_engine_scope`. Only `engine_exposed` enters primary LLM F1. The other categories remain in engine coverage and do not become LLM false negatives.
 
 ### Step 4: Verify hashes and oracle coverage
 
@@ -125,7 +125,7 @@ Add tests that read the frozen public artifacts through fixtures or generated im
 - unique canonical finding keys;
 - every remediation entry points to a diagnostic-oracle key;
 - all 55 source issues have a mapping or an explicit exclusion reason;
-- the primary F1 denominator contains only `engine_detectable` canonical keys and is identical for all five modes;
+- the primary F1 denominator contains only `engine_exposed` canonical keys and is identical for all five modes;
 - out-of-engine findings remain in engine coverage and are excluded from primary LLM FN counts;
 - protocol JSON and TypeScript protocol serialize to the same values.
 

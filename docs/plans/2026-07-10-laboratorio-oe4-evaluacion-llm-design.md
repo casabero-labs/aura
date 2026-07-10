@@ -60,11 +60,11 @@ Los oráculos se congelan antes de la primera corrida formal. Cualquier correcci
 La campaña no mezclará limitaciones del motor determinista con desempeño del LLM:
 
 1. **Cobertura del motor:** compara las 55 incidencias fuente con lo que AURA puede detectar. Las incidencias de enum de dominio, relaciones entre columnas, validez calendárica estricta, unicidad de ID o formato telefónico no emitible quedan como `out_of_engine_scope`; permanecen contabilizadas, pero no se convierten en FN del LLM.
-2. **F1 diagnóstico primario:** usa el mismo denominador de claves canónicas `engine_detectable` para los cinco modos. `prompt_libre` puede obtener menor recall por recibir menos evidencia; esa diferencia es parte del efecto experimental de la composición de entrada.
+2. **F1 diagnóstico primario:** usa el mismo denominador de claves canónicas `engine_exposed` para los cinco modos: hallazgos respaldados por el ground truth y realmente presentes en la auditoría congelada que alimenta al LLM. `prompt_libre` puede obtener menor recall por recibir menos evidencia; esa diferencia es parte del efecto experimental de la composición de entrada.
 3. **Fidelidad a la evidencia:** mide si el modelo reproduce correctamente los hallazgos realmente incluidos en el snapshot de entrada y evita columnas, reglas o claims inexistentes.
 4. **Descubrimiento extendido:** registra por separado un hallazgo correcto fuera de la evidencia determinista cuando esté sustentado por estadísticas o muestras visibles. Nunca se suma al F1 primario ni convierte una inferencia sin soporte en TP.
 
-`diagnostic-oracle.v1.json` deberá incluir `reachability`, `primaryEligible`, `visibleEvidenceModes`, `sourceIssueIds` y el motivo de toda exclusión de la métrica primaria. Todos los IDs fuente quedan mapeados o excluidos explícitamente; ninguno desaparece del reporte.
+`diagnostic-oracle.v1.json` deberá incluir `reachability`, `primaryEligible`, `visibleEvidenceModes`, `sourceIssueIds` y el motivo de toda exclusión de la métrica primaria. `reachability` distingue `engine_exposed`, `engine_supported_not_exposed` y `out_of_engine_scope`: las dos últimas categorías pertenecen a cobertura/falsos negativos del motor. Todos los IDs fuente quedan mapeados o excluidos explícitamente; ninguno desaparece del reporte.
 
 ## 4. Matriz experimental
 
@@ -138,7 +138,7 @@ El dataset no se guarda dentro de cada corrida; se conserva su referencia y fing
 
 ### Diagnóstico
 
-- TP, FP, FN, precisión, recall y F1 primarios sobre claves `engine_detectable`;
+- TP, FP, FN, precisión, recall y F1 primarios sobre claves `engine_exposed`;
 - cobertura separada del motor frente a las 55 incidencias fuente;
 - fidelidad a la evidencia incluida en cada modo y descubrimientos extendidos reportados aparte;
 - cumplimiento del schema y del contrato;

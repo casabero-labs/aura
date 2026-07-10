@@ -150,7 +150,7 @@ Solo existen cuatro bloques. Se ejecutan en orden y no se abre trabajo nuevo fue
 
 **Métricas obligatorias:**
 
-- cobertura del motor frente a las 55 incidencias, separada del TP, FP, FN, precisión, recall y F1 primarios del LLM sobre hallazgos `engine_detectable`;
+- cobertura del motor frente a las 55 incidencias, separada del TP, FP, FN, precisión, recall y F1 primarios del LLM sobre hallazgos `engine_exposed` realmente presentes en la auditoría congelada;
 - fidelidad a la evidencia visible en cada modo y descubrimiento extendido reportado como métrica secundaria;
 - cumplimiento del contrato y schema, columnas o reglas inventadas y claims sin soporte;
 - anclaje a reglas, columnas, evidencias y bad samples reales;
