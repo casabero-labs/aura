@@ -37,26 +37,20 @@ La arquitectura es **local-first**: el CSV crudo y la auditoría determinista se
 │  → 22+ reglas · IQR · RegExp · Hashes 32-bit       │
 ├─────────────────────────────────────────────────────┤
 │  Capa 0: Infraestructura Soberana (Local-First)     │
-│  → Browser-native · PII local · GDPR compliant     │
+│  → Browser-native · procesamiento local por defecto│
 └─────────────────────────────────────────────────────┘
 ```
 
-## Estructura del Repositorio
+## Estructura del repositorio
 
 ```
 aura/
-├── docs/                    # Artefactos académicos
-│   ├── memoria/             # Documento TFM (versiones)
-│   ├── figuras/             # Diagramas y screenshots
-│   └── tablas/              # Tablas comparativas
-├── src/                     # Código fuente AURA
-│   ├── components/          # Componentes React
-│   ├── services/            # Lógica de negocio
-│   └── ...                  # Config (Vite, TS, etc.)
-└── experiments/             # Validación experimental
-    ├── datasets/            # Datasets de prueba (Kaggle/UCI)
-    ├── benchmarks/          # Scripts de benchmark multi-modelo
-    └── results/             # Resultados de evaluación
+├── docs/
+│   ├── plans/               # Fuente única de cierre y hoja de ruta
+│   ├── product/aura/        # Evidencia y evolución del producto
+│   └── archive/academic/    # Entregas académicas históricas
+├── src/                     # Aplicación React/TypeScript y pruebas
+└── experiments/             # Datasets, protocolos y resultados reproducibles
 ```
 
 ## Ejecución Local
@@ -74,14 +68,17 @@ Configurar la API Key de Gemini en `src/.env.local`:
 GEMINI_API_KEY=tu_clave_aqui
 ```
 
-## Objetivos del TFM
+## Objetivos definitivos del TFM
 
 | ID | Objetivo | Descripción |
 |---|---|---|
-| OE1 | Motor de auditoría determinista | TypeScript, 22+ reglas reproducibles, precisión/recall medidos experimentalmente |
-| OE2 | Benchmarking multi-modelo | Gemini vs modelos locales: latencia, formato, alucinaciones, utilidad |
-| OE3 | Arquitectura local-first | CSV y reglas en navegador; comparación inferencia local vs cloud |
-| OE4 | Scripts de limpieza auditables | Generación automática de Pandas, HITL |
+| OE1 | Auditoría local y reproducible | Ingesta, perfilamiento, fingerprint y detección determinista trazable |
+| OE2 | Diagnóstico cognitivo controlado | LLM restringido por evidencia, contratos, errores y alucinaciones registradas |
+| OE3 | Gobernanza de la remediación | Planes y scripts opcionales verificables con decisión HITL |
+| OE4 | Evaluación comparativa de LLM | Comparación reproducible y acotada de al menos dos modelos o proveedores |
+| OE5 | Validación y comunicación | Flujo E2E y exportación de PDF, JSON y CSV para resultados del TFM |
+
+La formulación completa, el estado de alineación y la hoja de ruta final están en [`docs/plans/2026-07-09-cierre-definitivo-aura.md`](./docs/plans/2026-07-09-cierre-definitivo-aura.md).
 
 ## Licencia
 

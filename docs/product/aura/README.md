@@ -1,25 +1,15 @@
-# AURA — Documentación de producto y desarrollo continuo
+# AURA — producto y cierre del TFM
 
-Este espacio contiene decisiones de producto, arquitectura, evolución funcional y planificación técnica de AURA.
+## Fuente única de verdad
 
-## Alcance
+- [`docs/plans/2026-07-09-cierre-definitivo-aura.md`](../../plans/2026-07-09-cierre-definitivo-aura.md)
 
-La documentación ubicada aquí no pertenece a una entrega académica específica. Debe usarse para trabajo continuo del producto, decisiones de diseño, fases futuras, deuda técnica y cambios posteriores al cierre de entregas formales.
+Ese documento fija los objetivos definitivos, el estado de alineación, las brechas y el único roadmap activo.
 
-## Separación respecto a entregas académicas
+## Frontera documental
 
-Las carpetas de entregas, por ejemplo `docs/tercera_entrega_aura/`, deben conservar evidencia cerrada de una entrega concreta.
+- `docs/archive/academic/`: entregas y evidencia histórica; no define trabajo nuevo.
+- `docs/product/aura/phase_10/`: evidencia técnica y closeouts de Phase 10; la fase está congelada.
+- `docs/tfm/memoria_final/`: se creará únicamente cuando terminen los gates de evidencia y E2E.
 
-No se deben agregar nuevas fases de producto dentro de una entrega ya finalizada, salvo que el objetivo sea documentar explícitamente esa entrega.
-
-## Regla de organización
-
-- Cambios de producto posteriores a una entrega: `docs/product/aura/`.
-- Evidencia o cierre de una entrega académica específica: carpeta de esa entrega.
-- Auditorías, freezes o reportes de una fase histórica: dentro de la fase correspondiente.
-
-## Línea actual de trabajo
-
-La integración del antiguo laboratorio como calibración opcional del flujo principal pertenece a desarrollo continuo de producto y se documenta en:
-
-- `docs/product/aura/phase_10/`
+No crear nuevas fases ni roadmaps paralelos antes del documento final.
