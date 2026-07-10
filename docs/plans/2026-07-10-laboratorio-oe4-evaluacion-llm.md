@@ -147,6 +147,12 @@ git commit -m "test: freeze OE4 evaluation protocol"
 
 ## Task 2: Definir contratos de campaña y corrida
 
+**Estado:** cerrado el 10 de julio de 2026.
+
+**Resultado:** `ExperimentCampaignV1` queda ligado exactamente al protocolo 3×3×5; `ExperimentRunV1` conserva snapshots de entorno y entrada, salida cruda/parseada, errores de validación, telemetría, evaluación automática, rúbrica humana, HITL, ejecución y reauditoría. `AttemptEventV1` forma un log append-only y `validateExperimentRunUpdate` impide modificar coordenadas, snapshots o eventos previos.
+
+**Validación:** 12/12 pruebas focales; typecheck, build y suite completa verdes con 1612 pruebas aprobadas y 6 omitidas.
+
 **Files:**
 
 - Add: `src/services/benchmark/experimentTypes.ts`

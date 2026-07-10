@@ -53,7 +53,8 @@ array contiene `51/2/2`. Los conteos derivados se calculan desde el array.
 
 ## Estado
 
-**Task 1 cerrada el 10 de julio de 2026:** hashes, oráculos, tres modelos,
-tres modos, matriz, orden balanceado y warm-ups están congelados y cubiertos por
-pruebas. OE4 continúa **parcial** hasta implementar el corredor, ejecutar las 45
-unidades reales y exportar el expediente final válido.
+**Tasks 1 y 2 cerradas el 10 de julio de 2026:** hashes, oráculos, tres modelos,
+tres modos, matriz, orden balanceado y warm-ups están congelados. Los contratos
+`aura.experiment-campaign.v1` y `aura.experiment-run.v1` preservan cada corrida y
+su historial append-only. OE4 continúa **parcial** hasta completar las Tasks 3–12,
+ejecutar las 45 unidades reales y exportar el expediente final válido.

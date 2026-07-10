@@ -162,7 +162,7 @@ Solo existen cuatro bloques. Se ejecutan en orden y no se abre trabajo nuevo fue
 - Persistencia: IndexedDB append-only, pausa y reanudación; fallos y reintentos nunca se sobrescriben.
 - Evaluación dinámica: las 45 corridas reciben métricas automáticas y rúbrica humana. Se selecciona por regla de mediana F1 un representante por celda modelo–entrada, 9 scripts en total, para HITL y ejecución externa sobre copias.
 
-**Checkpoint del 10 de julio de 2026 — Task 1 cerrada:**
+**Checkpoint del 10 de julio de 2026 — Tasks 1 y 2 cerradas:**
 
 - base congelada en `experiments/final-evaluation/` con hashes exactos de dataset, esquema y ground truth;
 - 32 claves canónicas: 16 `engine_exposed`, 7 `engine_supported_not_exposed` y 9 `out_of_engine_scope`;
@@ -170,7 +170,11 @@ Solo existen cuatro bloques. Se ejecutan en orden y no se abre trabajo nuevo fue
 - remediaciones limitadas a `RemediationActionTypeV2`; unicidad de `customer_id` y toda capacidad no soportada pasan por HITL;
 - protocolo JSON y constante TypeScript semánticamente idénticos, con orden balanceado y 15 warm-ups excluidos;
 - validación del checkpoint: 23/23 pruebas focales y suite completa con 1597 pruebas aprobadas y 6 omitidas;
-- OE4 no se considera cerrado: faltan las tareas 2–12, la campaña real y sus artefactos formales.
+- contratos `aura.experiment-campaign.v1` y `aura.experiment-run.v1` ligados al protocolo congelado, con snapshots completos y valores dinámicos nulos explícitos;
+- historial de intentos append-only: coordenadas, entorno, entrada y eventos previos no pueden sobrescribirse;
+- estados posteriores exigen evaluación automática, rúbrica humana, decisión HITL y evidencia de reauditoría coherentes;
+- validación de Task 2: 12/12 pruebas focales; suite completa con 1612 pruebas aprobadas y 6 omitidas;
+- OE4 no se considera cerrado: faltan las tareas 3–12, la campaña real y sus artefactos formales.
 
 **Métricas obligatorias:**
 
