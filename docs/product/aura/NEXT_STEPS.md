@@ -4,9 +4,9 @@ Ejecutar, en orden, la hoja de ruta definitiva:
 
 - [`docs/plans/2026-07-09-cierre-definitivo-aura.md`](../../plans/2026-07-09-cierre-definitivo-aura.md)
 
-El siguiente bloque es **regenerar la evidencia cuantitativa determinista**. No abrir nuevas fases.
+Los Bloques 1 y 2 están cerrados y la Task 1 del Bloque 3 ya congeló la base
+experimental OE4 (45 unidades, 90 llamadas máximas y 9 representantes).
 
-Checkpoint 10 de julio de 2026: la Task 1 del Bloque 3 ya está cerrada con la
-base experimental OE4 congelada en `experiments/final-evaluation/` (45 unidades,
-90 llamadas máximas y 9 representantes). Después del Bloque 2 se continúa con
-las Tasks 2–12 de esa misma evaluación; no se rediseña la matriz.
+El siguiente paso único es **Task 2 — definir contratos de campaña y corrida** en
+`docs/plans/2026-07-10-laboratorio-oe4-evaluacion-llm.md`. Después se continúa en
+orden hasta Task 12; no se rediseña la matriz ni se abren fases paralelas.

@@ -14,6 +14,7 @@
     "test:e2e": "playwright test",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
+    "evidence:deterministic": "npx tsx ../experiments/benchmarks/generate_final_deterministic_evidence.ts",
     "contracts:baseline": "npx tsx ../experiments/contracts-v2/baseline/run-baseline.mjs",
     "contracts:evaluate": "npx tsx ../experiments/contracts-v2/baseline/evaluate.mjs",
     "contracts:compare": "npx tsx ../experiments/contracts-v2/compare-baseline.mjs",

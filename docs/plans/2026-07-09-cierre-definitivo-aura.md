@@ -114,20 +114,34 @@ Solo existen cuatro bloques. Se ejecutan en orden y no se abre trabajo nuevo fue
 
 **Objetivos:** OE1 y OE2.
 
-**Archivos a crear o actualizar:**
+**Estado:** cerrado el 10 de julio de 2026.
 
-- Crear `experiments/results/final_deterministic_evidence.json`.
-- Crear `experiments/results/final_deterministic_evidence.md`.
-- Añadir un test de consistencia que regenere o compare las métricas con `src/services/deterministicValidation.ts`.
+**Fuente canónica:**
 
-**Ejecución mínima:**
+- `experiments/results/final_deterministic_evidence.json`: datos completos y reproducibles.
+- `experiments/results/final_deterministic_evidence.md`: lectura académica derivada del mismo JSON.
+- `npm run evidence:deterministic`: regenerador único.
+- `src/__tests__/finalDeterministicEvidence.test.ts`: consistencia exacta entre motor, JSON y Markdown.
 
-1. Calcular métricas actuales sobre `synthetic_ground_truth.csv`, `titanic.csv` y el dataset controlado de Phase 8.
-2. Separar métricas binarias por regla de métricas por fila; no mezclar niveles de agregación.
-3. Registrar dataset, hash, commit, reglas evaluadas, TP, FP, FN, precisión, recall, F1 y limitaciones.
-4. Invalidar en la redacción cualquier cifra histórica que no coincida con el artefacto final.
+| Dataset | Alcance puntuado | TP | FP | FN | Precisión | Recall | F1 |
+|---|---|---:|---:|---:|---:|---:|---:|
+| `synthetic_ground_truth` | 13 reglas, incluida una negativa conocida | 12 | 1 | 0 | 92,31 % | 100,00 % | 96,00 % |
+| `titanic` | 3 reglas positivas; ground truth parcial | 3 | 0 | 0 | 100,00 %* | 100,00 % | 100,00 % |
+| `controlled_customers_phase8` | 29 claves deterministas canónicas | 16 | 0 | 13 | 100,00 %* | 55,17 % | 71,11 % |
 
-**Gate:** un solo artefacto reproducible contiene todas las cifras deterministas que usará el TFM.
+`*` La precisión es condicional porque Titanic y Phase 8 no contienen etiquetas negativas exhaustivas. Las detecciones no anotadas se reportan aparte y no se convierten automáticamente en FP.
+
+**Decisiones de validez:**
+
+- TP, FP y FN se calculan por activación binaria de regla; los conteos de ocurrencias se conservan aparte y pueden solaparse.
+- Phase 8 conserva tres advertencias `TooManyFields` por comas no citadas en filas congeladas; no se alteró el CSV para esconderlas.
+- Las 51 incidencias deterministas de Phase 8 se agregan en 29 claves regla-columna; 16 fueron detectadas y 13 quedaron omitidas.
+- `experiments/results/deterministic_validation.json` queda histórico y no debe citarse como resultado actual.
+- El score de salud AURA es descriptivo y no equivale a precisión, recall ni F1.
+
+**Gate cumplido:** un solo JSON reproducible contiene hashes, commit del motor, métricas, alcances y limitaciones; Markdown se deriva y se compara exactamente contra él.
+
+**Validación del cierre:** 15/15 pruebas focales, typecheck y build verdes; suite completa con 1600 pruebas aprobadas y 6 omitidas.
 
 ### Bloque 3 — Ejecutar la evaluación comparativa LLM
 

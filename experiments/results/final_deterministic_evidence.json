@@ -1,0 +1,752 @@
+{
+  "schemaVersion": "1.0.0",
+  "evidenceId": "aura.final-deterministic-evidence.v1",
+  "supersedes": [
+    "experiments/results/deterministic_validation.json"
+  ],
+  "generatedAt": "2026-07-10T19:22:22.514Z",
+  "engineCommit": "450ba6a334812e25d67201250eaf8b0b7bd75992",
+  "methodology": {
+    "primaryUnit": "binary_rule_activation",
+    "occurrenceUnit": "issue_occurrences_not_unique_rows",
+    "unannotatedDetections": "reported_unscored",
+    "formulas": {
+      "precision": "TP / (TP + FP)",
+      "recall": "TP / (TP + FN)",
+      "f1": "2 * precision * recall / (precision + recall)"
+    }
+  },
+  "datasets": [
+    {
+      "id": "synthetic_ground_truth",
+      "relativePath": "experiments/datasets/synthetic_ground_truth.csv",
+      "sha256": "4e7d358f2141c6463146417a66f1c2312c7c3cdf6a39005780c92b061ff7ac49",
+      "rows": 15,
+      "columns": 9,
+      "auraScore": 0,
+      "parseWarnings": [],
+      "groundTruthScope": "13 reglas predeclaradas, incluida 1 regla negativa conocida",
+      "binaryRuleMetrics": {
+        "unit": "rule_activation",
+        "evaluatedRules": 13,
+        "tp": 12,
+        "fp": 1,
+        "fn": 0,
+        "precision": 0.9230769230769231,
+        "recall": 1,
+        "f1": 0.9600000000000001,
+        "precisionKind": "scoped_with_explicit_negatives"
+      },
+      "occurrenceCounts": {
+        "unit": "issue_occurrences_not_unique_rows",
+        "expectedPositiveOccurrences": 30,
+        "detectedOccurrencesOnExpectedKeys": 30,
+        "knownFalsePositiveOccurrences": 14,
+        "exactRowMatchingAvailable": false
+      },
+      "perRule": [
+        {
+          "ruleKey": "integrity-dupes",
+          "ruleName": "R01 — Filas Duplicadas",
+          "expectedOccurrences": 1,
+          "detectedOccurrences": 1,
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "status": "match"
+        },
+        {
+          "ruleKey": "integrity-null-nombre",
+          "ruleName": "R02 — Valores Nulos (nombre)",
+          "expectedOccurrences": 1,
+          "detectedOccurrences": 1,
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "status": "match"
+        },
+        {
+          "ruleKey": "integrity-null-edad",
+          "ruleName": "R02 — Valores Nulos (edad)",
+          "expectedOccurrences": 1,
+          "detectedOccurrences": 1,
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "status": "match"
+        },
+        {
+          "ruleKey": "integrity-null-email",
+          "ruleName": "R02 — Valores Nulos (email)",
+          "expectedOccurrences": 1,
+          "detectedOccurrences": 1,
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "status": "match"
+        },
+        {
+          "ruleKey": "integrity-null-estado",
+          "ruleName": "R02 — Valores Nulos (estado)",
+          "expectedOccurrences": 1,
+          "detectedOccurrences": 1,
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "status": "match"
+        },
+        {
+          "ruleKey": "hygiene-moji-nombre",
+          "ruleName": "R06 — Mojibake / Encoding Roto",
+          "expectedOccurrences": 1,
+          "detectedOccurrences": 1,
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "status": "match"
+        },
+        {
+          "ruleKey": "hygiene-toxic-",
+          "ruleName": "R08 — Placeholders Tóxicos",
+          "expectedOccurrences": 3,
+          "detectedOccurrences": 3,
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "status": "match"
+        },
+        {
+          "ruleKey": "logic-neg-salario",
+          "ruleName": "R14 — Negativos Imposibles",
+          "expectedOccurrences": 1,
+          "detectedOccurrences": 1,
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "status": "match"
+        },
+        {
+          "ruleKey": "logic-outlier-",
+          "ruleName": "R15 — Outliers Extremos (IQR 3×)",
+          "expectedOccurrences": 3,
+          "detectedOccurrences": 3,
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "status": "match"
+        },
+        {
+          "ruleKey": "logic-email-email",
+          "ruleName": "R03 — Formato Email Inválido",
+          "expectedOccurrences": 1,
+          "detectedOccurrences": 1,
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "status": "match"
+        },
+        {
+          "ruleKey": "logic-mixed-date-fecha_ingreso",
+          "ruleName": "R12 — Formatos de Fecha Mixtos",
+          "expectedOccurrences": 1,
+          "detectedOccurrences": 1,
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "status": "match"
+        },
+        {
+          "ruleKey": "sec-pii-ip_acceso",
+          "ruleName": "R19 — Datos Sensibles (PII)",
+          "expectedOccurrences": 15,
+          "detectedOccurrences": 15,
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "status": "match"
+        },
+        {
+          "ruleKey": "semantic-burned-range-fecha_ingreso",
+          "ruleName": "R24 — Rangos Demográficos Quemados (FP)",
+          "expectedOccurrences": 0,
+          "detectedOccurrences": 14,
+          "tp": 0,
+          "fp": 1,
+          "fn": 0,
+          "status": "expected_fp"
+        }
+      ],
+      "additionalDetections": [],
+      "limitations": [
+        "La evaluación es binaria por activación; los conteos agregados no prueban coincidencia exacta por fila."
+      ]
+    },
+    {
+      "id": "titanic",
+      "relativePath": "experiments/datasets/titanic.csv",
+      "sha256": "4a437fde05fe5264e1701a7387ac6fb75393772ba38bb2c9c566405af5af4bd7",
+      "rows": 891,
+      "columns": 12,
+      "auraScore": 58,
+      "parseWarnings": [],
+      "groundTruthScope": "3 reglas positivas predeclaradas; ground truth deliberadamente parcial",
+      "binaryRuleMetrics": {
+        "unit": "rule_activation",
+        "evaluatedRules": 3,
+        "tp": 3,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1,
+        "recall": 1,
+        "f1": 1,
+        "precisionKind": "conditional_no_negative_labels"
+      },
+      "occurrenceCounts": {
+        "unit": "issue_occurrences_not_unique_rows",
+        "expectedPositiveOccurrences": 927,
+        "detectedOccurrencesOnExpectedKeys": 927,
+        "knownFalsePositiveOccurrences": 0,
+        "exactRowMatchingAvailable": false
+      },
+      "perRule": [
+        {
+          "ruleKey": "integrity-null-Age",
+          "ruleName": "R02 — Valores Nulos (Age)",
+          "expectedOccurrences": 177,
+          "detectedOccurrences": 177,
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "status": "match"
+        },
+        {
+          "ruleKey": "integrity-null-Cabin",
+          "ruleName": "R02 — Valores Nulos (Cabin)",
+          "expectedOccurrences": 687,
+          "detectedOccurrences": 687,
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "status": "match"
+        },
+        {
+          "ruleKey": "logic-outlier-tukey-Fare",
+          "ruleName": "RTukey — Outliers Leves (Fare)",
+          "expectedOccurrences": 63,
+          "detectedOccurrences": 63,
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "status": "match"
+        }
+      ],
+      "additionalDetections": [
+        {
+          "ruleId": "hygiene-ghost-Name",
+          "ruleName": "Espacios Fantasma (Trim)",
+          "column": null,
+          "detectedOccurrences": 2
+        },
+        {
+          "ruleId": "logic-outlier-Fare",
+          "ruleName": "Outliers Extremos (IQR 3×)",
+          "column": null,
+          "detectedOccurrences": 53
+        },
+        {
+          "ruleId": "logic-outlier-SibSp",
+          "ruleName": "Outliers Extremos (IQR 3×)",
+          "column": null,
+          "detectedOccurrences": 12
+        },
+        {
+          "ruleId": "logic-outlier-Ticket",
+          "ruleName": "Outliers Extremos (IQR 3×)",
+          "column": null,
+          "detectedOccurrences": 16
+        },
+        {
+          "ruleId": "logic-outlier-tukey-Age",
+          "ruleName": "Outliers Leves (Tukey 1.5×)",
+          "column": null,
+          "detectedOccurrences": 8
+        },
+        {
+          "ruleId": "logic-outlier-tukey-SibSp",
+          "ruleName": "Outliers Leves (Tukey 1.5×)",
+          "column": null,
+          "detectedOccurrences": 34
+        },
+        {
+          "ruleId": "semantic-long-tail-Name",
+          "ruleName": "Cola Larga Categórica",
+          "column": null,
+          "detectedOccurrences": 891
+        }
+      ],
+      "limitations": [
+        "El ground truth solo cubre tres reglas positivas; precisión=1,00 es condicional y no estima falsos positivos globales.",
+        "Las detecciones adicionales se reportan sin puntuarlas por falta de etiquetas negativas exhaustivas."
+      ]
+    },
+    {
+      "id": "controlled_customers_phase8",
+      "relativePath": "experiments/final-evaluation/datasets/controlled_customers_phase8.csv",
+      "sha256": "7438bbdc96499d04bd7e485d6450f740304a7c878dce7d1a720dc4d9f2025faf",
+      "rows": 50,
+      "columns": 15,
+      "auraScore": 0,
+      "parseWarnings": [
+        {
+          "type": "FieldMismatch",
+          "code": "TooManyFields",
+          "row": 12,
+          "message": "Too many fields: expected 15 fields but parsed 16"
+        },
+        {
+          "type": "FieldMismatch",
+          "code": "TooManyFields",
+          "row": 18,
+          "message": "Too many fields: expected 15 fields but parsed 16"
+        },
+        {
+          "type": "FieldMismatch",
+          "code": "TooManyFields",
+          "row": 40,
+          "message": "Too many fields: expected 15 fields but parsed 16"
+        }
+      ],
+      "groundTruthScope": "aura.diagnostic-oracle.v1@1.0.0; 29 claves deterministas canónicas de 51 incidencias fuente",
+      "binaryRuleMetrics": {
+        "unit": "rule_activation",
+        "evaluatedRules": 29,
+        "tp": 16,
+        "fp": 0,
+        "fn": 13,
+        "precision": 1,
+        "recall": 0.5517241379310345,
+        "f1": 0.7111111111111111,
+        "precisionKind": "conditional_no_negative_labels"
+      },
+      "occurrenceCounts": {
+        "unit": "issue_occurrences_not_unique_rows",
+        "expectedPositiveOccurrences": 51,
+        "detectedOccurrencesOnExpectedKeys": 77,
+        "knownFalsePositiveOccurrences": 0,
+        "exactRowMatchingAvailable": false
+      },
+      "perRule": [
+        {
+          "ruleKey": "rule:capitalization-chaos|city|column",
+          "ruleName": "rule:capitalization-chaos",
+          "expectedOccurrences": 1,
+          "detectedOccurrences": 3,
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "status": "match",
+          "reachability": "engine_exposed"
+        },
+        {
+          "ruleKey": "rule:capitalization-chaos|plan_type|column",
+          "ruleName": "rule:capitalization-chaos",
+          "expectedOccurrences": 2,
+          "detectedOccurrences": 40,
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "status": "match",
+          "reachability": "engine_exposed"
+        },
+        {
+          "ruleKey": "rule:cross-constraint|credits_used,total_credits|dataset",
+          "ruleName": "rule:cross-constraint",
+          "expectedOccurrences": 2,
+          "detectedOccurrences": 0,
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "status": "missed",
+          "reachability": "out_of_engine_scope"
+        },
+        {
+          "ruleKey": "rule:domain-allowed|country|column",
+          "ruleName": "rule:domain-allowed",
+          "expectedOccurrences": 2,
+          "detectedOccurrences": 0,
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "status": "missed",
+          "reachability": "out_of_engine_scope"
+        },
+        {
+          "ruleKey": "rule:domain-allowed|plan_type|column",
+          "ruleName": "rule:domain-allowed",
+          "expectedOccurrences": 2,
+          "detectedOccurrences": 0,
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "status": "missed",
+          "reachability": "out_of_engine_scope"
+        },
+        {
+          "ruleKey": "rule:unique-id|customer_id|column",
+          "ruleName": "rule:unique-id",
+          "expectedOccurrences": 1,
+          "detectedOccurrences": 0,
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "status": "missed",
+          "reachability": "out_of_engine_scope"
+        },
+        {
+          "ruleKey": "rule:future-dates|birth_date|column",
+          "ruleName": "rule:future-dates",
+          "expectedOccurrences": 1,
+          "detectedOccurrences": 0,
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "status": "missed",
+          "reachability": "engine_supported_not_exposed"
+        },
+        {
+          "ruleKey": "rule:future-dates|registration_date|column",
+          "ruleName": "rule:future-dates",
+          "expectedOccurrences": 2,
+          "detectedOccurrences": 0,
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "status": "missed",
+          "reachability": "engine_supported_not_exposed"
+        },
+        {
+          "ruleKey": "rule:impossible-negatives|credits_used|column",
+          "ruleName": "rule:impossible-negatives",
+          "expectedOccurrences": 1,
+          "detectedOccurrences": 1,
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "status": "match",
+          "reachability": "engine_exposed"
+        },
+        {
+          "ruleKey": "rule:invalid-date|birth_date|column",
+          "ruleName": "rule:invalid-date",
+          "expectedOccurrences": 2,
+          "detectedOccurrences": 0,
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "status": "missed",
+          "reachability": "out_of_engine_scope"
+        },
+        {
+          "ruleKey": "rule:invalid-email|email|column",
+          "ruleName": "rule:invalid-email",
+          "expectedOccurrences": 2,
+          "detectedOccurrences": 3,
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "status": "match",
+          "reachability": "engine_exposed"
+        },
+        {
+          "ruleKey": "rule:invalid-format|birth_date|column",
+          "ruleName": "rule:invalid-format",
+          "expectedOccurrences": 1,
+          "detectedOccurrences": 0,
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "status": "missed",
+          "reachability": "out_of_engine_scope"
+        },
+        {
+          "ruleKey": "rule:null-values|birth_date|column",
+          "ruleName": "rule:null-values",
+          "expectedOccurrences": 1,
+          "detectedOccurrences": 0,
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "status": "missed",
+          "reachability": "engine_supported_not_exposed"
+        },
+        {
+          "ruleKey": "rule:null-values|city|column",
+          "ruleName": "rule:null-values",
+          "expectedOccurrences": 5,
+          "detectedOccurrences": 5,
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "status": "match",
+          "reachability": "engine_exposed"
+        },
+        {
+          "ruleKey": "rule:null-values|country|column",
+          "ruleName": "rule:null-values",
+          "expectedOccurrences": 3,
+          "detectedOccurrences": 3,
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "status": "match",
+          "reachability": "engine_exposed"
+        },
+        {
+          "ruleKey": "rule:null-values|email|column",
+          "ruleName": "rule:null-values",
+          "expectedOccurrences": 3,
+          "detectedOccurrences": 4,
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "status": "match",
+          "reachability": "engine_exposed"
+        },
+        {
+          "ruleKey": "rule:null-values|full_name|column",
+          "ruleName": "rule:null-values",
+          "expectedOccurrences": 2,
+          "detectedOccurrences": 3,
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "status": "match",
+          "reachability": "engine_exposed"
+        },
+        {
+          "ruleKey": "rule:null-values|phone|column",
+          "ruleName": "rule:null-values",
+          "expectedOccurrences": 2,
+          "detectedOccurrences": 3,
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "status": "match",
+          "reachability": "engine_exposed"
+        },
+        {
+          "ruleKey": "rule:null-values|plan_type|column",
+          "ruleName": "rule:null-values",
+          "expectedOccurrences": 1,
+          "detectedOccurrences": 3,
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "status": "match",
+          "reachability": "engine_exposed"
+        },
+        {
+          "ruleKey": "rule:null-values|registration_date|column",
+          "ruleName": "rule:null-values",
+          "expectedOccurrences": 1,
+          "detectedOccurrences": 0,
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "status": "missed",
+          "reachability": "engine_supported_not_exposed"
+        },
+        {
+          "ruleKey": "rule:null-values|total_credits|column",
+          "ruleName": "rule:null-values",
+          "expectedOccurrences": 2,
+          "detectedOccurrences": 0,
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "status": "missed",
+          "reachability": "engine_supported_not_exposed"
+        },
+        {
+          "ruleKey": "rule:toxic-placeholders|city|column",
+          "ruleName": "rule:toxic-placeholders",
+          "expectedOccurrences": 2,
+          "detectedOccurrences": 0,
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "status": "missed",
+          "reachability": "engine_supported_not_exposed"
+        },
+        {
+          "ruleKey": "rule:toxic-placeholders|email|column",
+          "ruleName": "rule:toxic-placeholders",
+          "expectedOccurrences": 2,
+          "detectedOccurrences": 2,
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "status": "match",
+          "reachability": "engine_exposed"
+        },
+        {
+          "ruleKey": "rule:toxic-placeholders|full_name|column",
+          "ruleName": "rule:toxic-placeholders",
+          "expectedOccurrences": 1,
+          "detectedOccurrences": 1,
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "status": "match",
+          "reachability": "engine_exposed"
+        },
+        {
+          "ruleKey": "rule:toxic-placeholders|phone|column",
+          "ruleName": "rule:toxic-placeholders",
+          "expectedOccurrences": 2,
+          "detectedOccurrences": 1,
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "status": "match",
+          "reachability": "engine_exposed"
+        },
+        {
+          "ruleKey": "rule:trim-whitespace|city|column",
+          "ruleName": "rule:trim-whitespace",
+          "expectedOccurrences": 2,
+          "detectedOccurrences": 2,
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "status": "match",
+          "reachability": "engine_exposed"
+        },
+        {
+          "ruleKey": "rule:trim-whitespace|full_name|column",
+          "ruleName": "rule:trim-whitespace",
+          "expectedOccurrences": 1,
+          "detectedOccurrences": 2,
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "status": "match",
+          "reachability": "engine_exposed"
+        },
+        {
+          "ruleKey": "rule:trim-whitespace|phone|column",
+          "ruleName": "rule:trim-whitespace",
+          "expectedOccurrences": 1,
+          "detectedOccurrences": 1,
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "status": "match",
+          "reachability": "engine_exposed"
+        },
+        {
+          "ruleKey": "rule:variable-phone-length|phone|column",
+          "ruleName": "rule:variable-phone-length",
+          "expectedOccurrences": 1,
+          "detectedOccurrences": 0,
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "status": "missed",
+          "reachability": "engine_supported_not_exposed"
+        }
+      ],
+      "additionalDetections": [
+        {
+          "ruleId": "hygiene-space-city",
+          "ruleName": "Espacios Múltiples",
+          "column": "city",
+          "detectedOccurrences": 2
+        },
+        {
+          "ruleId": "hygiene-space-full_name",
+          "ruleName": "Espacios Múltiples",
+          "column": "full_name",
+          "detectedOccurrences": 2
+        },
+        {
+          "ruleId": "hygiene-space-phone",
+          "ruleName": "Espacios Múltiples",
+          "column": "phone",
+          "detectedOccurrences": 1
+        },
+        {
+          "ruleId": "hygiene-symbol-full_name",
+          "ruleName": "Símbolos Sospechosos",
+          "column": "full_name",
+          "detectedOccurrences": 1
+        },
+        {
+          "ruleId": "integrity-mixed-company",
+          "ruleName": "Tipos Mixtos (Dirty Object)",
+          "column": "company",
+          "detectedOccurrences": 50
+        },
+        {
+          "ruleId": "integrity-null-company",
+          "ruleName": "Valores Nulos / Vacíos",
+          "column": "company",
+          "detectedOccurrences": 22
+        },
+        {
+          "ruleId": "integrity-null-notes",
+          "ruleName": "Valores Nulos / Vacíos",
+          "column": "notes",
+          "detectedOccurrences": 18
+        },
+        {
+          "ruleId": "integrity-null-tax_id",
+          "ruleName": "Valores Nulos / Vacíos",
+          "column": "tax_id",
+          "detectedOccurrences": 16
+        },
+        {
+          "ruleId": "logic-outlier-credits_used",
+          "ruleName": "Outliers Extremos (IQR 3×)",
+          "column": "credits_used",
+          "detectedOccurrences": 4
+        },
+        {
+          "ruleId": "logic-outlier-total_credits",
+          "ruleName": "Outliers Extremos (IQR 3×)",
+          "column": "total_credits",
+          "detectedOccurrences": 4
+        },
+        {
+          "ruleId": "logic-outlier-tukey-total_credits",
+          "ruleName": "Outliers Leves (Tukey 1.5×)",
+          "column": "total_credits",
+          "detectedOccurrences": 1
+        },
+        {
+          "ruleId": "semantic-long-tail-city",
+          "ruleName": "Cola Larga Categórica",
+          "column": "city",
+          "detectedOccurrences": 30
+        },
+        {
+          "ruleId": "semantic-long-tail-full_name",
+          "ruleName": "Cola Larga Categórica",
+          "column": "full_name",
+          "detectedOccurrences": 47
+        }
+      ],
+      "limitations": [
+        "El ground truth no contiene reglas negativas exhaustivas; precisión=1,00 es condicional al conjunto puntuado.",
+        "Las 51 incidencias deterministas se agregan en 29 claves regla-columna; no se evalúa coincidencia exacta por fila.",
+        "Las detecciones adicionales se reportan sin puntuarlas como FP porque el ground truth no es exhaustivo para reglas no declaradas."
+      ]
+    }
+  ],
+  "limitations": [
+    "Los conteos de ocurrencias pueden solaparse entre reglas y no representan filas únicas.",
+    "Las métricas TP/FP/FN principales son binarias por activación de regla y no deben mezclarse con conteos de ocurrencias.",
+    "Las detecciones no anotadas se reportan como no puntuadas; ausencia en un ground truth parcial no prueba falsedad.",
+    "El score de salud de AURA es descriptivo y no equivale a precisión, recall ni F1."
+  ]
+}

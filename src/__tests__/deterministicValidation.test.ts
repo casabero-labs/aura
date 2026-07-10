@@ -197,8 +197,9 @@ describe('deterministicValidation service', () => {
       // Some rules fire naturally (like constant column check, etc.) — that's expected behavior
       // The key is they get marked as unexpected_fp
       for (const fp of unexpectedFPs) {
-        expect(fp.fp).toBeGreaterThan(0);
+        expect(fp.fp).toBe(1);
         expect(fp.tp).toBe(0);
+        expect(fp.actualDetected).toBeGreaterThan(0);
       }
     });
 
