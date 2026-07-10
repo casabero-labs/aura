@@ -101,14 +101,32 @@ export const FINAL_EVALUATION_PROTOCOL = {
 
 Normalize the 55 historical ground-truth rows to canonical keys `ruleId|columnId|scope`. Document every merge in `diagnostic-oracle.v1.json`; do not infer the mapping at runtime. Define expected, allowed, forbidden and review-only actions in `remediation-oracle.v1.json`.
 
+Preserve the historical ground-truth source byte-for-byte. Its declared summary is 50/3/2 but its array is 51/2/2; record both values and `sourceMetadataMismatch: true`. Derived counts always come from `issues`.
+
+The diagnostic oracle must separate:
+
+```ts
+evaluation: {
+  engineCoverage: 'all_55_source_issues',
+  primaryDiagnosticF1: 'engine_detectable_canonical_keys',
+  evidenceFidelity: 'findings_visible_in_run_input_snapshot',
+  extendedDiscovery: 'supported_outside_engine_evidence_reported_separately',
+}
+```
+
+Every source issue must keep `sourceIssueIds`, `reachability`, `primaryEligible` and `visibleEvidenceModes`. Unsupported enum, cross-column, strict-calendar, ID-uniqueness and phone-format cases remain accounted for as `out_of_engine_scope`; they do not become LLM false negatives.
+
 ### Step 4: Verify hashes and oracle coverage
 
 Add tests that read the frozen public artifacts through fixtures or generated imports and assert:
 
 - exact source hashes;
+- the historical source remains byte-identical and the 50/3/2 versus 51/2/2 mismatch is detected;
 - unique canonical finding keys;
 - every remediation entry points to a diagnostic-oracle key;
 - all 55 source issues have a mapping or an explicit exclusion reason;
+- the primary F1 denominator contains only `engine_detectable` canonical keys and is identical for all five modes;
+- out-of-engine findings remain in engine coverage and are excluded from primary LLM FN counts;
 - protocol JSON and TypeScript protocol serialize to the same values.
 
 Run:
@@ -470,7 +488,15 @@ Do not collapse all metrics into a mandatory winner score. Return:
 
 ```ts
 {
-  diagnosis: { tp, fp, fn, precision, recall, f1, contract, anchoring, hallucinations },
+  diagnosis: {
+    engineCoverage,
+    primary: { tp, fp, fn, precision, recall, f1 },
+    evidenceFidelity,
+    extendedDiscovery,
+    contract,
+    anchoring,
+    hallucinations,
+  },
   operation: { latency, tokens, errors, stability },
   script: { valid, safe, coveredActions, missingActions, unsupportedActions },
   human: { clarity, traceability, actionability, mean },

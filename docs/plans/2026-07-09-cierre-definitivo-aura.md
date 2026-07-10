@@ -139,7 +139,7 @@ Solo existen cuatro bloques. Se ejecutan en orden y no se abre trabajo nuevo fue
 - Plan ejecutable: `docs/plans/2026-07-10-laboratorio-oe4-evaluacion-llm.md`.
 - Consolidador oficial: el Laboratorio de AURA guarda campañas, no resultados aislados. Conserva configuración, contratos, prompts y hashes, diagnóstico, script, métricas, revisión humana, ejecución controlada, reauditoría y artefactos.
 - Dataset único: `controlled_customers_phase8.csv`, 50 filas, 15 columnas y SHA-256 `7438bbdc96499d04bd7e485d6450f740304a7c878dce7d1a720dc4d9f2025faf`.
-- Oráculos previos: normalizar el ground truth histórico a `ruleId + columnId + scope` y congelar una política de remediaciones esperadas, permitidas, prohibidas y sujetas a HITL.
+- Oráculos previos: preservar el ground truth histórico, registrar su discrepancia 50/3/2 declarada frente a 51/2/2 real, normalizar a `ruleId + columnId + scope` y congelar una política de remediaciones esperadas, permitidas, prohibidas y sujetas a HITL.
 - Modelos locales exactos, todos Unsloth `UD-Q4_K_XL`: `Qwen3-8B`, `gemma-3-4b-it-qat` y `DeepSeek-R1-0528-Qwen3-8B`.
 - Modos de entrada: `prompt_libre`, `smart_sample`, `enhanced_registry`, `copy_paste_bad_samples` y `recommended`.
 - Matriz: tres modelos × cinco modos × cinco repeticiones = 75 corridas; cada corrida produce diagnóstico y script, hasta 150 llamadas LLM evaluadas.
@@ -150,7 +150,8 @@ Solo existen cuatro bloques. Se ejecutan en orden y no se abre trabajo nuevo fue
 
 **Métricas obligatorias:**
 
-- TP, FP, FN, precisión, recall y F1 del diagnóstico contra el oráculo normalizado;
+- cobertura del motor frente a las 55 incidencias, separada del TP, FP, FN, precisión, recall y F1 primarios del LLM sobre hallazgos `engine_detectable`;
+- fidelidad a la evidencia visible en cada modo y descubrimiento extendido reportado como métrica secundaria;
 - cumplimiento del contrato y schema, columnas o reglas inventadas y claims sin soporte;
 - anclaje a reglas, columnas, evidencias y bad samples reales;
 - latencia y tokens por etapa, errores, timeouts, estabilidad y recuperación;
