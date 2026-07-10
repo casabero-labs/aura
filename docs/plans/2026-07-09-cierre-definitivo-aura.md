@@ -37,33 +37,38 @@ La brecha ya no es de diseño. Faltan una evaluación comparativa LLM reproducib
 
 ## 3. Objetivos definitivos del TFM
 
-Estas formulaciones sustituyen las variantes históricas de 4, 5 u 8 objetivos. Los ocho objetivos antiguos quedan absorbidos en cinco objetivos medibles.
+La fuente académica prevalente es `docs/tercera_entrega_aura/Tercera_Entrega_TFM_Joseph_Gari_AURA.docx.pdf`, última entrega evaluada positivamente antes del depósito final. La formulación aparece en la página 9 y se confirma como OE1–OE6 en la tabla de evidencia de la página 27.
+
+Estas formulaciones se conservan sin reagrupar objetivos. Sustituyen los resúmenes derivados de 4, 5 u 8 objetivos que aparecen en documentos históricos.
 
 ### Objetivo general
 
-Diseñar, implementar y evaluar AURA como una arquitectura local-first para el diagnóstico de calidad de datos, combinando evidencia determinista reproducible, análisis asistido por modelos de lenguaje restringido por contratos, remediación opcional gobernada por revisión humana y resultados exportables y trazables.
+Consolidar AURA como una arquitectura local-first, reproducible y evaluable para auditoría inteligente de calidad del dato, capaz de generar evidencia determinista, restringir el diagnóstico asistido mediante paquetes de evidencia, producir planes de remediación gobernados, habilitar revisión humana y preparar una ejecución controlada y trazable.
 
 ### Objetivos específicos
 
-**OE1. Auditoría local y reproducible.** Implementar la ingesta, el perfilamiento, el fingerprint y la detección determinista de problemas de calidad sobre datasets CSV, manteniendo trazabilidad entre archivo, reglas y hallazgos.
+**OE1. Arquitectura local-first.** Consolidar una arquitectura local-first que cargue, procese y audite datasets CSV en el navegador, generando trazas y minimizando la información compartida con proveedores externos.
 
-**OE2. Diagnóstico cognitivo controlado.** Generar explicaciones y recomendaciones mediante LLM limitados por evidencia verificable, registrando proveedor, configuración, errores, referencias inválidas y posibles alucinaciones.
+**OE2. Motor determinista.** Diseñar y evaluar un motor determinista basado en reglas explícitas, heurística de tipos y estadística descriptiva, documentando verdaderos positivos, falsos positivos, falsos negativos, precisión, recall y F1.
 
-**OE3. Gobernanza de la remediación.** Producir planes y scripts opcionales verificables, bloquear acciones no autorizadas y conservar la decisión HITL antes de cualquier ejecución o afirmación de mejora.
+**OE3. Diagnóstico asistido restringido.** Implementar una capa de diagnóstico asistido restringida a evidencia estructurada, evitando que el modelo opere sobre el dataset completo o genere transformaciones sin control.
 
-**OE4. Evaluación comparativa de LLM.** Comparar de forma reproducible al menos dos modelos o proveedores sobre datasets controlados, usando el mismo contrato, configuración registrada, repeticiones y métricas técnicas y humanas, sin declarar un ganador universal.
+**OE4. Laboratorio de comparación de modelos.** Implementar un laboratorio de comparación de modelos bajo un contrato común, diferenciando claramente pruebas operativas, resultados experimentales y benchmark formal.
 
-**OE5. Validación y comunicación de resultados.** Demostrar el flujo completo mediante pruebas y evidencia visual, y exportar un informe PDF y artefactos JSON/CSV suficientes para reproducir, revisar y redactar los resultados del TFM.
+**OE5. Gobernanza human-in-the-loop.** Implementar gobernanza human-in-the-loop mediante revisión y aprobación humana antes de generar o ejecutar cualquier script de limpieza.
+
+**OE6. Scripts revisables y trazables.** Preparar scripts Python/Pandas revisables a partir de acciones aprobadas, manteniendo trazabilidad entre hallazgos, decisiones y código propuesto.
 
 ## 4. Alineación objetivo por objetivo
 
 | Objetivo | Estado | Evidencia actual | Brecha de cierre |
 |---|---|---|---|
-| OE1 | **Alineado** | `auditEngine.ts`, `deterministicValidation.ts`, datasets controlados y tests con macro F1 ≥ 0.90 | Regenerar un único artefacto de métricas actual; los JSON históricos contienen valores contradictorios |
-| OE2 | **Alineado con límites** | Contratos LLM, proveedores Chrome AI/Ollama/cloud, prompt budget, diagnóstico estructurado y fallback determinista | Ejecutar corridas reales bajo protocolo y consolidar errores/alucinaciones por proveedor |
-| OE3 | **Alineado** | `RemediationPlanV2`, `ScriptContractV2`, validación, hash, HITL, rama opcional e `ImprovementRun` controlado | No afirmar corrección automática ni mejora general; conservar ejecución como controlada/delegada |
-| OE4 | **Parcial — brecha principal** | Laboratorio y contratos de experimento existen; L18–L20 comparan una fixture con proveedor mock | Ejecutar comparación real con dos LLM, dos datasets y repeticiones; producir matriz y conclusiones acotadas |
-| OE5 | **Parcial** | PDF/JSON/CSV, 1574 tests unitarios y flujo E2E principal implementado | Corregir el único E2E focal fallido, validar producción/descargas y capturar evidencia visual final |
+| OE1 | **Alineado** | Carga y auditoría en navegador, fingerprint, trazas, políticas `local_full`, `cloud_minimized` y `cloud_no_samples` | Validar el flujo humano final y describir con precisión qué información sale del navegador |
+| OE2 | **Alineado con evidencia por refrescar** | `auditEngine.ts`, `deterministicValidation.ts`, datasets controlados y tests con macro F1 ≥ 0.90 | Regenerar un único artefacto de métricas actual; los JSON históricos contienen valores contradictorios |
+| OE3 | **Alineado con límites** | Contratos de evidencia, prompt budget, diagnóstico estructurado, detectores de alucinación y fallback determinista | Ejecutar corridas reales bajo protocolo y medir anclaje, referencias inválidas y claims sin soporte |
+| OE4 | **Parcial — brecha principal** | Laboratorio y cinco modos de entrada implementados; L18–L20 usan fixture y proveedor mock | Ejecutar la matriz real con tres modelos, cinco modos, repeticiones y conclusiones acotadas |
+| OE5 | **Alineado** | `RemediationPlanV2`, decisiones approve/reject, revisión HITL y bloqueo fail-closed | Aplicar una rúbrica humana explícita a los scripts representativos del experimento final |
+| OE6 | **Alineado con validación controlada** | `ScriptContractV2`, renderer, validación de columnas, hash y scripts revisables | Ejecutar scripts aprobados sobre copias controladas, reauditar y medir el resultado sin afirmar corrección automática universal |
 
 ## 5. Línea base verificada el 9 de julio de 2026
 
@@ -81,7 +86,7 @@ Diseñar, implementar y evaluar AURA como una arquitectura local-first para el d
 
 ## 6. Contradicciones documentales resueltas por esta hoja
 
-- El conteo válido es **un objetivo general y cinco objetivos específicos**, no las variantes históricas de 4, 5 u 8.
+- El conteo válido es **un objetivo general y seis objetivos específicos**, según la última entrega evaluada positivamente.
 - La tercera entrega está archivada; no es el espacio vivo de trabajo.
 - Phase 10 está congelada, pero eso no equivale a entrega académica final terminada.
 - Los 1574 tests unitarios pasan hoy; la cifra histórica de nueve fallos ya no describe el repositorio actual.
@@ -126,23 +131,26 @@ Solo existen cuatro bloques. Se ejecutan en orden y no se abre trabajo nuevo fue
 
 ### Bloque 3 — Ejecutar la evaluación comparativa LLM
 
-**Objetivo:** OE4; es la brecha académica principal.
+**Objetivos:** OE3, OE4 y OE6; OE4 es la brecha académica principal.
 
-**Diseño cerrado:**
+**Diseño mínimo acordado:**
 
-- Datasets: Titanic controlado y `synthetic_ground_truth.csv` o `controlled_customers_phase8.csv`.
-- LLM mínimos: Chrome AI/Gemini Nano y Ollama `qwen2.5:3b`.
-- Corridas: cinco repeticiones por combinación dataset-modelo.
-- Contrato: misma versión de prompt, evidence envelope, temperatura y límites de salida.
-- Cloud: opcional; no bloquea el cierre si los dos proveedores locales producen corridas válidas.
+- Dataset: un único dataset controlado con fingerprint, score inicial, ground truth y política de remediación esperada congelados antes de las corridas.
+- Modelos: al menos tres LLM; la selección exacta debe evitar mezclar diferencias de modelo con diferencias innecesarias de infraestructura.
+- Modos de entrada: `prompt_libre`, `smart_sample`, `enhanced_registry`, `copy_paste_bad_samples` y `recommended`.
+- Corridas: cinco repeticiones por cada combinación modelo–modo de entrada; 75 corridas diagnósticas en el diseño de tres modelos.
+- Pipeline simétrico: toda corrida produce diagnóstico y después script mediante la misma segunda etapa; ningún modo recibe menos llamadas o un contrato de salida distinto.
+- Controles: misma versión de tarea, schema de salida, temperatura, límites, hardware, runtime y versión de modelo.
 
 **Métricas obligatorias:**
 
-- tasa de ejecución válida y latencia;
+- tasa de ejecución válida, latencia y estabilidad entre repeticiones;
 - cumplimiento del contrato JSON;
 - hallazgos esperados/detectados, TP, FP, FN, precisión, recall y F1 cuando el ground truth lo permita;
 - columnas o reglas inventadas;
 - claridad, trazabilidad y accionabilidad en escala humana 0–4;
+- validez del script, referencias de columnas, acciones inseguras y cobertura de remediaciones esperadas;
+- score e issues antes/después al ejecutar únicamente scripts aprobados sobre una copia controlada;
 - errores, reintentos, versión de modelo, prompt y configuración.
 
 **Artefactos:**
@@ -155,7 +163,7 @@ Solo existen cuatro bloques. Se ejecutan en orden y no se abre trabajo nuevo fue
 
 ### Bloque 4 — Cierre humano, evidencia visual y documento final
 
-**Objetivo:** OE5.
+**Objetivos:** OE1, OE5 y OE6.
 
 **Trabajo técnico mínimo:**
 
@@ -198,11 +206,11 @@ Solo existen cuatro bloques. Se ejecutan en orden y no se abre trabajo nuevo fue
 
 AURA queda cerrada para redactar la entrega cuando se cumplan simultáneamente estas condiciones:
 
-- objetivos general y específicos congelados en este documento;
+- objetivo general y seis objetivos específicos congelados en este documento;
 - typecheck, build y Vitest verdes;
 - E2E focal completamente verde y flujo humano validado;
 - cifras deterministas regeneradas y consistentes;
-- evaluación real de dos LLM cerrada con resultados y limitaciones;
+- evaluación real de al menos tres LLM y cinco modos de entrada cerrada con resultados y limitaciones;
 - PDF, JSON y CSV descargados y revisados;
 - issues #19–#24 cerrados o reclasificados explícitamente;
 - documento final redactable sin depender de claims no demostrados.

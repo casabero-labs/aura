@@ -72,11 +72,12 @@ GEMINI_API_KEY=tu_clave_aqui
 
 | ID | Objetivo | Descripción |
 |---|---|---|
-| OE1 | Auditoría local y reproducible | Ingesta, perfilamiento, fingerprint y detección determinista trazable |
-| OE2 | Diagnóstico cognitivo controlado | LLM restringido por evidencia, contratos, errores y alucinaciones registradas |
-| OE3 | Gobernanza de la remediación | Planes y scripts opcionales verificables con decisión HITL |
-| OE4 | Evaluación comparativa de LLM | Comparación reproducible y acotada de al menos dos modelos o proveedores |
-| OE5 | Validación y comunicación | Flujo E2E y exportación de PDF, JSON y CSV para resultados del TFM |
+| OE1 | Arquitectura local-first | Carga, procesamiento y auditoría CSV en navegador con trazabilidad y minimización de datos compartidos |
+| OE2 | Motor determinista | Reglas explícitas y métricas TP, FP, FN, precisión, recall y F1 |
+| OE3 | Diagnóstico asistido restringido | LLM limitado por evidencia estructurada y sin transformaciones libres |
+| OE4 | Laboratorio de modelos | Comparación bajo contrato común, separando pruebas, experimento y benchmark formal |
+| OE5 | Gobernanza HITL | Revisión y aprobación humana antes de generar o ejecutar scripts |
+| OE6 | Scripts revisables | Python/Pandas trazable desde hallazgos y decisiones aprobadas |
 
 La formulación completa, el estado de alineación y la hoja de ruta final están en [`docs/plans/2026-07-09-cierre-definitivo-aura.md`](./docs/plans/2026-07-09-cierre-definitivo-aura.md).
 
