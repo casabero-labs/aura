@@ -374,6 +374,17 @@ describe('OE4 experiment contracts — Task 2', () => {
       'humanReview.clarity must be an integer from 0 to 4',
       'humanReview.mean must equal the mean of the three rubric scores',
     ]));
+
+    const extremeWithoutNote = makeValidRun({
+      status: 'reviewed',
+      diagnosis: makeStage('diagnosis'),
+      script: makeStage('script'),
+      automaticEvaluation: makeAutomaticEvaluation(),
+      humanReview: { ...makeHumanReview(), notes: '' },
+    });
+    expect(validateExperimentRunV1(extremeWithoutNote).errors).toContain(
+      'humanReview.notes is required when any score is 0 or 4',
+    );
   });
 
   it('rejects duplicate attempt events and retry links to future attempts', () => {

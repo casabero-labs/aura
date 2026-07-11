@@ -310,6 +310,11 @@ const validateHumanReview = (value: unknown, errors: string[]): value is HumanRe
     }
   }
   if (typeof value.notes !== 'string') errors.push('humanReview.notes must be a string');
+  const hasExtremeScore = [value.clarity, value.traceability, value.actionability]
+    .some((score) => score === 0 || score === 4);
+  if (hasExtremeScore && (!isNonEmptyString(value.notes))) {
+    errors.push('humanReview.notes is required when any score is 0 or 4');
+  }
   return true;
 };
 

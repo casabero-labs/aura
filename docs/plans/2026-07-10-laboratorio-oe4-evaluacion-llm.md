@@ -497,8 +497,10 @@ git commit -m "feat: persist OE4 campaigns in IndexedDB"
 
 ## Task 7: Calcular métricas automáticas y rúbrica humana
 
-**Estado: siguiente tarea única.** Debe puntuar las salidas ya persistidas sin
-cambiar el dataset, los oráculos, la matriz ni los resultados crudos del modelo.
+**Estado: cerrada el 11 de julio de 2026.** Implementación y evidencia:
+`experiments/final-evaluation/TASK7_EVALUATION_CLOSEOUT.md`. Puntúa las salidas
+persistidas sin cambiar el dataset, los oráculos, la matriz ni los resultados
+crudos del modelo.
 
 **Files:**
 
@@ -568,6 +570,10 @@ git commit -m "feat: score OE4 diagnosis and scripts"
 ```
 
 ## Task 8: Seleccionar 9 representantes e integrar HITL, ejecución y reauditoría
+
+**Estado: siguiente tarea única.** Debe seleccionar de forma determinista un
+representante por cada celda modelo–modo y conservar aprobación, rechazo o
+bloqueo antes de cualquier ejecución externa.
 
 **Files:**
 

@@ -53,7 +53,7 @@ array contiene `51/2/2`. Los conteos derivados se calculan desde el array.
 
 ## Estado
 
-**Tasks 1–6 cerradas en implementación el 10 de julio de 2026:** hashes,
+**Tasks 1–7 cerradas en implementación entre el 10 y el 11 de julio de 2026:** hashes,
 oráculos, tres modelos, tres modos, matriz, orden balanceado y warm-ups están
 congelados. Los contratos
 `aura.experiment-campaign.v1` y `aura.experiment-run.v1` preservan cada corrida y
@@ -75,6 +75,15 @@ evento se guarda junto con el nuevo estado de la corrida en una sola operación.
 Los IDs repetidos se rechazan y los fallos previos permanecen visibles. Véase
 [`TASK6_STORE_CLOSEOUT.md`](./TASK6_STORE_CLOSEOUT.md).
 
+La evaluación formal ya compara las claves primarias sin mezclar los
+descubrimientos extendidos, calcula la cobertura del motor sobre las 55
+incidencias fuente, mide fidelidad y anclaje, y registra columnas, reglas o
+claims inventados. El script conserva por separado contrato, sintaxis,
+seguridad y cobertura del oráculo. La operación agrega duraciones, tokens,
+fallos y estabilidad, mientras la rúbrica humana valida claridad, trazabilidad
+y accionabilidad entre 0 y 4. Véase
+[`TASK7_EVALUATION_CLOSEOUT.md`](./TASK7_EVALUATION_CLOSEOUT.md).
+
 La interfaz operativa anterior (`BenchmarkLab` y calibración incrustada) fue
 retirada y no forma parte de OE4. La decisión, archivos eliminados y migración
 de sesiones están documentados en
@@ -90,7 +99,7 @@ misma instrucción y un mismo schema de salida:
 | `smart_sample` | Resumen, esquema, estadísticas, reglas y muestras protegidas. |
 | `recommended` | Todo lo anterior más registro, gobernanza, manifiestos y anclajes explícitos. |
 
-OE4 continúa **parcial** hasta completar las Tasks 7–12,
+OE4 continúa **parcial** hasta completar las Tasks 8–12,
 ejecutar las 45 unidades reales y exportar el expediente final válido.
 
 El intento real del 10 de julio quedó bloqueado antes de la campaña por una

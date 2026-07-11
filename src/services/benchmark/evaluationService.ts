@@ -4,6 +4,9 @@
  */
 
 import { BenchmarkResult, InputMode } from '../../types';
+import type { AutomaticEvaluationV1, HumanReviewV1, LlmStageResultV1 } from './experimentTypes';
+import type { DiagnosticOracleEvaluation } from './diagnosticOracleEvaluator';
+import type { ScriptOracleEvaluation } from './scriptOracleEvaluator';
 
 // =============================================================================
 // ScoreWeights Interface
@@ -51,13 +54,13 @@ export interface ExperimentExport {
   bestByMetric: {
     lowestLatencyMs: number;
     highestTokensPerSecond: number;
-    highestCompositeScore: number;
+    highestExploratoryCompositeScore: number;
     fewestHallucinations: number;
   };
   summary: {
-    meanCompositeScore: number;
-    stdDevCompositeScore: number;
-    cvCompositeScore: number;
+    meanExploratoryCompositeScore: number;
+    stdDevExploratoryCompositeScore: number;
+    cvExploratoryCompositeScore: number;
     meanLatencyMs: number;
     meanTokensGenerated: number;
     totalHallucinatedColumns: number;
@@ -88,7 +91,7 @@ export interface ExperimentEntry {
     evidenceAnchoringScore?: number;
     badSampleCitationScore?: number;
   };
-  compositeScore: number;
+  exploratoryCompositeScore: number;
   evidenceStatus: BenchmarkResult['evidenceStatus'];
   status: BenchmarkResult['status'];
   timestamp: string;
@@ -283,14 +286,14 @@ export const exportBenchmarkJson = (
       evidenceAnchoringScore: result.hallucinationReport?.evidenceAnchoringScore,
       badSampleCitationScore: result.hallucinationReport?.badSampleCitationScore
     },
-    compositeScore: compositeScore(result, weights, maxLatencyMs),
+    exploratoryCompositeScore: compositeScore(result, weights, maxLatencyMs),
     evidenceStatus: result.evidenceStatus,
     status: result.status,
     timestamp: result.timestamp
   }));
 
   // Calculate summary statistics
-  const scores = experiments.map(e => e.compositeScore);
+  const scores = experiments.map(e => e.exploratoryCompositeScore);
   const stats = experimentStats(scores);
 
   const formalValidCount = experiments.filter(e => e.evidenceStatus === 'formal_valid').length;
@@ -300,7 +303,9 @@ export const exportBenchmarkJson = (
   const bestByMetric = {
     lowestLatencyMs: completedExps.length > 0 ? Math.min(...completedExps.map(e => e.metrics.latencyMs)) : 0,
     highestTokensPerSecond: completedExps.length > 0 ? Math.max(...completedExps.map(e => e.metrics.tokensPerSecond)) : 0,
-    highestCompositeScore: completedExps.length > 0 ? Math.max(...completedExps.map(e => e.compositeScore)) : 0,
+    highestExploratoryCompositeScore: completedExps.length > 0
+      ? Math.max(...completedExps.map(e => e.exploratoryCompositeScore))
+      : 0,
     fewestHallucinations: completedExps.length > 0 ? Math.min(...completedExps.map(e => e.metrics.hallucinatedColumns.length)) : 0,
   };
 
@@ -312,9 +317,9 @@ export const exportBenchmarkJson = (
     experiments,
     bestByMetric,
     summary: {
-      meanCompositeScore: Math.round(stats.mean * 10000) / 10000,
-      stdDevCompositeScore: Math.round(stats.stdDev * 10000) / 10000,
-      cvCompositeScore: Math.round(stats.cv * 10000) / 10000,
+      meanExploratoryCompositeScore: Math.round(stats.mean * 10000) / 10000,
+      stdDevExploratoryCompositeScore: Math.round(stats.stdDev * 10000) / 10000,
+      cvExploratoryCompositeScore: Math.round(stats.cv * 10000) / 10000,
       meanLatencyMs: Math.round(
         results.reduce((sum, r) => sum + r.latencyMs, 0) / results.length
       ),
@@ -376,6 +381,139 @@ export const experimentStats = (
     mean: Math.round(mean * 10000) / 10000,
     stdDev: Math.round(stdDev * 10000) / 10000,
     cv: Math.round(cv * 10000) / 10000
+  };
+};
+
+// =============================================================================
+// OE4 formal evaluation — independent dimensions
+// =============================================================================
+
+export interface OperationEvaluation {
+  latency: {
+    totalMs: number | null;
+    diagnosisMs: number | null;
+    scriptMs: number | null;
+  };
+  tokens: {
+    prompt: number | null;
+    output: number | null;
+    reasoning: number | null;
+  };
+  errors: {
+    count: number;
+    codes: string[];
+  };
+  stability: {
+    completedStages: number;
+    expectedStages: 2;
+    score: number;
+  };
+}
+
+export interface FormalRunEvaluationInput {
+  evaluatedAt: string;
+  diagnosis: DiagnosticOracleEvaluation;
+  script: ScriptOracleEvaluation;
+  stages: readonly LlmStageResultV1[];
+  humanReview?: HumanReviewV1 | null;
+  exploratoryCompositeScore?: number | null;
+}
+
+export interface FormalRunEvaluation {
+  diagnosis: DiagnosticOracleEvaluation;
+  operation: OperationEvaluation;
+  script: ScriptOracleEvaluation;
+  human: Pick<HumanReviewV1, 'clarity' | 'traceability' | 'actionability' | 'mean'> | null;
+  exploratoryCompositeScore: number | null;
+  automaticEvaluation: AutomaticEvaluationV1;
+}
+
+const sumNullable = (values: readonly (number | null)[]): number | null => {
+  const present = values.filter((value): value is number => value !== null);
+  return present.length === 0 ? null : present.reduce((sum, value) => sum + value, 0);
+};
+
+export const evaluateOperation = (
+  stages: readonly LlmStageResultV1[],
+): OperationEvaluation => {
+  const diagnosis = stages.find((stage) => stage.stage === 'diagnosis');
+  const script = stages.find((stage) => stage.stage === 'script');
+  const stageMetrics = [diagnosis?.metrics ?? null, script?.metrics ?? null];
+  const completedStages = [diagnosis, script]
+    .filter((stage) => stage?.status === 'completed').length;
+  const failedStages = [diagnosis, script]
+    .filter((stage) => stage === undefined || stage.status !== 'completed');
+  const codes = [...new Set(failedStages
+    .map((stage) => stage?.error?.code ?? `stage_${stage?.status ?? 'missing'}`))]
+    .sort((left, right) => left.localeCompare(right));
+
+  return {
+    latency: {
+      totalMs: sumNullable(stageMetrics.map((metrics) => metrics?.totalDurationMs ?? null)),
+      diagnosisMs: diagnosis?.metrics?.totalDurationMs ?? null,
+      scriptMs: script?.metrics?.totalDurationMs ?? null,
+    },
+    tokens: {
+      prompt: sumNullable(stageMetrics.map((metrics) => metrics?.promptTokens ?? null)),
+      output: sumNullable(stageMetrics.map((metrics) => metrics?.outputTokens ?? null)),
+      reasoning: sumNullable(stageMetrics.map((metrics) => metrics?.reasoningTokens ?? null)),
+    },
+    errors: { count: failedStages.length, codes },
+    stability: {
+      completedStages,
+      expectedStages: 2,
+      score: completedStages / 2,
+    },
+  };
+};
+
+export const buildFormalRunEvaluation = (
+  input: FormalRunEvaluationInput,
+): FormalRunEvaluation => {
+  const exploratory = input.exploratoryCompositeScore ?? null;
+  if (exploratory !== null && (!Number.isFinite(exploratory) || exploratory < 0 || exploratory > 1)) {
+    throw new Error('exploratoryCompositeScore must be within 0–1 or null');
+  }
+
+  const automaticEvaluation: AutomaticEvaluationV1 = {
+    contractId: 'aura.automatic-evaluation.v1',
+    evaluatedAt: input.evaluatedAt,
+    diagnosis: {
+      primary: input.diagnosis.primary,
+      engineCoverage: input.diagnosis.engineCoverage,
+      evidenceFidelity: input.diagnosis.evidenceFidelity,
+      extendedDiscoveryKeys: input.diagnosis.extendedDiscoveryKeys,
+      contractCompliant: input.diagnosis.contract.compliant,
+      inventedColumns: input.diagnosis.hallucinations.inventedColumns,
+      unsupportedClaims: input.diagnosis.hallucinations.unsupportedClaims,
+      anchoringScore: input.diagnosis.anchoring.score,
+    },
+    script: {
+      contractValid: input.script.contractValid,
+      syntaxValid: input.script.syntaxValid,
+      safe: input.script.safe,
+      coveredActions: input.script.coveredActions,
+      missingActions: input.script.missingActions,
+      unsupportedActions: input.script.unsupportedActions,
+    },
+  };
+
+  const human = input.humanReview === undefined || input.humanReview === null
+    ? null
+    : {
+      clarity: input.humanReview.clarity,
+      traceability: input.humanReview.traceability,
+      actionability: input.humanReview.actionability,
+      mean: input.humanReview.mean,
+    };
+
+  return {
+    diagnosis: input.diagnosis,
+    operation: evaluateOperation(input.stages),
+    script: input.script,
+    human,
+    exploratoryCompositeScore: exploratory,
+    automaticEvaluation,
   };
 };
 

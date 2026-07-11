@@ -1,6 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { compositeScore, exportBenchmarkJson, experimentStats, getDefaultWeights, validateWeights } from '../services/benchmark/evaluationService';
+import {
+  compositeScore,
+  buildFormalRunEvaluation,
+  evaluateOperation,
+  exportBenchmarkJson,
+  experimentStats,
+  getDefaultWeights,
+  validateWeights,
+} from '../services/benchmark/evaluationService';
 import { BenchmarkResult } from '../types';
+import type { LlmStageResultV1 } from '../services/benchmark/experimentTypes';
+import type { DiagnosticOracleEvaluation } from '../services/benchmark/diagnosticOracleEvaluator';
+import type { ScriptOracleEvaluation } from '../services/benchmark/scriptOracleEvaluator';
 
 const createResult = (overrides: Partial<BenchmarkResult> = {}): BenchmarkResult => ({
   id: `test-${Date.now()}`,
@@ -114,6 +125,85 @@ describe('experimentStats', () => {
   });
 });
 
+const makeStage = (
+  stage: 'diagnosis' | 'script',
+  status: LlmStageResultV1['status'] = 'completed',
+): LlmStageResultV1 => ({
+  contractId: 'aura.llm-stage-result.v1',
+  stage,
+  status,
+  attemptId: `attempt:${stage}:1`,
+  startedAt: '2026-07-11T12:00:00.000Z',
+  completedAt: '2026-07-11T12:00:01.000Z',
+  rawOutput: '{}',
+  parsedOutput: {},
+  validationErrors: [],
+  metrics: status === 'completed' ? {
+    totalDurationMs: stage === 'diagnosis' ? 1000 : 500,
+    loadDurationMs: 0,
+    promptEvalDurationMs: 100,
+    evalDurationMs: 400,
+    promptTokens: stage === 'diagnosis' ? 100 : 50,
+    outputTokens: stage === 'diagnosis' ? 40 : 20,
+    reasoningTokens: null,
+    firstTokenMs: 80,
+    tokensPerSecond: 40,
+  } : null,
+  error: status === 'completed' ? null : { code: 'SCRIPT_TIMEOUT', message: 'timeout', retryable: true },
+});
+
+describe('OE4 formal evaluation dimensions', () => {
+  it('keeps operation, diagnosis, script and human dimensions separate', () => {
+    const diagnosis: DiagnosticOracleEvaluation = {
+      engineCoverage: 41 / 55,
+      primary: { tp: 12, fp: 1, fn: 4, precision: 12 / 13, recall: 0.75, f1: 24 / 29 },
+      evidenceFidelity: 0.75,
+      extendedDiscoveryKeys: [],
+      contract: { compliant: true, errors: [] },
+      anchoring: { score: 0.8, earnedAnchors: 8, possibleAnchors: 10 },
+      hallucinations: {
+        inventedColumns: [], inventedRuleIds: [], unknownFindingKeys: [], unsupportedClaims: [], total: 0,
+      },
+    };
+    const script: ScriptOracleEvaluation = {
+      contractValid: true,
+      syntaxValid: true,
+      safe: true,
+      invalidColumns: [],
+      dangerousImports: [],
+      dangerousOperations: [],
+      coveredActions: ['rule:a|x|column=>trim_whitespace'],
+      missingActions: [],
+      unsupportedActions: [],
+      coverage: 1,
+      eligibleForHumanReview: true,
+    };
+
+    const result = buildFormalRunEvaluation({
+      evaluatedAt: '2026-07-11T12:01:00.000Z',
+      diagnosis,
+      script,
+      stages: [makeStage('diagnosis'), makeStage('script')],
+      exploratoryCompositeScore: 0.7,
+    });
+
+    expect(result.operation.latency.totalMs).toBe(1500);
+    expect(result.operation.tokens).toEqual({ prompt: 150, output: 60, reasoning: null });
+    expect(result.operation.stability.score).toBe(1);
+    expect(result.automaticEvaluation.diagnosis.primary.f1).toBe(24 / 29);
+    expect(result.automaticEvaluation.script.safe).toBe(true);
+    expect(result.human).toBeNull();
+    expect(result.exploratoryCompositeScore).toBe(0.7);
+  });
+
+  it('counts failed or missing stages in stability without hiding the error', () => {
+    const operation = evaluateOperation([makeStage('diagnosis'), makeStage('script', 'timeout')]);
+
+    expect(operation.stability).toEqual({ completedStages: 1, expectedStages: 2, score: 0.5 });
+    expect(operation.errors).toEqual({ count: 1, codes: ['SCRIPT_TIMEOUT'] });
+  });
+});
+
 describe('exportBenchmarkJson', () => {
   it('produces valid JSON with experiment count and summary', () => {
     const results = [
@@ -129,9 +219,11 @@ describe('exportBenchmarkJson', () => {
     expect(parsed.experiments).toHaveLength(2);
     expect(parsed.bestByMetric).toBeDefined();
     expect(parsed.bestByMetric.lowestLatencyMs).toBeGreaterThan(0);
-    expect(parsed.bestByMetric.highestCompositeScore).toBeGreaterThan(0);
+    expect(parsed.bestByMetric.highestExploratoryCompositeScore).toBeGreaterThan(0);
     expect(parsed.summary).toBeDefined();
-    expect(parsed.summary.meanCompositeScore).toBeGreaterThan(0);
+    expect(parsed.summary.meanExploratoryCompositeScore).toBeGreaterThan(0);
+    expect(parsed.experiments[0].exploratoryCompositeScore).toBeGreaterThan(0);
+    expect(parsed.experiments[0].compositeScore).toBeUndefined();
   });
 
   it('handles empty results array gracefully', () => {
