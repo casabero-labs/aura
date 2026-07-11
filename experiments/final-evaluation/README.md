@@ -92,6 +92,12 @@ conserva los bloqueos de preflight o sandbox e importa el CSV resultante con
 fingerprint exacto, reauditoría y delta. Véase
 [`TASK8_HITL_EXECUTION_CLOSEOUT.md`](./TASK8_HITL_EXECUTION_CLOSEOUT.md).
 
+Task 9 ya implementa la derivación de `campaign.json`, `runs.csv`, `report.md`,
+`report.pdf` y `manifest.json` desde una sola fuente canónica. La comprobación de
+tipos y la revisión visual del PDF fueron correctas. Su suite focal y el build
+quedan pendientes de ejecución manual; por eso todavía no se declara cerrada.
+Véase [`TASK9_ARTIFACTS_IMPLEMENTATION.md`](./TASK9_ARTIFACTS_IMPLEMENTATION.md).
+
 La interfaz operativa anterior (`BenchmarkLab` y calibración incrustada) fue
 retirada y no forma parte de OE4. La decisión, archivos eliminados y migración
 de sesiones están documentados en
@@ -107,7 +113,7 @@ misma instrucción y un mismo schema de salida:
 | `smart_sample` | Resumen, esquema, estadísticas, reglas y muestras protegidas. |
 | `recommended` | Todo lo anterior más registro, gobernanza, manifiestos y anclajes explícitos. |
 
-OE4 continúa **parcial** hasta completar las Tasks 9–12,
+OE4 continúa **parcial** hasta aprobar el gate manual de Task 9 y completar las Tasks 10–12,
 ejecutar las 45 unidades reales y exportar el expediente final válido.
 
 El intento real del 10 de julio quedó bloqueado antes de la campaña por una

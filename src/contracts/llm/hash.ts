@@ -35,6 +35,19 @@ export function sha256hex(input: string): string {
   return getSha256()(input);
 }
 
+/** SHA-256 for exact binary artifacts such as generated PDF bytes. */
+export function sha256BytesHex(input: Uint8Array): string {
+  if (!FORCE_PURE_JS) {
+    try {
+      const { createHash } = require('node:crypto') as typeof import('node:crypto');
+      return createHash('sha256').update(input).digest('hex');
+    } catch {
+      // Browser path falls through to the deterministic pure-JS implementation.
+    }
+  }
+  return jsSha256BytesHex(input);
+}
+
 export function sha256short(input: string, len = 8): string {
   return sha256hex(input).slice(0, len);
 }
@@ -52,7 +65,11 @@ export const KNOWN_VECTORS: Record<string, string> = {
 // ── Pure JS SHA-256 (FIPS 180-4) ──
 
 function jsSha256hex(input: string): string {
-  const msg = utf8Encode(input);
+  return jsSha256BytesHex(Uint8Array.from(utf8Encode(input)));
+}
+
+function jsSha256BytesHex(input: Uint8Array): string {
+  const msg = Array.from(input);
   const ml = msg.length * 8;
 
   msg.push(0x80);

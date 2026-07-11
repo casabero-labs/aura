@@ -637,8 +637,11 @@ git commit -m "feat: connect OE4 runs to HITL evidence"
 
 ## Task 9: Generar el expediente TFM desde una fuente canónica
 
-**Estado: siguiente tarea única.** Debe derivar JSON, CSV, Markdown, PDF y
-manifiesto desde una misma campaña, sin copiar métricas manualmente.
+**Estado al 11 de julio de 2026: implementación terminada; validación manual
+pendiente.** Deriva JSON, CSV, Markdown, PDF y manifiesto desde una misma
+campaña, sin copiar métricas manualmente. Typecheck y revisión visual del PDF
+son correctos. El cierre y los comandos pendientes están en
+[`experiments/final-evaluation/TASK9_ARTIFACTS_IMPLEMENTATION.md`](../../experiments/final-evaluation/TASK9_ARTIFACTS_IMPLEMENTATION.md).
 
 **Files:**
 
@@ -665,6 +668,8 @@ Build a fixture campaign and assert:
 - formal validity is false when ratings or representative resolutions are missing.
 
 ### Step 3: Run and confirm red
+
+No ejecutado por Codex: el responsable del TFM realizará manualmente la suite.
 
 ```bash
 cd /Users/casabero/Documents/GitHub/aura/src
@@ -699,6 +704,8 @@ git commit -m "feat: export OE4 TFM evidence package"
 ```
 
 ## Task 10: Construir una consola formal de campaña desde cero
+
+**Estado:** pendiente del gate manual de Task 9.
 
 **Decisión de alcance del 10 de julio de 2026:** el `BenchmarkLab` operativo
 anterior y la calibración incrustada fueron retirados. No deben restaurarse ni
