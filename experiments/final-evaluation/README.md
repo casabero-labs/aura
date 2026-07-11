@@ -53,7 +53,7 @@ array contiene `51/2/2`. Los conteos derivados se calculan desde el array.
 
 ## Estado
 
-**Tasks 1–8 cerradas en implementación entre el 10 y el 11 de julio de 2026:** hashes,
+**Tasks 1–9 cerradas en implementación entre el 10 y el 11 de julio de 2026:** hashes,
 oráculos, tres modelos, tres modos, matriz, orden balanceado y warm-ups están
 congelados. Los contratos
 `aura.experiment-campaign.v1` y `aura.experiment-run.v1` preservan cada corrida y
@@ -94,8 +94,8 @@ fingerprint exacto, reauditoría y delta. Véase
 
 Task 9 ya implementa la derivación de `campaign.json`, `runs.csv`, `report.md`,
 `report.pdf` y `manifest.json` desde una sola fuente canónica. La comprobación de
-tipos y la revisión visual del PDF fueron correctas. Su suite focal y el build
-quedan pendientes de ejecución manual; por eso todavía no se declara cerrada.
+tipos, su suite focal de 6 pruebas, el build y la revisión visual del PDF fueron
+correctos. Task 9 queda cerrada.
 Véase [`TASK9_ARTIFACTS_IMPLEMENTATION.md`](./TASK9_ARTIFACTS_IMPLEMENTATION.md).
 
 La interfaz operativa anterior (`BenchmarkLab` y calibración incrustada) fue
@@ -113,7 +113,7 @@ misma instrucción y un mismo schema de salida:
 | `smart_sample` | Resumen, esquema, estadísticas, reglas y muestras protegidas. |
 | `recommended` | Todo lo anterior más registro, gobernanza, manifiestos y anclajes explícitos. |
 
-OE4 continúa **parcial** hasta aprobar el gate manual de Task 9 y completar las Tasks 10–12,
+OE4 continúa **parcial** hasta completar las Tasks 10–12,
 ejecutar las 45 unidades reales y exportar el expediente final válido.
 
 El intento real del 10 de julio quedó bloqueado antes de la campaña por una

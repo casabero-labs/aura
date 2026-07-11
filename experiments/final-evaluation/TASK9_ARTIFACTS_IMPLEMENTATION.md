@@ -2,8 +2,7 @@
 
 ## Estado al 11 de julio de 2026
 
-La implementación está terminada. La validación automática queda pendiente de
-la ejecución manual acordada con el responsable del TFM.
+Task 9 está cerrada en implementación y validación técnica.
 
 Desde una sola representación canónica de campaña se generan cinco archivos:
 
@@ -20,11 +19,13 @@ del propio archivo.
 ## Comprobaciones realizadas
 
 - `npm run typecheck`: correcto.
+- Suite focal: 3 archivos y 6 pruebas correctas.
+- `npm run build`: correcto, con avisos no bloqueantes ya existentes sobre el
+  reparto y tamaño de algunos chunks.
 - Revisión visual de un PDF de tres páginas: correcta; no hay texto cortado ni
   secciones fuera de página.
-- La suite Vitest no fue ejecutada por Codex, por acuerdo con el responsable.
 
-## Gate manual pendiente
+## Comandos validados
 
 ```bash
 cd /Users/casabero/Documents/GitHub/aura/src
@@ -33,5 +34,6 @@ npm run typecheck
 npm run build
 ```
 
-Task 9 se cierra cuando estos tres comandos terminen correctamente. Solo
-entonces Task 10 pasa a ser el siguiente frente activo.
+Estas comprobaciones validan el exportador. No sustituyen las pruebas reales del
+diagnóstico sobre el dataset ni el recorrido del pipeline principal, que forman
+parte de la campaña experimental posterior. Task 10 es el siguiente frente.
