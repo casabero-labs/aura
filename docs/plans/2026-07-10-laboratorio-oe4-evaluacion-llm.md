@@ -445,9 +445,8 @@ git commit -m "feat: add symmetric OE4 campaign runner"
 
 ## Task 6: Persistir campañas en IndexedDB sin sobrescritura
 
-**Estado: siguiente tarea única.** El contrato estrecho de almacenamiento ya
-está definido por Task 5; esta tarea debe aportar los adaptadores durables sin
-cambiar el calendario ni el orden diagnóstico → script.
+**Estado: cerrada el 10 de julio de 2026.** Implementación y evidencia:
+`experiments/final-evaluation/TASK6_STORE_CLOSEOUT.md`.
 
 **Files:**
 
@@ -497,6 +496,9 @@ git commit -m "feat: persist OE4 campaigns in IndexedDB"
 ```
 
 ## Task 7: Calcular métricas automáticas y rúbrica humana
+
+**Estado: siguiente tarea única.** Debe puntuar las salidas ya persistidas sin
+cambiar el dataset, los oráculos, la matriz ni los resultados crudos del modelo.
 
 **Files:**
 

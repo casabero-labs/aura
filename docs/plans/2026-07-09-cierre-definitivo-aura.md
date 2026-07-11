@@ -162,7 +162,7 @@ Solo existen cuatro bloques. Se ejecutan en orden y no se abre trabajo nuevo fue
 - Persistencia: IndexedDB append-only, pausa y reanudación; fallos y reintentos nunca se sobrescriben.
 - Evaluación dinámica: las 45 corridas reciben métricas automáticas y rúbrica humana. Se selecciona por regla de mediana F1 un representante por celda modelo–entrada, 9 scripts en total, para HITL y ejecución externa sobre copias.
 
-**Checkpoint del 10 de julio de 2026 — Tasks 1–5 cerradas:**
+**Checkpoint del 10 de julio de 2026 — Tasks 1–6 cerradas:**
 
 - base congelada en `experiments/final-evaluation/` con hashes exactos de dataset, esquema y ground truth;
 - 32 claves canónicas: 16 `engine_exposed`, 7 `engine_supported_not_exposed` y 9 `out_of_engine_scope`;
@@ -186,7 +186,11 @@ Solo existen cuatro bloques. Se ejecutan en orden y no se abre trabajo nuevo fue
 - corredor OE4 separado del benchmark operativo: todos los modos ejecutan diagnóstico `aura.diagnosis.v2` y script `aura.script.v2`, persisten cuatro eventos cuando completan y cortan el flujo si falla el diagnóstico;
 - reanudación por etapa: un fallo de script conserva el diagnóstico completado y el reintento no repite la primera llamada; la pausa solo ocurre entre unidades;
 - validación de Task 5: 67/67 pruebas dependientes, suite completa con 1639 pruebas aprobadas y 6 omitidas, typecheck y build correctos;
-- OE4 no se considera cerrado: faltan las tareas 6–12, preparar el runtime/modelos, ejecutar la campaña real y congelar sus artefactos formales.
+- contrato único de almacenamiento implementado tanto en memoria como en IndexedDB nativo, sin dependencia adicional;
+- creación atómica de campaña y 45 corridas, append atómico de evento más snapshot, rechazo de IDs duplicados, conservación de fallos y reintentos, reconstrucción del almacén y selección de la siguiente unidad pendiente;
+- el corredor ya persiste el primer cambio junto con el primer evento, evitando un estado `running` sin evidencia si la aplicación se interrumpe en ese punto;
+- validación de Task 6: 15/15 pruebas directas, 37/37 dependientes, suite completa con 1654 pruebas aprobadas y 6 omitidas, typecheck y build correctos;
+- OE4 no se considera cerrado: faltan las tareas 7–12, preparar el runtime/modelos, ejecutar la campaña real y congelar sus artefactos formales.
 
 **Métricas obligatorias:**
 

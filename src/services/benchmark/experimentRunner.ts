@@ -9,20 +9,12 @@ import type {
 } from './experimentTypes';
 import { validateExperimentRunV1 } from './experimentGuards';
 import { FINAL_EVALUATION_PROTOCOL } from './finalEvaluationProtocol';
+import type { ExperimentRunnerStore } from './experimentStore';
+
+export type { ExperimentRunnerStore } from './experimentStore';
 
 type Stage = LlmStageResultV1['stage'];
 type StageTerminalType = 'completed' | 'failed' | 'timeout';
-
-export interface ExperimentRunnerStore {
-  /** Persists a derived run snapshot. Task 6 supplies durable adapters. */
-  saveRun(run: ExperimentRunV1): Promise<void>;
-  /** Atomically appends one immutable event and its derived run snapshot. */
-  appendAttemptEvent(
-    runId: string,
-    event: AttemptEventV1,
-    nextRun: ExperimentRunV1,
-  ): Promise<void>;
-}
 
 export interface ExperimentRunnerDependencies {
   provider: Pick<AIProvider, 'generateText'>;
@@ -317,12 +309,9 @@ export const createExperimentRunner = ({
       throw new Error('Only formal OE4 runs may enter experimentRunner.');
     }
 
-    let run: ExperimentRunV1 = {
-      ...initialRun,
-      status: 'running',
-      updatedAt: now(),
-    };
-    await store.saveRun(run);
+    // The first status transition is persisted together with the started event.
+    // This avoids a crash window with a running run but no corresponding event.
+    let run = initialRun;
 
     if (run.diagnosis?.status !== 'completed') {
       run = await runStage(run, 'diagnosis', buildFormalDiagnosisPrompt(run));

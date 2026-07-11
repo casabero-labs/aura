@@ -148,6 +148,7 @@ describe('OE4 symmetric and resumable runner — Task 5', () => {
       const completed = await runner.runUnit(makeRun(mode));
 
       expect(generateText).toHaveBeenCalledTimes(2);
+      expect(store.saveRun).not.toHaveBeenCalled();
       expect(generateText.mock.calls[0][0]).toContain('aura.diagnosis.v2');
       expect(generateText.mock.calls[1][0]).toContain('aura.script.v2');
       expect(store.appendAttemptEvent).toHaveBeenCalledTimes(4);

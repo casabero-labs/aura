@@ -53,7 +53,7 @@ array contiene `51/2/2`. Los conteos derivados se calculan desde el array.
 
 ## Estado
 
-**Tasks 1–5 cerradas en implementación el 10 de julio de 2026:** hashes,
+**Tasks 1–6 cerradas en implementación el 10 de julio de 2026:** hashes,
 oráculos, tres modelos, tres modos, matriz, orden balanceado y warm-ups están
 congelados. Los contratos
 `aura.experiment-campaign.v1` y `aura.experiment-run.v1` preservan cada corrida y
@@ -69,6 +69,12 @@ detiene el script ante fallo diagnóstico y reanuda desde el script cuando el
 diagnóstico ya terminó. El cierre técnico y sus límites están en
 [`TASK5_RUNNER_CLOSEOUT.md`](./TASK5_RUNNER_CLOSEOUT.md).
 
+La persistencia formal ya cuenta con un contrato común, una implementación en
+memoria y otra sobre IndexedDB. La campaña se crea con sus 45 corridas y cada
+evento se guarda junto con el nuevo estado de la corrida en una sola operación.
+Los IDs repetidos se rechazan y los fallos previos permanecen visibles. Véase
+[`TASK6_STORE_CLOSEOUT.md`](./TASK6_STORE_CLOSEOUT.md).
+
 Los tres modos formales ya se materializan como snapshots inmutables con una
 misma instrucción y un mismo schema de salida:
 
@@ -78,7 +84,7 @@ misma instrucción y un mismo schema de salida:
 | `smart_sample` | Resumen, esquema, estadísticas, reglas y muestras protegidas. |
 | `recommended` | Todo lo anterior más registro, gobernanza, manifiestos y anclajes explícitos. |
 
-OE4 continúa **parcial** hasta completar las Tasks 6–12,
+OE4 continúa **parcial** hasta completar las Tasks 7–12,
 ejecutar las 45 unidades reales y exportar el expediente final válido.
 
 El intento real del 10 de julio quedó bloqueado antes de la campaña por una
