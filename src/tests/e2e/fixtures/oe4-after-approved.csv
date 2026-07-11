@@ -1,0 +1,3 @@
+customer_id,name,email,age,country,status
+1,Ana,ana@example.test,34,CO,active
+2,Luis,luis@example.test,41,CO,inactive

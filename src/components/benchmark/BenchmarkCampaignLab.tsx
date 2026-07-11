@@ -35,6 +35,7 @@ interface BenchmarkCampaignLabProps {
   provider?: Pick<AIProvider, 'generateText'>;
   createCampaignBundle?: () => Promise<ExperimentCampaignBundle>;
   evaluateRun?: (run: ExperimentRunV1) => Promise<AutomaticEvaluationV1>;
+  prepareApprovedRepresentative?: (run: ExperimentRunV1) => Promise<ExperimentRunV1>;
   importAfterCsv?: (run: ExperimentRunV1, file: File) => Promise<ExperimentRunV1>;
   onExport?: (evidencePackage: ExperimentEvidencePackage) => void;
   now?: () => string;
@@ -51,6 +52,7 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
   provider,
   createCampaignBundle,
   evaluateRun,
+  prepareApprovedRepresentative,
   importAfterCsv,
   onExport,
   now = () => new Date().toISOString(),
@@ -251,6 +253,24 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
     }
   };
 
+  const prepareExternalExecution = async () => {
+    if (!campaign || !selectedRun || !prepareApprovedRepresentative) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const next = await prepareApprovedRepresentative(selectedRun);
+      await store.saveRun(next);
+      await refresh(campaign.campaignId, next.runId);
+      setMessage(next.status === 'awaiting_external_output'
+        ? 'Ejecución externa preparada; importa el CSV resultante.'
+        : 'La preparación externa quedó bloqueada.');
+    } catch (cause: unknown) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div className="oe4-campaign-lab" data-testid="oe4-campaign-lab">
       <header className="oe4-hero">
@@ -270,7 +290,7 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
               </button>
             ) : attempted < 45 ? (
               <button type="button" className="btn-p" disabled={!runner} onClick={() => void runCampaign()}>
-                {phase === 'paused' ? 'Reanudar campaña' : 'Iniciar campaña'}
+                {phase === 'paused' || attempted > 0 ? 'Reanudar campaña' : 'Iniciar campaña'}
               </button>
             ) : null}
           </div>
@@ -317,7 +337,9 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
                   representative={representativeIds.has(selectedRun.runId)}
                   busy={busy}
                   onDecision={recordDecision}
+                  onPrepare={prepareExternalExecution}
                   onImport={importCsv}
+                  canPrepare={Boolean(prepareApprovedRepresentative)}
                   canImport={Boolean(importAfterCsv)}
                 />
                 {evidenceDocument && (

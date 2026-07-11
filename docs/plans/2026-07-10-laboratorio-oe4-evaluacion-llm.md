@@ -777,7 +777,16 @@ git commit -m "feat: make lab the OE4 campaign console"
 
 ## Task 11: Validar el recorrido humano y la recuperación E2E
 
-**Estado:** siguiente tarea única.
+**Estado:** cerrada el 11 de julio de 2026. El recorrido controlado pasa en
+Chromium y demuestra creación, pausa segura, persistencia IndexedDB, recarga,
+reanudación, rúbrica humana, HITL, preparación externa, importación,
+reauditoría y disponibilidad de los cinco artefactos. Esta prueba no es
+evidencia de desempeño LLM.
+
+El smoke real queda implementado y opt-in. Se documentó como omitido porque el
+entorno actual no tiene el CLI de Ollama, el servidor disponible es `0.20.3` y
+solo contiene `qwen2.5:3b`; no está instalado el primer modelo congelado OE4.
+Task 12 comienza por corregir exactamente ese preflight.
 
 **Files:**
 
@@ -819,6 +828,8 @@ git commit -m "test: validate OE4 laboratory journey"
 ```
 
 ## Task 12: Ejecutar y congelar la campaña formal
+
+**Estado:** siguiente tarea única. No iniciada.
 
 **Files:**
 

@@ -6,7 +6,9 @@ interface ExecutionEvidencePanelProps {
   representative: boolean;
   busy: boolean;
   onDecision: (status: 'approved' | 'rejected') => Promise<void>;
+  onPrepare: () => Promise<void>;
   onImport: (file: File) => Promise<void>;
+  canPrepare: boolean;
   canImport: boolean;
 }
 
@@ -15,7 +17,9 @@ const ExecutionEvidencePanel: React.FC<ExecutionEvidencePanelProps> = ({
   representative,
   busy,
   onDecision,
+  onPrepare,
   onImport,
+  canPrepare,
   canImport,
 }) => {
   const [file, setFile] = useState<File | null>(null);
@@ -35,7 +39,13 @@ const ExecutionEvidencePanel: React.FC<ExecutionEvidencePanelProps> = ({
         </div>
       )}
       {run.status === 'approved' && (
-        <p className="oe4-info">Representante aprobado. Falta preparar y ejecutar externamente el notebook controlado.</p>
+        <div>
+          <p className="oe4-info">Representante aprobado. Falta preparar y ejecutar externamente el notebook controlado.</p>
+          <button type="button" className="btn-p" disabled={busy || !canPrepare} onClick={() => void onPrepare()}>
+            Preparar ejecución externa
+          </button>
+          {!canPrepare && <p className="oe4-blocker">La preparación externa no está disponible hasta completar el preflight formal.</p>}
+        </div>
       )}
       {run.status === 'rejected' && <p className="oe4-info">Representante rechazado; la decisión permanece en la evidencia.</p>}
       {run.status === 'blocked' && <p className="oe4-blocker">La ejecución quedó bloqueada y no se sustituirá esta corrida.</p>}

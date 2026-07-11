@@ -4,7 +4,7 @@ Ejecutar, en orden, la hoja de ruta definitiva:
 
 - [`docs/plans/2026-07-09-cierre-definitivo-aura.md`](../../plans/2026-07-09-cierre-definitivo-aura.md)
 
-Los Bloques 1 y 2 están cerrados. Las Tasks 1–10 del Bloque 3 ya congelaron la
+Los Bloques 1 y 2 están cerrados. Las Tasks 1–11 del Bloque 3 ya congelaron la
 base experimental OE4, los contratos de campaña y corrida, los tres modelos
 formales, la telemetría nativa de Ollama y los tres contratos de entrada con
 salida común `aura.diagnosis.v2`. El calendario determinista de 45 unidades y
@@ -28,10 +28,17 @@ El laboratorio operativo anterior y la calibración incrustada fueron retirados
 intencionalmente: no usaban el protocolo OE4 ni se reutilizarán. La consola
 formal nueva ya existe como `Evaluación OE4` y trabaja sobre las Tasks 1–9.
 
-El siguiente paso único es **Task 11: validar el recorrido humano y la
-recuperación E2E**. Después se ejecuta Task 12; no se rediseña la matriz ni se
-abren fases paralelas. Las pruebas reales del diagnóstico sobre el dataset y el
-pipeline principal pertenecen a la campaña formal de Task 12.
+Task 11 ya está cerrada: Chromium valida creación, pausa, recarga, reanudación,
+rúbrica, HITL, preparación externa, importación, reauditoría y los cinco
+artefactos finales. El proveedor controlado usado en esa prueba solo demuestra
+el comportamiento de la interfaz y no cuenta como evidencia de modelos.
 
-Bloque ambiental ya visible para Task 12: sincronizar cliente Ollama `0.31.1`
-con servidor `0.20.3` e instalar los tres modelos formales antes del smoke real.
+El siguiente paso único es **Task 12: preparar el entorno, ejecutar las 45
+unidades reales y congelar el expediente final**. No se rediseña la matriz ni
+se abren fases paralelas. Las pruebas reales del diagnóstico sobre el dataset y
+el pipeline principal pertenecen a esa campaña.
+
+Bloque ambiental verificado para Task 12: el servidor Ollama responde como
+`0.20.3`, el CLI no está disponible en la terminal y solo está instalado
+`qwen2.5:3b`. Primero se restaura/sincroniza el CLI y luego se instalan los tres
+modelos formales antes del smoke real.

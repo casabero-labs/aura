@@ -30,6 +30,10 @@ import { downloadTextFile } from './utils/download';
 import { AIConfig, AuditReport, DeterministicValidationReport, EvidenceManifest, ExecutiveReportContent, IssueSeverity } from './types';
 
 const BenchmarkCampaignLab = lazy(() => import('./components/benchmark/BenchmarkCampaignLab'));
+const Oe4CampaignE2eHarness = import.meta.env.DEV
+  && import.meta.env.VITE_OE4_E2E_HARNESS === 'true'
+  ? lazy(() => import('./tests/e2e/harness/Oe4CampaignE2eHarness'))
+  : null;
 
 const countBySeverity = (report: AuditReport | null, severity: IssueSeverity) =>
   report?.issues.filter((issue) => issue.severity === severity).length ?? 0;
@@ -98,6 +102,7 @@ const INITIAL_PIPELINE_DATA: PipelineData = {
 };
 
 const App: React.FC = () => {
+  const oe4E2eHarnessEnabled = Oe4CampaignE2eHarness !== null;
   // ── Pipeline data (recibido de MainPipeline) ──
   const [pipelineData, setPipelineData] = useState<PipelineData>(() => {
     const snap = loadPipelineSession();
@@ -548,7 +553,9 @@ const App: React.FC = () => {
 
       {showExperimentCampaign && (
         <Suspense fallback={<div className="oe4-campaign-loading">Preparando evaluación OE4…</div>}>
-          <BenchmarkCampaignLab provider={aiProvider} />
+          {oe4E2eHarnessEnabled && Oe4CampaignE2eHarness
+            ? <Oe4CampaignE2eHarness />
+            : <BenchmarkCampaignLab provider={aiProvider} />}
         </Suspense>
       )}
 

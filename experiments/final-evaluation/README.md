@@ -53,7 +53,7 @@ array contiene `51/2/2`. Los conteos derivados se calculan desde el array.
 
 ## Estado
 
-**Tasks 1–10 cerradas en implementación entre el 10 y el 11 de julio de 2026:** hashes,
+**Tasks 1–11 cerradas en implementación entre el 10 y el 11 de julio de 2026:** hashes,
 oráculos, tres modelos, tres modos, matriz, orden balanceado y warm-ups están
 congelados. Los contratos
 `aura.experiment-campaign.v1` y `aura.experiment-run.v1` preservan cada corrida y
@@ -110,6 +110,14 @@ del expediente. La pausa solo se aplica entre corridas. La creación real sigue
 bloqueada hasta recibir el preflight formal de Task 12. Véase
 [`TASK10_CONSOLE_CLOSEOUT.md`](./TASK10_CONSOLE_CLOSEOUT.md).
 
+Task 11 valida el recorrido humano completo en Chromium con un proveedor
+controlado que no cuenta como evidencia LLM: pausa segura, recuperación desde
+IndexedDB tras recarga, reanudación, rúbrica, HITL, importación del CSV,
+reauditoría y exportación de los cinco archivos. El smoke real con Ollama queda
+separado y opt-in. En el entorno comprobado se omite porque no existe CLI en la
+terminal, el servidor es `0.20.3` y solo contiene `qwen2.5:3b`. Véase
+[`TASK11_E2E_CLOSEOUT.md`](./TASK11_E2E_CLOSEOUT.md).
+
 Los tres modos formales ya se materializan como snapshots inmutables con una
 misma instrucción y un mismo schema de salida:
 
@@ -119,7 +127,7 @@ misma instrucción y un mismo schema de salida:
 | `smart_sample` | Resumen, esquema, estadísticas, reglas y muestras protegidas. |
 | `recommended` | Todo lo anterior más registro, gobernanza, manifiestos y anclajes explícitos. |
 
-OE4 continúa **parcial** hasta completar las Tasks 11–12,
+OE4 continúa **parcial** hasta completar Task 12,
 ejecutar las 45 unidades reales y exportar el expediente final válido.
 
 El intento real del 10 de julio quedó bloqueado antes de la campaña por una

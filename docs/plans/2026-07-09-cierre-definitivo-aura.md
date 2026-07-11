@@ -33,9 +33,12 @@ Carga → Perfil base → Diagnóstico → Reporte diagnóstico → Exportación
 
 El laboratorio operativo anterior fue retirado el 10 de julio de 2026 porque no
 usaba el protocolo formal OE4. No se considera una pérdida de evidencia: la
-consola formal nueva se construirá en Task 10 sobre las campañas persistidas.
+consola formal nueva y su recorrido E2E recuperable quedaron cerrados en las
+Tasks 10–11 sobre las campañas persistidas.
 
-La brecha ya no es de diseño. Faltan una evaluación comparativa LLM reproducible, evidencia actualizada sin contradicciones y una validación E2E final que demuestre el recorrido de una persona y las descargas reales.
+La brecha ya no es de diseño ni de recorrido humano. Task 11 ya demostró
+recuperación y descargas reales; falta ejecutar la evaluación comparativa LLM
+reproducible y congelar su evidencia sin contradicciones.
 
 ## 3. Objetivos definitivos del TFM
 
@@ -68,7 +71,7 @@ Consolidar AURA como una arquitectura local-first, reproducible y evaluable para
 | OE1 | **Alineado** | Carga y auditoría en navegador, fingerprint, trazas, políticas `local_full`, `cloud_minimized` y `cloud_no_samples` | Validar el flujo humano final y describir con precisión qué información sale del navegador |
 | OE2 | **Alineado con evidencia por refrescar** | `auditEngine.ts`, `deterministicValidation.ts`, datasets controlados y tests con macro F1 ≥ 0.90 | Regenerar un único artefacto de métricas actual; los JSON históricos contienen valores contradictorios |
 | OE3 | **Alineado con límites** | Contratos de evidencia, prompt budget, diagnóstico estructurado, detectores de alucinación y fallback determinista | Ejecutar corridas reales bajo protocolo y medir anclaje, referencias inválidas y claims sin soporte |
-| OE4 | **Parcial — brecha principal** | Protocolo, corredor, persistencia, evaluación y puente HITL implementados; la antigua UI operativa fue retirada | Generar el expediente, construir una consola formal nueva y ejecutar la matriz real |
+| OE4 | **Parcial — brecha principal** | Protocolo, corredor, persistencia, evaluación, puente HITL, consola formal y recorrido E2E recuperable implementados | Preparar Ollama, ejecutar la matriz real y congelar el expediente |
 | OE5 | **Alineado** | `RemediationPlanV2`, decisiones approve/reject, revisión HITL y bloqueo fail-closed | Aplicar una rúbrica humana explícita a los scripts representativos del experimento final |
 | OE6 | **Alineado con validación controlada** | `ScriptContractV2`, renderer, validación de columnas, hash y scripts revisables | Ejecutar scripts aprobados sobre copias controladas, reauditar y medir el resultado sin afirmar corrección automática universal |
 
@@ -208,7 +211,8 @@ Solo existen cuatro bloques. Se ejecutan en orden y no se abre trabajo nuevo fue
 - validación de Task 9: 6/6 pruebas focales, typecheck, build y revisión visual del PDF correctos;
 - consola nueva `Evaluación OE4` sobre el store formal: matriz 3 × 3, pausa entre corridas, salidas crudas, métricas, rúbrica, HITL, importación externa y gates de reporte;
 - validación de Task 10: 33/33 pruebas focales, suite completa con 1690 pruebas aprobadas y 6 omitidas, typecheck, build y revisión visual en escritorio/móvil correctos;
-- OE4 no se considera cerrado: faltan las tareas 11–12, preparar el runtime/modelos, ejecutar la campaña real y congelar sus artefactos formales.
+- validación de Task 11: recorrido controlado Chromium aprobado con persistencia IndexedDB, recarga, reanudación, rúbrica, HITL, importación, reauditoría y cinco descargas; el smoke real está implementado pero omitido por ausencia del CLI y de los modelos formales;
+- OE4 no se considera cerrado: falta Task 12, preparar el runtime/modelos, ejecutar la campaña real y congelar sus artefactos formales.
 
 **Métricas obligatorias:**
 

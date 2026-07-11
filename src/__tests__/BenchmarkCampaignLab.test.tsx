@@ -150,6 +150,20 @@ describe('BenchmarkCampaignLab - Task 10 human flow', () => {
       : run);
     const store = createInMemoryExperimentStore();
     await store.createCampaign(fixture.campaign, runs);
+    const prepareApprovedRepresentative = vi.fn(async (run: ExperimentRunV1) => ({
+      ...run,
+      status: 'awaiting_external_output' as const,
+      execution: {
+        contractId: 'aura.dynamic-execution-evidence.v1' as const,
+        status: 'awaiting_external_output' as const,
+        approvedScriptHash: 'a'.repeat(64),
+        beforeDatasetSha256: run.environment.dataset.sha256,
+        afterDatasetSha256: null,
+        executionEnvironment: 'colab_notebook:1.0.0',
+        executedAt: null,
+        reaudit: null,
+      },
+    }));
     const importAfterCsv = vi.fn(async (run: ExperimentRunV1) => ({
       ...run,
       status: 'reaudited' as const,
@@ -183,6 +197,7 @@ describe('BenchmarkCampaignLab - Task 10 human flow', () => {
     render(
       <BenchmarkCampaignLab
         store={store}
+        prepareApprovedRepresentative={prepareApprovedRepresentative}
         importAfterCsv={importAfterCsv}
         now={() => LATER}
       />,
@@ -191,25 +206,9 @@ describe('BenchmarkCampaignLab - Task 10 human flow', () => {
     await user.click(await screen.findByRole('button', { name: `Abrir ${representativeId}` }));
     await user.click(screen.getByRole('button', { name: 'Aprobar representante' }));
     expect(await screen.findByText('Representante aprobado')).toBeTruthy();
-
-    const awaiting = {
-      ...(await store.loadRun(representativeId))!,
-      status: 'awaiting_external_output' as const,
-      execution: {
-        contractId: 'aura.dynamic-execution-evidence.v1' as const,
-        status: 'awaiting_external_output' as const,
-        approvedScriptHash: 'a'.repeat(64),
-        beforeDatasetSha256: fixture.runs[0].environment.dataset.sha256,
-        afterDatasetSha256: null,
-        executionEnvironment: 'colab_notebook:1.0.0',
-        executedAt: null,
-        reaudit: null,
-      },
-    };
-    await act(async () => {
-      await store.saveRun(awaiting);
-    });
-    await user.click(screen.getByRole('button', { name: `Abrir ${representativeId}` }));
+    await user.click(screen.getByRole('button', { name: 'Preparar ejecución externa' }));
+    expect(prepareApprovedRepresentative).toHaveBeenCalledOnce();
+    expect(await screen.findByText('Ejecución externa preparada; importa el CSV resultante.')).toBeTruthy();
 
     const file = new File(['customer_id\n1\n'], 'after.csv', { type: 'text/csv' });
     await user.upload(await screen.findByLabelText('CSV resultante'), file);
