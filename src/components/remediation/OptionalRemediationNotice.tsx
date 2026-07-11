@@ -15,8 +15,8 @@ const OptionalRemediationNotice: React.FC = () => (
         script de remediación.
       </p>
       <p>
-        La reauditoría sirve para medir el delta de salud si decides limpiar una copia del
-        dataset. Podés volver al informe diagnóstico o a la Exportación en cualquier
+        La reauditoría te permite comparar los hallazgos antes/después si decides limpiar una
+        copia del dataset. Podés volver al informe diagnóstico o a la Exportación en cualquier
         momento.
       </p>
     </div>

@@ -139,38 +139,69 @@ describe('SettingsPanel - Ollama model reconciliation', () => {
     });
   });
 
-  describe('createAIProvider with reconciled config', () => {
-    it('creates Ollama provider with model from config', () => {
-      const config: AIConfig = {
-        ...baseConfig,
-        model: 'gemma2:2b',
-        ollamaModel: 'gemma2:2b',
-      };
-      const provider = createAIProvider(config);
-      expect(provider.type).toBe('ollama');
+  describe('Evidence modes (Issue #25)', () => {
+    const configWithoutInputMode: AIConfig = { ...baseConfig };
+
+    const visibleLabels = [
+      'Contexto mínimo',
+      'Evidencia equilibrada',
+      'Evidencia completa',
+    ];
+    const hiddenLabels = [
+      'Smart sample',
+      'Completo',
+      'Registro extendido',
+      'Muestras problemáticas',
+      'Mínimo experimental',
+    ];
+
+    it('renders the three human-readable evidence modes in a radiogroup', async () => {
+      render(<SettingsPanel config={configWithoutInputMode} onSave={onSave} onClose={onClose} />);
+
+      const section = await screen.findByTestId('evidence-modes-section');
+      expect(section.textContent).toContain('Evidencia que recibe el modelo');
+
+      for (const label of visibleLabels) {
+        expect(screen.getByRole('radio', { name: new RegExp(label) })).toBeTruthy();
+      }
+      for (const label of hiddenLabels) {
+        expect(screen.queryByText(label)).toBeNull();
+      }
     });
 
-    it('handles missing ollamaModel gracefully', () => {
-      const config: AIConfig = {
-        ...baseConfig,
-        model: 'phi3:mini',
-        ollamaModel: undefined,
-      };
-      const provider = createAIProvider(config);
-      expect(provider.type).toBe('ollama');
+    it('marks "Evidencia equilibrada" as the recommended default option', async () => {
+      render(<SettingsPanel config={configWithoutInputMode} onSave={onSave} onClose={onClose} />);
+
+      const balanced = await screen.findByTestId('evidence-mode-smart_sample');
+      expect(balanced.getAttribute('aria-checked')).toBe('true');
+      expect(screen.getByTestId('evidence-mode-badge-smart_sample')).toBeTruthy();
     });
 
-    it('uses the updated model after reconciliation', () => {
-      const reconciledConfig: AIConfig = {
-        model: 'qwen2.5:3b',
-        temperature: 0.1,
-        autoAnalyze: false,
-        providerType: 'ollama',
-        ollamaBaseUrl: 'http://localhost:11434',
-        ollamaModel: 'qwen2.5:3b',
-      };
-      const provider = createAIProvider(reconciledConfig);
-      expect(provider.type).toBe('ollama');
+    it('migrates legacy inputMode "enhanced_registry" to "recommended"', async () => {
+      const config: AIConfig = { ...baseConfig, inputMode: 'enhanced_registry' as any };
+      render(<SettingsPanel config={config} onSave={onSave} onClose={onClose} />);
+
+      const fullMode = await screen.findByTestId('evidence-mode-recommended');
+      expect(fullMode.getAttribute('aria-checked')).toBe('true');
+    });
+
+    it('migrates legacy inputMode "copy_paste_bad_samples" to "recommended"', async () => {
+      const config: AIConfig = { ...baseConfig, inputMode: 'copy_paste_bad_samples' as any };
+      render(<SettingsPanel config={config} onSave={onSave} onClose={onClose} />);
+
+      const fullMode = await screen.findByTestId('evidence-mode-recommended');
+      expect(fullMode.getAttribute('aria-checked')).toBe('true');
+    });
+
+    it('selecting a different mode calls onSave with the new inputMode on user save', async () => {
+      render(<SettingsPanel config={configWithoutInputMode} onSave={onSave} onClose={onClose} />);
+
+      const minimal = await screen.findByTestId('evidence-mode-prompt_libre');
+      fireEvent.click(minimal);
+      const saveButtons = screen.getAllByRole('button', { name: /Guardar configuración/i });
+      fireEvent.click(saveButtons[saveButtons.length - 1]);
+
+      expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ inputMode: 'prompt_libre' }));
     });
   });
 });

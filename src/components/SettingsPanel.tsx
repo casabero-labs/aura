@@ -45,33 +45,58 @@ const PROVIDER_TABS = [
   { id: 'cloud' as const, label: 'Cloud', icon: Cloud, desc: 'Mayor capacidad. API key requerida. Paquete estructurado.' },
 ];
 
-const INPUT_MODE_OPTIONS: { value: InputMode; label: string; desc: string }[] = [
+interface InputModeOption {
+  value: InputMode;
+  label: string;
+  summary: string;
+  whenToUse: string;
+  includes: string;
+  advantage: string;
+  limitation: string;
+  recommended?: boolean;
+}
+
+const INPUT_MODE_OPTIONS: InputModeOption[] = [
+  {
+    value: 'prompt_libre',
+    label: 'Contexto mínimo',
+    summary: 'Resumen físico del dataset y esquema de columnas. Sin reglas ni muestras observadas.',
+    whenToUse: 'Pruebas rápidas, baseline experimental o comprobación básica.',
+    includes: 'Resumen físico del dataset y esquema de columnas.',
+    advantage: 'Menor consumo de contexto y respuesta más rápida.',
+    limitation: 'Menos contexto: mayor riesgo de respuestas genéricas y menor trazabilidad.',
+  },
   {
     value: 'smart_sample',
-    label: 'Smart sample',
-    desc: 'Equilibrio recomendado: columnas, estadísticas básicas, reglas activadas y muestras limitadas.',
+    label: 'Evidencia equilibrada',
+    summary: 'Resumen, esquema, estadísticas, reglas activadas y muestras limitadas. Recomendado para la mayoría.',
+    whenToUse: 'Diagnóstico normal de la mayoría de datasets.',
+    includes: 'Resumen, esquema, estadísticas, reglas activadas y muestras limitadas.',
+    advantage: 'Mejor equilibrio entre contexto, claridad, latencia y privacidad.',
+    limitation: 'No incorpora todos los manifiestos y controles avanzados.',
+    recommended: true,
   },
   {
     value: 'recommended',
-    label: 'Completo',
-    desc: 'Más evidencia para informe final o validación detallada. Puede consumir más contexto.',
-  },
-  {
-    value: 'enhanced_registry',
-    label: 'Registro extendido',
-    desc: 'Más señales técnicas: tipos semánticos, frecuencias, IQR y reglas con porcentajes.',
-  },
-  {
-    value: 'copy_paste_bad_samples',
-    label: 'Muestras problemáticas',
-    desc: 'Incluye valores observados problemáticos para forzar trazabilidad textual.',
-  },
-  {
-    value: 'prompt_libre',
-    label: 'Mínimo experimental',
-    desc: 'Contexto reducido para pruebas rápidas. Menos trazabilidad.',
+    label: 'Evidencia completa',
+    summary: 'Todo lo anterior más registro completo, políticas, manifiestos y anclajes exactos a muestras.',
+    whenToUse: 'Datasets complejos, informe final, revisión técnica detallada o máxima trazabilidad.',
+    includes: 'Registro completo, políticas de acción, autorizaciones, manifiestos y anclajes exactos a muestras.',
+    advantage: 'Máxima trazabilidad y contexto.',
+    limitation: 'Usa más tokens/contexto y puede tardar más.',
   },
 ];
+
+const LEGACY_INPUT_MODES: ReadonlySet<InputMode> = new Set<InputMode>([
+  'enhanced_registry',
+  'copy_paste_bad_samples',
+]);
+
+const migrateLegacyInputMode = (mode: InputMode | undefined): InputMode => {
+  if (mode && LEGACY_INPUT_MODES.has(mode)) return 'recommended';
+  if (mode === 'prompt_libre' || mode === 'smart_sample' || mode === 'recommended') return mode;
+  return 'smart_sample';
+};
 
 type ProviderChoice = (typeof PROVIDER_TABS)[number]['id'];
 
@@ -119,7 +144,10 @@ const chromeProgressMessage = (diagnostic: ChromeAiDiagnostic | null, progress: 
 };
 
 const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }) => {
-  const [localConfig, setLocalConfig] = useState<AIConfig>(config);
+  const [localConfig, setLocalConfig] = useState<AIConfig>(() => ({
+    ...config,
+    inputMode: migrateLegacyInputMode(config.inputMode),
+  }));
   const [chromeDiagnostic, setChromeDiagnostic] = useState<ChromeAiDiagnostic | null>(null);
   const [chromeProgress, setChromeProgress] = useState<ProviderProgressEvent | null>(null);
   const [isPreparingChrome, setIsPreparingChrome] = useState(false);
@@ -134,6 +162,13 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
     void checkChromeDiagnostic();
     void checkOllamaConnection();
   }, []);
+
+  useEffect(() => {
+    if (localConfig.inputMode && LEGACY_INPUT_MODES.has(localConfig.inputMode)) {
+      const migrated = migrateLegacyInputMode(localConfig.inputMode);
+      setLocalConfig(prev => (prev.inputMode === migrated ? prev : { ...prev, inputMode: migrated }));
+    }
+  }, [localConfig.inputMode]);
 
   useEffect(() => {
     if (chromeDiagnostic?.status === 'downloading' && !chromeProgress) {
@@ -291,8 +326,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
   };
 
   const promptContract = normalizePromptContract(localConfig.promptContract);
-  const activeInputMode = localConfig.inputMode || 'smart_sample';
-  const activeInputModeOption = INPUT_MODE_OPTIONS.find(option => option.value === activeInputMode) || INPUT_MODE_OPTIONS[0];
+  const activeInputMode = migrateLegacyInputMode(localConfig.inputMode);
+  const activeInputModeOption = INPUT_MODE_OPTIONS.find(option => option.value === activeInputMode) || INPUT_MODE_OPTIONS[1];
   const updatePromptContract = (patch: Partial<typeof promptContract>) => {
     setLocalConfig({
       ...localConfig,
@@ -709,24 +744,56 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
           )}
         </section>
 
-        <section className="settings-workspace-section">
-          <h2 className="settings-section-title">Método de entrada</h2>
+        <section className="settings-workspace-section" data-testid="evidence-modes-section">
+          <h2 className="settings-section-title">Evidencia que recibe el modelo</h2>
           <p className="settings-section-desc">
-            Define qué evidencia recibirá el modelo durante el diagnóstico. No cambia el CSV ni el perfil determinista.
+            No estás eligiendo el modelo, sino cuánta evidencia técnica recibe durante el diagnóstico.
+            El CSV original no cambia y el motor determinista es el mismo en los tres casos.
+            Para la mayoría de usuarios se recomienda <strong>Evidencia equilibrada</strong>.
           </p>
-          <div className="settings-field">
-            <label className="settings-label">Evidencia para el diagnóstico</label>
-            <select
-              value={activeInputMode}
-              onChange={(e) => setLocalConfig({ ...localConfig, inputMode: e.target.value as InputMode })}
-              className="settings-select"
-            >
-              {INPUT_MODE_OPTIONS.map(option => (
-                <option key={option.value} value={option.value}>{option.label}</option>
-              ))}
-            </select>
-            <p className="settings-input-mode-desc">{activeInputModeOption.desc}</p>
+          <div
+            className="settings-provider-cards"
+            role="radiogroup"
+            aria-label="Cantidad de evidencia que recibe el modelo"
+          >
+            {INPUT_MODE_OPTIONS.map(option => {
+              const isActive = activeInputMode === option.value;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={isActive}
+                  onClick={() => setLocalConfig({ ...localConfig, inputMode: option.value })}
+                  className={`settings-provider-card ${isActive ? 'settings-provider-card--active' : ''}`}
+                  data-testid={`evidence-mode-${option.value}`}
+                >
+                  <div className="settings-provider-card-icon">
+                    {isActive ? <CheckCircle size={18} /> : <Info size={18} />}
+                  </div>
+                  <div className="settings-provider-card-body">
+                    <strong>{option.label}</strong>
+                    <small>{option.summary}</small>
+                  </div>
+                  <ul className="settings-input-mode-card-list">
+                    <li><strong>Cuándo:</strong> {option.whenToUse}</li>
+                    <li><strong>Incluye:</strong> {option.includes}</li>
+                    <li><strong>Ventaja:</strong> {option.advantage}</li>
+                    <li><strong>Limitación:</strong> {option.limitation}</li>
+                  </ul>
+                  {option.recommended && (
+                    <span className="settings-input-mode-card-badge" data-testid={`evidence-mode-badge-${option.value}`}>
+                      Recomendado
+                    </span>
+                  )}
+                  {isActive && <CheckCircle size={14} className="settings-provider-card-check" />}
+                </button>
+              );
+            })}
           </div>
+          <p className="settings-input-mode-desc" data-testid="evidence-mode-active-desc">
+            <strong>{activeInputModeOption.label}.</strong> {activeInputModeOption.summary}
+          </p>
         </section>
 
         <section className="settings-workspace-section">

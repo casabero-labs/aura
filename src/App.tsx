@@ -13,7 +13,6 @@ import { Download, FileJson, FileText, Sun, Moon } from 'lucide-react';
 import ChangelogModal from './components/ChangelogModal';
 import ErrorBoundary from './components/ErrorBoundary';
 import AuditLogViewer from './components/AuditLogViewer';
-import ImprovementRunPage from './components/ImprovementRunPage';
 import SettingsPanel from './components/SettingsPanel';
 import HelpCenter from './components/HelpCenter';
 import ProgressDisclosure from './components/ProgressDisclosure';
@@ -71,7 +70,7 @@ const buildDeterministicPdfContent = (auditReport: AuditReport, approvedScript?:
       'Priorizar los hallazgos criticos antes de publicar o reutilizar el dataset.',
       'Aplicar solo acciones de limpieza reproducibles y conservar una copia del dataset original.',
       'Validar manualmente cualquier accion destructiva, cambio semantico o eliminacion de columnas.',
-      'Re-auditar el dataset despues de la limpieza para medir delta de salud.',
+      'Reauditar el dataset después de una remediación y comparar los hallazgos antes/después.',
     ],
     python_script: approvedScript || undefined,
   };
@@ -137,7 +136,6 @@ const App: React.FC = () => {
   // ── UI state ──
   const [showSettings, setShowSettings] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
-  const [showImprovementRun, setShowImprovementRun] = useState(false);
   const [showExperimentCampaign, setShowExperimentCampaign] = useState(false);
   const [showHome, setShowHome] = useState(true);
   const [showAuditLog, setShowAuditLog] = useState(false);
@@ -328,7 +326,6 @@ const App: React.FC = () => {
 
   const goHome = () => {
     setShowHome(true);
-    setShowImprovementRun(false);
     setShowExperimentCampaign(false);
     setShowAuditLog(false);
     setShowSettings(false);
@@ -339,7 +336,6 @@ const App: React.FC = () => {
 
   const goAudit = () => {
     setShowHome(false);
-    setShowImprovementRun(false);
     setShowExperimentCampaign(false);
     setShowAuditLog(false);
     setShowSettings(false);
@@ -348,20 +344,9 @@ const App: React.FC = () => {
     requestAnimationFrame(() => scrollTo('sistema'));
   };
 
-  const goImprovementRun = () => {
-    setShowHome(false);
-    setShowImprovementRun(true);
-    setShowExperimentCampaign(false);
-    setShowAuditLog(false);
-    setShowSettings(false);
-    setShowHelp(false);
-    setShowMobileNav(false);
-  };
-
   const goExperimentCampaign = () => {
     setShowHome(false);
     setShowExperimentCampaign(true);
-    setShowImprovementRun(false);
     setShowAuditLog(false);
     setShowSettings(false);
     setShowHelp(false);
@@ -373,7 +358,6 @@ const App: React.FC = () => {
     setShowHome(false);
     setShowSettings(true);
     setShowExperimentCampaign(false);
-    setShowImprovementRun(false);
     setShowAuditLog(false);
     setShowHelp(false);
     setShowMobileNav(false);
@@ -399,7 +383,6 @@ const App: React.FC = () => {
     clearPipelineSession();
     setPipelineData(INITIAL_PIPELINE_DATA);
     setShowHome(true);
-    setShowImprovementRun(false);
     setShowExperimentCampaign(false);
     setShowAuditLog(false);
     setShowSettings(false);
@@ -451,17 +434,10 @@ const App: React.FC = () => {
             </button>
 
             <button
-              className={`nav-menu-item ${!showHome && !showImprovementRun && !showExperimentCampaign && !showAuditLog && !showSettings ? 'active' : ''}`}
+              className={`nav-menu-item ${!showHome && !showExperimentCampaign && !showAuditLog && !showSettings ? 'active' : ''}`}
               onClick={goAudit}
             >
               Auditoría
-            </button>
-
-            <button
-              className={`nav-menu-item ${showImprovementRun ? 'active' : ''}`}
-              onClick={goImprovementRun}
-            >
-              Health Delta
             </button>
 
             <button
@@ -518,9 +494,6 @@ const App: React.FC = () => {
         <button className="nav-link" onClick={goAudit}>
           Auditoría
         </button>
-        <button className="nav-link" onClick={goImprovementRun}>
-          Health Delta
-        </button>
         <button className="nav-link" onClick={goExperimentCampaign}>
           Evaluación OE4
         </button>
@@ -547,10 +520,6 @@ const App: React.FC = () => {
 
       {showChangelog && <ChangelogModal onClose={() => setShowChangelog(false)} />}
 
-      {showImprovementRun && (
-        <ImprovementRunPage onBack={goAudit} />
-      )}
-
       {showExperimentCampaign && (
         <Suspense fallback={<div className="oe4-campaign-loading">Preparando evaluación OE4…</div>}>
           {oe4E2eHarnessEnabled && Oe4CampaignE2eHarness
@@ -559,8 +528,8 @@ const App: React.FC = () => {
         </Suspense>
       )}
 
-      {/* Main Content — only show when not in settings, help, or Health Delta. */}
-      <main className="sys-main" style={{ display: showImprovementRun || showExperimentCampaign || showSettings || showHelp ? 'none' : undefined }}>
+      {/* Main Content — only show when not in settings or help. */}
+      <main className="sys-main" style={{ display: showExperimentCampaign || showSettings || showHelp ? 'none' : undefined }}>
         {showHome && (
           <section className="home-hero" id="home">
             <p className="home-eyebrow">diagnóstico reproducible de datos</p>
@@ -715,7 +684,7 @@ const App: React.FC = () => {
       </main>
 
       {/* Footer */}
-      <footer className="sys-footer" style={{ display: showImprovementRun || showSettings || showHelp ? 'none' : undefined }}>
+      <footer className="sys-footer" style={{ display: showSettings || showHelp ? 'none' : undefined }}>
         <span className="footer-brand">AURA</span>
         <div className="footer-links">
           <button className="footer-link" onClick={() => setShowHelp(true)}>Ayuda</button>
