@@ -61,7 +61,7 @@ const makeEnvironment = (modelId: OE4ModelId): EnvironmentSnapshotV1 => ({
 const makeInput = (mode: OE4InputMode): InputContractSnapshotV1 => ({
   contractId: 'aura.input-snapshot.v1',
   mode,
-  evidenceEnvelopeRef: `sha256:${HASH_A}`,
+  evidenceEnvelopeRef: `env:${HASH_A}`,
   includedSections: mode === 'prompt_libre'
     ? ['dataset_schema']
     : ['dataset_summary', 'column_registry', 'rule_activations'],
@@ -275,6 +275,18 @@ describe('OE4 experiment contracts — Task 2', () => {
       'repetition must be an integer from 1 to 5',
       'input.promptHash must be a SHA-256 hex string',
     ]));
+  });
+
+  it('rejects the provisional sha256 prefix in favor of the canonical env reference', () => {
+    const invalid = makeValidRun({
+      input: {
+        ...makeInput('smart_sample'),
+        evidenceEnvelopeRef: `sha256:${HASH_A}`,
+      },
+    });
+    expect(validateExperimentRunV1(invalid).errors).toContain(
+      'input.evidenceEnvelopeRef must be the canonical env reference',
+    );
   });
 
   it('keeps raw output, parsed output and validation errors as separate fields', () => {

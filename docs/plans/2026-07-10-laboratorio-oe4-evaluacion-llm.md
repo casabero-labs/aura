@@ -304,6 +304,23 @@ tres modelos congelados y, al pasar, se genera
 
 ## Task 4: Construir los tres contratos formales de entrada con una salida común
 
+**Estado:** cerrada el 10 de julio de 2026.
+
+**Resultado:** `buildExperimentInputPackage` produce snapshots profundos,
+inmutables y deterministas para `prompt_libre`, `smart_sample` y `recommended`.
+Los tres modos comparten la misma instrucción `1.2.0`, el mismo schema de salida
+`aura.diagnosis.v2` y el mismo hash de schema; solo varían las secciones visibles
+y el payload. `prompt_libre` queda limitado a resumen y esquema, `smart_sample`
+añade estadísticas, reglas y muestras bajo la política de privacidad, y
+`recommended` añade registro, gobernanza, manifiestos y anclajes explícitos.
+
+**Corrección de integración:** el snapshot usa el `env:<sha256>` canónico que
+exige `validateDiagnosisResponseV2`; el guard experimental ya no acepta el
+prefijo incompatible `sha256:` definido provisionalmente en Task 2.
+
+**Validación:** 21/21 pruebas focales, 75/75 dependientes, suite completa con
+1629 pruebas aprobadas y 6 omitidas, typecheck y build correctos.
+
 **Files:**
 
 - Add: `src/services/benchmark/experimentInputModes.ts`

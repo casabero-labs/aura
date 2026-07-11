@@ -91,7 +91,7 @@ export function buildEnvelopeRef(envelope: EvidenceEnvelopeV2): string {
 
 // ── Response Schema (additionalProperties: false) ──
 
-const RESPONSE_SCHEMA = {
+export const DIAGNOSIS_RESPONSE_SCHEMA_V2 = {
   type: 'object',
   additionalProperties: false,
   required: [
@@ -209,7 +209,7 @@ const RESPONSE_SCHEMA = {
 
 // ── Prompt Builder ──
 
-const PROMPT_VERSION = '1.1.0';
+export const DIAGNOSIS_PROMPT_VERSION_V2 = '1.2.0';
 
 export function buildDiagnosisPromptV2(
   envelope: EvidenceEnvelopeV2,
@@ -217,7 +217,7 @@ export function buildDiagnosisPromptV2(
 ): DiagnosisPromptPackageV2 {
   const evidenceEnvelopeRef = buildEnvelopeRef(envelope);
 
-  const systemInstruction = buildSystemInstruction();
+  const systemInstruction = buildDiagnosisSystemInstructionV2();
   const userPayload = buildUserPayload(envelope, evidenceEnvelopeRef, options);
 
   const fullPrompt = systemInstruction + '\n\n' + userPayload;
@@ -227,11 +227,11 @@ export function buildDiagnosisPromptV2(
     contractId: 'aura.diagnosis.v2',
     contractVersion: '2.0.0',
     evidenceEnvelopeRef,
-    promptVersion: PROMPT_VERSION,
+    promptVersion: DIAGNOSIS_PROMPT_VERSION_V2,
     promptHash,
     systemInstruction,
     userPayload,
-    responseSchema: RESPONSE_SCHEMA as Record<string, unknown>,
+    responseSchema: DIAGNOSIS_RESPONSE_SCHEMA_V2 as Record<string, unknown>,
     generatedAt: new Date().toISOString(),
   };
 }
@@ -246,7 +246,7 @@ export function buildCompactDiagnosisPromptV2(
 ): DiagnosisPromptPackageV2 {
   const evidenceEnvelopeRef = buildEnvelopeRef(envelope);
 
-  const systemInstruction = buildSystemInstruction();
+  const systemInstruction = buildDiagnosisSystemInstructionV2();
   const userPayload = buildCompactUserPayload(envelope, evidenceEnvelopeRef, options);
 
   const fullPrompt = systemInstruction + '\n\n' + userPayload;
@@ -256,11 +256,11 @@ export function buildCompactDiagnosisPromptV2(
     contractId: 'aura.diagnosis.v2',
     contractVersion: '2.0.0',
     evidenceEnvelopeRef,
-    promptVersion: PROMPT_VERSION,
+    promptVersion: DIAGNOSIS_PROMPT_VERSION_V2,
     promptHash,
     systemInstruction,
     userPayload,
-    responseSchema: RESPONSE_SCHEMA as Record<string, unknown>,
+    responseSchema: DIAGNOSIS_RESPONSE_SCHEMA_V2 as Record<string, unknown>,
     generatedAt: new Date().toISOString(),
   };
 }
@@ -388,7 +388,7 @@ Respond with a single JSON object matching the schema. Output ONLY the JSON.`;
 
 // ── System Instruction ──
 
-function buildSystemInstruction(): string {
+export function buildDiagnosisSystemInstructionV2(): string {
   return `You are a structured data quality diagnostician. Your ONLY task is to produce a JSON response matching the exact schema provided.
 
 CRITICAL RULES — VIOLATING ANY OF THESE IS AN ERROR:
@@ -402,6 +402,7 @@ CRITICAL RULES — VIOLATING ANY OF THESE IS AN ERROR:
    - columnId: must match an existing column.columnId (or be null for dataset scope)
    - evidenceRefs: each must match an existing evidenceRef in the referenced issue
    You CANNOT create new columns, rules, evidence items, or actions.
+   Unsupported claims are prohibited: omit any claim that is not supported by visible evidence and disclose the missing support in limitations.
 
 3. You CANNOT produce code of any kind:
    - NO Python

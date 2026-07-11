@@ -175,8 +175,8 @@ const validateInput = (value: unknown, errors: string[]): value is InputContract
   }
   if (value.contractId !== 'aura.input-snapshot.v1') errors.push('input.contractId is invalid');
   if (!OE4_INPUT_MODES.includes(value.mode as (typeof OE4_INPUT_MODES)[number])) errors.push('input.mode is not formal');
-  if (typeof value.evidenceEnvelopeRef !== 'string' || !/^sha256:[a-f0-9]{64}$/.test(value.evidenceEnvelopeRef)) {
-    errors.push('input.evidenceEnvelopeRef must be a SHA-256 reference');
+  if (typeof value.evidenceEnvelopeRef !== 'string' || !/^env:[a-f0-9]{64}$/.test(value.evidenceEnvelopeRef)) {
+    errors.push('input.evidenceEnvelopeRef must be the canonical env reference');
   }
   if (!isStringArray(value.includedSections) || value.includedSections.length === 0) errors.push('input.includedSections must be non-empty');
   if (!isNonEmptyString(value.systemInstruction)) errors.push('input.systemInstruction is required');

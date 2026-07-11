@@ -4,11 +4,12 @@ Ejecutar, en orden, la hoja de ruta definitiva:
 
 - [`docs/plans/2026-07-09-cierre-definitivo-aura.md`](../../plans/2026-07-09-cierre-definitivo-aura.md)
 
-Los Bloques 1 y 2 están cerrados. Las Tasks 1–3 del Bloque 3 ya congelaron la
+Los Bloques 1 y 2 están cerrados. Las Tasks 1–4 del Bloque 3 ya congelaron la
 base experimental OE4, los contratos de campaña y corrida, los tres modelos
-formales y la telemetría nativa de Ollama.
+formales, la telemetría nativa de Ollama y los tres contratos de entrada con
+salida común `aura.diagnosis.v2`.
 
-El siguiente paso único es **Task 4 — construir los tres contratos formales de entrada con una salida común** en
+El siguiente paso único es **Task 5 — implementar el corredor simétrico y reanudable** en
 `docs/plans/2026-07-10-laboratorio-oe4-evaluacion-llm.md`. Después se continúa en
 orden hasta Task 12; no se rediseña la matriz ni se abren fases paralelas.
 
