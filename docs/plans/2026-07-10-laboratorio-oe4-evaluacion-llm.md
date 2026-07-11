@@ -378,6 +378,9 @@ git commit -m "feat: normalize OE4 input modes"
 
 ## Task 5: Implementar el corredor simétrico y reanudable
 
+**Estado: cerrada el 10 de julio de 2026.** Implementación y evidencia:
+`experiments/final-evaluation/TASK5_RUNNER_CLOSEOUT.md`.
+
 **Files:**
 
 - Add: `src/services/benchmark/experimentSchedule.ts`
@@ -441,6 +444,10 @@ git commit -m "feat: add symmetric OE4 campaign runner"
 ```
 
 ## Task 6: Persistir campañas en IndexedDB sin sobrescritura
+
+**Estado: siguiente tarea única.** El contrato estrecho de almacenamiento ya
+está definido por Task 5; esta tarea debe aportar los adaptadores durables sin
+cambiar el calendario ni el orden diagnóstico → script.
 
 **Files:**
 

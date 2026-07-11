@@ -5,6 +5,20 @@ import { createTraceRecorder, fingerprintReport } from './executionEvidence';
 import { deriveEvidenceStatus } from './improvementService';
 import { buildAnalysisPrompt, buildScriptPrompt, extractPythonScript } from './providers/prompts';
 import { validateCleaningScript } from './scriptValidationService';
+import {
+  createExperimentRunner,
+  type ExperimentRunnerDependencies,
+} from './benchmark/experimentRunner';
+import type { ExperimentRunV1 } from './benchmark/experimentTypes';
+
+/**
+ * Formal OE4 runs always use the symmetric two-stage runner. The legacy
+ * operational benchmark below remains compatible with its existing modes.
+ */
+export const runFormalExperimentUnit = (
+  run: ExperimentRunV1,
+  dependencies: ExperimentRunnerDependencies,
+): Promise<ExperimentRunV1> => createExperimentRunner(dependencies).runUnit(run);
 
 export const runBenchmarkForConfig = async (
   report: AuditReport,

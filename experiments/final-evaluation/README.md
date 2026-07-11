@@ -53,7 +53,7 @@ array contiene `51/2/2`. Los conteos derivados se calculan desde el array.
 
 ## Estado
 
-**Tasks 1–4 cerradas en implementación el 10 de julio de 2026:** hashes,
+**Tasks 1–5 cerradas en implementación el 10 de julio de 2026:** hashes,
 oráculos, tres modelos, tres modos, matriz, orden balanceado y warm-ups están
 congelados. Los contratos
 `aura.experiment-campaign.v1` y `aura.experiment-run.v1` preservan cada corrida y
@@ -61,6 +61,13 @@ su historial append-only. El registro distingue modelos formales de alternativas
 operativas, y el proveedor conserva tokens, duraciones y `thinking` nativos de
 Ollama. El preflight genera un recibo con versiones, espacio libre, digests y
 smokes cuando todos los gates pasan.
+
+El calendario ejecutable materializa 45 IDs únicos en 15 bloques de modelo y
+mantiene un warm-up excluido por bloque. El corredor formal conserva la misma
+secuencia diagnóstico → script en los tres modos, registra eventos append-only,
+detiene el script ante fallo diagnóstico y reanuda desde el script cuando el
+diagnóstico ya terminó. El cierre técnico y sus límites están en
+[`TASK5_RUNNER_CLOSEOUT.md`](./TASK5_RUNNER_CLOSEOUT.md).
 
 Los tres modos formales ya se materializan como snapshots inmutables con una
 misma instrucción y un mismo schema de salida:
@@ -71,7 +78,7 @@ misma instrucción y un mismo schema de salida:
 | `smart_sample` | Resumen, esquema, estadísticas, reglas y muestras protegidas. |
 | `recommended` | Todo lo anterior más registro, gobernanza, manifiestos y anclajes explícitos. |
 
-OE4 continúa **parcial** hasta completar las Tasks 5–12,
+OE4 continúa **parcial** hasta completar las Tasks 6–12,
 ejecutar las 45 unidades reales y exportar el expediente final válido.
 
 El intento real del 10 de julio quedó bloqueado antes de la campaña por una
