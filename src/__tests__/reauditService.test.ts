@@ -11,11 +11,14 @@ import { describe, expect, it } from 'vitest';
 import {
   parseCsvString,
   computeCsvFingerprint,
+  computeExactCsvFingerprint,
   buildEnvelopeRef,
   importColabOutput,
   computeChangedCellsEstimate,
+  buildReauditEvidence,
   runReaudit,
 } from '../services/reauditService';
+import { calculateHealthDelta } from '../services/improvementService';
 
 const BEFORE_CSV = `Address,City,CallDateTime,CrimeId
 "123 Main St","SAN FRANCISCO","2024-01-01",160903280
@@ -139,6 +142,12 @@ describe('reauditService', () => {
       const hash1 = computeCsvFingerprint('a,b\n1,2');
       const hash2 = computeCsvFingerprint('  a,b\n1,2\n  ');
       expect(hash1).toBe(hash2);
+    });
+
+    it('keeps exact bytes distinct for formal source and imported artifacts', () => {
+      expect(computeExactCsvFingerprint('a,b\n1,2')).not.toBe(
+        computeExactCsvFingerprint('a,b\n1,2\n'),
+      );
     });
   });
 
@@ -294,6 +303,26 @@ describe('reauditService', () => {
 
       expect(result.beforeOutput.delimiter).toBe(';');
       expect(result.afterOutput.delimiter).toBe(';');
+    });
+
+    it('builds the formal before/after evidence without forcing mixed results', () => {
+      const result = runReaudit(BEFORE_CSV_WITH_ISSUES, AFTER_CSV_CLEAN, 'env:issues');
+      const delta = calculateHealthDelta(result.beforeReport, result.afterReport);
+      const evidence = buildReauditEvidence(result, delta);
+
+      expect(evidence.beforeRows).toBe(3);
+      expect(evidence.afterRows).toBe(3);
+      expect(evidence.estimatedCellsModified).toBeGreaterThan(0);
+      expect(['improved', 'unchanged', 'worsened', 'inconclusive']).toContain(evidence.outcome);
+
+      const mixed = buildReauditEvidence(result, {
+        ...delta,
+        beforeScore: 50,
+        afterScore: 60,
+        beforeIssueCount: 2,
+        afterIssueCount: 3,
+      });
+      expect(mixed.outcome).toBe('inconclusive');
     });
 
     it('throws if beforeCsv is empty', () => {

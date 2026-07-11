@@ -8,7 +8,8 @@
 import Papa from 'papaparse';
 import { sha256hex } from '../contracts/llm/hash';
 import { runAudit } from './auditEngine';
-import type { AuditReport } from '../types';
+import type { AuditReport, HealthDelta } from '../types';
+import type { ReauditEvidenceV1 } from './benchmark/experimentTypes';
 
 export interface ReauditSummaryV1 {
   beforeEvidenceEnvelopeRef: string;
@@ -79,6 +80,11 @@ export function parseCsvString(csvString: string, forcedDelimiter?: string): {
 
 export function computeCsvFingerprint(csvString: string): string {
   return sha256hex(csvString.trim());
+}
+
+/** Exact byte-equivalent text fingerprint for formal imported artifacts. */
+export function computeExactCsvFingerprint(csvString: string): string {
+  return sha256hex(csvString);
 }
 
 export function buildEnvelopeRef(fingerprint: string, prefix = 'env'): string {
@@ -207,4 +213,49 @@ export function runReaudit(
   logs.push(`issue delta: ${beforeReport.issues.length} → ${afterReport.issues.length}`);
 
   return { summary, output, beforeReport, afterReport, beforeOutput, afterOutput };
+}
+
+const uniqueSorted = (values: readonly string[]): string[] =>
+  [...new Set(values)].sort((left, right) => left.localeCompare(right));
+
+export function buildReauditEvidence(
+  result: ReauditResult,
+  delta: HealthDelta,
+): ReauditEvidenceV1 {
+  const beforeRules = new Set(result.beforeReport.issues.map((issue) => issue.ruleId));
+  const afterRules = new Set(result.afterReport.issues.map((issue) => issue.ruleId));
+  const resolvedRuleIds = uniqueSorted([...beforeRules].filter((ruleId) => !afterRules.has(ruleId)));
+  const persistentRuleIds = uniqueSorted([...beforeRules].filter((ruleId) => afterRules.has(ruleId)));
+  const newRuleIds = uniqueSorted([...afterRules].filter((ruleId) => !beforeRules.has(ruleId)));
+
+  let outcome: ReauditEvidenceV1['outcome'];
+  const scoreImproved = delta.afterScore > delta.beforeScore;
+  const issuesImproved = delta.afterIssueCount < delta.beforeIssueCount;
+  const scoreWorsened = delta.afterScore < delta.beforeScore;
+  const issuesWorsened = delta.afterIssueCount > delta.beforeIssueCount;
+  if ((scoreImproved || issuesImproved) && !scoreWorsened && !issuesWorsened) {
+    outcome = 'improved';
+  } else if ((scoreWorsened || issuesWorsened) && !scoreImproved && !issuesImproved) {
+    outcome = 'worsened';
+  } else if (!scoreImproved && !issuesImproved && !scoreWorsened && !issuesWorsened) {
+    outcome = 'unchanged';
+  } else {
+    outcome = 'inconclusive';
+  }
+
+  return {
+    beforeScore: delta.beforeScore,
+    afterScore: delta.afterScore,
+    beforeIssueCount: delta.beforeIssueCount,
+    afterIssueCount: delta.afterIssueCount,
+    beforeRows: result.output.rowCountBefore,
+    afterRows: result.output.rowCountAfter,
+    beforeColumns: result.output.columnCountBefore,
+    afterColumns: result.output.columnCountAfter,
+    estimatedCellsModified: result.output.changedCellsEstimate,
+    resolvedRuleIds,
+    persistentRuleIds,
+    newRuleIds,
+    outcome,
+  };
 }

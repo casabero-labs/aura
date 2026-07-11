@@ -359,6 +359,30 @@ describe('OE4 experiment contracts — Task 2', () => {
     );
   });
 
+  it('allows an approved representative to persist a blocked execution gate', () => {
+    const approved = makeValidRun({
+      status: 'approved',
+      diagnosis: makeStage('diagnosis'),
+      script: makeStage('script'),
+      automaticEvaluation: makeAutomaticEvaluation(),
+      humanReview: makeHumanReview(),
+      hitl: makeHitlDecision('approved'),
+    });
+    const blockedExecution: DynamicExecutionEvidenceV1 = {
+      contractId: 'aura.dynamic-execution-evidence.v1',
+      status: 'blocked',
+      approvedScriptHash: HASH_A,
+      beforeDatasetSha256: FINAL_EVALUATION_PROTOCOL.dataset.sha256,
+      afterDatasetSha256: null,
+      executionEnvironment: 'colab_notebook:blocked:preflight',
+      executedAt: null,
+      reaudit: null,
+    };
+    const blocked = { ...approved, status: 'blocked' as const, updatedAt: LATER, execution: blockedExecution };
+
+    expect(validateExperimentRunUpdate(approved, blocked)).toEqual({ valid: true, errors: [] });
+  });
+
   it('rejects human rubric values outside 0–4 and an inconsistent mean', () => {
     const invalidReview = { ...makeHumanReview(), clarity: 5, mean: 4 } as unknown as HumanReviewV1;
     const run = makeValidRun({

@@ -68,7 +68,7 @@ Consolidar AURA como una arquitectura local-first, reproducible y evaluable para
 | OE1 | **Alineado** | Carga y auditoría en navegador, fingerprint, trazas, políticas `local_full`, `cloud_minimized` y `cloud_no_samples` | Validar el flujo humano final y describir con precisión qué información sale del navegador |
 | OE2 | **Alineado con evidencia por refrescar** | `auditEngine.ts`, `deterministicValidation.ts`, datasets controlados y tests con macro F1 ≥ 0.90 | Regenerar un único artefacto de métricas actual; los JSON históricos contienen valores contradictorios |
 | OE3 | **Alineado con límites** | Contratos de evidencia, prompt budget, diagnóstico estructurado, detectores de alucinación y fallback determinista | Ejecutar corridas reales bajo protocolo y medir anclaje, referencias inválidas y claims sin soporte |
-| OE4 | **Parcial — brecha principal** | Protocolo, corredor, persistencia y evaluación formal implementados; la antigua UI operativa fue retirada | Seleccionar representantes, conectar HITL y reauditoría, construir una consola formal nueva y ejecutar la matriz real |
+| OE4 | **Parcial — brecha principal** | Protocolo, corredor, persistencia, evaluación y puente HITL implementados; la antigua UI operativa fue retirada | Generar el expediente, construir una consola formal nueva y ejecutar la matriz real |
 | OE5 | **Alineado** | `RemediationPlanV2`, decisiones approve/reject, revisión HITL y bloqueo fail-closed | Aplicar una rúbrica humana explícita a los scripts representativos del experimento final |
 | OE6 | **Alineado con validación controlada** | `ScriptContractV2`, renderer, validación de columnas, hash y scripts revisables | Ejecutar scripts aprobados sobre copias controladas, reauditar y medir el resultado sin afirmar corrección automática universal |
 
@@ -164,7 +164,7 @@ Solo existen cuatro bloques. Se ejecutan en orden y no se abre trabajo nuevo fue
 - Persistencia: IndexedDB append-only, pausa y reanudación; fallos y reintentos nunca se sobrescriben.
 - Evaluación dinámica: las 45 corridas reciben métricas automáticas y rúbrica humana. Se selecciona por regla de mediana F1 un representante por celda modelo–entrada, 9 scripts en total, para HITL y ejecución externa sobre copias.
 
-**Checkpoint del 11 de julio de 2026 — Tasks 1–7 cerradas:**
+**Checkpoint del 11 de julio de 2026 — Tasks 1–8 cerradas:**
 
 - base congelada en `experiments/final-evaluation/` con hashes exactos de dataset, esquema y ground truth;
 - 32 claves canónicas: 16 `engine_exposed`, 7 `engine_supported_not_exposed` y 9 `out_of_engine_scope`;
@@ -198,7 +198,13 @@ Solo existen cuatro bloques. Se ejecutan en orden y no se abre trabajo nuevo fue
 - operación separada en latencia, tokens, fallos y estabilidad; rúbrica humana 0–4 con revisor y fecha obligatorios, y nota justificativa para valores extremos;
 - el score compuesto del export quedó renombrado como `exploratoryCompositeScore` y no determina un ganador;
 - validación de Task 7: 43/43 pruebas focales y dependientes, suite completa con 1669 pruebas aprobadas y 6 omitidas, typecheck y build correctos;
-- OE4 no se considera cerrado: faltan las tareas 8–12, preparar el runtime/modelos, ejecutar la campaña real y congelar sus artefactos formales.
+- selección determinista de una mediana F1 por cada celda modelo–modo, con desempate por menor repetición y exactamente nueve representantes para una campaña completa;
+- un representante inseguro permanece bloqueado; no se sustituye por una corrida más favorable después de observar los resultados;
+- puente OE4 con estados `reviewed → awaiting_hitl → approved/rejected/blocked`; no prepara ejecución sin aprobación explícita;
+- preflight o sandbox fallido persiste el representante como `blocked`; un aprobado genera únicamente un notebook para ejecución externa;
+- importación del CSV externo con hash exacto, fuente inmutable, reauditoría, reglas resueltas/persistentes/nuevas y resultado `improved`, `unchanged`, `worsened` o `inconclusive`;
+- validación de Task 8: 81/81 pruebas focales y dependientes, suite completa con 1681 pruebas aprobadas y 6 omitidas, typecheck y build correctos;
+- OE4 no se considera cerrado: faltan las tareas 9–12, preparar el runtime/modelos, ejecutar la campaña real y congelar sus artefactos formales.
 
 **Métricas obligatorias:**
 

@@ -49,7 +49,7 @@ export interface ControlledExecutionResult {
 
 export const RUNTIME_VERSION = '1.0.0';
 
-interface ExecutionOptions {
+export interface ExecutionOptions {
   sandboxConfig?: SandboxConfig;
   fixtureCsv?: string;
   datasetName?: string;

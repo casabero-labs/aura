@@ -571,9 +571,10 @@ git commit -m "feat: score OE4 diagnosis and scripts"
 
 ## Task 8: Seleccionar 9 representantes e integrar HITL, ejecución y reauditoría
 
-**Estado: siguiente tarea única.** Debe seleccionar de forma determinista un
-representante por cada celda modelo–modo y conservar aprobación, rechazo o
-bloqueo antes de cualquier ejecución externa.
+**Estado: cerrada el 11 de julio de 2026.** Implementación y evidencia:
+`experiments/final-evaluation/TASK8_HITL_EXECUTION_CLOSEOUT.md`. Selecciona de
+forma determinista un representante por cada celda modelo–modo y conserva
+aprobación, rechazo o bloqueo antes de cualquier ejecución externa.
 
 **Files:**
 
@@ -635,6 +636,9 @@ git commit -m "feat: connect OE4 runs to HITL evidence"
 ```
 
 ## Task 9: Generar el expediente TFM desde una fuente canónica
+
+**Estado: siguiente tarea única.** Debe derivar JSON, CSV, Markdown, PDF y
+manifiesto desde una misma campaña, sin copiar métricas manualmente.
 
 **Files:**
 

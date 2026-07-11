@@ -50,7 +50,7 @@ const RUN_TRANSITIONS: Record<ExperimentRunStatus, ExperimentRunStatus[]> = {
   awaiting_human: ['awaiting_human', 'reviewed'],
   reviewed: ['reviewed', 'awaiting_hitl'],
   awaiting_hitl: ['awaiting_hitl', 'approved', 'rejected', 'blocked'],
-  approved: ['approved', 'awaiting_external_output'],
+  approved: ['approved', 'awaiting_external_output', 'blocked'],
   rejected: ['rejected'],
   blocked: ['blocked'],
   awaiting_external_output: ['awaiting_external_output', 'reaudited', 'blocked'],
