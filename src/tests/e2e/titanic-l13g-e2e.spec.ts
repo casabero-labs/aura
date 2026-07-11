@@ -120,8 +120,7 @@ test.describe('L13G — Titanic E2E Diagnostic Report Pipeline', () => {
     expect(l9state?.rowsProcessed, 'should process 891 rows').toBe(891);
     expect(l9state?.columnsProcessed, 'should detect 12 columns').toBe(12);
 
-    // Skip calibration: navigate profile → calibration → diagnosis
-    await navigateToState(page, 'calibration');
+    // Continue directly from profile to diagnosis; the legacy calibration UI was removed.
     await navigateToState(page, 'diagnosis');
 
     // Inject mock diagnosis via harness (no real AI)

@@ -91,6 +91,12 @@ describe('pipelineSession', () => {
     expect(result).toBeNull();
   });
 
+  it('moves sessions from the removed calibration screen to diagnosis', () => {
+    mockLs.setItem('aura_pipeline_session_v1', JSON.stringify({ state: 'calibration' }));
+
+    expect(loadPipelineSession()?.state).toBe('diagnosis');
+  });
+
   it('handles save with null file correctly', () => {
     savePipelineSession({
       state: 'upload',

@@ -30,7 +30,11 @@ export const loadPipelineSession = (): PipelineSessionSnapshot | null => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as PipelineSessionSnapshot;
+    const snapshot = JSON.parse(raw) as Omit<PipelineSessionSnapshot, 'state'> & { state: string };
+    if (snapshot.state === 'calibration') {
+      return { ...snapshot, state: 'diagnosis' } as PipelineSessionSnapshot;
+    }
+    return snapshot as PipelineSessionSnapshot;
   } catch {
     try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
     return null;

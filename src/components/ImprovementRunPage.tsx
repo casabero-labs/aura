@@ -1,5 +1,5 @@
 // ── Phase 6 Loop 5: ImprovementRunPage ──
-// Page wrapper for ImprovementRunPanel following BenchmarkLab pattern.
+// Page wrapper for the optional Health Delta workspace.
 // Uses controlled fixtures only. Delegates Python execution to Colab.
 
 import React from 'react';

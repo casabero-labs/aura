@@ -181,18 +181,6 @@ test.describe('Evidencia académica AURA', () => {
     await page.screenshot({ path: path.join(OUT, '09_bloqueo_manipulacion.png'), fullPage: true });
   });
 
-  test('10 — laboratorio modelos', async ({ page }) => {
-    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 30_000 });
-    await page.locator('.sys-nav').waitFor({ state: 'visible', timeout: 15_000 });
-    // Open the lab/benchmark panel if accessible
-    const labBtn = page.getByRole('button', { name: /Lab|Benchmark|Modelos/i });
-    if (await labBtn.isVisible().catch(() => false)) {
-      await labBtn.click();
-      await page.waitForTimeout(1500);
-    }
-    await page.screenshot({ path: path.join(OUT, '10_laboratorio_modelos.png'), fullPage: true });
-  });
-
   test('11 — resultados ground truth', async ({ page }) => {
     await up(page, DATASETS.synthetic);
     await expect(page.locator('.profile-editorial-header').first()).toBeVisible();

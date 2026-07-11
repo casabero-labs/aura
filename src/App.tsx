@@ -9,11 +9,10 @@ if (typeof __AURA_BUILD_SHA__ !== 'undefined') {
     'color: #888; font-size: 11px; font-family: monospace;',
   );
 }
-import { Download, FileJson, FileText, FlaskConical, Sun, Moon } from 'lucide-react';
+import { Download, FileJson, FileText, Sun, Moon } from 'lucide-react';
 import ChangelogModal from './components/ChangelogModal';
 import ErrorBoundary from './components/ErrorBoundary';
 import AuditLogViewer from './components/AuditLogViewer';
-import BenchmarkLab from './components/BenchmarkLab';
 import ImprovementRunPage from './components/ImprovementRunPage';
 import SettingsPanel from './components/SettingsPanel';
 import HelpCenter from './components/HelpCenter';
@@ -28,7 +27,7 @@ import { buildAuraExportPackage } from './services/exportPackage';
 import { validateAuraExportPackage } from './services/exportContractValidation';
 import { savePipelineSession, loadPipelineSession, clearPipelineSession } from './services/pipelineSession';
 import { downloadTextFile } from './utils/download';
-import { AIConfig, AuditReport, BenchmarkResult, DeterministicValidationReport, EvidenceManifest, ExecutiveReportContent, IssueSeverity } from './types';
+import { AIConfig, AuditReport, DeterministicValidationReport, EvidenceManifest, ExecutiveReportContent, IssueSeverity } from './types';
 
 const countBySeverity = (report: AuditReport | null, severity: IssueSeverity) =>
   report?.issues.filter((issue) => issue.severity === severity).length ?? 0;
@@ -131,13 +130,11 @@ const App: React.FC = () => {
   // ── UI state ──
   const [showSettings, setShowSettings] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
-  const [showLab, setShowLab] = useState(false);
   const [showImprovementRun, setShowImprovementRun] = useState(false);
   const [showHome, setShowHome] = useState(true);
   const [showAuditLog, setShowAuditLog] = useState(false);
   const [showChangelog, setShowChangelog] = useState(false);
   const [showMobileNav, setShowMobileNav] = useState(false);
-  const [labBenchmarkResults, setLabBenchmarkResults] = useState<BenchmarkResult[]>([]);
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     const saved = localStorage.getItem('aura_theme') || localStorage.getItem('casabero-theme');
     return saved === 'dark' ? 'dark' : 'light';
@@ -196,17 +193,11 @@ const App: React.FC = () => {
   // ── Derived pipeline state ──
   const report = pipelineData.report;
   const auditEvidence = pipelineData.auditEvidence;
-  const rawData = pipelineData.rawData;
-  const csvFields = pipelineData.csvFields;
-  const csvDelimiter = pipelineData.csvDelimiter;
-  const file = pipelineData.file;
   const logs = pipelineData.logs;
   const pipelineState = pipelineData.state;
   const aiAnalysis = pipelineData.aiAnalysis;
   const approvedCleaningScript = pipelineData.approvedScript;
-  const benchmarkResults = pipelineData.benchmarkResults.length > 0
-    ? pipelineData.benchmarkResults
-    : labBenchmarkResults;
+  const benchmarkResults = pipelineData.benchmarkResults;
   const deterministicValidation = pipelineData.deterministicValidation;
   const improvementRun = pipelineData.improvementRun;
   const scriptValidation = pipelineData.scriptValidation;
@@ -329,7 +320,6 @@ const App: React.FC = () => {
 
   const goHome = () => {
     setShowHome(true);
-    setShowLab(false);
     setShowImprovementRun(false);
     setShowAuditLog(false);
     setShowSettings(false);
@@ -340,7 +330,6 @@ const App: React.FC = () => {
 
   const goAudit = () => {
     setShowHome(false);
-    setShowLab(false);
     setShowImprovementRun(false);
     setShowAuditLog(false);
     setShowSettings(false);
@@ -349,19 +338,8 @@ const App: React.FC = () => {
     requestAnimationFrame(() => scrollTo('sistema'));
   };
 
-  const goLab = () => {
-    setShowHome(false);
-    setShowLab(true);
-    setShowImprovementRun(false);
-    setShowAuditLog(false);
-    setShowSettings(false);
-    setShowHelp(false);
-    setShowMobileNav(false);
-  };
-
   const goImprovementRun = () => {
     setShowHome(false);
-    setShowLab(false);
     setShowImprovementRun(true);
     setShowAuditLog(false);
     setShowSettings(false);
@@ -372,7 +350,6 @@ const App: React.FC = () => {
   const goSettings = () => {
     setShowHome(false);
     setShowSettings(true);
-    setShowLab(false);
     setShowImprovementRun(false);
     setShowAuditLog(false);
     setShowHelp(false);
@@ -399,7 +376,6 @@ const App: React.FC = () => {
     clearPipelineSession();
     setPipelineData(INITIAL_PIPELINE_DATA);
     setShowHome(true);
-    setShowLab(false);
     setShowImprovementRun(false);
     setShowAuditLog(false);
     setShowSettings(false);
@@ -451,7 +427,7 @@ const App: React.FC = () => {
             </button>
 
             <button
-              className={`nav-menu-item ${!showHome && !showLab && !showImprovementRun && !showAuditLog && !showSettings ? 'active' : ''}`}
+              className={`nav-menu-item ${!showHome && !showImprovementRun && !showAuditLog && !showSettings ? 'active' : ''}`}
               onClick={goAudit}
             >
               Auditoría
@@ -517,7 +493,7 @@ const App: React.FC = () => {
         <button className="nav-link" onClick={goSettings}>
           Configuración
         </button>
-        <button className="nav-link" onClick={() => { setShowHome(false); setShowAuditLog(true); setShowLab(false); setShowMobileNav(false); }}>
+        <button className="nav-link" onClick={() => { setShowHome(false); setShowAuditLog(true); setShowMobileNav(false); }}>
           Trazabilidad
         </button>
         <button className="nav-link" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
@@ -528,7 +504,7 @@ const App: React.FC = () => {
 
       {/* Settings and help stay inside the persistent app shell. */}
       {showSettings && (
-        <SettingsPanel config={aiConfig} onSave={setAiConfig} onClose={() => setShowSettings(false)} onOpenLab={goLab} />
+        <SettingsPanel config={aiConfig} onSave={setAiConfig} onClose={() => setShowSettings(false)} />
       )}
 
       {showHelp && (
@@ -541,41 +517,8 @@ const App: React.FC = () => {
         <ImprovementRunPage onBack={goAudit} />
       )}
 
-      {showLab && (report ? (
-        <BenchmarkLab
-          report={report}
-          rawData={rawData}
-          csvFields={csvFields}
-          csvDelimiter={csvDelimiter}
-          fileName={file?.name}
-          aiConfig={aiConfig}
-          auditEvidence={auditEvidence || undefined}
-          deterministicValidation={deterministicValidation}
-          onResultsChange={setLabBenchmarkResults}
-          onBack={() => setShowLab(false)}
-          onApplyConfig={setAiConfig}
-        />
-      ) : (
-        <main className="sys-main" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
-          <div style={{ textAlign: 'center', maxWidth: 400 }}>
-            <div style={{ color: 'var(--ink-faint)', marginBottom: 'var(--space-lg)' }}>
-              <FlaskConical size={48} strokeWidth={1} />
-            </div>
-            <p style={{ fontFamily: 'var(--font-serif)', fontSize: 20, fontWeight: 700, color: 'var(--ink)', marginBottom: 'var(--space-sm)' }}>
-              Laboratorio de Modelos
-            </p>
-            <p style={{ fontSize: 14, color: 'var(--ink2)', lineHeight: 1.6 }}>
-              Carga y perfila un dataset en Auditoría para acceder al banco de pruebas y calibración de modelos.
-            </p>
-            <button className="btn-s" style={{ marginTop: 'var(--space-lg)' }} onClick={() => setShowLab(false)}>
-              Volver a Auditoría
-            </button>
-          </div>
-        </main>
-      ))}
-
-      {/* Main Content — only show when not in settings, help, or lab */}
-      <main className="sys-main" style={{ display: showLab || showImprovementRun || showSettings || showHelp ? 'none' : undefined }}>
+      {/* Main Content — only show when not in settings, help, or Health Delta. */}
+      <main className="sys-main" style={{ display: showImprovementRun || showSettings || showHelp ? 'none' : undefined }}>
         {showHome && (
           <section className="home-hero" id="home">
             <p className="home-eyebrow">diagnóstico reproducible de datos</p>
@@ -623,7 +566,6 @@ const App: React.FC = () => {
               initialData={pipelineData}
               onPipelineChange={setPipelineData}
               onAiConfigChange={setAiConfig}
-              onOpenLab={goLab}
               onOpenSettings={goSettings}
               onLog={(stage, msg) => { /* logs handled internally by MainPipeline */ }}
             />
@@ -731,7 +673,7 @@ const App: React.FC = () => {
       </main>
 
       {/* Footer */}
-      <footer className="sys-footer" style={{ display: showLab || showImprovementRun || showSettings || showHelp ? 'none' : undefined }}>
+      <footer className="sys-footer" style={{ display: showImprovementRun || showSettings || showHelp ? 'none' : undefined }}>
         <span className="footer-brand">AURA</span>
         <div className="footer-links">
           <button className="footer-link" onClick={() => setShowHelp(true)}>Ayuda</button>

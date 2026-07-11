@@ -33,18 +33,15 @@ test.describe('Phase 7 L1 — E2E Smoke: Navigation + Health Delta', () => {
       await expect(auditoriaBtn).toHaveClass(/active/);
     });
 
-    test('E2E-NAV-003 — Laboratorio accesible desde Configuración', async ({ page }) => {
+    test('E2E-NAV-003 — Configuración no expone el laboratorio retirado', async ({ page }) => {
       const navCenterMenu = page.locator('.nav-center-menu');
       const configBtn = navCenterMenu.getByRole('button', { name: 'Configuración' });
 
       await configBtn.click();
       await expect(configBtn).toHaveClass(/active/);
 
-      const labSummary = page.getByText('Laboratorio avanzado / Calibración experimental');
-      await labSummary.click();
-
-      const openLabBtn = page.getByRole('button', { name: /Abrir laboratorio experimental/i });
-      await expect(openLabBtn).toBeVisible();
+      await expect(page.getByText(/Laboratorio avanzado/i)).toHaveCount(0);
+      await expect(page.getByRole('button', { name: /Abrir laboratorio experimental/i })).toHaveCount(0);
     });
 
     test('E2E-NAV-004 — Health Delta abre correctamente', async ({ page }) => {

@@ -5,7 +5,7 @@ import { expect, test } from '@playwright/test';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const fixtureCsv = path.resolve(__dirname, '../../../experiments/datasets/synthetic_ground_truth.csv');
 
-test('AURA: flujo completo perfil → diagnóstico → script → revisar → exportar → Lab calibración', async ({ page }) => {
+test('AURA: flujo completo perfil → diagnóstico → script → revisar → exportar', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', err => errors.push(err.message));
 
@@ -126,31 +126,7 @@ test('AURA: flujo completo perfil → diagnóstico → script → revisar → ex
 
   expect(errors.length).toBe(0);
 
-  // ── AURA-LAB-01: Abrir Laboratorio ──
-  const navMenu = page.locator('.nav-center-menu');
-  await navMenu.getByRole('button', { name: 'Laboratorio' }).click();
-
-  // ── Verificar configuración de experimento ──
-  await expect(page.getByText(/Laboratorio de calibración/i)).toBeVisible();
-  await expect(page.getByText(/configuración del experimento/i)).toBeVisible();
-
-  // Controles de configuración visibles
-  await expect(page.locator('.lab-runner-controls')).toBeVisible();
-  await expect(page.getByRole('button', { name: /Ejecutar corrida/i })).toBeVisible();
-
-  // Tabla de resultados (vacía pero con estructura)
-  await expect(page.getByText(/Resultados comparados/i)).toBeVisible();
-
-  // Sin proveedor disponible, tabla muestra mensaje de vacío
-  await expect(page.getByText(/Sin ejecuciones/i)).toBeVisible();
-
-  // Volver al flujo
-  await page.getByRole('button', { name: /Volver al flujo/i }).click();
-
-  // Verificar que el diagnóstico principal sigue accesible
-  await navMenu.getByRole('button', { name: 'Auditoría' }).click();
-  await expect(page.getByText(/La calidad del dato merece/i)).toHaveCount(0);
-  await expect(page.locator('[data-testid="export-stage"]')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Laboratorio' })).toHaveCount(0);
 
   // ── Task 3+5: Session restore — reload should keep export state ──
   await page.reload({ waitUntil: 'commit', timeout: 30_000 });

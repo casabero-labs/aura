@@ -107,6 +107,7 @@ describe('SettingsPanel - Ollama model reconciliation', () => {
     await waitFor(() => {
       expect(screen.getByText('Probar y refrescar')).toBeTruthy();
     });
+    expect(screen.queryByText(/Laboratorio avanzado/i)).toBeNull();
   });
 
   it('refreshes model list on "Probar y refrescar" click', async () => {

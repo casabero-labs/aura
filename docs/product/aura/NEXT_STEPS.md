@@ -13,6 +13,10 @@ simétrica diagnóstico → script con historial de intentos y reanudación por 
 Las campañas, sus 45 corridas y cada intento ya pueden conservarse mediante un
 almacén temporal de pruebas o IndexedDB en el navegador, sin sobrescribir fallos.
 
+El laboratorio operativo anterior y la calibración incrustada fueron retirados
+intencionalmente: no usaban el protocolo OE4 ni se reutilizarán. La futura
+consola formal se construirá desde cero en Task 10 sobre las Tasks 1–9.
+
 El siguiente paso único es **Task 7 — calcular métricas automáticas y aplicar la rúbrica humana** en
 `docs/plans/2026-07-10-laboratorio-oe4-evaluacion-llm.md`. Después se continúa en
 orden hasta Task 12; no se rediseña la matriz ni se abren fases paralelas.

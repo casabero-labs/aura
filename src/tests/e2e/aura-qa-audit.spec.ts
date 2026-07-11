@@ -39,7 +39,7 @@ test.describe('AURA QA — Human-first audit (LOOP 07C)', () => {
     const navLab = await page.locator('.nav-center-menu').getByRole('button', { name: 'Laboratorio' }).isVisible({ timeout: 5_000 }).catch(() => false);
     const navConfig = await page.locator('.nav-center-menu').getByRole('button', { name: 'Configuración' }).isVisible({ timeout: 5_000 }).catch(() => false);
     log(`- Nav Auditoría visible: ${navAudit ? 'PASS' : 'FAIL'}`);
-    log(`- Nav Laboratorio visible: ${navLab ? 'PASS' : 'FAIL'}`);
+    log(`- Legacy Lab navigation absent: ${navLab ? 'FAIL' : 'PASS'}`);
     log(`- Nav Configuración visible: ${navConfig ? 'PASS' : 'FAIL'}`);
 
     const overflowX = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 5);
@@ -275,40 +275,10 @@ test.describe('AURA QA — Human-first audit (LOOP 07C)', () => {
     const exportOverflowX = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 5);
     log(`- Horizontal overflow on export: ${exportOverflowX ? 'WARN' : 'PASS'}`);
 
-    // Go to Lab
-    const navMenu = page.locator('.nav-center-menu');
-    await navMenu.getByRole('button', { name: 'Laboratorio' }).click();
-    await page.waitForTimeout(300);
-
-    // ── Stage 6: Lab ──
-    log('\n## Stage 6: Laboratory\n');
-
-    const labTitle = await page.getByText('Laboratorio de calibración').isVisible().catch(() => false);
-    log(`- Lab title visible: ${labTitle ? 'PASS' : 'FAIL'}`);
-
-    const configZone = await page.locator('.lab-runner-controls').isVisible().catch(() => false);
-    log(`- Config zone visible: ${configZone ? 'PASS' : 'FAIL'}`);
-
-    const inputSelect = page.locator('.lab-runner-controls select').last();
-    const options = await inputSelect.locator('option').allTextContents();
-    log(`- Input mode options: ${options.join(', ')}`);
-    log(`- 5 input modes present: ${options.length >= 5 ? 'PASS' : 'FAIL'}`);
-
-    const executeBtn = await page.getByRole('button', { name: /Ejecutar corrida/i }).isVisible().catch(() => false);
-    log(`- Execute button visible: ${executeBtn ? 'PASS' : 'FAIL'}`);
-
-    const emptyMsg = await page.getByText(/Sin ejecuciones/i).isVisible().catch(() => false);
-    log(`- Empty/no-provider state clear: ${emptyMsg ? 'PASS' : 'FAIL'}`);
-
-    const labOverflowX = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 5);
-    log(`- Horizontal overflow on lab: ${labOverflowX ? 'WARN' : 'PASS'}`);
-
-    // Back to Auditoría
-    await navMenu.getByRole('button', { name: 'Auditoría' }).click();
-    await page.waitForTimeout(300);
-
-    // ── Stage 7: Return to Auditoría ──
-    log('\n## Stage 7: Return to Auditoría\n');
+    // ── Stage 6: Legacy laboratory absent ──
+    log('\n## Stage 6: Legacy laboratory removed\n');
+    const legacyLabVisible = await page.getByText(/Laboratorio de calibración/i).isVisible().catch(() => false);
+    log(`- Legacy Lab absent: ${legacyLabVisible ? 'FAIL' : 'PASS'}`);
 
     const heroVisible = await page.getByText(/La calidad del dato merece/i).isVisible().catch(() => false);
     log(`- Old home hero hidden in audit workspace: ${heroVisible ? 'FAIL' : 'PASS'}`);
@@ -358,7 +328,7 @@ test.describe('AURA QA — Human-first audit (LOOP 07C)', () => {
     log(`- Theme toggle as styled button in mobile: ${themeButton > 0 ? 'PASS' : 'FAIL'}`);
 
     const labInMenu = await page.locator('.nav-links-open').getByText('Laboratorio').isVisible().catch(() => false);
-    log(`- Laboratorio in mobile menu: ${labInMenu ? 'PASS' : 'FAIL'}`);
+    log(`- Legacy Lab absent from mobile menu: ${labInMenu ? 'FAIL' : 'PASS'}`);
 
     await page.locator('.mobile-nav-toggle').click();
     await page.waitForTimeout(300);

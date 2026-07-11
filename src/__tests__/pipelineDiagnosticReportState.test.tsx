@@ -94,12 +94,6 @@ describe('pipeline diagnostic report state', () => {
     expect(screen.queryByText('Script opcional')).toBeNull();
   });
 
-  it('PipelineProgress muestra el badge de Laboratorio en estado calibration', () => {
-    render(<PipelineProgress currentStep="calibration" />);
-
-    expect(screen.getByText('Laboratorio / Calibración experimental')).toBeTruthy();
-  });
-
   it('DiagnosticReportStep renderiza score base, conteos y reglas de salida principal', () => {
     render(
       <DiagnosticReportStep

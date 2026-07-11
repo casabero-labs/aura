@@ -5,7 +5,7 @@
  *   - Normal/product mode (no flag) does NOT show the demo banner.
  *   - Demo mode (?demoMode=1 or ?phase7Visual=...) DOES show the demo banner.
  *   - Visual harness state is ONLY reachable via explicit query param.
- *   - Navigation to other tabs (Auditoría, Laboratorio, Home) does NOT leak
+ *   - Navigation to other tabs (Auditoría and Home) does NOT leak
  *     the demo banner or fake harness results.
  *   - No prohibited claims appear in normal mode UI.
  *
@@ -92,18 +92,6 @@ test.describe('Phase 8 L1 — Demo/Prod Boundary', () => {
     await page.locator('.sys-nav').waitFor({ state: 'visible', timeout: 15_000 });
 
     await page.locator('.nav-center-menu').getByRole('button', { name: 'Home' }).click();
-    await page.waitForTimeout(500);
-
-    await expect(page.locator('[data-testid="demo-mode-banner"]')).toHaveCount(0);
-  });
-
-  // ── E2E-BOUNDARY-007: Demo banner does NOT leak into Laboratorio ──
-
-  test('E2E-BOUNDARY-007 — demo banner does not leak into Laboratorio tab', async ({ page }) => {
-    await page.goto('/?demoMode=1&nocache=' + Date.now(), { waitUntil: 'domcontentloaded', timeout: 60_000 });
-    await page.locator('.sys-nav').waitFor({ state: 'visible', timeout: 15_000 });
-
-    await page.locator('.nav-center-menu').getByRole('button', { name: 'Laboratorio' }).click();
     await page.waitForTimeout(500);
 
     await expect(page.locator('[data-testid="demo-mode-banner"]')).toHaveCount(0);

@@ -11,12 +11,12 @@ describe('AURA development loop program', () => {
     expect(program.loops[0].status).toBe('done');
   });
 
-  it('moves to benchmark once deterministic profile exists', () => {
+  it('moves to the formal campaign once deterministic profile exists', () => {
     const program = buildDevelopmentLoopProgram({ hasReport: true });
 
     expect(program.loops.find((loop) => loop.id === 'loop-02')?.status).toBe('done');
     expect(program.nextLoop.id).toBe('loop-03');
-    expect(program.nextLoop.e2eGate).toContain('laboratorio');
+    expect(program.nextLoop.e2eGate).toContain('consola formal');
   });
 
   it('moves to closeout when HITL evidence exists', () => {

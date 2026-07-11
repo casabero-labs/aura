@@ -1,5 +1,11 @@
 # Freeze Phase 10 — AURA
 
+> **Corte histórico, superado el 10 de julio de 2026.** Las referencias de este
+> cierre a `BenchmarkLab`, calibración incrustada y acceso desde Configuración
+> describen el producto en aquel SHA, pero ya no son instrucciones vigentes. La
+> interfaz se retiró y no debe restaurarse. El protocolo OE4 y su futura consola
+> formal continúan en la hoja de ruta definitiva.
+
 ## 1. Estado final
 
 | Ítem | Valor |

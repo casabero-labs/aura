@@ -1,4 +1,9 @@
-# Phase 10 — Integración del laboratorio como calibración opcional
+# Phase 10 — Integración histórica del laboratorio como calibración opcional
+
+> **Documento histórico, superado el 10 de julio de 2026.** El laboratorio
+> operativo y la calibración incrustada fueron retirados. No deben restaurarse.
+> La continuación vigente es la consola formal nueva definida en la Task 10 de
+> [`2026-07-10-laboratorio-oe4-evaluacion-llm.md`](../../../plans/2026-07-10-laboratorio-oe4-evaluacion-llm.md).
 
 ## Naturaleza de esta fase
 

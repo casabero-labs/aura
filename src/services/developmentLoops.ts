@@ -78,8 +78,8 @@ export const buildDevelopmentLoopProgram = (
       phase: 'EXECUTE -> VERIFY',
       title: 'Benchmark LLM formal',
       objective: 'Comparar smart sample vs prompt libre y modelos local/cloud con metricas objetivas.',
-      visibleResult: 'Laboratorio de modelos con latencia, alucinaciones, formato, script y estado de evidencia.',
-      e2eGate: 'Abrir laboratorio -> lanzar corrida -> ver estado completed/error accionable -> exportar JSON.',
+      visibleResult: 'Consola formal nueva con latencia, alucinaciones, formato, script y estado de evidencia.',
+      e2eGate: 'Abrir consola formal -> lanzar corrida -> ver estado completed/error accionable -> exportar expediente.',
       status: statusFor(benchmarkDone, deterministicDone && !benchmarkDone),
     },
     {

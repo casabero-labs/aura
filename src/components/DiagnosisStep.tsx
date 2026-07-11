@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Brain, Database, Play, FlaskConical, Lock, Globe, ChevronDown, ChevronRight, FileCode2, Trash2, HardDrive, X, AlertTriangle, ShieldAlert, ListChecks, FileJson, FileText, Settings, Activity, CheckCircle, Circle, Clock, AlertCircle, Server, Shield, Eye, EyeOff, Download, RefreshCw, Hash } from 'lucide-react';
+import { Brain, Database, Play, Lock, Globe, ChevronDown, ChevronRight, FileCode2, Trash2, HardDrive, X, AlertTriangle, ShieldAlert, ListChecks, FileJson, FileText, Settings, Activity, CheckCircle, Circle, Clock, AlertCircle, Server, Shield, Eye, EyeOff, Download, RefreshCw, Hash } from 'lucide-react';
 import GeminiAdvisor from './GeminiAdvisor';
 import ProgressDisclosure from './ProgressDisclosure';
 import ChromeAiStatusPanel from './ChromeAiStatusPanel';
@@ -28,7 +28,6 @@ interface DiagnosisStepProps {
   onMetrics?: (metrics: ProviderMetrics) => void;
   onLog?: (stage: string, msg: string) => void;
   onContinue: () => void;
-  onOpenLab?: () => void;
   onOpenSettings?: () => void;
   initialDiagnosis?: DiagnosisExecutionResult | null;
 }
@@ -59,7 +58,6 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
   onMetrics,
   onLog,
   onContinue,
-  onOpenLab,
   onOpenSettings,
   initialDiagnosis,
 }) => {

@@ -125,4 +125,17 @@ describe('JSON technical export preflight integration', () => {
       }),
     );
   });
+
+  it('does not expose the removed legacy laboratory in the app shell', () => {
+    vi.mocked(validateAuraExportPackage).mockReturnValue({
+      valid: true,
+      errors: [],
+      warnings: [],
+    });
+
+    render(<App />);
+
+    expect(screen.queryByRole('button', { name: /Laboratorio/i })).toBeNull();
+    expect(screen.queryByText(/Laboratorio de Modelos/i)).toBeNull();
+  });
 });

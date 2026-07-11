@@ -95,7 +95,7 @@ export const PIPELINE_DEVELOPMENT_MATRIX: PipelineDevelopmentMatrixRow[] = [
     currentState: [
       'El LLM recibe hallazgos estructurados y smart sample, no el CSV crudo completo.',
       'Hay proveedor local/cloud, hash de prompt, resumen de entrada y exportacion JSON/PDF del diagnostico.',
-      'El laboratorio de modelos permite comparar resultados cuando existe un perfil determinista.',
+      'La base formal de campañas, corridas e intentos ya existe fuera del flujo principal.',
     ],
     reviewRequirement: [
       'Consolidar benchmark multimodelo con corridas formales y comparables.',
@@ -121,7 +121,7 @@ export const PIPELINE_DEVELOPMENT_MATRIX: PipelineDevelopmentMatrixRow[] = [
       id: 'L03-A',
       title: 'Benchmark LLM y diagnostico verificable',
       visibleResult: 'Tabla multimodelo con latencia, formato, alucinaciones, script y evidencia formal.',
-      e2eGate: 'abrir laboratorio -> ejecutar corrida -> ver estado -> exportar JSON',
+      e2eGate: 'abrir consola formal nueva -> ejecutar campaña -> ver estado -> exportar expediente',
     },
   },
   {

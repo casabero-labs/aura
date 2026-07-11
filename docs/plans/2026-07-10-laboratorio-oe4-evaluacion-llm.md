@@ -688,11 +688,16 @@ git add services/benchmark/experimentAggregation.ts services/benchmark/experimen
 git commit -m "feat: export OE4 TFM evidence package"
 ```
 
-## Task 10: Convertir BenchmarkLab en consola de campaña
+## Task 10: Construir una consola formal de campaña desde cero
+
+**Decisión de alcance del 10 de julio de 2026:** el `BenchmarkLab` operativo
+anterior y la calibración incrustada fueron retirados. No deben restaurarse ni
+usarse como base visual o funcional. Esta tarea crea una superficie nueva sobre
+`ExperimentStore`, el corredor formal y los evaluadores de Tasks 7–9.
 
 **Files:**
 
-- Modify: `src/components/BenchmarkLab.tsx`
+- Add: `src/components/benchmark/BenchmarkCampaignLab.tsx`
 - Add: `src/components/benchmark/CampaignSetupPanel.tsx`
 - Add: `src/components/benchmark/CampaignMatrix.tsx`
 - Add: `src/components/benchmark/ExperimentRunDetail.tsx`
@@ -734,7 +739,8 @@ The main view shows:
 - rubric and representative status;
 - report readiness and blockers.
 
-Remove “aplicar ganador” from formal mode. Replace it with “mejor por dimensión”. Keep one-off operational tests available but visually separated from the formal campaign.
+La consola no incluye “aplicar ganador” ni recupera pruebas operativas aisladas.
+Reporta “mejor por dimensión” y conserva los fallos como resultados.
 
 ### Step 4: Run and commit
 
@@ -743,7 +749,7 @@ cd /Users/casabero/Documents/GitHub/aura/src
 npm test -- --run __tests__/BenchmarkCampaignLab.test.tsx __tests__/benchmarkContract.test.ts __tests__/inputModes.test.ts
 npm run typecheck
 npm run build
-git add components/BenchmarkLab.tsx components/benchmark index.css __tests__/BenchmarkCampaignLab.test.tsx
+git add components/benchmark index.css __tests__/BenchmarkCampaignLab.test.tsx
 git commit -m "feat: make lab the OE4 campaign console"
 ```
 

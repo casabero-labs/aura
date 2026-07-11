@@ -29,9 +29,11 @@ El producto ya implementa la cadena necesaria:
 ```text
 Carga → Perfil base → Diagnóstico → Reporte diagnóstico → Exportación
                                  └→ Remediación opcional → HITL
-
-Configuración → Laboratorio avanzado / Calibración experimental
 ```
+
+El laboratorio operativo anterior fue retirado el 10 de julio de 2026 porque no
+usaba el protocolo formal OE4. No se considera una pérdida de evidencia: la
+consola formal nueva se construirá en Task 10 sobre las campañas persistidas.
 
 La brecha ya no es de diseño. Faltan una evaluación comparativa LLM reproducible, evidencia actualizada sin contradicciones y una validación E2E final que demuestre el recorrido de una persona y las descargas reales.
 
@@ -66,7 +68,7 @@ Consolidar AURA como una arquitectura local-first, reproducible y evaluable para
 | OE1 | **Alineado** | Carga y auditoría en navegador, fingerprint, trazas, políticas `local_full`, `cloud_minimized` y `cloud_no_samples` | Validar el flujo humano final y describir con precisión qué información sale del navegador |
 | OE2 | **Alineado con evidencia por refrescar** | `auditEngine.ts`, `deterministicValidation.ts`, datasets controlados y tests con macro F1 ≥ 0.90 | Regenerar un único artefacto de métricas actual; los JSON históricos contienen valores contradictorios |
 | OE3 | **Alineado con límites** | Contratos de evidencia, prompt budget, diagnóstico estructurado, detectores de alucinación y fallback determinista | Ejecutar corridas reales bajo protocolo y medir anclaje, referencias inválidas y claims sin soporte |
-| OE4 | **Parcial — brecha principal** | Laboratorio operativo y base experimental v1 congelada; L18–L20 usan fixture y proveedor mock | Implementar el corredor formal y ejecutar la matriz real con tres modelos, tres modos y cinco repeticiones |
+| OE4 | **Parcial — brecha principal** | Protocolo, corredor y persistencia formal implementados; la antigua UI operativa fue retirada | Calcular evaluaciones, construir una consola formal nueva y ejecutar la matriz real con tres modelos, tres modos y cinco repeticiones |
 | OE5 | **Alineado** | `RemediationPlanV2`, decisiones approve/reject, revisión HITL y bloqueo fail-closed | Aplicar una rúbrica humana explícita a los scripts representativos del experimento final |
 | OE6 | **Alineado con validación controlada** | `ScriptContractV2`, renderer, validación de columnas, hash y scripts revisables | Ejecutar scripts aprobados sobre copias controladas, reauditar y medir el resultado sin afirmar corrección automática universal |
 

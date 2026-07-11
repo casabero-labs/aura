@@ -6,7 +6,6 @@ import {
   Cloud,
   Download,
   ExternalLink,
-  FlaskConical,
   Globe,
   HelpCircle,
   Info,
@@ -29,7 +28,6 @@ interface SettingsPanelProps {
   config: AIConfig;
   onSave: (config: AIConfig) => void;
   onClose: () => void;
-  onOpenLab?: () => void;
 }
 
 const CLOUD_PROVIDERS: { value: CloudProvider; label: string }[] = [
@@ -120,7 +118,7 @@ const chromeProgressMessage = (diagnostic: ChromeAiDiagnostic | null, progress: 
   return '';
 };
 
-const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose, onOpenLab }) => {
+const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }) => {
   const [localConfig, setLocalConfig] = useState<AIConfig>(config);
   const [chromeDiagnostic, setChromeDiagnostic] = useState<ChromeAiDiagnostic | null>(null);
   const [chromeProgress, setChromeProgress] = useState<ProviderProgressEvent | null>(null);
@@ -806,30 +804,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose, 
             </div>
           </details>
         </section>
-
-        {onOpenLab && (
-          <section className="settings-workspace-section">
-            <details className="settings-collapsible-section">
-              <summary className="settings-collapsible-summary">
-                <FlaskConical size={14} />
-                <span>Laboratorio avanzado / Calibración experimental de modelos</span>
-                <span className="settings-collapsible-hint">Banco de pruebas para comparar proveedores y modos de entrada</span>
-              </summary>
-              <div className="settings-collapsible-body">
-                <p className="settings-section-desc">
-                  Ejecuta corridas comparativas entre proveedores, modelos y modos de entrada para identificar la configuración que mejor se adapta a tu dataset.
-                </p>
-                <button
-                  className="btn-p btn-sm"
-                  onClick={() => onOpenLab()}
-                  style={{ marginTop: 'var(--space-sm)' }}
-                >
-                  <FlaskConical size={14} /> Abrir laboratorio experimental
-                </button>
-              </div>
-            </details>
-          </section>
-        )}
 
         <section className="settings-workspace-section">
           <details className="settings-collapsible-section">

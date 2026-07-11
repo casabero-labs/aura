@@ -75,6 +75,12 @@ evento se guarda junto con el nuevo estado de la corrida en una sola operación.
 Los IDs repetidos se rechazan y los fallos previos permanecen visibles. Véase
 [`TASK6_STORE_CLOSEOUT.md`](./TASK6_STORE_CLOSEOUT.md).
 
+La interfaz operativa anterior (`BenchmarkLab` y calibración incrustada) fue
+retirada y no forma parte de OE4. La decisión, archivos eliminados y migración
+de sesiones están documentados en
+[`LEGACY_LAB_REMOVAL.md`](./LEGACY_LAB_REMOVAL.md). Task 10 construirá una
+consola formal nueva; no convertirá ni restaurará aquella interfaz.
+
 Los tres modos formales ya se materializan como snapshots inmutables con una
 misma instrucción y un mismo schema de salida:
 

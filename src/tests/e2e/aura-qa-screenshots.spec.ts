@@ -97,19 +97,10 @@ test.describe('AURA QA — Human-first screenshots', () => {
     await page.waitForTimeout(300);
     await page.screenshot({ path: path.join(screenshotDir, '06-aura-export-desktop.png'), fullPage: false });
 
-    // Go to Lab
-    const navMenu = page.locator('.nav-center-menu');
-    await navMenu.getByRole('button', { name: 'Laboratorio' }).click();
-    await page.waitForTimeout(300);
-    await page.screenshot({ path: path.join(screenshotDir, '07-aura-lab-desktop.png'), fullPage: false });
-
-    // Back to Auditoría
-    await navMenu.getByRole('button', { name: 'Auditoría' }).click();
-    await page.waitForTimeout(300);
-    await page.screenshot({ path: path.join(screenshotDir, '08-aura-auditoria-return-desktop.png'), fullPage: false });
+    await expect(page.getByRole('button', { name: 'Laboratorio' })).toHaveCount(0);
   });
 
-  test('Mobile 390x844 — upload, perfil, Lab nav', async ({ page }) => {
+  test('Mobile 390x844 — upload y perfil', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/', { waitUntil: 'commit', timeout: 60_000 });
     await page.screenshot({ path: path.join(screenshotDir, '09-aura-home-mobile.png'), fullPage: false });
@@ -233,13 +224,7 @@ test.describe('AURA QA — Human-first screenshots', () => {
     await page.waitForTimeout(300);
     await page.screenshot({ path: path.join(aestheticDir, '06-export-desktop.png'), fullPage: false });
 
-    // 07 — Lab
-    const navMenu = page.locator('.nav-center-menu');
-    await navMenu.getByRole('button', { name: 'Laboratorio' }).click();
-    await page.waitForTimeout(300);
-    await page.screenshot({ path: path.join(aestheticDir, '07-lab-desktop.png'), fullPage: false });
-
-    // 08 — Mobile home
+    // 07 — Mobile home
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 60_000 });
     await page.locator('.sys-nav').waitFor({ state: 'visible', timeout: 15_000 });

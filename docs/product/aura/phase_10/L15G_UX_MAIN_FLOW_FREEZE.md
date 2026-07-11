@@ -1,5 +1,9 @@
 # Phase 10 L15G — Freeze UX Main Flow
 
+> **Corte histórico, superado el 10 de julio de 2026.** La rama de calibración y
+> el acceso al laboratorio que aparecen abajo fueron retirados del producto. Se
+> conserva este documento únicamente como evidencia del estado en su SHA.
+
 ## Cierre documental del rediseño del flujo principal de AURA bajo progressive disclosure
 
 - **Fecha de cierre**: 2026-07-07
