@@ -705,7 +705,12 @@ git commit -m "feat: export OE4 TFM evidence package"
 
 ## Task 10: Construir una consola formal de campaña desde cero
 
-**Estado:** siguiente tarea única.
+**Estado al 11 de julio de 2026: cerrada.** La entrada `Evaluación OE4` integra
+matriz, pausa segura, detalle, rúbrica, HITL, importación y expediente sin
+restaurar el laboratorio antiguo. Validación: 33/33 pruebas focales, suite
+completa con 1690 aprobadas y 6 omitidas, typecheck, build y revisión en
+navegador correctos. Véase
+[`experiments/final-evaluation/TASK10_CONSOLE_CLOSEOUT.md`](../../experiments/final-evaluation/TASK10_CONSOLE_CLOSEOUT.md).
 
 **Decisión de alcance del 10 de julio de 2026:** el `BenchmarkLab` operativo
 anterior y la calibración incrustada fueron retirados. No deben restaurarse ni
@@ -771,6 +776,8 @@ git commit -m "feat: make lab the OE4 campaign console"
 ```
 
 ## Task 11: Validar el recorrido humano y la recuperación E2E
+
+**Estado:** siguiente tarea única.
 
 **Files:**
 

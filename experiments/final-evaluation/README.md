@@ -53,7 +53,7 @@ array contiene `51/2/2`. Los conteos derivados se calculan desde el array.
 
 ## Estado
 
-**Tasks 1–9 cerradas en implementación entre el 10 y el 11 de julio de 2026:** hashes,
+**Tasks 1–10 cerradas en implementación entre el 10 y el 11 de julio de 2026:** hashes,
 oráculos, tres modelos, tres modos, matriz, orden balanceado y warm-ups están
 congelados. Los contratos
 `aura.experiment-campaign.v1` y `aura.experiment-run.v1` preservan cada corrida y
@@ -101,8 +101,14 @@ Véase [`TASK9_ARTIFACTS_IMPLEMENTATION.md`](./TASK9_ARTIFACTS_IMPLEMENTATION.md
 La interfaz operativa anterior (`BenchmarkLab` y calibración incrustada) fue
 retirada y no forma parte de OE4. La decisión, archivos eliminados y migración
 de sesiones están documentados en
-[`LEGACY_LAB_REMOVAL.md`](./LEGACY_LAB_REMOVAL.md). Task 10 construirá una
-consola formal nueva; no convertirá ni restaurará aquella interfaz.
+[`LEGACY_LAB_REMOVAL.md`](./LEGACY_LAB_REMOVAL.md). Task 10 construyó una
+consola formal nueva; no convirtió ni restauró aquella interfaz.
+
+La nueva entrada `Evaluación OE4` muestra protocolo, progreso, matriz 3 × 3,
+detalle crudo, métricas, rúbrica humana, estado HITL, antes/después y bloqueos
+del expediente. La pausa solo se aplica entre corridas. La creación real sigue
+bloqueada hasta recibir el preflight formal de Task 12. Véase
+[`TASK10_CONSOLE_CLOSEOUT.md`](./TASK10_CONSOLE_CLOSEOUT.md).
 
 Los tres modos formales ya se materializan como snapshots inmutables con una
 misma instrucción y un mismo schema de salida:
@@ -113,7 +119,7 @@ misma instrucción y un mismo schema de salida:
 | `smart_sample` | Resumen, esquema, estadísticas, reglas y muestras protegidas. |
 | `recommended` | Todo lo anterior más registro, gobernanza, manifiestos y anclajes explícitos. |
 
-OE4 continúa **parcial** hasta completar las Tasks 10–12,
+OE4 continúa **parcial** hasta completar las Tasks 11–12,
 ejecutar las 45 unidades reales y exportar el expediente final válido.
 
 El intento real del 10 de julio quedó bloqueado antes de la campaña por una

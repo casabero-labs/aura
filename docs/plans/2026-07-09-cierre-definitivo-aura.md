@@ -164,7 +164,7 @@ Solo existen cuatro bloques. Se ejecutan en orden y no se abre trabajo nuevo fue
 - Persistencia: IndexedDB append-only, pausa y reanudación; fallos y reintentos nunca se sobrescriben.
 - Evaluación dinámica: las 45 corridas reciben métricas automáticas y rúbrica humana. Se selecciona por regla de mediana F1 un representante por celda modelo–entrada, 9 scripts en total, para HITL y ejecución externa sobre copias.
 
-**Checkpoint del 11 de julio de 2026 — Tasks 1–9 cerradas:**
+**Checkpoint del 11 de julio de 2026 — Tasks 1–10 cerradas:**
 
 - base congelada en `experiments/final-evaluation/` con hashes exactos de dataset, esquema y ground truth;
 - 32 claves canónicas: 16 `engine_exposed`, 7 `engine_supported_not_exposed` y 9 `out_of_engine_scope`;
@@ -206,7 +206,9 @@ Solo existen cuatro bloques. Se ejecutan en orden y no se abre trabajo nuevo fue
 - validación de Task 8: 81/81 pruebas focales y dependientes, suite completa con 1681 pruebas aprobadas y 6 omitidas, typecheck y build correctos;
 - el exportador de Task 9 deriva `campaign.json`, `runs.csv`, `report.md`, `report.pdf` y `manifest.json` desde una sola fuente, calcula hashes sobre bytes reales y no declara un ganador universal;
 - validación de Task 9: 6/6 pruebas focales, typecheck, build y revisión visual del PDF correctos;
-- OE4 no se considera cerrado: faltan las tareas 10–12, preparar el runtime/modelos, ejecutar la campaña real y congelar sus artefactos formales.
+- consola nueva `Evaluación OE4` sobre el store formal: matriz 3 × 3, pausa entre corridas, salidas crudas, métricas, rúbrica, HITL, importación externa y gates de reporte;
+- validación de Task 10: 33/33 pruebas focales, suite completa con 1690 pruebas aprobadas y 6 omitidas, typecheck, build y revisión visual en escritorio/móvil correctos;
+- OE4 no se considera cerrado: faltan las tareas 11–12, preparar el runtime/modelos, ejecutar la campaña real y congelar sus artefactos formales.
 
 **Métricas obligatorias:**
 

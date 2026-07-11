@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 
 declare const __AURA_BUILD_SHA__: string;
 declare const __AURA_BUILD_TIME__: string;
@@ -28,6 +28,8 @@ import { validateAuraExportPackage } from './services/exportContractValidation';
 import { savePipelineSession, loadPipelineSession, clearPipelineSession } from './services/pipelineSession';
 import { downloadTextFile } from './utils/download';
 import { AIConfig, AuditReport, DeterministicValidationReport, EvidenceManifest, ExecutiveReportContent, IssueSeverity } from './types';
+
+const BenchmarkCampaignLab = lazy(() => import('./components/benchmark/BenchmarkCampaignLab'));
 
 const countBySeverity = (report: AuditReport | null, severity: IssueSeverity) =>
   report?.issues.filter((issue) => issue.severity === severity).length ?? 0;
@@ -131,6 +133,7 @@ const App: React.FC = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showImprovementRun, setShowImprovementRun] = useState(false);
+  const [showExperimentCampaign, setShowExperimentCampaign] = useState(false);
   const [showHome, setShowHome] = useState(true);
   const [showAuditLog, setShowAuditLog] = useState(false);
   const [showChangelog, setShowChangelog] = useState(false);
@@ -321,6 +324,7 @@ const App: React.FC = () => {
   const goHome = () => {
     setShowHome(true);
     setShowImprovementRun(false);
+    setShowExperimentCampaign(false);
     setShowAuditLog(false);
     setShowSettings(false);
     setShowHelp(false);
@@ -331,6 +335,7 @@ const App: React.FC = () => {
   const goAudit = () => {
     setShowHome(false);
     setShowImprovementRun(false);
+    setShowExperimentCampaign(false);
     setShowAuditLog(false);
     setShowSettings(false);
     setShowHelp(false);
@@ -341,15 +346,28 @@ const App: React.FC = () => {
   const goImprovementRun = () => {
     setShowHome(false);
     setShowImprovementRun(true);
+    setShowExperimentCampaign(false);
     setShowAuditLog(false);
     setShowSettings(false);
     setShowHelp(false);
     setShowMobileNav(false);
   };
 
+  const goExperimentCampaign = () => {
+    setShowHome(false);
+    setShowExperimentCampaign(true);
+    setShowImprovementRun(false);
+    setShowAuditLog(false);
+    setShowSettings(false);
+    setShowHelp(false);
+    setShowMobileNav(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const goSettings = () => {
     setShowHome(false);
     setShowSettings(true);
+    setShowExperimentCampaign(false);
     setShowImprovementRun(false);
     setShowAuditLog(false);
     setShowHelp(false);
@@ -377,6 +395,7 @@ const App: React.FC = () => {
     setPipelineData(INITIAL_PIPELINE_DATA);
     setShowHome(true);
     setShowImprovementRun(false);
+    setShowExperimentCampaign(false);
     setShowAuditLog(false);
     setShowSettings(false);
     setShowHelp(false);
@@ -427,7 +446,7 @@ const App: React.FC = () => {
             </button>
 
             <button
-              className={`nav-menu-item ${!showHome && !showImprovementRun && !showAuditLog && !showSettings ? 'active' : ''}`}
+              className={`nav-menu-item ${!showHome && !showImprovementRun && !showExperimentCampaign && !showAuditLog && !showSettings ? 'active' : ''}`}
               onClick={goAudit}
             >
               Auditoría
@@ -438,6 +457,13 @@ const App: React.FC = () => {
               onClick={goImprovementRun}
             >
               Health Delta
+            </button>
+
+            <button
+              className={`nav-menu-item ${showExperimentCampaign ? 'active' : ''}`}
+              onClick={goExperimentCampaign}
+            >
+              Evaluación OE4
             </button>
 
             <button
@@ -490,10 +516,13 @@ const App: React.FC = () => {
         <button className="nav-link" onClick={goImprovementRun}>
           Health Delta
         </button>
+        <button className="nav-link" onClick={goExperimentCampaign}>
+          Evaluación OE4
+        </button>
         <button className="nav-link" onClick={goSettings}>
           Configuración
         </button>
-        <button className="nav-link" onClick={() => { setShowHome(false); setShowAuditLog(true); setShowMobileNav(false); }}>
+        <button className="nav-link" onClick={() => { setShowHome(false); setShowExperimentCampaign(false); setShowAuditLog(true); setShowMobileNav(false); }}>
           Trazabilidad
         </button>
         <button className="nav-link" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
@@ -517,8 +546,14 @@ const App: React.FC = () => {
         <ImprovementRunPage onBack={goAudit} />
       )}
 
+      {showExperimentCampaign && (
+        <Suspense fallback={<div className="oe4-campaign-loading">Preparando evaluación OE4…</div>}>
+          <BenchmarkCampaignLab provider={aiProvider} />
+        </Suspense>
+      )}
+
       {/* Main Content — only show when not in settings, help, or Health Delta. */}
-      <main className="sys-main" style={{ display: showImprovementRun || showSettings || showHelp ? 'none' : undefined }}>
+      <main className="sys-main" style={{ display: showImprovementRun || showExperimentCampaign || showSettings || showHelp ? 'none' : undefined }}>
         {showHome && (
           <section className="home-hero" id="home">
             <p className="home-eyebrow">diagnóstico reproducible de datos</p>
