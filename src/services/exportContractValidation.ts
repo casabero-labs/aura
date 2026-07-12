@@ -55,6 +55,10 @@ const validateDiagnosisTrace = (
     || typeof inputLike.userPayload !== 'string'
     || !isRecord(inputLike.responseSchema)
     || !Array.isArray(inputLike.includedSections)
+    || !inputLike.includedSections.every((section) => typeof section === 'string')
+    || typeof inputLike.inputMode !== 'string'
+    || typeof inputLike.evidenceEnvelopeRef !== 'string'
+    || typeof inputLike.promptVersion !== 'string'
     || typeof inputLike.promptHash !== 'string'
     || typeof inputLike.responseSchemaHash !== 'string'
     || typeof inputLike.inputHash !== 'string'
@@ -67,6 +71,10 @@ const validateDiagnosisTrace = (
     || receiptLike.contractVersion !== '1.0.0'
     || !Array.isArray(receiptLike.includedSections)
     || !Array.isArray(receiptLike.validationErrorCodes)
+    || !receiptLike.validationErrorCodes.every((code) => typeof code === 'string')
+    || typeof receiptLike.requestedModel !== 'string'
+    || (receiptLike.observedModel !== null && typeof receiptLike.observedModel !== 'string')
+    || (receiptLike.validationStatus !== 'valid' && receiptLike.validationStatus !== 'invalid')
     || typeof receiptLike.receiptHash !== 'string'
     || typeof receiptLike.rawResponseHash !== 'string'
   ) {
@@ -97,19 +105,31 @@ const validateDiagnosisTrace = (
   const receiptValidation = validateExecutionReceiptIntegrityV1(receipt, input, exactPrompt);
   receiptValidation.errors.forEach((error) => errors.push(`diagnosis.executionReceipt: ${error}.`));
   if (receipt.validationStatus !== expectedStatus) errors.push(`diagnosis.executionReceipt.validationStatus debe ser ${expectedStatus}.`);
+  if (diagnostics.model !== receipt.requestedModel) errors.push('diagnosis.model no corresponde al modelo solicitado del recibo.');
   if (diagnostics.rawResponseHash !== receipt.rawResponseHash) errors.push('diagnosis.rawResponseHash no corresponde al recibo.');
 
   if (expectedStatus === 'valid') {
     const structured = diagnostics.structuredDiagnosis;
     if (isRecord(structured)) {
+      if (structured.version !== 2 || !isRecord(structured.diagnosis) || structured.diagnosis.contractId !== 'aura.diagnosis.v2') {
+        errors.push('diagnosis.structuredDiagnosis no contiene un diagnóstico aura.diagnosis.v2 válido.');
+      }
       if (!sameCanonicalValue(structured.inputSnapshot, inputLike)) errors.push('diagnosis.structuredDiagnosis.inputSnapshot no corresponde al snapshot exportado.');
       if (!sameCanonicalValue(structured.executionReceipt, receiptLike)) errors.push('diagnosis.structuredDiagnosis.executionReceipt no corresponde al recibo exportado.');
       if (structured.rawResponseHash !== receipt.rawResponseHash) errors.push('diagnosis.structuredDiagnosis.rawResponseHash no corresponde al recibo.');
+      if (structured.inputMode !== input.inputMode || structured.inputHash !== input.inputHash || structured.promptHash !== input.promptHash || structured.evidenceEnvelopeRef !== input.evidenceEnvelopeRef) {
+        errors.push('diagnosis.structuredDiagnosis no corresponde al snapshot canónico.');
+      }
+      if (!isRecord(structured.metrics) || structured.metrics.model !== receipt.observedModel) {
+        errors.push('diagnosis.structuredDiagnosis.metrics.model no corresponde al modelo observado.');
+      }
     }
   } else {
     const failure = diagnostics.failureEvidence;
     if (isRecord(failure)) {
       if (failure.contractId !== 'aura.diagnosis-failure-evidence.v2') errors.push('diagnosis.failureEvidence no cumple aura.diagnosis-failure-evidence.v2.');
+      if (typeof failure.code !== 'string' || !receipt.validationErrorCodes.includes(failure.code)) errors.push('diagnosis.failureEvidence.code no corresponde a los códigos del recibo.');
+      if (typeof failure.message !== 'string' || typeof failure.path !== 'string') errors.push('diagnosis.failureEvidence debe incluir message y path.');
       if (!sameCanonicalValue(failure.inputSnapshot, inputLike)) errors.push('diagnosis.failureEvidence.inputSnapshot no corresponde al snapshot exportado.');
       if (!sameCanonicalValue(failure.executionReceipt, receiptLike)) errors.push('diagnosis.failureEvidence.executionReceipt no corresponde al recibo exportado.');
       if (failure.rawResponseHash !== receipt.rawResponseHash) errors.push('diagnosis.failureEvidence.rawResponseHash no corresponde al recibo.');

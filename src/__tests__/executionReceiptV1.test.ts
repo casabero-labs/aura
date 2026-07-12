@@ -65,4 +65,17 @@ describe('ExecutionReceiptV1', () => {
       rawResponse: '{}', validationStatus: 'invalid', validationErrorCodes: ['TRACE_INPUT_MODE_MISMATCH'],
     })).toThrow(/TRACE_INPUT_MODE_MISMATCH/);
   });
+
+  it('rejects impossible valid and invalid receipt states at construction', () => {
+    const input = buildDiagnosisInputPackageV2(report, envelope, 'smart_sample');
+    const base = {
+      input, requestedInputMode: 'smart_sample' as const, exactPrompt: exactDiagnosisPromptV2(input),
+      provider: 'Ollama', requestedModel: 'model-a', observedModel: 'model-a' as string | null, inference,
+      startedAt: '2026-07-11T00:00:00.000Z', completedAt: '2026-07-11T00:00:01.000Z', rawResponse: '{}',
+    };
+    expect(() => buildExecutionReceiptV1({ ...base, observedModel: null, validationStatus: 'valid' })).toThrow(/VALID_RECEIPT_REQUIRES_OBSERVED_MODEL/);
+    expect(() => buildExecutionReceiptV1({ ...base, validationStatus: 'valid', validationErrorCodes: ['ERROR'] })).toThrow(/VALID_RECEIPT_REQUIRES_EMPTY_ERROR_CODES/);
+    expect(() => buildExecutionReceiptV1({ ...base, observedModel: 'model-b', validationStatus: 'valid' })).toThrow(/VALID_RECEIPT_REQUIRES_MODEL_MATCH/);
+    expect(() => buildExecutionReceiptV1({ ...base, validationStatus: 'invalid', validationErrorCodes: [] })).toThrow(/INVALID_RECEIPT_REQUIRES_ERROR_CODES/);
+  });
 });

@@ -36,25 +36,31 @@ El SHA-256 del dataset se calcula sobre los bytes reales del archivo; no se
 confunde con el fingerprint operativo corto de la interfaz. Los calentamientos
 guardan su propio recibo en IndexedDB para no repetirse al recargar la página.
 
-## Estado post AURA-CIERRE-P0-01R3 (12 julio 2026)
+## Estado aprobado AURA-CIERRE-P0-01R3 (12 julio 2026)
 
-Gates técnicos de cierre P0 en revisión:
-- Suite 1711 tests, typecheck, build, E2E → verde.
+Los gates técnicos de trazabilidad P0 quedaron cerrados y aprobados por el orquestador:
+- Suite 1725 tests, typecheck, build y E2E → verde.
 - `DiagnosisFailureEvidenceV2` separa fallo de éxito; sin `as any`.
 - `buildExecutionReceiptV1` rechaza en construcción: valid sin modelo, valid con códigos, invalid sin códigos.
 - `runStructuredDiagnosis` valida `requestedModel` ANTES de llamar al proveedor.
 - Todas las rutas Ollama capturan `data.model`/`event.model`.
-- Exportación estricta: `valid`, `invalid`, `not_run` con validación de correspondencia.
+- Exportación estricta: `valid`, `invalid`, `not_run`, recálculo de hashes y correspondencia entre snapshot, diagnóstico/fallo y recibo.
 - Detección case-insensitive de `apiKey`, `api_key`, `api-key` recursiva.
-- Estado exclusivo éxito/fallo: limpiar mutuamente al iniciar nueva ejecución.
+- Estado exclusivo éxito/fallo: limpieza local y superior al iniciar una nueva ejecución; restauración desde sesión.
 - SHA-256 del dataset solo desde `auditEvidence.datasetSha256`.
 - Warm-ups como `Map<blockKey, WarmupReceiptV1>`; 15 instancias para 45 corridas.
 
-**P0-01R3 NO está marcado como completo.** Pendiente de aprobación del orquestador.
+Se añadieron las pruebas adversariales que faltaban: modelo solicitado ausente,
+modelo observado nulo o diferente, fallo de transporte, hashes alterados,
+estados de exportación, credenciales dentro de arrays, cinco rutas Ollama y
+validación de 45 corridas con 15 warm-ups únicos.
+
+**P0-01R3 está COMPLETO.** Esto cierra la trazabilidad técnica; no autoriza todavía la campaña real.
 
 ## Pendientes no cubiertos por P0
 
-**La campaña real sigue BLOQUEADA** hasta instalar los 3 modelos y ejecutar smokes.
+**La campaña real sigue BLOQUEADA** hasta cerrar las métricas reales P1,
+instalar los tres modelos y superar los smokes.
 
 Además, el producto tiene las siguientes limitaciones conocidas:
 
@@ -68,14 +74,18 @@ Además, el producto tiene las siguientes limitaciones conocidas:
 | UX general | Mensaje de nueva sesión; explicación de qué contiene cada exportación |
 | Exportación | Documentar contrato de exportación técnica para terceros
 
-## Lo que falta
+## Hoja de ruta desde este punto
 
-1. Instalar/verificar los tres modelos formales en Ollama.
-2. Ejecutar primero los smokes reales: 1×3×1 y 3×1×1.
-3. Si ambos pasan, ejecutar manualmente la campaña completa de 45 diagnósticos.
-4. Evaluar la rúbrica humana, aprobar o rechazar los nueve representantes,
+1. Implementar métricas reales: `unsupportedClaims`, anclaje real de
+   `badSampleRefs`, cumplimiento derivado y procedencia de validación Python.
+2. Cerrar la claridad de Reporte diagnóstico, Trazabilidad técnica,
+   Configuración, nombres del Laboratorio, nueva sesión y exportaciones.
+3. Instalar/verificar los tres modelos formales en Ollama.
+4. Ejecutar primero los smokes reales: 1×3×1 y 3×1×1.
+5. Si ambos pasan, ejecutar manualmente la campaña completa de 45 diagnósticos.
+6. Evaluar la rúbrica humana, aprobar o rechazar los nueve representantes,
    ejecutar los scripts aprobados sobre copias y reauditar.
-5. Exportar el expediente final y redactar el documento de depósito.
+7. Exportar el expediente final y redactar el documento de depósito.
 
 No se debe iniciar la campaña completa si falla la igualdad de hashes, cambia
 el modelo observado, falta un calentamiento, una respuesta no supera el

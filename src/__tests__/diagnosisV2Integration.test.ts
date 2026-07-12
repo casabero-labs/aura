@@ -166,6 +166,70 @@ describe('result structure', () => {
       expect(r.result.metrics.latencyMs).toBeGreaterThan(0);
     }
   });
+
+  it('rejects an empty requested model before calling the provider', async () => {
+    const provider = makeProvider('ollama');
+    const result = await runStructuredDiagnosis(minimalReport, {
+      provider,
+      auditEvidence,
+      requestedModel: '   ',
+    });
+
+    expect(provider.generateTextWithProgress).not.toHaveBeenCalled();
+    expect(result).toEqual(expect.objectContaining({
+      contractId: 'aura.diagnosis-failure-evidence.v2',
+      code: 'DIAGNOSIS_MODEL_NOT_REQUESTED',
+    }));
+    if ('contractId' in result) {
+      expect(result.executionReceipt.validationStatus).toBe('invalid');
+      expect(result.executionReceipt.observedModel).toBeNull();
+      expect(result.rawResponseHash).toBe(result.executionReceipt.rawResponseHash);
+    }
+  });
+
+  it.each([
+    [null, 'missing observed model'],
+    ['another-model', 'different observed model'],
+  ])('persists canonical failure evidence for %s', async (observedModel) => {
+    const provider = makeProvider('ollama');
+    provider.generateTextWithProgress = vi.fn().mockResolvedValue({
+      text: validResponseForProviderType('ollama'),
+      metrics: { latencyMs: 10, tokensGenerated: 20, model: observedModel, provider: 'Ollama', isLocal: true },
+    });
+
+    const result = await runStructuredDiagnosis(minimalReport, {
+      provider,
+      auditEvidence,
+      requestedModel: 'model-a',
+    });
+
+    expect(result).toEqual(expect.objectContaining({
+      contractId: 'aura.diagnosis-failure-evidence.v2',
+      code: 'DIAGNOSIS_MODEL_MISMATCH',
+    }));
+    if ('contractId' in result) {
+      expect(result.executionReceipt.validationStatus).toBe('invalid');
+      expect(result.executionReceipt.observedModel).toBe(observedModel);
+      expect(result.rawResponseHash).toBe(result.executionReceipt.rawResponseHash);
+    }
+  });
+
+  it('uses the receipt hash as the canonical hash after a transport failure', async () => {
+    const provider = makeProvider('ollama');
+    provider.generateTextWithProgress = vi.fn().mockRejectedValue(new Error('transport unavailable'));
+
+    const result = await runStructuredDiagnosis(minimalReport, {
+      provider,
+      auditEvidence,
+      requestedModel: 'model-a',
+    });
+
+    expect(result).toEqual(expect.objectContaining({ contractId: 'aura.diagnosis-failure-evidence.v2' }));
+    if ('contractId' in result) {
+      expect(result.rawResponseHash).toBe(result.executionReceipt.rawResponseHash);
+      expect(result.rawResponseHash).toMatch(/^[a-f0-9]{64}$/);
+    }
+  });
 });
 
 describe('canonical input propagation', () => {

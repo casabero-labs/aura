@@ -25,12 +25,14 @@ No ejecutar las 45 corridas mientras cualquiera de estos gates esté rojo:
 - [x] Recibo verificable persistido en diagnóstico y corrida formal.
 - [x] Propagación del método real desde Configuración.
 - [x] Suite completa, typecheck, build, E2E controlado y actualización del grafo.
-- [ ] **P0-01R3 EN REVISIÓN**: DiagnosisFailureEvidenceV2 separa fallo de éxito; cero `as any`.
-- [ ] **P0-01R3 EN REVISIÓN**: `runStructuredDiagnosis` valida `requestedModel` ANTES del proveedor.
-- [ ] **P0-01R3 EN REVISIÓN**: `buildExecutionReceiptV1` rechaza recibos inconsistentes.
-- [ ] **P0-01R3 EN REVISIÓN**: Exportación con `valid`/`invalid`/`not_run` y correspondencia estricta.
-- [ ] **P0-01R3 EN REVISIÓN**: apiKey case-insensitive recursivo.
-- [ ] **P0-01R3 EN REVISIÓN**: Estado exclusivo éxito/fallo; limpieza mutua.
+- [x] **P0-01R3 APROBADO**: DiagnosisFailureEvidenceV2 separa fallo de éxito; cero `as any`.
+- [x] **P0-01R3 APROBADO**: `runStructuredDiagnosis` valida `requestedModel` ANTES del proveedor.
+- [x] **P0-01R3 APROBADO**: `buildExecutionReceiptV1` rechaza recibos inconsistentes y modelo observado diferente.
+- [x] **P0-01R3 APROBADO**: Exportación `valid`/`invalid`/`not_run` recalcula hashes y comprueba correspondencia completa.
+- [x] **P0-01R3 APROBADO**: apiKey case-insensitive recursivo, incluidos arrays.
+- [x] **P0-01R3 APROBADO**: Estado exclusivo éxito/fallo; limpieza local y superior.
+- [x] **P0-01R3 APROBADO**: 1725 tests, typecheck, build, E2E y pruebas adversariales focales en verde.
+- [ ] **BLOQUEADO — P1**: métricas reales y procedencia de validación Python.
 - [ ] **BLOQUEADO**: Smokes reales opt-in con los tres modelos instalados.
 - [ ] **BLOQUEADO**: Campaña real ejecutada manualmente por el investigador.
 

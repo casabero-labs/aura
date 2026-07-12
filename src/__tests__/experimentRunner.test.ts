@@ -272,6 +272,9 @@ describe('OE4 diagnosis-only and resumable runner — protocol V2', () => {
     expect(calls.filter((prompt) => prompt.startsWith('Warm-up OE4'))).toHaveLength(15);
     expect(calls.filter((prompt) => prompt.includes('aura.diagnosis.v2'))).toHaveLength(45);
     expect(calls).toHaveLength(60);
+    expect(outcome.runs.every((run) => validateExperimentRunV1(run).valid)).toBe(true);
+    expect(new Set(outcome.runs.map((run) => run.warmupReceipt?.blockId))).toHaveLength(15);
+    expect(outcome.runs.every((run) => run.warmupReceipt?.excludedFromEvaluation === true)).toBe(true);
   });
 
   it('does not repeat a persisted block warm-up after the runner is recreated', async () => {

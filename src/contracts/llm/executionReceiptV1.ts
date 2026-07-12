@@ -71,6 +71,9 @@ export const buildExecutionReceiptV1 = (source: BuildExecutionReceiptInput): Exe
     if ((source.validationErrorCodes ?? []).length > 0) {
       throw new Error('VALID_RECEIPT_REQUIRES_EMPTY_ERROR_CODES: validationErrorCodes must be empty.');
     }
+    if (source.requestedModel.trim() === '' || source.requestedModel !== source.observedModel) {
+      throw new Error('VALID_RECEIPT_REQUIRES_MODEL_MATCH: requestedModel and observedModel must match.');
+    }
   }
   if (source.validationStatus === 'invalid') {
     if ((source.validationErrorCodes ?? []).length === 0) {

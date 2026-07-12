@@ -328,6 +328,40 @@ describe('OllamaProvider', () => {
 
       fetchSpy.mockRestore();
     });
+
+    it('uses only the model identity reported by Ollama in every response path', async () => {
+      const observedModel = 'observed-model:Q4';
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+        if (String(input).endsWith('/api/tags')) {
+          return new Response('{"models":[]}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+        }
+        const body = JSON.parse(String(init?.body ?? '{}')) as { stream?: boolean };
+        if (body.stream) {
+          const event = JSON.stringify({ model: observedModel, message: { content: '{}' }, eval_count: 1, done: true });
+          return new Response(`${event}\n`, { status: 200, headers: { 'Content-Type': 'application/x-ndjson' } });
+        }
+        return new Response(JSON.stringify({ model: observedModel, message: { content: '{}' }, eval_count: 1 }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      });
+      const report = {
+        score: 90, rowCount: 1, colCount: 1, duplicateRows: 0, delimiterDetected: ',',
+        issues: [], columnStats: {}, scoreBreakdown: [],
+      } as AuditReport;
+      const provider = new OllamaProvider(model, 0.1, baseUrl);
+
+      const observed = [
+        (await provider.generateText('diagnosis')).metrics.model,
+        (await provider.generateTextWithProgress('diagnosis', () => undefined)).metrics.model,
+        (await provider.analyzeStream(report, () => undefined)).model,
+        (await provider.generateExecutiveReport(report)).metrics.model,
+        (await provider.generateExecutiveReportStream(report, () => undefined)).metrics.model,
+      ];
+
+      expect(observed).toEqual(Array(5).fill(observedModel));
+      fetchSpy.mockRestore();
+    });
   });
 });
 
