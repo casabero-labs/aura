@@ -26,16 +26,8 @@ export const evaluateFormalDiagnosisRun = (
     evidenceRefs: issueById.get(block.issueId)?.evidenceRefs ?? [],
     badSampleRefs: issueById.get(block.issueId)?.evidenceRefs ?? [],
   }));
-  const activeOracle: DiagnosticOracleV1 = run.inputMode === 'prompt_libre'
-    ? {
-        ...oracle,
-        findings: oracle.findings.map((finding) => finding.primaryEligible
-          ? { ...finding, visibleEvidenceModes: [...new Set([...finding.visibleEvidenceModes, 'prompt_libre' as const])] }
-          : finding),
-      }
-    : oracle;
   const evaluation = evaluateDiagnosticOracle({
-    oracle: activeOracle,
+    oracle,
     inputMode: run.inputMode,
     knownColumns: envelope.columns.flatMap((column) => [column.columnId, column.name]),
     predictions,

@@ -221,6 +221,7 @@ export const createExperimentRunner = ({
       updatedAt: completedAt,
       warmupReceipt: {
         contractId: 'aura.warmup-receipt.v1',
+        excludedFromEvaluation: true,
         blockId: blockKey,
         modelId: run.modelId,
         repetition: run.repetition,

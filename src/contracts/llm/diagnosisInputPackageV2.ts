@@ -142,6 +142,12 @@ export const buildDiagnosisInputPackageV2 = (
       responseContract: 'aura.diagnosis.v2',
       exactCoverageRequired: true,
       evidenceRefsRequiredOnlyWhenVisible: true,
+      samplesVisible: inputMode !== 'prompt_libre',
+      whenSamplesAreHidden: inputMode === 'prompt_libre' ? {
+        evidenceRefsMustBeEmpty: true,
+        requiresHumanReviewMustBeTrue: true,
+        declareEvidenceLimitation: true,
+      } : undefined,
       prohibitUnsupportedClaims: true,
     },
   });

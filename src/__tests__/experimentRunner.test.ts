@@ -163,6 +163,7 @@ describe('OE4 diagnosis-only and resumable runner — protocol V2', () => {
       expect(store.appendAttemptEvent).toHaveBeenCalledTimes(2);
       expect(completed.status).toBe('completed');
       expect(completed.diagnosis?.status).toBe('completed');
+      expect(completed.warmupReceipt?.excludedFromEvaluation).toBe(true);
       expect(completed.executionReceipt).toEqual(expect.objectContaining({
         requestedInputMode: mode,
         effectiveInputMode: mode,

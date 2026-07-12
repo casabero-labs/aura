@@ -141,6 +141,24 @@ describe('SettingsPanel - Ollama model reconciliation', () => {
     });
   });
 
+  it('removes placebo controls and hides temperature for Chrome AI', () => {
+    render(<SettingsPanel config={{ ...baseConfig, providerType: 'chrome', model: 'gemini-nano' }} onSave={onSave} onClose={onClose} />);
+
+    expect(screen.queryByText('Contrato técnico del diagnóstico (avanzado)')).toBeNull();
+    expect(screen.queryByText('Ejecución automática')).toBeNull();
+    expect(screen.queryByText('Temperatura del modelo')).toBeNull();
+  });
+
+  it('requires an API key field for OpenRouter and does not claim it is ready', async () => {
+    render(<SettingsPanel config={{
+      ...baseConfig,
+      providerType: 'cloud', cloudProvider: 'openrouter', model: 'openrouter/test', apiKey: '',
+    }} onSave={onSave} onClose={onClose} />);
+
+    expect(await screen.findByLabelText('API Key (solo durante esta sesión)')).toBeTruthy();
+    expect(await screen.findByText('API key pendiente')).toBeTruthy();
+  });
+
   describe('Evidence modes (Issue #25)', () => {
     const configWithoutInputMode: AIConfig = { ...baseConfig };
 

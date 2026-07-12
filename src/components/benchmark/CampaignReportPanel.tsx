@@ -41,7 +41,7 @@ const CampaignReportPanel: React.FC<CampaignReportPanelProps> = ({ formalValidit
       </div>
       {formalValidity.valid ? (
         <>
-          <p className="oe4-info">Los cinco artefactos se derivarán de esta campaña sin copiar métricas manualmente.</p>
+          <p className="oe4-info">Los cinco artefactos se derivarán de este experimento sin copiar métricas manualmente.</p>
           <ul aria-label="Artefactos disponibles" className="oe4-artifact-list">
             {evidencePackage?.artifacts.map((artifact) => <li key={artifact.filename}>{artifact.filename}</li>)}
           </ul>

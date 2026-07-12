@@ -136,7 +136,7 @@ export const FINAL_EVALUATION_PROTOCOL = {
     recommended: 16,
   },
   evidenceFidelityDenominatorByMode: {
-    prompt_libre: 16,
+    prompt_libre: 0,
     smart_sample: 16,
     recommended: 16,
   },

@@ -17,7 +17,7 @@ const CampaignSetupPanel: React.FC<CampaignSetupPanelProps> = ({
   <section className="oe4-setup" aria-labelledby="oe4-setup-title">
     <div>
       <p className="oe4-eyebrow">Protocolo congelado</p>
-      <h2 id="oe4-setup-title">Crear la campaña formal</h2>
+      <h2 id="oe4-setup-title">Preparar experimento</h2>
       <p>
         AURA conservará una matriz de 45 unidades: tres modelos, tres entradas y
         cinco repeticiones. Los fallos también forman parte del resultado.
@@ -36,7 +36,7 @@ const CampaignSetupPanel: React.FC<CampaignSetupPanelProps> = ({
       disabled={!canCreate || creating}
       onClick={() => void onCreate()}
     >
-      {creating ? 'Creando campaña…' : 'Crear campaña congelada'}
+      {creating ? 'Creando experimento…' : 'Crear experimento'}
     </button>
   </section>
 );

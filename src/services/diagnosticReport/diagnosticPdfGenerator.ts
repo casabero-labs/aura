@@ -204,7 +204,17 @@ const addExecutiveSummary = (ctx: PdfLayoutContext, report: DiagnosticReport) =>
   addKpiGrid(ctx, presentation.metrics);
   addParagraph(ctx, presentation.executiveSummary);
   if (report.diagnosisSummary.inputReceiptRef) {
-    addParagraph(ctx, `Recibo verificable de entrada: ${report.diagnosisSummary.inputReceiptRef}`, {
+    addSectionTitle(ctx, 'Trazabilidad de ejecución LLM');
+    addParagraph(ctx, [
+      `Método: ${report.diagnosisSummary.inputMode ?? 'n/d'}`,
+      `Proveedor/modelo: ${report.diagnosisSummary.provider ?? 'n/d'} / ${report.diagnosisSummary.model ?? 'n/d'}`,
+      `Prompt hash: ${report.diagnosisSummary.promptHash ?? 'n/d'}`,
+      `Input hash: ${report.diagnosisSummary.inputHash ?? 'n/d'}`,
+      `Receipt hash: ${report.diagnosisSummary.inputReceiptRef}`,
+      `Evidence envelope: ${report.diagnosisSummary.evidenceEnvelopeRef ?? 'n/d'}`,
+      `Fecha: ${report.diagnosisSummary.executionCompletedAt ?? 'n/d'}`,
+      `Validación: ${report.diagnosisSummary.executionValidationStatus ?? 'n/d'}`,
+    ].join('\n'), {
       fontSize: 7.5,
       color: ctx.theme.colors.faint,
     });

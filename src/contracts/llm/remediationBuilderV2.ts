@@ -222,6 +222,12 @@ export function buildRemediationPlanV2(
     diagnosisRef,
     evidenceEnvelopeRef: diagnosisExecution.evidenceEnvelopeRef,
     inputReceiptRef: ctx.inputReceiptRef,
+    inputTrace: diagnosisExecution.inputMode && diagnosisExecution.inputHash ? {
+      inputMode: diagnosisExecution.inputMode,
+      promptHash: diagnosisExecution.promptHash,
+      inputHash: diagnosisExecution.inputHash,
+      evidenceEnvelopeRef: diagnosisExecution.evidenceEnvelopeRef,
+    } : undefined,
     datasetFingerprint: ctx.datasetFingerprint,
     plan: actions,
     actionabilityMap,

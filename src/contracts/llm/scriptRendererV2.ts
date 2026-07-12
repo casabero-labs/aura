@@ -449,11 +449,26 @@ export function renderActionV2(
 
 // ── Header & Footer ──
 
-export function buildScriptHeader(registry: ColumnRegistryV2, inputReceiptRef?: string): string {
+export interface ScriptTraceHeaderV2 {
+  inputReceiptRef?: string;
+  inputMode?: string;
+  promptHash?: string;
+  inputHash?: string;
+  evidenceEnvelopeRef?: string;
+}
+
+export function buildScriptHeader(registry: ColumnRegistryV2, trace: ScriptTraceHeaderV2 = {}): string {
   const columnDict = generateSafeColumnDict([...registry.orderedColumns]);
 
   return [
-    ...(inputReceiptRef ? [`# AURA input receipt: ${inputReceiptRef}`, ``] : []),
+    ...(trace.inputReceiptRef ? [
+      `# AURA diagnosis input mode: ${trace.inputMode ?? 'unknown'}`,
+      `# AURA input receipt: ${trace.inputReceiptRef}`,
+      `# AURA prompt hash: ${trace.promptHash ?? 'unknown'}`,
+      `# AURA input hash: ${trace.inputHash ?? 'unknown'}`,
+      `# AURA evidence envelope: ${trace.evidenceEnvelopeRef ?? 'unknown'}`,
+      ``,
+    ] : []),
     `import pandas as pd`,
     `import numpy as np`,
     ``,
@@ -473,9 +488,9 @@ export function buildScriptFooter(): string {
 export function buildScriptText(
   actions: readonly RenderableScriptActionV2[],
   registry: ColumnRegistryV2,
-  inputReceiptRef?: string,
+  trace: ScriptTraceHeaderV2 = {},
 ): string {
-  const header = buildScriptHeader(registry, inputReceiptRef);
+  const header = buildScriptHeader(registry, trace);
 
   const renderedActions: string[] = [];
   for (const { action, columnRef } of actions) {

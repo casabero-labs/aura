@@ -24,8 +24,8 @@ experimental necesario.
 
 Todos los modos formales usan `aura.diagnosis.v2`. El F1
 primario conserva el mismo denominador de 16 claves `engine_exposed` en los tres
-modos. La fidelidad a la evidencia usa un denominador de 16 en los tres modos;
-el baseline puede anclar reglas, pero no dispone de muestras.
+modos. La fidelidad a la evidencia usa denominador 0 (`null`) para
+`prompt_libre`, porque no dispone de muestras, y 16 para los otros dos modos.
 
 ## Artefactos congelados
 
@@ -107,7 +107,7 @@ de sesiones están documentados en
 [`LEGACY_LAB_REMOVAL.md`](./LEGACY_LAB_REMOVAL.md). Task 10 construyó una
 consola formal nueva; no convirtió ni restauró aquella interfaz.
 
-La nueva entrada `Evaluación OE4` muestra protocolo, progreso, matriz 3 × 3,
+La nueva entrada `Laboratorio` muestra protocolo, progreso, matriz 3 × 3,
 detalle crudo, recibos, métricas, rúbrica humana, estado HITL, antes/después y
 bloqueos del expediente. La pausa solo se aplica entre corridas. La creación
 real ejecuta el preflight formal antes de congelar la campaña. Véase

@@ -22,6 +22,7 @@ describe('formal diagnosis evaluator', () => {
 
     expect(evaluation.diagnosis.primary).toEqual(expect.objectContaining({ tp: 1, fp: 0, fn: 15 }));
     expect(evaluation.diagnosis.primary.f1).toBeGreaterThan(0);
+    expect(evaluation.diagnosis.evidenceFidelity).toBeNull();
     expect(evaluation.diagnosis.contractCompliant).toBe(true);
     expect(evaluation.script).toEqual(expect.objectContaining({ contractValid: false, safe: false }));
   });

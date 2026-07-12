@@ -13,6 +13,10 @@ OE4. Los tres métodos producen un snapshot canónico distinto y conservan un
 recibo verificable con método, secciones, prompt, hashes, modelo, digest y
 parámetros observados.
 
+En la interfaz, `Laboratorio` es el módulo completo, cada ejecución preparada es
+un `experimento` y cada combinación modelo × método × repetición es una
+`corrida`. `Campaña` queda reservado a contratos y artefactos internos.
+
 El protocolo ejecutable es `aura.oe4.final-evaluation.v2`:
 
 - 3 modelos × 3 métodos × 5 repeticiones = 45 diagnósticos evaluados;
@@ -22,7 +26,7 @@ El protocolo ejecutable es `aura.oe4.final-evaluation.v2`:
 - 9 scripts deterministas, uno por representante seleccionado mediante la
   mediana del F1, siempre después de revisión y aprobación humana.
 
-La consola `Evaluación OE4` ya puede crear una campaña productiva desde
+El `Laboratorio de evaluación LLM` ya puede crear un experimento formal desde
 `controlled_customers_phase8.csv`. Antes de crearla verifica el hash del CSV,
 la versión de Ollama, los tres modelos y sus digests. Cada salida pasa por el
 validador completo `aura.diagnosis.v2` y por el oráculo diagnóstico. Las claves

@@ -512,6 +512,12 @@ export interface RemediationPlanV2 {
   diagnosisRef: string;
   evidenceEnvelopeRef: string;
   inputReceiptRef?: string;
+  inputTrace?: {
+    inputMode: DiagnosisInputModeV2;
+    promptHash: string;
+    inputHash: string;
+    evidenceEnvelopeRef: string;
+  };
   datasetFingerprint: string;
   plan: RemediationActionV2[];
   actionabilityMap: Record<string, Actionability>;
@@ -633,6 +639,7 @@ export interface ScriptContractCandidateV2 {
   contractVersion: '2.0.0';
   remediationRef: string;
   inputReceiptRef?: string;
+  inputTrace?: RemediationPlanV2['inputTrace'];
   datasetFingerprint: string;
   acceptedActionIds: string[];
   rejectedActionIds: string[];
@@ -651,6 +658,7 @@ export interface ScriptContractV2 {
   contractVersion: '2.0.0';
   remediationRef: string;
   inputReceiptRef?: string;
+  inputTrace?: RemediationPlanV2['inputTrace'];
   datasetFingerprint: string;
   acceptedActionIds: string[];
   rejectedActionIds: string[];

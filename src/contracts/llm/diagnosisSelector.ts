@@ -90,7 +90,9 @@ export async function runStructuredDiagnosis(
 
   const privacyLevel: PrivacyLevel = options.envelopeOptions?.privacyLevel ?? derivePrivacyLevel(options.provider.type);
 
-  const datasetSha256 = options.envelopeOptions?.datasetSha256 ?? datasetFingerprint;
+  const datasetSha256 = options.envelopeOptions?.datasetSha256
+    ?? (options.auditEvidence as { datasetSha256?: string } | null | undefined)?.datasetSha256
+    ?? datasetFingerprint;
   const delimiter = options.envelopeOptions?.delimiter ?? report.delimiterDetected;
 
   const envelopeOptions: EnvOptions = {

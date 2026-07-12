@@ -118,21 +118,21 @@ describe('BenchmarkCampaignLab - Task 10 human flow', () => {
       />,
     );
 
-    await user.click(await screen.findByRole('button', { name: 'Crear campaña congelada' }));
+    await user.click(await screen.findByRole('button', { name: 'Crear experimento' }));
     expect(await screen.findByText('0 / 45')).toBeTruthy();
     expect(screen.getAllByTestId('oe4-matrix-cell')).toHaveLength(9);
 
-    await user.click(screen.getByRole('button', { name: 'Iniciar campaña' }));
+    await user.click(screen.getByRole('button', { name: 'Iniciar experimento' }));
     await waitFor(() => expect(generateText).toHaveBeenCalledTimes(1));
     await user.click(screen.getByRole('button', { name: 'Pausar de forma segura' }));
 
     await act(async () => {
       resolveFirst?.(providerResult('aura.diagnosis.v2'));
     });
-    await waitFor(() => expect(screen.getByText('Campaña pausada')).toBeTruthy());
+    await waitFor(() => expect(screen.getByText('Experimento pausado')).toBeTruthy());
     expect(screen.getByText('1 pendiente de revisión')).toBeTruthy();
 
-    await user.click(screen.getByRole('button', { name: 'Reanudar campaña' }));
+    await user.click(screen.getByRole('button', { name: 'Reanudar experimento' }));
     await waitFor(() => expect(screen.getByText('45 pendientes de revisión')).toBeTruthy());
 
     expect(screen.getByText(/aura\.diagnosis\.v2/)).toBeTruthy();

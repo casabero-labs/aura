@@ -140,6 +140,20 @@ export function validateRemediationPlanV2(
 
   // ── Fingerprint ──
   if (p.datasetFingerprint !== ctx.datasetFingerprint) errors.push(verr('REMEDIATION_REFERENCE_INVALID', 'datasetFingerprint', 'Does not match context.datasetFingerprint'));
+  if (p.inputReceiptRef !== diagnosisExecution.executionReceipt?.receiptHash || p.inputReceiptRef !== ctx.inputReceiptRef) {
+    errors.push(verr('REMEDIATION_REFERENCE_INVALID', 'inputReceiptRef', 'Does not match the diagnosis execution receipt'));
+  }
+  if (p.inputTrace !== undefined) {
+    const expectedTrace = {
+      inputMode: diagnosisExecution.inputMode,
+      promptHash: diagnosisExecution.promptHash,
+      inputHash: diagnosisExecution.inputHash,
+      evidenceEnvelopeRef: diagnosisExecution.evidenceEnvelopeRef,
+    };
+    if (JSON.stringify(p.inputTrace) !== JSON.stringify(expectedTrace)) {
+      errors.push(verr('REMEDIATION_REFERENCE_INVALID', 'inputTrace', 'Does not match diagnosis execution input trace'));
+    }
+  }
 
   // ── generatedAt: strict ISO 8601 ──
   if (!p.generatedAt || typeof p.generatedAt !== 'string') {
@@ -464,7 +478,7 @@ export function validateRemediationPlanV2(
   // ─────────────────────────────────────────────────────────────
   // Top-level extra properties
   // ─────────────────────────────────────────────────────────────
-  const topKeys = ['contractId', 'contractVersion', 'planId', 'diagnosisRef', 'evidenceEnvelopeRef', 'inputReceiptRef', 'datasetFingerprint', 'plan', 'actionabilityMap', 'exclusions', 'generatedAt'];
+  const topKeys = ['contractId', 'contractVersion', 'planId', 'diagnosisRef', 'evidenceEnvelopeRef', 'inputReceiptRef', 'inputTrace', 'datasetFingerprint', 'plan', 'actionabilityMap', 'exclusions', 'generatedAt'];
   for (const k of Object.keys(p)) { if (!topKeys.includes(k)) errors.push(verr('REMEDIATION_SCHEMA_INVALID', k, 'Unknown top-level property')); }
 
   // ─────────────────────────────────────────────────────────────

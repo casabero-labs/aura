@@ -107,6 +107,7 @@ export interface LlmStageMetricsV1 {
 
 export interface WarmupReceiptV1 {
   contractId: 'aura.warmup-receipt.v1';
+  excludedFromEvaluation: true;
   blockId: string;
   modelId: OE4ModelId;
   repetition: 1 | 2 | 3 | 4 | 5;

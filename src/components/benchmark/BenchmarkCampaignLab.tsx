@@ -159,7 +159,7 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
       const bundle = await createCampaignBundle();
       await store.createCampaign(bundle.campaign, bundle.runs);
       await refresh(bundle.campaign.campaignId, bundle.runs[0]?.runId);
-      setMessage('Campaña congelada creada con 45 unidades planeadas.');
+      setMessage('Experimento creado con 45 corridas planeadas.');
     } catch (cause: unknown) {
       setError(cause instanceof Error ? cause.message : String(cause));
     } finally {
@@ -170,7 +170,7 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
   const runCampaign = async () => {
     if (!campaign || !runner) return;
     setPhase('running');
-    setMessage('Campaña en ejecución');
+    setMessage('Experimento en ejecución');
     setError(null);
     pauseRequested.current = false;
     const candidates = (await store.listRuns(campaign.campaignId))
@@ -194,7 +194,7 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
       }
       if (pauseRequested.current) {
         setPhase('paused');
-        setMessage('Campaña pausada');
+        setMessage('Experimento pausado');
       } else {
         setPhase('finished');
         setMessage('Ejecución terminada; continúa con la revisión humana.');
@@ -282,9 +282,9 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
     <div className="oe4-campaign-lab" data-testid="oe4-campaign-lab">
       <header className="oe4-hero">
         <div>
-          <p className="oe4-eyebrow">OE4 · evaluación final</p>
-          <h1>Consola formal de campaña</h1>
-          <p>Una campaña reproducible, 45 unidades y cinco artefactos finales. No existe un ganador universal.</p>
+          <p className="oe4-eyebrow">Objetivo específico 4</p>
+          <h1>Laboratorio de evaluación LLM</h1>
+          <p>Compara modelos y métodos de entrada mediante experimentos reproducibles de 45 corridas, sin declarar un ganador universal.</p>
         </div>
         {campaign && (
           <div className="oe4-controls">
@@ -297,7 +297,7 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
               </button>
             ) : attempted < 45 ? (
               <button type="button" className="btn-p" disabled={!runner} onClick={() => void runCampaign()}>
-                {phase === 'paused' || attempted > 0 ? 'Reanudar campaña' : 'Iniciar campaña'}
+                {phase === 'paused' || attempted > 0 ? 'Reanudar experimento' : 'Iniciar experimento'}
               </button>
             ) : null}
           </div>
@@ -311,12 +311,12 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
         <CampaignSetupPanel
           creating={creating}
           canCreate={Boolean(createCampaignBundle)}
-          blocker={createCampaignBundle ? undefined : 'Ejecuta el preflight formal y prepara el dataset controlado para crear la campaña.'}
+          blocker={createCampaignBundle ? undefined : 'Carga y audita el dataset controlado; AURA ejecutará el preflight antes de crear el experimento.'}
           onCreate={createCampaign}
         />
       ) : (
         <>
-          <section className="oe4-progress" aria-label="Progreso de campaña">
+          <section className="oe4-progress" aria-label="Progreso del experimento">
             <div><span>Intentadas</span><strong>{attempted} / 45</strong></div>
             <div><span>Completadas</span><strong>{completed}</strong></div>
             <div><span>Fallidas</span><strong>{failed}</strong></div>

@@ -543,6 +543,7 @@ export const validateExperimentRunV1 = (value: unknown): ExperimentGuardResult =
   if (!(value.warmupReceipt === undefined || value.warmupReceipt === null || (
     isRecord(value.warmupReceipt)
     && value.warmupReceipt.contractId === 'aura.warmup-receipt.v1'
+    && value.warmupReceipt.excludedFromEvaluation === true
     && value.warmupReceipt.modelId === value.modelId
     && value.warmupReceipt.repetition === value.repetition
     && isSha256(value.warmupReceipt.promptHash)

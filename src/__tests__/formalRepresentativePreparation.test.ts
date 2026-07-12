@@ -81,6 +81,10 @@ describe('formal representative deterministic preparation', () => {
     expect(prepared.status).toBe('awaiting_external_output');
     expect(contract.inputReceiptRef).toBe(receipt.receiptHash);
     expect((prepared.script?.rawOutput ?? '')).toContain(`# AURA input receipt: ${receipt.receiptHash}`);
+    expect((prepared.script?.rawOutput ?? '')).toContain('# AURA diagnosis input mode: recommended');
+    expect((prepared.script?.rawOutput ?? '')).toContain(`# AURA prompt hash: ${pkg.promptHash}`);
+    expect((prepared.script?.rawOutput ?? '')).toContain(`# AURA input hash: ${pkg.inputHash}`);
+    expect((prepared.script?.rawOutput ?? '')).toContain(`# AURA evidence envelope: ${pkg.evidenceEnvelopeRef}`);
     expect(prepared.execution?.approvedScriptHash).toBe(contract.scriptHash);
     expect(prepared.automaticEvaluation?.script).toEqual(expect.objectContaining({ contractValid: true, safe: true }));
     expect(prepared.automaticEvaluation?.script.syntaxValid).toBe(false);

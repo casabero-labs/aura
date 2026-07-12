@@ -15,6 +15,11 @@ export const fingerprintDataset = (data: Record<string, any>[], fields: string[]
   return hashString(JSON.stringify({ rows: data.length, fields, sample, tail }));
 };
 
+export const computeFileSha256 = async (file: Pick<Blob, 'arrayBuffer'>): Promise<string> => {
+  const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+};
+
 export const fingerprintReport = (report: AuditReport) =>
   hashString(JSON.stringify({
     score: report.score,
@@ -50,6 +55,7 @@ export interface IngestionEvidenceParams {
   fileName?: string;
   fileSize?: number;
   datasetFingerprint: string;
+  datasetSha256?: string;
   startedAt: string;
   completedAt: string;
   parseDurationMs: number;
@@ -72,6 +78,7 @@ export const buildIngestionEvidence = (params: IngestionEvidenceParams): Omit<Au
   fileName: params.fileName,
   fileSize: params.fileSize,
   datasetFingerprint: params.datasetFingerprint,
+  datasetSha256: params.datasetSha256,
   startedAt: params.startedAt,
   completedAt: params.completedAt,
   parseDurationMs: params.parseDurationMs,
@@ -88,6 +95,7 @@ export const buildAuditEvidence = (params: BuildAuditEvidenceParams): AuditExecu
   fileName: params.fileName,
   fileSize: params.fileSize,
   datasetFingerprint: params.datasetFingerprint,
+  datasetSha256: params.datasetSha256,
   startedAt: params.startedAt,
   completedAt: params.completedAt,
   parseDurationMs: params.parseDurationMs,

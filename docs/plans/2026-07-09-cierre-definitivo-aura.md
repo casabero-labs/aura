@@ -209,7 +209,7 @@ Solo existen cuatro bloques. Se ejecutan en orden y no se abre trabajo nuevo fue
 - validación de Task 8: 81/81 pruebas focales y dependientes, suite completa con 1681 pruebas aprobadas y 6 omitidas, typecheck y build correctos;
 - el exportador de Task 9 deriva `campaign.json`, `runs.csv`, `report.md`, `report.pdf` y `manifest.json` desde una sola fuente, calcula hashes sobre bytes reales y no declara un ganador universal;
 - validación de Task 9: 6/6 pruebas focales, typecheck, build y revisión visual del PDF correctos;
-- consola nueva `Evaluación OE4` sobre el store formal: matriz 3 × 3, pausa entre corridas, salidas crudas, métricas, rúbrica, HITL, importación externa y gates de reporte;
+- `Laboratorio de evaluación LLM` sobre el store formal: matriz 3 × 3, pausa entre corridas, salidas crudas, métricas, rúbrica, HITL, importación externa y gates de reporte;
 - validación de Task 10: 33/33 pruebas focales, suite completa con 1690 pruebas aprobadas y 6 omitidas, typecheck, build y revisión visual en escritorio/móvil correctos;
 - validación de Task 11: recorrido controlado Chromium aprobado con persistencia IndexedDB, recarga, reanudación, rúbrica, HITL, importación, reauditoría y cinco descargas; el smoke real está implementado pero omitido por ausencia del CLI y de los modelos formales;
 - OE4 no se considera cerrado: falta Task 12, preparar el runtime/modelos, ejecutar la campaña real y congelar sus artefactos formales.

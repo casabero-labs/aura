@@ -224,6 +224,16 @@ const buildDiagnosisSummary = ({
       evidenceEnvelopeRef: structuredDiagnosis.evidenceEnvelopeRef,
       promptHash: structuredDiagnosis.promptHash,
       inputReceiptRef: structuredDiagnosis.executionReceipt?.receiptHash,
+      inputMode: structuredDiagnosis.inputMode,
+      inputHash: structuredDiagnosis.inputHash,
+      executionCompletedAt: structuredDiagnosis.executionReceipt?.completedAt,
+      executionValidationStatus: structuredDiagnosis.executionReceipt?.validationStatus,
+      inputSnapshot: structuredDiagnosis.inputSnapshot
+        ? structuredClone(structuredDiagnosis.inputSnapshot)
+        : undefined,
+      executionReceipt: structuredDiagnosis.executionReceipt
+        ? structuredClone(structuredDiagnosis.executionReceipt)
+        : undefined,
       executiveSummary: buildStructuredExecutiveSummary(report, observations),
       observations,
       limitations: [

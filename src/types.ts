@@ -145,6 +145,7 @@ export interface AuditExecutionEvidence {
   fileName?: string;
   fileSize?: number;
   datasetFingerprint: string;
+  datasetSha256?: string;
   startedAt: string;
   completedAt: string;
   parseDurationMs: number;

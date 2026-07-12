@@ -57,7 +57,7 @@
   "evaluationScopes": ["engineCoverage", "primaryDiagnosticF1", "evidenceFidelity", "extendedDiscovery"],
   "primaryF1Denominator": "engine_exposed canonical keys only",
   "primaryF1DenominatorByMode": { "prompt_libre": 16, "smart_sample": 16, "recommended": 16 },
-  "evidenceFidelityDenominatorByMode": { "prompt_libre": 16, "smart_sample": 16, "recommended": 16 },
+  "evidenceFidelityDenominatorByMode": { "prompt_libre": 0, "smart_sample": 16, "recommended": 16 },
   "rules": {
     "noChangeAfterFirstRun": "Any change to contracts v2, prompts, models or inference after the first formal run invalidates the campaign and requires a new protocol version.",
     "failuresPreserved": "Failed runs are persisted and count toward stability metrics; retries are linked, never overwrite.",

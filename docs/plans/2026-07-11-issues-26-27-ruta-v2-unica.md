@@ -30,6 +30,9 @@ No ejecutar las 45 corridas mientras cualquiera de estos gates esté rojo:
 - [x] Evaluación automática contra el oráculo diagnóstico.
 - [x] Preparación determinista de scripts solo para representantes aprobados.
 - [x] Claves API fuera de localStorage y sincronización; Guardar/Cancelar coherente.
+- [x] Nomenclatura visible Laboratorio → experimento → corrida; campaña solo interna.
+- [x] Trazabilidad completa en JSON, PDF, plan, contrato y encabezado `.py`.
+- [x] Fidelidad de evidencia `null` para Contexto mínimo sin muestras.
 - [x] Suite completa, typecheck, build, E2E controlado y actualización del grafo.
 - [ ] Smokes reales opt-in con los tres modelos instalados.
 - [ ] Campaña real ejecutada manualmente por el investigador.

@@ -1,4 +1,5 @@
 import type { IssueCategory, IssueSeverity } from '../../types';
+import type { DiagnosisInputPackageV2, ExecutionReceiptV1 } from '../../contracts/llm';
 
 export type DiagnosticStatus =
   | 'deterministic_only'
@@ -133,6 +134,12 @@ export interface DiagnosticDiagnosisSummary {
   evidenceEnvelopeRef?: string;
   promptHash?: string;
   inputReceiptRef?: string;
+  inputMode?: string;
+  inputHash?: string;
+  executionCompletedAt?: string;
+  executionValidationStatus?: string;
+  inputSnapshot?: DiagnosisInputPackageV2;
+  executionReceipt?: ExecutionReceiptV1;
   executiveSummary: string;
   observations: DiagnosticObservation[];
   limitations: string[];

@@ -16,6 +16,7 @@ const report = {
 
 const evidence = {
   datasetFingerprint: FINAL_EVALUATION_PROTOCOL.dataset.sha256,
+  datasetSha256: FINAL_EVALUATION_PROTOCOL.dataset.sha256,
   rowsProcessed: 50,
   columnsProcessed: 15,
 } as AuditExecutionEvidence;

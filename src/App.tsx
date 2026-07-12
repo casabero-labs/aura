@@ -519,7 +519,7 @@ const App: React.FC = () => {
               className={`nav-menu-item ${showExperimentCampaign ? 'active' : ''}`}
               onClick={goExperimentCampaign}
             >
-              Evaluación OE4
+              Laboratorio
             </button>
 
             <button
@@ -570,7 +570,7 @@ const App: React.FC = () => {
           Auditoría
         </button>
         <button className="nav-link" onClick={goExperimentCampaign}>
-          Evaluación OE4
+          Laboratorio
         </button>
         <button className="nav-link" onClick={goSettings}>
           Configuración

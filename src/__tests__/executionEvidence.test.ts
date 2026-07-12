@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildAuditEvidence, buildIngestionEvidence, fingerprintDataset } from '../services/executionEvidence';
+import { buildAuditEvidence, buildIngestionEvidence, computeFileSha256, fingerprintDataset } from '../services/executionEvidence';
 import { AuditReport, IssueCategory, IssueSeverity } from '../types';
 
 const stubReport: AuditReport = {
@@ -112,6 +112,12 @@ describe('buildAuditEvidence incluye contrato de ingestión', () => {
 });
 
 describe('fingerprintDataset', () => {
+  it('calcula SHA-256 real sobre los bytes completos del archivo', async () => {
+    const bytes = new TextEncoder().encode('abc');
+    await expect(computeFileSha256({ arrayBuffer: async () => bytes.buffer })).resolves.toBe(
+      'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad',
+    );
+  });
   it('genera fingerprint reproducible para el mismo dataset', () => {
     const data = [
       { a: 1, b: 'x' },

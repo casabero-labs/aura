@@ -11,8 +11,10 @@ const TARGET_RUN_ID = source.runs.find((run) => run.sequence === 3)!.runId;
 const RECOVERY_RUN_ID = source.runs.find((run) => run.sequence === 6)!.runId;
 
 const openLab = async (page: import('@playwright/test').Page): Promise<void> => {
-  await page.getByRole('button', { name: 'Evaluación OE4', exact: true }).first().click();
+  await page.getByRole('button', { name: 'Laboratorio', exact: true }).first().click();
   await expect(page.getByTestId('oe4-campaign-lab')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Laboratorio de evaluación LLM' })).toBeVisible();
+  await expect(page.getByText('Objetivo específico 4')).toBeVisible();
 };
 
 const reviewRun = async (
@@ -45,23 +47,26 @@ test.describe.serial('Task 11 — recorrido humano OE4 y recuperación', () => {
   });
 
   test('crea, pausa, recarga, reanuda y exporta el expediente válido', async ({ page }) => {
+    await page.getByRole('button', { name: 'Configuración', exact: true }).first().click();
+    await expect(page.getByText('Contrato técnico del diagnóstico (avanzado)')).toHaveCount(0);
+    await expect(page.getByText('Ejecución automática')).toHaveCount(0);
     await openLab(page);
     await expect(page.getByRole('note')).toContainText('no constituye evidencia de modelos');
 
-    await page.getByRole('button', { name: 'Crear campaña congelada' }).click();
+    await page.getByRole('button', { name: 'Crear experimento' }).click();
     await expect(page.getByText('43 / 45')).toBeVisible();
 
-    await page.getByRole('button', { name: 'Reanudar campaña' }).click();
+    await page.getByRole('button', { name: 'Reanudar experimento' }).click();
     await expect.poll(() => page.evaluate(() => window.__OE4_E2E_WAITING__ === true)).toBe(true);
     await page.getByRole('button', { name: 'Pausar de forma segura' }).click();
     await page.evaluate(() => window.__OE4_E2E_RELEASE__?.());
-    await expect(page.getByRole('status')).toContainText('Campaña pausada');
+    await expect(page.getByRole('status')).toContainText('Experimento pausado');
     await expect(page.getByText('44 / 45')).toBeVisible();
 
     await page.reload();
     await openLab(page);
     await expect(page.getByText('44 / 45')).toBeVisible();
-    await page.getByRole('button', { name: 'Reanudar campaña' }).click();
+    await page.getByRole('button', { name: 'Reanudar experimento' }).click();
     await expect(page.getByRole('status')).toContainText('Ejecución terminada');
     await expect(page.getByText('2 pendientes de revisión')).toBeVisible();
 

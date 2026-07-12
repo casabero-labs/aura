@@ -39,6 +39,9 @@ export const buildFormalEvidenceEnvelope = (
   ) {
     throw new Error('El reporte activo no corresponde a la forma congelada de controlled_customers_phase8.csv.');
   }
+  if (auditEvidence.datasetSha256 !== FINAL_EVALUATION_PROTOCOL.dataset.sha256) {
+    throw new Error('El reporte no conserva el SHA-256 exacto del dataset controlado. Vuelve a cargar el CSV original.');
+  }
   const compatibleReport: AuditReportInput = {
     ...report,
     datasetProfile: report.datasetProfile ? {
@@ -143,7 +146,7 @@ export const createFormalCampaignBundle = async (input: {
         cpu: `${navigator.hardwareConcurrency || 0} logical cores`,
         memoryBytes: ((navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 16) * 1024 ** 3,
       },
-      runtime: { provider: 'ollama', ollamaVersion: preflight.version, clientVersion: preflight.version },
+      runtime: { provider: 'ollama', ollamaVersion: preflight.version, clientVersion: 'aura-browser-ollama-http-v1' },
       model: {
         id: unit.modelId,
         quantization: 'UD-Q4_K_XL',

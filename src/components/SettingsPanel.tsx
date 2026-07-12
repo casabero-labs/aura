@@ -321,7 +321,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
 
   const activeInputMode = migrateLegacyInputMode(localConfig.inputMode);
   const activeInputModeOption = INPUT_MODE_OPTIONS.find(option => option.value === activeInputMode) || INPUT_MODE_OPTIONS[1];
-  const recommendedProvider: ProviderChoice | null = ollamaConnected
+  const ollamaReady = ollamaConnected === true
+    && ollamaModels.some((model) => model.name === localConfig.model || model.model === localConfig.model);
+  const recommendedProvider: ProviderChoice | null = ollamaReady
     ? 'ollama'
     : chromeDiagnostic?.status === 'available'
       ? 'chrome'
@@ -396,6 +398,11 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
               {!recommendationMatchesActive && recommendedProviderMeta && (
                 <p className="settings-active-provider-note">
                   AURA recomienda {recommendedProviderMeta.label} por disponibilidad actual, pero el diagnóstico usará {activeProvider.label} hasta que cambies el proveedor.
+                </p>
+              )}
+              {!recommendedProviderMeta && (
+                <p className="settings-active-provider-note">
+                  Ningún proveedor listo. Prepara Chrome AI, conecta Ollama con un modelo instalado o guarda una API key Cloud válida.
                 </p>
               )}
             </div>
@@ -702,8 +709,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
               </div>
 
               <div className="settings-field">
-                <label className="settings-label">API Key (solo durante esta sesión)</label>
+                <label className="settings-label" htmlFor="aura-cloud-api-key">API Key (solo durante esta sesión)</label>
                 <input
+                  id="aura-cloud-api-key"
                   type="password"
                   value={localConfig.apiKey || ''}
                   onChange={(e) => setLocalConfig({ ...localConfig, apiKey: e.target.value })}
@@ -838,6 +846,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                 <li><strong>Chrome AI:</strong> Gemini Nano se ejecuta en el navegador. Ningún dato sale de tu dispositivo mientras este modo esté activo.</li>
                 <li><strong>Ollama local:</strong> La inferencia ocurre en tu máquina vía servidor local.</li>
                 <li><strong>Cloud:</strong> Se envía un paquete estructurado al proveedor. No se envía el archivo CSV completo.</li>
+                <li><strong>API keys:</strong> Permanecen solo en esta sesión del navegador; no se guardan en almacenamiento persistente, sync ni exportaciones.</li>
                 <li><strong>Exportación:</strong> Tú decides qué exportar. Nada se exporta sin tu acción explícita.</li>
               </ul>
             </div>

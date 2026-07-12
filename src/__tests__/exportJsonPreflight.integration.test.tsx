@@ -135,8 +135,7 @@ describe('JSON technical export preflight integration', () => {
 
     render(<App />);
 
-    expect(screen.queryByRole('button', { name: /Laboratorio/i })).toBeNull();
     expect(screen.queryByText(/Laboratorio de Modelos/i)).toBeNull();
-    expect(screen.getAllByRole('button', { name: 'Evaluación OE4' })).toHaveLength(2);
+    expect(screen.getAllByRole('button', { name: 'Laboratorio' })).toHaveLength(2);
   });
 });

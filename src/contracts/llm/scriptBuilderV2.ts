@@ -275,7 +275,13 @@ export function buildScriptCandidateCoreV2(
   // ── Build script via renderer ──
   let scriptText: string;
   try {
-    scriptText = buildScriptText(renderableActions, buildContext.columnRegistry, plan.inputReceiptRef);
+    scriptText = buildScriptText(renderableActions, buildContext.columnRegistry, {
+      inputReceiptRef: plan.inputReceiptRef,
+      inputMode: plan.inputTrace?.inputMode,
+      promptHash: plan.inputTrace?.promptHash,
+      inputHash: plan.inputTrace?.inputHash,
+      evidenceEnvelopeRef: plan.inputTrace?.evidenceEnvelopeRef,
+    });
   } catch (e) {
     if (e instanceof ScriptRendererError) {
       builderError('SCRIPT_BUILD_RENDER_FAILED', e.message, { rendererErrorCode: (e as ScriptRendererError).code });
@@ -327,6 +333,7 @@ export function buildScriptCandidateCoreV2(
     contractVersion: '2.0.0',
     remediationRef: plan.planId,
     inputReceiptRef: plan.inputReceiptRef,
+    inputTrace: plan.inputTrace ? { ...plan.inputTrace } : undefined,
     datasetFingerprint: plan.datasetFingerprint,
     acceptedActionIds,
     rejectedActionIds,
@@ -383,6 +390,7 @@ export function buildScriptHashPayloadV2(
   return {
     remediationRef: candidate.remediationRef,
     inputReceiptRef: candidate.inputReceiptRef,
+    inputTrace: candidate.inputTrace,
     datasetFingerprint: candidate.datasetFingerprint,
     acceptedActionIds: [...candidate.acceptedActionIds].sort(),
     columnRefs: [...candidate.columnRefs]
@@ -470,6 +478,7 @@ export function finalizeScriptContractV2(
     contractVersion: candidate.contractVersion,
     remediationRef: candidate.remediationRef,
     inputReceiptRef: candidate.inputReceiptRef,
+    inputTrace: candidate.inputTrace ? { ...candidate.inputTrace } : undefined,
     datasetFingerprint: candidate.datasetFingerprint,
     acceptedActionIds: [...candidate.acceptedActionIds],
     rejectedActionIds: [...candidate.rejectedActionIds],

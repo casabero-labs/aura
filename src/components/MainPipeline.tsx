@@ -11,7 +11,7 @@ import ScriptGenerationStepV2 from './ScriptGenerationStepV2';
 import { OptionalRemediationNotice, RemediationBranchActions } from './remediation';
 import { runAudit } from '../services/auditEngine';
 import { parseCsv } from '../services/csvService';
-import { buildAuditEvidence, buildIngestionEvidence, createTraceRecorder, fingerprintDataset } from '../services/executionEvidence';
+import { buildAuditEvidence, buildIngestionEvidence, computeFileSha256, createTraceRecorder, fingerprintDataset } from '../services/executionEvidence';
 import { matchGroundTruth, buildDeterministicValidationReport } from '../services/deterministicValidation';
 import { validateCleaningScript } from '../services/scriptValidationService';
 import { buildScriptContractInputKey, buildUiScriptContext } from '../services/scriptContractUiContext';
@@ -512,6 +512,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
       addLog(`csv.parse.end :: ${data.length} registros · ${meta.fields?.length ?? 0} columnas · ${parseDurationMs}ms`);
 
       const datasetFingerprint = fingerprintDataset(data, meta.fields);
+      const datasetSha256 = await computeFileSha256(uploadedFile);
       trace.mark('audit.run.start', { datasetFingerprint });
       addLog(`audit.run.start :: fingerprint=${datasetFingerprint}`);
       setProcessProgressStep('Ejecutando auditoría determinista');
@@ -524,7 +525,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
       const completedAt = new Date().toISOString();
       const evidence = buildAuditEvidence({
         fileName: uploadedFile.name, fileSize: uploadedFile.size,
-        datasetFingerprint, startedAt, completedAt,
+        datasetFingerprint, datasetSha256, startedAt, completedAt,
         parseDurationMs, auditDurationMs, rowsProcessed: data.length,
         columnsProcessed: meta.fields.length, delimiter: meta.delimiter,
         truncated: meta.truncated, ingestionStatus: 'success',
