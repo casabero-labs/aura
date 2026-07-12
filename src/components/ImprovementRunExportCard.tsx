@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { ImprovementRunV1 } from '../services/improvementRunService';
 import { exportImprovementRunJSON } from '../services/improvementRunService';
+import SyntaxDisplay from './SyntaxDisplay';
 
 interface Props {
   improvementRun: ImprovementRunV1;
@@ -79,12 +80,13 @@ const ImprovementRunExportCard: React.FC<Props> = ({ improvementRun }) => {
           {previewOpen ? '▲ Hide preview' : '▶ Show preview'}
         </button>
         {previewOpen && (
-          <pre
-            data-testid="json-preview"
-            style={{ fontSize: 11, fontFamily: 'monospace', background: '#f3f4f6', borderRadius: 4, padding: '8px', overflow: 'auto', maxHeight: 240, margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}
-          >
-            {previewText}
-          </pre>
+          <SyntaxDisplay
+            filename="improvement-run.json"
+            content={previewText}
+            copyText={jsonString}
+            maxHeight={240}
+            contentTestId="json-preview"
+          />
         )}
       </div>
 

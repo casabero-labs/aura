@@ -227,11 +227,12 @@ campaña real después del preflight. V1 permanece solo como evidencia históric
 
 - Los tres modelos Unsloth congelados son también las únicas recomendaciones de Ollama para el diagnóstico normal; las alternativas históricas siguen disponibles, pero no se presentan como recomendadas.
 - El asistente de Ollama vive dentro de AURA: verifica conexión, consulta modelos instalados, descarga mediante `/api/pull`, muestra porcentaje y bytes reales y conserva un registro técnico visible con el patrón Syntax display.
+- El patrón Syntax display ya no es una consola oscura: se implementó como componente común basado en `showcase-ink`, con cabecera blanca, cuerpo gris claro, JetBrains Mono, borde y sombra sutil y control de copia. Se usa en Ollama, diagnóstico, expediente técnico, reporte, historial LLM, scripts y salidas del Laboratorio.
 - La antigua implementación de `ollama-setup.html` fue sustituida por una redirección segura hacia el mismo asistente React; el lanzador que interceptaba Configuración fue retirado para conservar el flujo dentro de AURA. Configuración ya no enlaza a configuración avanzada ni a un laboratorio experimental inexistentes.
 - La trazabilidad del diagnóstico identifica método solicitado y efectivo, secciones, modelo observado y hashes. El JSON técnico conserva ese recibo; el CSV es una vista tabular complementaria sin recibo.
 - El reporte normal muestra valores medidos y usa `No medido` cuando una métrica formal no existe, sin convertir ausencias en ceros.
 - El preflight exige Ollama `>= 0.5.0`, los tres identificadores exactos y un digest local válido. El digest de Ollama se captura como identidad del entorno y no se confunde con el SHA-256 de referencia del GGUF.
-- Validación: 1738 pruebas Vitest aprobadas, 6 omitidas, typecheck y build correctos, y 6/6 E2E focales aprobados en Chromium.
+- Validación: 1740 pruebas Vitest aprobadas, 6 omitidas, typecheck y build correctos, y 10/10 E2E focales aprobados en Chromium. La prueba visual verifica colores, tipografía, sombra, cabecera y copia del componente real en el asistente de Ollama.
 - El build aislado de Coolify ya no importa archivos fuera de `src`: una copia desplegable del oráculo se verifica byte a byte contra `experiments/final-evaluation/oracles/diagnostic-oracle.v1.json`.
 - La campaña de 45 corridas continúa bloqueada únicamente por los smokes reales y la ejecución manual del investigador.
 

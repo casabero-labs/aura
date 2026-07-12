@@ -3,6 +3,7 @@ import { FileCode2, Copy, Download, ChevronDown, ChevronRight, Hash } from 'luci
 import { AIConfig } from '../../types';
 import { buildSmartSample, buildAnalysisPrompt } from '../../services/providers/prompts';
 import { computePromptHash } from '../../services/llmAuditLog';
+import SyntaxDisplay from '../SyntaxDisplay';
 
 interface DisclosureSectionProps {
   title: string;
@@ -142,9 +143,10 @@ export const TechnicalEvidencePanel: React.FC<TechnicalEvidencePanelProps> = ({
               isOpen={showContext}
               onToggle={setShowContext}
             >
-              <pre className="technical-evidence-pre">
-                {JSON.stringify(smartSample.context, null, 2)}
-              </pre>
+              <SyntaxDisplay
+                filename="context.json"
+                content={JSON.stringify(smartSample.context, null, 2)}
+              />
             </DisclosureSection>
 
             <DisclosureSection
@@ -152,9 +154,11 @@ export const TechnicalEvidencePanel: React.FC<TechnicalEvidencePanelProps> = ({
               isOpen={showColumns}
               onToggle={setShowColumns}
             >
-              <pre className="technical-evidence-pre technical-evidence-pre--scroll">
-                {JSON.stringify(smartSample.columns, null, 2)}
-              </pre>
+              <SyntaxDisplay
+                filename="columns.json"
+                content={JSON.stringify(smartSample.columns, null, 2)}
+                maxHeight={320}
+              />
             </DisclosureSection>
 
             <DisclosureSection
@@ -162,9 +166,11 @@ export const TechnicalEvidencePanel: React.FC<TechnicalEvidencePanelProps> = ({
               isOpen={showIssues}
               onToggle={setShowIssues}
             >
-              <pre className="technical-evidence-pre technical-evidence-pre--scroll">
-                {JSON.stringify(smartSample.detected_issues, null, 2)}
-              </pre>
+              <SyntaxDisplay
+                filename="detected_issues.json"
+                content={JSON.stringify(smartSample.detected_issues, null, 2)}
+                maxHeight={320}
+              />
             </DisclosureSection>
 
             <DisclosureSection
@@ -172,9 +178,7 @@ export const TechnicalEvidencePanel: React.FC<TechnicalEvidencePanelProps> = ({
               isOpen={showPrompt}
               onToggle={setShowPrompt}
             >
-              <pre className="technical-evidence-pre technical-evidence-pre--scroll">
-                {diagnosisPrompt}
-              </pre>
+              <SyntaxDisplay filename="diagnosis.prompt.txt" content={diagnosisPrompt} maxHeight={320} />
             </DisclosureSection>
 
             <DisclosureSection

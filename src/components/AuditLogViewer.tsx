@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ClipboardList, Download, Trash2, ChevronDown, ChevronRight, X, Clock, Database, FileCode2 } from 'lucide-react';
 import { getAuditLog, clearAuditLog, downloadAuditLog, getAuditStats, LlmAuditEntry } from '../services/llmAuditLog';
+import SyntaxDisplay from './SyntaxDisplay';
 
 const statusLabel: Record<LlmAuditEntry['status'], string> = {
   completed: 'Completado',
@@ -161,7 +162,7 @@ const AuditLogViewer: React.FC<AuditLogViewerProps> = ({ onClose }) => {
                     </div>
                     <div className="audit-detail-row audit-detail-row--prompt">
                       <span>Prompt enviado al modelo</span>
-                      <pre className="audit-prompt-text">{entry.promptText}</pre>
+                      <SyntaxDisplay filename="llm-call.prompt.txt" content={entry.promptText} maxHeight={320} />
                     </div>
                     <div className="audit-detail-row">
                       <span>Prompt length</span>

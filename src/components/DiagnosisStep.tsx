@@ -5,6 +5,7 @@ import ProgressDisclosure from './ProgressDisclosure';
 import ChromeAiStatusPanel from './ChromeAiStatusPanel';
 import OllamaSetupWizard from './OllamaSetupWizard';
 import CopyableHash from './CopyableHash';
+import SyntaxDisplay from './SyntaxDisplay';
 import { DiagnosisHeroPanel, TechnicalEvidencePanel } from './diagnosis';
 import { AIConfig, AIProvider, AuditReport, AuditExecutionEvidence, ProviderMetrics, LocalModelStatus, DiagnosisEvent, ProviderProgressEvent, ProgressDisclosureStatus, InputMode } from '../types';
 import { buildSmartSample, buildAnalysisPrompt } from '../services/providers/prompts';
@@ -761,22 +762,24 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
           />
         )}
 
-        {/* 4. Styled terminal log while loading (visible alongside the progress bar) */}
+        {/* 4. Technical activity while loading (visible alongside the progress bar) */}
         {isLoading && diagnosisEvents.length > 0 && (
-          <div className="diagnosis-terminal" data-testid="diagnosis-terminal">
-            <div className="diagnosis-terminal-header">
-              <Activity size={12} />
-              <span>Progreso de la interfaz</span>
-            </div>
-            <div className="diagnosis-terminal-body">
+          <SyntaxDisplay
+            filename="diagnosis.activity.log"
+            copyText={diagnosisEvents.map((event) => `${new Date(event.timestamp).toLocaleTimeString()}  ${event.message}`).join('\n')}
+            className="diagnosis-terminal"
+            maxHeight={180}
+            testId="diagnosis-terminal"
+            role="log"
+            ariaLive="polite"
+          >
               {diagnosisEvents.map((event, i) => (
                 <div key={i} className={`diagnosis-terminal-row diagnosis-terminal-row--${event.level}`}>
                   <span className="diagnosis-terminal-time">{new Date(event.timestamp).toLocaleTimeString()}</span>
                   <span className="diagnosis-terminal-message">{event.message}</span>
                 </div>
               ))}
-            </div>
-          </div>
+          </SyntaxDisplay>
         )}
 
         {/* 5. Provider / error notices */}
@@ -1138,26 +1141,17 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
                 {structuredDiagnosis.inputSnapshot && (
                   <>
                     <div className="diagnosis-tech-section">
-                      <h4 className="diagnosis-tech-section-title">System instruction</h4>
-                      <pre className="diagnosis-tech-pre diagnosis-tech-pre--scroll">
-                        {structuredDiagnosis.inputSnapshot.systemInstruction}
-                      </pre>
+                      <SyntaxDisplay filename="system.instruction.txt" content={structuredDiagnosis.inputSnapshot.systemInstruction} maxHeight={320} />
                     </div>
                     <div className="diagnosis-tech-section">
-                      <h4 className="diagnosis-tech-section-title">User payload</h4>
-                      <pre className="diagnosis-tech-pre diagnosis-tech-pre--scroll">
-                        {structuredDiagnosis.inputSnapshot.userPayload}
-                      </pre>
+                      <SyntaxDisplay filename="user-payload.json" content={structuredDiagnosis.inputSnapshot.userPayload} maxHeight={320} />
                     </div>
                   </>
                 )}
 
                 {/* Raw response */}
                 <div className="diagnosis-tech-section">
-                  <h4 className="diagnosis-tech-section-title">Respuesta cruda del proveedor</h4>
-                  <pre className="diagnosis-tech-pre diagnosis-tech-pre--scroll">
-                    {JSON.stringify(structuredDiagnosis, null, 2)}
-                  </pre>
+                  <SyntaxDisplay filename="provider-response.json" content={JSON.stringify(structuredDiagnosis, null, 2)} maxHeight={320} />
                 </div>
               </>
             ) : (
@@ -1180,23 +1174,16 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
                   </div>
                 </div>
                 <div className="diagnosis-tech-section">
-                  <h4 className="diagnosis-tech-section-title">Smart sample (preview técnico)</h4>
-                  <pre className="diagnosis-tech-pre">
-                    {JSON.stringify(smartSample, null, 2).substring(0, 1200)}
-                    {JSON.stringify(smartSample, null, 2).length > 1200 ? '\n…' : ''}
-                  </pre>
+                  <SyntaxDisplay
+                    filename="smart-sample.preview.json"
+                    content={`${JSON.stringify(smartSample, null, 2).substring(0, 1200)}${JSON.stringify(smartSample, null, 2).length > 1200 ? '\n…' : ''}`}
+                  />
                 </div>
                 <div className="diagnosis-tech-section">
-                  <h4 className="diagnosis-tech-section-title">Prompt enviado al modelo</h4>
-                  <pre className="diagnosis-tech-pre diagnosis-tech-pre--scroll">
-                    {diagnosisPrompt}
-                  </pre>
+                  <SyntaxDisplay filename="diagnosis.prompt.txt" content={diagnosisPrompt} maxHeight={320} />
                 </div>
                 <div className="diagnosis-tech-section">
-                  <h4 className="diagnosis-tech-section-title">Respuesta cruda del proveedor</h4>
-                  <pre className="diagnosis-tech-pre diagnosis-tech-pre--scroll">
-                    {draftAnalysis}
-                  </pre>
+                  <SyntaxDisplay filename="provider-response.txt" content={draftAnalysis} maxHeight={320} />
                 </div>
               </>
             )}

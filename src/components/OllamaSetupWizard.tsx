@@ -30,6 +30,7 @@ import {
   type PlatformInfo,
 } from '../services/platformDetection';
 import { FINAL_EVALUATION_OLLAMA_MODELS } from '../services/modelRegistry';
+import SyntaxDisplay from './SyntaxDisplay';
 
 interface OllamaSetupWizardProps {
   endpoint?: string;
@@ -203,6 +204,10 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
   const [setupLog, setSetupLog] = useState<SetupLogEntry[]>([{
     at: new Date().toISOString(), kind: 'info', message: 'Asistente iniciado. Esperando verificación de Ollama.',
   }]);
+
+  const setupLogText = useMemo(() => setupLog.map((entry) => (
+    `${new Date(entry.at).toLocaleTimeString()}  ${entry.kind.toUpperCase()}  ${entry.message}`
+  )).join('\n'), [setupLog]);
 
   const appendLog = useCallback((kind: SetupLogEntry['kind'], message: string) => {
     setSetupLog((current) => [...current.slice(-59), { at: new Date().toISOString(), kind, message }]);
@@ -480,7 +485,7 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
           {currentOS === 'windows' && (
             <div className="ollama-wizard-subsection">
               <strong>PowerShell:</strong>
-              <div className="ollama-wizard-code-block"><code>{PS_WINDOWS}</code></div>
+              <SyntaxDisplay filename="powershell" content={PS_WINDOWS} wrap={false} />
             </div>
           )}
           <p className="ollama-wizard-note">
@@ -760,12 +765,15 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
         </div>
       )}
 
-      <div className="ollama-syntax-display" data-testid="ollama-setup-log">
-        <div className="ollama-syntax-display-head">
-          <span>ollama.setup.log</span>
-          <span>actividad real</span>
-        </div>
-        <div className="ollama-syntax-display-body" role="log" aria-live="polite">
+      <SyntaxDisplay
+        filename="ollama.setup.log"
+        copyText={setupLogText}
+        className="ollama-setup-log"
+        maxHeight={168}
+        testId="ollama-setup-log"
+        role="log"
+        ariaLive="polite"
+      >
           {setupLog.map((entry, index) => (
             <div className={`ollama-syntax-line ollama-syntax-line--${entry.kind}`} key={`${entry.at}-${index}`}>
               <time>{new Date(entry.at).toLocaleTimeString()}</time>
@@ -773,8 +781,7 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
               <code>{entry.message}</code>
             </div>
           ))}
-        </div>
-      </div>
+      </SyntaxDisplay>
 
       <div className="ollama-wizard-footer">
         {onCancel && <button type="button" className="btn-s btn-sm" onClick={onCancel}>Cerrar asistente</button>}

@@ -1,5 +1,6 @@
 import React from 'react';
 import type { ExperimentRunV1 } from '../../services/benchmark/experimentTypes';
+import SyntaxDisplay from '../SyntaxDisplay';
 
 interface ExperimentRunDetailProps {
   run: ExperimentRunV1;
@@ -45,7 +46,11 @@ const ExperimentRunDetail: React.FC<ExperimentRunDetailProps> = ({ run, represen
               <div><dt>Latencia</dt><dd>{metric(result?.metrics?.totalDurationMs, ' ms')}</dd></div>
               <div><dt>Tokens salida</dt><dd>{metric(result?.metrics?.outputTokens)}</dd></div>
             </dl>
-            <pre>{result?.rawOutput || 'Sin salida registrada.'}</pre>
+            <SyntaxDisplay
+              filename={stage === 'diagnosis' ? 'diagnosis-output.json' : 'script-output.py'}
+              content={result?.rawOutput || 'Sin salida registrada.'}
+              maxHeight={230}
+            />
           </article>
         );
       })}

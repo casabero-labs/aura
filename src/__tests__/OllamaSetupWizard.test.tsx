@@ -40,6 +40,8 @@ describe('OllamaSetupWizard', () => {
       expect(screen.getByRole('progressbar', { name: /Descarga de Qwen 3 8B/i }).getAttribute('aria-valuenow')).toBe('100');
     });
     expect(screen.getByTestId('ollama-setup-log').textContent).toContain('instalación terminada y modelo detectado');
+    expect(screen.getByTestId('ollama-setup-log').classList.contains('syntax-display')).toBe(true);
+    expect(screen.getByRole('button', { name: 'Copiar ollama.setup.log' })).toBeTruthy();
     expect(screen.getByTestId(`ollama-formal-model-${model.replace(/[^a-zA-Z0-9]/g, '-')}`).textContent).toContain('Instalado');
   });
 });

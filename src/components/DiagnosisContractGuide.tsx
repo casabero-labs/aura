@@ -3,6 +3,7 @@ import { FileJson, Lock, Unlock, AlertTriangle, CheckCircle, Clock, Zap, Eye, Fi
 import { AIConfig, AuditReport, InputMode } from '../types';
 import { buildSmartSample, buildAnalysisPrompt } from '../services/providers/prompts';
 import { computePromptHash } from '../services/llmAuditLog';
+import SyntaxDisplay from './SyntaxDisplay';
 
 interface DiagnosisContractGuideProps {
   report: AuditReport;
@@ -307,12 +308,12 @@ export const DiagnosisContractGuide: React.FC<DiagnosisContractGuideProps> = ({
 
             <details className="prompt-preview-details">
               <summary>Ver prompt completo ({diagnosisPrompt.length} chars)</summary>
-              <pre className="prompt-preview-content">{diagnosisPrompt}</pre>
+              <SyntaxDisplay filename="diagnosis.prompt.txt" content={diagnosisPrompt} maxHeight={320} />
             </details>
 
             <details className="prompt-preview-details">
               <summary>Ver smartSample JSON ({JSON.stringify(smartSample).length} chars)</summary>
-              <pre className="prompt-preview-content">{JSON.stringify(smartSample, null, 2)}</pre>
+              <SyntaxDisplay filename="smart-sample.json" content={JSON.stringify(smartSample, null, 2)} maxHeight={320} />
             </details>
           </div>
         )}

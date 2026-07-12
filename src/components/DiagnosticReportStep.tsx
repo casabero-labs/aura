@@ -10,6 +10,7 @@ import {
   DiagnosticRecommendationsPanel,
   DiagnosticReportChartPreview,
 } from './diagnosticReport';
+import SyntaxDisplay from './SyntaxDisplay';
 
 interface DiagnosticReportEvaluationSummary {
   contractErrorsCount?: number | null;
@@ -231,10 +232,10 @@ const TechnicalEvidenceDisclosure: React.FC<{ report: DiagnosticReport }> = ({ r
         </section>
 
         <section className="diagnostic-report-tech-section">
-          <h4>Especificación de gráficos</h4>
-          <pre className="diagnostic-report-tech-pre">
-            {JSON.stringify(report.chartSpecs, null, 2)}
-          </pre>
+          <SyntaxDisplay
+            filename="chart-specs.json"
+            content={JSON.stringify(report.chartSpecs, null, 2)}
+          />
         </section>
 
         <section className="diagnostic-report-tech-section">
@@ -242,9 +243,7 @@ const TechnicalEvidenceDisclosure: React.FC<{ report: DiagnosticReport }> = ({ r
           <p className="diagnostic-report-tech-note">
             Vista orientada a auditoría y desarrollo. No requiere el usuario final para tomar la decisión de exportación.
           </p>
-          <pre className="diagnostic-report-tech-pre diagnostic-report-tech-pre--scroll">
-            {serialized}
-          </pre>
+          <SyntaxDisplay filename="diagnostic-report.json" content={serialized} maxHeight={360} />
         </section>
       </div>
     </details>

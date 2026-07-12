@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Phase 7 L1 — E2E Smoke: Navigation + Health Delta', () => {
+test.describe('Phase 7 L1 — E2E Smoke: Navigation + Laboratorio', () => {
 
   test.beforeEach(async ({ page }) => {
     await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 60_000 });
@@ -21,7 +21,7 @@ test.describe('Phase 7 L1 — E2E Smoke: Navigation + Health Delta', () => {
 
       await expect(navCenterMenu.getByRole('button', { name: 'Home' })).toBeVisible();
       await expect(navCenterMenu.getByRole('button', { name: 'Auditoría' })).toBeVisible();
-      await expect(navCenterMenu.getByRole('button', { name: 'Health Delta' })).toBeVisible();
+      await expect(navCenterMenu.getByRole('button', { name: 'Laboratorio' })).toBeVisible();
       await expect(navCenterMenu.getByRole('button', { name: 'Configuración' })).toBeVisible();
     });
 
@@ -44,17 +44,17 @@ test.describe('Phase 7 L1 — E2E Smoke: Navigation + Health Delta', () => {
       await expect(page.getByRole('button', { name: /Abrir laboratorio experimental/i })).toHaveCount(0);
     });
 
-    test('E2E-NAV-004 — Health Delta abre correctamente', async ({ page }) => {
+    test('E2E-NAV-004 — Laboratorio abre correctamente', async ({ page }) => {
       const navCenterMenu = page.locator('.nav-center-menu');
-      const healthDeltaBtn = navCenterMenu.getByRole('button', { name: 'Health Delta' });
+      const laboratoryBtn = navCenterMenu.getByRole('button', { name: 'Laboratorio' });
 
-      await healthDeltaBtn.click();
-      await expect(healthDeltaBtn).toHaveClass(/active/);
+      await laboratoryBtn.click();
+      await expect(laboratoryBtn).toHaveClass(/active/);
 
-      const improvementRunPage = page.getByRole('heading', { name: 'Improvement Run', exact: true });
-      await expect(improvementRunPage).toBeVisible();
+      const laboratoryPage = page.getByRole('heading', { name: 'Laboratorio de evaluación LLM', exact: true });
+      await expect(laboratoryPage).toBeVisible();
 
-      const runButton = page.getByRole('button', { name: /Run Improvement Flow/i });
+      const runButton = page.getByRole('button', { name: 'Crear experimento' });
       await expect(runButton).toBeVisible();
     });
 
@@ -69,36 +69,33 @@ test.describe('Phase 7 L1 — E2E Smoke: Navigation + Health Delta', () => {
       await expect(guardBtn.first()).toBeVisible();
     });
 
-    test('E2E-NAV-006 — Health Delta no deja Auditoría activa', async ({ page }) => {
+    test('E2E-NAV-006 — Laboratorio no deja Auditoría activa', async ({ page }) => {
       const navCenterMenu = page.locator('.nav-center-menu');
       const auditoriaBtn = navCenterMenu.getByRole('button', { name: 'Auditoría' });
-      const healthDeltaBtn = navCenterMenu.getByRole('button', { name: 'Health Delta' });
+      const laboratoryBtn = navCenterMenu.getByRole('button', { name: 'Laboratorio' });
 
       await auditoriaBtn.click();
       await expect(auditoriaBtn).toHaveClass(/active/);
 
-      await healthDeltaBtn.click();
-      await expect(healthDeltaBtn).toHaveClass(/active/);
+      await laboratoryBtn.click();
+      await expect(laboratoryBtn).toHaveClass(/active/);
       await expect(auditoriaBtn).not.toHaveClass(/active/);
     });
 
-    test('E2E-NAV-007 — Back desde Health Delta vuelve a Auditoría', async ({ page }) => {
+    test('E2E-NAV-007 — Desde Laboratorio se puede volver a Auditoría', async ({ page }) => {
       const navCenterMenu = page.locator('.nav-center-menu');
-      const healthDeltaBtn = navCenterMenu.getByRole('button', { name: 'Health Delta' });
+      const laboratoryBtn = navCenterMenu.getByRole('button', { name: 'Laboratorio' });
+      const auditoriaBtn = navCenterMenu.getByRole('button', { name: 'Auditoría' });
 
-      await healthDeltaBtn.click();
-      await expect(healthDeltaBtn).toHaveClass(/active/);
+      await laboratoryBtn.click();
+      await expect(laboratoryBtn).toHaveClass(/active/);
 
-      const backBtn = page.locator('button', { hasText: 'Back' });
-      await expect(backBtn).toBeVisible();
-      await backBtn.click();
-
-      await page.waitForTimeout(500);
-
-      await expect(healthDeltaBtn).not.toHaveClass(/active/);
+      await auditoriaBtn.click();
+      await expect(auditoriaBtn).toHaveClass(/active/);
+      await expect(laboratoryBtn).not.toHaveClass(/active/);
     });
 
-    test('E2E-NAV-008 — Mobile nav permite abrir Health Delta', async ({ page }) => {
+    test('E2E-NAV-008 — Mobile nav permite abrir Laboratorio', async ({ page }) => {
       await page.setViewportSize({ width: 375, height: 667 });
 
       const mobileToggle = page.locator('.mobile-nav-toggle');
@@ -109,12 +106,12 @@ test.describe('Phase 7 L1 — E2E Smoke: Navigation + Health Delta', () => {
       const navLinks = page.locator('.nav-links');
       await expect(navLinks).toHaveClass(/nav-links-open/);
 
-      const healthDeltaLink = navLinks.getByRole('button', { name: 'Health Delta' });
-      await expect(healthDeltaLink).toBeVisible();
+      const laboratoryLink = navLinks.getByRole('button', { name: 'Laboratorio' });
+      await expect(laboratoryLink).toBeVisible();
 
-      await healthDeltaLink.click();
+      await laboratoryLink.click();
 
-      const runButton = page.getByRole('button', { name: /Run Improvement Flow/i });
+      const runButton = page.getByRole('button', { name: 'Crear experimento' });
       await expect(runButton).toBeVisible();
     });
 

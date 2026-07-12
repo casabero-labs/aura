@@ -14,6 +14,7 @@ import React, { useCallback, useState } from 'react';
 import { ArrowRight, CheckCircle2, FileCode2, ShieldAlert, ShieldCheck, TriangleAlert, Gauge, Sparkles, AlertTriangle, Ban } from 'lucide-react';
 import { AIProvider, ProviderMetrics, ScriptValidationResult, ProgressDisclosureStatus, AuditReport } from '../types';
 import ProgressDisclosure from './ProgressDisclosure';
+import SyntaxDisplay from './SyntaxDisplay';
 import { highlightPython } from '../services/highlightPython';
 import { buildDeterministicCleaningScript, buildFallbackScriptMetrics } from '../services/deterministicScriptBuilder';
 import { buildDiagnosisScriptBrief, buildDiagnosisSummaryPrompt, buildScriptPrompt, extractPythonScript } from '../services/providers/prompts';
@@ -295,6 +296,10 @@ const LegacyScriptGenerationStepV1: React.FC<LegacyScriptGenerationStepV1Props> 
             <p>Esta etapa solo genera y valida. La aprobación humana ocurre en la siguiente pantalla.</p>
           </div>
           <div className="script-code-shell">
+            <div className="script-code-head">
+              <span className="script-code-filename">limpieza_dataset.py</span>
+              <span className="script-code-language">Python</span>
+            </div>
             <div className={`script-scroll custom-scrollbar ${showFullCode ? '' : 'script-scroll--preview'}`}>
               <pre className="script-code">
                 {cleaningScript.split('\n').map((line, index) => (
@@ -316,7 +321,7 @@ const LegacyScriptGenerationStepV1: React.FC<LegacyScriptGenerationStepV1Props> 
 
       <details className="script-contract-details" data-testid="technical-details">
         <summary>Ver contrato usado para generar script</summary>
-        <pre>{scriptPromptPreview}</pre>
+        <SyntaxDisplay filename="script-generation.contract.txt" content={scriptPromptPreview} maxHeight={320} />
       </details>
     </section>
   );
