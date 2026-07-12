@@ -35,9 +35,10 @@ No ejecutar las 45 corridas mientras cualquiera de estos gates esté rojo:
 - [x] **COMPLETO — P1**: métricas reales y procedencia verificable de validación/ejecución Python.
 - [x] **COMPLETO — P1-04**: interfaz llama al módulo `Laboratorio`; reporte y exportaciones explican métricas, recibos y complementariedad JSON/CSV.
 - [x] **COMPLETO — Ollama UX**: tres modelos Unsloth recomendados en diagnóstico normal y campaña; asistente integrado con conexión, descarga, progreso real y registro técnico.
+- [x] **MATRIZ 16 GB CORREGIDA ANTES DE CORRIDAS**: Qwen3 8B + Gemma 4 E4B IT QAT + SmolLM3 3B; DeepSeek retirado, hashes GGUF y protocolo V2.1 actualizados, comandos `ollama run` visibles.
 - [x] **COMPLETO — limpieza**: retirada la implementación HTML duplicada; queda solo una redirección segura hacia React y se eliminaron los enlaces sin destino a configuración avanzada y laboratorio experimental.
 - [x] **ALINEACIÓN SHOWCASE-INK**: componente `SyntaxDisplay` compartido para logs, JSON, prompts, respuestas y evidencia del Laboratorio; sin terminal oscuro aislado en Ollama o progreso de diagnóstico.
-- [x] **VALIDACIÓN ACTUAL**: 1740 tests, typecheck, build y 10/10 E2E focales en Chromium.
+- [x] **VALIDACIÓN ACTUAL**: 1741 tests, typecheck, build y 10/10 E2E focales en Chromium.
 - [x] **DESPLIEGUE COOLIFY**: copia desplegable del oráculo dentro de `src`, con paridad byte a byte frente a la fuente canónica, elimina la dependencia fuera del contexto de build.
 - [ ] **BLOQUEADO**: Smokes reales opt-in con los tres modelos instalados.
 - [ ] **BLOQUEADO**: Campaña real ejecutada manualmente por el investigador.

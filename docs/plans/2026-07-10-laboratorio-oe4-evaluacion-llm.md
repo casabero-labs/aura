@@ -86,8 +86,8 @@ export const FINAL_EVALUATION_PROTOCOL = {
   },
   models: [
     'hf.co/unsloth/Qwen3-8B-GGUF:UD-Q4_K_XL',
-    'hf.co/unsloth/gemma-3-4b-it-qat-GGUF:UD-Q4_K_XL',
-    'hf.co/unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF:UD-Q4_K_XL',
+    'hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL',
+    'hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL',
   ],
   inputModes: [
     'prompt_libre',
@@ -95,7 +95,7 @@ export const FINAL_EVALUATION_PROTOCOL = {
     'recommended',
   ],
   repetitions: 5,
-  inference: { temperature: 0.2, topP: 0.9, numCtx: 16384, numPredict: 1600 },
+  inference: { temperature: 0.2, topP: 0.9, think: false, numCtx: 16384, numPredict: 1600 },
 } as const;
 ```
 
@@ -282,6 +282,7 @@ npm test -- --run __tests__/ollamaProvider.test.ts __tests__/finalEvaluationMode
 - Replace estimated `text.length / 4` output tokens when Ollama returns `eval_count`.
 - Convert nanoseconds to milliseconds once.
 - Preserve `message.thinking` separately from `message.content`.
+- Send `think: false` in every formal Ollama request so all three models share the same non-reasoning condition.
 - Add `top_p` to the common options.
 - Record Ollama model digest from `/api/tags` or `/api/show`.
 - Extend `validate-ollama.mjs` to validate all three models, the expected identifiers, client/server version agreement, free disk and a non-empty smoke response.
@@ -846,9 +847,9 @@ git commit -m "test: validate OE4 laboratory journey"
 Synchronize Ollama client/server, then install the exact models one at a time:
 
 ```bash
-ollama pull hf.co/unsloth/Qwen3-8B-GGUF:UD-Q4_K_XL
-ollama pull hf.co/unsloth/gemma-3-4b-it-qat-GGUF:UD-Q4_K_XL
-ollama pull hf.co/unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF:UD-Q4_K_XL
+ollama run hf.co/unsloth/Qwen3-8B-GGUF:UD-Q4_K_XL
+ollama run hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL
+ollama run hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL
 cd /Users/casabero/Documents/GitHub/aura/src
 npm run ollama:validate -- --protocol=../experiments/final-evaluation/protocol.v1.json
 ```

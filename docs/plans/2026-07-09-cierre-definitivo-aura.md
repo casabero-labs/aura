@@ -159,11 +159,11 @@ Solo existen cuatro bloques. Se ejecutan en orden y no se abre trabajo nuevo fue
 - Consolidador oficial: el Laboratorio de AURA guarda campañas, no resultados aislados. Conserva configuración, contratos, prompts y hashes, diagnóstico, script, métricas, revisión humana, ejecución controlada, reauditoría y artefactos.
 - Dataset único: `controlled_customers_phase8.csv`, 50 filas, 15 columnas y SHA-256 `7438bbdc96499d04bd7e485d6450f740304a7c878dce7d1a720dc4d9f2025faf`.
 - Oráculos previos: preservar el ground truth histórico, registrar su discrepancia 50/3/2 declarada frente a 51/2/2 real, normalizar a `ruleId + columnId + scope` y congelar una política de remediaciones esperadas, permitidas, prohibidas y sujetas a HITL.
-- Modelos locales exactos, todos Unsloth `UD-Q4_K_XL`: `Qwen3-8B`, `gemma-3-4b-it-qat` y `DeepSeek-R1-0528-Qwen3-8B`.
+- Modelos locales exactos, todos Unsloth `UD-Q4_K_XL`: `Qwen3-8B`, `gemma-4-E4B-it-qat` y `SmolLM3-3B`. Esta matriz sustituye la propuesta anterior de Gemma 3 y DeepSeek antes de la primera corrida formal para ajustarse al hardware de 16 GB.
 - Modos formales: `prompt_libre`, `smart_sample` y `recommended`. `enhanced_registry` y `copy_paste_bad_samples` quedan disponibles fuera de la campaña, pero se excluyen por redundancia experimental.
 - Matriz V2: tres modelos × tres modos × cinco repeticiones = 45 diagnósticos evaluados; 15 calentamientos excluidos producen 60 llamadas reales en total.
 - Pipeline común: todos los modos usan la misma fábrica de entrada y `aura.diagnosis.v2`; los scripts no usan LLM y se generan de forma determinista solo para los nueve representantes aprobados.
-- Configuración común: temperatura 0.2, `top_p` 0.9, contexto 16384 y máximo 1600 tokens por llamada, con versiones y digests congelados.
+- Configuración común: temperatura 0.2, `top_p` 0.9, `think: false`, contexto 16384 y máximo 1600 tokens por llamada, con versiones y digests congelados.
 - Persistencia: IndexedDB append-only, pausa y reanudación; fallos y reintentos nunca se sobrescriben.
 - Evaluación dinámica: las 45 corridas reciben métricas automáticas y rúbrica humana. Se selecciona por regla de mediana F1 un representante por celda modelo–entrada, 9 scripts en total, para HITL y ejecución externa sobre copias.
 
@@ -232,7 +232,7 @@ campaña real después del preflight. V1 permanece solo como evidencia históric
 - La trazabilidad del diagnóstico identifica método solicitado y efectivo, secciones, modelo observado y hashes. El JSON técnico conserva ese recibo; el CSV es una vista tabular complementaria sin recibo.
 - El reporte normal muestra valores medidos y usa `No medido` cuando una métrica formal no existe, sin convertir ausencias en ceros.
 - El preflight exige Ollama `>= 0.5.0`, los tres identificadores exactos y un digest local válido. El digest de Ollama se captura como identidad del entorno y no se confunde con el SHA-256 de referencia del GGUF.
-- Validación: 1740 pruebas Vitest aprobadas, 6 omitidas, typecheck y build correctos, y 10/10 E2E focales aprobados en Chromium. La prueba visual verifica colores, tipografía, sombra, cabecera y copia del componente real en el asistente de Ollama.
+- Validación: 1741 pruebas Vitest aprobadas, 6 omitidas, typecheck y build correctos, y 10/10 E2E focales aprobados en Chromium. La prueba visual verifica colores, tipografía, sombra, cabecera, copia y los tres comandos Ollama corregidos.
 - El build aislado de Coolify ya no importa archivos fuera de `src`: una copia desplegable del oráculo se verifica byte a byte contra `experiments/final-evaluation/oracles/diagnostic-oracle.v1.json`.
 - La campaña de 45 corridas continúa bloqueada únicamente por los smokes reales y la ejecución manual del investigador.
 

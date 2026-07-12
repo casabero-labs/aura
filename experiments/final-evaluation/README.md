@@ -11,6 +11,19 @@ Se ejecutan además **15 calentamientos reales excluidos**, para **60 llamadas
 reales en total**. Los scripts no usan LLM: se generan de forma determinista
 solo para los nueve representantes seleccionados.
 
+Modelos congelados antes de la primera corrida formal:
+
+```bash
+ollama run hf.co/unsloth/Qwen3-8B-GGUF:UD-Q4_K_XL
+ollama run hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL
+ollama run hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL
+```
+
+Los GGUF de referencia pesan 5.14 GB, 4.22 GB y 1.94 GB respectivamente. Se
+carga un solo modelo por vez en el MacBook Air M4 de 16 GB. SmolLM3 reemplaza
+a DeepSeek. El protocolo fija `think: false` para los tres modelos y favorece
+así el contrato JSON estricto y una comparación común.
+
 | Modo | Función experimental |
 |---|---|
 | `prompt_libre` | Línea base: resumen, esquema y registro mínimo de reglas; sin muestras problemáticas. |

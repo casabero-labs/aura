@@ -160,6 +160,7 @@ describe('OllamaProvider', () => {
       const body = JSON.parse(init.body as string);
       expect(body).toEqual(expect.objectContaining({
         keep_alive: '10m',
+        think: false,
         options: { temperature: 0.2, top_p: 0.9, num_ctx: 16384, num_predict: 1600, seed: 42 },
       }));
       expect(init.signal).toBeInstanceOf(AbortSignal);

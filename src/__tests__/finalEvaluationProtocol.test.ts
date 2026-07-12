@@ -317,7 +317,7 @@ describe('OE4 final evaluation protocol — Task 1', () => {
   });
 
   describe('protocol JSON ≡ TypeScript constant', () => {
-    it('matrix is 3×3×5 = 45 units and at most 90 evaluated LLM calls', () => {
+    it('matrix is 3×3×5 = 45 units and at most 45 evaluated LLM calls', () => {
       const protocol = readJson<{ matrix: { models: number; inputModes: number; repetitions: number; units: number; stagesPerUnit: number; maxLlmCalls: number } }>(PROTOCOL_JSON);
       const m = protocol.matrix as { models: number; inputModes: number; repetitions: number; units: number; stagesPerUnit: number; maxLlmCalls: number };
       expect(m.models).toBe(3);
@@ -386,13 +386,13 @@ describe('OE4 final evaluation protocol — Task 1', () => {
       const ids = manifest.models.map((m) => m.id);
       expect(ids).toEqual([
         'hf.co/unsloth/Qwen3-8B-GGUF:UD-Q4_K_XL',
-        'hf.co/unsloth/gemma-3-4b-it-qat-GGUF:UD-Q4_K_XL',
-        'hf.co/unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF:UD-Q4_K_XL',
+        'hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL',
+        'hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL',
       ]);
       const expected = [
         '34a514d08f7449cb4a694a707aaa2eedccb7bb68290121bf5e5a569b2abe71c3',
-        'ccd7e4b76a749936b1bea6aabd6118e6a16c61354acc09b367aec2aae8382c72',
-        'f040f922dfd89f0adc57a16309a7c407d39ad099a3997f47c1370ee1f33c380a',
+        'b3052f962d6449b4eb2075733c068bdec1c51eadb7b237e6c3157bfbb7b1dae0',
+        '305234462409d659233b0ea75fd1e070cc28d5add7d0480f2db02387679e3d0c',
       ];
       for (let i = 0; i < manifest.models.length; i++) {
         expect(manifest.models[i].quantization).toBe('UD-Q4_K_XL');

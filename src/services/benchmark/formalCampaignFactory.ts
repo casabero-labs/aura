@@ -14,8 +14,8 @@ import type {
 
 const EXPECTED_GGUF_SHA256: Record<OE4ModelId, string> = {
   'hf.co/unsloth/Qwen3-8B-GGUF:UD-Q4_K_XL': '34a514d08f7449cb4a694a707aaa2eedccb7bb68290121bf5e5a569b2abe71c3',
-  'hf.co/unsloth/gemma-3-4b-it-qat-GGUF:UD-Q4_K_XL': 'ccd7e4b76a749936b1bea6aabd6118e6a16c61354acc09b367aec2aae8382c72',
-  'hf.co/unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF:UD-Q4_K_XL': 'f040f922dfd89f0adc57a16309a7c407d39ad099a3997f47c1370ee1f33c380a',
+  'hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL': 'b3052f962d6449b4eb2075733c068bdec1c51eadb7b237e6c3157bfbb7b1dae0',
+  'hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL': '305234462409d659233b0ea75fd1e070cc28d5add7d0480f2db02387679e3d0c',
 };
 
 export interface FormalCampaignBundle {

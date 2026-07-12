@@ -451,6 +451,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
             inference: {
               temperature: aiConfig.temperature,
               topP: aiConfig.ollamaTopP ?? 0.9,
+              think: false,
               numCtx: aiConfig.ollamaNumCtx ?? 16384,
               numPredict: aiConfig.ollamaNumPredict ?? 1600,
               seed: null,

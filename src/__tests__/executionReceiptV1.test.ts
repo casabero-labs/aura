@@ -35,7 +35,7 @@ const envelope = _buildEvidenceEnvelopeV2({
 
 const inference: InferenceSnapshotV1 = {
   temperature: 0.2, topP: 0.9, numCtx: 16384, numPredict: 1600,
-  seed: null, keepAlive: '10m', timeoutSeconds: 600,
+  think: false, seed: null, keepAlive: '10m', timeoutSeconds: 600,
 };
 
 describe('ExecutionReceiptV1', () => {

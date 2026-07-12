@@ -24,4 +24,21 @@ describe('AI configuration storage', () => {
     }, { getItem: () => 'session-secret' });
     expect(loaded.apiKey).toBe('session-secret');
   });
+
+  it('migrates the two superseded formal Ollama models before restoring or syncing', () => {
+    const legacyGemma = 'hf.co/unsloth/gemma-3-4b-it-qat-GGUF:UD-Q4_K_XL';
+    const legacyDeepSeek = 'hf.co/unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF:UD-Q4_K_XL';
+    const loaded = loadAIConfig(config, {
+      getItem: () => JSON.stringify({
+        ...config,
+        providerType: 'ollama',
+        model: legacyGemma,
+        ollamaModel: legacyDeepSeek,
+      }),
+    }, { getItem: () => null });
+
+    expect(loaded.model).toBe('hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL');
+    expect(loaded.ollamaModel).toBe('hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL');
+    expect(JSON.stringify(sanitizeAIConfig(loaded))).not.toMatch(/gemma-3-4b|DeepSeek-R1-0528/);
+  });
 });

@@ -89,7 +89,7 @@ const buildTrace = (status: 'valid' | 'invalid') => {
     observedModel: status === 'valid' ? 'model-a' : null,
     inference: {
       temperature: 0.1, topP: 0.9, numCtx: 16384, numPredict: 1600,
-      seed: null, keepAlive: '10m', timeoutSeconds: 600,
+      think: false, seed: null, keepAlive: '10m', timeoutSeconds: 600,
     },
     startedAt: '2026-07-12T00:00:00.000Z',
     completedAt: '2026-07-12T00:00:01.000Z',

@@ -71,7 +71,7 @@ export type StructuredDiagnosisOutcome = StructuredDiagnosisResult | StructuredD
 
 const defaultInference = (): InferenceSnapshotV1 => ({
   temperature: 0.1, topP: 0.9, numCtx: 16384, numPredict: 1600,
-  seed: null, keepAlive: '10m', timeoutSeconds: 600,
+  think: false, seed: null, keepAlive: '10m', timeoutSeconds: 600,
 });
 
 function makeFailureEvidence(

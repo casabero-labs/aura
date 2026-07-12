@@ -206,6 +206,7 @@ export class OllamaProvider implements AIProvider {
         body: JSON.stringify({
           model: this.model,
           messages: [{ role: 'user', content: prompt }],
+          think: false,
           options: this.buildOptions(),
           keep_alive: this.keepAlive,
           stream: false,
@@ -289,6 +290,7 @@ export class OllamaProvider implements AIProvider {
         body: JSON.stringify({
           model: this.model,
           messages: [{ role: 'user', content: prompt }],
+          think: false,
           options: this.buildOptions(),
           keep_alive: DEFAULT_KEEP_ALIVE,
           stream: true,
@@ -399,6 +401,7 @@ export class OllamaProvider implements AIProvider {
         body: JSON.stringify({
           model: this.model,
           messages: [{ role: 'user', content: prompt }],
+          think: false,
           options: this.buildOptions(),
           keep_alive: DEFAULT_KEEP_ALIVE,
           stream: true,
@@ -468,6 +471,7 @@ export class OllamaProvider implements AIProvider {
       body: JSON.stringify({
         model: this.model,
         messages: [{ role: 'user', content: prompt }],
+        think: false,
         options: this.buildOptions(),
         keep_alive: DEFAULT_KEEP_ALIVE,
         stream: false,
@@ -517,6 +521,7 @@ export class OllamaProvider implements AIProvider {
         body: JSON.stringify({
           model: this.model,
           messages: [{ role: 'user', content: prompt }],
+          think: false,
           options: this.buildOptions(),
           keep_alive: DEFAULT_KEEP_ALIVE,
           stream: true,

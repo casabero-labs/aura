@@ -93,11 +93,13 @@ P1-04 cierra la claridad UX, trazabilidad y exportaciones:
 - Nueva sesión: diálogo modal con descripción de eliminación, preservación y aviso de irreversibilidad.
 - Exportaciones: descripciones de cada artefacto; nota de validez sobre recibos requeridos.
 - Ollama: asistente React integrado con verificación de conexión, descarga real de los tres modelos recomendados, progreso y registro técnico visible. La antigua implementación HTML quedó reducida a una redirección segura de compatibilidad.
+- Matriz corregida antes de la primera corrida: Qwen3 8B (5.14 GB), Gemma 4 E4B IT QAT (4.22 GB) y SmolLM3 3B (1.94 GB). SmolLM3 sustituye a DeepSeek para trabajar con margen en el MacBook Air M4 de 16 GB; los tres comandos `ollama run` se pueden copiar desde el asistente.
+- Configuraciones locales o sincronizadas que todavía apunten a los dos modelos retirados se migran automáticamente a Gemma 4 y SmolLM3; no se conserva un selector inválido después de actualizar AURA.
 - Estilo técnico: un único componente `SyntaxDisplay`, fiel a `showcase-ink`, presenta logs, JSON, prompts, respuestas y salidas del Laboratorio con cabecera clara, cuerpo gris, JetBrains Mono, sombra sutil y copia. Los terminales oscuros aislados fueron retirados.
 - Configuración: eliminados los enlaces sin destino a configuración avanzada y laboratorio experimental.
 - Despliegue: el oráculo formal conserva una copia desplegable dentro de `src`, verificada byte a byte contra la fuente canónica de `experiments`, para que el build aislado de Coolify no pierda evidencia.
 
-**P1-04 COMPLETO.** Suite 1740 tests, typecheck y build en verde; 10/10 E2E focales aprobados en Chromium, incluida la verificación visual computada del Syntax display y la navegación actual de Laboratorio.
+**P1-04 COMPLETO.** Suite 1741 tests, typecheck y build en verde; 10/10 E2E focales aprobados en Chromium, incluida la verificación visual computada del Syntax display, los tres comandos formales y la navegación actual de Laboratorio.
 
 ## Pendientes no cubiertos por P1
 
@@ -114,7 +116,7 @@ Antes de lanzar los 45 diagnósticos reales, cada uno de los siguientes gates de
 
 - Hash del CSV de entrada no coincide con el esperado en el experimento.
 - Versión de Ollama inferior a la requerida (>= 0.5.0).
-- Modelos formales ausentes en la lista de Ollama (`hf.co/unsloth/Qwen3-8B-GGUF:UD-Q4_K_XL`, `hf.co/unsloth/gemma-3-4b-it-qat-GGUF:UD-Q4_K_XL`, `hf.co/unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF:UD-Q4_K_XL`).
+- Modelos formales ausentes en la lista de Ollama (`hf.co/unsloth/Qwen3-8B-GGUF:UD-Q4_K_XL`, `hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL`, `hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL`).
 - Digest local ausente o con formato inválido. AURA lo captura para congelar el entorno; el SHA-256 de referencia del archivo GGUF se conserva por separado y no se presenta como si fuera el digest de Ollama.
 - Modelo observado en la respuesta del LLM no coincide con el modelo solicitado.
 - Warmup ausente o incompleto para un bloque de modelo antes de las repeticiones.

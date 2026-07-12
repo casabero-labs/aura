@@ -11,8 +11,8 @@ interface CampaignMatrixProps {
 
 const modelName = (modelId: string): string => {
   if (modelId.includes('Qwen3-8B-GGUF')) return 'Qwen3 8B';
-  if (modelId.includes('gemma-3-4b')) return 'Gemma 3 4B';
-  return 'DeepSeek R1 8B';
+  if (modelId.includes('gemma-4-E4B')) return 'Gemma 4 E4B';
+  return 'SmolLM3 3B';
 };
 
 const statusLabel: Record<ExperimentRunV1['status'], string> = {

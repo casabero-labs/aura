@@ -33,6 +33,11 @@ describe('OllamaSetupWizard', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Continuar' }));
     fireEvent.click(screen.getByRole('button', { name: 'Ya configuré y reinicié Ollama' }));
 
+    for (const formalModel of FINAL_EVALUATION_OLLAMA_MODEL_IDS) {
+      expect(screen.getByText(`ollama run ${formalModel}`)).toBeTruthy();
+    }
+    expect(screen.queryByText(/DeepSeek-R1-0528/i)).toBeNull();
+
     const downloadId = `ollama-download-${model.replace(/[^a-zA-Z0-9]/g, '-')}`;
     fireEvent.click(screen.getByTestId(downloadId));
 

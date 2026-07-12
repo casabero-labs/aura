@@ -35,6 +35,7 @@ export interface OllamaModelDef {
   id: string;
   name: string;
   family: string;
+  referenceSizeGB?: number;
   recommended?: boolean;
   formalEvaluation: boolean;
   quantization?: 'UD-Q4_K_XL';
@@ -94,8 +95,8 @@ export const CHROME_MODELS: ChromeModelDef[] = [
 
 export const FINAL_EVALUATION_OLLAMA_MODEL_IDS = [
   'hf.co/unsloth/Qwen3-8B-GGUF:UD-Q4_K_XL',
-  'hf.co/unsloth/gemma-3-4b-it-qat-GGUF:UD-Q4_K_XL',
-  'hf.co/unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF:UD-Q4_K_XL',
+  'hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL',
+  'hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL',
 ] as const;
 
 export const DEFAULT_OLLAMA_MODEL_ID = FINAL_EVALUATION_OLLAMA_MODEL_IDS[0];
@@ -106,6 +107,7 @@ export const FINAL_EVALUATION_OLLAMA_MODELS: readonly OllamaModelDef[] = [
     id: FINAL_EVALUATION_OLLAMA_MODEL_IDS[0],
     name: 'Qwen 3 8B · OE4 (UD-Q4_K_XL)',
     family: 'Qwen3',
+    referenceSizeGB: 5.14,
     recommended: true,
     formalEvaluation: true,
     quantization: 'UD-Q4_K_XL',
@@ -113,21 +115,23 @@ export const FINAL_EVALUATION_OLLAMA_MODELS: readonly OllamaModelDef[] = [
   },
   {
     id: FINAL_EVALUATION_OLLAMA_MODEL_IDS[1],
-    name: 'Gemma 3 4B IT QAT · OE4 (UD-Q4_K_XL)',
-    family: 'Gemma 3',
+    name: 'Gemma 4 E4B IT QAT · OE4 (UD-Q4_K_XL)',
+    family: 'Gemma 4',
+    referenceSizeGB: 4.22,
     recommended: true,
     formalEvaluation: true,
     quantization: 'UD-Q4_K_XL',
-    repository: 'huggingface.co/unsloth/gemma-3-4b-it-qat-GGUF',
+    repository: 'huggingface.co/unsloth/gemma-4-E4B-it-qat-GGUF',
   },
   {
     id: FINAL_EVALUATION_OLLAMA_MODEL_IDS[2],
-    name: 'DeepSeek R1 0528 Qwen3 8B · OE4 (UD-Q4_K_XL)',
-    family: 'DeepSeek R1',
+    name: 'SmolLM3 3B · OE4 (UD-Q4_K_XL)',
+    family: 'SmolLM3',
+    referenceSizeGB: 1.94,
     recommended: true,
     formalEvaluation: true,
     quantization: 'UD-Q4_K_XL',
-    repository: 'huggingface.co/unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF',
+    repository: 'huggingface.co/unsloth/SmolLM3-3B-GGUF',
   },
 ] as const;
 

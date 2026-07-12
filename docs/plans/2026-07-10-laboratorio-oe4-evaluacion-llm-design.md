@@ -25,10 +25,10 @@ Los tres modelos se ejecutarán localmente mediante Ollama y usarán cuantizaci�
 | Modelo | Identificador exacto para Ollama | Tamaño de referencia | SHA-256 del GGUF de referencia |
 |---|---|---:|---|
 | Qwen3 8B | `hf.co/unsloth/Qwen3-8B-GGUF:UD-Q4_K_XL` | 5.14 GB | `34a514d08f7449cb4a694a707aaa2eedccb7bb68290121bf5e5a569b2abe71c3` |
-| Gemma 3 4B IT QAT | `hf.co/unsloth/gemma-3-4b-it-qat-GGUF:UD-Q4_K_XL` | 2.54 GB | `ccd7e4b76a749936b1bea6aabd6118e6a16c61354acc09b367aec2aae8382c72` |
-| DeepSeek R1 0528 Qwen3 8B | `hf.co/unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF:UD-Q4_K_XL` | 5.12 GB | `f040f922dfd89f0adc57a16309a7c407d39ad099a3997f47c1370ee1f33c380a` |
+| Gemma 4 E4B IT QAT | `hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL` | 4.22 GB | `b3052f962d6449b4eb2075733c068bdec1c51eadb7b237e6c3157bfbb7b1dae0` |
+| SmolLM3 3B | `hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL` | 1.94 GB | `305234462409d659233b0ea75fd1e070cc28d5add7d0480f2db02387679e3d0c` |
 
-El nombre correcto de la variante propuesta es `gemma-3-4b-it-qat-UD-Q4_K_XL.gguf`; no `gemma-4-E4B-it-qat-UD-Q4_K_XL.gguf`.
+Corrección previa a la primera corrida formal, 12 de julio de 2026: la variante aprobada es `gemma-4-E4B-it-qat-UD-Q4_K_XL.gguf`. DeepSeek se retira porque no ofrece una operación suficientemente holgada en el MacBook Air M4 de 16 GB; `SmolLM3-3B` conserva diversidad de familia, español nativo y una descarga de 1.94 GB.
 
 Antes de iniciar la campaña, AURA registrará también el digest que Ollama tenga instalado. Si el identificador, el SHA esperado o el digest local cambian, se crea una campaña nueva; no se mezclan resultados.
 
@@ -89,11 +89,12 @@ Todos los modos usan el mismo schema de salida `aura.diagnosis.v2` y la misma se
 
 - `temperature`: 0.2;
 - `top_p`: 0.9;
+- `think`: `false`, común a los tres modelos;
 - `num_ctx`: 16384;
 - `num_predict`: 1600 por llamada;
 - sin seed fija, porque se medirán cinco repeticiones;
 - mismo timeout, keep-alive, versión de prompts y contratos;
-- salida de razonamiento interno, si el proveedor la devuelve, se conserva separada y no se califica como diagnóstico final.
+- si el runtime devuelve razonamiento interno a pesar de `think: false`, se conserva separado y no se califica como diagnóstico final.
 
 La configuración común prima el control experimental. Si una guía de un modelo recomienda otros parámetros, se documentará como amenaza a la validez y no se cambiarán parámetros a mitad de campaña.
 
@@ -247,5 +248,5 @@ Con este gate, el Laboratorio cierra OE4 y produce la evaluación LLM necesaria 
 ## 13. Fuentes de los modelos
 
 - [Unsloth Qwen3 8B GGUF — `UD-Q4_K_XL`](https://huggingface.co/unsloth/Qwen3-8B-GGUF/blob/main/Qwen3-8B-UD-Q4_K_XL.gguf)
-- [Unsloth Gemma 3 4B IT QAT GGUF — `UD-Q4_K_XL`](https://huggingface.co/unsloth/gemma-3-4b-it-qat-GGUF/blob/main/gemma-3-4b-it-qat-UD-Q4_K_XL.gguf)
-- [Unsloth DeepSeek R1 0528 Qwen3 8B GGUF — `UD-Q4_K_XL`](https://huggingface.co/unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF/blob/main/DeepSeek-R1-0528-Qwen3-8B-UD-Q4_K_XL.gguf)
+- [Unsloth Gemma 4 E4B IT QAT GGUF — `UD-Q4_K_XL`](https://huggingface.co/unsloth/gemma-4-E4B-it-qat-GGUF/blob/main/gemma-4-E4B-it-qat-UD-Q4_K_XL.gguf)
+- [Unsloth SmolLM3 3B GGUF — `UD-Q4_K_XL`](https://huggingface.co/unsloth/SmolLM3-3B-GGUF/blob/main/SmolLM3-3B-UD-Q4_K_XL.gguf)

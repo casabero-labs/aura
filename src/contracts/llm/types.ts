@@ -360,6 +360,7 @@ export interface DiagnosisInputPackageV2 {
 export interface InferenceSnapshotV1 {
   temperature: number;
   topP: number;
+  think: false;
   numCtx: number;
   numPredict: number;
   seed: number | null;

@@ -100,7 +100,7 @@ export const runOllamaPreflight = async (options = {}) => {
     getArg(
       args,
       'protocol',
-      options.protocolPath ?? resolve(repoRoot, 'experiments/final-evaluation/protocol.v1.json'),
+      options.protocolPath ?? resolve(repoRoot, 'experiments/final-evaluation/protocol.v2.json'),
     ),
   );
   const outputPath = resolve(
@@ -151,7 +151,7 @@ export const runOllamaPreflight = async (options = {}) => {
   const installedModels = Array.isArray(tags.models) ? tags.models : [];
   const missing = selectedIds.filter((id) => !findExactModel(installedModels, id));
   if (missing.length > 0) {
-    const commands = missing.map((id) => `ollama pull ${id}`).join('\n');
+    const commands = missing.map((id) => `ollama run ${id}`).join('\n');
     throw new Error(`Faltan modelos OE4 exactos:\n${missing.join('\n')}\n\nInstalalos con:\n${commands}`);
   }
 
@@ -172,6 +172,7 @@ export const runOllamaPreflight = async (options = {}) => {
         body: JSON.stringify({
           model: modelId,
           messages: [{ role: 'user', content: prompt }],
+          think: false,
           options: {
             temperature: protocol.inference.temperature,
             top_p: protocol.inference.topP,

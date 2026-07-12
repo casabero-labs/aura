@@ -16,8 +16,8 @@ import {
 
 const EXPECTED_MODEL_IDS = [
   'hf.co/unsloth/Qwen3-8B-GGUF:UD-Q4_K_XL',
-  'hf.co/unsloth/gemma-3-4b-it-qat-GGUF:UD-Q4_K_XL',
-  'hf.co/unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF:UD-Q4_K_XL',
+  'hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL',
+  'hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL',
 ] as const;
 
 describe('OE4 final evaluation Ollama models — Task 3', () => {
@@ -36,6 +36,7 @@ describe('OE4 final evaluation Ollama models — Task 3', () => {
       expect(model.quantization).toBe('UD-Q4_K_XL');
       expect(model.repository).toMatch(/^huggingface\.co\/unsloth\//);
       expect(model.recommended).toBe(true);
+      expect(model.referenceSizeGB).toBeLessThan(6);
     }
   });
 
@@ -76,7 +77,8 @@ describe('OE4 final evaluation Ollama models — Task 3', () => {
     const workDir = await mkdtemp(join(tmpdir(), 'aura-oe4-preflight-'));
     const outputPath = join(workDir, 'preflight.json');
     const digests = ['a'.repeat(64), 'b'.repeat(64), 'c'.repeat(64)];
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+    const chatBodies: Array<{ model: string; think: boolean }> = [];
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
       const url = String(input);
       if (url.endsWith('/api/version')) {
         return new Response(JSON.stringify({ version: '0.20.3' }), { status: 200 });
@@ -96,6 +98,7 @@ describe('OE4 final evaluation Ollama models — Task 3', () => {
         );
       }
       if (url.endsWith('/api/chat')) {
+        chatBodies.push(JSON.parse(String(init?.body ?? '{}')) as { model: string; think: boolean });
         return new Response(
           JSON.stringify({
             message: { content: 'AURA_OLLAMA_OK' },
@@ -126,6 +129,8 @@ describe('OE4 final evaluation Ollama models — Task 3', () => {
       expect(persisted.formal).toBe(true);
       expect(persisted.models.map((model) => model.id)).toEqual(EXPECTED_MODEL_IDS);
       expect(persisted.models.map((model) => model.digest)).toEqual(digests);
+      expect(chatBodies.map((body) => body.model)).toEqual(EXPECTED_MODEL_IDS);
+      expect(chatBodies.every((body) => body.think === false)).toBe(true);
     } finally {
       fetchSpy.mockRestore();
       await rm(workDir, { recursive: true, force: true });

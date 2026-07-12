@@ -44,8 +44,8 @@ const ORIGIN = typeof window !== 'undefined'
 
 const CAMPAIGN_MODEL_PURPOSES: Record<string, string> = {
   Qwen3: 'Modelo general de 8B recomendado para diagnóstico local y comparación reproducible.',
-  'Gemma 3': 'Modelo compacto de 4B recomendado para diagnóstico local y contraste de familia.',
-  'DeepSeek R1': 'Modelo de razonamiento de 8B recomendado para diagnóstico local y comparación reproducible.',
+  'Gemma 4': 'Modelo E4B QAT de Google, compacto y adecuado para diagnóstico local.',
+  SmolLM3: 'Modelo multilingüe de 3B, compatible con español y ligero para equipos con 16 GB.',
 };
 
 interface ModelDownloadState {
@@ -199,7 +199,6 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
   const [isScanning, setIsScanning] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
   const [scanActions, setScanActions] = useState<string[]>([]);
-  const [copiedCommand, setCopiedCommand] = useState<string | null>(null);
   const [downloads, setDownloads] = useState<Record<string, ModelDownloadState>>({});
   const [setupLog, setSetupLog] = useState<SetupLogEntry[]>([{
     at: new Date().toISOString(), kind: 'info', message: 'Asistente iniciado. Esperando verificación de Ollama.',
@@ -242,16 +241,6 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
       default: return INSTRUCTIONS_MACOS;
     }
   }, [currentOS]);
-
-  const copyCommand = useCallback(async (command: string) => {
-    try {
-      await navigator.clipboard.writeText(command);
-      setCopiedCommand(command);
-      window.setTimeout(() => setCopiedCommand(null), 1600);
-    } catch {
-      setCopiedCommand(null);
-    }
-  }, []);
 
   const handleScanModels = useCallback(async () => {
     setIsScanning(true);
@@ -604,7 +593,7 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
 
           <div style={{ display: 'grid', gap: '10px' }}>
             {campaignModelStatus.map(model => {
-              const command = `ollama pull ${model.id}`;
+              const command = `ollama run ${model.id}`;
               const download = downloads[model.id];
               const isDownloading = download?.status === 'downloading';
               const isInstalled = model.installed || download?.status === 'success';
@@ -618,6 +607,11 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
                     <div>
                       <strong>{model.name}</strong>
                       <p style={{ margin: '3px 0 0', fontSize: '11px', color: 'var(--ink3)' }}>{model.purpose}</p>
+                      {model.referenceSizeGB && (
+                        <p style={{ margin: '3px 0 0', fontSize: '11px', color: 'var(--ink3)' }}>
+                          Descarga GGUF de referencia: {model.referenceSizeGB.toFixed(2)} GB
+                        </p>
+                      )}
                     </div>
                     <span style={{
                       color: isInstalled ? 'var(--success)' : isDownloading ? 'var(--accent)' : 'var(--ink3)',
@@ -651,12 +645,7 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
                       </div>
                     </div>
                   )}
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <code style={{ flex: 1, overflowWrap: 'anywhere' }}>{command}</code>
-                    <button type="button" className="btn-s btn-sm" onClick={() => void copyCommand(command)}>
-                      {copiedCommand === command ? 'Copiado' : 'Copiar'}
-                    </button>
-                  </div>
+                  <SyntaxDisplay filename="Terminal" content={command} wrap={false} />
                   {!isInstalled && (
                     <button
                       type="button"

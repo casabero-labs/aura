@@ -33,5 +33,20 @@ test.describe('Syntax display — estándar showcase-ink', () => {
     expect(colors.body).toBe('rgb(238, 242, 246)');
     expect(colors.font).toContain('JetBrains Mono');
     expect(colors.shadow).not.toBe('none');
+
+    await page.getByRole('button', { name: 'Continuar' }).click();
+    await page.getByRole('button', { name: 'Continuar' }).click();
+    await page.getByRole('button', { name: 'Ya configuré y reinicié Ollama' }).click();
+
+    const commands = [
+      'ollama run hf.co/unsloth/Qwen3-8B-GGUF:UD-Q4_K_XL',
+      'ollama run hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL',
+      'ollama run hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL',
+    ];
+    for (const command of commands) {
+      await expect(page.getByText(command, { exact: true })).toBeVisible();
+    }
+    await expect(page.getByText(/DeepSeek R1 0528/i)).toHaveCount(0);
+    await expect(page.locator('.ollama-wizard-model-card .syntax-display')).toHaveCount(3);
   });
 });

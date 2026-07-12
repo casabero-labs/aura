@@ -9,7 +9,7 @@
 import { FINAL_EVALUATION_OLLAMA_MODEL_IDS } from '../modelRegistry';
 
 export const OE4_FINAL_EVALUATION_PROTOCOL_ID = 'aura.oe4.final-evaluation.v2';
-export const OE4_FINAL_EVALUATION_PROTOCOL_VERSION = '2.0.0';
+export const OE4_FINAL_EVALUATION_PROTOCOL_VERSION = '2.1.0';
 export const OE4_FINAL_EVALUATION_DATASET_ID = 'controlled_customers_phase8';
 
 export const OE4_DATASET_FINGERPRINT_SHA256 =
@@ -39,6 +39,7 @@ export const OE4_REPETITIONS = 5 as const;
 export const OE4_INFERENCE = {
   temperature: 0.2,
   topP: 0.9,
+  think: false,
   numCtx: 16384,
   numPredict: 1600,
   seed: null as number | null,
@@ -100,7 +101,7 @@ export const FINAL_EVALUATION_PROTOCOL_V1 = {
 export const FINAL_EVALUATION_PROTOCOL = {
   id: OE4_FINAL_EVALUATION_PROTOCOL_ID,
   version: OE4_FINAL_EVALUATION_PROTOCOL_VERSION,
-  frozenAt: '2026-07-11',
+  frozenAt: '2026-07-12',
   supersedes: FINAL_EVALUATION_PROTOCOL_V1.id,
   dataset: {
     id: OE4_FINAL_EVALUATION_DATASET_ID,

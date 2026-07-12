@@ -72,6 +72,7 @@ export interface EnvironmentSnapshotV1 {
   inference: {
     temperature: number;
     topP: number;
+    think: false;
     numCtx: number;
     numPredict: number;
     seed: number | null;

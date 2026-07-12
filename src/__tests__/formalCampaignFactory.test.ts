@@ -23,6 +23,11 @@ const evidence = {
 
 const controlledCsv = readFileSync(join(__dirname, '..', '..', 'experiments/final-evaluation/datasets/controlled_customers_phase8.csv'));
 const datasetFile = { arrayBuffer: async () => controlledCsv.buffer.slice(controlledCsv.byteOffset, controlledCsv.byteOffset + controlledCsv.byteLength) } as Pick<File, 'arrayBuffer'>;
+const modelManifest = JSON.parse(readFileSync(
+  join(__dirname, '..', '..', 'experiments/final-evaluation/model-manifest.v1.json'),
+  'utf8',
+)) as { models: Array<{ id: string; expectedGgufSha256: string }> };
+const expectedShaByModel = new Map(modelManifest.models.map((model) => [model.id, model.expectedGgufSha256]));
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -49,6 +54,9 @@ describe('formal OE4 campaign factory', () => {
     expect(bundle.runs).toHaveLength(45);
     expect(new Set(bundle.runs.map((run) => run.input.inputHash)).size).toBe(3);
     expect(bundle.runs.every((run) => run.script === null)).toBe(true);
+    expect(bundle.runs.every((run) => (
+      run.environment.model.expectedGgufSha256 === expectedShaByModel.get(run.modelId)
+    ))).toBe(true);
     expect(validateExperimentCampaignV1(bundle.campaign)).toEqual({ valid: true, errors: [] });
     expect(bundle.runs.every((run) => validateExperimentRunV1(run).valid)).toBe(true);
     expect(fetch).toHaveBeenCalledTimes(2);
