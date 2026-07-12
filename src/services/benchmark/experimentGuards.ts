@@ -22,6 +22,7 @@ import { validateExecutionReceiptV1 } from '../../contracts/llm/executionReceipt
 import { exactDiagnosisPromptV2 } from '../../contracts/llm/diagnosisInputPackageV2';
 import { sha256hex } from '../../contracts/llm/hash';
 import type { DiagnosisInputPackageV2, ExecutionReceiptV1, InferenceSnapshotV1 } from '../../contracts/llm/types';
+import { computePythonReceiptHash, type PythonExecutionReceiptV1 } from './pythonExecutionReceipt';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -372,13 +373,28 @@ const validateExecution = (value: unknown, errors: string[]): value is DynamicEx
   if (!(value.afterDatasetSha256 === null || isSha256(value.afterDatasetSha256))) errors.push('execution.afterDatasetSha256 must be SHA-256 or null');
   if (!(value.executionEnvironment === null || isNonEmptyString(value.executionEnvironment))) errors.push('execution.executionEnvironment must be non-empty or null');
   if (!(value.executedAt === null || isIsoTimestamp(value.executedAt))) errors.push('execution.executedAt must be ISO or null');
+  if (value.pythonReceipt !== null) {
+    if (!isRecord(value.pythonReceipt)) {
+      errors.push('execution.pythonReceipt must be an object or null');
+    } else {
+      const receipt = value.pythonReceipt as unknown as PythonExecutionReceiptV1;
+      if (receipt.contractId !== 'aura.python-execution-receipt.v1') errors.push('execution.pythonReceipt.contractId is invalid');
+      if (receipt.contractVersion !== '1.0.0') errors.push('execution.pythonReceipt.contractVersion is invalid');
+      if (!isSha256(receipt.receiptHash) || computePythonReceiptHash(receipt) !== receipt.receiptHash) errors.push('execution.pythonReceipt.receiptHash is invalid');
+    }
+  }
   if (value.reaudit !== null) validateReaudit(value.reaudit, errors);
+  const pythonReceipt = isRecord(value.pythonReceipt)
+    ? value.pythonReceipt as unknown as PythonExecutionReceiptV1
+    : null;
   if (value.status === 'reaudited' && (
     value.reaudit === null
+    || pythonReceipt?.syntax.status !== 'passed'
+    || pythonReceipt.execution.status !== 'passed'
     || !isSha256(value.afterDatasetSha256)
     || !isIsoTimestamp(value.executedAt)
     || !isNonEmptyString(value.executionEnvironment)
-  )) errors.push('reaudited execution must include output hash, environment, time and reaudit');
+  )) errors.push('reaudited execution must include a passed Python receipt, output hash, environment, time and reaudit');
   return true;
 };
 
@@ -632,6 +648,17 @@ export const validateExperimentRunV1 = (value: unknown): ExperimentGuardResult =
   if (value.humanReview !== null) validateHumanReview(value.humanReview, errors);
   if (value.hitl !== null) validateHitl(value.hitl, errors);
   if (value.execution !== null) validateExecution(value.execution, errors);
+  if (isRecord(value.execution) && isRecord(value.execution.pythonReceipt)) {
+    const pythonReceipt = value.execution.pythonReceipt as unknown as PythonExecutionReceiptV1;
+    if (pythonReceipt.runId !== value.runId) errors.push('execution.pythonReceipt.runId does not match runId');
+    if (pythonReceipt.approvedScriptHash !== value.execution.approvedScriptHash) errors.push('execution.pythonReceipt approved script hash does not match execution');
+    if (pythonReceipt.beforeDatasetSha256 !== value.execution.beforeDatasetSha256) errors.push('execution.pythonReceipt source hash does not match execution');
+    if (pythonReceipt.afterDatasetSha256 !== value.execution.afterDatasetSha256) errors.push('execution.pythonReceipt output hash does not match execution');
+    if (isRecord(value.script) && typeof value.script.rawOutput === 'string'
+      && pythonReceipt.scriptTextSha256 !== sha256hex(value.script.rawOutput)) {
+      errors.push('execution.pythonReceipt script text hash does not match script stage');
+    }
+  }
   validateAttemptEvents(value.attempts, errors);
   validateLifecycle(value, errors);
   return result(errors);

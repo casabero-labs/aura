@@ -18,7 +18,8 @@
     "contracts:baseline": "npx tsx ../experiments/contracts-v2/baseline/run-baseline.mjs",
     "contracts:evaluate": "npx tsx ../experiments/contracts-v2/baseline/evaluate.mjs",
     "contracts:compare": "npx tsx ../experiments/contracts-v2/compare-baseline.mjs",
-    "contracts:v2:validate-local": "npx tsx ../experiments/contracts-v2/run-local-dataset-validation.mjs"
+    "contracts:v2:validate-local": "npx tsx ../experiments/contracts-v2/run-local-dataset-validation.mjs",
+    "oe4:python:run": "node ../experiments/final-evaluation/run-python-representative.mjs"
   },
   "dependencies": {
     "@google/genai": "^1.30.0",

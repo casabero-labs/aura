@@ -81,7 +81,10 @@ test.describe.serial('Task 11 — recorrido humano OE4 y recuperación', () => {
     await expect(page.getByRole('status')).toContainText('Ejecución externa preparada');
 
     await page.getByLabel('CSV resultante').setInputFiles(AFTER_CSV);
-    await page.getByRole('button', { name: 'Importar y reauditar' }).click();
+    await page.getByLabel('Recibo de ejecución JSON').setInputFiles({
+      name: 'receipt.json', mimeType: 'application/json', buffer: Buffer.from('{}'),
+    });
+    await page.getByRole('button', { name: 'Verificar, importar y reauditar' }).click();
     await expect(page.getByText('40 → 75')).toBeVisible();
     await expect(page.getByRole('status')).toContainText('CSV importado y reauditoría registrada');
 

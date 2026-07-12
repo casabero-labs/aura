@@ -21,6 +21,8 @@ describe('OE4 artifact exporter — Task 9', () => {
     expect(canonical.runs).toHaveLength(45);
     expect(canonical.runs[0].diagnosis.rawOutput).toContain('raw diagnosis');
     expect(result.runsCsv.trim().split('\n')).toHaveLength(46);
+    expect(result.runsCsv.split('\n')[0]).toContain('python_receipt_hash');
+    expect(result.runsCsv.split('\n')[0]).toContain('python_execution_status');
     expect(result.reportMarkdown).toContain(fixture.campaign.campaignId);
     expect(result.reportPdf.textContent).toContain(fixture.campaign.campaignId);
     expect(new TextDecoder().decode(result.reportPdf.bytes.slice(0, 4))).toBe('%PDF');

@@ -22,6 +22,7 @@ import type {
   HumanReviewV1,
   LlmStageResultV1,
 } from '../services/benchmark/experimentTypes';
+import { createPythonReceiptFixture } from './fixtures/pythonReceiptFixture';
 import type { DiagnosisInputPackageV2, ExecutionReceiptV1 } from '../contracts/llm/types';
 import { buildExecutionReceiptV1 } from '../contracts/llm/executionReceiptV1';
 import { exactDiagnosisPromptV2 } from '../contracts/llm/diagnosisInputPackageV2';
@@ -162,6 +163,12 @@ const makeExecution = (): DynamicExecutionEvidenceV1 => ({
   afterDatasetSha256: HASH_B,
   executionEnvironment: 'Google Colab controlado',
   executedAt: LATER,
+  pythonReceipt: createPythonReceiptFixture({
+    runId: 'run:qwen3:recommended:3', approvedScriptHash: HASH_A,
+    scriptText: 'def clean_dataset(df):\n    return df.copy()',
+    beforeDatasetSha256: FINAL_EVALUATION_PROTOCOL.dataset.sha256,
+    afterDatasetSha256: HASH_B, completedAt: LATER,
+  }),
   reaudit: {
     beforeScore: 0,
     afterScore: 20,
@@ -466,6 +473,7 @@ describe('OE4 experiment contracts — Task 2', () => {
       afterDatasetSha256: null,
       executionEnvironment: 'colab_notebook:blocked:preflight',
       executedAt: null,
+      pythonReceipt: null,
       reaudit: null,
     };
     const blocked = { ...approved, status: 'blocked' as const, updatedAt: LATER, execution: blockedExecution };

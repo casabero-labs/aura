@@ -32,7 +32,7 @@ import { createFormalCampaignBundle, buildFormalEvidenceEnvelope } from './servi
 import { buildEnvelopeRef, validateDiagnosisResponseV2, type DiagnosisResponseV2, type DiagnosisFailureEvidenceV2, type DiagnosisExecutionResult } from './contracts/llm';
 import type { ExperimentRunV1 } from './services/benchmark/experimentTypes';
 import { evaluateFormalDiagnosisRun } from './services/benchmark/formalDiagnosisEvaluator';
-import { importFormalRepresentativeOutput, prepareFormalRepresentative } from './services/benchmark/formalRepresentativePreparation';
+import { buildFormalRepresentativeExecutionBundle, importFormalRepresentativeOutput, prepareFormalRepresentative } from './services/benchmark/formalRepresentativePreparation';
 
 const BenchmarkCampaignLab = lazy(() => import('./components/benchmark/BenchmarkCampaignLab'));
 const Oe4CampaignE2eHarness = import.meta.env.DEV
@@ -254,9 +254,18 @@ const App: React.FC = () => {
     return prepareFormalRepresentative(run, formalEvidenceEnvelope);
   }, [formalEvidenceEnvelope]);
 
-  const importRepresentativeCsv = useCallback(async (run: ExperimentRunV1, afterFile: File) => {
+  const downloadRepresentativeBundle = useCallback((run: ExperimentRunV1) => {
+    const bundle = buildFormalRepresentativeExecutionBundle(run);
+    downloadTextFile(
+      `aura-python-${run.runId}.json`,
+      `${JSON.stringify(bundle, null, 2)}\n`,
+      'application/json',
+    );
+  }, []);
+
+  const importRepresentativeCsv = useCallback(async (run: ExperimentRunV1, afterFile: File, receiptFile: File) => {
     if (!pipelineData.file) throw new Error('Vuelve a cargar el CSV controlado original antes de reauditar.');
-    return importFormalRepresentativeOutput(run, pipelineData.file, afterFile);
+    return importFormalRepresentativeOutput(run, pipelineData.file, afterFile, receiptFile);
   }, [pipelineData.file]);
 
   // Liberar memoria VRAM del WebLLM anterior al cambiar de proveedor o desmontar
@@ -616,6 +625,7 @@ const App: React.FC = () => {
                 createCampaignBundle={formalEvidenceEnvelope && pipelineData.file ? createFormalBundle : undefined}
                 evaluateRun={evaluateFormalRun}
                 prepareApprovedRepresentative={prepareRepresentative}
+                downloadExecutionBundle={downloadRepresentativeBundle}
                 importAfterCsv={importRepresentativeCsv}
               />}
         </Suspense>

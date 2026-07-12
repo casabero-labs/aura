@@ -90,12 +90,15 @@ export const renderExperimentRunsCsv = (
     'prompt_hash', 'input_hash', 'response_schema_hash', 'receipt_hash',
     'requested_model', 'observed_model', 'model_digest', 'inference_hash',
     'raw_response_hash', 'validation_status',
+    'python_receipt_hash', 'python_version', 'pandas_version', 'python_syntax_status',
+    'python_execution_status', 'python_script_hash', 'python_before_hash', 'python_after_hash',
   ];
   const rows = document.runs.map((run) => {
     const diagnosis = run.automaticEvaluation?.diagnosis;
     const script = run.automaticEvaluation?.script;
     const receipt = run.executionReceipt ?? null;
     const input = run.input;
+    const pythonReceipt = run.execution?.pythonReceipt ?? null;
     const syntaxValidValue = script?.syntaxValid === null ? 'not_measured'
       : script?.syntaxValid === true ? 'true'
       : script?.syntaxValid === false ? 'false'
@@ -155,6 +158,14 @@ export const renderExperimentRunsCsv = (
       receipt?.inferenceHash ?? '',
       receipt?.rawResponseHash ?? '',
       receipt?.validationStatus ?? '',
+      pythonReceipt?.receiptHash ?? '',
+      pythonReceipt?.pythonVersion ?? '',
+      pythonReceipt?.pandasVersion ?? '',
+      pythonReceipt?.syntax.status ?? '',
+      pythonReceipt?.execution.status ?? '',
+      pythonReceipt?.approvedScriptHash ?? '',
+      pythonReceipt?.beforeDatasetSha256 ?? '',
+      pythonReceipt?.afterDatasetSha256 ?? '',
     ];
   });
   return `${[headers, ...rows].map((row) => row.map(csvValue).join(',')).join('\n')}\n`;

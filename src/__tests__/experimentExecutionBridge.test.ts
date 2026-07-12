@@ -14,6 +14,7 @@ import type {
   ScriptBuildContextV2,
   ScriptContractV2,
 } from '../contracts/llm/types';
+import { createPythonReceiptFixture } from './fixtures/pythonReceiptFixture';
 
 const NOW = '2026-07-11T14:00:00.000Z';
 const LATER = '2026-07-11T14:05:00.000Z';
@@ -172,6 +173,7 @@ describe('OE4 experiment execution bridge', () => {
         afterDatasetSha256: null,
         executionEnvironment: 'colab_notebook:1.0.0',
         executedAt: null,
+        pythonReceipt: null,
         reaudit: null,
       },
     } as ExperimentRunV1;
@@ -184,6 +186,14 @@ describe('OE4 experiment execution bridge', () => {
       beforeEvidenceRef: 'env:before',
       executionEnvironment: 'Google Colab controlado',
       executedAt: LATER,
+      pythonReceipt: createPythonReceiptFixture({
+        runId: awaiting.runId,
+        approvedScriptHash: SCRIPT_HASH,
+        scriptText: '',
+        beforeDatasetSha256: BEFORE_HASH,
+        afterDatasetSha256: computeExactCsvFingerprint(AFTER_CSV),
+        completedAt: LATER,
+      }),
     });
 
     expect(result.run.status).toBe('reaudited');

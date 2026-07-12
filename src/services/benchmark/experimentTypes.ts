@@ -1,5 +1,6 @@
 import type { OE4InputMode, OE4ModelId } from './finalEvaluationProtocol';
 import type { DiagnosisInputPackageV2, ExecutionReceiptV1 } from '../../contracts/llm/types';
+import type { PythonExecutionReceiptV1 } from './pythonExecutionReceipt';
 
 export type ExperimentCampaignStatus =
   | 'draft'
@@ -224,6 +225,7 @@ export interface DynamicExecutionEvidenceV1 {
   afterDatasetSha256: string | null;
   executionEnvironment: string | null;
   executedAt: string | null;
+  pythonReceipt: PythonExecutionReceiptV1 | null;
   reaudit: ReauditEvidenceV1 | null;
 }
 

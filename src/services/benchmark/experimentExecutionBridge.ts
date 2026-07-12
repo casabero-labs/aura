@@ -23,6 +23,10 @@ import type {
   ExperimentRunV1,
   HitlDecisionV1,
 } from './experimentTypes';
+import {
+  validatePythonExecutionReceipt,
+  type PythonExecutionReceiptV1,
+} from './pythonExecutionReceipt';
 
 export type ExperimentExecutionBridgeErrorCode =
   | 'RUN_NOT_FOUND'
@@ -30,7 +34,8 @@ export type ExperimentExecutionBridgeErrorCode =
   | 'RUN_NOT_AWAITING_HITL'
   | 'RUN_NOT_APPROVED'
   | 'RUN_NOT_AWAITING_OUTPUT'
-  | 'SOURCE_FINGERPRINT_MISMATCH';
+  | 'SOURCE_FINGERPRINT_MISMATCH'
+  | 'PYTHON_RECEIPT_INVALID';
 
 export class ExperimentExecutionBridgeError extends Error {
   constructor(readonly code: ExperimentExecutionBridgeErrorCode, message: string) {
@@ -70,6 +75,7 @@ export interface ImportExternalOutputInput {
   executionEnvironment: string;
   executedAt?: string;
   delimiter?: string;
+  pythonReceipt: PythonExecutionReceiptV1;
 }
 
 export interface ImportedExternalOutput {
@@ -126,6 +132,7 @@ const executionEvidence = (
   afterDatasetSha256: null,
   executionEnvironment,
   executedAt: null,
+  pythonReceipt: null,
   reaudit: null,
 });
 
@@ -227,6 +234,7 @@ export const createExperimentExecutionBridge = ({
         'Run must be approved and awaiting an external CSV output.',
       );
     }
+
     const beforeHash = computeExactCsvFingerprint(input.beforeCsv);
     if (
       beforeHash !== run.environment.dataset.sha256
@@ -235,6 +243,19 @@ export const createExperimentExecutionBridge = ({
       throw new ExperimentExecutionBridgeError(
         'SOURCE_FINGERPRINT_MISMATCH',
         'Imported before CSV does not match the immutable source dataset.',
+      );
+    }
+    const receiptErrors = validatePythonExecutionReceipt(input.pythonReceipt, {
+      runId: run.runId,
+      approvedScriptHash: run.execution.approvedScriptHash ?? '',
+      scriptText: run.script?.rawOutput ?? '',
+      beforeDatasetSha256: beforeHash,
+      afterCsv: input.afterCsv,
+    });
+    if (receiptErrors.length > 0) {
+      throw new ExperimentExecutionBridgeError(
+        'PYTHON_RECEIPT_INVALID',
+        receiptErrors.join('; '),
       );
     }
 
@@ -248,12 +269,17 @@ export const createExperimentExecutionBridge = ({
       ...run,
       status: 'reaudited',
       updatedAt: now(),
+      automaticEvaluation: run.automaticEvaluation ? {
+        ...run.automaticEvaluation,
+        script: { ...run.automaticEvaluation.script, syntaxValid: true },
+      } : null,
       execution: {
         ...run.execution,
         status: 'reaudited',
         afterDatasetSha256: exactAfterHash,
         executionEnvironment: input.executionEnvironment,
-        executedAt,
+        executedAt: input.pythonReceipt.execution.completedAt ?? executedAt,
+        pythonReceipt: input.pythonReceipt,
         reaudit: buildReauditEvidence(reauditResult, healthDelta),
       },
     };

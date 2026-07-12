@@ -39,7 +39,8 @@ interface BenchmarkCampaignLabProps {
   createCampaignBundle?: () => Promise<ExperimentCampaignBundle>;
   evaluateRun?: (run: ExperimentRunV1) => Promise<AutomaticEvaluationV1>;
   prepareApprovedRepresentative?: (run: ExperimentRunV1) => Promise<ExperimentRunV1>;
-  importAfterCsv?: (run: ExperimentRunV1, file: File) => Promise<ExperimentRunV1>;
+  downloadExecutionBundle?: (run: ExperimentRunV1) => void;
+  importAfterCsv?: (run: ExperimentRunV1, csvFile: File, receiptFile: File) => Promise<ExperimentRunV1>;
   onExport?: (evidencePackage: ExperimentEvidencePackage) => void;
   now?: () => string;
 }
@@ -58,6 +59,7 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
   createCampaignBundle,
   evaluateRun,
   prepareApprovedRepresentative,
+  downloadExecutionBundle,
   importAfterCsv,
   onExport,
   now = () => new Date().toISOString(),
@@ -244,15 +246,15 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
     }
   };
 
-  const importCsv = async (file: File) => {
+  const importCsv = async (file: File, receiptFile: File) => {
     if (!campaign || !selectedRun || !importAfterCsv) return;
     setBusy(true);
     setError(null);
     try {
-      const next = await importAfterCsv(selectedRun, file);
+      const next = await importAfterCsv(selectedRun, file, receiptFile);
       await store.saveRun(next);
       await refresh(campaign.campaignId, next.runId);
-      setMessage('CSV importado y reauditoría registrada');
+      setMessage('Recibo Python verificado; CSV importado y reauditoría registrada');
     } catch (cause: unknown) {
       setError(cause instanceof Error ? cause.message : String(cause));
     } finally {
@@ -345,9 +347,10 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
                   busy={busy}
                   onDecision={recordDecision}
                   onPrepare={prepareExternalExecution}
+                  onDownloadBundle={() => selectedRun && downloadExecutionBundle?.(selectedRun)}
                   onImport={importCsv}
                   canPrepare={Boolean(prepareApprovedRepresentative)}
-                  canImport={Boolean(importAfterCsv)}
+                  canImport={Boolean(importAfterCsv && downloadExecutionBundle)}
                 />
                 {evidenceDocument && (
                   <CampaignReportPanel

@@ -13,6 +13,7 @@ import type {
   ExperimentRunV1,
 } from '../services/benchmark/experimentTypes';
 import { createExperimentEvidenceFixture } from './fixtures/experimentEvidenceFixture';
+import { createPythonReceiptFixture } from './fixtures/pythonReceiptFixture';
 
 const NOW = '2026-07-11T15:00:00.000Z';
 const LATER = '2026-07-11T15:01:00.000Z';
@@ -174,6 +175,7 @@ describe('BenchmarkCampaignLab - Task 10 human flow', () => {
         afterDatasetSha256: null,
         executionEnvironment: 'colab_notebook:1.0.0',
         executedAt: null,
+        pythonReceipt: null,
         reaudit: null,
       },
     }));
@@ -189,6 +191,12 @@ describe('BenchmarkCampaignLab - Task 10 human flow', () => {
         afterDatasetSha256: 'b'.repeat(64),
         executionEnvironment: 'Google Colab controlado',
         executedAt: LATER,
+        pythonReceipt: createPythonReceiptFixture({
+          runId: run.runId, approvedScriptHash: 'a'.repeat(64),
+          scriptText: run.script?.rawOutput ?? '',
+          beforeDatasetSha256: run.environment.dataset.sha256,
+          afterDatasetSha256: 'b'.repeat(64), completedAt: LATER,
+        }),
         reaudit: {
           beforeScore: 40,
           afterScore: 75,
@@ -211,6 +219,7 @@ describe('BenchmarkCampaignLab - Task 10 human flow', () => {
       <BenchmarkCampaignLab
         store={store}
         prepareApprovedRepresentative={prepareApprovedRepresentative}
+        downloadExecutionBundle={vi.fn()}
         importAfterCsv={importAfterCsv}
         now={() => LATER}
       />,
@@ -224,8 +233,10 @@ describe('BenchmarkCampaignLab - Task 10 human flow', () => {
     expect(await screen.findByText('Ejecución externa preparada; importa el CSV resultante.')).toBeTruthy();
 
     const file = new File(['customer_id\n1\n'], 'after.csv', { type: 'text/csv' });
+    const receipt = new File(['{}'], 'receipt.json', { type: 'application/json' });
     await user.upload(await screen.findByLabelText('CSV resultante'), file);
-    await user.click(screen.getByRole('button', { name: 'Importar y reauditar' }));
+    await user.upload(screen.getByLabelText('Recibo de ejecución JSON'), receipt);
+    await user.click(screen.getByRole('button', { name: 'Verificar, importar y reauditar' }));
 
     expect(importAfterCsv).toHaveBeenCalledOnce();
     expect(await screen.findByText('40 → 75')).toBeTruthy();

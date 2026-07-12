@@ -130,6 +130,10 @@ export const renderExperimentReportMarkdown = (
     (run) => run.automaticEvaluation?.script.syntaxValid !== null,
   );
   const syntaxNotMeasuredRuns = evaluatedRuns.length - syntaxMeasuredRuns.length;
+  const verifiedPythonRuns = document.runs.filter(
+    (run) => run.execution?.pythonReceipt?.syntax.status === 'passed'
+      && run.execution.pythonReceipt.execution.status === 'passed',
+  );
   const { aggregation } = document;
   const visibleValidityReasons = document.formalValidity.reasons.slice(0, 12);
   const hiddenValidityReasonCount = document.formalValidity.reasons.length - visibleValidityReasons.length;
@@ -183,6 +187,7 @@ export const renderExperimentReportMarkdown = (
     `Scripts seguros por celda: ${aggregation.matrix.cells.map((cell) => `${cell.cellId}=${cell.safeScriptRuns}/${cell.runCount}`).join('; ')}. Contrato, sintaxis, acciones faltantes y acciones no soportadas permanecen como dimensiones independientes.`,
     '',
     `Sintaxis verificada: ${syntaxMeasuredRuns.length}/${evaluatedRuns.length} corridas evaluadas. El resto (${syntaxNotMeasuredRuns}) quedan como not_measured — Python aún no ha sido ejecutado.`,
+    `Ejecuciones Python verificadas por recibo: ${verifiedPythonRuns.length}. Cada recibo conserva hashes del script, CSV de entrada, CSV de salida y entorno Python.`,
     '',
     '## Latencia, tokens y estabilidad',
     '',

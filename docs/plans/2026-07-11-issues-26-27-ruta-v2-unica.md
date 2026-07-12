@@ -32,7 +32,7 @@ No ejecutar las 45 corridas mientras cualquiera de estos gates esté rojo:
 - [x] **P0-01R3 APROBADO**: apiKey case-insensitive recursivo, incluidos arrays.
 - [x] **P0-01R3 APROBADO**: Estado exclusivo éxito/fallo; limpieza local y superior.
 - [x] **P0-01R3 APROBADO**: 1725 tests, typecheck, build, E2E y pruebas adversariales focales en verde.
-- [ ] **BLOQUEADO — P1**: métricas reales y procedencia de validación Python.
+- [x] **COMPLETO — P1**: métricas reales y procedencia verificable de validación/ejecución Python.
 - [ ] **BLOQUEADO**: Smokes reales opt-in con los tres modelos instalados.
 - [ ] **BLOQUEADO**: Campaña real ejecutada manualmente por el investigador.
 

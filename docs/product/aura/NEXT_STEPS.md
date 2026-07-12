@@ -69,7 +69,19 @@ P1-02 extrae métricas reales del diagnóstico:
 - Pruebas adversariales cubren recibo ausente, salida alterada, referencia de otro issue y números instructivos.
 - Greps de ausencia: cero `contractCompliant: true`, cero `syntaxValid: true` en los archivos evaluados.
 
-**P1-02 COMPLETO.** P1-03 (recibo Python) es la siguiente tarea. La campaña real continúa bloqueada.
+**P1-02 COMPLETO.** La campaña real continúa bloqueada.
+
+## Estado AURA-CIERRE-P1-03 (12 julio 2026)
+
+P1-03 cierra la procedencia de la ejecución Python:
+- AURA descarga un bundle ligado al `runId`, contrato del script aprobado y CSV fuente.
+- `npm run oe4:python:run` compila y ejecuta `clean_dataset(df)` con Python/pandas.
+- El ejecutor produce el CSV y `aura.python-execution-receipt.v1` con versiones, tiempos y hashes.
+- El Laboratorio exige CSV + recibo y recalcula script, entrada, salida y hash del propio recibo.
+- `syntaxValid` solo cambia a `true` tras verificar una ejecución aprobada; importar únicamente un CSV ya no es posible.
+- `campaign.json`, `runs.csv` y el reporte consolidan la evidencia Python.
+
+**P1-03 COMPLETO.** La campaña real continúa bloqueada hasta cerrar UX y superar los smokes con modelos reales.
 
 ## Pendientes no cubiertos por P0
 
@@ -80,7 +92,7 @@ Además, el producto tiene las siguientes limitaciones conocidas:
 
 | Área | Pendiente |
 |---|---|
-| Script | Validación Python con trazabilidad de procedencia |
+| Script | Recibo verificable implementado; falta ejecutar los nueve representantes reales |
 | Reporte diagnóstico | Claridad de secciones, visualizaciones, PDF profesional |
 | Trazabilidad técnica | Mostrar recibo completo en UI, no solo resumen |
 | Laboratorio | Nombres consistentes (Laboratorio/experimento/corrida/campaña) |
@@ -89,15 +101,14 @@ Además, el producto tiene las siguientes limitaciones conocidas:
 
 ## Hoja de ruta desde este punto
 
-1. Ejecutar P1-03: recibo verificable de compilación y ejecución Python.
-2. Cerrar la claridad de Reporte diagnóstico, Trazabilidad técnica,
+1. Cerrar la claridad de Reporte diagnóstico, Trazabilidad técnica,
    Configuración, nombres del Laboratorio, nueva sesión y exportaciones.
-3. Instalar/verificar los tres modelos formales en Ollama.
-4. Ejecutar primero los smokes reales: 1×3×1 y 3×1×1.
-5. Si ambos pasan, ejecutar manualmente la campaña completa de 45 diagnósticos.
-6. Evaluar la rúbrica humana, aprobar o rechazar los nueve representantes,
+2. Instalar/verificar los tres modelos formales en Ollama.
+3. Ejecutar primero los smokes reales: 1×3×1 y 3×1×1.
+4. Si ambos pasan, ejecutar manualmente la campaña completa de 45 diagnósticos.
+5. Evaluar la rúbrica humana, aprobar o rechazar los nueve representantes,
    ejecutar los scripts aprobados sobre copias y reauditar.
-7. Exportar el expediente final y redactar el documento de depósito.
+6. Exportar el expediente final y redactar el documento de depósito.
 
 No se debe iniciar la campaña completa si falla la igualdad de hashes, cambia
 el modelo observado, falta un calentamiento, una respuesta no supera el

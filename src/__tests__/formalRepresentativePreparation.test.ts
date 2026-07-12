@@ -5,8 +5,9 @@ import { buildExecutionReceiptV1 } from '../contracts/llm/executionReceiptV1';
 import type { DiagnosisResponseV2 } from '../contracts/llm';
 import { FINAL_EVALUATION_PROTOCOL } from '../services/benchmark/finalEvaluationProtocol';
 import type { ExperimentRunV1 } from '../services/benchmark/experimentTypes';
-import { importFormalRepresentativeOutput, prepareFormalRepresentative } from '../services/benchmark/formalRepresentativePreparation';
+import { buildFormalRepresentativeExecutionBundle, importFormalRepresentativeOutput, prepareFormalRepresentative } from '../services/benchmark/formalRepresentativePreparation';
 import { sha256hex } from '../contracts/llm/hash';
+import { buildPythonExecutionReceipt, type PythonExecutionReceiptPayloadV1 } from '../services/benchmark/pythonExecutionReceipt';
 
 const report: AuditReportInput = {
   score: 90, rowCount: 10, colCount: 1, duplicateRows: 0, delimiterDetected: ',',
@@ -87,21 +88,41 @@ describe('formal representative deterministic preparation', () => {
     expect((prepared.script?.rawOutput ?? '')).toContain(`# AURA evidence envelope: ${pkg.evidenceEnvelopeRef}`);
     expect(prepared.execution?.approvedScriptHash).toBe(contract.scriptHash);
     expect(prepared.automaticEvaluation?.script).toEqual(expect.objectContaining({ contractValid: true, safe: true }));
-    expect(prepared.automaticEvaluation?.script.syntaxValid).toBe(false);
+    expect(prepared.automaticEvaluation?.script.syntaxValid).toBe(null);
+    const bundle = buildFormalRepresentativeExecutionBundle(prepared, '2026-07-11T22:06:00.000Z');
+    expect(bundle.approvedScriptHash).toBe(contract.scriptHash);
+    expect(bundle.scriptTextSha256).toBe(sha256hex(prepared.script!.rawOutput));
 
     const beforeCsv = 'Name\n" Alice "\n';
     const afterCsv = 'Name\nAlice\n';
     prepared.environment.dataset.sha256 = sha256hex(beforeCsv);
     prepared.execution!.beforeDatasetSha256 = sha256hex(beforeCsv);
+    const receiptPayload: PythonExecutionReceiptPayloadV1 = {
+      contractId: 'aura.python-execution-receipt.v1', contractVersion: '1.0.0',
+      runId: prepared.runId,
+      approvedScriptHash: prepared.execution!.approvedScriptHash!,
+      scriptTextSha256: sha256hex(prepared.script!.rawOutput),
+      beforeDatasetSha256: sha256hex(beforeCsv), afterDatasetSha256: sha256hex(afterCsv),
+      pythonVersion: '3.12.1', pandasVersion: '2.2.0', platform: 'test',
+      syntax: { status: 'passed', error: null },
+      execution: {
+        status: 'passed', startedAt: '2026-07-11T22:09:00.000Z', completedAt: '2026-07-11T22:10:00.000Z',
+        durationMs: 1000, stdoutSha256: sha256hex(''), stderrSha256: sha256hex(''), error: null,
+      },
+      output: { rowCount: 1, columnCount: 1 },
+    };
+    const pythonReceipt = buildPythonExecutionReceipt(receiptPayload);
     const reaudited = await importFormalRepresentativeOutput(
       prepared,
       { text: async () => beforeCsv },
       { text: async () => afterCsv },
+      { text: async () => JSON.stringify(pythonReceipt) },
       '2026-07-11T22:10:00.000Z',
     );
 
     expect(reaudited.status).toBe('reaudited');
-    expect(reaudited.automaticEvaluation?.script.syntaxValid).toBe(null);
+    expect(reaudited.automaticEvaluation?.script.syntaxValid).toBe(true);
+    expect(reaudited.execution?.pythonReceipt?.receiptHash).toBe(pythonReceipt.receiptHash);
     expect(reaudited.execution?.reaudit).not.toBeNull();
   });
 });

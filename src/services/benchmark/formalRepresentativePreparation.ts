@@ -5,6 +5,7 @@ import {
   buildScriptCandidateV2,
   buildScriptContext,
   finalizeScriptContractV2,
+  buildScriptHashPayloadV2,
   validateScriptCandidateV2,
   type DiagnosisExecutionResult,
   type DiagnosisInputPackageV2,
@@ -15,6 +16,34 @@ import type { ProviderMetrics } from '../../types';
 import type { ExperimentRunV1 } from './experimentTypes';
 import { buildReauditEvidence, computeExactCsvFingerprint, runReaudit } from '../reauditService';
 import { calculateHealthDelta } from '../improvementService';
+import {
+  buildPythonExecutionBundle,
+  parsePythonExecutionReceipt,
+  validatePythonExecutionReceipt,
+  type PythonExecutionBundleV1,
+} from './pythonExecutionReceipt';
+
+export const buildFormalRepresentativeExecutionBundle = (
+  run: ExperimentRunV1,
+  generatedAt = new Date().toISOString(),
+): PythonExecutionBundleV1 => {
+  if (run.status !== 'awaiting_external_output' || run.execution?.status !== 'awaiting_external_output') {
+    throw new Error('La corrida no está preparada para ejecución Python externa.');
+  }
+  const scriptText = run.script?.rawOutput ?? '';
+  const scriptContract = run.script?.parsedOutput;
+  const approvedScriptHash = run.execution.approvedScriptHash;
+  if (!approvedScriptHash) throw new Error('La corrida no conserva el hash del script aprobado.');
+  if (!scriptContract || typeof scriptContract !== 'object') throw new Error('La corrida no conserva el contrato del script aprobado.');
+  return buildPythonExecutionBundle({
+    generatedAt,
+    runId: run.runId,
+    approvedScriptHash,
+    beforeDatasetSha256: run.execution.beforeDatasetSha256,
+    scriptText,
+    scriptHashPayload: buildScriptHashPayloadV2(scriptContract as Parameters<typeof buildScriptHashPayloadV2>[0]),
+  });
+};
 
 export const prepareFormalRepresentative = (
   run: ExperimentRunV1,
@@ -110,7 +139,7 @@ export const prepareFormalRepresentative = (
     automaticEvaluation: run.automaticEvaluation ? {
       ...run.automaticEvaluation,
       script: {
-        contractValid: true, syntaxValid: false, safe: true,
+        contractValid: true, syntaxValid: null, safe: true,
         coveredActions: [...contract.acceptedActionIds],
         missingActions: [], unsupportedActions: [],
       },
@@ -123,6 +152,7 @@ export const prepareFormalRepresentative = (
       afterDatasetSha256: null,
       executionEnvironment: 'external-controlled-python',
       executedAt: null,
+      pythonReceipt: null,
       reaudit: null,
     },
   };
@@ -131,7 +161,8 @@ export const prepareFormalRepresentative = (
 export const importFormalRepresentativeOutput = async (
   run: ExperimentRunV1,
   beforeFile: Pick<File, 'text'>,
-  afterFile: Pick<File, 'text'>,
+  afterFile: Pick<File, 'text'> | null,
+  receiptFile: Pick<File, 'text'>,
   completedAt = new Date().toISOString(),
 ): Promise<ExperimentRunV1> => {
   if (
@@ -139,12 +170,49 @@ export const importFormalRepresentativeOutput = async (
     || run.hitl?.status !== 'approved'
     || run.execution?.status !== 'awaiting_external_output'
   ) throw new Error('La corrida no está esperando un CSV externo aprobado.');
-  const [beforeCsv, afterCsv] = await Promise.all([beforeFile.text(), afterFile.text()]);
+  const [beforeCsv, afterCsv, receiptText] = await Promise.all([
+    beforeFile.text(),
+    afterFile?.text() ?? Promise.resolve(null),
+    receiptFile.text(),
+  ]);
   const beforeHash = computeExactCsvFingerprint(beforeCsv);
   if (beforeHash !== run.environment.dataset.sha256 || beforeHash !== run.execution.beforeDatasetSha256) {
     throw new Error('El CSV fuente no coincide byte a byte con el dataset congelado.');
   }
-  if (!afterCsv.trim()) throw new Error('El CSV resultante está vacío.');
+  const receipt = parsePythonExecutionReceipt(receiptText);
+  const receiptErrors = validatePythonExecutionReceipt(receipt, {
+    runId: run.runId,
+    approvedScriptHash: run.execution.approvedScriptHash ?? '',
+    scriptText: run.script?.rawOutput ?? '',
+    beforeDatasetSha256: beforeHash,
+    afterCsv,
+  });
+  if (receiptErrors.length > 0) {
+    throw new Error(`El recibo Python no es válido: ${receiptErrors.join('; ')}`);
+  }
+  const syntaxValid = receipt.syntax.status === 'passed';
+  const executionPassed = receipt.execution.status === 'passed';
+  if (!syntaxValid || !executionPassed) {
+    return {
+      ...run,
+      status: 'blocked',
+      updatedAt: completedAt,
+      automaticEvaluation: run.automaticEvaluation ? {
+        ...run.automaticEvaluation,
+        script: { ...run.automaticEvaluation.script, syntaxValid },
+      } : null,
+      execution: {
+        ...run.execution,
+        status: 'blocked',
+        executionEnvironment: `python:${receipt.pythonVersion};pandas:${receipt.pandasVersion ?? 'unavailable'}`,
+        executedAt: receipt.execution.completedAt,
+        pythonReceipt: receipt,
+        afterDatasetSha256: null,
+        reaudit: null,
+      },
+    };
+  }
+  if (afterCsv === null || !afterCsv.trim()) throw new Error('El CSV resultante está vacío.');
   const reaudit = runReaudit(beforeCsv, afterCsv, run.input.evidenceEnvelopeRef, {
     delimiter: ',',
   });
@@ -155,14 +223,15 @@ export const importFormalRepresentativeOutput = async (
     updatedAt: completedAt,
     automaticEvaluation: run.automaticEvaluation ? {
       ...run.automaticEvaluation,
-      script: { ...run.automaticEvaluation.script, syntaxValid: null },
+      script: { ...run.automaticEvaluation.script, syntaxValid: true },
     } : null,
     execution: {
       ...run.execution,
       status: 'reaudited',
-      afterDatasetSha256: computeExactCsvFingerprint(afterCsv),
-      executionEnvironment: 'external-controlled-python',
-      executedAt: completedAt,
+      afterDatasetSha256: receipt.afterDatasetSha256,
+      executionEnvironment: `python:${receipt.pythonVersion};pandas:${receipt.pandasVersion ?? 'unknown'}`,
+      executedAt: receipt.execution.completedAt,
+      pythonReceipt: receipt,
       reaudit: buildReauditEvidence(reaudit, healthDelta),
     },
   };
