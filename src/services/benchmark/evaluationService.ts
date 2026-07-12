@@ -488,8 +488,11 @@ export const buildFormalRunEvaluation = (
       evidenceFidelity: input.diagnosis.evidenceFidelity,
       extendedDiscoveryKeys: input.diagnosis.extendedDiscoveryKeys,
       contractCompliant: input.diagnosis.contract.compliant,
+      contractErrors: input.diagnosis.contract.errors ?? [],
       inventedColumns: input.diagnosis.hallucinations.inventedColumns,
       unsupportedClaims: input.diagnosis.hallucinations.unsupportedClaims,
+      anchoredEvidenceRefs: [],
+      anchoredBadSampleRefs: [],
       anchoringScore: input.diagnosis.anchoring.score,
     },
     script: {

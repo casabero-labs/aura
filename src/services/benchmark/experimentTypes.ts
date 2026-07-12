@@ -164,13 +164,16 @@ export interface AutomaticEvaluationV1 {
     evidenceFidelity: number | null;
     extendedDiscoveryKeys: string[];
     contractCompliant: boolean;
+    contractErrors: string[];
     inventedColumns: string[];
     unsupportedClaims: string[];
+    anchoredEvidenceRefs: string[];
+    anchoredBadSampleRefs: string[];
     anchoringScore: number;
   };
   script: {
     contractValid: boolean;
-    syntaxValid: boolean;
+    syntaxValid: boolean | null;
     safe: boolean;
     coveredActions: string[];
     missingActions: string[];

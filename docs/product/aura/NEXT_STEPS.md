@@ -57,6 +57,20 @@ validación de 45 corridas con 15 warm-ups únicos.
 
 **P0-01R3 está COMPLETO.** Esto cierra la trazabilidad técnica; no autoriza todavía la campaña real.
 
+## Estado AURA-CIERRE-P1-02 (12 julio 2026)
+
+P1-02 extrae métricas reales del diagnóstico:
+- Suite completa, typecheck, build y E2E → verde.
+- `formalDiagnosisEvidence.ts` revalida `DiagnosisResponseV2` contra el envelope y el recibo reales.
+- `contractCompliant`, `contractErrors` y `unsupportedClaims` ya no son constantes.
+- `badSampleRefs` solo de `userPayload.visibleEvidence.badSampleAnchors`.
+- `syntaxValid: boolean | null` — null = Python no ejecutado. Importar CSV no lo cambia.
+- El reporte cuenta la sintaxis solo sobre corridas evaluadas y exporta `not_measured` de forma explícita.
+- Pruebas adversariales cubren recibo ausente, salida alterada, referencia de otro issue y números instructivos.
+- Greps de ausencia: cero `contractCompliant: true`, cero `syntaxValid: true` en los archivos evaluados.
+
+**P1-02 COMPLETO.** P1-03 (recibo Python) es la siguiente tarea. La campaña real continúa bloqueada.
+
 ## Pendientes no cubiertos por P0
 
 **La campaña real sigue BLOQUEADA** hasta cerrar las métricas reales P1,
@@ -66,7 +80,6 @@ Además, el producto tiene las siguientes limitaciones conocidas:
 
 | Área | Pendiente |
 |---|---|
-| Diagnóstico LLM | `unsupportedClaims` real (no inventado), `badSampleRefs` real con anclaje |
 | Script | Validación Python con trazabilidad de procedencia |
 | Reporte diagnóstico | Claridad de secciones, visualizaciones, PDF profesional |
 | Trazabilidad técnica | Mostrar recibo completo en UI, no solo resumen |
@@ -76,18 +89,15 @@ Además, el producto tiene las siguientes limitaciones conocidas:
 
 ## Hoja de ruta desde este punto
 
-1. Ejecutar P1-02 según
-   [`2026-07-12-p1-metricas-diagnostico-reales.md`](../../plans/2026-07-12-p1-metricas-diagnostico-reales.md):
-   `unsupportedClaims`, anclaje real, cumplimiento derivado y estados no medidos honestos.
-2. Ejecutar P1-03: recibo verificable de compilación y ejecución Python.
-3. Cerrar la claridad de Reporte diagnóstico, Trazabilidad técnica,
+1. Ejecutar P1-03: recibo verificable de compilación y ejecución Python.
+2. Cerrar la claridad de Reporte diagnóstico, Trazabilidad técnica,
    Configuración, nombres del Laboratorio, nueva sesión y exportaciones.
-4. Instalar/verificar los tres modelos formales en Ollama.
-5. Ejecutar primero los smokes reales: 1×3×1 y 3×1×1.
-6. Si ambos pasan, ejecutar manualmente la campaña completa de 45 diagnósticos.
-7. Evaluar la rúbrica humana, aprobar o rechazar los nueve representantes,
+3. Instalar/verificar los tres modelos formales en Ollama.
+4. Ejecutar primero los smokes reales: 1×3×1 y 3×1×1.
+5. Si ambos pasan, ejecutar manualmente la campaña completa de 45 diagnósticos.
+6. Evaluar la rúbrica humana, aprobar o rechazar los nueve representantes,
    ejecutar los scripts aprobados sobre copias y reauditar.
-8. Exportar el expediente final y redactar el documento de depósito.
+7. Exportar el expediente final y redactar el documento de depósito.
 
 No se debe iniciar la campaña completa si falla la igualdad de hashes, cambia
 el modelo observado, falta un calentamiento, una respuesta no supera el

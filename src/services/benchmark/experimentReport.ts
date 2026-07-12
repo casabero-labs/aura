@@ -125,6 +125,11 @@ const statusCounts = (document: ExperimentCampaignEvidenceDocumentV1): string =>
 export const renderExperimentReportMarkdown = (
   document: ExperimentCampaignEvidenceDocumentV1,
 ): string => {
+  const evaluatedRuns = document.runs.filter((run) => run.automaticEvaluation !== null);
+  const syntaxMeasuredRuns = evaluatedRuns.filter(
+    (run) => run.automaticEvaluation?.script.syntaxValid !== null,
+  );
+  const syntaxNotMeasuredRuns = evaluatedRuns.length - syntaxMeasuredRuns.length;
   const { aggregation } = document;
   const visibleValidityReasons = document.formalValidity.reasons.slice(0, 12);
   const hiddenValidityReasonCount = document.formalValidity.reasons.length - visibleValidityReasons.length;
@@ -176,6 +181,8 @@ export const renderExperimentReportMarkdown = (
     '## Validez y seguridad del script',
     '',
     `Scripts seguros por celda: ${aggregation.matrix.cells.map((cell) => `${cell.cellId}=${cell.safeScriptRuns}/${cell.runCount}`).join('; ')}. Contrato, sintaxis, acciones faltantes y acciones no soportadas permanecen como dimensiones independientes.`,
+    '',
+    `Sintaxis verificada: ${syntaxMeasuredRuns.length}/${evaluatedRuns.length} corridas evaluadas. El resto (${syntaxNotMeasuredRuns}) quedan como not_measured — Python aún no ha sido ejecutado.`,
     '',
     '## Latencia, tokens y estabilidad',
     '',

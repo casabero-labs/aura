@@ -155,7 +155,7 @@ export const importFormalRepresentativeOutput = async (
     updatedAt: completedAt,
     automaticEvaluation: run.automaticEvaluation ? {
       ...run.automaticEvaluation,
-      script: { ...run.automaticEvaluation.script, syntaxValid: true },
+      script: { ...run.automaticEvaluation.script, syntaxValid: null },
     } : null,
     execution: {
       ...run.execution,

@@ -278,14 +278,20 @@ const validateAutomaticEvaluation = (value: unknown, errors: string[]): value is
     if (typeof diagnosis.contractCompliant !== 'boolean') errors.push('automaticEvaluation.diagnosis.contractCompliant must be boolean');
     if (!isStringArray(diagnosis.inventedColumns)) errors.push('automaticEvaluation.diagnosis.inventedColumns is invalid');
     if (!isStringArray(diagnosis.unsupportedClaims)) errors.push('automaticEvaluation.diagnosis.unsupportedClaims is invalid');
+    if (!Array.isArray(diagnosis.contractErrors) || !diagnosis.contractErrors.every((e: unknown) => typeof e === 'string')) errors.push('automaticEvaluation.diagnosis.contractErrors must be a string array');
+    if (!isStringArray(diagnosis.anchoredEvidenceRefs)) errors.push('automaticEvaluation.diagnosis.anchoredEvidenceRefs is invalid');
+    if (!isStringArray(diagnosis.anchoredBadSampleRefs)) errors.push('automaticEvaluation.diagnosis.anchoredBadSampleRefs is invalid');
     if (!isUnitInterval(diagnosis.anchoringScore)) errors.push('automaticEvaluation.diagnosis.anchoringScore must be within 0–1');
   }
   const script = value.script;
   if (!isRecord(script)) {
     errors.push('automaticEvaluation.script must be an object');
   } else {
-    for (const key of ['contractValid', 'syntaxValid', 'safe'] as const) {
+    for (const key of ['contractValid', 'safe'] as const) {
       if (typeof script[key] !== 'boolean') errors.push(`automaticEvaluation.script.${key} must be boolean`);
+    }
+    if (script.syntaxValid !== null && typeof script.syntaxValid !== 'boolean') {
+      errors.push('automaticEvaluation.script.syntaxValid must be boolean or null');
     }
     for (const key of ['coveredActions', 'missingActions', 'unsupportedActions'] as const) {
       if (!isStringArray(script[key])) errors.push(`automaticEvaluation.script.${key} is invalid`);

@@ -69,7 +69,7 @@ describe('formal representative deterministic preparation', () => {
       executionReceipt: receipt,
       automaticEvaluation: {
         contractId: 'aura.automatic-evaluation.v1', evaluatedAt: '2026-07-11T22:00:02.000Z',
-        diagnosis: { primary: { tp: 1, fp: 0, fn: 0, precision: 1, recall: 1, f1: 1 }, engineCoverage: 1, evidenceFidelity: 1, extendedDiscoveryKeys: [], contractCompliant: true, inventedColumns: [], unsupportedClaims: [], anchoringScore: 1 },
+        diagnosis: { primary: { tp: 1, fp: 0, fn: 0, precision: 1, recall: 1, f1: 1 }, engineCoverage: 1, evidenceFidelity: 1, extendedDiscoveryKeys: [], contractCompliant: true, inventedColumns: [], unsupportedClaims: [], anchoringScore: 1, contractErrors: [], anchoredEvidenceRefs: [], anchoredBadSampleRefs: [] },
         script: { contractValid: false, syntaxValid: false, safe: false, coveredActions: [], missingActions: [], unsupportedActions: [] },
       },
       hitl: { status: 'approved' },
@@ -101,7 +101,7 @@ describe('formal representative deterministic preparation', () => {
     );
 
     expect(reaudited.status).toBe('reaudited');
-    expect(reaudited.automaticEvaluation?.script.syntaxValid).toBe(true);
+    expect(reaudited.automaticEvaluation?.script.syntaxValid).toBe(null);
     expect(reaudited.execution?.reaudit).not.toBeNull();
   });
 });

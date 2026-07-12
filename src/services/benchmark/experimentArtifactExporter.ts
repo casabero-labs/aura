@@ -81,6 +81,7 @@ export const renderExperimentRunsCsv = (
     'status', 'representative', 'diagnosis_status', 'script_status', 'tp', 'fp',
     'fn', 'precision', 'recall', 'f1', 'engine_coverage', 'evidence_fidelity',
     'contract_compliant', 'invented_columns', 'unsupported_claims', 'anchoring_score',
+    'contract_errors', 'anchored_evidence_refs', 'anchored_bad_sample_refs',
     'script_contract_valid', 'script_syntax_valid', 'script_safe', 'missing_actions',
     'unsupported_actions', 'latency_total_ms', 'prompt_tokens', 'output_tokens',
     'reasoning_tokens', 'clarity', 'traceability', 'actionability', 'human_mean',
@@ -95,6 +96,10 @@ export const renderExperimentRunsCsv = (
     const script = run.automaticEvaluation?.script;
     const receipt = run.executionReceipt ?? null;
     const input = run.input;
+    const syntaxValidValue = script?.syntaxValid === null ? 'not_measured'
+      : script?.syntaxValid === true ? 'true'
+      : script?.syntaxValid === false ? 'false'
+      : '';
     return [
       run.campaignId,
       run.runId,
@@ -118,8 +123,11 @@ export const renderExperimentRunsCsv = (
       diagnosis?.inventedColumns.join('|'),
       diagnosis?.unsupportedClaims.join('|'),
       diagnosis?.anchoringScore,
+      diagnosis?.contractErrors?.join('|') ?? '',
+      diagnosis?.anchoredEvidenceRefs?.join('|') ?? '',
+      diagnosis?.anchoredBadSampleRefs?.join('|') ?? '',
       script?.contractValid,
-      script?.syntaxValid,
+      syntaxValidValue,
       script?.safe,
       script?.missingActions.join('|'),
       script?.unsupportedActions.join('|'),

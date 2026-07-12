@@ -167,7 +167,7 @@ describe('OE4 formal evaluation dimensions', () => {
     };
     const script: ScriptOracleEvaluation = {
       contractValid: true,
-      syntaxValid: true,
+      syntaxValid: null,
       safe: true,
       invalidColumns: [],
       dangerousImports: [],
