@@ -79,7 +79,7 @@ describe('SettingsPanel - Ollama model reconciliation', () => {
     expect(screen.queryByTestId('ollama-model-missing-warning')).toBeNull();
   });
 
-  it('"Usar este modelo" updates model, ollamaModel, localStorage, and calls onSave', async () => {
+  it('"Usar este modelo" remains a draft until the user saves', async () => {
     const config: AIConfig = {
       ...baseConfig,
       model: 'mistral:7b',
@@ -94,7 +94,9 @@ describe('SettingsPanel - Ollama model reconciliation', () => {
 
     fireEvent.click(screen.getByTestId('ollama-use-model-gemma2_2b'));
 
-    expect(localStorageStore.get('aura_ollama_model')).toBe('gemma2:2b');
+    expect(localStorageStore.get('aura_ollama_model')).toBeUndefined();
+    expect(onSave).not.toHaveBeenCalled();
+    fireEvent.click(screen.getAllByRole('button', { name: /Guardar configuración/i })[0]);
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
       model: 'gemma2:2b',
       ollamaModel: 'gemma2:2b',

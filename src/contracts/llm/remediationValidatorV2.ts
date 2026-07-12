@@ -464,7 +464,7 @@ export function validateRemediationPlanV2(
   // ─────────────────────────────────────────────────────────────
   // Top-level extra properties
   // ─────────────────────────────────────────────────────────────
-  const topKeys = ['contractId', 'contractVersion', 'planId', 'diagnosisRef', 'evidenceEnvelopeRef', 'datasetFingerprint', 'plan', 'actionabilityMap', 'exclusions', 'generatedAt'];
+  const topKeys = ['contractId', 'contractVersion', 'planId', 'diagnosisRef', 'evidenceEnvelopeRef', 'inputReceiptRef', 'datasetFingerprint', 'plan', 'actionabilityMap', 'exclusions', 'generatedAt'];
   for (const k of Object.keys(p)) { if (!topKeys.includes(k)) errors.push(verr('REMEDIATION_SCHEMA_INVALID', k, 'Unknown top-level property')); }
 
   // ─────────────────────────────────────────────────────────────

@@ -16,6 +16,8 @@ import {
   type OE4ModelId,
 } from '../services/benchmark/finalEvaluationProtocol';
 import { validateExperimentRunV1 } from '../services/benchmark/experimentGuards';
+import { sha256hex } from '../contracts/llm/hash';
+import { buildExperimentSchedule } from '../services/benchmark/experimentSchedule';
 
 const HASH_A = 'a'.repeat(64);
 const HASH_B = 'b'.repeat(64);
@@ -42,19 +44,23 @@ const makeEnvironment = (modelId: OE4ModelId): EnvironmentSnapshotV1 => ({
   inference: { ...FINAL_EVALUATION_PROTOCOL.inference },
 });
 
-const makeInput = (mode: OE4InputMode): InputContractSnapshotV1 => ({
+const makeInput = (mode: OE4InputMode): InputContractSnapshotV1 => {
+  const systemInstruction = 'Return one aura.diagnosis.v2 JSON object.';
+  const userPayload = JSON.stringify({ mode, evidenceEnvelopeRef: `env:${HASH_A}` });
+  return ({
   contractId: 'aura.input-snapshot.v1',
   mode,
   evidenceEnvelopeRef: `env:${HASH_A}`,
   includedSections: ['dataset_summary', 'dataset_schema'],
-  systemInstruction: 'Return one aura.diagnosis.v2 JSON object.',
-  userPayload: JSON.stringify({ mode, evidenceEnvelopeRef: `env:${HASH_A}` }),
+  systemInstruction,
+  userPayload,
   responseSchema: { type: 'object', required: ['contractId'] },
   promptVersion: '1.2.0',
-  promptHash: HASH_A,
+  promptHash: sha256hex(`${systemInstruction}\n\n${userPayload}`),
   inputHash: HASH_B,
   responseSchemaHash: HASH_A,
-});
+  });
+};
 
 const makeRun = (mode: OE4InputMode, sequence = 1): ExperimentRunV1 => {
   const modelId = FINAL_EVALUATION_PROTOCOL.models[0];
@@ -122,6 +128,7 @@ const makeStore = (): ExperimentRunnerStore => ({
 
 const makeRunner = (outputs: Array<ProviderTextResult | Error>) => {
   const generateText = vi.fn<AIProvider['generateText']>();
+  generateText.mockResolvedValueOnce(result('READY'));
   for (const output of outputs) {
     if (output instanceof Error) generateText.mockRejectedValueOnce(output);
     else generateText.mockResolvedValueOnce(output);
@@ -131,36 +138,47 @@ const makeRunner = (outputs: Array<ProviderTextResult | Error>) => {
   let tick = 0;
   const runner = createExperimentRunner({
     provider,
+    validateDiagnosis: (parsed) => (
+      typeof parsed === 'object' && parsed !== null
+        ? []
+        : [{ code: 'INVALID', path: '$', message: 'invalid diagnosis' }]
+    ),
     store,
     now: () => new Date(Date.parse(NOW) + tick++ * 1000).toISOString(),
   });
   return { runner, store, generateText };
 };
 
-describe('OE4 symmetric and resumable runner — Task 5', () => {
-  it('executes the same diagnosis then script sequence twice for every formal mode', async () => {
+describe('OE4 diagnosis-only and resumable runner — protocol V2', () => {
+  it('executes exactly one measured diagnosis call for every formal mode', async () => {
     for (const mode of OE4_INPUT_MODES) {
-      const { runner, store, generateText } = makeRunner([
-        result(diagnosisOutput),
-        result(scriptOutput),
-      ]);
+      const { runner, store, generateText } = makeRunner([result(diagnosisOutput)]);
 
       const completed = await runner.runUnit(makeRun(mode));
 
       expect(generateText).toHaveBeenCalledTimes(2);
-      expect(store.saveRun).not.toHaveBeenCalled();
-      expect(generateText.mock.calls[0][0]).toContain('aura.diagnosis.v2');
-      expect(generateText.mock.calls[1][0]).toContain('aura.script.v2');
-      expect(store.appendAttemptEvent).toHaveBeenCalledTimes(4);
+      expect(generateText.mock.calls[0][0]).toContain('Warm-up OE4');
+      expect(store.saveRun).toHaveBeenCalledTimes(1);
+      expect(generateText.mock.calls[1][0]).toContain('aura.diagnosis.v2');
+      expect(store.appendAttemptEvent).toHaveBeenCalledTimes(2);
       expect(completed.status).toBe('completed');
       expect(completed.diagnosis?.status).toBe('completed');
-      expect(completed.script?.status).toBe('completed');
+      expect(completed.executionReceipt).toEqual(expect.objectContaining({
+        requestedInputMode: mode,
+        effectiveInputMode: mode,
+        requestedModel: completed.modelId,
+        observedModel: completed.modelId,
+        inputHash: completed.input.inputHash,
+        validationStatus: 'valid',
+      }));
+      expect(completed.script).toBeNull();
       expect(validateExperimentRunV1(completed)).toEqual({ valid: true, errors: [] });
+      const tampered = structuredClone(completed);
+      tampered.executionReceipt!.requestedModel = 'tampered-model';
+      expect(validateExperimentRunV1(tampered).valid).toBe(false);
       expect(completed.attempts.map((event) => `${event.stage}:${event.type}`)).toEqual([
         'diagnosis:started',
         'diagnosis:completed',
-        'script:started',
-        'script:completed',
       ]);
     }
   });
@@ -170,7 +188,7 @@ describe('OE4 symmetric and resumable runner — Task 5', () => {
 
     const failed = await runner.runUnit(makeRun('smart_sample'));
 
-    expect(generateText).toHaveBeenCalledTimes(1);
+    expect(generateText).toHaveBeenCalledTimes(2);
     expect(store.appendAttemptEvent).toHaveBeenCalledTimes(2);
     expect(failed.status).toBe('failed');
     expect(failed.diagnosis?.status).toBe('failed');
@@ -184,47 +202,15 @@ describe('OE4 symmetric and resumable runner — Task 5', () => {
 
     const failed = await runner.runUnit(makeRun('prompt_libre'));
 
-    expect(generateText).toHaveBeenCalledTimes(1);
+    expect(generateText).toHaveBeenCalledTimes(2);
     expect(failed.status).toBe('failed');
     expect(failed.diagnosis?.error?.code).toBe('DIAGNOSIS_JSON_INVALID');
     expect(failed.diagnosis?.validationErrors[0].path).toBe('$');
     expect(failed.script).toBeNull();
   });
 
-  it('retains a completed diagnosis when script generation fails', async () => {
-    const { runner, generateText } = makeRunner([
-      result(diagnosisOutput),
-      new Error('script timeout'),
-    ]);
-
-    const failed = await runner.runUnit(makeRun('recommended'));
-
-    expect(generateText).toHaveBeenCalledTimes(2);
-    expect(failed.status).toBe('failed');
-    expect(failed.diagnosis?.status).toBe('completed');
-    expect(failed.script?.status).toBe('timeout');
-  });
-
-  it('resumes a failed script without repeating the completed diagnosis', async () => {
-    const first = makeRunner([result(diagnosisOutput), new Error('script timeout')]);
-    const failed = await first.runner.runUnit(makeRun('recommended'));
-    const previousAttempts = failed.attempts;
-    const resumed = makeRunner([result(scriptOutput)]);
-
-    const completed = await resumed.runner.runUnit(failed);
-
-    expect(resumed.generateText).toHaveBeenCalledTimes(1);
-    expect(resumed.generateText.mock.calls[0][0]).toContain('aura.script.v2');
-    expect(completed.status).toBe('completed');
-    expect(completed.diagnosis).toEqual(failed.diagnosis);
-    expect(completed.attempts.slice(0, previousAttempts.length)).toEqual(previousAttempts);
-    expect(completed.attempts[previousAttempts.length].retryOfAttemptId).toBe(
-      failed.script?.attemptId,
-    );
-  });
-
   it('pauses safely between units and leaves later units untouched', async () => {
-    const { runner, generateText } = makeRunner([result(diagnosisOutput), result(scriptOutput)]);
+    const { runner, generateText } = makeRunner([result(diagnosisOutput)]);
     const first = makeRun('prompt_libre', 1);
     const second = makeRun('smart_sample', 2);
 
@@ -236,5 +222,84 @@ describe('OE4 symmetric and resumable runner — Task 5', () => {
     expect(outcome.runs[0].status).toBe('completed');
     expect(outcome.runs[1]).toEqual(second);
     expect(generateText).toHaveBeenCalledTimes(2);
+  });
+
+  it('fails closed when complete diagnosis validation reports an error', async () => {
+    const generateText = vi.fn<AIProvider['generateText']>().mockResolvedValue(result(diagnosisOutput));
+    const runner = createExperimentRunner({
+      provider: { generateText },
+      store: makeStore(),
+      validateDiagnosis: () => [{ code: 'DIAGNOSIS_COVERAGE_MISMATCH', path: '$.findings', message: 'missing findings' }],
+      now: () => NOW,
+    });
+
+    const failed = await runner.runUnit(makeRun('recommended'));
+
+    expect(failed.status).toBe('failed');
+    expect(failed.diagnosis?.error?.code).toBe('DIAGNOSIS_CONTRACT_INVALID');
+    expect(failed.diagnosis?.validationErrors[0].code).toBe('DIAGNOSIS_COVERAGE_MISMATCH');
+  });
+
+  it('executes exactly 15 excluded warm-ups plus 45 measured diagnoses', async () => {
+    const calls: string[] = [];
+    const runs = buildExperimentSchedule().units.map((unit) => ({
+      ...makeRun(unit.inputMode, unit.sequence),
+      runId: unit.runId,
+      modelId: unit.modelId,
+      repetition: unit.repetition,
+      environment: makeEnvironment(unit.modelId),
+    }));
+    const runner = createExperimentRunner({
+      providerForRun: (run) => ({
+        generateText: async (prompt) => {
+          calls.push(prompt);
+          return {
+            ...result(prompt.startsWith('Warm-up OE4') ? 'READY' : diagnosisOutput),
+            metrics: { ...result('').metrics, model: run.modelId },
+          };
+        },
+      }),
+      store: makeStore(),
+      validateDiagnosis: () => [],
+      now: () => NOW,
+    });
+
+    const outcome = await runner.runUnits(runs);
+
+    expect(outcome.runs.every((run) => run.status === 'completed')).toBe(true);
+    expect(calls.filter((prompt) => prompt.startsWith('Warm-up OE4'))).toHaveLength(15);
+    expect(calls.filter((prompt) => prompt.includes('aura.diagnosis.v2'))).toHaveLength(45);
+    expect(calls).toHaveLength(60);
+  });
+
+  it('does not repeat a persisted block warm-up after the runner is recreated', async () => {
+    const first = makeRun('prompt_libre', 1);
+    const second = makeRun('smart_sample', 2);
+    let stored = [first, second];
+    const store: ExperimentRunnerStore & { listRuns: (campaignId: string) => Promise<ExperimentRunV1[]> } = {
+      listRuns: async () => structuredClone(stored),
+      saveRun: async (run) => { stored = stored.map((item) => item.runId === run.runId ? structuredClone(run) : item); },
+      appendAttemptEvent: async (runId, _event, nextRun) => {
+        stored = stored.map((item) => item.runId === runId ? structuredClone(nextRun) : item);
+      },
+    };
+    const prompts: string[] = [];
+    const dependencies = {
+      providerForRun: (run: ExperimentRunV1) => ({
+        generateText: async (prompt: string) => {
+          prompts.push(prompt);
+          return { ...result(prompt.startsWith('Warm-up OE4') ? 'READY' : diagnosisOutput), metrics: { ...result('').metrics, model: run.modelId } };
+        },
+      }),
+      store,
+      validateDiagnosis: () => [],
+      now: () => NOW,
+    };
+
+    await createExperimentRunner(dependencies).runUnit(first);
+    await createExperimentRunner(dependencies).runUnit(second);
+
+    expect(prompts.filter((prompt) => prompt.startsWith('Warm-up OE4'))).toHaveLength(1);
+    expect(prompts.filter((prompt) => prompt.includes('aura.diagnosis.v2'))).toHaveLength(2);
   });
 });

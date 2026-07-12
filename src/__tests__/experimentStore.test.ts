@@ -15,6 +15,7 @@ import type {
   LlmStageErrorV1,
   LlmStageResultV1,
 } from '../services/benchmark/experimentTypes';
+import { sha256hex } from '../contracts/llm/hash';
 import type { ExperimentStore } from '../services/benchmark/experimentStore';
 import {
   createInMemoryExperimentState,
@@ -51,19 +52,23 @@ const makeEnvironment = (modelId: OE4ModelId): EnvironmentSnapshotV1 => ({
   inference: { ...FINAL_EVALUATION_PROTOCOL.inference },
 });
 
-const makeInput = (mode: OE4InputMode): InputContractSnapshotV1 => ({
+const makeInput = (mode: OE4InputMode): InputContractSnapshotV1 => {
+  const systemInstruction = 'Return one aura.diagnosis.v2 JSON object.';
+  const userPayload = JSON.stringify({ mode, evidenceEnvelopeRef: `env:${HASH_A}` });
+  return ({
   contractId: 'aura.input-snapshot.v1',
   mode,
   evidenceEnvelopeRef: `env:${HASH_A}`,
   includedSections: ['dataset_summary', 'dataset_schema'],
-  systemInstruction: 'Return one aura.diagnosis.v2 JSON object.',
-  userPayload: JSON.stringify({ mode, evidenceEnvelopeRef: `env:${HASH_A}` }),
+  systemInstruction,
+  userPayload,
   responseSchema: { type: 'object', required: ['contractId'] },
   promptVersion: '1.2.0',
-  promptHash: HASH_A,
+  promptHash: sha256hex(`${systemInstruction}\n\n${userPayload}`),
   inputHash: HASH_B,
   responseSchemaHash: HASH_A,
-});
+  });
+};
 
 const makeCampaignFixture = (): {
   campaign: ExperimentCampaignV1;
@@ -337,16 +342,11 @@ describe('OE4 experiment store contract — Task 6', () => {
     const store = createInMemoryExperimentStore();
     await store.createCampaign(fixture.campaign, fixture.runs);
     const outputs = [
+      'READY',
       JSON.stringify({
         contractId: 'aura.diagnosis.v2',
         evidenceEnvelopeRef: `env:${HASH_A}`,
         findings: [],
-      }),
-      JSON.stringify({
-        contractId: 'aura.script.v2',
-        contractVersion: '2.0.0',
-        cleanDatasetFn: 'clean_dataset',
-        scriptText: 'def clean_dataset(df):\n    return df.copy()',
       }),
     ];
     const provider: Pick<AIProvider, 'generateText'> = {
@@ -367,6 +367,7 @@ describe('OE4 experiment store contract — Task 6', () => {
     const runner = createExperimentRunner({
       provider,
       store,
+      validateDiagnosis: () => [],
       now: () => new Date(Date.parse(NOW) + ++tick * 1000).toISOString(),
     });
 
@@ -374,7 +375,7 @@ describe('OE4 experiment store contract — Task 6', () => {
 
     expect(completed.status).toBe('completed');
     expect(await store.loadRun(completed.runId)).toEqual(completed);
-    expect(await store.listAttemptEvents(completed.runId)).toHaveLength(4);
+    expect(await store.listAttemptEvents(completed.runId)).toHaveLength(2);
     expect((await store.getNextPlannedRun(fixture.campaign.campaignId))?.sequence).toBe(2);
   });
 });

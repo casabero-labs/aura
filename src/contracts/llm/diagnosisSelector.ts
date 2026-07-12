@@ -2,18 +2,18 @@ import type { AuditReportInput } from './evidenceEnvelopeV2';
 import type { AIProvider, ProviderMetrics } from '../../types';
 import type {
   EvidenceEnvelopeOptionsV2 as EnvOptions,
-  DiagnosisPromptOptionsV2,
   DiagnosisPromptPackageV2,
   DiagnosisExecutionResult,
   DiagnosisErrorCode,
   DiagnosisPipelineFailure,
+  DiagnosisInputModeV2,
+  InferenceSnapshotV1,
 } from './index';
 import {
   buildEvidenceEnvelopeV2,
-  buildDiagnosisPromptV2,
-  buildCompactDiagnosisPromptV2,
-  shouldUseCompactPrompt,
-  estimatePromptTokens,
+  buildDiagnosisInputPackageV2,
+  exactDiagnosisPromptV2,
+  buildExecutionReceiptV1,
   runDiagnosisPipeline,
 } from './index';
 import { isContractsV2Enabled } from './contractRegistry';
@@ -41,8 +41,10 @@ export interface DiagnosisSelectorOptions {
   provider: AIProvider;
   auditEvidence: { datasetFingerprint: string } | null;
   envelopeOptions?: Partial<Omit<EnvOptions, 'datasetSha256' | 'delimiter'>> & { datasetSha256?: string; delimiter?: string };
-  promptOptions?: Partial<DiagnosisPromptOptionsV2>;
-  maxConfidence?: number;
+  inputMode?: DiagnosisInputModeV2;
+  requestedModel?: string;
+  modelDigest?: string | null;
+  inference?: InferenceSnapshotV1;
   onProgress?: (event: { type: 'chunk'; text: string }) => void;
 }
 
@@ -100,34 +102,36 @@ export async function runStructuredDiagnosis(
     excludeIssues: options.envelopeOptions?.excludeIssues,
   };
 
-  const promptOptions: DiagnosisPromptOptionsV2 = {
-    maxConfidence: options.maxConfidence ?? 1,
-    ...options.promptOptions,
-  };
 
   const envelope = buildEvidenceEnvelopeV2(report, envelopeOptions);
-  const fullPromptPackage = buildDiagnosisPromptV2(envelope, promptOptions);
-  const fullPrompt = fullPromptPackage.systemInstruction + '\n\n' + fullPromptPackage.userPayload;
-
-  const providerType = options.provider.type;
-  const estimatedTokens = estimatePromptTokens(fullPrompt);
-  const useCompactPrompt = shouldUseCompactPrompt(fullPrompt, providerType);
-
-  const promptPackage = useCompactPrompt
-    ? buildCompactDiagnosisPromptV2(envelope, promptOptions)
-    : fullPromptPackage;
+  const inputMode = options.inputMode ?? 'smart_sample';
+  const inputPackage = buildDiagnosisInputPackageV2(report, envelope, inputMode);
+  const exactPrompt = exactDiagnosisPromptV2(inputPackage);
+  const promptPackage: DiagnosisPromptPackageV2 = {
+    contractId: 'aura.diagnosis.v2',
+    contractVersion: '2.0.0',
+    evidenceEnvelopeRef: inputPackage.evidenceEnvelopeRef,
+    promptVersion: inputPackage.promptVersion,
+    promptHash: inputPackage.promptHash,
+    systemInstruction: inputPackage.systemInstruction,
+    userPayload: inputPackage.userPayload,
+    responseSchema: inputPackage.responseSchema,
+    generatedAt: new Date().toISOString(),
+  };
 
   const adapter = new AIProviderDiagnosisAdapter({ provider: options.provider });
 
   let capturedMetrics: ProviderMetrics | null = null;
   let rawResponseHash = '';
+  let rawResponse = '';
+  const startedAt = new Date().toISOString();
 
   const pipelineAdapter = async (_pkg: DiagnosisPromptPackageV2): Promise<string> => {
-    const promptText = promptPackage.systemInstruction + '\n\n' + promptPackage.userPayload;
-    const { text, metrics } = await adapter.diagnoseWithProgress(promptText, (event) => {
+    const { text, metrics } = await adapter.diagnoseWithProgress(exactPrompt, (event) => {
       options.onProgress?.(event);
     });
     capturedMetrics = metrics;
+    rawResponse = text;
     rawResponseHash = sha256hex(text);
     return text;
   };
@@ -155,6 +159,30 @@ export async function runStructuredDiagnosis(
     };
   }
 
+  const inference: InferenceSnapshotV1 = options.inference ?? {
+    temperature: 0.1,
+    topP: 0.9,
+    numCtx: 16384,
+    numPredict: 1600,
+    seed: null,
+    keepAlive: '10m',
+    timeoutSeconds: 600,
+  };
+  const executionReceipt = buildExecutionReceiptV1({
+    input: inputPackage,
+    requestedInputMode: inputMode,
+    exactPrompt,
+    provider: capturedMetrics.provider,
+    requestedModel: options.requestedModel ?? capturedMetrics.model,
+    observedModel: capturedMetrics.model,
+    modelDigest: options.modelDigest,
+    inference,
+    startedAt,
+    completedAt: new Date().toISOString(),
+    rawResponse,
+    validationStatus: 'valid',
+  });
+
   const result: DiagnosisExecutionResult = {
     version: 2,
     diagnosis: outcome.response,
@@ -170,9 +198,14 @@ export async function runStructuredDiagnosis(
     evidenceEnvelopeRef: promptPackage.evidenceEnvelopeRef,
     promptVersion: promptPackage.promptVersion,
     rawResponseHash,
+    inputMode,
+    inputHash: inputPackage.inputHash,
+    inputSnapshot: inputPackage,
+    executionReceipt,
     remediationContext: (() => {
       const ctx = buildRemediationContext(envelope);
       ctx.evidenceEnvelopeRef = promptPackage.evidenceEnvelopeRef;
+      ctx.inputReceiptRef = executionReceipt.receiptHash;
       return ctx;
     })(),
   };

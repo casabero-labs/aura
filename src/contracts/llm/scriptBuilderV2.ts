@@ -275,7 +275,7 @@ export function buildScriptCandidateCoreV2(
   // ── Build script via renderer ──
   let scriptText: string;
   try {
-    scriptText = buildScriptText(renderableActions, buildContext.columnRegistry);
+    scriptText = buildScriptText(renderableActions, buildContext.columnRegistry, plan.inputReceiptRef);
   } catch (e) {
     if (e instanceof ScriptRendererError) {
       builderError('SCRIPT_BUILD_RENDER_FAILED', e.message, { rendererErrorCode: (e as ScriptRendererError).code });
@@ -326,6 +326,7 @@ export function buildScriptCandidateCoreV2(
     contractId: 'aura.script.v2',
     contractVersion: '2.0.0',
     remediationRef: plan.planId,
+    inputReceiptRef: plan.inputReceiptRef,
     datasetFingerprint: plan.datasetFingerprint,
     acceptedActionIds,
     rejectedActionIds,
@@ -381,6 +382,7 @@ export function buildScriptHashPayloadV2(
 ): Record<string, unknown> {
   return {
     remediationRef: candidate.remediationRef,
+    inputReceiptRef: candidate.inputReceiptRef,
     datasetFingerprint: candidate.datasetFingerprint,
     acceptedActionIds: [...candidate.acceptedActionIds].sort(),
     columnRefs: [...candidate.columnRefs]
@@ -467,6 +469,7 @@ export function finalizeScriptContractV2(
     contractId: candidate.contractId,
     contractVersion: candidate.contractVersion,
     remediationRef: candidate.remediationRef,
+    inputReceiptRef: candidate.inputReceiptRef,
     datasetFingerprint: candidate.datasetFingerprint,
     acceptedActionIds: [...candidate.acceptedActionIds],
     rejectedActionIds: [...candidate.rejectedActionIds],

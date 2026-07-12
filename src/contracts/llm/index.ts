@@ -48,6 +48,10 @@ export type {
   DiagnosisVisualizationKindV2,
   DiagnosisPromptPackageV2,
   DiagnosisPromptOptionsV2,
+  DiagnosisInputModeV2,
+  DiagnosisInputPackageV2,
+  InferenceSnapshotV1,
+  ExecutionReceiptV1,
   DiagnosisErrorCode,
   DiagnosisError,
   DiagnosisExecutionResult,
@@ -72,6 +76,18 @@ export type {
   ScriptValidationResultV2,
   ColumnResolutionFailureReasonV2,
 } from './types';
+
+export {
+  buildDiagnosisInputPackageV2,
+  DIAGNOSIS_INCLUDED_SECTIONS_BY_MODE,
+  exactDiagnosisPromptV2,
+} from './diagnosisInputPackageV2';
+
+export {
+  buildExecutionReceiptV1,
+  computeInferenceHash,
+  validateExecutionReceiptV1,
+} from './executionReceiptV1';
 
 export type { DiagnosisParseOutcome } from './diagnosisParserV2';
 

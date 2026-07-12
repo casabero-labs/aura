@@ -7,6 +7,7 @@ import { BenchmarkResult, InputMode } from '../../types';
 import type { AutomaticEvaluationV1, HumanReviewV1, LlmStageResultV1 } from './experimentTypes';
 import type { DiagnosticOracleEvaluation } from './diagnosticOracleEvaluator';
 import type { ScriptOracleEvaluation } from './scriptOracleEvaluator';
+import { FINAL_EVALUATION_PROTOCOL } from './finalEvaluationProtocol';
 
 // =============================================================================
 // ScoreWeights Interface
@@ -405,7 +406,7 @@ export interface OperationEvaluation {
   };
   stability: {
     completedStages: number;
-    expectedStages: 2;
+    expectedStages: number;
     score: number;
   };
 }
@@ -438,10 +439,13 @@ export const evaluateOperation = (
 ): OperationEvaluation => {
   const diagnosis = stages.find((stage) => stage.stage === 'diagnosis');
   const script = stages.find((stage) => stage.stage === 'script');
-  const stageMetrics = [diagnosis?.metrics ?? null, script?.metrics ?? null];
-  const completedStages = [diagnosis, script]
+  const measuredStages = FINAL_EVALUATION_PROTOCOL.matrix.stagesPerUnit === 1
+    ? [diagnosis]
+    : [diagnosis, script];
+  const stageMetrics = measuredStages.map((stage) => stage?.metrics ?? null);
+  const completedStages = measuredStages
     .filter((stage) => stage?.status === 'completed').length;
-  const failedStages = [diagnosis, script]
+  const failedStages = measuredStages
     .filter((stage) => stage === undefined || stage.status !== 'completed');
   const codes = [...new Set(failedStages
     .map((stage) => stage?.error?.code ?? `stage_${stage?.status ?? 'missing'}`))]
@@ -461,8 +465,8 @@ export const evaluateOperation = (
     errors: { count: failedStages.length, codes },
     stability: {
       completedStages,
-      expectedStages: 2,
-      score: completedStages / 2,
+      expectedStages: FINAL_EVALUATION_PROTOCOL.matrix.stagesPerUnit,
+      score: completedStages / FINAL_EVALUATION_PROTOCOL.matrix.stagesPerUnit,
     },
   };
 };

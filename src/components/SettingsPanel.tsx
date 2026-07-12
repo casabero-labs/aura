@@ -5,7 +5,6 @@ import {
   CheckCircle,
   Cloud,
   Download,
-  ExternalLink,
   Globe,
   HelpCircle,
   Info,
@@ -22,7 +21,6 @@ import { AVAILABLE_MODELS, OLLAMA_MODELS, getChromeAiDiagnostic } from '../servi
 import type { ChromeAiDiagnostic } from '../services/aiProvider';
 import { OLLAMA_SUGGESTED_MODELS, OllamaProvider } from '../services/providers/ollamaProvider';
 import type { OllamaModel } from '../services/providers/ollamaProvider';
-import { normalizePromptContract } from '../services/providers/prompts';
 
 interface SettingsPanelProps {
   config: AIConfig;
@@ -60,9 +58,9 @@ const INPUT_MODE_OPTIONS: InputModeOption[] = [
   {
     value: 'prompt_libre',
     label: 'Contexto mínimo',
-    summary: 'Resumen físico del dataset y esquema de columnas. Sin reglas ni muestras observadas.',
+    summary: 'Resumen físico, esquema y registro mínimo de reglas activadas. Sin muestras observadas.',
     whenToUse: 'Pruebas rápidas, baseline experimental o comprobación básica.',
-    includes: 'Resumen físico del dataset y esquema de columnas.',
+    includes: 'Resumen físico, esquema y registro mínimo de hallazgos y reglas.',
     advantage: 'Menor consumo de contexto y respuesta más rápida.',
     limitation: 'Menos contexto: mayor riesgo de respuestas genéricas y menor trazabilidad.',
   },
@@ -222,7 +220,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
         ollamaBaseUrl: savedEndpoint || localConfig.ollamaBaseUrl || 'http://127.0.0.1:11434',
       };
       setLocalConfig(updated);
-      onSave(updated);
       if (ollamaConnected !== true) {
         sessionStorage.setItem('aura_ollama_setup_started', 'true');
       }
@@ -241,7 +238,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
       cloudProvider: type === 'cloud' ? (localConfig.cloudProvider || 'google') : undefined,
     };
     setLocalConfig(updated);
-    onSave(updated);
   };
 
   const handlePrepareChrome = async () => {
@@ -288,8 +284,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
       ollamaModel: modelName,
     };
     setLocalConfig(updated);
-    localStorage.setItem('aura_ollama_model', modelName);
-    onSave(updated);
   };
 
   const handleOllamaPull = async () => {
@@ -325,22 +319,20 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
     onClose();
   };
 
-  const promptContract = normalizePromptContract(localConfig.promptContract);
   const activeInputMode = migrateLegacyInputMode(localConfig.inputMode);
   const activeInputModeOption = INPUT_MODE_OPTIONS.find(option => option.value === activeInputMode) || INPUT_MODE_OPTIONS[1];
-  const updatePromptContract = (patch: Partial<typeof promptContract>) => {
-    setLocalConfig({
-      ...localConfig,
-      promptContract: { ...promptContract, ...patch },
-    });
-  };
-
-  const recommendedProvider = ollamaConnected ? 'ollama' : chromeDiagnostic?.status === 'available' ? 'chrome' : 'cloud';
+  const recommendedProvider: ProviderChoice | null = ollamaConnected
+    ? 'ollama'
+    : chromeDiagnostic?.status === 'available'
+      ? 'chrome'
+      : localConfig.apiKey
+        ? 'cloud'
+        : null;
   const activeProviderType: ProviderChoice = isProviderChoice(localConfig.providerType) ? localConfig.providerType : 'cloud';
   const activeProvider = PROVIDER_SUMMARY[activeProviderType];
-  const recommendedProviderMeta = PROVIDER_SUMMARY[recommendedProvider];
+  const recommendedProviderMeta = recommendedProvider ? PROVIDER_SUMMARY[recommendedProvider] : null;
   const ActiveProviderIcon = activeProvider.Icon;
-  const recommendationMatchesActive = activeProviderType === recommendedProvider;
+  const recommendationMatchesActive = recommendedProvider !== null && activeProviderType === recommendedProvider;
   const ollamaBaseUrl = localConfig.ollamaBaseUrl || 'http://localhost:11434';
   const activeModelLabel = activeProviderType === 'chrome'
     ? 'gemini-nano'
@@ -359,7 +351,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
         : ollamaConnected === false
           ? 'Sin conexión'
           : 'Verificando'
-      : localConfig.apiKey || localConfig.cloudProvider === 'openrouter'
+      : localConfig.apiKey
         ? 'Cloud configurado'
         : 'API key pendiente';
   const activeChromeProgressMessage = chromeProgressMessage(chromeDiagnostic, chromeProgress);
@@ -401,7 +393,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                 </div>
               </div>
               <p>{activeProvider.decision}</p>
-              {!recommendationMatchesActive && (
+              {!recommendationMatchesActive && recommendedProviderMeta && (
                 <p className="settings-active-provider-note">
                   AURA recomienda {recommendedProviderMeta.label} por disponibilidad actual, pero el diagnóstico usará {activeProvider.label} hasta que cambies el proveedor.
                 </p>
@@ -507,9 +499,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                         {isPreparingChrome ? ' Preparando...' : ' Preparar Gemini Nano'}
                       </button>
                     )}
-                    <button className="btn-s btn-sm" onClick={() => window.open('chrome://on-device-internals', '_blank')}>
-                      <ExternalLink size={10} /> on-device-internals
-                    </button>
+                    <span className="settings-active-provider-meta">
+                      Copia <code>chrome://on-device-internals</code> en la barra de Chrome para revisar el modelo.
+                    </span>
                     <button className="btn-s btn-sm" onClick={() => setProviderType('ollama')}>
                       <Server size={10} /> Usar Ollama
                     </button>
@@ -604,7 +596,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                   onChange={(e) => {
                     const modelName = e.target.value;
                     setLocalConfig({ ...localConfig, model: modelName, ollamaModel: modelName });
-                    localStorage.setItem('aura_ollama_model', modelName);
                   }}
                   className="settings-select"
                   data-testid="ollama-model-select"
@@ -710,18 +701,17 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                 </select>
               </div>
 
-              {localConfig.cloudProvider !== 'openrouter' && (
-                <div className="settings-field">
-                  <label className="settings-label">API Key</label>
-                  <input
-                    type="password"
-                    value={localConfig.apiKey || ''}
-                    onChange={(e) => setLocalConfig({ ...localConfig, apiKey: e.target.value })}
-                    placeholder="sk-..."
-                    className="settings-input"
-                  />
-                </div>
-              )}
+              <div className="settings-field">
+                <label className="settings-label">API Key (solo durante esta sesión)</label>
+                <input
+                  type="password"
+                  value={localConfig.apiKey || ''}
+                  onChange={(e) => setLocalConfig({ ...localConfig, apiKey: e.target.value })}
+                  placeholder="Introduce la API key del proveedor"
+                  className="settings-input"
+                  autoComplete="off"
+                />
+              </div>
 
               <div className="settings-field">
                 <label className="settings-label">Modelo Cloud</label>
@@ -796,7 +786,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
           </p>
         </section>
 
-        <section className="settings-workspace-section">
+        {activeProviderType !== 'chrome' && <section className="settings-workspace-section">
           <h2 className="settings-section-title">Temperatura del modelo</h2>
           <p className="settings-section-desc">Controla la estabilidad de las respuestas. Para auditoría se recomienda 0.1.</p>
           <div className="settings-field">
@@ -815,25 +805,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
               <span className="settings-slider-label">Creativo — 1.0</span>
             </div>
           </div>
-        </section>
-
-        <section className="settings-workspace-section">
-          <div className="settings-toggle-card">
-            <div>
-              <p className="settings-toggle-card-label">Ejecución automática</p>
-              <p className="settings-toggle-card-desc">Ejecuta el motor determinista automáticamente al cargar un dataset.</p>
-            </div>
-            <label className="toggle">
-              <input
-                type="checkbox"
-                checked={localConfig.autoAnalyze}
-                onChange={(e) => setLocalConfig({ ...localConfig, autoAnalyze: e.target.checked })}
-                className="toggle-input"
-              />
-              <div className="toggle-track"><div className="toggle-thumb" /></div>
-            </label>
-          </div>
-        </section>
+        </section>}
 
         <section className="settings-workspace-section">
           <details className="settings-collapsible-section">
@@ -868,43 +840,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                 <li><strong>Cloud:</strong> Se envía un paquete estructurado al proveedor. No se envía el archivo CSV completo.</li>
                 <li><strong>Exportación:</strong> Tú decides qué exportar. Nada se exporta sin tu acción explícita.</li>
               </ul>
-            </div>
-          </details>
-        </section>
-
-        <section className="settings-workspace-section">
-          <details className="settings-collapsible-section">
-            <summary className="settings-collapsible-summary">
-              <Info size={14} />
-              <span>Contrato técnico del diagnóstico (avanzado)</span>
-              <span className="settings-collapsible-hint">Controla cómo AURA le pide al modelo que responda</span>
-            </summary>
-            <div className="settings-collapsible-body">
-              <p className="settings-section-desc">Si no sabes qué es, deja los valores por defecto.</p>
-              <div className="settings-field">
-                <label className="settings-label">Objetivo operativo</label>
-                <textarea
-                  value={promptContract.objective}
-                  onChange={(e) => updatePromptContract({ objective: e.target.value })}
-                  rows={3}
-                  maxLength={260}
-                  className="prompt-contract-textarea"
-                />
-                <p className="prompt-contract-hint">{promptContract.objective.length}/260 · Debe preparar una salida útil para diagnóstico, benchmark y script.</p>
-              </div>
-              <div className="prompt-contract-grid">
-                <button type="button" className={`prompt-contract-card ${promptContract.evidencePolicy === 'strict' ? 'active' : ''}`} onClick={() => updatePromptContract({ evidencePolicy: 'strict' })}>
-                  <span>evidencia estricta</span><small>Solo JSON observado; reduce alucinaciones.</small>
-                </button>
-                <button type="button" className={`prompt-contract-card ${promptContract.evidencePolicy === 'balanced' ? 'active' : ''}`} onClick={() => updatePromptContract({ evidencePolicy: 'balanced' })}>
-                  <span>hipótesis separadas</span><small>Permite hipótesis marcadas como no validadas.</small>
-                </button>
-              </div>
-              <div className="prompt-contract-checks">
-                <label><input type="checkbox" checked={promptContract.requireScriptReadiness} onChange={(e) => updatePromptContract({ requireScriptReadiness: e.target.checked })} /><span>Preparar criterios para script Pandas</span></label>
-                <label><input type="checkbox" checked={promptContract.includeCopyPasteEvidence} onChange={(e) => updatePromptContract({ includeCopyPasteEvidence: e.target.checked })} /><span>Forzar evidencia copy-paste</span></label>
-                <label><input type="checkbox" checked={promptContract.includeHumanReviewLabels} onChange={(e) => updatePromptContract({ includeHumanReviewLabels: e.target.checked })} /><span>Etiquetar decisiones HITL</span></label>
-              </div>
             </div>
           </details>
         </section>

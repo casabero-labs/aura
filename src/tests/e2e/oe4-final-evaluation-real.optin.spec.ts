@@ -4,7 +4,7 @@ import { FINAL_EVALUATION_PROTOCOL } from '../../services/benchmark/finalEvaluat
 const ACTIVE = process.env.AURA_OE4_REAL?.trim() === '1';
 const OLLAMA_URL = process.env.AURA_OLLAMA_URL?.trim() || 'http://127.0.0.1:11434';
 const MODEL_ID = FINAL_EVALUATION_PROTOCOL.models[0];
-const RECEIPT_DB = 'aura-oe4-real-smoke-v1';
+const RECEIPT_DB = 'aura-oe4-real-smoke-v2';
 
 interface OllamaChatResponse {
   model?: string;
@@ -14,10 +14,10 @@ interface OllamaChatResponse {
   eval_count?: number;
 }
 
-test.describe('Task 11 — Ollama real opt-in', () => {
+test.describe('OE4 V2 — Ollama real opt-in', () => {
   test.skip(!ACTIVE, 'Requiere AURA_OE4_REAL=1, Ollama activo y el modelo congelado instalado.');
 
-  test('usa el ID exacto, realiza dos llamadas, conserva tokens reales y persiste el recibo', async ({ page, request }) => {
+  test('usa el ID exacto, realiza warm-up más diagnóstico y persiste el recibo', async ({ page, request }) => {
     test.setTimeout(20 * 60_000);
 
     const tagsResponse = await request.get(`${OLLAMA_URL}/api/tags`);
@@ -26,8 +26,8 @@ test.describe('Task 11 — Ollama real opt-in', () => {
     expect(tags.models?.some((model) => model.name === MODEL_ID || model.model === MODEL_ID)).toBe(true);
 
     const prompts = [
+      'Warm-up OE4 excluded from evaluation. Reply with exactly: READY',
       'Return exactly one JSON object: {"contractId":"aura.diagnosis.v2"}.',
-      'Return exactly one JSON object: {"contractId":"aura.script.v2"}.',
     ];
     const responses: OllamaChatResponse[] = [];
 
@@ -54,7 +54,11 @@ test.describe('Task 11 — Ollama real opt-in', () => {
       expect(body.prompt_eval_count).toBeGreaterThan(0);
       expect(body.eval_count).toBeGreaterThan(0);
       expect(body.total_duration).toBeGreaterThan(0);
-      expect(() => JSON.parse(body.message?.content ?? '')).not.toThrow();
+      if (prompt.includes('diagnosis.v2')) {
+        expect(() => JSON.parse(body.message?.content ?? '')).not.toThrow();
+      } else {
+        expect(body.message?.content?.trim().length).toBeGreaterThan(0);
+      }
       responses.push(body);
     }
 

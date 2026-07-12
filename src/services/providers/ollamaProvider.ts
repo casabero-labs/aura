@@ -61,6 +61,9 @@ export class OllamaProvider implements AIProvider {
   private numCtx: number;
   private numPredict: number;
   private topP: number;
+  private seed: number | null;
+  private keepAlive: string;
+  private timeoutSeconds: number;
 
   constructor(
     model: string = DEFAULT_MODEL,
@@ -75,6 +78,9 @@ export class OllamaProvider implements AIProvider {
     this.numCtx = aiConfig?.ollamaNumCtx ?? DEFAULT_NUM_CTX;
     this.numPredict = aiConfig?.ollamaNumPredict ?? DEFAULT_NUM_PREDICT;
     this.topP = aiConfig?.ollamaTopP ?? DEFAULT_TOP_P;
+    this.seed = aiConfig?.ollamaSeed ?? null;
+    this.keepAlive = aiConfig?.ollamaKeepAlive ?? DEFAULT_KEEP_ALIVE;
+    this.timeoutSeconds = aiConfig?.ollamaTimeoutSeconds ?? 600;
   }
 
   private buildOptions(): Record<string, unknown> {
@@ -83,6 +89,7 @@ export class OllamaProvider implements AIProvider {
       top_p: this.topP,
       num_ctx: this.numCtx,
       num_predict: this.numPredict,
+      ...(this.seed === null ? {} : { seed: this.seed }),
     };
   }
 
@@ -195,9 +202,10 @@ export class OllamaProvider implements AIProvider {
           model: this.model,
           messages: [{ role: 'user', content: prompt }],
           options: this.buildOptions(),
-          keep_alive: DEFAULT_KEEP_ALIVE,
+          keep_alive: this.keepAlive,
           stream: false,
         }),
+        signal: AbortSignal.timeout(this.timeoutSeconds * 1000),
       });
 
       if (!response.ok) {

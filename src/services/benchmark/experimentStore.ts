@@ -34,6 +34,7 @@ export class ExperimentStoreError extends Error {
 
 export interface ExperimentRunnerStore {
   saveRun(run: ExperimentRunV1): Promise<void>;
+  listRuns?(campaignId: string): Promise<ExperimentRunV1[]>;
   appendAttemptEvent(
     runId: string,
     event: AttemptEventV1,

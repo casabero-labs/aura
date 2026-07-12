@@ -1,0 +1,68 @@
+{
+  "id": "aura.oe4.final-evaluation.v2",
+  "version": "2.0.0",
+  "frozenAt": "2026-07-11",
+  "supersedes": "aura.oe4.final-evaluation.v1",
+  "dataset": {
+    "id": "controlled_customers_phase8",
+    "sha256": "7438bbdc96499d04bd7e485d6450f740304a7c878dce7d1a720dc4d9f2025faf",
+    "schemaSha256": "b1eba3a767a6e9a84398aa10220c73efa2b3db8b31151235f9b63141727a2a98",
+    "rows": 50,
+    "columns": 15,
+    "groundTruthSha256": "38c846856860519d248b42e53afe3cacacff714f115af6cec4b3d050fe79040d"
+  },
+  "models": [
+    "hf.co/unsloth/Qwen3-8B-GGUF:UD-Q4_K_XL",
+    "hf.co/unsloth/gemma-3-4b-it-qat-GGUF:UD-Q4_K_XL",
+    "hf.co/unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF:UD-Q4_K_XL"
+  ],
+  "inputModes": ["prompt_libre", "smart_sample", "recommended"],
+  "repetitions": 5,
+  "matrix": {
+    "models": 3,
+    "inputModes": 3,
+    "repetitions": 5,
+    "units": 45,
+    "stagesPerUnit": 1,
+    "evaluatedLlmCalls": 45,
+    "warmupCalls": 15,
+    "totalRealCalls": 60,
+    "maxLlmCalls": 45
+  },
+  "inference": {
+    "temperature": 0.2,
+    "topP": 0.9,
+    "numCtx": 16384,
+    "numPredict": 1600,
+    "seed": null,
+    "keepAlive": "10m",
+    "timeoutSeconds": 600
+  },
+  "responseSchemas": { "diagnosis": "aura.diagnosis.v2" },
+  "schedule": {
+    "seed": 20260710,
+    "balancedModelOrders": [
+      ["hf.co/unsloth/Qwen3-8B-GGUF:UD-Q4_K_XL", "hf.co/unsloth/gemma-3-4b-it-qat-GGUF:UD-Q4_K_XL", "hf.co/unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF:UD-Q4_K_XL"],
+      ["hf.co/unsloth/gemma-3-4b-it-qat-GGUF:UD-Q4_K_XL", "hf.co/unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF:UD-Q4_K_XL", "hf.co/unsloth/Qwen3-8B-GGUF:UD-Q4_K_XL"],
+      ["hf.co/unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF:UD-Q4_K_XL", "hf.co/unsloth/Qwen3-8B-GGUF:UD-Q4_K_XL", "hf.co/unsloth/gemma-3-4b-it-qat-GGUF:UD-Q4_K_XL"],
+      ["hf.co/unsloth/Qwen3-8B-GGUF:UD-Q4_K_XL", "hf.co/unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF:UD-Q4_K_XL", "hf.co/unsloth/gemma-3-4b-it-qat-GGUF:UD-Q4_K_XL"],
+      ["hf.co/unsloth/gemma-3-4b-it-qat-GGUF:UD-Q4_K_XL", "hf.co/unsloth/Qwen3-8B-GGUF:UD-Q4_K_XL", "hf.co/unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF:UD-Q4_K_XL"]
+    ],
+    "modeOrderSeed": 4242,
+    "warmupExcluded": true,
+    "warmupPerModelBlock": 1,
+    "expectedModelBlocks": 15,
+    "expectedWarmupCalls": 15
+  },
+  "evaluationScopes": ["engineCoverage", "primaryDiagnosticF1", "evidenceFidelity", "extendedDiscovery"],
+  "primaryF1Denominator": "engine_exposed canonical keys only",
+  "primaryF1DenominatorByMode": { "prompt_libre": 16, "smart_sample": 16, "recommended": 16 },
+  "evidenceFidelityDenominatorByMode": { "prompt_libre": 16, "smart_sample": 16, "recommended": 16 },
+  "rules": {
+    "noChangeAfterFirstRun": "Any change to contracts v2, prompts, models or inference after the first formal run invalidates the campaign and requires a new protocol version.",
+    "failuresPreserved": "Failed runs are persisted and count toward stability metrics; retries are linked, never overwrite.",
+    "singleModelAtATime": "Only one model is loaded into Ollama at a time. Hardware: MacBook Air M4 10-core / 16 GB.",
+    "diagnosisOnly": "Each matrix unit performs one measured LLM call for diagnosis only.",
+    "deterministicRepresentativeScripts": "Remediation scripts are generated deterministically only for the nine selected representatives and do not count as LLM calls."
+  }
+}

@@ -161,8 +161,8 @@ Solo existen cuatro bloques. Se ejecutan en orden y no se abre trabajo nuevo fue
 - Oráculos previos: preservar el ground truth histórico, registrar su discrepancia 50/3/2 declarada frente a 51/2/2 real, normalizar a `ruleId + columnId + scope` y congelar una política de remediaciones esperadas, permitidas, prohibidas y sujetas a HITL.
 - Modelos locales exactos, todos Unsloth `UD-Q4_K_XL`: `Qwen3-8B`, `gemma-3-4b-it-qat` y `DeepSeek-R1-0528-Qwen3-8B`.
 - Modos formales: `prompt_libre`, `smart_sample` y `recommended`. `enhanced_registry` y `copy_paste_bad_samples` quedan disponibles fuera de la campaña, pero se excluyen por redundancia experimental.
-- Matriz: tres modelos × tres modos × cinco repeticiones = 45 corridas; cada corrida produce diagnóstico y script, hasta 90 llamadas LLM evaluadas.
-- Pipeline simétrico: todos los modos usan `aura.diagnosis.v2` y la misma etapa `aura.script.v2`; solo cambia la composición de evidencia de entrada.
+- Matriz V2: tres modelos × tres modos × cinco repeticiones = 45 diagnósticos evaluados; 15 calentamientos excluidos producen 60 llamadas reales en total.
+- Pipeline común: todos los modos usan la misma fábrica de entrada y `aura.diagnosis.v2`; los scripts no usan LLM y se generan de forma determinista solo para los nueve representantes aprobados.
 - Configuración común: temperatura 0.2, `top_p` 0.9, contexto 16384 y máximo 1600 tokens por llamada, con versiones y digests congelados.
 - Persistencia: IndexedDB append-only, pausa y reanudación; fallos y reintentos nunca se sobrescriben.
 - Evaluación dinámica: las 45 corridas reciben métricas automáticas y rúbrica humana. Se selecciona por regla de mediana F1 un representante por celda modelo–entrada, 9 scripts en total, para HITL y ejecución externa sobre copias.
@@ -213,6 +213,15 @@ Solo existen cuatro bloques. Se ejecutan en orden y no se abre trabajo nuevo fue
 - validación de Task 10: 33/33 pruebas focales, suite completa con 1690 pruebas aprobadas y 6 omitidas, typecheck, build y revisión visual en escritorio/móvil correctos;
 - validación de Task 11: recorrido controlado Chromium aprobado con persistencia IndexedDB, recarga, reanudación, rúbrica, HITL, importación, reauditoría y cinco descargas; el smoke real está implementado pero omitido por ausencia del CLI y de los modelos formales;
 - OE4 no se considera cerrado: falta Task 12, preparar el runtime/modelos, ejecutar la campaña real y congelar sus artefactos formales.
+
+**Corrección del 11 de julio de 2026 — issues 26 y 27:** los puntos históricos
+de este checkpoint que describen 90 llamadas, una secuencia LLM
+diagnóstico→script o una consola sin dependencias productivas quedan
+reemplazados por el protocolo `aura.oe4.final-evaluation.v2`. Producto y OE4
+usan ahora el mismo snapshot canónico; el runner verifica método, prompt,
+modelo, digest y parámetros mediante un recibo persistido, ejecuta los 15
+calentamientos y valida el diagnóstico completo. La consola crea y evalúa la
+campaña real después del preflight. V1 permanece solo como evidencia histórica.
 
 **Métricas obligatorias:**
 

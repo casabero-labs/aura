@@ -223,6 +223,9 @@ export interface AIConfig {
   ollamaNumCtx?: number;
   ollamaNumPredict?: number;
   ollamaTopP?: number;
+  ollamaSeed?: number | null;
+  ollamaKeepAlive?: string;
+  ollamaTimeoutSeconds?: number;
   modelDownloadState?: Record<string, ModelDownloadState>;
   promptContract?: PromptContractConfig;
   inputMode?: InputMode;

@@ -60,8 +60,7 @@ const controlledEvaluation = async (run: ExperimentRunV1): Promise<AutomaticEval
   return structuredClone(evaluation);
 };
 
-const controlledProvider = {
-  async generateText(prompt: string) {
+const controlledGenerateText = async (prompt: string, model: string) => {
     if (localStorage.getItem(RELEASE_KEY) !== 'true') {
       window.__OE4_E2E_WAITING__ = true;
       await new Promise<void>((resolve) => {
@@ -77,7 +76,7 @@ const controlledProvider = {
       text: JSON.stringify({ contractId: script ? 'aura.script.v2' : 'aura.diagnosis.v2' }),
       metrics: {
         provider: 'oe4-controlled-e2e',
-        model: 'controlled-ui-only',
+        model,
         latencyMs: 12,
         firstTokenMs: 2,
         totalDurationMs: 12,
@@ -87,7 +86,6 @@ const controlledProvider = {
         timestamp: NOW,
       },
     };
-  },
 };
 
 const prepareApprovedRepresentative = async (run: ExperimentRunV1): Promise<ExperimentRunV1> => ({
@@ -141,7 +139,10 @@ const importAfterCsv = async (run: ExperimentRunV1, file: File): Promise<Experim
 
 const Oe4CampaignE2eHarness: React.FC = () => {
   const dependencies = useMemo(() => ({
-    provider: controlledProvider,
+    providerForRun: (run: ExperimentRunV1) => ({
+      generateText: (prompt: string) => controlledGenerateText(prompt, run.modelId),
+    }),
+    validateDiagnosis: () => [],
     createCampaignBundle: createControlledBundle,
     evaluateRun: controlledEvaluation,
     prepareApprovedRepresentative,

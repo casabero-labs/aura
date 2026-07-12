@@ -340,6 +340,57 @@ export interface DiagnosisPromptOptionsV2 {
   maxConfidence?: number;
 }
 
+export type DiagnosisInputModeV2 = 'prompt_libre' | 'smart_sample' | 'recommended';
+
+export interface DiagnosisInputPackageV2 {
+  contractId: 'aura.input-snapshot.v2';
+  contractVersion: '2.0.0';
+  inputMode: DiagnosisInputModeV2;
+  includedSections: string[];
+  systemInstruction: string;
+  userPayload: string;
+  responseSchema: Record<string, unknown>;
+  evidenceEnvelopeRef: string;
+  promptVersion: string;
+  promptHash: string;
+  responseSchemaHash: string;
+  inputHash: string;
+}
+
+export interface InferenceSnapshotV1 {
+  temperature: number;
+  topP: number;
+  numCtx: number;
+  numPredict: number;
+  seed: number | null;
+  keepAlive: string;
+  timeoutSeconds: number;
+}
+
+export interface ExecutionReceiptV1 {
+  contractId: 'aura.execution-receipt.v1';
+  contractVersion: '1.0.0';
+  requestedInputMode: DiagnosisInputModeV2;
+  effectiveInputMode: DiagnosisInputModeV2;
+  includedSections: string[];
+  evidenceEnvelopeRef: string;
+  promptVersion: string;
+  promptHash: string;
+  inputHash: string;
+  responseSchemaHash: string;
+  provider: string;
+  requestedModel: string;
+  observedModel: string;
+  modelDigest: string | null;
+  inferenceHash: string;
+  startedAt: string;
+  completedAt: string;
+  rawResponseHash: string;
+  validationStatus: 'valid' | 'invalid';
+  validationErrorCodes: string[];
+  receiptHash: string;
+}
+
 // ── Diagnosis Error Codes ──
 export type DiagnosisErrorCode =
   | 'DIAGNOSIS_JSON_INVALID'
@@ -434,6 +485,7 @@ export interface RemediationContextIssueV2 {
 
 export interface RemediationContextV2 {
   evidenceEnvelopeRef: string;
+  inputReceiptRef?: string;
   datasetFingerprint: string;
   columns: RemediationContextColumnV2[];
   issues: RemediationContextIssueV2[];
@@ -459,6 +511,7 @@ export interface RemediationPlanV2 {
   planId: string;
   diagnosisRef: string;
   evidenceEnvelopeRef: string;
+  inputReceiptRef?: string;
   datasetFingerprint: string;
   plan: RemediationActionV2[];
   actionabilityMap: Record<string, Actionability>;
@@ -497,6 +550,10 @@ export interface DiagnosisExecutionResult {
   evidenceEnvelopeRef: string;
   promptVersion: string;
   rawResponseHash: string;
+  inputMode?: DiagnosisInputModeV2;
+  inputHash?: string;
+  inputSnapshot?: DiagnosisInputPackageV2;
+  executionReceipt?: ExecutionReceiptV1;
   remediationContext?: RemediationContextV2;
 }
 
@@ -575,6 +632,7 @@ export interface ScriptContractCandidateV2 {
   contractId: 'aura.script.v2';
   contractVersion: '2.0.0';
   remediationRef: string;
+  inputReceiptRef?: string;
   datasetFingerprint: string;
   acceptedActionIds: string[];
   rejectedActionIds: string[];
@@ -592,6 +650,7 @@ export interface ScriptContractV2 {
   contractId: 'aura.script.v2';
   contractVersion: '2.0.0';
   remediationRef: string;
+  inputReceiptRef?: string;
   datasetFingerprint: string;
   acceptedActionIds: string[];
   rejectedActionIds: string[];

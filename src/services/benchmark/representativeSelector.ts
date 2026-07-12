@@ -31,17 +31,8 @@ const cellId = (modelId: OE4ModelId, inputMode: OE4InputMode): string =>
 const executionBlockReasons = (run: ExperimentRunV1): string[] => {
   const reasons: string[] = [];
   if (run.diagnosis?.status !== 'completed') reasons.push('diagnosis is not completed');
-  if (run.script?.status !== 'completed') reasons.push('script is not completed');
   if (run.automaticEvaluation === null) reasons.push('automatic evaluation is missing');
   if (run.humanReview === null) reasons.push('human review is missing');
-  const script = run.automaticEvaluation?.script;
-  if (script !== undefined) {
-    if (!script.contractValid) reasons.push('script contract is invalid');
-    if (!script.syntaxValid) reasons.push('script syntax is invalid');
-    if (!script.safe) reasons.push('script is not safe');
-    if (script.missingActions.length > 0) reasons.push('script has missing actions');
-    if (script.unsupportedActions.length > 0) reasons.push('script has unsupported actions');
-  }
   return reasons;
 };
 

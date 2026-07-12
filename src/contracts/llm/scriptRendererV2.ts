@@ -449,10 +449,11 @@ export function renderActionV2(
 
 // ── Header & Footer ──
 
-export function buildScriptHeader(registry: ColumnRegistryV2): string {
+export function buildScriptHeader(registry: ColumnRegistryV2, inputReceiptRef?: string): string {
   const columnDict = generateSafeColumnDict([...registry.orderedColumns]);
 
   return [
+    ...(inputReceiptRef ? [`# AURA input receipt: ${inputReceiptRef}`, ``] : []),
     `import pandas as pd`,
     `import numpy as np`,
     ``,
@@ -472,8 +473,9 @@ export function buildScriptFooter(): string {
 export function buildScriptText(
   actions: readonly RenderableScriptActionV2[],
   registry: ColumnRegistryV2,
+  inputReceiptRef?: string,
 ): string {
-  const header = buildScriptHeader(registry);
+  const header = buildScriptHeader(registry, inputReceiptRef);
 
   const renderedActions: string[] = [];
   for (const { action, columnRef } of actions) {

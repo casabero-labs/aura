@@ -1,4 +1,7 @@
 import type { AIProvider, ProviderMetrics } from '../../types';
+import { buildExecutionReceiptV1 } from '../../contracts/llm/executionReceiptV1';
+import type { DiagnosisInputPackageV2 } from '../../contracts/llm/types';
+import { sha256hex } from '../../contracts/llm/hash';
 import type {
   AttemptEventV1,
   ExperimentRunV1,
@@ -17,7 +20,12 @@ type Stage = LlmStageResultV1['stage'];
 type StageTerminalType = 'completed' | 'failed' | 'timeout';
 
 export interface ExperimentRunnerDependencies {
-  provider: Pick<AIProvider, 'generateText'>;
+  provider?: Pick<AIProvider, 'generateText'>;
+  providerForRun?: (run: ExperimentRunV1) => Pick<AIProvider, 'generateText'>;
+  validateDiagnosis: (
+    parsed: unknown,
+    run: ExperimentRunV1,
+  ) => ExperimentValidationErrorV1[];
   store: ExperimentRunnerStore;
   now?: () => string;
 }
@@ -130,21 +138,6 @@ export const buildFormalDiagnosisPrompt = (run: ExperimentRunV1): string => [
   run.input.userPayload,
 ].join('\n\n');
 
-export const buildFormalScriptPrompt = (
-  run: ExperimentRunV1,
-  diagnosis: unknown,
-): string => JSON.stringify({
-  systemInstruction: [
-    'Generate the remediation proposal under the aura.script.v2 response contract.',
-    'Return exactly one JSON object and no Markdown.',
-    'Use only the diagnosis and evidence references supplied here.',
-    'Do not invent columns, findings, actions or evidence.',
-  ].join(' '),
-  responseContract: 'aura.script.v2',
-  evidenceEnvelopeRef: run.input.evidenceEnvelopeRef,
-  diagnosis,
-});
-
 const errorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
@@ -192,9 +185,54 @@ const nextAttemptId = (run: ExperimentRunV1, stage: Stage): string => {
 
 export const createExperimentRunner = ({
   provider,
+  providerForRun,
+  validateDiagnosis,
   store,
   now = () => new Date().toISOString(),
 }: ExperimentRunnerDependencies): ExperimentRunner => {
+  const warmedBlocks = new Set<string>();
+  const providerFor = (run: ExperimentRunV1) => providerForRun?.(run) ?? provider;
+
+  const ensureWarmup = async (run: ExperimentRunV1): Promise<ExperimentRunV1> => {
+    const blockKey = `${run.modelId}::${run.repetition}`;
+    if (warmedBlocks.has(blockKey)) return run;
+    const persisted = store.listRuns
+      ? (await store.listRuns(run.campaignId)).find((candidate) => (
+          candidate.modelId === run.modelId
+          && candidate.repetition === run.repetition
+          && candidate.warmupReceipt?.contractId === 'aura.warmup-receipt.v1'
+        ))
+      : undefined;
+    if (persisted) {
+      warmedBlocks.add(blockKey);
+      return run;
+    }
+    const effectiveProvider = providerFor(run);
+    if (!effectiveProvider) throw new Error('No formal provider was configured for warm-up.');
+    const prompt = 'Warm-up OE4 excluded from evaluation. Reply with exactly: READY';
+    const warmup = await effectiveProvider.generateText(prompt);
+    if (warmup.metrics.model !== run.modelId) {
+      throw new Error(`WARMUP_MODEL_MISMATCH: requested ${run.modelId}, observed ${warmup.metrics.model}.`);
+    }
+    warmedBlocks.add(blockKey);
+    const completedAt = now();
+    const nextRun: ExperimentRunV1 = {
+      ...run,
+      updatedAt: completedAt,
+      warmupReceipt: {
+        contractId: 'aura.warmup-receipt.v1',
+        blockId: blockKey,
+        modelId: run.modelId,
+        repetition: run.repetition,
+        promptHash: sha256hex(prompt),
+        responseHash: sha256hex(warmup.text),
+        completedAt,
+        metrics: toStageMetrics(warmup.metrics),
+      },
+    };
+    await store.saveRun(nextRun);
+    return nextRun;
+  };
   const appendEvent = async (
     run: ExperimentRunV1,
     event: AttemptEventV1,
@@ -232,10 +270,56 @@ export const createExperimentRunner = ({
     let run = await appendEvent(initialRun, startedEvent, { status: 'running' });
 
     try {
-      const providerResult = await provider.generateText(prompt);
+      const effectiveProvider = providerFor(initialRun);
+      if (!effectiveProvider) throw new Error('No formal provider was configured for this run.');
+      const providerResult = await effectiveProvider.generateText(prompt);
+      if (stage === 'diagnosis' && providerResult.metrics.model !== initialRun.modelId) {
+        throw new Error(
+          `MODEL_MISMATCH: requested ${initialRun.modelId}, observed ${providerResult.metrics.model}.`,
+        );
+      }
       const metrics = toStageMetrics(providerResult.metrics);
       const parsedOutput = parseJsonObject(providerResult.text, stage, metrics);
+      if (stage === 'diagnosis') {
+        const validationErrors = validateDiagnosis(parsedOutput, initialRun);
+        if (validationErrors.length > 0) {
+          throw new StageOutputError(
+            'DIAGNOSIS_CONTRACT_INVALID',
+            'The diagnosis failed the complete aura.diagnosis.v2 validation.',
+            providerResult.text,
+            parsedOutput,
+            metrics,
+            validationErrors,
+          );
+        }
+      }
       const completedAt = now();
+      const executionReceipt = stage === 'diagnosis' ? buildExecutionReceiptV1({
+        input: {
+          contractId: 'aura.input-snapshot.v2', contractVersion: '2.0.0',
+          inputMode: initialRun.inputMode,
+          includedSections: [...initialRun.input.includedSections],
+          systemInstruction: initialRun.input.systemInstruction,
+          userPayload: initialRun.input.userPayload,
+          responseSchema: initialRun.input.responseSchema,
+          evidenceEnvelopeRef: initialRun.input.evidenceEnvelopeRef,
+          promptVersion: initialRun.input.promptVersion,
+          promptHash: initialRun.input.promptHash,
+          inputHash: initialRun.input.inputHash,
+          responseSchemaHash: initialRun.input.responseSchemaHash,
+        } satisfies DiagnosisInputPackageV2,
+        requestedInputMode: initialRun.inputMode,
+        exactPrompt: prompt,
+        provider: providerResult.metrics.provider,
+        requestedModel: initialRun.modelId,
+        observedModel: providerResult.metrics.model,
+        modelDigest: initialRun.environment.model.localDigest,
+        inference: initialRun.environment.inference,
+        startedAt,
+        completedAt,
+        rawResponse: providerResult.text,
+        validationStatus: 'valid',
+      }) : null;
       const result: LlmStageResultV1 = {
         contractId: 'aura.llm-stage-result.v1',
         stage,
@@ -262,7 +346,8 @@ export const createExperimentRunner = ({
       };
       run = await appendEvent(run, completedEvent, {
         [stage]: result,
-        status: stage === 'script' ? 'completed' : 'running',
+        ...(stage === 'diagnosis' ? { executionReceipt } : {}),
+        status: stage === 'diagnosis' ? 'completed' : 'running',
       });
       return run;
     } catch (error: unknown) {
@@ -314,17 +399,11 @@ export const createExperimentRunner = ({
     let run = initialRun;
 
     if (run.diagnosis?.status !== 'completed') {
+      run = await ensureWarmup(run);
       run = await runStage(run, 'diagnosis', buildFormalDiagnosisPrompt(run));
       if (run.diagnosis?.status !== 'completed') return run;
     }
 
-    if (run.script?.status !== 'completed') {
-      run = await runStage(
-        run,
-        'script',
-        buildFormalScriptPrompt(run, run.diagnosis.parsedOutput),
-      );
-    }
     return run;
   };
 

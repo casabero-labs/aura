@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import React, { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 
 declare const __AURA_BUILD_SHA__: string;
 declare const __AURA_BUILD_TIME__: string;
@@ -19,6 +19,7 @@ import ProgressDisclosure from './components/ProgressDisclosure';
 import MainPipeline, { PipelineData } from './components/MainPipeline';
 import { loadFromApi, syncToApi } from './services/api';
 import { createAIProvider } from './services/aiProvider';
+import { loadAIConfig, persistAIConfig, sanitizeAIConfig } from './services/aiConfigStorage';
 import { generatePdfReport } from './services/pdfGenerator';
 import { generateDiagnosticPdfReport } from './services/diagnosticReport';
 import { buildEvidenceManifest } from './services/evidenceManifest';
@@ -27,6 +28,11 @@ import { validateAuraExportPackage } from './services/exportContractValidation';
 import { savePipelineSession, loadPipelineSession, clearPipelineSession } from './services/pipelineSession';
 import { downloadTextFile } from './utils/download';
 import { AIConfig, AuditReport, DeterministicValidationReport, EvidenceManifest, ExecutiveReportContent, IssueSeverity } from './types';
+import { createFormalCampaignBundle, buildFormalEvidenceEnvelope } from './services/benchmark/formalCampaignFactory';
+import { buildEnvelopeRef, validateDiagnosisResponseV2, type DiagnosisResponseV2 } from './contracts/llm';
+import type { ExperimentRunV1 } from './services/benchmark/experimentTypes';
+import { evaluateFormalDiagnosisRun } from './services/benchmark/formalDiagnosisEvaluator';
+import { importFormalRepresentativeOutput, prepareFormalRepresentative } from './services/benchmark/formalRepresentativePreparation';
 
 const BenchmarkCampaignLab = lazy(() => import('./components/benchmark/BenchmarkCampaignLab'));
 const Oe4CampaignE2eHarness = import.meta.env.DEV
@@ -160,30 +166,96 @@ const App: React.FC = () => {
 
   // ── AI Config (para settings panel) ──
   const [aiConfig, setAiConfig] = useState<AIConfig>(() => {
-    const local = localStorage.getItem('aura_ai_config');
-    if (local) return { providerType: 'chrome', temperature: 0.1, autoAnalyze: false, ...JSON.parse(local) };
-    return {
+    return loadAIConfig({
       model: 'gemini-nano',
       temperature: 0.1,
       autoAnalyze: false,
       providerType: 'chrome',
       apiKey: '',
       cloudProvider: undefined,
-    };
+    });
   });
 
   useEffect(() => {
     loadFromApi<AIConfig>('ai_config', aiConfig).then((remote) => {
-      if (JSON.stringify(remote) !== JSON.stringify(aiConfig)) setAiConfig(remote);
+      if (!remote) return;
+      const safeRemote = sanitizeAIConfig(remote);
+      if (JSON.stringify(safeRemote) !== JSON.stringify(sanitizeAIConfig(aiConfig))) {
+        setAiConfig((current) => ({ ...safeRemote, apiKey: current.apiKey }));
+      }
     });
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('aura_ai_config', JSON.stringify(aiConfig));
-    syncToApi('ai_config', aiConfig);
+    const safe = persistAIConfig(aiConfig);
+    syncToApi('ai_config', safe);
   }, [aiConfig]);
 
   const aiProvider = useMemo(() => createAIProvider(aiConfig), [aiConfig]);
+
+  const formalEvidenceEnvelope = useMemo(() => {
+    if (!pipelineData.report || !pipelineData.auditEvidence) return null;
+    try {
+      return buildFormalEvidenceEnvelope(pipelineData.report, pipelineData.auditEvidence);
+    } catch {
+      return null;
+    }
+  }, [pipelineData.auditEvidence, pipelineData.report]);
+
+  const createFormalBundle = useCallback(async () => {
+    if (!pipelineData.report || !pipelineData.auditEvidence || !pipelineData.file) {
+      throw new Error('Primero carga y audita el dataset controlado en Auditoría.');
+    }
+    return createFormalCampaignBundle({
+      report: pipelineData.report,
+      auditEvidence: pipelineData.auditEvidence,
+      datasetFile: pipelineData.file,
+      ollamaBaseUrl: aiConfig.ollamaBaseUrl || 'http://127.0.0.1:11434',
+      appCommit: typeof __AURA_BUILD_SHA__ === 'string' ? __AURA_BUILD_SHA__ : '',
+    });
+  }, [aiConfig.ollamaBaseUrl, pipelineData.auditEvidence, pipelineData.file, pipelineData.report]);
+
+  const formalProviderForRun = useCallback((run: ExperimentRunV1) => createAIProvider({
+    providerType: 'ollama',
+    model: run.modelId,
+    ollamaModel: run.modelId,
+    ollamaBaseUrl: aiConfig.ollamaBaseUrl || 'http://127.0.0.1:11434',
+    temperature: run.environment.inference.temperature,
+    ollamaTopP: run.environment.inference.topP,
+    ollamaNumCtx: run.environment.inference.numCtx,
+    ollamaNumPredict: run.environment.inference.numPredict,
+    ollamaSeed: run.environment.inference.seed,
+    ollamaKeepAlive: run.environment.inference.keepAlive,
+    ollamaTimeoutSeconds: run.environment.inference.timeoutSeconds,
+    autoAnalyze: false,
+  }), [aiConfig.ollamaBaseUrl]);
+
+  const validateFormalDiagnosis = useCallback((parsed: unknown, run: ExperimentRunV1) => {
+    if (!formalEvidenceEnvelope || run.input.evidenceEnvelopeRef !== buildEnvelopeRef(formalEvidenceEnvelope)) {
+      return [{ code: 'EVIDENCE_ENVELOPE_UNAVAILABLE', path: '$', message: 'No está disponible el sobre de evidencia congelado.' }];
+    }
+    const validation = validateDiagnosisResponseV2(parsed as DiagnosisResponseV2, formalEvidenceEnvelope);
+    return validation.errors.map((error) => ({
+      code: error.code,
+      path: error.path,
+      message: error.message,
+    }));
+  }, [formalEvidenceEnvelope]);
+
+  const evaluateFormalRun = useCallback(async (run: ExperimentRunV1) => {
+    if (!formalEvidenceEnvelope) throw new Error('No está disponible el sobre formal para evaluar la corrida.');
+    return evaluateFormalDiagnosisRun(run, formalEvidenceEnvelope);
+  }, [formalEvidenceEnvelope]);
+
+  const prepareRepresentative = useCallback(async (run: ExperimentRunV1) => {
+    if (!formalEvidenceEnvelope) throw new Error('No está disponible el sobre formal del representante.');
+    return prepareFormalRepresentative(run, formalEvidenceEnvelope);
+  }, [formalEvidenceEnvelope]);
+
+  const importRepresentativeCsv = useCallback(async (run: ExperimentRunV1, afterFile: File) => {
+    if (!pipelineData.file) throw new Error('Vuelve a cargar el CSV controlado original antes de reauditar.');
+    return importFormalRepresentativeOutput(run, pipelineData.file, afterFile);
+  }, [pipelineData.file]);
 
   // Liberar memoria VRAM del WebLLM anterior al cambiar de proveedor o desmontar
   useEffect(() => {
@@ -321,7 +393,10 @@ const App: React.FC = () => {
   };
 
   const scrollTo = (id: string) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const element = document.getElementById(id);
+    if (element && typeof element.scrollIntoView === 'function') {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   };
 
   const goHome = () => {
@@ -524,7 +599,14 @@ const App: React.FC = () => {
         <Suspense fallback={<div className="oe4-campaign-loading">Preparando evaluación OE4…</div>}>
           {oe4E2eHarnessEnabled && Oe4CampaignE2eHarness
             ? <Oe4CampaignE2eHarness />
-            : <BenchmarkCampaignLab provider={aiProvider} />}
+            : <BenchmarkCampaignLab
+                providerForRun={formalProviderForRun}
+                validateDiagnosis={validateFormalDiagnosis}
+                createCampaignBundle={formalEvidenceEnvelope && pipelineData.file ? createFormalBundle : undefined}
+                evaluateRun={evaluateFormalRun}
+                prepareApprovedRepresentative={prepareRepresentative}
+                importAfterCsv={importRepresentativeCsv}
+              />}
         </Suspense>
       )}
 

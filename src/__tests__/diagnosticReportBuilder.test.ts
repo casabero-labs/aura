@@ -152,6 +152,7 @@ const structuredDiagnosis: DiagnosisExecutionResult = {
   promptHash: 'prompt-hash-1',
   promptVersion: 'diagnosis-v2-test',
   rawResponseHash: 'raw-hash-1',
+  executionReceipt: { receiptHash: 'receipt-input-1' } as unknown as NonNullable<DiagnosisExecutionResult['executionReceipt']>,
   metrics: {
     latencyMs: 1234,
     tokensGenerated: 321,
@@ -262,6 +263,7 @@ describe('buildDiagnosticReport', () => {
     expect(diagnosticReport.diagnosisSummary.provider).toBe('ollama');
     expect(diagnosticReport.diagnosisSummary.model).toBe('qwen2.5:3b');
     expect(diagnosticReport.diagnosisSummary.evidenceEnvelopeRef).toBe('env-titanic');
+    expect(diagnosticReport.diagnosisSummary.inputReceiptRef).toBe('receipt-input-1');
     expect(diagnosticReport.diagnosisSummary.observations[0].sourceIssueId).toBe('issue-null-age');
   });
 

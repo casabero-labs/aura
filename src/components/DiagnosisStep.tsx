@@ -427,6 +427,19 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
           const v2Result = await runStructuredDiagnosis(report as any, {
             provider: aiProvider,
             auditEvidence: auditEvidence ? { datasetFingerprint: auditEvidence.datasetFingerprint } : null,
+            inputMode: aiConfig.inputMode === 'prompt_libre' || aiConfig.inputMode === 'recommended'
+              ? aiConfig.inputMode
+              : 'smart_sample',
+            requestedModel: aiConfig.model,
+            inference: {
+              temperature: aiConfig.temperature,
+              topP: aiConfig.ollamaTopP ?? 0.9,
+              numCtx: aiConfig.ollamaNumCtx ?? 16384,
+              numPredict: aiConfig.ollamaNumPredict ?? 1600,
+              seed: null,
+              keepAlive: '10m',
+              timeoutSeconds: 600,
+            },
             onProgress: (event) => {
               pushEvent(event.type === 'chunk' ? 'info' : 'info', event.text);
             },

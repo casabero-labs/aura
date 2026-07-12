@@ -132,6 +132,7 @@ export interface DiagnosticDiagnosisSummary {
   latencyMs?: number;
   evidenceEnvelopeRef?: string;
   promptHash?: string;
+  inputReceiptRef?: string;
   executiveSummary: string;
   observations: DiagnosticObservation[];
   limitations: string[];

@@ -12,6 +12,7 @@ import type {
   InputContractSnapshotV1,
   LlmStageResultV1,
 } from '../../services/benchmark/experimentTypes';
+import { sha256hex } from '../../contracts/llm/hash';
 
 const HASH_A = 'a'.repeat(64);
 const HASH_B = 'b'.repeat(64);
@@ -47,21 +48,25 @@ const makeEnvironment = (modelId: OE4ModelId): EnvironmentSnapshotV1 => ({
   inference: { ...FINAL_EVALUATION_PROTOCOL.inference },
 });
 
-const makeInput = (mode: OE4InputMode): InputContractSnapshotV1 => ({
+const makeInput = (mode: OE4InputMode): InputContractSnapshotV1 => {
+  const systemInstruction = 'Return one aura.diagnosis.v2 JSON object.';
+  const userPayload = JSON.stringify({ mode, evidenceEnvelopeRef: `env:${HASH_A}` });
+  return ({
   contractId: 'aura.input-snapshot.v1',
   mode,
   evidenceEnvelopeRef: `env:${HASH_A}`,
   includedSections: mode === 'prompt_libre'
     ? ['dataset_schema']
     : ['dataset_summary', 'dataset_schema', 'rule_activations'],
-  systemInstruction: 'Return one aura.diagnosis.v2 JSON object.',
-  userPayload: JSON.stringify({ mode, evidenceEnvelopeRef: `env:${HASH_A}` }),
+  systemInstruction,
+  userPayload,
   responseSchema: { type: 'object', required: ['contractId'] },
   promptVersion: 'oe4.prompt.v1',
-  promptHash: HASH_A,
+  promptHash: sha256hex(`${systemInstruction}\n\n${userPayload}`),
   inputHash: HASH_B,
   responseSchemaHash: HASH_A,
-});
+  });
+};
 
 const makeStage = (
   stage: 'diagnosis' | 'script',

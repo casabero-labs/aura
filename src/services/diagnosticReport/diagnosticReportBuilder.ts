@@ -223,6 +223,7 @@ const buildDiagnosisSummary = ({
       latencyMs: structuredDiagnosis.metrics.latencyMs,
       evidenceEnvelopeRef: structuredDiagnosis.evidenceEnvelopeRef,
       promptHash: structuredDiagnosis.promptHash,
+      inputReceiptRef: structuredDiagnosis.executionReceipt?.receiptHash,
       executiveSummary: buildStructuredExecutiveSummary(report, observations),
       observations,
       limitations: [

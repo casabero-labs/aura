@@ -133,7 +133,7 @@ function safeNoDupIds(ids: string[], path: string, state: ValState): boolean {
 }
 
 const CANDIDATE_KEYS = new Set([
-  'contractId', 'contractVersion', 'remediationRef', 'datasetFingerprint',
+  'contractId', 'contractVersion', 'remediationRef', 'inputReceiptRef', 'datasetFingerprint',
   'acceptedActionIds', 'rejectedActionIds', 'excludedActionIds', 'columnRefs',
   'rendererVersion', 'placeholderVocabularyVersion', 'scriptText', 'cleanDatasetFn', 'generatedAt',
 ]);
@@ -918,7 +918,7 @@ function validateReconstruction(
   }
 
   const fields = [
-    'contractId', 'contractVersion', 'remediationRef', 'datasetFingerprint',
+    'contractId', 'contractVersion', 'remediationRef', 'inputReceiptRef', 'datasetFingerprint',
     'acceptedActionIds', 'rejectedActionIds', 'excludedActionIds', 'columnRefs',
     'rendererVersion', 'placeholderVocabularyVersion', 'scriptText', 'cleanDatasetFn',
   ];

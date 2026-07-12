@@ -19,6 +19,10 @@ import type {
   LlmStageResultV1,
   ReauditEvidenceV1,
 } from './experimentTypes';
+import { validateExecutionReceiptV1 } from '../../contracts/llm/executionReceiptV1';
+import { exactDiagnosisPromptV2 } from '../../contracts/llm/diagnosisInputPackageV2';
+import { sha256hex } from '../../contracts/llm/hash';
+import type { DiagnosisInputPackageV2, ExecutionReceiptV1, InferenceSnapshotV1 } from '../../contracts/llm/types';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -31,8 +35,8 @@ const CAMPAIGN_KEYS = [
 const RUN_KEYS = [
   'contractId', 'contractVersion', 'campaignId', 'runId', 'protocolId',
   'protocolVersion', 'modelId', 'inputMode', 'repetition', 'sequence', 'status',
-  'createdAt', 'updatedAt', 'environment', 'input', 'diagnosis', 'script',
-  'automaticEvaluation', 'humanReview', 'hitl', 'execution', 'attempts',
+  'createdAt', 'updatedAt', 'environment', 'input', 'warmupReceipt', 'diagnosis', 'script',
+  'executionReceipt', 'automaticEvaluation', 'humanReview', 'hitl', 'execution', 'attempts',
 ] as const;
 
 const CAMPAIGN_STATUSES = new Set(['draft', 'ready', 'running', 'paused', 'completed', 'invalid']);
@@ -418,7 +422,9 @@ const validateAttemptEvents = (value: unknown, errors: string[]): value is Attem
 const validateLifecycle = (run: UnknownRecord, errors: string[]): void => {
   const diagnosisCompleted = isRecord(run.diagnosis) && run.diagnosis.status === 'completed';
   const scriptCompleted = isRecord(run.script) && run.script.status === 'completed';
-  const stagesCompleted = diagnosisCompleted && scriptCompleted;
+  const stagesCompleted = FINAL_EVALUATION_PROTOCOL.matrix.stagesPerUnit === 1
+    ? diagnosisCompleted
+    : diagnosisCompleted && scriptCompleted;
   const automaticPresent = isRecord(run.automaticEvaluation);
   const humanPresent = isRecord(run.humanReview);
   const hitlStatus = isRecord(run.hitl) ? run.hitl.status : null;
@@ -434,7 +440,7 @@ const validateLifecycle = (run: UnknownRecord, errors: string[]): void => {
       }
       break;
     case 'completed':
-      if (!stagesCompleted) errors.push('completed status requires completed diagnosis and script');
+      if (!stagesCompleted) errors.push('completed status requires every measured protocol stage');
       break;
     case 'failed': {
       const failedStage = (isRecord(run.diagnosis) && ['failed', 'timeout'].includes(String(run.diagnosis.status)))
@@ -534,8 +540,52 @@ export const validateExperimentRunV1 = (value: unknown): ExperimentGuardResult =
     errors.push('environment.model.id must equal modelId');
   }
   if (isRecord(value.input) && value.input.mode !== value.inputMode) errors.push('input.mode must equal inputMode');
+  if (!(value.warmupReceipt === undefined || value.warmupReceipt === null || (
+    isRecord(value.warmupReceipt)
+    && value.warmupReceipt.contractId === 'aura.warmup-receipt.v1'
+    && value.warmupReceipt.modelId === value.modelId
+    && value.warmupReceipt.repetition === value.repetition
+    && isSha256(value.warmupReceipt.promptHash)
+    && isSha256(value.warmupReceipt.responseHash)
+    && isIsoTimestamp(value.warmupReceipt.completedAt)
+  ))) errors.push('warmupReceipt is invalid or does not match the run block');
 
   if (value.diagnosis !== null) validateStage(value.diagnosis, 'diagnosis', 'diagnosis', errors);
+  if (!(value.executionReceipt === undefined || value.executionReceipt === null || (
+    isRecord(value.executionReceipt)
+    && value.executionReceipt.contractId === 'aura.execution-receipt.v1'
+    && isSha256(value.executionReceipt.receiptHash)
+    && value.executionReceipt.inputHash === (isRecord(value.input) ? value.input.inputHash : undefined)
+  ))) errors.push('executionReceipt is invalid or does not match input');
+  if (isRecord(value.executionReceipt) && isRecord(value.input) && isRecord(value.environment)) {
+    const snapshot: DiagnosisInputPackageV2 = {
+      contractId: 'aura.input-snapshot.v2', contractVersion: '2.0.0',
+      inputMode: value.inputMode as DiagnosisInputPackageV2['inputMode'],
+      includedSections: value.input.includedSections as string[],
+      systemInstruction: value.input.systemInstruction as string,
+      userPayload: value.input.userPayload as string,
+      responseSchema: value.input.responseSchema as Record<string, unknown>,
+      evidenceEnvelopeRef: value.input.evidenceEnvelopeRef as string,
+      promptVersion: value.input.promptVersion as string,
+      promptHash: value.input.promptHash as string,
+      inputHash: value.input.inputHash as string,
+      responseSchemaHash: value.input.responseSchemaHash as string,
+    };
+    const receipt = value.executionReceipt as unknown as ExecutionReceiptV1;
+    const inference = value.environment.inference as InferenceSnapshotV1;
+    const receiptValidation = validateExecutionReceiptV1(receipt, snapshot, exactDiagnosisPromptV2(snapshot), inference);
+    if (!receiptValidation.valid) errors.push(`executionReceipt verification failed: ${receiptValidation.errors.join(', ')}`);
+    if (receipt.requestedModel !== value.modelId || receipt.observedModel !== value.modelId) {
+      errors.push('executionReceipt model identity does not match run.modelId');
+    }
+    if (isRecord(value.environment.model) && receipt.modelDigest !== value.environment.model.localDigest) {
+      errors.push('executionReceipt model digest does not match environment');
+    }
+    if (isRecord(value.diagnosis) && typeof value.diagnosis.rawOutput === 'string'
+      && receipt.rawResponseHash !== sha256hex(value.diagnosis.rawOutput)) {
+      errors.push('executionReceipt raw response hash does not match diagnosis output');
+    }
+  }
   if (value.script !== null) validateStage(value.script, 'script', 'script', errors);
   if (value.automaticEvaluation !== null) validateAutomaticEvaluation(value.automaticEvaluation, errors);
   if (value.humanReview !== null) validateHumanReview(value.humanReview, errors);
@@ -564,6 +614,12 @@ export const validateExperimentRunUpdate = (
   }
   if (!sameJson(previous.environment, next.environment) || !sameJson(previous.input, next.input)) {
     errors.push('environment and input snapshots are immutable');
+  }
+  if (previous.executionReceipt && !sameJson(previous.executionReceipt, next.executionReceipt)) {
+    errors.push('execution receipt cannot be overwritten');
+  }
+  if (previous.warmupReceipt && !sameJson(previous.warmupReceipt, next.warmupReceipt)) {
+    errors.push('warm-up receipt cannot be overwritten');
   }
   const existingEventsPreserved = previous.attempts.length <= next.attempts.length
     && previous.attempts.every((event, index) => sameJson(event, next.attempts[index]));

@@ -6,12 +6,14 @@ el protocolo y el manifiesto de modelos.
 
 ## Matriz definitiva
 
-3 modelos × 3 modos de entrada × 5 repeticiones = **45 unidades**. Cada unidad
-produce diagnóstico y script, para un máximo de **90 llamadas LLM evaluadas**.
+3 modelos × 3 modos de entrada × 5 repeticiones = **45 diagnósticos evaluados**.
+Se ejecutan además **15 calentamientos reales excluidos**, para **60 llamadas
+reales en total**. Los scripts no usan LLM: se generan de forma determinista
+solo para los nueve representantes seleccionados.
 
 | Modo | Función experimental |
 |---|---|
-| `prompt_libre` | Línea base: esquema y contexto mínimo, sin reglas ni muestras problemáticas. |
+| `prompt_libre` | Línea base: resumen, esquema y registro mínimo de reglas; sin muestras problemáticas. |
 | `smart_sample` | Evidencia estructurada del motor: columnas, estadísticas, reglas y muestras. |
 | `recommended` | Contrato AURA completo: registro técnico y anclaje explícito a bad samples. |
 
@@ -20,10 +22,10 @@ para compatibilidad operativa, pero quedan fuera de la campaña formal porque so
 variantes intermedias ya cubiertas por `recommended` y no añaden un contraste
 experimental necesario.
 
-Todos los modos formales usan `aura.diagnosis.v2` y `aura.script.v2`. El F1
+Todos los modos formales usan `aura.diagnosis.v2`. El F1
 primario conserva el mismo denominador de 16 claves `engine_exposed` en los tres
-modos. La fidelidad a la evidencia usa un denominador distinto: 0 para
-`prompt_libre` y 16 para `smart_sample` y `recommended`.
+modos. La fidelidad a la evidencia usa un denominador de 16 en los tres modos;
+el baseline puede anclar reglas, pero no dispone de muestras.
 
 ## Artefactos congelados
 
@@ -36,7 +38,8 @@ experiments/final-evaluation/
 │   ├── controlled_customers_phase8_ground_truth.source.json
 │   ├── diagnostic-oracle.v1.json
 │   └── remediation-oracle.v1.json
-├── protocol.v1.json
+├── protocol.v1.json  # histórico
+├── protocol.v2.json  # ejecutable
 └── model-manifest.v1.json
 ```
 
@@ -63,10 +66,10 @@ Ollama. El preflight genera un recibo con versiones, espacio libre, digests y
 smokes cuando todos los gates pasan.
 
 El calendario ejecutable materializa 45 IDs únicos en 15 bloques de modelo y
-mantiene un warm-up excluido por bloque. El corredor formal conserva la misma
-secuencia diagnóstico → script en los tres modos, registra eventos append-only,
-detiene el script ante fallo diagnóstico y reanuda desde el script cuando el
-diagnóstico ya terminó. El cierre técnico y sus límites están en
+ejecuta un warm-up excluido por bloque. El corredor formal realiza una sola
+llamada medida de diagnóstico por unidad, valida el contrato completo y registra
+un recibo verificable. El script se prepara después de seleccionar y aprobar
+los representantes. El cierre técnico histórico está en
 [`TASK5_RUNNER_CLOSEOUT.md`](./TASK5_RUNNER_CLOSEOUT.md).
 
 La persistencia formal ya cuenta con un contrato común, una implementación en
@@ -105,9 +108,9 @@ de sesiones están documentados en
 consola formal nueva; no convirtió ni restauró aquella interfaz.
 
 La nueva entrada `Evaluación OE4` muestra protocolo, progreso, matriz 3 × 3,
-detalle crudo, métricas, rúbrica humana, estado HITL, antes/después y bloqueos
-del expediente. La pausa solo se aplica entre corridas. La creación real sigue
-bloqueada hasta recibir el preflight formal de Task 12. Véase
+detalle crudo, recibos, métricas, rúbrica humana, estado HITL, antes/después y
+bloqueos del expediente. La pausa solo se aplica entre corridas. La creación
+real ejecuta el preflight formal antes de congelar la campaña. Véase
 [`TASK10_CONSOLE_CLOSEOUT.md`](./TASK10_CONSOLE_CLOSEOUT.md).
 
 Task 11 valida el recorrido humano completo en Chromium con un proveedor
@@ -123,7 +126,7 @@ misma instrucción y un mismo schema de salida:
 
 | Modo | Evidencia visible |
 |---|---|
-| `prompt_libre` | Resumen físico y esquema de columnas; sin reglas ni muestras. |
+| `prompt_libre` | Resumen físico, esquema y registro mínimo de reglas; sin muestras. |
 | `smart_sample` | Resumen, esquema, estadísticas, reglas y muestras protegidas. |
 | `recommended` | Todo lo anterior más registro, gobernanza, manifiestos y anclajes explícitos. |
 

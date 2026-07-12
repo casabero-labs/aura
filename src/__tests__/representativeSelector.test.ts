@@ -64,7 +64,7 @@ describe('OE4 representative selection', () => {
     expect(representatives.every((representative) => representative.repetition === 3)).toBe(true);
   });
 
-  it('keeps the median representative but marks it blocked when no run is executable', () => {
+  it('selects by median diagnosis before the deterministic script is prepared', () => {
     const runs = fiveRunsWithF1([0.1, 0.2, 0.3, 0.4, 0.5]).map((run) => ({
       ...run,
       automaticEvaluation: {
@@ -80,12 +80,9 @@ describe('OE4 representative selection', () => {
     const selected = selectCellRepresentative(runs);
 
     expect(selected.repetition).toBe(3);
-    expect(selected.selectionStatus).toBe('blocked');
-    expect(selected.executionEligible).toBe(false);
-    expect(selected.blockReasons).toEqual(expect.arrayContaining([
-      'script is not safe',
-      'script has missing actions',
-    ]));
+    expect(selected.selectionStatus).toBe('selected');
+    expect(selected.executionEligible).toBe(true);
+    expect(selected.blockReasons).toEqual([]);
   });
 
   it('rejects incomplete cells instead of silently changing the experiment', () => {

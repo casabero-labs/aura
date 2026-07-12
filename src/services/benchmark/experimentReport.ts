@@ -80,7 +80,6 @@ export const buildExperimentCampaignEvidence = (
   }
   const completedWithoutEvaluation = sortedRuns.filter((run) =>
     run.diagnosis?.status === 'completed'
-    && run.script?.status === 'completed'
     && (run.automaticEvaluation === null || run.humanReview === null));
   if (completedWithoutEvaluation.length > 0) {
     reasons.push(`${completedWithoutEvaluation.length} completed runs lack automatic or human evaluation`);

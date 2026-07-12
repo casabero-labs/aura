@@ -25,6 +25,13 @@ const ExperimentRunDetail: React.FC<ExperimentRunDetailProps> = ({ run, represen
       <div><span>Representante</span><strong>{representative ? 'Sí' : 'No'}</strong></div>
     </div>
     <p className="oe4-anchor"><strong>Anclaje:</strong> {run.input.evidenceEnvelopeRef}</p>
+    {run.executionReceipt && (
+      <p className="oe4-anchor">
+        <strong>Recibo verificable:</strong> {run.executionReceipt.receiptHash}
+        {' · '}entrada {run.executionReceipt.inputHash}
+        {' · '}modelo observado {run.executionReceipt.observedModel}
+      </p>
+    )}
     <div className="oe4-stage-grid">
       {(['diagnosis', 'script'] as const).map((stage) => {
         const result = run[stage];
@@ -47,7 +54,7 @@ const ExperimentRunDetail: React.FC<ExperimentRunDetailProps> = ({ run, represen
       <div className="oe4-evaluation-strip">
         <div><span>F1</span><strong>{run.automaticEvaluation.diagnosis.primary.f1.toFixed(3)}</strong></div>
         <div><span>Contrato</span><strong>{run.automaticEvaluation.diagnosis.contractCompliant ? 'cumple' : 'no cumple'}</strong></div>
-        <div><span>Script seguro</span><strong>{run.automaticEvaluation.script.safe ? 'sí' : 'no'}</strong></div>
+        <div><span>Script seguro</span><strong>{run.script ? (run.automaticEvaluation.script.safe ? 'sí' : 'no') : 'pendiente'}</strong></div>
         <div><span>Alucinaciones</span><strong>{run.automaticEvaluation.diagnosis.inventedColumns.length + run.automaticEvaluation.diagnosis.unsupportedClaims.length}</strong></div>
       </div>
     )}

@@ -221,6 +221,7 @@ export function buildRemediationPlanV2(
     planId,
     diagnosisRef,
     evidenceEnvelopeRef: diagnosisExecution.evidenceEnvelopeRef,
+    inputReceiptRef: ctx.inputReceiptRef,
     datasetFingerprint: ctx.datasetFingerprint,
     plan: actions,
     actionabilityMap,

@@ -203,6 +203,12 @@ const addExecutiveSummary = (ctx: PdfLayoutContext, report: DiagnosticReport) =>
   addGovernanceCallout(ctx, presentation.decision.title, [presentation.decision.body]);
   addKpiGrid(ctx, presentation.metrics);
   addParagraph(ctx, presentation.executiveSummary);
+  if (report.diagnosisSummary.inputReceiptRef) {
+    addParagraph(ctx, `Recibo verificable de entrada: ${report.diagnosisSummary.inputReceiptRef}`, {
+      fontSize: 7.5,
+      color: ctx.theme.colors.faint,
+    });
+  }
 
   if (presentation.topRisks.length > 0) {
     addSectionTitle(ctx, 'Riesgos principales');

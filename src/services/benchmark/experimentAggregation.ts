@@ -119,7 +119,7 @@ const isAttempted = (run: ExperimentRunV1): boolean =>
   !['planned', 'running'].includes(run.status);
 
 const isCompletedOutput = (run: ExperimentRunV1): boolean =>
-  run.diagnosis?.status === 'completed' && run.script?.status === 'completed';
+  run.diagnosis?.status === 'completed';
 
 const isResolvedRepresentative = (run: ExperimentRunV1): boolean =>
   ['rejected', 'blocked', 'reaudited'].includes(run.status);

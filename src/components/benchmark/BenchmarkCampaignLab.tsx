@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { AIProvider } from '../../types';
 import { createExperimentRunner, type ExperimentRunner } from '../../services/benchmark/experimentRunner';
+import type { ExperimentValidationErrorV1 } from '../../services/benchmark/experimentTypes';
 import { createIndexedDbExperimentStore } from '../../services/benchmark/indexedDbExperimentStore';
 import type { ExperimentStore } from '../../services/benchmark/experimentStore';
 import type {
@@ -33,6 +34,8 @@ interface BenchmarkCampaignLabProps {
   store?: ExperimentStore;
   runner?: ExperimentRunner;
   provider?: Pick<AIProvider, 'generateText'>;
+  providerForRun?: (run: ExperimentRunV1) => Pick<AIProvider, 'generateText'>;
+  validateDiagnosis?: (parsed: unknown, run: ExperimentRunV1) => ExperimentValidationErrorV1[];
   createCampaignBundle?: () => Promise<ExperimentCampaignBundle>;
   evaluateRun?: (run: ExperimentRunV1) => Promise<AutomaticEvaluationV1>;
   prepareApprovedRepresentative?: (run: ExperimentRunV1) => Promise<ExperimentRunV1>;
@@ -50,6 +53,8 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
   store: suppliedStore,
   runner: suppliedRunner,
   provider,
+  providerForRun,
+  validateDiagnosis,
   createCampaignBundle,
   evaluateRun,
   prepareApprovedRepresentative,
@@ -62,8 +67,10 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
     [suppliedStore],
   );
   const runner = useMemo(
-    () => suppliedRunner ?? (provider ? createExperimentRunner({ provider, store, now }) : null),
-    [now, provider, store, suppliedRunner],
+    () => suppliedRunner ?? ((provider || providerForRun) && validateDiagnosis
+      ? createExperimentRunner({ provider, providerForRun, validateDiagnosis, store, now })
+      : null),
+    [now, provider, providerForRun, store, suppliedRunner, validateDiagnosis],
   );
   const pauseRequested = useRef(false);
   const [campaign, setCampaign] = useState<ExperimentCampaignV1 | null>(null);
@@ -119,7 +126,7 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
   );
   const selectedRun = runs.find((run) => run.runId === selectedRunId) ?? null;
   const attempted = runs.filter((run) => run.status !== 'planned').length;
-  const completed = runs.filter((run) => run.diagnosis?.status === 'completed' && run.script?.status === 'completed').length;
+  const completed = runs.filter((run) => run.diagnosis?.status === 'completed').length;
   const failed = runs.filter((run) => run.status === 'failed').length;
   const pendingReview = runs.filter((run) => run.status === 'awaiting_human').length;
   const allRepresentativesResolved = representatives.length === 9

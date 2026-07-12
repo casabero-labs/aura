@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import {
   FINAL_EVALUATION_PROTOCOL,
+  FINAL_EVALUATION_PROTOCOL_V1,
   OE4_DATASET_FINGERPRINT_SHA256,
   OE4_GROUND_TRUTH_SOURCE_SHA256,
 } from '../services/benchmark/finalEvaluationProtocol';
@@ -15,7 +16,8 @@ const SCHEMA_JSON = join(EXPE, 'datasets/controlled_customers_phase8.schema.json
 const GT_SOURCE = join(EXPE, 'oracles/controlled_customers_phase8_ground_truth.source.json');
 const DIAG_ORACLE = join(EXPE, 'oracles/diagnostic-oracle.v1.json');
 const REM_ORACLE = join(EXPE, 'oracles/remediation-oracle.v1.json');
-const PROTOCOL_JSON = join(EXPE, 'protocol.v1.json');
+const PROTOCOL_JSON = join(EXPE, 'protocol.v2.json');
+const PROTOCOL_V1_JSON = join(EXPE, 'protocol.v1.json');
 const MANIFEST_JSON = join(EXPE, 'model-manifest.v1.json');
 
 function sha256(p: string): string {
@@ -322,14 +324,23 @@ describe('OE4 final evaluation protocol — Task 1', () => {
       expect(m.inputModes).toBe(3);
       expect(m.repetitions).toBe(5);
       expect(m.units).toBe(45);
-      expect(m.stagesPerUnit).toBe(2);
-      expect(m.maxLlmCalls).toBe(90);
+      expect(m.stagesPerUnit).toBe(1);
+      expect(m.maxLlmCalls).toBe(45);
 
       expect(FINAL_EVALUATION_PROTOCOL.models.length).toBe(3);
       expect(FINAL_EVALUATION_PROTOCOL.inputModes.length).toBe(3);
       expect(FINAL_EVALUATION_PROTOCOL.repetitions).toBe(5);
       expect(FINAL_EVALUATION_PROTOCOL.matrix.units).toBe(45);
-      expect(FINAL_EVALUATION_PROTOCOL.matrix.maxLlmCalls).toBe(90);
+      expect(FINAL_EVALUATION_PROTOCOL.matrix.maxLlmCalls).toBe(45);
+      expect(FINAL_EVALUATION_PROTOCOL.matrix.totalRealCalls).toBe(60);
+    });
+
+    it('preserves V1 as historical evidence while V2 is the active protocol', () => {
+      const historical = readJson<{ id: string; version: string; matrix: { maxLlmCalls: number } }>(PROTOCOL_V1_JSON);
+      expect(FINAL_EVALUATION_PROTOCOL.id).toBe('aura.oe4.final-evaluation.v2');
+      expect(FINAL_EVALUATION_PROTOCOL_V1.id).toBe(historical.id);
+      expect(FINAL_EVALUATION_PROTOCOL_V1.version).toBe(historical.version);
+      expect(FINAL_EVALUATION_PROTOCOL_V1.matrix.maxLlmCalls).toBe(historical.matrix.maxLlmCalls);
     });
 
     it('TypeScript protocol is semantically identical to the frozen JSON', () => {

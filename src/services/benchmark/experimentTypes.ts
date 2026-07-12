@@ -1,4 +1,5 @@
 import type { OE4InputMode, OE4ModelId } from './finalEvaluationProtocol';
+import type { ExecutionReceiptV1 } from '../../contracts/llm/types';
 
 export type ExperimentCampaignStatus =
   | 'draft'
@@ -102,6 +103,17 @@ export interface LlmStageMetricsV1 {
   reasoningTokens: number | null;
   firstTokenMs: number | null;
   tokensPerSecond: number | null;
+}
+
+export interface WarmupReceiptV1 {
+  contractId: 'aura.warmup-receipt.v1';
+  blockId: string;
+  modelId: OE4ModelId;
+  repetition: 1 | 2 | 3 | 4 | 5;
+  promptHash: string;
+  responseHash: string;
+  completedAt: string;
+  metrics: LlmStageMetricsV1;
 }
 
 export interface ExperimentValidationErrorV1 {
@@ -234,7 +246,9 @@ export interface ExperimentRunV1 {
   updatedAt: string;
   environment: EnvironmentSnapshotV1;
   input: InputContractSnapshotV1;
+  warmupReceipt?: WarmupReceiptV1 | null;
   diagnosis: LlmStageResultV1 | null;
+  executionReceipt?: ExecutionReceiptV1 | null;
   script: LlmStageResultV1 | null;
   automaticEvaluation: AutomaticEvaluationV1 | null;
   humanReview: HumanReviewV1 | null;

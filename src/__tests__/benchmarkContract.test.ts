@@ -187,8 +187,8 @@ describe('OE4 formal evaluation dimensions', () => {
       exploratoryCompositeScore: 0.7,
     });
 
-    expect(result.operation.latency.totalMs).toBe(1500);
-    expect(result.operation.tokens).toEqual({ prompt: 150, output: 60, reasoning: null });
+    expect(result.operation.latency.totalMs).toBe(1000);
+    expect(result.operation.tokens).toEqual({ prompt: 100, output: 40, reasoning: null });
     expect(result.operation.stability.score).toBe(1);
     expect(result.automaticEvaluation.diagnosis.primary.f1).toBe(24 / 29);
     expect(result.automaticEvaluation.script.safe).toBe(true);
@@ -196,11 +196,11 @@ describe('OE4 formal evaluation dimensions', () => {
     expect(result.exploratoryCompositeScore).toBe(0.7);
   });
 
-  it('counts failed or missing stages in stability without hiding the error', () => {
+  it('does not count the deterministic script as a measured LLM stage in protocol V2', () => {
     const operation = evaluateOperation([makeStage('diagnosis'), makeStage('script', 'timeout')]);
 
-    expect(operation.stability).toEqual({ completedStages: 1, expectedStages: 2, score: 0.5 });
-    expect(operation.errors).toEqual({ count: 1, codes: ['SCRIPT_TIMEOUT'] });
+    expect(operation.stability).toEqual({ completedStages: 1, expectedStages: 1, score: 1 });
+    expect(operation.errors).toEqual({ count: 0, codes: [] });
   });
 });
 

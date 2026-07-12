@@ -145,7 +145,7 @@ describe('OE4 formal input contracts — Task 4', () => {
       const schema = pkg.responseSchema as {
         properties: { contractId: { enum: string[] } };
       };
-      expect(pkg.contractId).toBe('aura.input-snapshot.v1');
+      expect(pkg.contractId).toBe('aura.input-snapshot.v2');
       expect(schema.properties.contractId.enum).toEqual(['aura.diagnosis.v2']);
       expect(pkg.systemInstruction).toMatch(/unsupported claims/i);
     }
@@ -153,17 +153,20 @@ describe('OE4 formal input contracts — Task 4', () => {
 
   it('pins the exact visible sections for every formal mode', () => {
     for (const pkg of packages) {
-      expect(pkg.includedSections).toEqual(OE4_INCLUDED_SECTIONS_BY_MODE[pkg.mode]);
+      expect(pkg.includedSections).toEqual(OE4_INCLUDED_SECTIONS_BY_MODE[pkg.inputMode]);
     }
   });
 
-  it('keeps prompt_libre controlled and free of rules and bad samples', () => {
+  it('keeps prompt_libre controlled with the minimal issue registry and no samples', () => {
     const pkg = buildExperimentInputPackage(report, envelope, 'prompt_libre');
     expect(pkg.userPayload).toContain('customer_id');
     expect(pkg.userPayload).toContain('datasetSchema');
-    expect(pkg.userPayload).not.toContain('rule:invalid-email');
+    expect(pkg.userPayload).toContain('issueRegistryMinimal');
+    expect(pkg.userPayload).toContain('rule:invalid-email');
     expect(pkg.userPayload).not.toContain('bad@email');
     expect(pkg.userPayload).not.toContain('Email sin estructura válida');
+    const payload = JSON.parse(pkg.userPayload) as { visibleEvidence: Record<string, unknown> };
+    expect(JSON.stringify(payload.visibleEvidence)).not.toContain('evidenceRefs');
   });
 
   it('gives smart_sample structured rules, statistics and observed samples', () => {

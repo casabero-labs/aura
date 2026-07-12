@@ -40,7 +40,7 @@ const providerResult = (contractId: 'aura.diagnosis.v2' | 'aura.script.v2') => (
   text: JSON.stringify({ contractId }),
   metrics: {
     provider: 'fake',
-    model: 'oe4-test',
+    model: 'hf.co/unsloth/Qwen3-8B-GGUF:UD-Q4_K_XL',
     latencyMs: 10,
     firstTokenMs: 1,
     totalDurationMs: 10,
@@ -89,16 +89,24 @@ describe('BenchmarkCampaignLab - Task 10 human flow', () => {
     const bundle = plannedFixture();
     let resolveFirst: ((value: ReturnType<typeof providerResult>) => void) | null = null;
     let call = 0;
-    const generateText = vi.fn(async () => {
+    const generateText = vi.fn(async (_prompt: string) => {
       call += 1;
       if (call === 1) {
         return new Promise<ReturnType<typeof providerResult>>((resolve) => {
           resolveFirst = resolve;
         });
       }
-      return providerResult(call % 2 === 1 ? 'aura.diagnosis.v2' : 'aura.script.v2');
+      return providerResult('aura.diagnosis.v2');
     });
-    const runner = createExperimentRunner({ provider: { generateText }, store, now: () => LATER });
+    const runner = createExperimentRunner({
+      providerForRun: (run) => ({
+        generateText: async (prompt) => {
+          const output = await generateText(prompt);
+          return { ...output, metrics: { ...output.metrics, model: run.modelId } };
+        },
+      }), store, now: () => LATER,
+      validateDiagnosis: () => [],
+    });
 
     render(
       <BenchmarkCampaignLab
@@ -128,8 +136,8 @@ describe('BenchmarkCampaignLab - Task 10 human flow', () => {
     await waitFor(() => expect(screen.getByText('45 pendientes de revisión')).toBeTruthy());
 
     expect(screen.getByText(/aura\.diagnosis\.v2/)).toBeTruthy();
-    expect(screen.getByText(/aura\.script\.v2/)).toBeTruthy();
-    expect(screen.getAllByText('10 ms')).toHaveLength(2);
+    expect(screen.queryByText(/aura\.script\.v2/)).toBeNull();
+    expect(screen.getAllByText('10 ms')).toHaveLength(1);
 
     await user.selectOptions(screen.getByLabelText('Claridad'), '4');
     await user.selectOptions(screen.getByLabelText('Trazabilidad'), '3');

@@ -144,6 +144,28 @@ describe('OllamaProvider', () => {
   });
 
   describe('num_ctx and num_predict options', () => {
+    it('applies every frozen formal inference option to the real request', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+        ok: true, status: 200,
+        json: () => Promise.resolve({ message: { content: 'ok' } }),
+      } as Response);
+      const provider = new OllamaProvider(model, 0.2, baseUrl, {
+        ollamaNumCtx: 16384, ollamaNumPredict: 1600, ollamaTopP: 0.9,
+        ollamaSeed: 42, ollamaKeepAlive: '10m', ollamaTimeoutSeconds: 600,
+      } as any);
+
+      await provider.generateText('formal prompt');
+
+      const init = fetchSpy.mock.calls[0][1];
+      const body = JSON.parse(init.body as string);
+      expect(body).toEqual(expect.objectContaining({
+        keep_alive: '10m',
+        options: { temperature: 0.2, top_p: 0.9, num_ctx: 16384, num_predict: 1600, seed: 42 },
+      }));
+      expect(init.signal).toBeInstanceOf(AbortSignal);
+      fetchSpy.mockRestore();
+    });
+
     it('passes num_ctx and num_predict to /api/chat', async () => {
       const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(() =>
         Promise.resolve({

@@ -1,15 +1,15 @@
 /**
- * OE4 — Final evaluation protocol (frozen v1).
+ * OE4 — Final evaluation protocol.
  *
- * Semantic mirror of experiments/final-evaluation/protocol.v1.json.
- * Formal runs must consume this constant and tests require deep equality
- * with the frozen public artifact.
+ * V1 remains exported as an immutable historical record. Formal runs consume
+ * V2, whose only measured LLM stage is diagnosis. Remediation scripts are
+ * generated deterministically for the nine selected representatives.
  */
 
 import { FINAL_EVALUATION_OLLAMA_MODEL_IDS } from '../modelRegistry';
 
-export const OE4_FINAL_EVALUATION_PROTOCOL_ID = 'aura.oe4.final-evaluation.v1';
-export const OE4_FINAL_EVALUATION_PROTOCOL_VERSION = '1.0.0';
+export const OE4_FINAL_EVALUATION_PROTOCOL_ID = 'aura.oe4.final-evaluation.v2';
+export const OE4_FINAL_EVALUATION_PROTOCOL_VERSION = '2.0.0';
 export const OE4_FINAL_EVALUATION_DATASET_ID = 'controlled_customers_phase8';
 
 export const OE4_DATASET_FINGERPRINT_SHA256 =
@@ -48,7 +48,6 @@ export const OE4_INFERENCE = {
 
 export const OE4_RESPONSE_SCHEMAS = {
   diagnosis: 'aura.diagnosis.v2',
-  script: 'aura.script.v2',
 } as const;
 
 export const OE4_SCHEDULE = {
@@ -84,14 +83,25 @@ export const OE4_PROTOCOL_RULES = {
     'Failed runs are persisted and count toward stability metrics; retries are linked, never overwrite.',
   singleModelAtATime:
     'Only one model is loaded into Ollama at a time. Hardware: MacBook Air M4 10-core / 16 GB.',
-  diagnosisBeforeScript:
-    'Diagnosis failure aborts script generation. Script failure retains the completed diagnosis.',
+  diagnosisOnly:
+    'Each matrix unit performs one measured LLM call for diagnosis only.',
+  deterministicRepresentativeScripts:
+    'Remediation scripts are generated deterministically only for the nine selected representatives and do not count as LLM calls.',
+} as const;
+
+export const FINAL_EVALUATION_PROTOCOL_V1 = {
+  id: 'aura.oe4.final-evaluation.v1',
+  version: '1.0.0',
+  frozenAt: '2026-07-10',
+  matrix: { units: 45, stagesPerUnit: 2, maxLlmCalls: 90 },
+  responseSchemas: { diagnosis: 'aura.diagnosis.v2', script: 'aura.script.v2' },
 } as const;
 
 export const FINAL_EVALUATION_PROTOCOL = {
   id: OE4_FINAL_EVALUATION_PROTOCOL_ID,
   version: OE4_FINAL_EVALUATION_PROTOCOL_VERSION,
-  frozenAt: '2026-07-10',
+  frozenAt: '2026-07-11',
+  supersedes: FINAL_EVALUATION_PROTOCOL_V1.id,
   dataset: {
     id: OE4_FINAL_EVALUATION_DATASET_ID,
     sha256: OE4_DATASET_FINGERPRINT_SHA256,
@@ -108,8 +118,12 @@ export const FINAL_EVALUATION_PROTOCOL = {
     inputModes: OE4_INPUT_MODES.length,
     repetitions: OE4_REPETITIONS,
     units: OE4_MODELS.length * OE4_INPUT_MODES.length * OE4_REPETITIONS,
-    stagesPerUnit: 2,
-    maxLlmCalls: OE4_MODELS.length * OE4_INPUT_MODES.length * OE4_REPETITIONS * 2,
+    stagesPerUnit: 1,
+    evaluatedLlmCalls: OE4_MODELS.length * OE4_INPUT_MODES.length * OE4_REPETITIONS,
+    warmupCalls: OE4_SCHEDULE.expectedWarmupCalls,
+    totalRealCalls: OE4_MODELS.length * OE4_INPUT_MODES.length * OE4_REPETITIONS
+      + OE4_SCHEDULE.expectedWarmupCalls,
+    maxLlmCalls: OE4_MODELS.length * OE4_INPUT_MODES.length * OE4_REPETITIONS,
   },
   inference: OE4_INFERENCE,
   responseSchemas: OE4_RESPONSE_SCHEMAS,
@@ -122,7 +136,7 @@ export const FINAL_EVALUATION_PROTOCOL = {
     recommended: 16,
   },
   evidenceFidelityDenominatorByMode: {
-    prompt_libre: 0,
+    prompt_libre: 16,
     smart_sample: 16,
     recommended: 16,
   },

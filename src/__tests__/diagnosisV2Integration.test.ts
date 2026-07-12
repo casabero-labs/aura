@@ -51,7 +51,7 @@ const envCloud = _buildEvidenceEnvelopeV2(minimalReport, { privacyLevel: 'cloud_
 const ppLocal = buildDiagnosisPromptV2(envLocal);
 const ppCloud = buildDiagnosisPromptV2(envCloud);
 
-function validResponseForProviderType(type: string): string {
+function validResponseForProviderType(type: string, withoutEvidenceRefs = false): string {
   const env = type === 'cloud' ? envCloud : envLocal;
   const pp = type === 'cloud' ? ppCloud : ppLocal;
   const ref = pp.evidenceEnvelopeRef;
@@ -61,8 +61,8 @@ function validResponseForProviderType(type: string): string {
     contractId: 'aura.diagnosis.v2', contractVersion: '2.0.0',
     evidenceEnvelopeRef: ref, responseId: 'diag-test-001',
     issues: [
-      { issueId: iss0.issueId, evidenceRefs: iss0.evidenceRefs, hypothesis: 'Whitespace padding', confidence: 0.9, requiresHumanReview: true, limits: [] },
-      { issueId: iss1.issueId, evidenceRefs: iss1.evidenceRefs, hypothesis: 'Null values in Age', confidence: 0.85, requiresHumanReview: true, limits: [] },
+      { issueId: iss0.issueId, evidenceRefs: withoutEvidenceRefs ? [] : iss0.evidenceRefs, hypothesis: 'Whitespace padding', confidence: 0.9, requiresHumanReview: true, limits: [] },
+      { issueId: iss1.issueId, evidenceRefs: withoutEvidenceRefs ? [] : iss1.evidenceRefs, hypothesis: 'Null values in Age', confidence: 0.85, requiresHumanReview: true, limits: [] },
     ],
     diagnosisBlocks: [
       { issueId: iss0.issueId, ruleId: iss0.ruleId, columnId: iss0.columnId, scope: iss0.scope, observation: '2 whitespace values', recommendation: 'Trim at ingestion' },
@@ -103,6 +103,10 @@ describe('v2 flag selection', () => {
       expect(r.result.diagnosis.issues).toHaveLength(2);
       expect(r.result.diagnosis.diagnosisBlocks).toHaveLength(2);
       expect(r.result.metrics.tokensGenerated).toBe(250);
+      expect(r.result.inputMode).toBe('smart_sample');
+      expect(r.result.inputSnapshot?.contractId).toBe('aura.input-snapshot.v2');
+      expect(r.result.executionReceipt?.validationStatus).toBe('valid');
+      expect(r.result.executionReceipt?.inputHash).toBe(r.result.inputHash);
     }
   });
 });
@@ -150,5 +154,44 @@ describe('result structure', () => {
       expect(r.result.diagnosis.contractId).toBe('aura.diagnosis.v2');
       expect(r.result.metrics.latencyMs).toBeGreaterThan(0);
     }
+  });
+});
+
+describe('canonical input propagation', () => {
+  beforeEach(() => { vi.mocked(isContractsV2Enabled).mockReturnValue(true); });
+  afterEach(() => { vi.mocked(isContractsV2Enabled).mockReset(); });
+
+  it('sends three distinct exact prompts and certifies each effective method', async () => {
+    const observed: string[] = [];
+    const hashes: string[] = [];
+    for (const inputMode of ['prompt_libre', 'smart_sample', 'recommended'] as const) {
+      const provider = makeProvider('ollama');
+      provider.generateTextWithProgress = vi.fn(async (prompt) => {
+        observed.push(prompt);
+        return {
+          text: validResponseForProviderType('ollama', prompt.includes('"inputMode":"prompt_libre"')),
+          metrics: {
+            latencyMs: 10, firstTokenMs: 1, tokensGenerated: 20,
+            model: 'model-a', provider: 'Ollama', isLocal: true,
+            timestamp: '2026-07-11T00:00:00.000Z',
+          },
+        };
+      });
+      const result = await runStructuredDiagnosis(minimalReport, {
+        provider,
+        auditEvidence,
+        inputMode,
+        requestedModel: 'model-a',
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.result.inputMode).toBe(inputMode);
+        expect(result.result.executionReceipt?.effectiveInputMode).toBe(inputMode);
+        expect(result.result.executionReceipt?.promptHash).toBe(result.result.inputSnapshot?.promptHash);
+        hashes.push(result.result.inputHash!);
+      }
+    }
+    expect(new Set(observed)).toHaveLength(3);
+    expect(new Set(hashes)).toHaveLength(3);
   });
 });
