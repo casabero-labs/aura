@@ -1,4 +1,5 @@
 import React from 'react';
+import { DEFAULT_OLLAMA_MODEL_ID } from '../../services/modelRegistry';
 import { Lock, Globe, Server, Cpu, ChevronRight, CheckCircle, AlertCircle, Activity } from 'lucide-react';
 import { AIConfig } from '../../types';
 import ChromeAiStatusPanel from '../ChromeAiStatusPanel';
@@ -115,7 +116,7 @@ export const DiagnosisProviderPanel: React.FC<DiagnosisProviderPanelProps> = ({
             className="settings-input"
             value={aiConfig.model}
             onChange={(e) => onModelChange(e.target.value)}
-            placeholder="qwen2.5:3b"
+            placeholder={DEFAULT_OLLAMA_MODEL_ID}
             style={{ width: 120 }}
           />
         ) : (

@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Activity,
   AlertTriangle,
   ArrowLeft,
   CheckCircle,
@@ -13,7 +12,6 @@ import {
   Lock,
   Save,
   Server,
-  Settings,
   Shield,
   RefreshCw,
 } from 'lucide-react';
@@ -23,6 +21,8 @@ import { AVAILABLE_MODELS, OLLAMA_MODELS, getChromeAiDiagnostic } from '../servi
 import type { ChromeAiDiagnostic } from '../services/aiProvider';
 import { OLLAMA_SUGGESTED_MODELS, OllamaProvider } from '../services/providers/ollamaProvider';
 import type { OllamaModel } from '../services/providers/ollamaProvider';
+import OllamaSetupWizard from './OllamaSetupWizard';
+import { DEFAULT_OLLAMA_MODEL_ID } from '../services/modelRegistry';
 
 interface SettingsPanelProps {
   config: AIConfig;
@@ -155,6 +155,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
   const [ollamaModels, setOllamaModels] = useState<OllamaModel[]>([]);
   const [ollamaLoading, setOllamaLoading] = useState(false);
   const [ollamaPullProgress, setOllamaPullProgress] = useState<ProviderProgressEvent | null>(null);
+  const [showOllamaWizard, setShowOllamaWizard] = useState(false);
   const [ollamaPullModel, setOllamaPullModel] = useState('');
 
   useEffect(() => {
@@ -218,7 +219,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
       const updated = {
         ...localConfig,
         providerType: 'ollama' as const,
-        model: savedModel || localConfig.ollamaModel || 'qwen2.5:3b',
+        model: savedModel || localConfig.ollamaModel || DEFAULT_OLLAMA_MODEL_ID,
         ollamaBaseUrl: savedEndpoint || localConfig.ollamaBaseUrl || 'http://127.0.0.1:11434',
       };
       setLocalConfig(updated);
@@ -289,7 +290,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
   };
 
   const handleOllamaPull = async () => {
-    const model = ollamaPullModel || localConfig.model || 'qwen2.5:3b';
+    const model = ollamaPullModel || localConfig.model || DEFAULT_OLLAMA_MODEL_ID;
     setOllamaPullProgress({ stage: 'downloading', progress: 0, message: 'Iniciando descarga...' });
     try {
       const baseUrl = localConfig.ollamaBaseUrl || 'http://localhost:11434';
@@ -341,7 +342,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
   const activeModelLabel = activeProviderType === 'chrome'
     ? 'gemini-nano'
     : activeProviderType === 'ollama'
-      ? localConfig.ollamaModel || localConfig.model || 'qwen2.5:3b'
+      ? localConfig.ollamaModel || localConfig.model || DEFAULT_OLLAMA_MODEL_ID
       : `${localConfig.cloudProvider || 'google'} / ${localConfig.model || 'sin modelo'}`;
   const activeProviderStatus = activeProviderType === 'chrome'
     ? chromeDiagnostic?.status === 'available'
@@ -405,7 +406,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                   <li>El archivo CSV completo</li>
                   <li>Perfil determinista y hallazgos</li>
                   {activeProviderType !== 'cloud' && <li>El diagnóstico del modelo</li>}
-                  {activeProviderType === 'cloud' && <li>El modelo de IA con los datos cargados en nuestro entorno</li>}
+                  {activeProviderType === 'cloud' && <li>La respuesta recibida del proveedor</li>}
                 </ul>
               </div>
               <div className="settings-privacy-summary-col">
@@ -432,17 +433,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                     : localConfig.apiKey ? 'Clave API presente' : 'Requiere clave API'}
               </span>
             </div>
-          </div>
-        </section>
-
-        <section className="settings-workspace-section">
-          <div className="settings-links-row">
-            <button className="btn-s btn-sm" onClick={() => window.location.assign('/settings-advanced.html')} data-testid="settings-advanced-link">
-              <Settings size={12} /> Configuración avanzada
-            </button>
-            <button className="btn-s btn-sm" onClick={() => window.location.assign('/lab-experimental.html')} data-testid="settings-lab-link">
-              <Activity size={12} /> Laboratorio experimental
-            </button>
           </div>
         </section>
 
@@ -643,7 +633,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                       <p><strong>Ollama todavía no está conectado</strong></p>
                       <p style={{ fontSize: '13px', marginTop: '4px' }}>AURA necesita conectarse con Ollama en este equipo.</p>
                       <div style={{ display: 'flex', gap: 'var(--space-sm)', marginTop: 'var(--space-sm)', flexWrap: 'wrap' }}>
-                        <button className="btn-p btn-sm" onClick={() => window.location.assign('/ollama-setup.html?return=/')} data-testid="ollama-open-setup">
+                        <button className="btn-p btn-sm" onClick={() => setShowOllamaWizard(true)} data-testid="ollama-open-setup">
                           Configurar Ollama en este equipo
                         </button>
                         <button className="btn-s btn-sm" onClick={handleFetchOllamaModels} data-testid="ollama-retry-connection">
@@ -654,10 +644,15 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                   </div>
                 )}
                 {ollamaConnected === true && (
-                  <div className="settings-status-card settings-status-card--ok">
-                    <CheckCircle size={14} className="settings-status-icon" />
-                    <p>Ollama conectado en {ollamaBaseUrl}. {ollamaModels.length} modelos encontrados.</p>
-                  </div>
+                  <>
+                    <div className="settings-status-card settings-status-card--ok">
+                      <CheckCircle size={14} className="settings-status-icon" />
+                      <p>Ollama conectado en {ollamaBaseUrl}. {ollamaModels.length} modelos encontrados.</p>
+                    </div>
+                    <button className="btn-s btn-sm" onClick={() => setShowOllamaWizard(true)} data-testid="ollama-open-setup">
+                      Administrar conexión y modelos
+                    </button>
+                  </>
                 )}
               </div>
 
@@ -722,7 +717,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                     type="text"
                     value={ollamaPullModel}
                     onChange={(e) => setOllamaPullModel(e.target.value)}
-                    placeholder="qwen2.5:3b"
+                    placeholder={DEFAULT_OLLAMA_MODEL_ID}
                     className="settings-input"
                     style={{ flex: 1 }}
                   />
@@ -751,7 +746,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
 
               <div className="settings-info-box">
                 <Info size={14} />
-                <p>Ollama ejecuta modelos locales en tu máquina. Requiere tener Ollama instalado y abierto. No descarga modelos automáticamente.</p>
+                <p>Ollama ejecuta modelos locales en tu máquina. El asistente de AURA verifica la conexión, descarga los modelos recomendados y muestra el avance real informado por Ollama.</p>
               </div>
             </div>
           )}
@@ -923,6 +918,22 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
           <button onClick={handleSave} className="btn-p"><Save size={14} /> Guardar configuración</button>
         </div>
       </div>
+      {showOllamaWizard && (
+        <div className="modal-overlay" onClick={(event) => { if (event.target === event.currentTarget) setShowOllamaWizard(false); }}>
+          <div className="modal-container modal-container--lg">
+            <OllamaSetupWizard
+              endpoint={localConfig.ollamaBaseUrl}
+              onReady={(diagnostic) => {
+                const model = diagnostic.details.selectedModel ?? localConfig.model;
+                setLocalConfig({ ...localConfig, model, ollamaModel: model });
+                setOllamaConnected(true);
+                setShowOllamaWizard(false);
+              }}
+              onCancel={() => setShowOllamaWizard(false)}
+            />
+          </div>
+        </div>
+      )}
     </main>
   );
 };

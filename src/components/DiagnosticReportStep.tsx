@@ -12,9 +12,9 @@ import {
 } from './diagnosticReport';
 
 interface DiagnosticReportEvaluationSummary {
-  contractErrorsCount?: number;
-  unsupportedClaimsCount?: number;
-  anchoredBadSampleRefsCount?: number;
+  contractErrorsCount?: number | null;
+  unsupportedClaimsCount?: number | null;
+  anchoredBadSampleRefsCount?: number | null;
   syntaxValid?: boolean | null;
   pythonExecutionStatus?: string | null;
   reauditSummary?: string | null;
@@ -391,7 +391,7 @@ const DiagnosticInvocationSummary: React.FC<{
             </span>
           </div>
           <div className="diagnostic-invocation-item">
-            <span className="diagnostic-invocation-label">Referencias de muestras inválidas</span>
+            <span className="diagnostic-invocation-label">Muestras problemáticas ancladas</span>
             <span className="diagnostic-invocation-value">
               {evalField(evaluation!.anchoredBadSampleRefsCount, (v) => `${v} referencia${v === 1 ? '' : 's'}`)}
             </span>

@@ -17,6 +17,7 @@ import {
   fetchOllamaModels,
   isModelHeavy,
   normalizeEndpoint,
+  pullOllamaModel,
   type OllamaLocalDiagnostic,
   type OllamaLocalStatus,
   type OllamaModelInfo,
@@ -41,9 +42,28 @@ const ORIGIN = typeof window !== 'undefined'
   : 'https://aura.casabero.com';
 
 const CAMPAIGN_MODEL_PURPOSES: Record<string, string> = {
-  Qwen3: 'Modelo general de 8B para la primera familia comparada en OE4.',
-  'Gemma 3': 'Modelo de 4B con variante IT QAT para contraste de tamaño y familia.',
-  'DeepSeek R1': 'Modelo de razonamiento destilado sobre Qwen3 8B para la tercera familia.',
+  Qwen3: 'Modelo general de 8B recomendado para diagnóstico local y comparación reproducible.',
+  'Gemma 3': 'Modelo compacto de 4B recomendado para diagnóstico local y contraste de familia.',
+  'DeepSeek R1': 'Modelo de razonamiento de 8B recomendado para diagnóstico local y comparación reproducible.',
+};
+
+interface ModelDownloadState {
+  status: 'idle' | 'downloading' | 'success' | 'error';
+  progress: number | null;
+  message: string;
+  completedBytes: number | null;
+  totalBytes: number | null;
+}
+
+interface SetupLogEntry {
+  at: string;
+  kind: 'info' | 'progress' | 'success' | 'error';
+  message: string;
+}
+
+const formatBytes = (bytes: number | null): string => {
+  if (bytes === null) return '—';
+  return `${(bytes / (1024 ** 3)).toFixed(2)} GiB`;
 };
 
 const INSTRUCTIONS_WINDOWS = [
@@ -179,6 +199,14 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
   const [scanError, setScanError] = useState<string | null>(null);
   const [scanActions, setScanActions] = useState<string[]>([]);
   const [copiedCommand, setCopiedCommand] = useState<string | null>(null);
+  const [downloads, setDownloads] = useState<Record<string, ModelDownloadState>>({});
+  const [setupLog, setSetupLog] = useState<SetupLogEntry[]>([{
+    at: new Date().toISOString(), kind: 'info', message: 'Asistente iniciado. Esperando verificación de Ollama.',
+  }]);
+
+  const appendLog = useCallback((kind: SetupLogEntry['kind'], message: string) => {
+    setSetupLog((current) => [...current.slice(-59), { at: new Date().toISOString(), kind, message }]);
+  }, []);
 
   useEffect(() => {
     setPlatform({
@@ -225,10 +253,12 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
     setScanError(null);
     setScanActions([]);
     setDiagnostic(null);
+    appendLog('info', `Consultando ${normalizedEndpoint}/api/tags`);
 
     try {
       const models = await fetchOllamaModels(normalizedEndpoint);
       setInstalledModels(models);
+      appendLog('success', `Ollama conectado. ${models.length} modelo${models.length === 1 ? '' : 's'} detectado${models.length === 1 ? '' : 's'}.`);
 
       const preferred = FINAL_EVALUATION_OLLAMA_MODELS
         .map(formal => models.find(model => matchesModel(model.name, formal.id)))
@@ -239,8 +269,8 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
       if (models.length === 0) {
         setScanError('Ollama respondió correctamente, pero todavía no tiene modelos instalados.');
         setScanActions([
-          'Instala al menos un modelo para usar el diagnóstico local.',
-          'Instala los tres modelos congelados antes de iniciar la campaña OE4.',
+          'Instala al menos uno de los modelos recomendados mostrados abajo para usar el diagnóstico.',
+          'Instala los tres antes de ejecutar la comparación experimental de AURA.',
         ]);
       }
     } catch (error: unknown) {
@@ -266,6 +296,7 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
           'Vuelve a escanear después de completar estos pasos.',
         ]);
       }
+      appendLog('error', connectionDiagnostic?.message ?? 'No se pudo consultar la lista de modelos.');
 
       if (error instanceof Error && error.name === 'AbortError') {
         setScanError(`Ollama no respondió dentro del tiempo esperado en ${normalizedEndpoint}.`);
@@ -273,7 +304,47 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
     } finally {
       setIsScanning(false);
     }
-  }, [normalizedEndpoint]);
+  }, [appendLog, normalizedEndpoint]);
+
+  const handleDownloadModel = useCallback(async (model: (typeof campaignModelStatus)[number]) => {
+    setDownloads((current) => ({
+      ...current,
+      [model.id]: { status: 'downloading', progress: null, message: 'Solicitando descarga a Ollama…', completedBytes: null, totalBytes: null },
+    }));
+    appendLog('info', `Iniciando descarga: ${model.id}`);
+    try {
+      await pullOllamaModel(normalizedEndpoint, model.id, (event) => {
+        setDownloads((current) => ({
+          ...current,
+          [model.id]: {
+            status: event.status === 'success' ? 'success' : 'downloading',
+            progress: event.percent,
+            message: event.status,
+            completedBytes: event.completedBytes,
+            totalBytes: event.totalBytes,
+          },
+        }));
+        if (event.percent !== null) {
+          appendLog('progress', `${model.name}: ${event.percent}% · ${formatBytes(event.completedBytes)} / ${formatBytes(event.totalBytes)}`);
+        }
+      });
+      const models = await fetchOllamaModels(normalizedEndpoint);
+      setInstalledModels(models);
+      setSelectedModel(model.id);
+      setDownloads((current) => ({
+        ...current,
+        [model.id]: { ...current[model.id], status: 'success', progress: 100, message: 'Modelo instalado y verificado en /api/tags.' },
+      }));
+      appendLog('success', `${model.name}: instalación terminada y modelo detectado.`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setDownloads((current) => ({
+        ...current,
+        [model.id]: { ...current[model.id], status: 'error', message },
+      }));
+      appendLog('error', `${model.name}: ${message}`);
+    }
+  }, [appendLog, normalizedEndpoint]);
 
   const handleDiagnose = useCallback(async () => {
     setIsChecking(true);
@@ -282,6 +353,7 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
     try {
       const result = await diagnoseOllamaLocal(normalizedEndpoint, selectedModel || undefined);
       setDiagnostic(result);
+      appendLog(result.status === 'ready' ? 'success' : 'error', `Diagnóstico de conexión: ${result.message}`);
 
       if (result.details.modelsInstalled.length > 0 && installedModels.length === 0) {
         setInstalledModels(result.details.modelsInstalled.map(name => ({
@@ -293,14 +365,13 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
 
       if (result.status === 'ready') {
         if (result.details.selectedModel) setSelectedModel(result.details.selectedModel);
-        onReady?.(result);
       }
     } catch (error: unknown) {
       setErrorDetail(error instanceof Error ? error.message : 'Error desconocido');
     } finally {
       setIsChecking(false);
     }
-  }, [installedModels.length, normalizedEndpoint, onReady, selectedModel]);
+  }, [appendLog, installedModels.length, normalizedEndpoint, selectedModel]);
 
   return (
     <div className="ollama-wizard" data-testid="ollama-setup-wizard">
@@ -504,7 +575,7 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
                       <div style={{ fontWeight: 600, fontSize: '13px' }}>{model.name}</div>
                       <div style={{ fontSize: '11px', color: 'var(--ink3)' }}>
                         {sizeGB ? `${sizeGB} GB` : 'Tamaño no informado'}
-                        {isCampaign ? ' · Campaña OE4' : ''}
+                        {isCampaign ? ' · Modelo recomendado AURA' : ''}
                         {isModelHeavy(model.size) ? ' · Modelo pesado' : ''}
                       </div>
                     </div>
@@ -517,45 +588,91 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
 
           <div className="ollama-wizard-section-header" style={{ marginTop: 'var(--space-md)' }}>
             <Download size={14} />
-            <strong>Modelos congelados de la campaña OE4</strong>
+            <strong>Modelos recomendados de AURA</strong>
           </div>
           <p className="ollama-wizard-text">
-            Para diagnóstico normal puedes usar cualquier modelo instalado. Para la campaña formal deben coincidir exactamente estos tres IDs y esta cuantización.
+            Para un diagnóstico normal basta con uno. Para ejecutar la comparación experimental deben estar instalados los tres con estos identificadores exactos.
           </p>
           <p className="ollama-wizard-note" data-testid="ollama-formal-model-count">
-            Detectados: {installedCampaignCount} de {FINAL_EVALUATION_OLLAMA_MODELS.length} modelos OE4.
+            Detectados: {installedCampaignCount} de {FINAL_EVALUATION_OLLAMA_MODELS.length} modelos recomendados.
           </p>
 
           <div style={{ display: 'grid', gap: '10px' }}>
             {campaignModelStatus.map(model => {
               const command = `ollama pull ${model.id}`;
+              const download = downloads[model.id];
+              const isDownloading = download?.status === 'downloading';
+              const isInstalled = model.installed || download?.status === 'success';
               return (
-                <div key={model.id} className="ollama-wizard-code-block" style={{ display: 'grid', gap: '6px' }}>
+                <div
+                  key={model.id}
+                  className="ollama-wizard-code-block ollama-wizard-model-card"
+                  data-testid={`ollama-formal-model-${model.id.replace(/[^a-zA-Z0-9]/g, '-')}`}
+                >
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
                     <div>
                       <strong>{model.name}</strong>
                       <p style={{ margin: '3px 0 0', fontSize: '11px', color: 'var(--ink3)' }}>{model.purpose}</p>
                     </div>
                     <span style={{
-                      color: model.installed ? 'var(--success)' : 'var(--ink3)',
+                      color: isInstalled ? 'var(--success)' : isDownloading ? 'var(--accent)' : 'var(--ink3)',
                       fontSize: '11px',
                       fontWeight: 700,
                       whiteSpace: 'nowrap',
                     }}>
-                      {model.installed ? 'Instalado' : 'Pendiente'}
+                      {isInstalled ? 'Instalado' : isDownloading ? 'Descargando' : 'Pendiente'}
                     </span>
                   </div>
+                  {download && (
+                    <div className="ollama-model-download" aria-live="polite">
+                      {download.progress !== null && (
+                        <div
+                          className="ollama-model-download-track"
+                          role="progressbar"
+                          aria-label={`Descarga de ${model.name.replace(' · OE4', '')}`}
+                          aria-valuemin={0}
+                          aria-valuemax={100}
+                          aria-valuenow={download.progress}
+                        >
+                          <span style={{ width: `${download.progress}%` }} />
+                        </div>
+                      )}
+                      <div className={`ollama-model-download-status ollama-model-download-status--${download.status}`}>
+                        <span>{download.message}</span>
+                        {download.progress !== null && <strong>{download.progress}%</strong>}
+                        {(download.completedBytes !== null || download.totalBytes !== null) && (
+                          <span>{formatBytes(download.completedBytes)} / {formatBytes(download.totalBytes)}</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                     <code style={{ flex: 1, overflowWrap: 'anywhere' }}>{command}</code>
                     <button type="button" className="btn-s btn-sm" onClick={() => void copyCommand(command)}>
                       {copiedCommand === command ? 'Copiado' : 'Copiar'}
                     </button>
                   </div>
+                  {!isInstalled && (
+                    <button
+                      type="button"
+                      className="btn-p btn-sm ollama-model-download-button"
+                      onClick={() => void handleDownloadModel(model)}
+                      disabled={isDownloading}
+                      data-testid={`ollama-download-${model.id.replace(/[^a-zA-Z0-9]/g, '-')}`}
+                    >
+                      {isDownloading
+                        ? <><Activity size={13} className="spinning" /> Descargando en Ollama…</>
+                        : <><Download size={13} /> Descargar en Ollama</>}
+                    </button>
+                  )}
                 </div>
               );
             })}
           </div>
 
+          <p className="ollama-wizard-note">
+            AURA verifica automáticamente cada descarga terminada contra la lista real de modelos de Ollama. El comando queda disponible como alternativa manual.
+          </p>
           <div className="ollama-wizard-actions">
             <button type="button" className="btn-s btn-sm" onClick={() => setStep(2)}>Atrás</button>
             <button
@@ -622,16 +739,42 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
                   <button type="button" className="btn-s" onClick={handleDiagnose} disabled={isChecking}>Volver a intentar</button>
                 )}
                 {diagnostic.status === 'ready' && (
-                  <div className="ollama-wizard-ready-confirm">
-                    <CheckCircle size={16} style={{ color: 'var(--success)' }} />
-                    <span>Ollama y el modelo están listos para diagnóstico local.</span>
-                  </div>
+                  <>
+                    <div className="ollama-wizard-ready-confirm">
+                      <CheckCircle size={16} style={{ color: 'var(--success)' }} />
+                      <span>Ollama y el modelo están listos para diagnóstico local.</span>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn-p"
+                      onClick={() => onReady?.(diagnostic)}
+                      data-testid="ollama-use-model"
+                    >
+                      Usar este modelo en AURA
+                    </button>
+                  </>
                 )}
               </div>
             </div>
           )}
         </div>
       )}
+
+      <div className="ollama-syntax-display" data-testid="ollama-setup-log">
+        <div className="ollama-syntax-display-head">
+          <span>ollama.setup.log</span>
+          <span>actividad real</span>
+        </div>
+        <div className="ollama-syntax-display-body" role="log" aria-live="polite">
+          {setupLog.map((entry, index) => (
+            <div className={`ollama-syntax-line ollama-syntax-line--${entry.kind}`} key={`${entry.at}-${index}`}>
+              <time>{new Date(entry.at).toLocaleTimeString()}</time>
+              <span>{entry.kind.toUpperCase()}</span>
+              <code>{entry.message}</code>
+            </div>
+          ))}
+        </div>
+      </div>
 
       <div className="ollama-wizard-footer">
         {onCancel && <button type="button" className="btn-s btn-sm" onClick={onCancel}>Cerrar asistente</button>}

@@ -729,6 +729,22 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
       {state === 'diagnostic_report' && diagnosticReport && (
         <DiagnosticReportStep
           diagnosticReport={diagnosticReport}
+          evaluationSummary={{
+            contractErrorsCount: structuredDiagnosis?.executionReceipt.validationErrorCodes.length
+              ?? diagnosisFailureEvidence?.executionReceipt.validationErrorCodes.length
+              ?? null,
+            unsupportedClaimsCount: null,
+            anchoredBadSampleRefsCount: null,
+            syntaxValid: scriptContractVerificationV2?.pythonSyntax.state === 'passed'
+              ? true
+              : scriptContractVerificationV2?.pythonSyntax.state === 'failed'
+                ? false
+                : null,
+            pythonExecutionStatus: null,
+            reauditSummary: improvementRun?.healthDelta
+              ? `${improvementRun.healthDelta.beforeScore} → ${improvementRun.healthDelta.afterScore}`
+              : null,
+          }}
           onExportMain={() => setState('export')}
           onGenerateScript={() => setState('script')}
           onBackToDiagnosis={() => setState('diagnosis')}

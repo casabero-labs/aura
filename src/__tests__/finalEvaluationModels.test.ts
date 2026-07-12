@@ -35,7 +35,14 @@ describe('OE4 final evaluation Ollama models — Task 3', () => {
       expect(model.formalEvaluation).toBe(true);
       expect(model.quantization).toBe('UD-Q4_K_XL');
       expect(model.repository).toMatch(/^huggingface\.co\/unsloth\//);
+      expect(model.recommended).toBe(true);
     }
+  });
+
+  it('uses only the three frozen models as Ollama recommendations', () => {
+    expect(OLLAMA_MODELS.filter((model) => model.recommended).map((model) => model.id)).toEqual(
+      EXPECTED_MODEL_IDS,
+    );
   });
 
   it('keeps qwen2.5:3b as a general operational alternative', () => {

@@ -12,7 +12,7 @@ import { AIConfig, AIProvider, CloudProvider } from '../types';
 import type { ChromePromptProvider } from './providers/chromeProvider';
 import type { GeminiProvider } from './providers/geminiProvider';
 import type { OpenAIProvider } from './providers/openaiProvider';
-import { CLOUD_MODELS } from './modelRegistry';
+import { CLOUD_MODELS, DEFAULT_OLLAMA_MODEL_ID } from './modelRegistry';
 
 export { AVAILABLE_MODELS, LOCAL_MODELS, CLOUD_MODELS, CHROME_MODELS, OLLAMA_MODELS } from './modelRegistry';
 export { checkModelDownloaded, deleteDownloadedModel, getDownloadedModels, getLocalModelStatus, markPreloadVerified, clearPreloadVerification } from './modelManager';
@@ -271,7 +271,7 @@ export const createAIProvider = (config: AIConfig): AIProvider => {
 
     case 'ollama': {
       const baseUrl = migrated.ollamaBaseUrl || 'http://localhost:11434';
-      const model = migrated.model || migrated.ollamaModel || 'qwen2.5:3b';
+      const model = migrated.model || migrated.ollamaModel || DEFAULT_OLLAMA_MODEL_ID;
       return new LazyOllamaProvider(model, migrated.temperature, baseUrl, migrated);
     }
 

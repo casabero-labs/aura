@@ -33,6 +33,10 @@ No ejecutar las 45 corridas mientras cualquiera de estos gates esté rojo:
 - [x] **P0-01R3 APROBADO**: Estado exclusivo éxito/fallo; limpieza local y superior.
 - [x] **P0-01R3 APROBADO**: 1725 tests, typecheck, build, E2E y pruebas adversariales focales en verde.
 - [x] **COMPLETO — P1**: métricas reales y procedencia verificable de validación/ejecución Python.
+- [x] **COMPLETO — P1-04**: interfaz llama al módulo `Laboratorio`; reporte y exportaciones explican métricas, recibos y complementariedad JSON/CSV.
+- [x] **COMPLETO — Ollama UX**: tres modelos Unsloth recomendados en diagnóstico normal y campaña; asistente integrado con conexión, descarga, progreso real y registro técnico.
+- [x] **COMPLETO — limpieza**: retirada la implementación HTML duplicada; queda solo una redirección segura hacia React y se eliminaron los enlaces sin destino a configuración avanzada y laboratorio experimental.
+- [x] **VALIDACIÓN ACTUAL**: 1737 tests, typecheck, build y 6/6 E2E focales en Chromium.
 - [ ] **BLOQUEADO**: Smokes reales opt-in con los tres modelos instalados.
 - [ ] **BLOQUEADO**: Campaña real ejecutada manualmente por el investigador.
 

@@ -16,6 +16,7 @@ import { startNetworkMonitoring, stopNetworkMonitoring, NetworkGuardResult } fro
 import { generateQuickReceipt, PrivacyReceipt } from '../services/privacyReceipt';
 import { runStructuredDiagnosis, isContractsV2Enabled, type DiagnosisExecutionResult, type DiagnosisFailureEvidenceV2 } from '../contracts/llm';
 import { diagnoseOllamaLocal, type OllamaLocalDiagnostic, type OllamaLocalStatus } from '../services/ollamaLocalBridge';
+import { DEFAULT_OLLAMA_MODEL_ID } from '../services/modelRegistry';
 
 interface DiagnosisStepProps {
   report: AuditReport;
@@ -371,7 +372,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
   const handleProviderTypeChange = (type: 'chrome' | 'ollama' | 'cloud' | 'webllm_experimental') => {
     const defaults: Record<string, string> = {
       chrome: 'gemini-nano',
-      ollama: 'qwen2.5:3b',
+      ollama: DEFAULT_OLLAMA_MODEL_ID,
       cloud: aiConfig.cloudProvider === 'google'
         ? 'gemini-2.5-flash'
         : (AVAILABLE_MODELS.cloud[0]?.id || 'gemini-2.5-flash'),
@@ -1007,8 +1008,8 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
         <details className="diagnosis-tech-disclosure" data-testid="diagnosis-tech-disclosure">
           <summary className="diagnosis-tech-disclosure-summary">
             <FileCode2 size={12} />
-            <span>Trazabilidad técnica opcional</span>
-            <span className="diagnosis-tech-disclosure-hint">recibo, prompt, hashes y secciones para reproducir el diagnóstico</span>
+            <span>Trazabilidad técnica</span>
+            <span className="diagnosis-tech-disclosure-hint">evidencia necesaria para verificar el método, la entrada y la respuesta del diagnóstico</span>
           </summary>
           <div className="diagnosis-tech-disclosure-body">
             {structuredDiagnosis?.executionReceipt ? (
@@ -1067,7 +1068,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
                         })()}
                       </span>
                       <span>
-                        <Activity size={11} /> Código de salida: {structuredDiagnosis.executionReceipt.validationErrorCodes.length > 0 ? `errores (${structuredDiagnosis.executionReceipt.validationErrorCodes.join(', ')})` : 'limpio'}
+                        <Activity size={11} /> Validación de respuesta: {structuredDiagnosis.executionReceipt.validationErrorCodes.length > 0 ? `errores (${structuredDiagnosis.executionReceipt.validationErrorCodes.join(', ')})` : 'válida'}
                       </span>
                     </div>
                   )}

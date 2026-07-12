@@ -153,6 +153,15 @@ test.describe('P1-04R1 adversarial closure', () => {
     for (const filename of ['campaign.json', 'runs.csv', 'report.md', 'report.pdf', 'manifest.json']) {
       await expect(exportSection.getByText(filename, { exact: true })).toBeVisible();
     }
+    for (const description of [
+      'Fuente canónica del experimento',
+      'Una fila por corrida',
+      'Informe legible',
+      'Versión PDF',
+      'Hashes de todos los archivos',
+    ]) {
+      await expect(exportSection.getByText(new RegExp(description))).toBeVisible();
+    }
   });
 
   test('6. No ejecución automática mantiene contador en 0 antes de click explícito', async ({ page }) => {

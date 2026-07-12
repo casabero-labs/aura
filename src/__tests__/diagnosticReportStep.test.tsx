@@ -162,10 +162,11 @@ const renderStep = (callbacks = {
   onExportMain: vi.fn(),
   onGenerateScript: vi.fn(),
   onBackToDiagnosis: vi.fn(),
-}) => {
+}, evaluationSummary?: React.ComponentProps<typeof DiagnosticReportStep>['evaluationSummary']) => {
   render(
     <DiagnosticReportStep
       diagnosticReport={diagnosticReport}
+      evaluationSummary={evaluationSummary}
       onExportMain={callbacks.onExportMain}
       onGenerateScript={callbacks.onGenerateScript}
       onBackToDiagnosis={callbacks.onBackToDiagnosis}
@@ -175,6 +176,22 @@ const renderStep = (callbacks = {
 };
 
 describe('DiagnosticReportStep', () => {
+  it('shows real evaluation values and keeps unavailable values as not measured', () => {
+    renderStep(undefined, {
+      contractErrorsCount: 2,
+      unsupportedClaimsCount: null,
+      anchoredBadSampleRefsCount: 3,
+      syntaxValid: null,
+      pythonExecutionStatus: null,
+      reauditSummary: null,
+    });
+    const evaluation = screen.getByTestId('diagnostic-invocation-evaluation');
+    expect(evaluation.textContent).toContain('2 errores');
+    expect(evaluation.textContent).toContain('Muestras problemáticas ancladas');
+    expect(evaluation.textContent).toContain('3 referencias');
+    expect(evaluation.textContent).not.toContain('muestras inválidas');
+    expect(evaluation.textContent).toContain('No medido');
+  });
   it('renderiza header y resumen principal', () => {
     renderStep();
 

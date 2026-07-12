@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { normalizeAiProviderError } from '../services/providers/errors';
 import { AIConfig } from '../types';
+import { DEFAULT_OLLAMA_MODEL_ID } from '../services/modelRegistry';
 
 const baseConfig: AIConfig = {
   model: 'qwen2.5:3b',
@@ -87,7 +88,7 @@ describe('normalizeAiProviderError', () => {
 
       expect(result.title).toBe('Ollama local no disponible');
       expect(result.category).toBe('ollama_unavailable');
-      expect(result.recommendedActions.some(a => a.includes('ollama pull qwen2.5:3b'))).toBe(true);
+      expect(result.recommendedActions.some(a => a.includes(`ollama pull ${DEFAULT_OLLAMA_MODEL_ID}`))).toBe(true);
     });
 
     it('normalizes localhost connection failures for Ollama config', () => {

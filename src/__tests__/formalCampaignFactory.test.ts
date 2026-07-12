@@ -63,4 +63,15 @@ describe('formal OE4 campaign factory', () => {
       appCommit: 'abcdef1234567',
     })).rejects.toThrow('controlled_customers_phase8.csv');
   });
+
+  it('rejects an Ollama server older than the formal minimum', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => ({
+      ok: true,
+      json: async () => url.endsWith('/api/version') ? { version: '0.4.9' } : { models: [] },
+    })));
+    await expect(createFormalCampaignBundle({
+      report, auditEvidence: evidence, datasetFile,
+      ollamaBaseUrl: 'http://127.0.0.1:11434', appCommit: 'abcdef1234567',
+    })).rejects.toThrow(/0\.5\.0/);
+  });
 });

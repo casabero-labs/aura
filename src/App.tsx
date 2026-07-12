@@ -629,7 +629,7 @@ const App: React.FC = () => {
       {showChangelog && <ChangelogModal onClose={() => setShowChangelog(false)} />}
 
       {showExperimentCampaign && (
-        <Suspense fallback={<div className="oe4-campaign-loading">Preparando evaluación OE4…</div>}>
+        <Suspense fallback={<div className="oe4-campaign-loading">Preparando Laboratorio…</div>}>
           {oe4E2eHarnessEnabled && Oe4CampaignE2eHarness
             ? <Oe4CampaignE2eHarness />
             : <BenchmarkCampaignLab
@@ -719,7 +719,7 @@ const App: React.FC = () => {
             </p>
 
             <p className="export-validity-note" data-testid="export-validity-note">
-              Una corrida completada sin los recibos requeridos no se exportará como válida. Verifica que el diagnóstico esté completo antes de exportar.
+              El JSON técnico conserva el recibo que certifica el método solicitado y efectivo, las secciones enviadas, el modelo observado y los hashes de entrada, prompt y respuesta. Una ejecución sin esa evidencia no se exporta como válida.
             </p>
 
             <div className="export-delivery-block" data-testid="export-main-block">
@@ -762,7 +762,7 @@ const App: React.FC = () => {
                     <FileJson size={18} />
                     <div>
                       <h4>JSON técnico</h4>
-                      <p>Datos estructurados para auditoría, reproducción técnica o integración externa.</p>
+                      <p>Expediente estructurado completo para auditoría, reproducción técnica o integración externa.</p>
                     </div>
                   </div>
                   {exportJsonPreflightError ? (
@@ -772,7 +772,7 @@ const App: React.FC = () => {
                     </div>
                   ) : (
                     <div className="export-delivery-card-action">
-                      <p className="export-delivery-card-desc" data-testid="export-json-desc">Paquete técnico completo con manifiesto, perfil, diagnóstico, script y calibración. Para auditoría y reproducibilidad.</p>
+                      <p className="export-delivery-card-desc" data-testid="export-json-desc">Incluye perfil, hallazgos, diagnóstico, snapshot de entrada y recibo con el método realmente usado. Es la fuente técnica completa.</p>
                       <button className="btn-s btn-sm" onClick={handleExportJson} data-testid="export-download-json">
                         Descargar JSON
                       </button>
@@ -785,11 +785,11 @@ const App: React.FC = () => {
                     <Download size={18} />
                     <div>
                       <h4>CSV de hallazgos</h4>
-                      <p>Tabla simple de hallazgos para hojas de cálculo o revisión QA.</p>
+                      <p>Vista tabular de los hallazgos para hojas de cálculo o revisión QA.</p>
                     </div>
                   </div>
                   <div className="export-delivery-card-action">
-                    <p className="export-delivery-card-desc" data-testid="export-csv-desc">Listado de hallazgos deterministas con severidad, categoría y muestras. Para análisis externo.</p>
+                    <p className="export-delivery-card-desc" data-testid="export-csv-desc">Resume los mismos hallazgos deterministas del JSON en filas fáciles de filtrar. Lo complementa; no contiene el recibo técnico.</p>
                     <button className="btn-s btn-sm" onClick={handleExportIssuesCsv}>
                       Descargar CSV
                     </button>

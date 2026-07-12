@@ -6,6 +6,7 @@
  */
 
 import { detectPlatform, PlatformInfo } from './platformDetection';
+import { FINAL_EVALUATION_OLLAMA_MODEL_IDS } from './modelRegistry';
 
 export type OllamaLocalStatus =
   | 'not_configured'
@@ -24,6 +25,14 @@ export interface OllamaModelInfo {
   name: string;
   modified_at: string;
   size: number;
+}
+
+export interface OllamaPullProgressEvent {
+  status: string;
+  percent: number | null;
+  completedBytes: number | null;
+  totalBytes: number | null;
+  digest: string | null;
 }
 
 export interface OllamaLocalDiagnostic {
@@ -50,8 +59,8 @@ const DEFAULT_ENDPOINT = 'http://127.0.0.1:11434';
 const LOCALHOST_ENDPOINT = 'http://localhost:11434';
 const IPV6_ENDPOINT = 'http://[::1]:11434';
 const ENDPOINT_TIMEOUT_MS = 8000;
-const RECOMMENDED_MODEL = 'qwen2.5:3b';
-const ALTERNATIVE_MODEL = 'gemma2:2b';
+const RECOMMENDED_MODEL = FINAL_EVALUATION_OLLAMA_MODEL_IDS[0];
+const ALTERNATIVE_MODEL = FINAL_EVALUATION_OLLAMA_MODEL_IDS[1];
 const MODEL_HEAVY_BYTES = 10 * 1024 * 1024 * 1024; // 10 GB
 
 const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost', '::1', '[::1]']);
@@ -142,6 +151,66 @@ export async function fetchOllamaModels(endpoint: string): Promise<OllamaModelIn
   }
   const data = await resp.json();
   return data.models || [];
+}
+
+export async function pullOllamaModel(
+  endpoint: string,
+  model: string,
+  onProgress: (event: OllamaPullProgressEvent) => void,
+): Promise<void> {
+  const normalized = normalizeEndpoint(endpoint);
+  if (!isLocalLoopback(normalized)) {
+    throw new Error('AURA solo permite descargar modelos en un Ollama local (127.0.0.1 o localhost).');
+  }
+  const request: RequestInit & { targetAddressSpace?: string } = {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model, stream: true }),
+    targetAddressSpace: 'local',
+  };
+  const response = await fetch(`${normalized}/api/pull`, request);
+  if (!response.ok) {
+    let detail = '';
+    try {
+      const payload = await response.json() as { error?: string; message?: string };
+      detail = payload.error ?? payload.message ?? '';
+    } catch {
+      detail = await response.text().catch(() => '');
+    }
+    throw new Error(`Ollama rechazó la descarga (${response.status})${detail ? `: ${detail}` : ''}`);
+  }
+  const reader = response.body?.getReader();
+  if (!reader) throw new Error('Ollama no entregó un flujo de progreso para la descarga.');
+  const decoder = new TextDecoder();
+  let buffer = '';
+  const emit = (raw: string): void => {
+    if (!raw.trim()) return;
+    const event = JSON.parse(raw) as {
+      status?: string; completed?: number; total?: number; digest?: string; error?: string;
+    };
+    if (event.error) throw new Error(event.error);
+    const completed = typeof event.completed === 'number' ? event.completed : null;
+    const total = typeof event.total === 'number' ? event.total : null;
+    onProgress({
+      status: event.status ?? 'procesando',
+      percent: completed !== null && total !== null && total > 0
+        ? Math.min(100, Math.round((completed / total) * 100))
+        : event.status === 'success' ? 100 : null,
+      completedBytes: completed,
+      totalBytes: total,
+      digest: event.digest ?? null,
+    });
+  };
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() ?? '';
+    lines.forEach(emit);
+  }
+  buffer += decoder.decode();
+  emit(buffer);
 }
 
 export async function testOllamaChat(

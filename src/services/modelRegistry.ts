@@ -98,12 +98,15 @@ export const FINAL_EVALUATION_OLLAMA_MODEL_IDS = [
   'hf.co/unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF:UD-Q4_K_XL',
 ] as const;
 
+export const DEFAULT_OLLAMA_MODEL_ID = FINAL_EVALUATION_OLLAMA_MODEL_IDS[0];
+
 /** Exact frozen models for the OE4 final campaign. */
 export const FINAL_EVALUATION_OLLAMA_MODELS: readonly OllamaModelDef[] = [
   {
     id: FINAL_EVALUATION_OLLAMA_MODEL_IDS[0],
     name: 'Qwen 3 8B · OE4 (UD-Q4_K_XL)',
     family: 'Qwen3',
+    recommended: true,
     formalEvaluation: true,
     quantization: 'UD-Q4_K_XL',
     repository: 'huggingface.co/unsloth/Qwen3-8B-GGUF',
@@ -112,6 +115,7 @@ export const FINAL_EVALUATION_OLLAMA_MODELS: readonly OllamaModelDef[] = [
     id: FINAL_EVALUATION_OLLAMA_MODEL_IDS[1],
     name: 'Gemma 3 4B IT QAT · OE4 (UD-Q4_K_XL)',
     family: 'Gemma 3',
+    recommended: true,
     formalEvaluation: true,
     quantization: 'UD-Q4_K_XL',
     repository: 'huggingface.co/unsloth/gemma-3-4b-it-qat-GGUF',
@@ -120,6 +124,7 @@ export const FINAL_EVALUATION_OLLAMA_MODELS: readonly OllamaModelDef[] = [
     id: FINAL_EVALUATION_OLLAMA_MODEL_IDS[2],
     name: 'DeepSeek R1 0528 Qwen3 8B · OE4 (UD-Q4_K_XL)',
     family: 'DeepSeek R1',
+    recommended: true,
     formalEvaluation: true,
     quantization: 'UD-Q4_K_XL',
     repository: 'huggingface.co/unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF',
@@ -132,8 +137,8 @@ export const FINAL_EVALUATION_OLLAMA_MODELS: readonly OllamaModelDef[] = [
  */
 export const OLLAMA_MODELS: OllamaModelDef[] = [
   ...FINAL_EVALUATION_OLLAMA_MODELS,
-  { id: 'qwen2.5:3b', name: 'Qwen 2.5 3B', family: 'Qwen', recommended: true, formalEvaluation: false },
-  { id: 'llama3.2:3b', name: 'Llama 3.2 3B', family: 'Llama', recommended: true, formalEvaluation: false },
+  { id: 'qwen2.5:3b', name: 'Qwen 2.5 3B', family: 'Qwen', formalEvaluation: false },
+  { id: 'llama3.2:3b', name: 'Llama 3.2 3B', family: 'Llama', formalEvaluation: false },
   { id: 'mistral:7b', name: 'Mistral 7B', family: 'Mistral', formalEvaluation: false },
   { id: 'gemma2:2b', name: 'Gemma 2 2B', family: 'Gemma', formalEvaluation: false },
   { id: 'phi3:mini', name: 'Phi-3 Mini', family: 'Phi', formalEvaluation: false },

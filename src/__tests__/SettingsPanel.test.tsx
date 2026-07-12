@@ -110,6 +110,15 @@ describe('SettingsPanel - Ollama model reconciliation', () => {
       expect(screen.getByText('Probar y refrescar')).toBeTruthy();
     });
     expect(screen.queryByText(/Laboratorio avanzado/i)).toBeNull();
+    expect(screen.queryByTestId('settings-advanced-link')).toBeNull();
+    expect(screen.queryByTestId('settings-lab-link')).toBeNull();
+  });
+
+  it('opens the real Ollama assistant inside AURA', async () => {
+    render(<SettingsPanel config={{ ...baseConfig, model: 'missing:model' }} onSave={onSave} onClose={onClose} />);
+    const trigger = await screen.findByTestId('ollama-open-setup');
+    fireEvent.click(trigger);
+    expect(await screen.findByTestId('ollama-setup-wizard')).toBeTruthy();
   });
 
   it('refreshes model list on "Probar y refrescar" click', async () => {

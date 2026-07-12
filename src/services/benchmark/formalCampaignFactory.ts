@@ -25,6 +25,17 @@ export interface FormalCampaignBundle {
 }
 
 interface OllamaTag { name?: string; model?: string; digest?: string }
+const MINIMUM_OLLAMA_VERSION = [0, 5, 0] as const;
+
+const assertMinimumOllamaVersion = (version: string): void => {
+  const match = /^(\d+)\.(\d+)\.(\d+)/.exec(version.trim());
+  if (!match) throw new Error(`Versión de Ollama no reconocida: ${version}`);
+  const observed = match.slice(1).map(Number);
+  const meetsMinimum = observed.some((part, index) => part > MINIMUM_OLLAMA_VERSION[index]
+    && observed.slice(0, index).every((earlier, earlierIndex) => earlier === MINIMUM_OLLAMA_VERSION[earlierIndex]))
+    || observed.every((part, index) => part === MINIMUM_OLLAMA_VERSION[index]);
+  if (!meetsMinimum) throw new Error(`Ollama ${version} es inferior al mínimo formal 0.5.0.`);
+};
 
 export const buildFormalEvidenceEnvelope = (
   report: AuditReport,
@@ -77,6 +88,7 @@ const fetchOllamaPreflight = async (baseUrl: string): Promise<{
   const versionBody = await versionResponse.json() as { version?: string };
   const tagsBody = await tagsResponse.json() as { models?: OllamaTag[] };
   if (!versionBody.version) throw new Error('Ollama no informó su versión.');
+  assertMinimumOllamaVersion(versionBody.version);
   const digests = {} as Record<OE4ModelId, string>;
   for (const modelId of FINAL_EVALUATION_PROTOCOL.models) {
     const installed = tagsBody.models?.find((entry) => entry.name === modelId || entry.model === modelId);

@@ -8,6 +8,14 @@ interface CampaignReportPanelProps {
   onExport?: (evidencePackage: ExperimentEvidencePackage) => void;
 }
 
+const ARTIFACT_DESCRIPTIONS: Record<string, string> = {
+  'campaign.json': 'Fuente canónica del experimento: configuración, corridas, evaluaciones, recibos y reauditorías.',
+  'runs.csv': 'Una fila por corrida para comparar modelos, métodos, métricas, errores, hashes y estados.',
+  'report.md': 'Informe legible en Markdown con método, resultados, fallos, métricas y conclusiones.',
+  'report.pdf': 'Versión PDF del informe para revisión humana y anexos del TFM.',
+  'manifest.json': 'Hashes de todos los archivos exportados para comprobar que el expediente no fue alterado.',
+};
+
 const downloadArtifact = (filename: string, mediaType: string, content: string | Uint8Array): void => {
   const blob = new Blob([content], { type: mediaType });
   const url = URL.createObjectURL(blob);
@@ -43,7 +51,12 @@ const CampaignReportPanel: React.FC<CampaignReportPanelProps> = ({ formalValidit
         <>
           <p className="oe4-info">Los cinco artefactos se derivarán de este experimento sin copiar métricas manualmente.</p>
           <ul aria-label="Artefactos disponibles" className="oe4-artifact-list">
-            {evidencePackage?.artifacts.map((artifact) => <li key={artifact.filename}>{artifact.filename}</li>)}
+            {evidencePackage?.artifacts.map((artifact) => (
+              <li key={artifact.filename}>
+                <strong>{artifact.filename}</strong>
+                <span>{ARTIFACT_DESCRIPTIONS[artifact.filename] ?? 'Artefacto técnico del experimento.'}</span>
+              </li>
+            ))}
           </ul>
         </>
       ) : (

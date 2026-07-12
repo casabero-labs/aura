@@ -12622,6 +12622,55 @@ tr:hover td {
   white-space: nowrap;
 }
 
+.ollama-wizard-model-card {
+  display: grid;
+  gap: 8px;
+  white-space: normal;
+}
+
+.ollama-model-download {
+  display: grid;
+  gap: 6px;
+}
+
+.ollama-model-download-track {
+  height: 6px;
+  overflow: hidden;
+  background: var(--border-faint);
+  border-radius: 999px;
+}
+
+.ollama-model-download-track > span {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  background: var(--accent);
+  border-radius: inherit;
+  transition: width 180ms ease;
+}
+
+.ollama-model-download-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink3);
+}
+
+.ollama-model-download-status--success {
+  color: var(--success);
+}
+
+.ollama-model-download-status--error {
+  color: var(--error);
+}
+
+.ollama-model-download-button {
+  justify-self: start;
+}
+
 .ollama-wizard-note {
   font-size: 12px;
   color: var(--ink3);
@@ -12798,6 +12847,79 @@ tr:hover td {
   border-top: 1px solid var(--border-faint);
   display: flex;
   justify-content: flex-end;
+}
+
+.ollama-syntax-display {
+  margin: 0 var(--space-lg) var(--space-md);
+  overflow: hidden;
+  background: #11130f;
+  border: 1px solid rgba(177, 190, 160, 0.28);
+  border-radius: var(--radius-sm);
+  color: #e7eadf;
+  font-family: var(--font-mono);
+}
+
+.ollama-syntax-display-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 11px;
+  background: rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(177, 190, 160, 0.18);
+  color: #b9c3aa;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ollama-syntax-display-body {
+  max-height: 168px;
+  overflow: auto;
+  padding: 9px 11px;
+}
+
+.ollama-syntax-line {
+  display: grid;
+  grid-template-columns: 72px 68px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  padding: 3px 0;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.ollama-syntax-line time {
+  color: #7e8775;
+}
+
+.ollama-syntax-line > span {
+  color: #9da993;
+  font-weight: 700;
+}
+
+.ollama-syntax-line code {
+  color: inherit;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.ollama-syntax-line--progress {
+  color: #d8c874;
+}
+
+.ollama-syntax-line--success {
+  color: #9fd09f;
+}
+
+.ollama-syntax-line--error {
+  color: #ef9b91;
+}
+
+@media (max-width: 640px) {
+  .ollama-syntax-line {
+    grid-template-columns: 64px 58px minmax(0, 1fr);
+    gap: 5px;
+  }
 }
 
 /* ─── Ollama Status Strips (provider panel) ─── */
@@ -14915,6 +15037,10 @@ textarea:focus {
 .oe4-before-after small { color: var(--ink3); text-transform: uppercase; }
 .oe4-blocker-list { margin: 0 0 var(--space-md); padding-left: 18px; color: var(--ink2); font-size: 12px; }
 .oe4-blocker-list li + li { margin-top: 5px; }
+.oe4-artifact-list { display: grid; gap: 10px; margin: var(--space-md) 0 0; padding: 0; list-style: none; }
+.oe4-artifact-list li { display: grid; grid-template-columns: minmax(150px, 0.35fr) minmax(0, 1fr); gap: 14px; padding: 10px 0; border-bottom: 1px solid var(--border-faint); }
+.oe4-artifact-list strong { color: var(--ink); font: 600 11px var(--font-mono); }
+.oe4-artifact-list span { color: var(--ink2); font-size: 12px; line-height: 1.45; }
 
 @media (max-width: 900px) {
   .oe4-hero { align-items: flex-start; flex-direction: column; }

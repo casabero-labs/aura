@@ -8,8 +8,8 @@ La hoja de ruta vigente es:
 
 ## Estado actual
 
-AURA ya tiene una única ruta V2 para el diagnóstico normal y la evaluación
-OE4. Los tres métodos producen un snapshot canónico distinto y conservan un
+AURA ya tiene una única ruta V2 para el diagnóstico normal y el Laboratorio.
+Los tres métodos producen un snapshot canónico distinto y conservan un
 recibo verificable con método, secciones, prompt, hashes, modelo, digest y
 parámetros observados.
 
@@ -26,8 +26,8 @@ El protocolo ejecutable es `aura.oe4.final-evaluation.v2`:
 - 9 scripts deterministas, uno por representante seleccionado mediante la
   mediana del F1, siempre después de revisión y aprobación humana.
 
-El `Laboratorio de evaluación LLM` ya puede crear un experimento formal desde
-`controlled_customers_phase8.csv`. Antes de crearla verifica el hash del CSV,
+El `Laboratorio` ya puede crear un experimento formal desde
+`controlled_customers_phase8.csv`. Antes de crearlo verifica el hash del CSV,
 la versión de Ollama, los tres modelos y sus digests. Cada salida pasa por el
 validador completo `aura.diagnosis.v2` y por el oráculo diagnóstico. Las claves
 API no se guardan en localStorage ni se sincronizan al backend.
@@ -87,13 +87,15 @@ P1-03 cierra la procedencia de la ejecución Python:
 
 P1-04 cierra la claridad UX, trazabilidad y exportaciones:
 - Reporte diagnóstico: `DiagnosticInvocationSummary` muestra modelo, método, latencia, cumplimiento, claims, sintaxis, ejecución y reauditoría. `syntaxValid: null` → "No medido".
-- Trazabilidad técnica: `CopyHash` con botón de copiar hash completo; nota de integridad local.
+- Trazabilidad técnica: recibo, método solicitado y efectivo, secciones, modelo observado y hashes verificables.
 - Configuración: resumen de privacidad (local/externo); indicador de disponibilidad.
 - Terminología: "Laboratorio", "experimento", "corrida" unificados en interfaz visible.
 - Nueva sesión: diálogo modal con descripción de eliminación, preservación y aviso de irreversibilidad.
 - Exportaciones: descripciones de cada artefacto; nota de validez sobre recibos requeridos.
+- Ollama: asistente React integrado con verificación de conexión, descarga real de los tres modelos recomendados, progreso y registro técnico visible. La antigua implementación HTML quedó reducida a una redirección segura de compatibilidad.
+- Configuración: eliminados los enlaces sin destino a configuración avanzada y laboratorio experimental.
 
-**P1-04 COMPLETO.** Suite 1744 tests, typecheck, build, 4 E2E → verde.
+**P1-04 COMPLETO.** Suite 1737 tests, typecheck y build en verde; 6/6 E2E del cierre UX aprobados en Chromium.
 
 ## Pendientes no cubiertos por P1
 
@@ -110,8 +112,8 @@ Antes de lanzar los 45 diagnósticos reales, cada uno de los siguientes gates de
 
 - Hash del CSV de entrada no coincide con el esperado en el experimento.
 - Versión de Ollama inferior a la requerida (>= 0.5.0).
-- Modelos formales ausentes en la lista de Ollama (qwen2.5:3b, gemma3:4b, mistral:7b).
-- Digest de un modelo descargado no coincide con el digest de referencia.
+- Modelos formales ausentes en la lista de Ollama (`hf.co/unsloth/Qwen3-8B-GGUF:UD-Q4_K_XL`, `hf.co/unsloth/gemma-3-4b-it-qat-GGUF:UD-Q4_K_XL`, `hf.co/unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF:UD-Q4_K_XL`).
+- Digest local ausente o con formato inválido. AURA lo captura para congelar el entorno; el SHA-256 de referencia del archivo GGUF se conserva por separado y no se presenta como si fuera el digest de Ollama.
 - Modelo observado en la respuesta del LLM no coincide con el modelo solicitado.
 - Warmup ausente o incompleto para un bloque de modelo antes de las repeticiones.
 - Un bloque de diagnosis se asocia a un warmup del bloque incorrecto.

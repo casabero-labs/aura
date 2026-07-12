@@ -10,7 +10,7 @@
 import { AuditReport, AIProvider, ProviderMetrics, ExecutiveReportContent, ProviderProgressEvent, AIConfig, ProviderTextResult } from '../../types';
 import { buildAnalysisPrompt, buildExecutivePrompt, buildCompactAnalysisPrompt } from './prompts';
 import { normalizeAiProviderError } from './errors';
-import { OLLAMA_MODELS } from '../modelRegistry';
+import { DEFAULT_OLLAMA_MODEL_ID, OLLAMA_MODELS } from '../modelRegistry';
 
 export interface OllamaModel {
   name: string;
@@ -36,14 +36,16 @@ interface OllamaUsageFields {
 }
 
 const DEFAULT_BASE_URL = 'http://localhost:11434';
-const DEFAULT_MODEL = 'qwen2.5:3b';
+const DEFAULT_MODEL = DEFAULT_OLLAMA_MODEL_ID;
 const DEFAULT_KEEP_ALIVE = '10m';
 const DEFAULT_NUM_CTX = 16384;
 const DEFAULT_NUM_PREDICT = 1200;
 const DEFAULT_TOP_P = 0.9;
 const COMPACT_MARGIN = 2048;
 
-export const OLLAMA_SUGGESTED_MODELS = OLLAMA_MODELS.map((model) => model.id);
+export const OLLAMA_SUGGESTED_MODELS = OLLAMA_MODELS
+  .filter((model) => model.recommended)
+  .map((model) => model.id);
 
 const nanosecondsToMilliseconds = (value: number | undefined): number | undefined =>
   typeof value === 'number' && Number.isFinite(value)

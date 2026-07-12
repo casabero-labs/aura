@@ -4,6 +4,7 @@
  */
 
 import { AIConfig } from '../../types';
+import { DEFAULT_OLLAMA_MODEL_ID } from '../modelRegistry';
 
 export interface NormalizedProviderError {
   title: string;
@@ -95,7 +96,7 @@ export function normalizeAiProviderError(
         message: `El prompt (${tokensStr} tokens aprox.) excede la ventana de contexto del modelo local (${tokensStr} tokens). Intenta con un dataset más pequeño o configura num_ctx mayor en Ollama.`,
         cause: rawMessage,
         recommendedActions: [
-          'Aumenta num_ctx en Ollama: ollama run qwen2.5:3b num_ctx 32768',
+          `Aumenta num_ctx en Ollama: ollama run ${DEFAULT_OLLAMA_MODEL_ID} num_ctx 32768`,
           'O usa un dataset con menos columnas/filas',
           'O conecta Ollama local para diagnosis manual',
         ],
@@ -125,7 +126,7 @@ export function normalizeAiProviderError(
           : [
               'Verifica que el modelo esté descargado: ollama list',
               'Revisa que la versión de Ollama sea reciente: ollama --version',
-              'Descarga el modelo recomendado: ollama pull qwen2.5:3b',
+              `Descarga el modelo recomendado: ollama pull ${DEFAULT_OLLAMA_MODEL_ID}`,
             ],
         technicalMessage,
         evidenceStatus: 'attempted_failed',
@@ -140,7 +141,7 @@ export function normalizeAiProviderError(
       recommendedActions: [
         'Arranca Ollama con ollama serve o brew services start ollama',
         'Verifica la conexión con curl http://localhost:11434/api/tags',
-        'Descarga el modelo recomendado con ollama pull qwen2.5:3b',
+        `Descarga el modelo recomendado con ollama pull ${DEFAULT_OLLAMA_MODEL_ID}`,
         'Si usas Vite en navegador, permite el origen con OLLAMA_ORIGINS',
       ],
       technicalMessage,

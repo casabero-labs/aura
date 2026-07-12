@@ -223,6 +223,17 @@ modelo, digest y parámetros mediante un recibo persistido, ejecuta los 15
 calentamientos y valida el diagnóstico completo. La consola crea y evalúa la
 campaña real después del preflight. V1 permanece solo como evidencia histórica.
 
+**Checkpoint del 12 de julio de 2026 — cierre UX y preparación Ollama:**
+
+- Los tres modelos Unsloth congelados son también las únicas recomendaciones de Ollama para el diagnóstico normal; las alternativas históricas siguen disponibles, pero no se presentan como recomendadas.
+- El asistente de Ollama vive dentro de AURA: verifica conexión, consulta modelos instalados, descarga mediante `/api/pull`, muestra porcentaje y bytes reales y conserva un registro técnico visible con el patrón Syntax display.
+- La antigua implementación de `ollama-setup.html` fue sustituida por una redirección segura hacia el mismo asistente React; el lanzador que interceptaba Configuración fue retirado para conservar el flujo dentro de AURA. Configuración ya no enlaza a configuración avanzada ni a un laboratorio experimental inexistentes.
+- La trazabilidad del diagnóstico identifica método solicitado y efectivo, secciones, modelo observado y hashes. El JSON técnico conserva ese recibo; el CSV es una vista tabular complementaria sin recibo.
+- El reporte normal muestra valores medidos y usa `No medido` cuando una métrica formal no existe, sin convertir ausencias en ceros.
+- El preflight exige Ollama `>= 0.5.0`, los tres identificadores exactos y un digest local válido. El digest de Ollama se captura como identidad del entorno y no se confunde con el SHA-256 de referencia del GGUF.
+- Validación: 1737 pruebas Vitest aprobadas, 6 omitidas, typecheck y build correctos, y 6/6 E2E focales aprobados en Chromium.
+- La campaña de 45 corridas continúa bloqueada únicamente por los smokes reales y la ejecución manual del investigador.
+
 **Métricas obligatorias:**
 
 - cobertura del motor frente a las 55 incidencias, separada del TP, FP, FN, precisión, recall y F1 primarios del LLM sobre hallazgos `engine_exposed` realmente presentes en la auditoría congelada;
