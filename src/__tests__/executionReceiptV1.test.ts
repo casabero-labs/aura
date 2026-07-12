@@ -62,7 +62,7 @@ describe('ExecutionReceiptV1', () => {
       input, requestedInputMode: 'prompt_libre', exactPrompt: exactDiagnosisPromptV2(input),
       provider: 'Ollama', requestedModel: 'model-a', observedModel: 'model-a', inference,
       startedAt: '2026-07-11T00:00:00.000Z', completedAt: '2026-07-11T00:00:01.000Z',
-      rawResponse: '{}', validationStatus: 'invalid',
+      rawResponse: '{}', validationStatus: 'invalid', validationErrorCodes: ['TRACE_INPUT_MODE_MISMATCH'],
     })).toThrow(/TRACE_INPUT_MODE_MISMATCH/);
   });
 });

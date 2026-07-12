@@ -106,11 +106,14 @@ export class OllamaProvider implements AIProvider {
     observedLatencyMs: number,
     firstTokenMs: number,
     generatedText: string,
-    usage: OllamaUsageFields = {},
+    usage: OllamaUsageFields & { observedModel?: string } = {},
   ): ProviderMetrics {
+    const observed = (typeof usage.observedModel === 'string' && usage.observedModel.length > 0)
+      ? usage.observedModel
+      : null;
     return {
       provider: this.name,
-      model: this.model,
+      model: observed,
       latencyMs: Math.round(observedLatencyMs),
       firstTokenMs: Math.round(firstTokenMs),
       tokensGenerated: usage.eval_count ?? Math.round(generatedText.length / 4),
@@ -229,13 +232,14 @@ export class OllamaProvider implements AIProvider {
       const data = await response.json();
       fullText = data.message?.content || '';
       const thinking = data.message?.thinking || undefined;
+      const observedModel = typeof data.model === 'string' ? data.model : undefined;
 
       const totalTime = performance.now() - startTime;
 
       return {
         text: fullText,
         thinking,
-        metrics: this.buildMetrics(totalTime, totalTime, fullText, data),
+        metrics: this.buildMetrics(totalTime, totalTime, fullText, { ...data, observedModel }),
       };
     } catch (error) {
       const normalized = this.aiConfig
@@ -272,6 +276,7 @@ export class OllamaProvider implements AIProvider {
     let fullText = '';
     let thinking = '';
     let usage: OllamaUsageFields = {};
+    let observedModel: string | undefined;
 
     try {
       onProgress({ stage: 'generating', message: 'Generando respuesta' });
@@ -328,6 +333,9 @@ export class OllamaProvider implements AIProvider {
             const thinkingChunk = event.message?.thinking || '';
             if (thinkingChunk) thinking += thinkingChunk;
             usage = { ...usage, ...event };
+            if (typeof event.model === 'string' && event.model.length > 0) {
+              observedModel = event.model;
+            }
             if (content) {
               if (firstTokenTime === 0) {
                 firstTokenTime = performance.now() - startTime;
@@ -344,6 +352,9 @@ export class OllamaProvider implements AIProvider {
       const totalTime = performance.now() - startTime;
       onProgress({ stage: 'completed', progress: 100, message: 'Diagnóstico completado' });
 
+      const metricsUsage = usage.eval_count === undefined
+        ? { ...usage, eval_count: tokensGenerated, observedModel }
+        : { ...usage, observedModel };
       return {
         text: fullText,
         thinking: thinking || undefined,
@@ -351,7 +362,7 @@ export class OllamaProvider implements AIProvider {
           totalTime,
           firstTokenTime,
           fullText,
-          usage.eval_count === undefined ? { ...usage, eval_count: tokensGenerated } : usage,
+          metricsUsage,
         ),
       };
     } catch (error) {
@@ -377,6 +388,7 @@ export class OllamaProvider implements AIProvider {
     let firstTokenTime = 0;
     let tokensGenerated = 0;
     let usage: OllamaUsageFields = {};
+    let observedModel: string | undefined;
 
     try {
       const response = await fetch(`${this.baseUrl}/api/chat`, {
@@ -411,6 +423,9 @@ export class OllamaProvider implements AIProvider {
             const event = JSON.parse(line);
             const content = event.message?.content || '';
             usage = { ...usage, ...event };
+            if (typeof event.model === 'string' && event.model.length > 0) {
+              observedModel = event.model;
+            }
             if (content) {
               if (firstTokenTime === 0) firstTokenTime = performance.now() - startTime;
               tokensGenerated += Math.round(content.length / 4);
@@ -431,7 +446,7 @@ export class OllamaProvider implements AIProvider {
       totalTime,
       firstTokenTime,
       '',
-      usage.eval_count === undefined ? { ...usage, eval_count: tokensGenerated } : usage,
+      usage.eval_count === undefined ? { ...usage, eval_count: tokensGenerated, observedModel } : { ...usage, observedModel },
     );
   }
 
@@ -460,6 +475,7 @@ export class OllamaProvider implements AIProvider {
     if (!response.ok) throw new Error(`Ollama error ${response.status}`);
     const data = await response.json();
     const text = data.message?.content || '';
+    const observedModel: string | undefined = typeof data.model === 'string' ? data.model : undefined;
 
     const totalTime = performance.now() - startTime;
 
@@ -473,7 +489,7 @@ export class OllamaProvider implements AIProvider {
 
     return {
       content,
-      metrics: this.buildMetrics(totalTime, totalTime, text, data),
+      metrics: this.buildMetrics(totalTime, totalTime, text, { ...data, observedModel }),
     };
   }
 
@@ -491,6 +507,7 @@ export class OllamaProvider implements AIProvider {
     let tokensGenerated = 0;
     let fullText = '';
     let usage: OllamaUsageFields = {};
+    let observedModel: string | undefined;
 
       const response = await fetch(`${this.baseUrl}/api/chat`, {
         method: 'POST',
@@ -524,6 +541,9 @@ export class OllamaProvider implements AIProvider {
           const event = JSON.parse(line);
           const content = event.message?.content || '';
           usage = { ...usage, ...event };
+          if (typeof event.model === 'string' && event.model.length > 0) {
+            observedModel = event.model;
+          }
           if (content) {
             if (firstTokenTime === 0) firstTokenTime = performance.now() - startTime;
             tokensGenerated += Math.round(content.length / 4);
@@ -552,7 +572,7 @@ export class OllamaProvider implements AIProvider {
         totalTime,
         firstTokenTime,
         fullText,
-        usage.eval_count === undefined ? { ...usage, eval_count: tokensGenerated } : usage,
+        usage.eval_count === undefined ? { ...usage, eval_count: tokensGenerated, observedModel } : { ...usage, observedModel },
       ),
     };
   }
@@ -595,7 +615,7 @@ export class OllamaProvider implements AIProvider {
   private emptyMetrics(): ProviderMetrics {
     return {
       provider: this.name,
-      model: this.model,
+      model: null,
       latencyMs: 0,
       firstTokenMs: 0,
       tokensGenerated: 0,

@@ -3,14 +3,13 @@ import { _buildEvidenceEnvelopeV2, type AuditReportInput } from '../../contracts
 import { buildDiagnosisInputPackageV2 } from '../../contracts/llm/diagnosisInputPackageV2';
 import { canonicalJson } from '../../contracts/llm/diagnosisPromptV2';
 import { sha256hex } from '../../contracts/llm/hash';
-import type { EvidenceEnvelopeV2 } from '../../contracts/llm/types';
+import type { DiagnosisInputPackageV2, EvidenceEnvelopeV2 } from '../../contracts/llm/types';
 import { FINAL_EVALUATION_PROTOCOL, type OE4ModelId } from './finalEvaluationProtocol';
 import { buildExperimentSchedule } from './experimentSchedule';
 import type {
   EnvironmentSnapshotV1,
   ExperimentCampaignV1,
   ExperimentRunV1,
-  InputContractSnapshotV1,
 } from './experimentTypes';
 
 const EXPECTED_GGUF_SHA256: Record<OE4ModelId, string> = {
@@ -89,20 +88,11 @@ const fetchOllamaPreflight = async (baseUrl: string): Promise<{
   return { version: versionBody.version, digests };
 };
 
-const toInputSnapshot = (
-  pkg: ReturnType<typeof buildDiagnosisInputPackageV2>,
-): InputContractSnapshotV1 => ({
-  contractId: 'aura.input-snapshot.v1',
-  mode: pkg.inputMode,
-  evidenceEnvelopeRef: pkg.evidenceEnvelopeRef,
+const cloneInputSnapshot = (
+  pkg: DiagnosisInputPackageV2,
+): DiagnosisInputPackageV2 => ({
+  ...pkg,
   includedSections: [...pkg.includedSections],
-  systemInstruction: pkg.systemInstruction,
-  userPayload: pkg.userPayload,
-  responseSchema: pkg.responseSchema,
-  promptVersion: pkg.promptVersion,
-  promptHash: pkg.promptHash,
-  inputHash: pkg.inputHash,
-  responseSchemaHash: pkg.responseSchemaHash,
 });
 
 export const createFormalCampaignBundle = async (input: {
@@ -128,8 +118,8 @@ export const createFormalCampaignBundle = async (input: {
   const campaignId = `campaign:oe4:v2:${createdAt.replace(/[^0-9]/g, '')}`;
   const inputs = Object.fromEntries(FINAL_EVALUATION_PROTOCOL.inputModes.map((mode) => [
     mode,
-    toInputSnapshot(buildDiagnosisInputPackageV2(input.report, evidenceEnvelope, mode)),
-  ])) as Record<(typeof FINAL_EVALUATION_PROTOCOL.inputModes)[number], InputContractSnapshotV1>;
+    cloneInputSnapshot(buildDiagnosisInputPackageV2(input.report, evidenceEnvelope, mode)),
+  ])) as Record<(typeof FINAL_EVALUATION_PROTOCOL.inputModes)[number], DiagnosisInputPackageV2>;
   const runs = schedule.units.map((unit): ExperimentRunV1 => {
     const environment: EnvironmentSnapshotV1 = {
       contractId: 'aura.environment-snapshot.v1',

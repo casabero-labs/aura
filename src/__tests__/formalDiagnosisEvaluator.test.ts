@@ -7,7 +7,7 @@ describe('formal diagnosis evaluator', () => {
   it('computes the frozen primary denominator and leaves script evaluation pending', () => {
     const run = createExperimentEvidenceFixture().runs[0];
     run.inputMode = 'prompt_libre';
-    run.input.mode = 'prompt_libre';
+    run.input.inputMode = 'prompt_libre';
     run.diagnosis!.parsedOutput = {
       contractId: 'aura.diagnosis.v2', contractVersion: '2.0.0',
       evidenceEnvelopeRef: run.input.evidenceEnvelopeRef,

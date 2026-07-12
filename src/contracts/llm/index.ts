@@ -55,6 +55,7 @@ export type {
   DiagnosisErrorCode,
   DiagnosisError,
   DiagnosisExecutionResult,
+  DiagnosisFailureEvidenceV2,
   RemediationActionTypeV2,
   RemediationParametersV2,
   RemediationContextV2,
@@ -86,6 +87,7 @@ export {
 export {
   buildExecutionReceiptV1,
   computeInferenceHash,
+  validateExecutionReceiptIntegrityV1,
   validateExecutionReceiptV1,
 } from './executionReceiptV1';
 
@@ -110,6 +112,10 @@ export {
   validateAgainstContract,
   isContractsV2Enabled,
 } from './contractRegistry';
+
+export {
+  isDiagnosisFailureEvidenceV2,
+} from './types';
 
 export {
   buildEvidenceEnvelopeV2,

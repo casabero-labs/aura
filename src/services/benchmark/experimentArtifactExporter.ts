@@ -86,10 +86,15 @@ export const renderExperimentRunsCsv = (
     'reasoning_tokens', 'clarity', 'traceability', 'actionability', 'human_mean',
     'hitl_status', 'execution_status', 'before_score', 'after_score', 'outcome',
     'attempt_event_count',
+    'prompt_hash', 'input_hash', 'response_schema_hash', 'receipt_hash',
+    'requested_model', 'observed_model', 'model_digest', 'inference_hash',
+    'raw_response_hash', 'validation_status',
   ];
   const rows = document.runs.map((run) => {
     const diagnosis = run.automaticEvaluation?.diagnosis;
     const script = run.automaticEvaluation?.script;
+    const receipt = run.executionReceipt ?? null;
+    const input = run.input;
     return [
       run.campaignId,
       run.runId,
@@ -132,6 +137,16 @@ export const renderExperimentRunsCsv = (
       run.execution?.reaudit?.afterScore,
       run.execution?.reaudit?.outcome,
       run.attempts.length,
+      input?.promptHash ?? '',
+      input?.inputHash ?? '',
+      input?.responseSchemaHash ?? '',
+      receipt?.receiptHash ?? '',
+      receipt?.requestedModel ?? run.modelId,
+      receipt?.observedModel ?? '',
+      receipt?.modelDigest ?? '',
+      receipt?.inferenceHash ?? '',
+      receipt?.rawResponseHash ?? '',
+      receipt?.validationStatus ?? '',
     ];
   });
   return `${[headers, ...rows].map((row) => row.map(csvValue).join(',')).join('\n')}\n`;

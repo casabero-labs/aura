@@ -1,6 +1,7 @@
 import type { AIProvider, ProviderMetrics } from '../../types';
 import { buildExecutionReceiptV1 } from '../../contracts/llm/executionReceiptV1';
-import type { DiagnosisInputPackageV2 } from '../../contracts/llm/types';
+import type { DiagnosisInputPackageV2, ExecutionReceiptV1, InferenceSnapshotV1 } from '../../contracts/llm/types';
+import { parseDiagnosisResponseV2, type DiagnosisParseOutcome } from '../../contracts/llm/diagnosisParserV2';
 import { sha256hex } from '../../contracts/llm/hash';
 import type {
   AttemptEventV1,
@@ -28,6 +29,7 @@ export interface ExperimentRunnerDependencies {
   ) => ExperimentValidationErrorV1[];
   store: ExperimentRunnerStore;
   now?: () => string;
+  providerName?: string;
 }
 
 export interface RunUnitsOptions {
@@ -55,7 +57,7 @@ class StageOutputError extends Error {
     message: string,
     readonly rawOutput: string,
     readonly parsedOutput: unknown | null,
-    readonly metrics: LlmStageMetricsV1,
+    readonly metrics: LlmStageMetricsV1 | null,
     readonly validationErrors: ExperimentValidationErrorV1[],
   ) {
     super(message);
@@ -63,9 +65,10 @@ class StageOutputError extends Error {
   }
 }
 
-const toStageMetrics = (metrics: ProviderMetrics): LlmStageMetricsV1 => {
+const toStageMetrics = (metrics: ProviderMetrics | null | undefined): LlmStageMetricsV1 | null => {
+  if (!metrics) return null;
   const outputTokens = metrics.tokensGenerated ?? null;
-  const duration = metrics.evalDurationMs ?? metrics.latencyMs;
+  const duration = metrics.evalDurationMs ?? metrics.latencyMs ?? 0;
   return {
     totalDurationMs: metrics.totalDurationMs ?? metrics.latencyMs ?? null,
     loadDurationMs: metrics.loadDurationMs ?? null,
@@ -81,56 +84,23 @@ const toStageMetrics = (metrics: ProviderMetrics): LlmStageMetricsV1 => {
   };
 };
 
-const parseJsonObject = (
+const parseDiagnosisStrict = (
   rawOutput: string,
-  stage: Stage,
   metrics: LlmStageMetricsV1,
-): unknown => {
-  const trimmed = rawOutput.trim();
-  const unwrapped = trimmed.startsWith('```')
-    ? trimmed.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')
-    : trimmed;
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(unwrapped);
-  } catch {
-    const validationErrors = [{
-      code: `${stage.toUpperCase()}_JSON_INVALID`,
-      path: '$',
-      message: 'The provider output is not one valid JSON object.',
-    }];
-    throw new StageOutputError(
-      `${stage.toUpperCase()}_JSON_INVALID`,
-      validationErrors[0].message,
-      rawOutput,
-      null,
-      metrics,
-      validationErrors,
-    );
+): { parsed: unknown; parseErrors: ExperimentValidationErrorV1[] } => {
+  const outcome: DiagnosisParseOutcome = parseDiagnosisResponseV2(rawOutput);
+  if (outcome.success) {
+    return { parsed: outcome.response, parseErrors: [] };
   }
-
-  const expectedContractId = stage === 'diagnosis' ? 'aura.diagnosis.v2' : 'aura.script.v2';
-  if (
-    parsed === null
-    || Array.isArray(parsed)
-    || typeof parsed !== 'object'
-    || (parsed as Record<string, unknown>).contractId !== expectedContractId
-  ) {
-    const validationErrors = [{
-      code: `${stage.toUpperCase()}_CONTRACT_INVALID`,
-      path: '$.contractId',
-      message: `Expected contractId ${expectedContractId}.`,
-    }];
-    throw new StageOutputError(
-      `${stage.toUpperCase()}_CONTRACT_INVALID`,
-      validationErrors[0].message,
-      rawOutput,
-      parsed,
-      metrics,
-      validationErrors,
-    );
-  }
-  return parsed;
+  const failure = outcome as { success: false; error: { code: string; message: string; path: string; details: unknown } };
+  return {
+    parsed: null,
+    parseErrors: [{
+      code: failure.error.code,
+      path: failure.error.path || '$',
+      message: failure.error.message,
+    }],
+  };
 };
 
 export const buildFormalDiagnosisPrompt = (run: ExperimentRunV1): string => [
@@ -183,19 +153,62 @@ const nextAttemptId = (run: ExperimentRunV1, stage: Stage): string => {
   return `attempt:${run.runId}:${stage}:${priorAttempts.size + 1}`;
 };
 
+const cloneInputSnapshot = (input: DiagnosisInputPackageV2): DiagnosisInputPackageV2 => ({
+  ...input,
+  includedSections: [...input.includedSections],
+});
+
+const buildReceipt = (params: {
+  input: DiagnosisInputPackageV2;
+  prompt: string;
+  provider: string;
+  requestedModel: string;
+  observedModel: string | null;
+  modelDigest: string;
+  inference: InferenceSnapshotV1;
+  startedAt: string;
+  completedAt: string;
+  rawResponse: string;
+  validationStatus: ExecutionReceiptV1['validationStatus'];
+  validationErrorCodes: string[];
+}): ExecutionReceiptV1 => buildExecutionReceiptV1({
+  input: params.input,
+  requestedInputMode: params.input.inputMode,
+  exactPrompt: params.prompt,
+  provider: params.provider,
+  requestedModel: params.requestedModel,
+  observedModel: params.observedModel,
+  modelDigest: params.modelDigest,
+  inference: params.inference,
+  startedAt: params.startedAt,
+  completedAt: params.completedAt,
+  rawResponse: params.rawResponse,
+  validationStatus: params.validationStatus,
+  validationErrorCodes: params.validationErrorCodes,
+});
+
 export const createExperimentRunner = ({
   provider,
   providerForRun,
   validateDiagnosis,
   store,
   now = () => new Date().toISOString(),
+  providerName: injectedProviderName,
 }: ExperimentRunnerDependencies): ExperimentRunner => {
-  const warmedBlocks = new Set<string>();
+  const warmedReceipts = new Map<string, import('./experimentTypes').WarmupReceiptV1>();
   const providerFor = (run: ExperimentRunV1) => providerForRun?.(run) ?? provider;
 
   const ensureWarmup = async (run: ExperimentRunV1): Promise<ExperimentRunV1> => {
     const blockKey = `${run.modelId}::${run.repetition}`;
-    if (warmedBlocks.has(blockKey)) return run;
+
+    if (run.warmupReceipt) {
+      warmedReceipts.set(blockKey, run.warmupReceipt);
+      return run;
+    }
+
+    const existing = warmedReceipts.get(blockKey);
+    if (existing) return { ...run, warmupReceipt: existing };
+
     const persisted = store.listRuns
       ? (await store.listRuns(run.campaignId)).find((candidate) => (
           candidate.modelId === run.modelId
@@ -203,35 +216,50 @@ export const createExperimentRunner = ({
           && candidate.warmupReceipt?.contractId === 'aura.warmup-receipt.v1'
         ))
       : undefined;
-    if (persisted) {
-      warmedBlocks.add(blockKey);
-      return run;
+    if (persisted?.warmupReceipt) {
+      warmedReceipts.set(blockKey, persisted.warmupReceipt);
+      return { ...run, warmupReceipt: persisted.warmupReceipt };
     }
+
     const effectiveProvider = providerFor(run);
     if (!effectiveProvider) throw new Error('No formal provider was configured for warm-up.');
     const prompt = 'Warm-up OE4 excluded from evaluation. Reply with exactly: READY';
     const warmup = await effectiveProvider.generateText(prompt);
-    if (warmup.metrics.model !== run.modelId) {
-      throw new Error(`WARMUP_MODEL_MISMATCH: requested ${run.modelId}, observed ${warmup.metrics.model}.`);
+    const warmupObserved = warmup.metrics?.model ?? null;
+    if (!warmupObserved) {
+      throw new Error('WARMUP_MODEL_NOT_OBSERVED: Ollama did not report data.model in the warm-up response.');
     }
-    warmedBlocks.add(blockKey);
+    if (warmupObserved !== run.modelId) {
+      throw new Error(`WARMUP_MODEL_MISMATCH: requested ${run.modelId}, observed ${warmupObserved}.`);
+    }
     const completedAt = now();
+    const receipt: import('./experimentTypes').WarmupReceiptV1 = {
+      contractId: 'aura.warmup-receipt.v1',
+      excludedFromEvaluation: true,
+      blockId: blockKey,
+      modelId: run.modelId,
+      repetition: run.repetition,
+      promptHash: sha256hex(prompt),
+      responseHash: sha256hex(warmup.text),
+      completedAt,
+      metrics: toStageMetrics(warmup.metrics) ?? {
+        totalDurationMs: 0, loadDurationMs: 0,
+        promptEvalDurationMs: 0, evalDurationMs: 0,
+        promptTokens: 0, outputTokens: 0, reasoningTokens: null,
+        firstTokenMs: 0, tokensPerSecond: 0,
+      },
+    };
+    warmedReceipts.set(blockKey, receipt);
     const nextRun: ExperimentRunV1 = {
       ...run,
       updatedAt: completedAt,
-      warmupReceipt: {
-        contractId: 'aura.warmup-receipt.v1',
-        excludedFromEvaluation: true,
-        blockId: blockKey,
-        modelId: run.modelId,
-        repetition: run.repetition,
-        promptHash: sha256hex(prompt),
-        responseHash: sha256hex(warmup.text),
-        completedAt,
-        metrics: toStageMetrics(warmup.metrics),
-      },
+      warmupReceipt: receipt,
     };
-    await store.saveRun(nextRun);
+    try {
+      await store.saveRun(nextRun);
+    } catch (error) {
+      throw new Error(`WARMUP_SAVE_FAILED for ${run.runId} (${run.modelId}::${run.repetition}): ${(error as Error).message}`);
+    }
     return nextRun;
   };
   const appendEvent = async (
@@ -270,57 +298,108 @@ export const createExperimentRunner = ({
     };
     let run = await appendEvent(initialRun, startedEvent, { status: 'running' });
 
+    const snapshot = cloneInputSnapshot(initialRun.input);
+  let observedModel: string | null = null;
+  let providerName = '';
+  let rawResponse = '';
+  let providerMetrics: ProviderMetrics | null = null;
+  let parsedOutput: unknown = null;
+  let parseErrorCodes: string[] = [];
+  let parseErrorMessages: string[] = [];
+  let diagnosisValidation: ExperimentValidationErrorV1[] = [];
+
     try {
       const effectiveProvider = providerFor(initialRun);
       if (!effectiveProvider) throw new Error('No formal provider was configured for this run.');
       const providerResult = await effectiveProvider.generateText(prompt);
-      if (stage === 'diagnosis' && providerResult.metrics.model !== initialRun.modelId) {
-        throw new Error(
-          `MODEL_MISMATCH: requested ${initialRun.modelId}, observed ${providerResult.metrics.model}.`,
-        );
-      }
-      const metrics = toStageMetrics(providerResult.metrics);
-      const parsedOutput = parseJsonObject(providerResult.text, stage, metrics);
+      providerName = providerResult.metrics.provider;
+      providerMetrics = providerResult.metrics;
+      rawResponse = providerResult.text;
+      observedModel = providerResult.metrics.model ?? null;
       if (stage === 'diagnosis') {
-        const validationErrors = validateDiagnosis(parsedOutput, initialRun);
-        if (validationErrors.length > 0) {
+        if (!observedModel) {
+          throw new StageOutputError(
+            'DIAGNOSIS_MODEL_NOT_OBSERVED',
+            'Ollama did not report data.model in the response.',
+            rawResponse,
+            null,
+            toStageMetrics(providerMetrics),
+            [{
+              code: 'DIAGNOSIS_MODEL_NOT_OBSERVED',
+              path: '$.model',
+              message: 'Observed model missing from provider response.',
+            }],
+          );
+        }
+        if (observedModel !== initialRun.modelId) {
+          throw new StageOutputError(
+            'DIAGNOSIS_MODEL_MISMATCH',
+            `Requested ${initialRun.modelId}, observed ${observedModel}.`,
+            rawResponse,
+            null,
+            toStageMetrics(providerMetrics),
+            [{
+              code: 'DIAGNOSIS_MODEL_MISMATCH',
+              path: '$.model',
+              message: 'Provider did not serve the requested model.',
+            }],
+          );
+        }
+        const parseOutcome = parseDiagnosisStrict(rawResponse, toStageMetrics(providerMetrics) as LlmStageMetricsV1);
+        parsedOutput = parseOutcome.parsed;
+        parseErrorCodes = parseOutcome.parseErrors.map((err) => err.code);
+        parseErrorMessages = parseOutcome.parseErrors.map((err) => err.message);
+        if (!parseOutcome.parsed) {
+          throw new StageOutputError(
+            parseOutcome.parseErrors[0]?.code ?? 'DIAGNOSIS_JSON_INVALID',
+            parseOutcome.parseErrors[0]?.message ?? 'The provider output is not a valid diagnosis v2 object.',
+            rawResponse,
+            null,
+            toStageMetrics(providerMetrics),
+            parseOutcome.parseErrors,
+          );
+        }
+        diagnosisValidation = validateDiagnosis(parsedOutput, initialRun);
+        if (diagnosisValidation.length > 0) {
           throw new StageOutputError(
             'DIAGNOSIS_CONTRACT_INVALID',
             'The diagnosis failed the complete aura.diagnosis.v2 validation.',
-            providerResult.text,
+            rawResponse,
             parsedOutput,
-            metrics,
-            validationErrors,
+            toStageMetrics(providerMetrics),
+            diagnosisValidation,
           );
         }
+      } else {
+        throw new StageOutputError(
+          'SCRIPT_STAGE_NOT_SUPPORTED',
+          'OE4 V2 protocol does not run an LLM script stage.',
+          rawResponse,
+          null,
+          toStageMetrics(providerMetrics),
+          [{
+            code: 'SCRIPT_STAGE_NOT_SUPPORTED',
+            path: '$',
+            message: 'OE4 V2 protocol does not run an LLM script stage.',
+          }],
+        );
       }
       const completedAt = now();
-      const executionReceipt = stage === 'diagnosis' ? buildExecutionReceiptV1({
-        input: {
-          contractId: 'aura.input-snapshot.v2', contractVersion: '2.0.0',
-          inputMode: initialRun.inputMode,
-          includedSections: [...initialRun.input.includedSections],
-          systemInstruction: initialRun.input.systemInstruction,
-          userPayload: initialRun.input.userPayload,
-          responseSchema: initialRun.input.responseSchema,
-          evidenceEnvelopeRef: initialRun.input.evidenceEnvelopeRef,
-          promptVersion: initialRun.input.promptVersion,
-          promptHash: initialRun.input.promptHash,
-          inputHash: initialRun.input.inputHash,
-          responseSchemaHash: initialRun.input.responseSchemaHash,
-        } satisfies DiagnosisInputPackageV2,
-        requestedInputMode: initialRun.inputMode,
-        exactPrompt: prompt,
-        provider: providerResult.metrics.provider,
+      const metrics = toStageMetrics(providerMetrics) as LlmStageMetricsV1;
+      const executionReceipt = buildReceipt({
+        input: snapshot,
+        prompt,
+        provider: providerName,
         requestedModel: initialRun.modelId,
-        observedModel: providerResult.metrics.model,
+        observedModel,
         modelDigest: initialRun.environment.model.localDigest,
         inference: initialRun.environment.inference,
         startedAt,
         completedAt,
-        rawResponse: providerResult.text,
+        rawResponse,
         validationStatus: 'valid',
-      }) : null;
+        validationErrorCodes: [],
+      });
       const result: LlmStageResultV1 = {
         contractId: 'aura.llm-stage-result.v1',
         stage,
@@ -328,7 +407,7 @@ export const createExperimentRunner = ({
         attemptId,
         startedAt,
         completedAt,
-        rawOutput: providerResult.text,
+        rawOutput: rawResponse,
         parsedOutput,
         validationErrors: [],
         metrics,
@@ -347,13 +426,32 @@ export const createExperimentRunner = ({
       };
       run = await appendEvent(run, completedEvent, {
         [stage]: result,
-        ...(stage === 'diagnosis' ? { executionReceipt } : {}),
+        executionReceipt,
         status: stage === 'diagnosis' ? 'completed' : 'running',
       });
       return run;
     } catch (error: unknown) {
       const failure = classifyFailure(error, stage);
       const completedAt = now();
+      const stageMetrics = error instanceof StageOutputError
+        ? error.metrics
+        : toStageMetrics(providerMetrics);
+      const stageRawOutput = error instanceof StageOutputError ? error.rawOutput : rawResponse;
+      const stageParsedOutput = error instanceof StageOutputError ? error.parsedOutput : parsedOutput;
+      const stageValidation = error instanceof StageOutputError
+        ? error.validationErrors
+        : ([
+            ...parseErrorMessages.map((message, index) => ({
+              code: parseErrorCodes[index] ?? 'DIAGNOSIS_JSON_INVALID',
+              path: '$',
+              message,
+            })),
+            ...diagnosisValidation,
+          ]);
+      const receiptErrorCodes: string[] = stageValidation.map((entry) => entry.code);
+      if (receiptErrorCodes.length === 0 && failure.error) {
+        receiptErrorCodes.push(failure.error.code);
+      }
       const result: LlmStageResultV1 = {
         contractId: 'aura.llm-stage-result.v1',
         stage,
@@ -361,10 +459,10 @@ export const createExperimentRunner = ({
         attemptId,
         startedAt,
         completedAt,
-        rawOutput: error instanceof StageOutputError ? error.rawOutput : '',
-        parsedOutput: error instanceof StageOutputError ? error.parsedOutput : null,
-        validationErrors: error instanceof StageOutputError ? error.validationErrors : [],
-        metrics: error instanceof StageOutputError ? error.metrics : null,
+        rawOutput: stageRawOutput,
+        parsedOutput: stageParsedOutput,
+        validationErrors: stageValidation,
+        metrics: stageMetrics,
         error: failure.error,
       };
       const failedEvent: AttemptEventV1 = {
@@ -378,7 +476,27 @@ export const createExperimentRunner = ({
         retryOfAttemptId,
         error: failure.error,
       };
-      return appendEvent(run, failedEvent, { [stage]: result, status: 'failed' });
+      const invalidReceipt = stage === 'diagnosis'
+        ? buildReceipt({
+            input: snapshot,
+            prompt,
+            provider: providerName || injectedProviderName || 'Ollama',
+            requestedModel: initialRun.modelId,
+            observedModel: observedModel,
+            modelDigest: initialRun.environment.model.localDigest,
+            inference: initialRun.environment.inference,
+            startedAt,
+            completedAt,
+            rawResponse: stageRawOutput,
+            validationStatus: 'invalid',
+            validationErrorCodes: receiptErrorCodes,
+          })
+        : null;
+      return appendEvent(run, failedEvent, {
+        [stage]: result,
+        executionReceipt: invalidReceipt,
+        status: 'failed',
+      });
     }
   };
 
@@ -395,8 +513,6 @@ export const createExperimentRunner = ({
       throw new Error('Only formal OE4 runs may enter experimentRunner.');
     }
 
-    // The first status transition is persisted together with the started event.
-    // This avoids a crash window with a running run but no corresponding event.
     let run = initialRun;
 
     if (run.diagnosis?.status !== 'completed') {

@@ -29,7 +29,7 @@ import { savePipelineSession, loadPipelineSession, clearPipelineSession } from '
 import { downloadTextFile } from './utils/download';
 import { AIConfig, AuditReport, DeterministicValidationReport, EvidenceManifest, ExecutiveReportContent, IssueSeverity } from './types';
 import { createFormalCampaignBundle, buildFormalEvidenceEnvelope } from './services/benchmark/formalCampaignFactory';
-import { buildEnvelopeRef, validateDiagnosisResponseV2, type DiagnosisResponseV2 } from './contracts/llm';
+import { buildEnvelopeRef, validateDiagnosisResponseV2, type DiagnosisResponseV2, type DiagnosisFailureEvidenceV2, type DiagnosisExecutionResult } from './contracts/llm';
 import type { ExperimentRunV1 } from './services/benchmark/experimentTypes';
 import { evaluateFormalDiagnosisRun } from './services/benchmark/formalDiagnosisEvaluator';
 import { importFormalRepresentativeOutput, prepareFormalRepresentative } from './services/benchmark/formalRepresentativePreparation';
@@ -95,6 +95,7 @@ const INITIAL_PIPELINE_DATA: PipelineData = {
   healthDelta: null,
   aiAnalysis: '',
   structuredDiagnosis: null,
+  diagnosisFailureEvidence: null,
   diagnosticReport: null,
   remediationPlan: null,
   scriptContractV2: null,
@@ -125,6 +126,7 @@ const App: React.FC = () => {
         healthDelta: snap.healthDelta,
         aiAnalysis: snap.aiAnalysis,
         structuredDiagnosis: (snap as any).structuredDiagnosis ?? null,
+        diagnosisFailureEvidence: (snap as any).diagnosisFailureEvidence ?? null,
         diagnosticReport: (snap as any).diagnosticReport ?? null,
         remediationPlan: (snap as any).remediationPlan ?? null,
         scriptContractV2: (snap as any).scriptContractV2 ?? null,
@@ -334,6 +336,9 @@ const App: React.FC = () => {
       hitlDecision: improvementRun?.hitlDecision ?? null,
       healthDeltaPoints: improvementRun?.healthDelta?.scoreDelta,
     });
+    const structDiag = pipelineData.structuredDiagnosis;
+    const failureEv = pipelineData.diagnosisFailureEvidence;
+    const diagnosisStatus: 'valid' | 'invalid' | 'not_run' = structDiag ? 'valid' : failureEv ? 'invalid' : 'not_run';
     const exportPackage = buildAuraExportPackage({
       manifest,
       profile: {
@@ -343,9 +348,15 @@ const App: React.FC = () => {
       deterministicValidation,
       hitlDecision: improvementRun?.hitlDecision ?? null,
       diagnosis: {
+        status: diagnosisStatus,
         model: aiConfig.model,
         providerType: aiConfig.providerType,
         diagnosisText: aiAnalysis,
+        structuredDiagnosis: structDiag ?? null,
+        failureEvidence: failureEv ?? null,
+        inputSnapshot: (structDiag?.inputSnapshot ?? failureEv?.inputSnapshot ?? null) as unknown as Record<string, unknown> | null,
+        executionReceipt: (structDiag?.executionReceipt ?? failureEv?.executionReceipt ?? null) as unknown as Record<string, unknown> | null,
+        rawResponseHash: structDiag?.rawResponseHash ?? failureEv?.rawResponseHash ?? null,
       },
       script: {
         generatedScript: pipelineData.cleaningScript,

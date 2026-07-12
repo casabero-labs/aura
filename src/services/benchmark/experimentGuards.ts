@@ -14,7 +14,6 @@ import type {
   ExperimentRunV1,
   HitlDecisionV1,
   HumanReviewV1,
-  InputContractSnapshotV1,
   LlmStageMetricsV1,
   LlmStageResultV1,
   ReauditEvidenceV1,
@@ -172,13 +171,14 @@ const validateEnvironment = (value: unknown, errors: string[]): value is Environ
   return true;
 };
 
-const validateInput = (value: unknown, errors: string[]): value is InputContractSnapshotV1 => {
+const validateInput = (value: unknown, errors: string[]): value is DiagnosisInputPackageV2 => {
   if (!isRecord(value)) {
     errors.push('input must be an object');
     return false;
   }
-  if (value.contractId !== 'aura.input-snapshot.v1') errors.push('input.contractId is invalid');
-  if (!OE4_INPUT_MODES.includes(value.mode as (typeof OE4_INPUT_MODES)[number])) errors.push('input.mode is not formal');
+  if (value.contractId !== 'aura.input-snapshot.v2') errors.push('input.contractId must be aura.input-snapshot.v2 for formal runs');
+  if (value.contractVersion !== '2.0.0') errors.push('input.contractVersion must be 2.0.0 for formal runs');
+  if (!OE4_INPUT_MODES.includes(value.inputMode as (typeof OE4_INPUT_MODES)[number])) errors.push('input.inputMode is not formal');
   if (typeof value.evidenceEnvelopeRef !== 'string' || !/^env:[a-f0-9]{64}$/.test(value.evidenceEnvelopeRef)) {
     errors.push('input.evidenceEnvelopeRef must be the canonical env reference');
   }
@@ -430,6 +430,17 @@ const validateLifecycle = (run: UnknownRecord, errors: string[]): void => {
   const hitlStatus = isRecord(run.hitl) ? run.hitl.status : null;
   const executionStatus = isRecord(run.execution) ? run.execution.status : null;
   const executionHasReaudit = isRecord(run.execution) && isRecord(run.execution.reaudit);
+  const warmupPresent = isRecord(run.warmupReceipt)
+    && run.warmupReceipt.contractId === 'aura.warmup-receipt.v1'
+    && run.warmupReceipt.excludedFromEvaluation === true;
+  const executionReceiptPresent = isRecord(run.executionReceipt)
+    && run.executionReceipt.contractId === 'aura.execution-receipt.v1'
+    && typeof run.executionReceipt.receiptHash === 'string'
+    && /^[a-f0-9]{64}$/.test(run.executionReceipt.receiptHash);
+  const executionReceiptValid = executionReceiptPresent
+    && (run.executionReceipt as { validationStatus?: string }).validationStatus === 'valid';
+  const executionReceiptInvalid = executionReceiptPresent
+    && (run.executionReceipt as { validationStatus?: string }).validationStatus === 'invalid';
 
   switch (run.status) {
     case 'planned':
@@ -441,6 +452,8 @@ const validateLifecycle = (run: UnknownRecord, errors: string[]): void => {
       break;
     case 'completed':
       if (!stagesCompleted) errors.push('completed status requires every measured protocol stage');
+      if (!warmupPresent) errors.push('completed status requires a persisted warm-up receipt');
+      if (!executionReceiptValid) errors.push('completed status requires a valid execution receipt');
       break;
     case 'failed': {
       const failedStage = (isRecord(run.diagnosis) && ['failed', 'timeout'].includes(String(run.diagnosis.status)))
@@ -449,40 +462,58 @@ const validateLifecycle = (run: UnknownRecord, errors: string[]): void => {
         (entry) => isRecord(entry) && (entry.type === 'failed' || entry.type === 'timeout'),
       );
       if (!failedStage && !failedEvent) errors.push('failed status requires preserved failure evidence');
+      if (failedStage) {
+        if (!warmupPresent) errors.push('failed status after a diagnosis attempt requires a warm-up receipt');
+        if (!executionReceiptInvalid) errors.push('failed status caused by a diagnosis response requires an invalid execution receipt');
+      }
       break;
     }
     case 'awaiting_human':
       if (!stagesCompleted || !automaticPresent || run.humanReview !== null) errors.push('awaiting_human status requires completed stages and automatic evaluation only');
+      if (!warmupPresent) errors.push('awaiting_human status requires a warm-up receipt');
+      if (!executionReceiptValid) errors.push('awaiting_human status requires a valid execution receipt');
       break;
     case 'reviewed':
       if (!stagesCompleted || !automaticPresent || !humanPresent) errors.push('reviewed status requires stages, automatic evaluation and human review');
+      if (!warmupPresent) errors.push('reviewed status requires a warm-up receipt');
+      if (!executionReceiptValid) errors.push('reviewed status requires a valid execution receipt');
       break;
     case 'awaiting_hitl':
       if (!stagesCompleted || !automaticPresent || !humanPresent || run.hitl !== null) errors.push('awaiting_hitl status requires reviewed evidence and no decision yet');
+      if (!warmupPresent) errors.push('awaiting_hitl status requires a warm-up receipt');
+      if (!executionReceiptValid) errors.push('awaiting_hitl status requires a valid execution receipt');
       break;
     case 'approved':
     case 'rejected':
       if (!stagesCompleted || !automaticPresent || !humanPresent || hitlStatus !== run.status) {
         errors.push(`${String(run.status)} status requires reviewed evidence and matching HITL decision`);
       }
+      if (!warmupPresent) errors.push(`${String(run.status)} status requires a warm-up receipt`);
+      if (!executionReceiptValid) errors.push(`${String(run.status)} status requires a valid execution receipt`);
       break;
     case 'blocked':
       if (!stagesCompleted || !automaticPresent || !humanPresent || !(
         hitlStatus === 'blocked'
         || (hitlStatus === 'approved' && executionStatus === 'blocked')
       )) errors.push('blocked status requires reviewed evidence and an explicit HITL or execution block');
+      if (!warmupPresent) errors.push('blocked status requires a warm-up receipt');
+      if (!executionReceiptValid) errors.push('blocked status requires a valid execution receipt');
       break;
     case 'awaiting_external_output':
       if (!stagesCompleted || !automaticPresent || !humanPresent
         || hitlStatus !== 'approved' || executionStatus !== 'awaiting_external_output') {
         errors.push('awaiting_external_output status requires reviewed approval and matching execution evidence');
       }
+      if (!warmupPresent) errors.push('awaiting_external_output status requires a warm-up receipt');
+      if (!executionReceiptValid) errors.push('awaiting_external_output status requires a valid execution receipt');
       break;
     case 'reaudited':
       if (!stagesCompleted || !automaticPresent || !humanPresent
         || hitlStatus !== 'approved' || executionStatus !== 'reaudited' || !executionHasReaudit) {
         errors.push('reaudited status requires execution evidence with reaudit');
       }
+      if (!warmupPresent) errors.push('reaudited status requires a warm-up receipt');
+      if (!executionReceiptValid) errors.push('reaudited status requires a valid execution receipt');
       break;
     default:
       break;
@@ -539,7 +570,7 @@ export const validateExperimentRunV1 = (value: unknown): ExperimentGuardResult =
   if (isRecord(value.environment) && isRecord(value.environment.model) && value.environment.model.id !== value.modelId) {
     errors.push('environment.model.id must equal modelId');
   }
-  if (isRecord(value.input) && value.input.mode !== value.inputMode) errors.push('input.mode must equal inputMode');
+  if (isRecord(value.input) && value.input.inputMode !== value.inputMode) errors.push('input.inputMode must equal inputMode');
   if (!(value.warmupReceipt === undefined || value.warmupReceipt === null || (
     isRecord(value.warmupReceipt)
     && value.warmupReceipt.contractId === 'aura.warmup-receipt.v1'
@@ -576,8 +607,11 @@ export const validateExperimentRunV1 = (value: unknown): ExperimentGuardResult =
     const inference = value.environment.inference as InferenceSnapshotV1;
     const receiptValidation = validateExecutionReceiptV1(receipt, snapshot, exactDiagnosisPromptV2(snapshot), inference);
     if (!receiptValidation.valid) errors.push(`executionReceipt verification failed: ${receiptValidation.errors.join(', ')}`);
-    if (receipt.requestedModel !== value.modelId || receipt.observedModel !== value.modelId) {
-      errors.push('executionReceipt model identity does not match run.modelId');
+    if (receipt.requestedModel !== value.modelId) {
+      errors.push('executionReceipt requestedModel does not match run.modelId');
+    }
+    if (receipt.validationStatus === 'valid' && receipt.observedModel !== null && receipt.observedModel !== value.modelId) {
+      errors.push('executionReceipt observedModel does not match run.modelId');
     }
     if (isRecord(value.environment.model) && receipt.modelDigest !== value.environment.model.localDigest) {
       errors.push('executionReceipt model digest does not match environment');

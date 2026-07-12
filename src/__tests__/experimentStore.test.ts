@@ -11,10 +11,12 @@ import type {
   EnvironmentSnapshotV1,
   ExperimentCampaignV1,
   ExperimentRunV1,
-  InputContractSnapshotV1,
   LlmStageErrorV1,
   LlmStageResultV1,
 } from '../services/benchmark/experimentTypes';
+import type { DiagnosisInputPackageV2 } from '../contracts/llm/types';
+import { buildExecutionReceiptV1 } from '../contracts/llm/executionReceiptV1';
+import { exactDiagnosisPromptV2 } from '../contracts/llm/diagnosisInputPackageV2';
 import { sha256hex } from '../contracts/llm/hash';
 import type { ExperimentStore } from '../services/benchmark/experimentStore';
 import {
@@ -52,22 +54,23 @@ const makeEnvironment = (modelId: OE4ModelId): EnvironmentSnapshotV1 => ({
   inference: { ...FINAL_EVALUATION_PROTOCOL.inference },
 });
 
-const makeInput = (mode: OE4InputMode): InputContractSnapshotV1 => {
+const makeInput = (mode: OE4InputMode): DiagnosisInputPackageV2 => {
   const systemInstruction = 'Return one aura.diagnosis.v2 JSON object.';
   const userPayload = JSON.stringify({ mode, evidenceEnvelopeRef: `env:${HASH_A}` });
-  return ({
-  contractId: 'aura.input-snapshot.v1',
-  mode,
-  evidenceEnvelopeRef: `env:${HASH_A}`,
-  includedSections: ['dataset_summary', 'dataset_schema'],
-  systemInstruction,
-  userPayload,
-  responseSchema: { type: 'object', required: ['contractId'] },
-  promptVersion: '1.2.0',
-  promptHash: sha256hex(`${systemInstruction}\n\n${userPayload}`),
-  inputHash: HASH_B,
-  responseSchemaHash: HASH_A,
-  });
+  return {
+    contractId: 'aura.input-snapshot.v2',
+    contractVersion: '2.0.0',
+    inputMode: mode,
+    evidenceEnvelopeRef: `env:${HASH_A}`,
+    includedSections: ['dataset_summary', 'dataset_schema'],
+    systemInstruction,
+    userPayload,
+    responseSchema: { type: 'object', required: ['contractId'] },
+    promptVersion: '1.2.0',
+    promptHash: sha256hex(`${systemInstruction}\n\n${userPayload}`),
+    responseSchemaHash: HASH_A,
+    inputHash: HASH_B,
+  };
 };
 
 const makeCampaignFixture = (): {
@@ -264,7 +267,25 @@ const runStoreContract = (name: string, makeHarness: HarnessFactory): void => {
       await store.createCampaign(fixture.campaign, fixture.runs);
       const initial = fixture.runs[0];
       const started = makeEvent(initial);
-      const running = appendSnapshot(initial, started, { status: 'running' });
+      const running = appendSnapshot(initial, started, {
+        status: 'running',
+        warmupReceipt: {
+          contractId: 'aura.warmup-receipt.v1',
+          excludedFromEvaluation: true,
+          blockId: `${initial.modelId}::${initial.repetition}`,
+          modelId: initial.modelId,
+          repetition: initial.repetition as 1 | 2 | 3 | 4 | 5,
+          promptHash: HASH_A,
+          responseHash: HASH_B,
+          completedAt: started.timestamp,
+          metrics: {
+            totalDurationMs: 50, loadDurationMs: 0,
+            promptEvalDurationMs: 10, evalDurationMs: 40,
+            promptTokens: 10, outputTokens: 4,
+            reasoningTokens: null, firstTokenMs: 0, tokensPerSecond: 80,
+          },
+        },
+      });
       await store.appendAttemptEvent(initial.runId, started, running);
 
       const stageError: LlmStageErrorV1 = {
@@ -291,9 +312,27 @@ const runStoreContract = (name: string, makeHarness: HarnessFactory): void => {
         metrics: null,
         error: stageError,
       };
+      const failedInput = initial.input;
+      const failedPrompt = exactDiagnosisPromptV2(failedInput);
+      const invalidReceipt = buildExecutionReceiptV1({
+        input: failedInput,
+        requestedInputMode: failedInput.inputMode,
+        exactPrompt: failedPrompt,
+        provider: 'Ollama',
+        requestedModel: initial.modelId,
+        observedModel: null,
+        modelDigest: HASH_B,
+        inference: FINAL_EVALUATION_PROTOCOL.inference,
+        startedAt: started.timestamp,
+        completedAt: failedEvent.timestamp,
+        rawResponse: '',
+        validationStatus: 'invalid',
+        validationErrorCodes: ['DIAGNOSIS_PROVIDER_ERROR'],
+      });
       const failed = appendSnapshot(running, failedEvent, {
         status: 'failed',
         diagnosis: failedStage,
+        executionReceipt: invalidReceipt,
       });
       await store.appendAttemptEvent(initial.runId, failedEvent, failed);
 

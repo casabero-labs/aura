@@ -22,7 +22,7 @@ export interface BuildExecutionReceiptInput {
   exactPrompt: string;
   provider: string;
   requestedModel: string;
-  observedModel: string;
+  observedModel: string | null;
   modelDigest?: string | null;
   inference: InferenceSnapshotV1;
   startedAt: string;
@@ -64,7 +64,50 @@ export const buildExecutionReceiptV1 = (source: BuildExecutionReceiptInput): Exe
     validationStatus: source.validationStatus,
     validationErrorCodes: [...(source.validationErrorCodes ?? [])],
   };
+  if (source.validationStatus === 'valid') {
+    if (!source.observedModel || (typeof source.observedModel === 'string' && source.observedModel.trim() === '')) {
+      throw new Error('VALID_RECEIPT_REQUIRES_OBSERVED_MODEL: observedModel must be non-null and non-empty.');
+    }
+    if ((source.validationErrorCodes ?? []).length > 0) {
+      throw new Error('VALID_RECEIPT_REQUIRES_EMPTY_ERROR_CODES: validationErrorCodes must be empty.');
+    }
+  }
+  if (source.validationStatus === 'invalid') {
+    if ((source.validationErrorCodes ?? []).length === 0) {
+      throw new Error('INVALID_RECEIPT_REQUIRES_ERROR_CODES: validationErrorCodes must contain at least one code.');
+    }
+  }
   return { ...stable, receiptHash: sha256hex(canonicalJson(receiptPayload(stable))) };
+};
+
+export const validateExecutionReceiptIntegrityV1 = (
+  receipt: ExecutionReceiptV1,
+  input: DiagnosisInputPackageV2,
+  exactPrompt: string,
+): { valid: boolean; errors: string[] } => {
+  const errors: string[] = [];
+  if (receipt.contractId !== 'aura.execution-receipt.v1' || receipt.contractVersion !== '1.0.0') errors.push('execution receipt contract mismatch');
+  if (receipt.requestedInputMode !== receipt.effectiveInputMode || receipt.effectiveInputMode !== input.inputMode) errors.push('input mode mismatch');
+  if (canonicalJson(receipt.includedSections) !== canonicalJson(input.includedSections)) errors.push('included sections mismatch');
+  if (receipt.evidenceEnvelopeRef !== input.evidenceEnvelopeRef) errors.push('evidence envelope mismatch');
+  if (receipt.promptVersion !== input.promptVersion) errors.push('prompt version mismatch');
+  if (receipt.promptHash !== input.promptHash || receipt.promptHash !== sha256hex(exactPrompt)) errors.push('prompt hash mismatch');
+  if (receipt.inputHash !== input.inputHash) errors.push('input hash mismatch');
+  if (receipt.responseSchemaHash !== input.responseSchemaHash) errors.push('response schema hash mismatch');
+  const { receiptHash, ...stable } = receipt;
+  if (receiptHash !== sha256hex(canonicalJson(receiptPayload(stable)))) errors.push('receipt hash mismatch');
+
+  if (receipt.validationStatus === 'valid') {
+    if (receipt.observedModel === null || receipt.observedModel.trim() === '') errors.push('valid receipt requires a non-null observed model');
+    if (receipt.requestedModel.trim() === '' || receipt.requestedModel !== receipt.observedModel) errors.push('valid receipt requires requested and observed model equality');
+    if (receipt.validationErrorCodes.length > 0) errors.push('valid receipt must have empty validationErrorCodes');
+  } else if (receipt.validationStatus === 'invalid') {
+    if (receipt.validationErrorCodes.length === 0) errors.push('invalid receipt must have at least one validationErrorCode');
+  } else {
+    errors.push('unknown validation status');
+  }
+
+  return { valid: errors.length === 0, errors };
 };
 
 export const validateExecutionReceiptV1 = (
@@ -73,15 +116,8 @@ export const validateExecutionReceiptV1 = (
   exactPrompt: string,
   inference: InferenceSnapshotV1,
 ): { valid: boolean; errors: string[] } => {
-  const errors: string[] = [];
-  if (receipt.requestedInputMode !== receipt.effectiveInputMode || receipt.effectiveInputMode !== input.inputMode) errors.push('input mode mismatch');
-  if (canonicalJson(receipt.includedSections) !== canonicalJson(input.includedSections)) errors.push('included sections mismatch');
-  if (receipt.evidenceEnvelopeRef !== input.evidenceEnvelopeRef) errors.push('evidence envelope mismatch');
-  if (receipt.promptHash !== input.promptHash || receipt.promptHash !== sha256hex(exactPrompt)) errors.push('prompt hash mismatch');
-  if (receipt.inputHash !== input.inputHash) errors.push('input hash mismatch');
-  if (receipt.responseSchemaHash !== input.responseSchemaHash) errors.push('response schema hash mismatch');
+  const errors = [...validateExecutionReceiptIntegrityV1(receipt, input, exactPrompt).errors];
   if (receipt.inferenceHash !== computeInferenceHash(inference)) errors.push('inference hash mismatch');
-  const { receiptHash, ...stable } = receipt;
-  if (receiptHash !== sha256hex(canonicalJson(receiptPayload(stable)))) errors.push('receipt hash mismatch');
+
   return { valid: errors.length === 0, errors };
 };

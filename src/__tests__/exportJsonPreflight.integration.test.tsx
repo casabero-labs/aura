@@ -69,6 +69,7 @@ describe('JSON technical export preflight integration', () => {
       healthDelta: null,
       aiAnalysis: 'Diagnóstico de prueba.',
       structuredDiagnosis: null,
+      diagnosisFailureEvidence: null,
       diagnosticReport: null,
       remediationPlan: null,
       scriptContractV2: null,

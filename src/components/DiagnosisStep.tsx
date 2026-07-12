@@ -13,7 +13,7 @@ import { normalizeAiProviderError, NormalizedProviderError } from '../services/p
 import { detectChromeAiAvailability, NormalizedAvailability } from '../services/chromeAvailability';
 import { startNetworkMonitoring, stopNetworkMonitoring, NetworkGuardResult } from '../services/networkGuard';
 import { generateQuickReceipt, PrivacyReceipt } from '../services/privacyReceipt';
-import { runStructuredDiagnosis, isContractsV2Enabled, type DiagnosisExecutionResult } from '../contracts/llm';
+import { runStructuredDiagnosis, isContractsV2Enabled, type DiagnosisExecutionResult, type DiagnosisFailureEvidenceV2 } from '../contracts/llm';
 import { diagnoseOllamaLocal, type OllamaLocalDiagnostic, type OllamaLocalStatus } from '../services/ollamaLocalBridge';
 
 interface DiagnosisStepProps {
@@ -24,12 +24,15 @@ interface DiagnosisStepProps {
   analysisText: string;
   onAiConfigChange: (config: AIConfig) => void;
   onAnalysisComplete: (analysis: string) => void;
+  onDiagnosisStarted?: () => void;
   onStructuredDiagnosisComplete?: (result: DiagnosisExecutionResult) => void;
+  onDiagnosisFailure?: (evidence: DiagnosisFailureEvidenceV2) => void;
   onMetrics?: (metrics: ProviderMetrics) => void;
   onLog?: (stage: string, msg: string) => void;
   onContinue: () => void;
   onOpenSettings?: () => void;
   initialDiagnosis?: DiagnosisExecutionResult | null;
+  initialFailureEvidence?: DiagnosisFailureEvidenceV2 | null;
 }
 
 export const buildDiagnosisInputSummary = (report: AuditReport | null | undefined) => {
@@ -54,12 +57,15 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
   analysisText,
   onAiConfigChange,
   onAnalysisComplete,
+  onDiagnosisStarted,
   onStructuredDiagnosisComplete,
+  onDiagnosisFailure,
   onMetrics,
   onLog,
   onContinue,
   onOpenSettings,
   initialDiagnosis,
+  initialFailureEvidence,
 }) => {
   const [draftAnalysis, setDraftAnalysis] = useState(analysisText);
   const [isLoading, setIsLoading] = useState(false);
@@ -77,12 +83,15 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
   const [progressStep, setProgressStep] = useState<string>('');
   const [progressIndeterminate, setProgressIndeterminate] = useState(false);
   const [structuredDiagnosis, setStructuredDiagnosis] = useState<DiagnosisExecutionResult | null>(initialDiagnosis ?? null);
+  const [diagnosisFailureEvidence, setDiagnosisFailureEvidence] = useState<DiagnosisFailureEvidenceV2 | null>(initialFailureEvidence ?? null);
 
   useEffect(() => {
-    if (initialDiagnosis !== null && initialDiagnosis !== undefined) {
-      setStructuredDiagnosis(initialDiagnosis);
-    }
+    setStructuredDiagnosis(initialDiagnosis ?? null);
   }, [initialDiagnosis]);
+
+  useEffect(() => {
+    setDiagnosisFailureEvidence(initialFailureEvidence ?? null);
+  }, [initialFailureEvidence]);
 
   // Chrome AI guided UX states
   const [chromeAvailability, setChromeAvailability] = useState<NormalizedAvailability | null>(null);
@@ -378,6 +387,9 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
     if (isLoading) return;
     setIsLoading(true);
     setError(null);
+    setStructuredDiagnosis(null);
+    setDiagnosisFailureEvidence(null);
+    onDiagnosisStarted?.();
     setDraftAnalysis('');
     setDiagnosisEvents([]);
     setProgressValue(undefined);
@@ -426,7 +438,9 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
 
           const v2Result = await runStructuredDiagnosis(report as any, {
             provider: aiProvider,
-            auditEvidence: auditEvidence ? { datasetFingerprint: auditEvidence.datasetFingerprint } : null,
+            auditEvidence: auditEvidence?.datasetSha256
+              ? { datasetSha256: auditEvidence.datasetSha256, datasetFingerprint: auditEvidence.datasetFingerprint }
+              : null,
             inputMode: aiConfig.inputMode === 'prompt_libre' || aiConfig.inputMode === 'recommended'
               ? aiConfig.inputMode
               : 'smart_sample',
@@ -445,11 +459,48 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
             },
           });
 
-          if (!v2Result.success) {
-            const v2Failure = v2Result as { success: false; code: string; message: string; path: string; details: Record<string, unknown> };
+          if ('contractId' in v2Result && v2Result.contractId === 'aura.diagnosis-failure-evidence.v2') {
+            const failureEvidence = v2Result as DiagnosisFailureEvidenceV2;
+            const normalized = normalizeAiProviderError(new Error(failureEvidence.message), aiConfig);
+            setError(failureEvidence.message);
+            setNormalizedError(normalized);
+            pushEvent('error', `Diagnosis v2 fallido: ${failureEvidence.code}`);
+            setProgressStatus('error');
+            setProgressStep(`Error: ${failureEvidence.code}`);
+            setStructuredDiagnosis(null);
+            setDiagnosisFailureEvidence(failureEvidence);
+            onDiagnosisFailure?.(failureEvidence);
+            recordLlmCall({
+              callType: 'diagnosis',
+              providerType: aiConfig.providerType as 'local' | 'cloud' | 'chrome' | 'ollama',
+              provider: aiConfig.providerType === 'webllm_experimental' ? 'WebLLM' : aiConfig.providerType === 'ollama' ? 'Ollama' : aiConfig.providerType === 'chrome' ? 'Chrome AI' : (aiConfig.cloudProvider || 'Cloud'),
+              model: aiConfig.model,
+              temperature: aiConfig.temperature,
+              promptHash: failureEvidence.executionReceipt.promptHash,
+              promptText: '',
+              inputJsonHash: failureEvidence.executionReceipt.inputHash ?? computeInputHash(report),
+              promptLength: 0,
+              inputColumnCount: report.colCount,
+              inputIssueCount: report.issues.length,
+              rowCount: report.rowCount,
+              colCount: report.colCount,
+              datasetFingerprint: auditEvidence?.datasetFingerprint || '',
+              responseLength: 0,
+              latencyMs: 0,
+              tokensGenerated: 0,
+              status: 'error',
+              error: failureEvidence.message,
+            });
+          } else if ('success' in v2Result && !v2Result.success) {
+            const v2Failure = v2Result as {
+              success: false; code: string; message: string; path: string;
+              details: Record<string, unknown>;
+            };
             const normalized = normalizeAiProviderError(new Error(v2Failure.message), aiConfig);
             setError(v2Failure.message);
             setNormalizedError(normalized);
+            setStructuredDiagnosis(null);
+            setDiagnosisFailureEvidence(null);
             pushEvent('error', `Diagnosis v2 fallido: ${v2Failure.code}`);
             setProgressStatus('error');
             setProgressStep(`Error: ${v2Failure.code}`);
@@ -469,26 +520,28 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
               colCount: report.colCount,
               datasetFingerprint: auditEvidence?.datasetFingerprint || '',
               responseLength: 0,
-              latencyMs: (v2Failure.details?.latencyMs as number) ?? 0,
+              latencyMs: 0,
               tokensGenerated: 0,
               status: 'error',
               error: v2Failure.message,
             });
           } else {
-            setStructuredDiagnosis(v2Result.result);
-            setLastMetrics(v2Result.result.metrics as ProviderMetrics);
-            onMetrics?.(v2Result.result.metrics as ProviderMetrics);
-            onStructuredDiagnosisComplete?.(v2Result.result);
-            pushEvent('success', `Diagnosis v2 completado · ${v2Result.result.metrics.tokensGenerated} tokens · ${(v2Result.result.metrics.latencyMs / 1000).toFixed(1)}s`);
+            const v2Success = v2Result as import('../contracts/llm').StructuredDiagnosisResult;
+            setDiagnosisFailureEvidence(null);
+            setStructuredDiagnosis(v2Success.result);
+            setLastMetrics(v2Success.result.metrics as ProviderMetrics);
+            onMetrics?.(v2Success.result.metrics as ProviderMetrics);
+            onStructuredDiagnosisComplete?.(v2Success.result);
+            pushEvent('success', `Diagnosis v2 completado · ${v2Success.result.metrics.tokensGenerated} tokens · ${(v2Success.result.metrics.latencyMs / 1000).toFixed(1)}s`);
             setProgressStatus('success');
-            setProgressStep(`Diagnosis v2 completado · ${(v2Result.result.metrics.latencyMs / 1000).toFixed(1)}s`);
+            setProgressStep(`Diagnosis v2 completado · ${(v2Success.result.metrics.latencyMs / 1000).toFixed(1)}s`);
             recordLlmCall({
               callType: 'diagnosis',
               providerType: aiConfig.providerType as 'local' | 'cloud' | 'chrome' | 'ollama',
               provider: aiConfig.providerType === 'webllm_experimental' ? 'WebLLM' : aiConfig.providerType === 'ollama' ? 'Ollama' : aiConfig.providerType === 'chrome' ? 'Chrome AI' : (aiConfig.cloudProvider || 'Cloud'),
-              model: v2Result.result.metrics.model,
+              model: v2Success.result.metrics.model,
               temperature: aiConfig.temperature,
-              promptHash: v2Result.result.promptHash,
+              promptHash: v2Success.result.promptHash,
               promptText: '',
               inputJsonHash: computeInputHash(report),
               promptLength: 0,
@@ -498,8 +551,8 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
               colCount: report.colCount,
               datasetFingerprint: auditEvidence?.datasetFingerprint || '',
               responseLength: 0,
-              latencyMs: v2Result.result.metrics.latencyMs,
-              tokensGenerated: v2Result.result.metrics.tokensGenerated,
+              latencyMs: v2Success.result.metrics.latencyMs,
+              tokensGenerated: v2Success.result.metrics.tokensGenerated,
               status: 'completed',
             });
 
@@ -663,7 +716,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
       }
       setIsLoading(false);
     }
-  }, [aiConfig?.model, aiConfig?.providerType, aiConfig?.cloudProvider, aiConfig?.temperature, aiProvider, isLoading, onAnalysisComplete, onStructuredDiagnosisComplete, onLog, onMetrics, report, auditEvidence, diagnosisPrompt, pushEvent]);
+  }, [aiConfig?.model, aiConfig?.providerType, aiConfig?.cloudProvider, aiConfig?.temperature, aiProvider, isLoading, onAnalysisComplete, onDiagnosisFailure, onDiagnosisStarted, onStructuredDiagnosisComplete, onLog, onMetrics, report, auditEvidence, diagnosisPrompt, pushEvent]);
 
   const isCloud = aiConfig.providerType === 'cloud';
   const isOllama = aiConfig.providerType === 'ollama';
@@ -954,59 +1007,168 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
           <summary className="diagnosis-tech-disclosure-summary">
             <FileCode2 size={12} />
             <span>Trazabilidad técnica opcional</span>
-            <span className="diagnosis-tech-disclosure-hint">prompt, hashes y muestras para reproducir el diagnóstico</span>
+            <span className="diagnosis-tech-disclosure-hint">recibo, prompt, hashes y secciones para reproducir el diagnóstico</span>
           </summary>
           <div className="diagnosis-tech-disclosure-body">
-            {/* LLM metrics */}
-            {lastMetrics && (
-              <div className="diagnosis-tech-section">
-                <h4 className="diagnosis-tech-section-title">Métricas del modelo</h4>
-                <div className="diagnosis-tech-row">
-                  <span><Clock size={11} /> Latencia: {(lastMetrics.latencyMs / 1000).toFixed(1)}s</span>
-                  <span><Activity size={11} /> Tokens generados: {lastMetrics.tokensGenerated}</span>
+            {structuredDiagnosis?.executionReceipt ? (
+              <>
+                {/* Receipt summary */}
+                <div className="diagnosis-tech-section">
+                  <h4 className="diagnosis-tech-section-title">Recibo de ejecución V2</h4>
+                  <div className="diagnosis-tech-row">
+                    <span><Hash size={11} /> Receipt: {structuredDiagnosis.executionReceipt.receiptHash.substring(0, 16)}…</span>
+                    <span>
+                      <Hash size={11} /> Estado: {structuredDiagnosis.executionReceipt.validationStatus}
+                    </span>
+                  </div>
+                  <div className="diagnosis-tech-row">
+                    <span>
+                      <Hash size={11} /> Método solicitado: {structuredDiagnosis.executionReceipt.requestedInputMode}
+                    </span>
+                    <span>
+                      <Hash size={11} /> Método efectivo: {structuredDiagnosis.executionReceipt.effectiveInputMode}
+                    </span>
+                  </div>
+                  <div className="diagnosis-tech-row">
+                    <span>
+                      <Hash size={11} /> Proveedor: {structuredDiagnosis.executionReceipt.provider}
+                    </span>
+                    <span>
+                      <Hash size={11} /> Modelo solicitado: {structuredDiagnosis.executionReceipt.requestedModel}
+                    </span>
+                  </div>
+                  <div className="diagnosis-tech-row">
+                    <span>
+                      <Hash size={11} /> Modelo observado: {structuredDiagnosis.executionReceipt.observedModel ?? 'no observado'}
+                    </span>
+                    <span>
+                      <Hash size={11} /> Digest: {structuredDiagnosis.executionReceipt.modelDigest
+                        ? structuredDiagnosis.executionReceipt.modelDigest.substring(0, 16)
+                        : 'n/d'}…
+                    </span>
+                  </div>
                 </div>
-              </div>
+
+                {/* Snapshot hashes */}
+                <div className="diagnosis-tech-section">
+                  <h4 className="diagnosis-tech-section-title">Hashes de auditoría</h4>
+                  <div className="diagnosis-tech-row">
+                    <span><Hash size={11} /> Prompt: {structuredDiagnosis.executionReceipt.promptHash.substring(0, 16)}…</span>
+                    <span><Hash size={11} /> Input: {structuredDiagnosis.executionReceipt.inputHash.substring(0, 16)}…</span>
+                    <span><Hash size={11} /> Schema: {structuredDiagnosis.executionReceipt.responseSchemaHash.substring(0, 16)}…</span>
+                    <span><Hash size={11} /> Inferencia: {structuredDiagnosis.executionReceipt.inferenceHash.substring(0, 16)}…</span>
+                    <span><Hash size={11} /> Respuesta cruda: {structuredDiagnosis.executionReceipt.rawResponseHash.substring(0, 16)}…</span>
+                  </div>
+                </div>
+
+                {/* Sections included */}
+                <div className="diagnosis-tech-section">
+                  <h4 className="diagnosis-tech-section-title">Secciones del snapshot</h4>
+                  <div className="diagnosis-tech-row">
+                    {structuredDiagnosis.executionReceipt.includedSections.map((section) => (
+                      <span key={section} className="diagnosis-tech-chip">{section}</span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Dataset SHA and envelope reference */}
+                {auditEvidence?.datasetSha256 && (
+                  <div className="diagnosis-tech-section">
+                    <h4 className="diagnosis-tech-section-title">Dataset</h4>
+                    <div className="diagnosis-tech-row">
+                      <span>
+                        <Hash size={11} /> SHA-256 del dataset: {auditEvidence.datasetSha256.substring(0, 16)}…
+                      </span>
+                    </div>
+                  </div>
+                )}
+                {structuredDiagnosis.inputSnapshot && (
+                  <div className="diagnosis-tech-section">
+                    <div className="diagnosis-tech-row">
+                      <span>
+                        <Hash size={11} /> Referencia del envelope: {structuredDiagnosis.inputSnapshot.evidenceEnvelopeRef}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Metrics */}
+                {lastMetrics && (
+                  <div className="diagnosis-tech-section">
+                    <h4 className="diagnosis-tech-section-title">Métricas del modelo</h4>
+                    <div className="diagnosis-tech-row">
+                      <span><Clock size={11} /> Latencia: {(lastMetrics.latencyMs / 1000).toFixed(1)}s</span>
+                      <span><Activity size={11} /> Tokens generados: {lastMetrics.tokensGenerated}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* System instruction + user payload */}
+                {structuredDiagnosis.inputSnapshot && (
+                  <>
+                    <div className="diagnosis-tech-section">
+                      <h4 className="diagnosis-tech-section-title">System instruction</h4>
+                      <pre className="diagnosis-tech-pre diagnosis-tech-pre--scroll">
+                        {structuredDiagnosis.inputSnapshot.systemInstruction}
+                      </pre>
+                    </div>
+                    <div className="diagnosis-tech-section">
+                      <h4 className="diagnosis-tech-section-title">User payload</h4>
+                      <pre className="diagnosis-tech-pre diagnosis-tech-pre--scroll">
+                        {structuredDiagnosis.inputSnapshot.userPayload}
+                      </pre>
+                    </div>
+                  </>
+                )}
+
+                {/* Raw response */}
+                <div className="diagnosis-tech-section">
+                  <h4 className="diagnosis-tech-section-title">Respuesta cruda del proveedor</h4>
+                  <pre className="diagnosis-tech-pre diagnosis-tech-pre--scroll">
+                    {JSON.stringify(structuredDiagnosis, null, 2)}
+                  </pre>
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Legacy v1 fallback for runs without V2 receipt */}
+                {lastMetrics && (
+                  <div className="diagnosis-tech-section">
+                    <h4 className="diagnosis-tech-section-title">Métricas del modelo</h4>
+                    <div className="diagnosis-tech-row">
+                      <span><Clock size={11} /> Latencia: {(lastMetrics.latencyMs / 1000).toFixed(1)}s</span>
+                      <span><Activity size={11} /> Tokens generados: {lastMetrics.tokensGenerated}</span>
+                    </div>
+                  </div>
+                )}
+                <div className="diagnosis-tech-section">
+                  <h4 className="diagnosis-tech-section-title">Hashes de auditoría</h4>
+                  <div className="diagnosis-tech-row">
+                    <span><Hash size={11} /> Prompt: {computePromptHash(diagnosisPrompt).substring(0, 16)}…</span>
+                    <span><Hash size={11} /> Input: {computeInputHash(report).substring(0, 16)}…</span>
+                  </div>
+                </div>
+                <div className="diagnosis-tech-section">
+                  <h4 className="diagnosis-tech-section-title">Smart sample (preview técnico)</h4>
+                  <pre className="diagnosis-tech-pre">
+                    {JSON.stringify(smartSample, null, 2).substring(0, 1200)}
+                    {JSON.stringify(smartSample, null, 2).length > 1200 ? '\n…' : ''}
+                  </pre>
+                </div>
+                <div className="diagnosis-tech-section">
+                  <h4 className="diagnosis-tech-section-title">Prompt enviado al modelo</h4>
+                  <pre className="diagnosis-tech-pre diagnosis-tech-pre--scroll">
+                    {diagnosisPrompt}
+                  </pre>
+                </div>
+                <div className="diagnosis-tech-section">
+                  <h4 className="diagnosis-tech-section-title">Respuesta cruda del proveedor</h4>
+                  <pre className="diagnosis-tech-pre diagnosis-tech-pre--scroll">
+                    {draftAnalysis}
+                  </pre>
+                </div>
+              </>
             )}
-
-            {/* Hashes */}
-            <div className="diagnosis-tech-section">
-              <h4 className="diagnosis-tech-section-title">Hashes de auditoría</h4>
-              <div className="diagnosis-tech-row">
-                <span><Hash size={11} /> Prompt: {computePromptHash(diagnosisPrompt).substring(0, 16)}…</span>
-                <span><Hash size={11} /> Input: {computeInputHash(report).substring(0, 16)}…</span>
-              </div>
-            </div>
-
-            {/* Smart sample preview */}
-            <div className="diagnosis-tech-section">
-              <h4 className="diagnosis-tech-section-title">Smart sample (preview técnico)</h4>
-              <pre className="diagnosis-tech-pre">
-                {JSON.stringify(smartSample, null, 2).substring(0, 1200)}
-                {JSON.stringify(smartSample, null, 2).length > 1200 ? '\n…' : ''}
-              </pre>
-            </div>
-
-            {/* Raw prompt */}
-            <div className="diagnosis-tech-section">
-              <h4 className="diagnosis-tech-section-title">Prompt enviado al modelo</h4>
-              <pre className="diagnosis-tech-pre diagnosis-tech-pre--scroll">
-                {diagnosisPrompt}
-              </pre>
-            </div>
-
-            {/* Raw response */}
-            <div className="diagnosis-tech-section">
-              <h4 className="diagnosis-tech-section-title">Respuesta cruda del proveedor</h4>
-              {structuredDiagnosis ? (
-                <pre className="diagnosis-tech-pre diagnosis-tech-pre--scroll">
-                  {JSON.stringify(structuredDiagnosis, null, 2)}
-                </pre>
-              ) : (
-                <pre className="diagnosis-tech-pre diagnosis-tech-pre--scroll">
-                  {draftAnalysis}
-                </pre>
-              )}
-            </div>
 
             {/* Activity log (post-completion) */}
             {diagnosisEvents.length > 0 && !isLoading && (

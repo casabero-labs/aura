@@ -254,7 +254,12 @@ export interface ExecutiveReportContent {
  */
 export interface ProviderMetrics {
   provider: string;
-  model: string;
+  /**
+   * Model identity reported by the provider (e.g. Ollama `data.model`).
+   * `null` when the provider did not report a model — the runner must
+   * reject this in formal mode rather than fall back to the requested model.
+   */
+  model: string | null;
   latencyMs: number;
   firstTokenMs: number;
   tokensGenerated: number;

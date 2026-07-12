@@ -19,7 +19,7 @@ import { buildEvidenceManifest } from '../services/evidenceManifest';
 import { buildAuraExportPackage } from '../services/exportPackage';
 import { buildDiagnosticReport, type DiagnosticReport } from '../services/diagnosticReport';
 import { AIConfig, AIProvider, AuditReport, AuditExecutionEvidence, BenchmarkResult, DeterministicValidationReport, HealthDelta, ImprovementRun, ProviderMetrics, ScriptValidationResult, ProgressDisclosureStatus } from '../types';
-import type { DiagnosisExecutionResult, RemediationPlanV2, ScriptContractV2, ScriptValidationResultV2 } from '../contracts/llm';
+import type { DiagnosisExecutionResult, DiagnosisFailureEvidenceV2, RemediationPlanV2, ScriptContractV2, ScriptValidationResultV2 } from '../contracts/llm';
 import { validateRemediationPlanV2, isContractsV2Enabled, verifyScriptContractV2 } from '../contracts/llm';
 
 export type PipelineState = 'upload' | 'profile' | 'diagnosis' | 'diagnostic_report' | 'script' | 'review' | 'export';
@@ -37,6 +37,7 @@ export interface PipelineData {
   healthDelta: HealthDelta | null;
   aiAnalysis: string;
   structuredDiagnosis: DiagnosisExecutionResult | null;
+  diagnosisFailureEvidence: DiagnosisFailureEvidenceV2 | null;
   diagnosticReport: DiagnosticReport | null;
   remediationPlan: RemediationPlanV2 | null;
   scriptContractV2: ScriptContractV2 | null;
@@ -94,6 +95,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
   const [healthDelta, setHealthDelta] = useState<HealthDelta | null>(() => initialData?.healthDelta ?? null);
   const [aiAnalysis, setAiAnalysis] = useState(() => initialData?.aiAnalysis ?? '');
   const [structuredDiagnosis, setStructuredDiagnosis] = useState<DiagnosisExecutionResult | null>(() => initialData?.structuredDiagnosis ?? null);
+  const [diagnosisFailureEvidence, setDiagnosisFailureEvidence] = useState<DiagnosisFailureEvidenceV2 | null>(() => initialData?.diagnosisFailureEvidence ?? null);
   const [diagnosticReport, setDiagnosticReport] = useState<DiagnosticReport | null>(() => initialData?.diagnosticReport ?? null);
   const [remediationPlan, setRemediationPlan] = useState<RemediationPlanV2 | null>(() => initialData?.remediationPlan ?? null);
   const [benchmarkResults, setBenchmarkResults] = useState<BenchmarkResult[]>(() => initialData?.benchmarkResults ?? []);
@@ -119,6 +121,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
       state, file, report, auditEvidence, rawData, csvFields, csvDelimiter,
       cleaningScript, approvedScript, healthDelta, aiAnalysis,
       structuredDiagnosis,
+      diagnosisFailureEvidence,
       diagnosticReport,
       remediationPlan,
       scriptContractV2,
@@ -129,6 +132,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
   }, [state, file, report, auditEvidence, rawData, csvFields, csvDelimiter,
       cleaningScript, approvedScript, healthDelta, aiAnalysis,
       structuredDiagnosis,
+      diagnosisFailureEvidence,
       diagnosticReport,
       remediationPlan,
       scriptContractV2,
@@ -283,11 +287,17 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
         deterministicValidation: null,
         hitlDecision: null,
         diagnosis: {
+          status: structuredDiagnosisRef.current ? 'valid' : 'invalid',
           model: 'e2e-harness',
           providerType: 'chrome',
           diagnosisText: structuredDiagnosisRef.current?.diagnosis?.issues?.length != null
             ? 'Diagnostico generado por harness E2E'
             : '',
+          structuredDiagnosis: structuredDiagnosisRef.current ?? null,
+          failureEvidence: null,
+          inputSnapshot: (structuredDiagnosisRef.current?.inputSnapshot ?? null) as unknown as Record<string, unknown> | null,
+          executionReceipt: (structuredDiagnosisRef.current?.executionReceipt ?? null) as unknown as Record<string, unknown> | null,
+          rawResponseHash: structuredDiagnosisRef.current?.rawResponseHash ?? null,
         },
         script: {
           generatedScript: '',
@@ -488,7 +498,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
     setIsProcessing(true);
     setReport(null); setRawData([]); setCsvFields([]); setCsvDelimiter(',');
     setAuditEvidence(null); setCleaningScript(''); setApprovedScript('');
-    setHealthDelta(null); setAiAnalysis(''); setStructuredDiagnosis(null); setRemediationPlan(null); setLogs([]);
+    setHealthDelta(null); setAiAnalysis(''); setStructuredDiagnosis(null); setDiagnosisFailureEvidence(null); setRemediationPlan(null); setLogs([]);
     setDiagnosticReport(null);
     setScriptValidation(null);
     setScriptContractV2(null);
@@ -693,14 +703,25 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
             setAiAnalysis(analysis);
             setDiagnosticReport(null);
           }}
+          onDiagnosisStarted={() => {
+            setStructuredDiagnosis(null);
+            setDiagnosisFailureEvidence(null);
+            setDiagnosticReport(null);
+          }}
           onStructuredDiagnosisComplete={(diagnosis) => {
             setStructuredDiagnosis(diagnosis);
+            setDiagnosisFailureEvidence(null);
             setDiagnosticReport(null);
+          }}
+          onDiagnosisFailure={(evidence) => {
+            setDiagnosisFailureEvidence(evidence);
+            setStructuredDiagnosis(null);
           }}
           onLog={(stage, msg) => addLog(`${stage} :: ${msg}`)}
           onContinue={buildAndOpenDiagnosticReport}
           onOpenSettings={onOpenSettings}
           initialDiagnosis={structuredDiagnosis}
+          initialFailureEvidence={diagnosisFailureEvidence}
         />
       )}
 

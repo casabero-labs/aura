@@ -9,9 +9,11 @@ import type {
   ExperimentCampaignV1,
   ExperimentRunV1,
   HumanReviewV1,
-  InputContractSnapshotV1,
   LlmStageResultV1,
 } from '../../services/benchmark/experimentTypes';
+import type { DiagnosisInputPackageV2, ExecutionReceiptV1 } from '../../contracts/llm/types';
+import { buildExecutionReceiptV1 } from '../../contracts/llm/executionReceiptV1';
+import { exactDiagnosisPromptV2 } from '../../contracts/llm/diagnosisInputPackageV2';
 import { sha256hex } from '../../contracts/llm/hash';
 
 const HASH_A = 'a'.repeat(64);
@@ -48,30 +50,32 @@ const makeEnvironment = (modelId: OE4ModelId): EnvironmentSnapshotV1 => ({
   inference: { ...FINAL_EVALUATION_PROTOCOL.inference },
 });
 
-const makeInput = (mode: OE4InputMode): InputContractSnapshotV1 => {
+const makeInput = (mode: OE4InputMode): DiagnosisInputPackageV2 => {
   const systemInstruction = 'Return one aura.diagnosis.v2 JSON object.';
   const userPayload = JSON.stringify({ mode, evidenceEnvelopeRef: `env:${HASH_A}` });
-  return ({
-  contractId: 'aura.input-snapshot.v1',
-  mode,
-  evidenceEnvelopeRef: `env:${HASH_A}`,
-  includedSections: mode === 'prompt_libre'
-    ? ['dataset_schema']
-    : ['dataset_summary', 'dataset_schema', 'rule_activations'],
-  systemInstruction,
-  userPayload,
-  responseSchema: { type: 'object', required: ['contractId'] },
-  promptVersion: 'oe4.prompt.v1',
-  promptHash: sha256hex(`${systemInstruction}\n\n${userPayload}`),
-  inputHash: HASH_B,
-  responseSchemaHash: HASH_A,
-  });
+  return {
+    contractId: 'aura.input-snapshot.v2',
+    contractVersion: '2.0.0',
+    inputMode: mode,
+    evidenceEnvelopeRef: `env:${HASH_A}`,
+    includedSections: mode === 'prompt_libre'
+      ? ['dataset_schema']
+      : ['dataset_summary', 'dataset_schema', 'rule_activations'],
+    systemInstruction,
+    userPayload,
+    responseSchema: { type: 'object', required: ['contractId'] },
+    promptVersion: 'oe4.prompt.v1',
+    promptHash: sha256hex(`${systemInstruction}\n\n${userPayload}`),
+    responseSchemaHash: HASH_A,
+    inputHash: HASH_B,
+  };
 };
 
 const makeStage = (
   stage: 'diagnosis' | 'script',
   sequence: number,
   repetition: number,
+  diagnosisRawOutput?: string,
 ): LlmStageResultV1 => ({
   contractId: 'aura.llm-stage-result.v1',
   stage,
@@ -80,7 +84,7 @@ const makeStage = (
   startedAt: NOW,
   completedAt: LATER,
   rawOutput: stage === 'diagnosis'
-    ? `raw diagnosis sequence ${sequence}`
+    ? (diagnosisRawOutput ?? `raw diagnosis sequence ${sequence}`)
     : `raw script sequence ${sequence}`,
   parsedOutput: { contractId: stage === 'diagnosis' ? 'aura.diagnosis.v2' : 'aura.script.v2' },
   validationErrors: [],
@@ -142,89 +146,130 @@ const makeHumanReview = (): HumanReviewV1 => ({
   notes: 'Revisión controlada.',
 });
 
+const makeReceipt = (input: DiagnosisInputPackageV2, modelId: OE4ModelId, rawResponse: string): ExecutionReceiptV1 => buildExecutionReceiptV1({
+  input,
+  requestedInputMode: input.inputMode,
+  exactPrompt: exactDiagnosisPromptV2(input),
+  provider: 'Ollama',
+  requestedModel: modelId,
+  observedModel: modelId,
+  modelDigest: HASH_B,
+  inference: FINAL_EVALUATION_PROTOCOL.inference,
+  startedAt: NOW,
+  completedAt: LATER,
+  rawResponse,
+  validationStatus: 'valid',
+});
+
 const makeRun = (
   sequence: number,
   modelId: OE4ModelId,
   inputMode: OE4InputMode,
   repetition: 1 | 2 | 3 | 4 | 5,
   missingHumanReview: boolean,
-): ExperimentRunV1 => ({
-  contractId: 'aura.experiment-run.v1',
-  contractVersion: '1.0.0',
-  campaignId: 'campaign:oe4:test-evidence',
-  runId: `run:${modelId}:${inputMode}:${repetition}`,
-  protocolId: FINAL_EVALUATION_PROTOCOL.id,
-  protocolVersion: FINAL_EVALUATION_PROTOCOL.version,
-  modelId,
-  inputMode,
-  repetition,
-  sequence,
-  status: missingHumanReview && sequence === 1
-    ? 'awaiting_human'
-    : repetition === 3 ? 'rejected' : 'reviewed',
-  createdAt: NOW,
-  updatedAt: LATER,
-  environment: makeEnvironment(modelId),
-  input: makeInput(inputMode),
-  diagnosis: makeStage('diagnosis', sequence, repetition),
-  script: makeStage('script', sequence, repetition),
-  automaticEvaluation: makeAutomaticEvaluation(inputMode, repetition),
-  humanReview: missingHumanReview && sequence === 1 ? null : makeHumanReview(),
-  hitl: repetition === 3 ? {
-    contractId: 'aura.hitl-decision.v1',
-    status: 'rejected',
-    reviewerId: 'reviewer:oe4',
-    decidedAt: LATER,
-    reason: 'Resolución controlada para la muestra de evidencia.',
-  } : null,
-  execution: null,
-  attempts: [
-    {
-      contractId: 'aura.attempt-event.v1',
-      eventId: `event:${sequence}:diagnosis:started`,
-      attemptId: `attempt:${sequence}:diagnosis:1`,
-      sequence: 1,
-      stage: 'diagnosis',
-      type: 'started',
-      timestamp: NOW,
-      retryOfAttemptId: null,
-      error: null,
+): ExperimentRunV1 => {
+  const input = makeInput(inputMode);
+  const diagnosisRaw = `raw diagnosis sequence ${sequence}`;
+  return {
+    contractId: 'aura.experiment-run.v1',
+    contractVersion: '1.0.0',
+    campaignId: 'campaign:oe4:test-evidence',
+    runId: `run:${modelId}:${inputMode}:${repetition}`,
+    protocolId: FINAL_EVALUATION_PROTOCOL.id,
+    protocolVersion: FINAL_EVALUATION_PROTOCOL.version,
+    modelId,
+    inputMode,
+    repetition,
+    sequence,
+    status: missingHumanReview && sequence === 1
+      ? 'awaiting_human'
+      : repetition === 3 ? 'rejected' : 'reviewed',
+    createdAt: NOW,
+    updatedAt: LATER,
+    environment: makeEnvironment(modelId),
+    input,
+    warmupReceipt: {
+      contractId: 'aura.warmup-receipt.v1',
+      excludedFromEvaluation: true,
+      blockId: `${modelId}::${repetition}`,
+      modelId,
+      repetition,
+      promptHash: HASH_A,
+      responseHash: HASH_B,
+      completedAt: LATER,
+      metrics: {
+        totalDurationMs: 50,
+        loadDurationMs: 0,
+        promptEvalDurationMs: 10,
+        evalDurationMs: 40,
+        promptTokens: 10,
+        outputTokens: 4,
+        reasoningTokens: null,
+        firstTokenMs: 0,
+        tokensPerSecond: 80,
+      },
     },
-    {
-      contractId: 'aura.attempt-event.v1',
-      eventId: `event:${sequence}:diagnosis:completed`,
-      attemptId: `attempt:${sequence}:diagnosis:1`,
-      sequence: 2,
-      stage: 'diagnosis',
-      type: 'completed',
-      timestamp: LATER,
-      retryOfAttemptId: null,
-      error: null,
-    },
-    {
-      contractId: 'aura.attempt-event.v1',
-      eventId: `event:${sequence}:script:started`,
-      attemptId: `attempt:${sequence}:script:1`,
-      sequence: 3,
-      stage: 'script',
-      type: 'started',
-      timestamp: NOW,
-      retryOfAttemptId: null,
-      error: null,
-    },
-    {
-      contractId: 'aura.attempt-event.v1',
-      eventId: `event:${sequence}:script:completed`,
-      attemptId: `attempt:${sequence}:script:1`,
-      sequence: 4,
-      stage: 'script',
-      type: 'completed',
-      timestamp: LATER,
-      retryOfAttemptId: null,
-      error: null,
-    },
-  ],
-});
+    diagnosis: makeStage('diagnosis', sequence, repetition, diagnosisRaw),
+    executionReceipt: makeReceipt(input, modelId, diagnosisRaw),
+    script: makeStage('script', sequence, repetition),
+    automaticEvaluation: makeAutomaticEvaluation(inputMode, repetition),
+    humanReview: missingHumanReview && sequence === 1 ? null : makeHumanReview(),
+    hitl: repetition === 3 ? {
+      contractId: 'aura.hitl-decision.v1',
+      status: 'rejected',
+      reviewerId: 'reviewer:oe4',
+      decidedAt: LATER,
+      reason: 'Resolución controlada para la muestra de evidencia.',
+    } : null,
+    execution: null,
+    attempts: [
+      {
+        contractId: 'aura.attempt-event.v1',
+        eventId: `event:${sequence}:diagnosis:started`,
+        attemptId: `attempt:${sequence}:diagnosis:1`,
+        sequence: 1,
+        stage: 'diagnosis',
+        type: 'started',
+        timestamp: NOW,
+        retryOfAttemptId: null,
+        error: null,
+      },
+      {
+        contractId: 'aura.attempt-event.v1',
+        eventId: `event:${sequence}:diagnosis:completed`,
+        attemptId: `attempt:${sequence}:diagnosis:1`,
+        sequence: 2,
+        stage: 'diagnosis',
+        type: 'completed',
+        timestamp: LATER,
+        retryOfAttemptId: null,
+        error: null,
+      },
+      {
+        contractId: 'aura.attempt-event.v1',
+        eventId: `event:${sequence}:script:started`,
+        attemptId: `attempt:${sequence}:script:1`,
+        sequence: 3,
+        stage: 'script',
+        type: 'started',
+        timestamp: NOW,
+        retryOfAttemptId: null,
+        error: null,
+      },
+      {
+        contractId: 'aura.attempt-event.v1',
+        eventId: `event:${sequence}:script:completed`,
+        attemptId: `attempt:${sequence}:script:1`,
+        sequence: 4,
+        stage: 'script',
+        type: 'completed',
+        timestamp: LATER,
+        retryOfAttemptId: null,
+        error: null,
+      },
+    ],
+  };
+};
 
 export const createExperimentEvidenceFixture = (
   options: ExperimentEvidenceFixtureOptions = {},

@@ -30,9 +30,15 @@ const buildValidPackage = () => {
     deterministicValidation: null,
     hitlDecision: null,
     diagnosis: {
+      status: 'not_run',
       model: 'test-model',
       providerType: 'ollama',
-      diagnosisText: 'Diagnóstico de prueba.',
+      diagnosisText: '',
+      structuredDiagnosis: null,
+      failureEvidence: null,
+      inputSnapshot: null,
+      executionReceipt: null,
+      rawResponseHash: null,
     },
     script: {
       generatedScript: '',

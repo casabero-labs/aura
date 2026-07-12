@@ -1,5 +1,5 @@
 import type { OE4InputMode, OE4ModelId } from './finalEvaluationProtocol';
-import type { ExecutionReceiptV1 } from '../../contracts/llm/types';
+import type { DiagnosisInputPackageV2, ExecutionReceiptV1 } from '../../contracts/llm/types';
 
 export type ExperimentCampaignStatus =
   | 'draft'
@@ -79,6 +79,11 @@ export interface EnvironmentSnapshotV1 {
   };
 }
 
+/**
+ * Historical V1 input snapshot. Retained for archival artifacts and legacy
+ * fixtures only. Formal OE4 runs persist {@link DiagnosisInputPackageV2}
+ * directly under `ExperimentRunV1.input`.
+ */
 export interface InputContractSnapshotV1 {
   contractId: 'aura.input-snapshot.v1';
   mode: OE4InputMode;
@@ -246,7 +251,7 @@ export interface ExperimentRunV1 {
   createdAt: string;
   updatedAt: string;
   environment: EnvironmentSnapshotV1;
-  input: InputContractSnapshotV1;
+  input: DiagnosisInputPackageV2;
   warmupReceipt?: WarmupReceiptV1 | null;
   diagnosis: LlmStageResultV1 | null;
   executionReceipt?: ExecutionReceiptV1 | null;

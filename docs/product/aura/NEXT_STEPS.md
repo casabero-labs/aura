@@ -36,17 +36,48 @@ El SHA-256 del dataset se calcula sobre los bytes reales del archivo; no se
 confunde con el fingerprint operativo corto de la interfaz. Los calentamientos
 guardan su propio recibo en IndexedDB para no repetirse al recargar la página.
 
-## Lo único que falta
+## Estado post AURA-CIERRE-P0-01R3 (12 julio 2026)
 
-1. Terminar los gates técnicos de esta corrección: suite completa, typecheck,
-   build, smokes y actualización del grafo.
-2. Instalar/verificar los tres modelos formales en Ollama.
-3. Ejecutar primero los smokes reales: 1×3×1 y 3×1×1.
-4. Si ambos pasan, ejecutar manualmente la campaña completa de 45 diagnósticos.
-5. Evaluar la rúbrica humana, aprobar o rechazar los nueve representantes,
+Gates técnicos de cierre P0 en revisión:
+- Suite 1711 tests, typecheck, build, E2E → verde.
+- `DiagnosisFailureEvidenceV2` separa fallo de éxito; sin `as any`.
+- `buildExecutionReceiptV1` rechaza en construcción: valid sin modelo, valid con códigos, invalid sin códigos.
+- `runStructuredDiagnosis` valida `requestedModel` ANTES de llamar al proveedor.
+- Todas las rutas Ollama capturan `data.model`/`event.model`.
+- Exportación estricta: `valid`, `invalid`, `not_run` con validación de correspondencia.
+- Detección case-insensitive de `apiKey`, `api_key`, `api-key` recursiva.
+- Estado exclusivo éxito/fallo: limpiar mutuamente al iniciar nueva ejecución.
+- SHA-256 del dataset solo desde `auditEvidence.datasetSha256`.
+- Warm-ups como `Map<blockKey, WarmupReceiptV1>`; 15 instancias para 45 corridas.
+
+**P0-01R3 NO está marcado como completo.** Pendiente de aprobación del orquestador.
+
+## Pendientes no cubiertos por P0
+
+**La campaña real sigue BLOQUEADA** hasta instalar los 3 modelos y ejecutar smokes.
+
+Además, el producto tiene las siguientes limitaciones conocidas:
+
+| Área | Pendiente |
+|---|---|
+| Diagnóstico LLM | `unsupportedClaims` real (no inventado), `badSampleRefs` real con anclaje |
+| Script | Validación Python con trazabilidad de procedencia |
+| Reporte diagnóstico | Claridad de secciones, visualizaciones, PDF profesional |
+| Trazabilidad técnica | Mostrar recibo completo en UI, no solo resumen |
+| Laboratorio | Nombres consistentes (Laboratorio/experimento/corrida/campaña) |
+| UX general | Mensaje de nueva sesión; explicación de qué contiene cada exportación |
+| Exportación | Documentar contrato de exportación técnica para terceros
+
+## Lo que falta
+
+1. Instalar/verificar los tres modelos formales en Ollama.
+2. Ejecutar primero los smokes reales: 1×3×1 y 3×1×1.
+3. Si ambos pasan, ejecutar manualmente la campaña completa de 45 diagnósticos.
+4. Evaluar la rúbrica humana, aprobar o rechazar los nueve representantes,
    ejecutar los scripts aprobados sobre copias y reauditar.
-6. Exportar el expediente final y redactar el documento de depósito.
+5. Exportar el expediente final y redactar el documento de depósito.
 
 No se debe iniciar la campaña completa si falla la igualdad de hashes, cambia
-el modelo observado, falta un calentamiento o una respuesta no supera el
-contrato completo.
+el modelo observado, falta un calentamiento, una respuesta no supera el
+contrato completo, o una corrida completed carece de warmupReceipt o
+executionReceipt válido.

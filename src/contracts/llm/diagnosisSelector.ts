@@ -7,7 +7,10 @@ import type {
   DiagnosisErrorCode,
   DiagnosisPipelineFailure,
   DiagnosisInputModeV2,
+  DiagnosisInputPackageV2,
+  ExecutionReceiptV1,
   InferenceSnapshotV1,
+  DiagnosisFailureEvidenceV2,
 } from './index';
 import {
   buildEvidenceEnvelopeV2,
@@ -39,7 +42,7 @@ type PrivacyLevel = 'local_full' | 'cloud_minimized' | 'cloud_no_samples';
 
 export interface DiagnosisSelectorOptions {
   provider: AIProvider;
-  auditEvidence: { datasetFingerprint: string } | null;
+  auditEvidence: { datasetSha256?: string; datasetFingerprint?: string } | null;
   envelopeOptions?: Partial<Omit<EnvOptions, 'datasetSha256' | 'delimiter'>> & { datasetSha256?: string; delimiter?: string };
   inputMode?: DiagnosisInputModeV2;
   requestedModel?: string;
@@ -59,9 +62,66 @@ export interface StructuredDiagnosisFailure {
   message: string;
   path: string;
   details: Record<string, unknown>;
+  inputSnapshot?: DiagnosisInputPackageV2;
+  executionReceipt?: ExecutionReceiptV1;
+  rawResponseHash?: string;
 }
 
-export type StructuredDiagnosisOutcome = StructuredDiagnosisResult | StructuredDiagnosisFailure;
+export type StructuredDiagnosisOutcome = StructuredDiagnosisResult | StructuredDiagnosisFailure | DiagnosisFailureEvidenceV2;
+
+const defaultInference = (): InferenceSnapshotV1 => ({
+  temperature: 0.1, topP: 0.9, numCtx: 16384, numPredict: 1600,
+  seed: null, keepAlive: '10m', timeoutSeconds: 600,
+});
+
+function makeFailureEvidence(
+  code: string,
+  message: string,
+  path: string,
+  inputPackage: DiagnosisInputPackageV2,
+  receipt: ExecutionReceiptV1,
+  rawResponse: string,
+): DiagnosisFailureEvidenceV2 {
+  return {
+    contractId: 'aura.diagnosis-failure-evidence.v2',
+    code,
+    message,
+    path,
+    inputSnapshot: inputPackage,
+    executionReceipt: receipt,
+    rawResponseHash: receipt.rawResponseHash,
+  };
+}
+
+function makeInvalidReceipt(
+  inputPackage: DiagnosisInputPackageV2,
+  inputMode: DiagnosisInputModeV2,
+  exactPrompt: string,
+  provider: string,
+  requestedModel: string | null,
+  observedModel: string | null,
+  modelDigest: string | null | undefined,
+  inference: InferenceSnapshotV1,
+  startedAt: string,
+  rawResponse: string,
+  errorCodes: string[],
+): ExecutionReceiptV1 {
+  return buildExecutionReceiptV1({
+    input: inputPackage,
+    requestedInputMode: inputMode,
+    exactPrompt,
+    provider: provider || 'unknown',
+    requestedModel: requestedModel ?? '',
+    observedModel,
+    modelDigest: modelDigest ?? null,
+    inference,
+    startedAt,
+    completedAt: new Date().toISOString(),
+    rawResponse: rawResponse || '',
+    validationStatus: 'invalid',
+    validationErrorCodes: errorCodes,
+  });
+}
 
 export async function runStructuredDiagnosis(
   report: AuditReportInput,
@@ -77,22 +137,57 @@ export async function runStructuredDiagnosis(
     };
   }
 
-  const datasetFingerprint = options.auditEvidence?.datasetFingerprint;
-  if (!datasetFingerprint) {
+  const datasetSha256 = options.auditEvidence?.datasetSha256
+    ?? options.envelopeOptions?.datasetSha256;
+  if (!datasetSha256) {
     return {
       success: false,
       code: 'DIAGNOSIS_ADAPTER_ERROR',
-      message: 'auditEvidence.datasetFingerprint is required for v2 diagnosis',
+      message: 'auditEvidence.datasetSha256 is required for v2 diagnosis',
       path: 'auditEvidence',
-      details: { reason: 'missing_fingerprint' },
+      details: { reason: 'missing_dataset_sha256' },
     };
+  }
+  if (!/^[a-f0-9]{64}$/.test(datasetSha256)) {
+    return {
+      success: false,
+      code: 'DIAGNOSIS_ADAPTER_ERROR',
+      message: 'auditEvidence.datasetSha256 must be a 64-character hex SHA-256',
+      path: 'auditEvidence',
+      details: { reason: 'invalid_dataset_sha256' },
+    };
+  }
+  const datasetFingerprint = options.auditEvidence?.datasetFingerprint;
+
+  if (!options.requestedModel || options.requestedModel.trim().length === 0) {
+    const privacyLevel = options.envelopeOptions?.privacyLevel ?? derivePrivacyLevel(options.provider.type);
+    const delimiter = options.envelopeOptions?.delimiter ?? report.delimiterDetected;
+    const envelope = buildEvidenceEnvelopeV2(report, {
+      privacyLevel, datasetSha256, delimiter,
+      tokenBudget: options.envelopeOptions?.tokenBudget,
+      excludeColumns: options.envelopeOptions?.excludeColumns,
+      excludeIssues: options.envelopeOptions?.excludeIssues,
+    });
+    const inputMode = options.inputMode ?? 'smart_sample';
+    const inputPackage = buildDiagnosisInputPackageV2(report, envelope, inputMode);
+    const exactPrompt = exactDiagnosisPromptV2(inputPackage);
+    const startedAt = new Date().toISOString();
+    const inference = options.inference ?? defaultInference();
+    const invalidReceipt = makeInvalidReceipt(
+      inputPackage, inputMode, exactPrompt,
+      options.provider.name, null, null, options.modelDigest,
+      inference, startedAt, '', ['DIAGNOSIS_MODEL_NOT_REQUESTED'],
+    );
+    return makeFailureEvidence(
+      'DIAGNOSIS_MODEL_NOT_REQUESTED',
+      'requestedModel is required for v2 diagnosis',
+      'options.requestedModel',
+      inputPackage, invalidReceipt, '',
+    );
   }
 
   const privacyLevel: PrivacyLevel = options.envelopeOptions?.privacyLevel ?? derivePrivacyLevel(options.provider.type);
 
-  const datasetSha256 = options.envelopeOptions?.datasetSha256
-    ?? (options.auditEvidence as { datasetSha256?: string } | null | undefined)?.datasetSha256
-    ?? datasetFingerprint;
   const delimiter = options.envelopeOptions?.delimiter ?? report.delimiterDetected;
 
   const envelopeOptions: EnvOptions = {
@@ -124,7 +219,6 @@ export async function runStructuredDiagnosis(
   const adapter = new AIProviderDiagnosisAdapter({ provider: options.provider });
 
   let capturedMetrics: ProviderMetrics | null = null;
-  let rawResponseHash = '';
   let rawResponse = '';
   const startedAt = new Date().toISOString();
 
@@ -134,7 +228,6 @@ export async function runStructuredDiagnosis(
     });
     capturedMetrics = metrics;
     rawResponse = text;
-    rawResponseHash = sha256hex(text);
     return text;
   };
 
@@ -142,40 +235,66 @@ export async function runStructuredDiagnosis(
 
   if (!outcome.success) {
     const failure = outcome as DiagnosisPipelineFailure;
-    return {
-      success: false,
-      code: failure.code,
-      message: failure.message,
-      path: failure.path,
-      details: sanitizeDetails(failure.details),
-    };
+    const inference = options.inference ?? defaultInference();
+    const invalidReceipt = makeInvalidReceipt(
+      inputPackage, inputMode, exactPrompt,
+      capturedMetrics?.provider ?? options.provider.name ?? 'unknown',
+      options.requestedModel,
+      capturedMetrics?.model ?? null,
+      options.modelDigest,
+      inference, startedAt, rawResponse,
+      [failure.code],
+    );
+    return makeFailureEvidence(
+      failure.code, failure.message, failure.path,
+      inputPackage, invalidReceipt, rawResponse,
+    );
   }
 
   if (!capturedMetrics) {
-    return {
-      success: false,
-      code: 'DIAGNOSIS_ADAPTER_ERROR',
-      message: 'Adapter did not capture metrics',
-      path: 'adapter',
-      details: {},
-    };
+    const inference = options.inference ?? defaultInference();
+    const invalidReceipt = makeInvalidReceipt(
+      inputPackage, inputMode, exactPrompt,
+      options.provider.name ?? 'unknown',
+      options.requestedModel,
+      null, options.modelDigest,
+      inference, startedAt, rawResponse,
+      ['DIAGNOSIS_ADAPTER_ERROR'],
+    );
+    return makeFailureEvidence(
+      'DIAGNOSIS_ADAPTER_ERROR',
+      'Adapter did not capture metrics',
+      'adapter',
+      inputPackage, invalidReceipt, rawResponse,
+    );
   }
 
-  const inference: InferenceSnapshotV1 = options.inference ?? {
-    temperature: 0.1,
-    topP: 0.9,
-    numCtx: 16384,
-    numPredict: 1600,
-    seed: null,
-    keepAlive: '10m',
-    timeoutSeconds: 600,
-  };
+  if (!capturedMetrics.model || capturedMetrics.model !== options.requestedModel) {
+    const inference = options.inference ?? defaultInference();
+    const invalidReceipt = makeInvalidReceipt(
+      inputPackage, inputMode, exactPrompt,
+      capturedMetrics.provider,
+      options.requestedModel,
+      capturedMetrics.model,
+      options.modelDigest,
+      inference, startedAt, rawResponse,
+      ['DIAGNOSIS_MODEL_MISMATCH'],
+    );
+    return makeFailureEvidence(
+      'DIAGNOSIS_MODEL_MISMATCH',
+      `Requested ${options.requestedModel}, observed ${capturedMetrics.model ?? 'null'}`,
+      'metrics.model',
+      inputPackage, invalidReceipt, rawResponse,
+    );
+  }
+
+  const inference: InferenceSnapshotV1 = options.inference ?? defaultInference();
   const executionReceipt = buildExecutionReceiptV1({
     input: inputPackage,
     requestedInputMode: inputMode,
     exactPrompt,
     provider: capturedMetrics.provider,
-    requestedModel: options.requestedModel ?? capturedMetrics.model,
+    requestedModel: options.requestedModel,
     observedModel: capturedMetrics.model,
     modelDigest: options.modelDigest,
     inference,
@@ -199,7 +318,7 @@ export async function runStructuredDiagnosis(
     promptHash: promptPackage.promptHash,
     evidenceEnvelopeRef: promptPackage.evidenceEnvelopeRef,
     promptVersion: promptPackage.promptVersion,
-    rawResponseHash,
+    rawResponseHash: executionReceipt.rawResponseHash,
     inputMode,
     inputHash: inputPackage.inputHash,
     inputSnapshot: inputPackage,

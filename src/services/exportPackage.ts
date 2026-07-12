@@ -9,6 +9,7 @@ import {
   ImprovementRun,
   ScriptValidationResult,
 } from '../types';
+import type { DiagnosisExecutionResult, DiagnosisFailureEvidenceV2 } from '../contracts/llm';
 
 export const AURA_EXPORT_CONTRACT_NAME = 'aura-technical-export';
 export const AURA_EXPORT_CONTRACT_VERSION = '2.0';
@@ -30,9 +31,15 @@ export interface BuildAuraExportPackageParams {
   deterministicValidation?: DeterministicValidationReport | null;
   hitlDecision?: HitlDecision | null;
   diagnosis: {
+    status: 'valid' | 'invalid' | 'not_run';
     model: string;
     providerType: AIConfig['providerType'];
     diagnosisText: string;
+    structuredDiagnosis?: DiagnosisExecutionResult | null;
+    failureEvidence?: DiagnosisFailureEvidenceV2 | null;
+    inputSnapshot?: Record<string, unknown> | null;
+    executionReceipt?: Record<string, unknown> | null;
+    rawResponseHash?: string | null;
   };
   script: {
     generatedScript: string;

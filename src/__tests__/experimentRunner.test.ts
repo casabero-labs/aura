@@ -3,8 +3,8 @@ import type { AIProvider, ProviderTextResult } from '../types';
 import type {
   EnvironmentSnapshotV1,
   ExperimentRunV1,
-  InputContractSnapshotV1,
 } from '../services/benchmark/experimentTypes';
+import type { DiagnosisInputPackageV2 } from '../contracts/llm/types';
 import {
   createExperimentRunner,
   type ExperimentRunnerStore,
@@ -44,22 +44,23 @@ const makeEnvironment = (modelId: OE4ModelId): EnvironmentSnapshotV1 => ({
   inference: { ...FINAL_EVALUATION_PROTOCOL.inference },
 });
 
-const makeInput = (mode: OE4InputMode): InputContractSnapshotV1 => {
+const makeInput = (mode: OE4InputMode): DiagnosisInputPackageV2 => {
   const systemInstruction = 'Return one aura.diagnosis.v2 JSON object.';
   const userPayload = JSON.stringify({ mode, evidenceEnvelopeRef: `env:${HASH_A}` });
-  return ({
-  contractId: 'aura.input-snapshot.v1',
-  mode,
-  evidenceEnvelopeRef: `env:${HASH_A}`,
-  includedSections: ['dataset_summary', 'dataset_schema'],
-  systemInstruction,
-  userPayload,
-  responseSchema: { type: 'object', required: ['contractId'] },
-  promptVersion: '1.2.0',
-  promptHash: sha256hex(`${systemInstruction}\n\n${userPayload}`),
-  inputHash: HASH_B,
-  responseSchemaHash: HASH_A,
-  });
+  return {
+    contractId: 'aura.input-snapshot.v2',
+    contractVersion: '2.0.0',
+    inputMode: mode,
+    evidenceEnvelopeRef: `env:${HASH_A}`,
+    includedSections: ['dataset_summary', 'dataset_schema'],
+    systemInstruction,
+    userPayload,
+    responseSchema: { type: 'object', required: ['contractId'] },
+    promptVersion: '1.2.0',
+    promptHash: sha256hex(`${systemInstruction}\n\n${userPayload}`),
+    responseSchemaHash: HASH_A,
+    inputHash: HASH_B,
+  };
 };
 
 const makeRun = (mode: OE4InputMode, sequence = 1): ExperimentRunV1 => {

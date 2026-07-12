@@ -18,24 +18,21 @@ No ejecutar las 45 corridas mientras cualquiera de estos gates esté rojo:
 - faltan warm-ups, evaluación productiva o recibos persistidos;
 - una API key aparece en almacenamiento persistente, sync o exportación.
 
-## Estado de ejecución — 11 de julio de 2026
+## Estado de ejecución — 12 de julio de 2026 (post AURA-CIERRE-P0-01R3)
 
 - [x] Protocolo V2: 45 diagnósticos, 15 warm-ups y scripts deterministas.
 - [x] Fábrica canónica compartida por producto y OE4.
 - [x] Recibo verificable persistido en diagnóstico y corrida formal.
 - [x] Propagación del método real desde Configuración.
-- [x] Validación completa del diagnóstico y verificación del modelo observado.
-- [x] Creación productiva de campaña con preflight de dataset, Ollama y modelos.
-- [x] SHA-256 calculado sobre bytes reales y recibos de warm-up recuperables.
-- [x] Evaluación automática contra el oráculo diagnóstico.
-- [x] Preparación determinista de scripts solo para representantes aprobados.
-- [x] Claves API fuera de localStorage y sincronización; Guardar/Cancelar coherente.
-- [x] Nomenclatura visible Laboratorio → experimento → corrida; campaña solo interna.
-- [x] Trazabilidad completa en JSON, PDF, plan, contrato y encabezado `.py`.
-- [x] Fidelidad de evidencia `null` para Contexto mínimo sin muestras.
 - [x] Suite completa, typecheck, build, E2E controlado y actualización del grafo.
-- [ ] Smokes reales opt-in con los tres modelos instalados.
-- [ ] Campaña real ejecutada manualmente por el investigador.
+- [ ] **P0-01R3 EN REVISIÓN**: DiagnosisFailureEvidenceV2 separa fallo de éxito; cero `as any`.
+- [ ] **P0-01R3 EN REVISIÓN**: `runStructuredDiagnosis` valida `requestedModel` ANTES del proveedor.
+- [ ] **P0-01R3 EN REVISIÓN**: `buildExecutionReceiptV1` rechaza recibos inconsistentes.
+- [ ] **P0-01R3 EN REVISIÓN**: Exportación con `valid`/`invalid`/`not_run` y correspondencia estricta.
+- [ ] **P0-01R3 EN REVISIÓN**: apiKey case-insensitive recursivo.
+- [ ] **P0-01R3 EN REVISIÓN**: Estado exclusivo éxito/fallo; limpieza mutua.
+- [ ] **BLOQUEADO**: Smokes reales opt-in con los tres modelos instalados.
+- [ ] **BLOQUEADO**: Campaña real ejecutada manualmente por el investigador.
 
 ## Cobertura faltante priorizada
 

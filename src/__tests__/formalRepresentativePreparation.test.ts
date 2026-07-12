@@ -55,7 +55,7 @@ describe('formal representative deterministic preparation', () => {
     });
     const run = {
       status: 'approved', runId: 'run:test', modelId, inputMode: 'recommended',
-      input: { ...pkg, contractId: 'aura.input-snapshot.v1', mode: pkg.inputMode },
+      input: { ...pkg, contractId: 'aura.input-snapshot.v2', contractVersion: '2.0.0' },
       environment: {
         dataset: { sha256: FINAL_EVALUATION_PROTOCOL.dataset.sha256 },
         model: { localDigest: `sha256:${'b'.repeat(64)}` },

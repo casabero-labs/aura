@@ -380,7 +380,12 @@ export interface ExecutionReceiptV1 {
   responseSchemaHash: string;
   provider: string;
   requestedModel: string;
-  observedModel: string;
+  /**
+   * `null` when the provider failed before reporting a model identity
+   * (transport error, malformed response, or empty stream). Callers must
+   * not invent a value — the absence is part of the contract.
+   */
+  observedModel: string | null;
   modelDigest: string | null;
   inferenceHash: string;
   startedAt: string;
@@ -562,6 +567,31 @@ export interface DiagnosisExecutionResult {
   executionReceipt?: ExecutionReceiptV1;
   remediationContext?: RemediationContextV2;
 }
+
+/**
+ * Structured evidence from a failed V2 diagnosis.
+ * Contains the input snapshot, an invalid execution receipt, and the codes
+ * that explain why the diagnosis could not complete.
+ * This is a separate contract from {@link DiagnosisExecutionResult} so
+ * consumers (MainPipeline, diagnosticReportBuilder, exportPackage) can
+ * distinguish success from failure without inspecting null fields.
+ */
+export interface DiagnosisFailureEvidenceV2 {
+  contractId: 'aura.diagnosis-failure-evidence.v2';
+  code: string;
+  message: string;
+  path: string;
+  inputSnapshot: DiagnosisInputPackageV2;
+  executionReceipt: ExecutionReceiptV1;
+  rawResponseHash: string;
+}
+
+export const isDiagnosisFailureEvidenceV2 = (
+  value: unknown,
+): value is DiagnosisFailureEvidenceV2 =>
+  typeof value === 'object'
+  && value !== null
+  && (value as Record<string, unknown>).contractId === 'aura.diagnosis-failure-evidence.v2';
 
 // ── Script Exclusion (Phase 4) ──
 export type ScriptExclusionReasonV2 =

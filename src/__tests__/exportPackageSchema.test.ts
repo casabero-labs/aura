@@ -74,9 +74,15 @@ const exported = buildAuraExportPackage({
   deterministicValidation: null,
   hitlDecision: null,
   diagnosis: {
+    status: 'valid' as const,
     model: 'test-model',
     providerType: 'ollama',
     diagnosisText: 'Diagnóstico de prueba.',
+    structuredDiagnosis: null,
+    failureEvidence: null,
+    inputSnapshot: null,
+    executionReceipt: null,
+    rawResponseHash: null,
   },
   script: {
     generatedScript: '',

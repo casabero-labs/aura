@@ -20,9 +20,12 @@ import type {
   ExperimentRunV1,
   HitlDecisionV1,
   HumanReviewV1,
-  InputContractSnapshotV1,
   LlmStageResultV1,
 } from '../services/benchmark/experimentTypes';
+import type { DiagnosisInputPackageV2, ExecutionReceiptV1 } from '../contracts/llm/types';
+import { buildExecutionReceiptV1 } from '../contracts/llm/executionReceiptV1';
+import { exactDiagnosisPromptV2 } from '../contracts/llm/diagnosisInputPackageV2';
+import { sha256hex } from '../contracts/llm/hash';
 
 const HASH_A = 'a'.repeat(64);
 const HASH_B = 'b'.repeat(64);
@@ -58,21 +61,27 @@ const makeEnvironment = (modelId: OE4ModelId): EnvironmentSnapshotV1 => ({
   inference: { ...FINAL_EVALUATION_PROTOCOL.inference },
 });
 
-const makeInput = (mode: OE4InputMode): InputContractSnapshotV1 => ({
-  contractId: 'aura.input-snapshot.v1',
-  mode,
-  evidenceEnvelopeRef: `env:${HASH_A}`,
-  includedSections: mode === 'prompt_libre'
-    ? ['dataset_schema']
-    : ['dataset_summary', 'column_registry', 'rule_activations'],
-  systemInstruction: 'Responde bajo aura.diagnosis.v2.',
-  userPayload: '{"dataset":"controlled_customers_phase8"}',
-  responseSchema: { type: 'object', required: ['contractId'] },
-  promptVersion: 'oe4.prompt.v1',
-  promptHash: HASH_A,
-  inputHash: HASH_B,
-  responseSchemaHash: HASH_A,
-});
+const makeInput = (mode: OE4InputMode): DiagnosisInputPackageV2 => {
+  const systemInstruction = 'Responde bajo aura.diagnosis.v2.';
+  const userPayload = '{"dataset":"controlled_customers_phase8"}';
+  const promptHash = sha256hex(`${systemInstruction}\n\n${userPayload}`);
+  return {
+    contractId: 'aura.input-snapshot.v2',
+    contractVersion: '2.0.0',
+    inputMode: mode,
+    evidenceEnvelopeRef: `env:${HASH_A}`,
+    includedSections: mode === 'prompt_libre'
+      ? ['dataset_schema']
+      : ['dataset_summary', 'column_registry', 'rule_activations'],
+    systemInstruction,
+    userPayload,
+    responseSchema: { type: 'object', required: ['contractId'] },
+    promptVersion: 'oe4.prompt.v1',
+    promptHash,
+    responseSchemaHash: HASH_A,
+    inputHash: HASH_B,
+  };
+};
 
 const makeStageMetrics = () => ({
   totalDurationMs: 1000,
@@ -182,9 +191,21 @@ const makeAttemptEvent = (
   ...overrides,
 });
 
+const makeReceipt = (input: DiagnosisInputPackageV2, modelId: OE4ModelId): ExecutionReceiptV1 => {
+  const exactPrompt = exactDiagnosisPromptV2(input);
+  return buildExecutionReceiptV1({
+    input, requestedInputMode: input.inputMode, exactPrompt,
+    provider: 'Ollama', requestedModel: modelId, observedModel: modelId,
+    modelDigest: HASH_B, inference: FINAL_EVALUATION_PROTOCOL.inference,
+    startedAt: NOW, completedAt: LATER,
+    rawResponse: '{"contractId":"aura.diagnosis.v2"}', validationStatus: 'valid',
+  });
+};
+
 const makeValidRun = (overrides: Partial<ExperimentRunV1> = {}): ExperimentRunV1 => {
   const modelId = overrides.modelId ?? FINAL_EVALUATION_PROTOCOL.models[0];
   const inputMode = overrides.inputMode ?? 'recommended';
+  const input = overrides.input ?? makeInput(inputMode);
   return {
     contractId: 'aura.experiment-run.v1',
     contractVersion: '1.0.0',
@@ -200,7 +221,7 @@ const makeValidRun = (overrides: Partial<ExperimentRunV1> = {}): ExperimentRunV1
     createdAt: NOW,
     updatedAt: NOW,
     environment: makeEnvironment(modelId),
-    input: makeInput(inputMode),
+    input,
     diagnosis: null,
     script: null,
     automaticEvaluation: null,
@@ -290,10 +311,24 @@ describe('OE4 experiment contracts — Task 2', () => {
   });
 
   it('keeps raw output, parsed output and validation errors as separate fields', () => {
+    const modelId = FINAL_EVALUATION_PROTOCOL.models[0];
+    const input = makeInput('recommended');
     const run = makeValidRun({
       status: 'completed',
       diagnosis: makeStage('diagnosis'),
       script: makeStage('script'),
+      warmupReceipt: {
+        contractId: 'aura.warmup-receipt.v1',
+        excludedFromEvaluation: true,
+        blockId: `${modelId}::3`,
+        modelId,
+        repetition: 3,
+        promptHash: HASH_A,
+        responseHash: HASH_B,
+        completedAt: LATER,
+        metrics: makeStageMetrics(),
+      },
+      executionReceipt: makeReceipt(input, modelId),
       attempts: [
         makeAttemptEvent(),
         makeAttemptEvent({ eventId: 'event:2', sequence: 2, type: 'completed', timestamp: LATER }),
@@ -308,10 +343,23 @@ describe('OE4 experiment contracts — Task 2', () => {
   it('rejects fractional or negative token telemetry', () => {
     const diagnosis = makeStage('diagnosis');
     diagnosis.metrics = { ...makeStageMetrics(), outputTokens: -1, promptTokens: 2.5 };
+    const modelId = FINAL_EVALUATION_PROTOCOL.models[0];
     const run = makeValidRun({
       status: 'completed',
       diagnosis,
       script: makeStage('script'),
+      warmupReceipt: {
+        contractId: 'aura.warmup-receipt.v1',
+        excludedFromEvaluation: true,
+        blockId: `${modelId}::3`,
+        modelId,
+        repetition: 3,
+        promptHash: HASH_A,
+        responseHash: HASH_B,
+        completedAt: LATER,
+        metrics: makeStageMetrics(),
+      },
+      executionReceipt: makeReceipt(makeInput('recommended'), modelId),
     });
     expect(validateExperimentRunV1(run).errors).toEqual(expect.arrayContaining([
       'diagnosis.metrics.promptTokens must be a non-negative integer or null',
@@ -320,6 +368,7 @@ describe('OE4 experiment contracts — Task 2', () => {
   });
 
   it('enforces lifecycle requirements for evaluation, human review, HITL and reauditing', () => {
+    const modelId = FINAL_EVALUATION_PROTOCOL.models[0];
     const reaudited = makeValidRun({
       status: 'reaudited',
       diagnosis: makeStage('diagnosis'),
@@ -328,6 +377,18 @@ describe('OE4 experiment contracts — Task 2', () => {
       humanReview: makeHumanReview(),
       hitl: makeHitlDecision('approved'),
       execution: makeExecution(),
+      warmupReceipt: {
+        contractId: 'aura.warmup-receipt.v1',
+        excludedFromEvaluation: true,
+        blockId: `${modelId}::3`,
+        modelId,
+        repetition: 3,
+        promptHash: HASH_A,
+        responseHash: HASH_B,
+        completedAt: LATER,
+        metrics: makeStageMetrics(),
+      },
+      executionReceipt: makeReceipt(makeInput('recommended'), modelId),
     });
     expect(isExperimentRunV1(reaudited)).toBe(true);
 
@@ -343,6 +404,7 @@ describe('OE4 experiment contracts — Task 2', () => {
       'planned status cannot contain execution results',
     );
 
+    const modelId = FINAL_EVALUATION_PROTOCOL.models[0];
     const previous = makeValidRun();
     const jumped = makeValidRun({
       status: 'reaudited',
@@ -353,6 +415,18 @@ describe('OE4 experiment contracts — Task 2', () => {
       humanReview: makeHumanReview(),
       hitl: makeHitlDecision('approved'),
       execution: makeExecution(),
+      warmupReceipt: {
+        contractId: 'aura.warmup-receipt.v1',
+        excludedFromEvaluation: true,
+        blockId: `${modelId}::3`,
+        modelId,
+        repetition: 3,
+        promptHash: HASH_A,
+        responseHash: HASH_B,
+        completedAt: LATER,
+        metrics: makeStageMetrics(),
+      },
+      executionReceipt: makeReceipt(makeInput('recommended'), modelId),
     });
     expect(validateExperimentRunUpdate(previous, jumped).errors).toContain(
       'run status transition is invalid',
@@ -360,6 +434,7 @@ describe('OE4 experiment contracts — Task 2', () => {
   });
 
   it('allows an approved representative to persist a blocked execution gate', () => {
+    const modelId = FINAL_EVALUATION_PROTOCOL.models[0];
     const approved = makeValidRun({
       status: 'approved',
       diagnosis: makeStage('diagnosis'),
@@ -367,6 +442,18 @@ describe('OE4 experiment contracts — Task 2', () => {
       automaticEvaluation: makeAutomaticEvaluation(),
       humanReview: makeHumanReview(),
       hitl: makeHitlDecision('approved'),
+      warmupReceipt: {
+        contractId: 'aura.warmup-receipt.v1',
+        excludedFromEvaluation: true,
+        blockId: `${modelId}::3`,
+        modelId,
+        repetition: 3,
+        promptHash: HASH_A,
+        responseHash: HASH_B,
+        completedAt: LATER,
+        metrics: makeStageMetrics(),
+      },
+      executionReceipt: makeReceipt(makeInput('recommended'), modelId),
     });
     const blockedExecution: DynamicExecutionEvidenceV1 = {
       contractId: 'aura.dynamic-execution-evidence.v1',
@@ -385,12 +472,25 @@ describe('OE4 experiment contracts — Task 2', () => {
 
   it('rejects human rubric values outside 0–4 and an inconsistent mean', () => {
     const invalidReview = { ...makeHumanReview(), clarity: 5, mean: 4 } as unknown as HumanReviewV1;
+    const modelId = FINAL_EVALUATION_PROTOCOL.models[0];
     const run = makeValidRun({
       status: 'reviewed',
       diagnosis: makeStage('diagnosis'),
       script: makeStage('script'),
       automaticEvaluation: makeAutomaticEvaluation(),
       humanReview: invalidReview,
+      warmupReceipt: {
+        contractId: 'aura.warmup-receipt.v1',
+        excludedFromEvaluation: true,
+        blockId: `${modelId}::3`,
+        modelId,
+        repetition: 3,
+        promptHash: HASH_A,
+        responseHash: HASH_B,
+        completedAt: LATER,
+        metrics: makeStageMetrics(),
+      },
+      executionReceipt: makeReceipt(makeInput('recommended'), modelId),
     });
     const result = validateExperimentRunV1(run);
     expect(result.valid).toBe(false);
@@ -405,6 +505,18 @@ describe('OE4 experiment contracts — Task 2', () => {
       script: makeStage('script'),
       automaticEvaluation: makeAutomaticEvaluation(),
       humanReview: { ...makeHumanReview(), notes: '' },
+      warmupReceipt: {
+        contractId: 'aura.warmup-receipt.v1',
+        excludedFromEvaluation: true,
+        blockId: `${modelId}::3`,
+        modelId,
+        repetition: 3,
+        promptHash: HASH_A,
+        responseHash: HASH_B,
+        completedAt: LATER,
+        metrics: makeStageMetrics(),
+      },
+      executionReceipt: makeReceipt(makeInput('recommended'), modelId),
     });
     expect(validateExperimentRunV1(extremeWithoutNote).errors).toContain(
       'humanReview.notes is required when any score is 0 or 4',
