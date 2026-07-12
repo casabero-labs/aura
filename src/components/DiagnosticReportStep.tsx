@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { ArrowRight, FileCode2, RotateCcw, ShieldCheck, ChevronDown, CheckCircle, XCircle, AlertCircle, HelpCircle } from 'lucide-react';
-import type { DiagnosticReport, DiagnosticFinding, DiagnosticPresentation } from '../services/diagnosticReport';
+import { ArrowRight, ChevronDown, FileCode2, RotateCcw, ShieldCheck } from 'lucide-react';
+import type { DiagnosticFinding, DiagnosticPresentation, DiagnosticReport } from '../services/diagnosticReport';
 import {
   buildDiagnosticPresentation,
   formatDiagnosticSourceLabel,
@@ -8,7 +8,6 @@ import {
 import {
   DiagnosticFindingGroup,
   DiagnosticRecommendationsPanel,
-  DiagnosticReportChartPreview,
 } from './diagnosticReport';
 import SyntaxDisplay from './SyntaxDisplay';
 
@@ -30,12 +29,12 @@ interface DiagnosticReportStepProps {
   onBackToDiagnosis: () => void;
 }
 
-const VISIBLE_FINDING_LIMIT = 3;
+const VISIBLE_FINDING_LIMIT = 4;
 
 const subtitleByStatus: Record<DiagnosticReport['status']['diagnosticStatus'], string> = {
   llm_diagnosis_available: 'AURA integró evidencia determinista y diagnóstico asistido.',
-  deterministic_only: 'AURA generó un reporte con evidencia determinista. El diagnóstico asistido no está disponible.',
-  llm_diagnosis_unavailable: 'AURA generó el reporte con evidencia determinista y registró la indisponibilidad del diagnóstico asistido.',
+  deterministic_only: 'AURA generó un informe basado en evidencia determinista.',
+  llm_diagnosis_unavailable: 'AURA conservó la evidencia determinista y registró que el diagnóstico asistido no estuvo disponible.',
 };
 
 const severityOrder: Record<DiagnosticFinding['severity'], number> = {
@@ -49,8 +48,8 @@ const numberFormatter = new Intl.NumberFormat('es-CO');
 
 const sortFindingsByRelevance = (findings: DiagnosticFinding[]) =>
   [...findings].sort((a, b) => {
-    const sev = severityOrder[a.severity] - severityOrder[b.severity];
-    if (sev !== 0) return sev;
+    const severityDifference = severityOrder[a.severity] - severityOrder[b.severity];
+    if (severityDifference !== 0) return severityDifference;
     if (a.requiresHumanReview !== b.requiresHumanReview) {
       return a.requiresHumanReview ? -1 : 1;
     }
@@ -83,18 +82,6 @@ const FindingsGroupWithOverflow: React.FC<{
   const overflow = ordered.slice(VISIBLE_FINDING_LIMIT);
   const [showAll, setShowAll] = useState(false);
 
-  if (findings.length === 0) {
-    return (
-      <DiagnosticFindingGroup
-        title={title}
-        description={description}
-        findings={[]}
-        testId={testId}
-        falsePositiveContext={falsePositiveContext}
-      />
-    );
-  }
-
   return (
     <DiagnosticFindingGroup
       title={title}
@@ -103,241 +90,81 @@ const FindingsGroupWithOverflow: React.FC<{
       testId={testId}
       falsePositiveContext={falsePositiveContext}
     >
-      {overflow.length > 0 && !showAll && (
+      {overflow.length > 0 && (
         <button
           type="button"
           className="diagnostic-report-overflow-toggle"
-          onClick={() => setShowAll(true)}
+          onClick={() => setShowAll((current) => !current)}
           data-testid={`${testId}-overflow`}
         >
-          Ver {overflow.length} hallazgo{overflow.length === 1 ? '' : 's'} más
-        </button>
-      )}
-      {overflow.length > 0 && showAll && (
-        <button
-          type="button"
-          className="diagnostic-report-overflow-toggle"
-          onClick={() => setShowAll(false)}
-        >
-          Mostrar menos
+          {showAll
+            ? 'Mostrar menos'
+            : `Ver ${overflow.length} hallazgo${overflow.length === 1 ? '' : 's'} más`}
         </button>
       )}
     </DiagnosticFindingGroup>
   );
 };
 
-const DatasetSummaryStrip: React.FC<{ report: DiagnosticReport }> = ({ report }) => {
-  const fileName = report.metadata.fileName || 'Archivo sin nombre';
-  const rows = report.metadata.rowCount;
-  const cols = report.metadata.colCount;
-  const findings = report.evidenceBase.totalIssues;
-  const score = report.metadata.scoreBase;
-  const generatedAt = report.metadata.generatedAt;
-
-  return (
-    <div className="diagnostic-report-summary-strip" data-testid="diagnostic-report-summary-strip">
-      <div className="diagnostic-report-summary-item">
-        <span className="diagnostic-report-summary-value" style={{ fontSize: '15px', wordBreak: 'break-all' }}>
-          {fileName}
-        </span>
-        <span className="diagnostic-report-summary-label">archivo</span>
-      </div>
-      <div className="diagnostic-report-summary-item">
-        <span className="diagnostic-report-summary-value">{numberFormatter.format(rows)}</span>
-        <span className="diagnostic-report-summary-label">filas</span>
-      </div>
-      <div className="diagnostic-report-summary-item">
-        <span className="diagnostic-report-summary-value">{numberFormatter.format(cols)}</span>
-        <span className="diagnostic-report-summary-label">columnas</span>
-      </div>
-      <div className="diagnostic-report-summary-item">
-        <span className="diagnostic-report-summary-value diagnostic-report-summary-value--critical">
-          {numberFormatter.format(findings)}
-        </span>
-        <span className="diagnostic-report-summary-label">hallazgos</span>
-      </div>
-      <div className="diagnostic-report-summary-item">
-        <span className="diagnostic-report-summary-value">{score}/100</span>
-        <span className="diagnostic-report-summary-label">score base</span>
-      </div>
-      {generatedAt && (
-        <div className="diagnostic-report-summary-item">
-          <span className="diagnostic-report-summary-value" style={{ fontSize: '14px' }}>
-            {formatTimestamp(generatedAt)}
-          </span>
-          <span className="diagnostic-report-summary-label">generado</span>
-        </div>
-      )}
+const DatasetSummaryStrip: React.FC<{ report: DiagnosticReport }> = ({ report }) => (
+  <div className="diagnostic-report-summary-strip" data-testid="diagnostic-report-summary-strip">
+    <div className="diagnostic-report-summary-item">
+      <span className="diagnostic-report-summary-value" style={{ fontSize: '15px', wordBreak: 'break-all' }}>
+        {report.metadata.fileName || 'Archivo sin nombre'}
+      </span>
+      <span className="diagnostic-report-summary-label">archivo</span>
     </div>
-  );
-};
-
-const TechnicalEvidenceDisclosure: React.FC<{ report: DiagnosticReport }> = ({ report }) => {
-  const serialized = useMemo(() => JSON.stringify(report, null, 2), [report]);
-  return (
-    <details className="diagnostic-report-tech-disclosure" data-testid="diagnostic-report-tech-disclosure">
-      <summary className="diagnostic-report-tech-summary">
-        <ChevronDown size={14} className="diagnostic-report-tech-chevron" />
-        <span>Trazabilidad técnica del informe</span>
-        <span className="diagnostic-report-tech-hint">
-          metadatos, gráficos y payload serializado para auditoría
+    <div className="diagnostic-report-summary-item">
+      <span className="diagnostic-report-summary-value">{numberFormatter.format(report.metadata.rowCount)}</span>
+      <span className="diagnostic-report-summary-label">filas</span>
+    </div>
+    <div className="diagnostic-report-summary-item">
+      <span className="diagnostic-report-summary-value">{numberFormatter.format(report.metadata.colCount)}</span>
+      <span className="diagnostic-report-summary-label">columnas</span>
+    </div>
+    <div className="diagnostic-report-summary-item">
+      <span className="diagnostic-report-summary-value diagnostic-report-summary-value--critical">
+        {numberFormatter.format(report.evidenceBase.totalIssues)}
+      </span>
+      <span className="diagnostic-report-summary-label">hallazgos</span>
+    </div>
+    <div className="diagnostic-report-summary-item">
+      <span className="diagnostic-report-summary-value">{report.metadata.scoreBase}/100</span>
+      <span className="diagnostic-report-summary-label">score base</span>
+    </div>
+    {report.metadata.generatedAt && (
+      <div className="diagnostic-report-summary-item">
+        <span className="diagnostic-report-summary-value" style={{ fontSize: '14px' }}>
+          {formatTimestamp(report.metadata.generatedAt)}
         </span>
-      </summary>
-      <div className="diagnostic-report-tech-body">
-        <section className="diagnostic-report-tech-section">
-          <h4>Metadatos del informe</h4>
-          <dl className="diagnostic-report-tech-meta">
-            <dt>Identificador</dt>
-            <dd><code>{report.metadata.reportId}</code></dd>
-            <dt>Versión</dt>
-            <dd><code>{report.metadata.version}</code></dd>
-            <dt>Generado</dt>
-            <dd><code>{report.metadata.generatedAt}</code></dd>
-            <dt>Huella del dataset</dt>
-            <dd><code>{report.metadata.sourceDatasetFingerprint}</code></dd>
-            <dt>Delimitador detectado</dt>
-            <dd><code>{report.metadata.delimiter}</code></dd>
-            <dt>Score base</dt>
-            <dd><code>{report.metadata.scoreBase}/100</code></dd>
-            <dt>Score modificado</dt>
-            <dd><code>{report.metadata.scoreModified ? 'Sí' : 'No'}</code></dd>
-            <dt>Estado del motor</dt>
-            <dd><code>{formatDiagnosticSourceLabel(report.diagnosisSummary.source)}</code></dd>
-            {report.diagnosisSummary.provider && (
-              <>
-                <dt>Proveedor del diagnóstico</dt>
-                <dd><code>{report.diagnosisSummary.provider} · {report.diagnosisSummary.model}</code></dd>
-              </>
-            )}
-            {report.diagnosisSummary.latencyMs !== undefined && (
-              <>
-                <dt>Latencia del diagnóstico</dt>
-                <dd><code>{report.diagnosisSummary.latencyMs} ms</code></dd>
-              </>
-            )}
-          </dl>
-        </section>
-
-        <section className="diagnostic-report-tech-section">
-          <h4>Listo para exportar</h4>
-          <ul className="diagnostic-report-tech-readiness">
-            <li>PDF: {report.exportReadiness.pdfReady ? 'Listo' : 'No listo'}</li>
-            <li>JSON: {report.exportReadiness.jsonReady ? 'Listo' : 'No listo'}</li>
-            <li>CSV de hallazgos: {report.exportReadiness.issuesCsvReady ? 'Listo' : 'No listo'}</li>
-            <li>Script opcional: {report.exportReadiness.scriptExportsReady ? 'Listo' : 'No listo'}</li>
-            {report.exportReadiness.missingInputs.length > 0 && (
-              <li>Entradas faltantes: {report.exportReadiness.missingInputs.join(', ')}</li>
-            )}
-          </ul>
-        </section>
-
-        <section className="diagnostic-report-tech-section">
-          <SyntaxDisplay
-            filename="chart-specs.json"
-            content={JSON.stringify(report.chartSpecs, null, 2)}
-          />
-        </section>
-
-        <section className="diagnostic-report-tech-section">
-          <h4>Payload técnico serializado</h4>
-          <p className="diagnostic-report-tech-note">
-            Vista orientada a auditoría y desarrollo. No requiere el usuario final para tomar la decisión de exportación.
-          </p>
-          <SyntaxDisplay filename="diagnostic-report.json" content={serialized} maxHeight={360} />
-        </section>
+        <span className="diagnostic-report-summary-label">generado</span>
       </div>
-    </details>
-  );
-};
-
-const DiagnosticDecisionBrief: React.FC<{ presentation: DiagnosticPresentation }> = ({ presentation }) => (
-  <section
-    className={`diagnostic-report-decision diagnostic-report-decision--${presentation.decision.tone}`}
-    data-testid="diagnostic-report-decision"
-  >
-    <div>
-      <p className="sec-eye">{presentation.decision.eyebrow}</p>
-      <h3>{presentation.decision.title}</h3>
-      <p>{presentation.decision.body}</p>
-    </div>
-    <div className="diagnostic-report-decision-aside">
-      <span>Siguiente paso</span>
-      <strong>Exportar resultados</strong>
-      <p>El cierre no exige script de limpieza.</p>
-    </div>
-  </section>
-);
-
-const GovernanceSummary: React.FC<{ presentation: DiagnosticPresentation }> = ({ presentation }) => (
-  <div className="diagnostic-report-governance-grid" data-testid="diagnostic-report-governance">
-    <section className="diagnostic-report-governance-card">
-      <div className="diagnostic-report-governance-head">
-        <ShieldCheck size={16} />
-        <strong>Soporte del informe</strong>
-      </div>
-      <ul>
-        {presentation.supportedClaims.map((claim) => <li key={claim}>{claim}</li>)}
-      </ul>
-    </section>
-    <section className="diagnostic-report-governance-card diagnostic-report-governance-card--pending">
-      <div className="diagnostic-report-governance-head">
-        <strong>Pendiente antes de remediar</strong>
-      </div>
-      <ul>
-        {presentation.pendingClaims.map((claim) => <li key={claim}>{claim}</li>)}
-      </ul>
-    </section>
+    )}
   </div>
 );
 
-const ReportDisclosure: React.FC<{
-  title: string;
-  hint: string;
-  testId?: string;
-  children: React.ReactNode;
-}> = ({ title, hint, testId, children }) => (
-  <details className="diagnostic-report-disclosure" data-testid={testId}>
-    <summary className="diagnostic-report-disclosure-summary">
-      <ChevronDown size={14} className="diagnostic-report-disclosure-chevron" />
-      <span>{title}</span>
-      <span className="diagnostic-report-disclosure-hint">{hint}</span>
-    </summary>
-    <div className="diagnostic-report-disclosure-body">
-      {children}
-    </div>
-  </details>
-);
-
-const DiagnosticInvocationSummary: React.FC<{
-  report: DiagnosticReport;
-  evaluation?: DiagnosticReportEvaluationSummary | null;
-}> = ({ report, evaluation }) => {
+const DiagnosticInvocationSummary: React.FC<{ report: DiagnosticReport }> = ({ report }) => {
   const receipt = report.diagnosisSummary.executionReceipt;
-  const requestedModel = receipt?.requestedModel ?? report.diagnosisSummary.model ?? '—';
-  const observedModel = receipt?.observedModel ?? 'no observado';
-  const inputMode = report.diagnosisSummary.inputMode ?? '—';
+  const hasRealInvocation = Boolean(
+    receipt
+    || report.diagnosisSummary.provider
+    || report.diagnosisSummary.model
+    || report.diagnosisSummary.inputMode
+    || report.diagnosisSummary.latencyMs !== undefined,
+  );
+
+  if (!hasRealInvocation) return null;
+
+  const requestedModel = receipt?.requestedModel ?? report.diagnosisSummary.model ?? 'No registrado';
+  const observedModel = receipt?.observedModel ?? 'No observado';
   const latency = report.diagnosisSummary.latencyMs;
-  const contractCompliant = receipt?.validationStatus === 'valid';
-  const hasEvaluation = evaluation != null;
-
-  const evalField = <T,>(value: T | null | undefined, render: (v: T) => React.ReactNode): React.ReactNode => {
-    if (value === null || value === undefined) return <span className="diagnostic-invocation-muted">No medido</span>;
-    return render(value);
-  };
-
-  const statusIndicator = (value: boolean | null | undefined, okLabel: string, failLabel: string) => {
-    if (value === null || value === undefined) return <span className="diagnostic-invocation-status diagnostic-invocation-status--muted"><HelpCircle size={12} /> No medido</span>;
-    return value
-      ? <span className="diagnostic-invocation-status diagnostic-invocation-status--ok"><CheckCircle size={12} /> {okLabel}</span>
-      : <span className="diagnostic-invocation-status diagnostic-invocation-status--fail"><XCircle size={12} /> {failLabel}</span>;
-  };
 
   return (
     <section className="diagnostic-invocation-summary" data-testid="diagnostic-invocation-summary">
       <div className="diagnostic-report-section-head">
         <div>
-          <p className="sec-eye">resumen del diagnóstico</p>
-          <h3>Resumen del diagnóstico</h3>
+          <p className="sec-eye">diagnóstico asistido</p>
+          <h3>Ejecución del modelo</h3>
         </div>
       </div>
       <div className="diagnostic-invocation-grid">
@@ -350,82 +177,94 @@ const DiagnosticInvocationSummary: React.FC<{
           <span className="diagnostic-invocation-value">{observedModel}</span>
         </div>
         <div className="diagnostic-invocation-item">
-          <span className="diagnostic-invocation-label">Método evaluado</span>
-          <span className="diagnostic-invocation-value">{inputMode}</span>
+          <span className="diagnostic-invocation-label">Método</span>
+          <span className="diagnostic-invocation-value">{report.diagnosisSummary.inputMode ?? 'No registrado'}</span>
         </div>
         <div className="diagnostic-invocation-item">
           <span className="diagnostic-invocation-label">Latencia</span>
-          <span className="diagnostic-invocation-value">{latency !== undefined ? `${(latency / 1000).toFixed(1)}s` : '—'}</span>
+          <span className="diagnostic-invocation-value">
+            {latency !== undefined ? `${(latency / 1000).toFixed(1)} s` : 'No registrada'}
+          </span>
         </div>
         <div className="diagnostic-invocation-item">
-          <span className="diagnostic-invocation-label">Cumplimiento del contrato</span>
+          <span className="diagnostic-invocation-label">Contrato</span>
           <span className="diagnostic-invocation-value">
             {receipt
-              ? (contractCompliant
-                ? <><CheckCircle size={12} className="diagnostic-invocation-inline-ok" /> Cumple</>
-                : <><XCircle size={12} className="diagnostic-invocation-inline-fail" /> No cumple</>)
-              : <span className="diagnostic-invocation-muted">No evaluado</span>}
+              ? (receipt.validationStatus === 'valid' ? 'Válido' : 'No válido')
+              : 'No evaluado'}
           </span>
         </div>
       </div>
-
-      {hasEvaluation && (
-        <div className="diagnostic-invocation-grid" data-testid="diagnostic-invocation-evaluation">
-          {evaluation!.repetition != null && (
-            <div className="diagnostic-invocation-item">
-              <span className="diagnostic-invocation-label">Repetición</span>
-              <span className="diagnostic-invocation-value">{evaluation!.repetition}</span>
-            </div>
-          )}
-          <div className="diagnostic-invocation-item">
-            <span className="diagnostic-invocation-label">Errores del contrato</span>
-            <span className="diagnostic-invocation-value">
-              {evalField(evaluation!.contractErrorsCount, (v) => `${v} error${v === 1 ? '' : 'es'}`)}
-            </span>
-          </div>
-          <div className="diagnostic-invocation-item">
-            <span className="diagnostic-invocation-label">Claims sin soporte</span>
-            <span className="diagnostic-invocation-value">
-              {evalField(evaluation!.unsupportedClaimsCount, (v) => `${v} claim${v === 1 ? '' : 's'}`)}
-            </span>
-          </div>
-          <div className="diagnostic-invocation-item">
-            <span className="diagnostic-invocation-label">Muestras problemáticas ancladas</span>
-            <span className="diagnostic-invocation-value">
-              {evalField(evaluation!.anchoredBadSampleRefsCount, (v) => `${v} referencia${v === 1 ? '' : 's'}`)}
-            </span>
-          </div>
-          <div className="diagnostic-invocation-item">
-            <span className="diagnostic-invocation-label">Estado de sintaxis</span>
-            <span className="diagnostic-invocation-value">{statusIndicator(evaluation!.syntaxValid, 'Verificado', 'Fallido')}</span>
-          </div>
-          <div className="diagnostic-invocation-item">
-            <span className="diagnostic-invocation-label">Estado de ejecución Python</span>
-            <span className="diagnostic-invocation-value">
-              {evaluation!.pythonExecutionStatus ?? <span className="diagnostic-invocation-muted">No ejecutado</span>}
-            </span>
-          </div>
-          <div className="diagnostic-invocation-item">
-            <span className="diagnostic-invocation-label">Estado de reauditoría</span>
-            <span className="diagnostic-invocation-value">
-              {evaluation!.reauditSummary ?? <span className="diagnostic-invocation-muted">No realizada</span>}
-            </span>
-          </div>
-        </div>
-      )}
     </section>
+  );
+};
+
+const DiagnosticDecisionBrief: React.FC<{ presentation: DiagnosticPresentation }> = ({ presentation }) => (
+  <section
+    className={`diagnostic-report-decision diagnostic-report-decision--${presentation.decision.tone}`}
+    data-testid="diagnostic-report-decision"
+  >
+    <div>
+      <p className="sec-eye">lectura principal</p>
+      <h3>{presentation.decision.title}</h3>
+      <p>{presentation.decision.body}</p>
+    </div>
+    <div className="diagnostic-report-decision-aside">
+      <span>Siguiente paso</span>
+      <strong>Revisar y decidir</strong>
+      <p>Puedes exportar el informe o corregir una copia del dataset.</p>
+    </div>
+  </section>
+);
+
+const TechnicalEvidenceDisclosure: React.FC<{ report: DiagnosticReport }> = ({ report }) => {
+  const serialized = useMemo(() => JSON.stringify(report, null, 2), [report]);
+
+  return (
+    <details className="diagnostic-report-tech-disclosure" data-testid="diagnostic-report-tech-disclosure">
+      <summary className="diagnostic-report-tech-summary">
+        <ChevronDown size={14} className="diagnostic-report-tech-chevron" />
+        <span>Ver evidencia técnica</span>
+        <span className="diagnostic-report-tech-hint">metadatos y expediente serializado para auditoría</span>
+      </summary>
+      <div className="diagnostic-report-tech-body">
+        <section className="diagnostic-report-tech-section">
+          <h4>Metadatos del informe</h4>
+          <dl className="diagnostic-report-tech-meta">
+            <dt>Identificador</dt>
+            <dd><code>{report.metadata.reportId}</code></dd>
+            <dt>Versión</dt>
+            <dd><code>{report.metadata.version}</code></dd>
+            <dt>Huella del dataset</dt>
+            <dd><code>{report.metadata.sourceDatasetFingerprint}</code></dd>
+            <dt>Delimitador</dt>
+            <dd><code>{report.metadata.delimiter}</code></dd>
+            <dt>Fuente del diagnóstico</dt>
+            <dd><code>{formatDiagnosticSourceLabel(report.diagnosisSummary.source)}</code></dd>
+          </dl>
+        </section>
+        <section className="diagnostic-report-tech-section">
+          <SyntaxDisplay filename="diagnostic-report.json" content={serialized} maxHeight={360} />
+        </section>
+      </div>
+    </details>
   );
 };
 
 const DiagnosticReportStep: React.FC<DiagnosticReportStepProps> = ({
   diagnosticReport,
-  evaluationSummary,
   onExportMain,
   onGenerateScript,
   onBackToDiagnosis,
 }) => {
-  const presentation = useMemo(() => buildDiagnosticPresentation(diagnosticReport), [diagnosticReport]);
+  const presentation = useMemo(
+    () => buildDiagnosticPresentation(diagnosticReport),
+    [diagnosticReport],
+  );
   const observations = diagnosticReport.diagnosisSummary.observations.slice(0, 3);
+  const hasPrimaryFindings = diagnosticReport.findingGroups.confirmedRisks.length > 0
+    || diagnosticReport.findingGroups.humanReviewRequired.length > 0
+    || diagnosticReport.findingGroups.possibleFalsePositiveCandidates.length > 0;
 
   return (
     <>
@@ -433,15 +272,15 @@ const DiagnosticReportStep: React.FC<DiagnosticReportStepProps> = ({
         <div className="diagnostic-report-hero" data-testid="diagnostic-report-header">
           <div>
             <p className="sec-eye">REPORTE DIAGNÓSTICO</p>
-            <h2 className="sec-title">Informe diagnóstico de calidad del dato</h2>
+            <h2 className="sec-title">Qué encontró AURA y qué puedes hacer</h2>
             <p className="section-note">{subtitleByStatus[diagnosticReport.status.diagnosticStatus]}</p>
-            <p className="section-note diagnostic-report-hero-desc">
-              AURA consolida los hallazgos deterministas y la interpretación asistida por IA en un informe legible, trazable y orientado a decisión.
-            </p>
           </div>
           <div className="diagnostic-report-actions diagnostic-report-actions--top">
-            <button className="btn-p" onClick={onExportMain} data-testid="diagnostic-report-export-main">
-              <ArrowRight size={14} /> Ir a la Exportación
+            <button className="btn-p" onClick={onGenerateScript} data-testid="diagnostic-report-generate-script-top">
+              <FileCode2 size={14} /> Corregir una copia
+            </button>
+            <button className="btn-s" onClick={onExportMain} data-testid="diagnostic-report-export-main">
+              <ArrowRight size={14} /> Exportar informe
             </button>
             <button className="btn-s" onClick={onBackToDiagnosis} data-testid="diagnostic-report-back-diagnosis">
               <RotateCcw size={14} /> Volver al diagnóstico
@@ -449,117 +288,113 @@ const DiagnosticReportStep: React.FC<DiagnosticReportStepProps> = ({
           </div>
         </div>
 
-      <DatasetSummaryStrip report={diagnosticReport} />
+        <DatasetSummaryStrip report={diagnosticReport} />
+        <DiagnosticInvocationSummary report={diagnosticReport} />
+        <DiagnosticDecisionBrief presentation={presentation} />
 
-      <DiagnosticInvocationSummary report={diagnosticReport} evaluation={evaluationSummary} />
-
-      <DiagnosticDecisionBrief presentation={presentation} />
-
-      <section className="diagnostic-report-executive" data-testid="diagnostic-report-executive-summary">
-        <div className="diagnostic-report-section-head">
-          <div>
-            <p className="sec-eye">resumen ejecutivo</p>
-            <h3>Resumen ejecutivo</h3>
+        <section className="diagnostic-report-executive" data-testid="diagnostic-report-executive-summary">
+          <div className="diagnostic-report-section-head">
+            <div>
+              <p className="sec-eye">en pocas palabras</p>
+              <h3>Conclusión del análisis</h3>
+            </div>
+            <span className="diagnostic-report-badge">{presentation.sourceLabel}</span>
           </div>
-          <span className="diagnostic-report-badge">{presentation.sourceLabel}</span>
-        </div>
-        {presentation.executiveSummary ? (
-          <>
-            <p>{presentation.executiveSummary}</p>
-            {observations.length > 0 && (
-              <div className="diagnostic-report-observations">
-                <span>Lecturas relevantes</span>
-                <ol>
-                  {observations.map((observation) => (
-                    <li key={observation.id}>{observation.text}</li>
-                  ))}
-                </ol>
-              </div>
-            )}
-            {diagnosticReport.diagnosisSummary.limitations.length > 0 && (
-              <div className="diagnostic-report-limitations">
-                <span>Limitaciones visibles</span>
-                <ul>
-                  {diagnosticReport.diagnosisSummary.limitations.slice(0, 3).map((limitation) => (
-                    <li key={limitation}>{limitation}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </>
-        ) : (
-          <p className="diagnostic-report-empty">
-            No hay suficiente información asistida para construir un resumen ejecutivo. Puedes volver al diagnóstico o continuar con la evidencia determinista disponible.
-          </p>
-        )}
+          {presentation.executiveSummary ? (
+            <>
+              <p>{presentation.executiveSummary}</p>
+              {observations.length > 0 && (
+                <div className="diagnostic-report-observations">
+                  <span>Puntos importantes</span>
+                  <ol>
+                    {observations.map((observation) => (
+                      <li key={observation.id}>{observation.text}</li>
+                    ))}
+                  </ol>
+                </div>
+              )}
+            </>
+          ) : (
+            <p className="diagnostic-report-empty">
+              El informe se basa en los hallazgos deterministas disponibles. Puedes revisarlos y preparar una corrección sobre una copia.
+            </p>
+          )}
+        </section>
+
+        <section className="diagnostic-report-executive" data-testid="diagnostic-report-findings">
+          <div className="diagnostic-report-section-head">
+            <div>
+              <p className="sec-eye">hallazgos</p>
+              <h3>Problemas que requieren atención</h3>
+            </div>
+          </div>
+          {hasPrimaryFindings ? (
+            <div className="diagnostic-report-findings-grid">
+              <FindingsGroupWithOverflow
+                title="Riesgos confirmados"
+                description="Problemas detectados por reglas deterministas y respaldados por evidencia del dataset."
+                findings={diagnosticReport.findingGroups.confirmedRisks}
+                testId="diagnostic-report-confirmed-risks"
+              />
+              {diagnosticReport.findingGroups.humanReviewRequired.length > 0 && (
+                <FindingsGroupWithOverflow
+                  title="Necesitan decisión humana"
+                  description="Casos que dependen del contexto y no deben corregirse automáticamente."
+                  findings={diagnosticReport.findingGroups.humanReviewRequired}
+                  testId="diagnostic-report-human-review"
+                />
+              )}
+              {diagnosticReport.findingGroups.possibleFalsePositiveCandidates.length > 0 && (
+                <FindingsGroupWithOverflow
+                  title="Revisar antes de corregir"
+                  description="Posibles falsos positivos que necesitan contexto adicional."
+                  findings={diagnosticReport.findingGroups.possibleFalsePositiveCandidates}
+                  testId="diagnostic-report-false-positive-candidates"
+                  falsePositiveContext
+                />
+              )}
+            </div>
+          ) : (
+            <p className="diagnostic-report-empty">No hay hallazgos prioritarios para mostrar.</p>
+          )}
+        </section>
+
+        <section className="diagnostic-report-executive" data-testid="diagnostic-report-recommendations">
+          <div className="diagnostic-report-section-head">
+            <div>
+              <p className="sec-eye">acciones sugeridas</p>
+              <h3>Qué conviene hacer</h3>
+            </div>
+          </div>
+          <DiagnosticRecommendationsPanel recommendations={diagnosticReport.recommendations} />
+        </section>
+
+        <section className="diagnostic-report-remediation-lite" data-testid="diagnostic-report-remediation">
+          <div>
+            <p className="sec-eye">siguiente paso</p>
+            <h3>Corregir una copia del dataset</h3>
+            <p>
+              AURA puede preparar un script revisable para los hallazgos corregibles. El archivo original no se modifica y ninguna acción se aplica sin tu aprobación.
+            </p>
+          </div>
+          <button className="btn-p" onClick={onGenerateScript} data-testid="diagnostic-report-generate-script">
+            <FileCode2 size={14} /> Generar script de limpieza
+          </button>
+        </section>
+
+        <section className="diagnostic-report-governance-card" data-testid="diagnostic-report-export-choice">
+          <div className="diagnostic-report-governance-head">
+            <ShieldCheck size={16} />
+            <strong>¿Solo necesitas el informe?</strong>
+          </div>
+          <p>Puedes exportar los resultados sin generar ni ejecutar un script.</p>
+          <button className="btn-s" onClick={onExportMain}>
+            <ArrowRight size={14} /> Ir a exportación
+          </button>
+        </section>
       </section>
 
-      <ReportDisclosure
-        title="Ver gráficos del informe"
-        hint="visualizaciones solo cuando aportan lectura"
-        testId="diagnostic-report-chart-disclosure"
-      >
-        <DiagnosticReportChartPreview chartSpecs={diagnosticReport.chartSpecs} />
-      </ReportDisclosure>
-
-      <ReportDisclosure
-        title="Ver hallazgos agrupados"
-        hint="riesgos, falsos positivos y revisión humana"
-        testId="diagnostic-report-findings-disclosure"
-      >
-        <div className="diagnostic-report-findings-grid">
-          <FindingsGroupWithOverflow
-            title="Riesgos confirmados"
-            description="Hallazgos deterministas que se mantienen como riesgos relevantes del dataset."
-            findings={diagnosticReport.findingGroups.confirmedRisks}
-            testId="diagnostic-report-confirmed-risks"
-          />
-          <FindingsGroupWithOverflow
-            title="Posibles falsos positivos contextuales"
-            description="Candidatos que podrían requerir contexto adicional antes de remediar o descartar."
-            findings={diagnosticReport.findingGroups.possibleFalsePositiveCandidates}
-            testId="diagnostic-report-false-positive-candidates"
-            falsePositiveContext
-          />
-          <FindingsGroupWithOverflow
-            title="Requieren revisión humana"
-            description="Elementos donde la decisión de dominio no debe automatizarse."
-            findings={diagnosticReport.findingGroups.humanReviewRequired}
-            testId="diagnostic-report-human-review"
-          />
-          <FindingsGroupWithOverflow
-            title="Candidatos de remediación opcional"
-            description="Hallazgos donde AURA puede ayudar a preparar un script, sin convertirlo en requisito."
-            findings={diagnosticReport.findingGroups.optionalRemediationCandidates}
-            testId="diagnostic-report-optional-remediation"
-          />
-        </div>
-      </ReportDisclosure>
-
-      <ReportDisclosure
-        title="Ver recomendaciones y límites"
-        hint="acciones sugeridas y alcance defendible"
-        testId="diagnostic-report-recommendations-disclosure"
-      >
-        <DiagnosticRecommendationsPanel recommendations={diagnosticReport.recommendations} />
-        <GovernanceSummary presentation={presentation} />
-      </ReportDisclosure>
-
-      <ReportDisclosure
-        title="Remediación opcional"
-        hint="preparar script solo si decides limpiar después de revisar"
-        testId="diagnostic-report-remediation-disclosure"
-      >
-        <div className="diagnostic-report-remediation-lite">
-          <p>La exportación del informe no depende de un script. Usa esta opción solo si quieres preparar una limpieza revisable aparte.</p>
-          <button className="btn-s" onClick={onGenerateScript} data-testid="diagnostic-report-generate-script">
-            <FileCode2 size={14} /> Preparar script revisable
-          </button>
-        </div>
-      </ReportDisclosure>
-    </section>
-
-    <TechnicalEvidenceDisclosure report={diagnosticReport} />
+      <TechnicalEvidenceDisclosure report={diagnosticReport} />
     </>
   );
 };
