@@ -529,6 +529,28 @@ export function buildPowerShellCurlCommand(endpoint: string, origin: string): st
   return `curl.exe -i -H "Origin: ${origin}" ${base}/api/tags`;
 }
 
+/**
+ * macOS service setup used by the in-product assistant.
+ *
+ * Homebrew already owns port 11434 when its service is running, so starting a
+ * second `ollama serve` process is both unnecessary and misleading. Restarting
+ * the service is what makes the existing process inherit OLLAMA_ORIGINS.
+ */
+export function buildMacOSHomebrewSetupCommand(origin: string): string {
+  return [
+    'brew services list | grep ollama',
+    `launchctl setenv OLLAMA_ORIGINS "${origin}"`,
+    'brew services restart ollama',
+  ].join('\n');
+}
+
+export function buildMacOSAppSetupCommand(origin: string): string {
+  return [
+    `launchctl setenv OLLAMA_ORIGINS "${origin}"`,
+    'open -a Ollama',
+  ].join('\n');
+}
+
 export function buildVerifyEnvCommand(os: string, origin: string): string {
   switch (os.toLowerCase()) {
     case 'macos':

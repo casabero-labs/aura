@@ -93,13 +93,14 @@ P1-04 cierra la claridad UX, trazabilidad y exportaciones:
 - Nueva sesión: diálogo modal con descripción de eliminación, preservación y aviso de irreversibilidad.
 - Exportaciones: descripciones de cada artefacto; nota de validez sobre recibos requeridos.
 - Ollama: asistente React integrado con verificación de conexión, descarga real de los tres modelos recomendados, progreso y registro técnico visible. La antigua implementación HTML quedó reducida a una redirección segura de compatibilidad.
+- macOS: el asistente distingue el servicio Homebrew de la aplicación. Si Homebrew ya ocupa el puerto 11434, indica `launchctl setenv OLLAMA_ORIGINS "https://aura.casabero.com"` seguido de `brew services restart ollama`; ya no recomienda iniciar un segundo `ollama serve`. También explica el error `bind: address already in use`, ofrece verificación CORS copiable y recuerda repetir la autorización después de reiniciar macOS si fuera necesario.
 - Matriz corregida antes de la primera corrida: Qwen3 8B (5.14 GB), Gemma 4 E4B IT QAT (4.22 GB) y SmolLM3 3B (1.94 GB). SmolLM3 sustituye a DeepSeek para trabajar con margen en el MacBook Air M4 de 16 GB; los tres comandos `ollama run` se pueden copiar desde el asistente.
 - Configuraciones locales o sincronizadas que todavía apunten a los dos modelos retirados se migran automáticamente a Gemma 4 y SmolLM3; no se conserva un selector inválido después de actualizar AURA.
 - Estilo técnico: un único componente `SyntaxDisplay`, fiel a `showcase-ink`, presenta logs, JSON, prompts, respuestas y salidas del Laboratorio con cabecera clara, cuerpo gris, JetBrains Mono, sombra sutil y copia. Los terminales oscuros aislados fueron retirados.
 - Configuración: eliminados los enlaces sin destino a configuración avanzada y laboratorio experimental.
 - Despliegue: el oráculo formal conserva una copia desplegable dentro de `src`, verificada byte a byte contra la fuente canónica de `experiments`, para que el build aislado de Coolify no pierda evidencia.
 
-**P1-04 COMPLETO.** Suite 1741 tests, typecheck y build en verde; 10/10 E2E focales aprobados en Chromium, incluida la verificación visual computada del Syntax display, los tres comandos formales y la navegación actual de Laboratorio.
+**P1-04 COMPLETO.** Suite 1744 tests, typecheck y build en verde; el E2E focal de Ollama/macOS y los 10/10 E2E de cierre fueron aprobados en Chromium, incluida la verificación visual computada del Syntax display, los tres comandos formales, el reinicio de Homebrew y la navegación actual de Laboratorio.
 
 ## Pendientes no cubiertos por P1
 
@@ -108,7 +109,19 @@ P1-04 cierra la claridad UX, trazabilidad y exportaciones:
 | Área | Pendiente |
 |---|---|
 | Script | Recibo verificable implementado; falta ejecutar los nueve representantes reales |
-| Smokes | Instalar/verificar los tres modelos Ollama; ejecutar 1×3×1 y 3×1×1 |
+| Smokes | Tres modelos instalados y conexión local autorizada; falta ejecutar 1×3×1 y 3×1×1 |
+
+## Verificación local de Ollama (12 julio 2026)
+
+En el MacBook Air M4 de referencia se comprobó:
+
+- servicio Homebrew `ollama` iniciado y reiniciado después de configurar `OLLAMA_ORIGINS`;
+- Ollama cliente/servidor `0.31.1` después del reinicio;
+- tres modelos formales presentes en `ollama list`;
+- petición con origen `https://aura.casabero.com` → `HTTP 200` y `Access-Control-Allow-Origin` correcto;
+- preflight del navegador hacia `/api/chat` → `HTTP 204` con `GET/POST/OPTIONS` autorizados.
+
+Esta verificación cierra instalación y autorización local. No sustituye los smokes del diagnóstico ni autoriza todavía las 45 corridas.
 
 ## Gates obligatorios antes de la campaña completa
 
@@ -132,7 +145,7 @@ Antes de lanzar los 45 diagnósticos reales, cada uno de los siguientes gates de
 
 ## Hoja de ruta desde este punto
 
-1. Instalar/verificar los tres modelos formales en Ollama.
+1. ~~Instalar/verificar los tres modelos formales y autorizar Ollama en macOS.~~ Completado el 12 de julio de 2026.
 2. Ejecutar primero los smokes reales: 1×3×1 y 3×1×1.
 3. Si ambos pasan, ejecutar manualmente la campaña completa de 45 diagnósticos.
 4. Evaluar la rúbrica humana, aprobar o rechazar los nueve representantes,

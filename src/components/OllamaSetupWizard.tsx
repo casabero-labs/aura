@@ -13,6 +13,9 @@ import {
   Zap,
 } from 'lucide-react';
 import {
+  buildCurlCommand,
+  buildMacOSAppSetupCommand,
+  buildMacOSHomebrewSetupCommand,
   diagnoseOllamaLocal,
   fetchOllamaModels,
   isModelHeavy,
@@ -79,13 +82,10 @@ const INSTRUCTIONS_WINDOWS = [
 ];
 
 const INSTRUCTIONS_MACOS = [
-  '1. Cierra Ollama desde la barra de menús.',
-  '2. Abre Terminal.',
-  `3. Ejecuta: launchctl setenv OLLAMA_ORIGINS "${ORIGIN}"`,
-  '4. Abre Ollama nuevamente desde Aplicaciones.',
-  '',
-  'O inicia el servidor manualmente:',
-  `OLLAMA_ORIGINS="${ORIGIN}" ollama serve`,
+  '1. Abre Terminal y comprueba cómo está iniciado Ollama.',
+  '2. Si Homebrew muestra “started”, usa el bloque Homebrew completo.',
+  '3. Si usas la aplicación, ciérrala desde la barra de menús antes de usar el bloque Aplicación.',
+  '4. Verifica la autorización y vuelve a AURA.',
 ];
 
 const INSTRUCTIONS_LINUX = [
@@ -172,11 +172,29 @@ const matchesModel = (installedName: string, expectedId: string): boolean => {
   return installed === expected || installed.startsWith(`${expected}@`);
 };
 
-const friendlyScanFallback = (endpoint: string): string => (
+const friendlyScanFallback = (endpoint: string, os: DesktopOS): string => (
   `AURA no pudo consultar ${endpoint}/api/tags. `
-  + 'Confirma que Ollama esté abierto, reinícialo después de configurar OLLAMA_ORIGINS '
+  + `Confirma que Ollama esté abierto, ${os === 'macos' ? 'reinicia el servicio o la aplicación' : 'reinícialo'} después de configurar OLLAMA_ORIGINS `
   + 'y permite el acceso a la red local cuando Chrome o Edge lo soliciten.'
 );
+
+const getScanRecoveryActions = (os: DesktopOS): string[] => {
+  if (os === 'macos') {
+    return [
+      'Si Homebrew muestra Ollama como started, no ejecutes ollama serve: el puerto 11434 ya está ocupado por el servicio correcto.',
+      `Ejecuta launchctl setenv OLLAMA_ORIGINS "${ORIGIN}" y después brew services restart ollama.`,
+      'Si usas la aplicación Ollama, ciérrala completamente y vuelve a abrirla después de configurar la variable.',
+      'Comprueba que la respuesta incluya HTTP 200 y Access-Control-Allow-Origin, y vuelve a escanear.',
+    ];
+  }
+
+  return [
+    'Comprueba que Ollama esté abierto y responda en el puerto 11434.',
+    `Configura OLLAMA_ORIGINS="${ORIGIN}" y reinicia Ollama completamente.`,
+    'En Chrome o Edge, permite el acceso a dispositivos de la red local.',
+    'Vuelve a escanear después de completar estos pasos.',
+  ];
+};
 
 export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
   endpoint,
@@ -224,6 +242,12 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
   const currentOS = overrideOS ?? platform.os;
   const osLabel = getOSLabel(currentOS);
   const normalizedEndpoint = normalizeEndpoint(endpoint);
+  const macOSHomebrewCommand = useMemo(() => buildMacOSHomebrewSetupCommand(ORIGIN), []);
+  const macOSAppCommand = useMemo(() => buildMacOSAppSetupCommand(ORIGIN), []);
+  const macOSVerifyCommand = useMemo(
+    () => buildCurlCommand(normalizedEndpoint, ORIGIN),
+    [normalizedEndpoint],
+  );
 
   const campaignModelStatus = useMemo(() => FINAL_EVALUATION_OLLAMA_MODELS.map(model => ({
     ...model,
@@ -280,15 +304,15 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
       if (connectionDiagnostic && connectionDiagnostic.status !== 'ready') {
         const status = STATUS_INFO[connectionDiagnostic.status];
         setScanError(`${status.title}. ${connectionDiagnostic.message}`);
-        setScanActions(connectionDiagnostic.recommendedActions);
+        setScanActions(currentOS === 'macos'
+          ? Array.from(new Set([
+            ...connectionDiagnostic.recommendedActions,
+            ...getScanRecoveryActions(currentOS),
+          ]))
+          : connectionDiagnostic.recommendedActions);
       } else {
-        setScanError(friendlyScanFallback(normalizedEndpoint));
-        setScanActions([
-          'Comprueba que Ollama esté abierto y responda en el puerto 11434.',
-          `Configura OLLAMA_ORIGINS="${ORIGIN}" y reinicia Ollama completamente.`,
-          'En Chrome o Edge, permite el acceso a dispositivos de la red local.',
-          'Vuelve a escanear después de completar estos pasos.',
-        ]);
+        setScanError(friendlyScanFallback(normalizedEndpoint, currentOS));
+        setScanActions(getScanRecoveryActions(currentOS));
       }
       appendLog('error', connectionDiagnostic?.message ?? 'No se pudo consultar la lista de modelos.');
 
@@ -298,7 +322,7 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
     } finally {
       setIsScanning(false);
     }
-  }, [appendLog, normalizedEndpoint]);
+  }, [appendLog, currentOS, normalizedEndpoint]);
 
   const handleDownloadModel = useCallback(async (model: (typeof campaignModelStatus)[number]) => {
     setDownloads((current) => ({
@@ -471,6 +495,68 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
               </p>
             ))}
           </div>
+          {currentOS === 'macos' && (
+            <div className="ollama-wizard-macos-paths" data-testid="ollama-macos-service-guide">
+              <div className="ollama-wizard-subsection">
+                <strong>Opción recomendada · servicio Homebrew</strong>
+                <p className="ollama-wizard-text">
+                  Si la primera línea muestra Ollama como <code>started</code>, ejecuta las tres líneas.
+                  El reinicio conserva los modelos descargados y hace que el servicio tome la autorización.
+                </p>
+                <SyntaxDisplay
+                  filename="Terminal · Homebrew"
+                  content={macOSHomebrewCommand}
+                  contentTestId="ollama-macos-homebrew-command"
+                  wrap={false}
+                />
+              </div>
+
+              <div
+                className="ollama-wizard-service-warning"
+                data-testid="ollama-macos-address-in-use"
+                role="note"
+              >
+                <AlertCircle size={15} />
+                <p>
+                  <strong>Si aparece “bind: address already in use”:</strong> Ollama ya está usando el
+                  puerto 11434. No ejecutes otro <code>ollama serve</code>; usa
+                  <code> brew services restart ollama</code>.
+                </p>
+              </div>
+
+              <div className="ollama-wizard-subsection">
+                <strong>Alternativa · aplicación Ollama</strong>
+                <p className="ollama-wizard-text">
+                  Cierra completamente Ollama desde la barra de menús y después ejecuta este bloque.
+                </p>
+                <SyntaxDisplay
+                  filename="Terminal · Aplicación"
+                  content={macOSAppCommand}
+                  contentTestId="ollama-macos-app-command"
+                  wrap={false}
+                />
+              </div>
+
+              <div className="ollama-wizard-subsection">
+                <strong>Comprobar autorización</strong>
+                <p className="ollama-wizard-text">
+                  La respuesta correcta debe incluir <code>HTTP/1.1 200 OK</code> y
+                  <code> Access-Control-Allow-Origin: {ORIGIN}</code>.
+                </p>
+                <SyntaxDisplay
+                  filename="Terminal · Verificación"
+                  content={macOSVerifyCommand}
+                  contentTestId="ollama-macos-verify-command"
+                  wrap={false}
+                />
+              </div>
+
+              <p className="ollama-wizard-note">
+                Después de reiniciar macOS, si AURA pierde el permiso, repite el bloque correspondiente.
+                AURA no puede ejecutar comandos de Terminal automáticamente por seguridad del navegador.
+              </p>
+            </div>
+          )}
           {currentOS === 'windows' && (
             <div className="ollama-wizard-subsection">
               <strong>PowerShell:</strong>

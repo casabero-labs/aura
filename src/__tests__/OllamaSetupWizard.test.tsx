@@ -9,6 +9,20 @@ import { FINAL_EVALUATION_OLLAMA_MODEL_IDS } from '../services/modelRegistry';
 afterEach(() => vi.unstubAllGlobals());
 
 describe('OllamaSetupWizard', () => {
+  it('guides macOS Homebrew users without launching a duplicate Ollama server', () => {
+    render(<OllamaSetupWizard endpoint="http://127.0.0.1:11434" />);
+    fireEvent.click(screen.getByRole('button', { name: 'Continuar' }));
+    fireEvent.click(screen.getByRole('button', { name: 'macOS' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continuar' }));
+
+    expect(screen.getByTestId('ollama-macos-service-guide')).toBeTruthy();
+    expect(screen.getByTestId('ollama-macos-homebrew-command').textContent).toContain('brew services restart ollama');
+    expect(screen.getByTestId('ollama-macos-app-command').textContent).toContain('open -a Ollama');
+    expect(screen.getByTestId('ollama-macos-verify-command').textContent).toContain('Origin:');
+    expect(screen.getByTestId('ollama-macos-address-in-use').textContent).toContain('bind: address already in use');
+    expect(screen.getByTestId('ollama-macos-service-guide').textContent).not.toContain('OLLAMA_ORIGINS="http://localhost:3000" ollama serve');
+  });
+
   it('downloads a recommended model and exposes the real progress reported by Ollama', async () => {
     const model = FINAL_EVALUATION_OLLAMA_MODEL_IDS[0];
     const stream = [

@@ -67,3 +67,25 @@ Instalar/verificar los tres modelos Ollama, ejecutar smoke 1×3×1, luego 3×1×
 - Gates de campaña restaurados en NEXT_STEPS.
 - Validaciones ejecutadas localmente: 1744 tests, typecheck, build, 4 E2E → verde.
 - No se usaron modelos reales.
+
+## Addendum P1-04R2 — Servicio Ollama en macOS
+
+La validación manual del equipo de referencia detectó una ambigüedad real del
+asistente: después de ejecutar `launchctl setenv`, la alternativa
+`ollama serve` intentaba abrir un segundo proceso aunque Homebrew ya escuchaba
+en `127.0.0.1:11434`. El resultado era
+`bind: address already in use` y el proceso anterior seguía sin heredar
+`OLLAMA_ORIGINS`.
+
+Se corrigió el asistente con estas reglas:
+
+1. si `brew services list` muestra Ollama como `started`, configurar el origen y ejecutar `brew services restart ollama`;
+2. si se usa la aplicación, cerrarla completamente, configurar el origen y abrirla de nuevo;
+3. nunca iniciar un segundo `ollama serve` cuando el puerto 11434 ya está ocupado;
+4. verificar desde Terminal que `/api/tags` responde `HTTP 200` y devuelve `Access-Control-Allow-Origin` para AURA;
+5. advertir que el navegador no puede ejecutar comandos de Terminal automáticamente y que la autorización puede requerir repetición después de reiniciar macOS.
+
+En el equipo de referencia quedaron verificados Ollama `0.31.1`, los tres
+modelos formales, CORS `200` para `/api/tags` y preflight `204` para
+`/api/chat`. Esto prueba instalación y autorización local, no los smokes del
+diagnóstico ni la campaña de 45 corridas.

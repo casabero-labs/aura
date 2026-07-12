@@ -5,6 +5,8 @@ import {
   classifyEndpointHost,
   buildCopyableDiagnostic,
   buildCurlCommand,
+  buildMacOSAppSetupCommand,
+  buildMacOSHomebrewSetupCommand,
   buildPowerShellCurlCommand,
   buildVerifyEnvCommand,
   isModelHeavy,
@@ -205,6 +207,25 @@ describe('ollamaLocalBridge', () => {
       expect(cmd).toContain('curl.exe -i');
       expect(cmd).toContain('Origin: https://aura.casabero.com');
       expect(cmd).toContain('http://127.0.0.1:11434/api/tags');
+    });
+  });
+
+  describe('macOS setup commands', () => {
+    it('restarts the existing Homebrew service instead of starting a second server', () => {
+      const cmd = buildMacOSHomebrewSetupCommand('https://aura.casabero.com');
+
+      expect(cmd).toContain('brew services list | grep ollama');
+      expect(cmd).toContain('launchctl setenv OLLAMA_ORIGINS "https://aura.casabero.com"');
+      expect(cmd).toContain('brew services restart ollama');
+      expect(cmd).not.toContain('ollama serve');
+    });
+
+    it('reopens the desktop application only after setting the allowed origin', () => {
+      const cmd = buildMacOSAppSetupCommand('https://aura.casabero.com');
+
+      expect(cmd).toContain('launchctl setenv OLLAMA_ORIGINS "https://aura.casabero.com"');
+      expect(cmd).toContain('open -a Ollama');
+      expect(cmd).not.toContain('ollama serve');
     });
   });
 

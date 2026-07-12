@@ -35,7 +35,17 @@ test.describe('Syntax display — estándar showcase-ink', () => {
     expect(colors.shadow).not.toBe('none');
 
     await page.getByRole('button', { name: 'Continuar' }).click();
+    await page.getByRole('button', { name: 'macOS' }).click();
     await page.getByRole('button', { name: 'Continuar' }).click();
+
+    const macOSGuide = page.getByTestId('ollama-macos-service-guide');
+    await expect(macOSGuide).toBeVisible();
+    await expect(page.getByTestId('ollama-macos-homebrew-command')).toContainText('brew services restart ollama');
+    await expect(page.getByTestId('ollama-macos-app-command')).toContainText('open -a Ollama');
+    await expect(page.getByTestId('ollama-macos-verify-command')).toContainText('Origin: http://127.0.0.1:3000');
+    await expect(page.getByTestId('ollama-macos-address-in-use')).toContainText('bind: address already in use');
+    await expect(page.getByTestId('ollama-macos-homebrew-command')).not.toContainText('ollama serve');
+
     await page.getByRole('button', { name: 'Ya configuré y reinicié Ollama' }).click();
 
     const commands = [

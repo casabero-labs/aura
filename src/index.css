@@ -12668,6 +12668,52 @@ tr:hover td {
   margin-bottom: var(--space-xs);
 }
 
+.ollama-wizard-macos-paths {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.ollama-wizard-macos-paths .ollama-wizard-subsection {
+  margin: 0;
+  padding: var(--space-md);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-card-subtle);
+}
+
+.ollama-wizard-macos-paths .syntax-display {
+  margin-top: var(--space-sm);
+}
+
+.ollama-wizard-service-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border: 1px solid color-mix(in srgb, var(--orange) 38%, var(--border));
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--orange) 7%, var(--bg));
+  color: var(--ink2);
+}
+
+.ollama-wizard-service-warning svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: var(--orange);
+}
+
+.ollama-wizard-service-warning p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.ollama-wizard-service-warning code {
+  font-family: var(--font-mono);
+  color: var(--ink);
+}
+
 .ollama-wizard-code-block {
   padding: var(--space-sm) var(--space-md);
   background: var(--bg);
