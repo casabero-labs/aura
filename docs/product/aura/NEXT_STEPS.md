@@ -76,16 +76,18 @@ Además, el producto tiene las siguientes limitaciones conocidas:
 
 ## Hoja de ruta desde este punto
 
-1. Implementar métricas reales: `unsupportedClaims`, anclaje real de
-   `badSampleRefs`, cumplimiento derivado y procedencia de validación Python.
-2. Cerrar la claridad de Reporte diagnóstico, Trazabilidad técnica,
+1. Ejecutar P1-02 según
+   [`2026-07-12-p1-metricas-diagnostico-reales.md`](../../plans/2026-07-12-p1-metricas-diagnostico-reales.md):
+   `unsupportedClaims`, anclaje real, cumplimiento derivado y estados no medidos honestos.
+2. Ejecutar P1-03: recibo verificable de compilación y ejecución Python.
+3. Cerrar la claridad de Reporte diagnóstico, Trazabilidad técnica,
    Configuración, nombres del Laboratorio, nueva sesión y exportaciones.
-3. Instalar/verificar los tres modelos formales en Ollama.
-4. Ejecutar primero los smokes reales: 1×3×1 y 3×1×1.
-5. Si ambos pasan, ejecutar manualmente la campaña completa de 45 diagnósticos.
-6. Evaluar la rúbrica humana, aprobar o rechazar los nueve representantes,
+4. Instalar/verificar los tres modelos formales en Ollama.
+5. Ejecutar primero los smokes reales: 1×3×1 y 3×1×1.
+6. Si ambos pasan, ejecutar manualmente la campaña completa de 45 diagnósticos.
+7. Evaluar la rúbrica humana, aprobar o rechazar los nueve representantes,
    ejecutar los scripts aprobados sobre copias y reauditar.
-7. Exportar el expediente final y redactar el documento de depósito.
+8. Exportar el expediente final y redactar el documento de depósito.
 
 No se debe iniciar la campaña completa si falla la igualdad de hashes, cambia
 el modelo observado, falta un calentamiento, una respuesta no supera el
