@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { ExperimentRunV1 } from '../../services/benchmark/experimentTypes';
+import CopyableHash from '../CopyableHash';
 
 interface ExecutionEvidencePanelProps {
   run: ExperimentRunV1;
@@ -80,11 +81,47 @@ const ExecutionEvidencePanel: React.FC<ExecutionEvidencePanelProps> = ({
           <small>{reaudit.outcome}</small>
         </div>
       )}
+      {representative && !run.execution?.pythonReceipt && (
+        <div className="oe4-panel" data-testid="oe4-python-evidence-empty">
+          <div className="oe4-panel-heading"><h2>Evidencia Python</h2></div>
+          <div className="oe4-info">
+            <p data-testid="oe4-python-syntax-not-measured">Sintaxis Python: No medida</p>
+            <p data-testid="oe4-python-execution-not-run">Ejecución Python: No realizada</p>
+            <p data-testid="oe4-python-reaudit-not-run">Reauditoría: No realizada</p>
+          </div>
+        </div>
+      )}
       {run.execution?.pythonReceipt && (
-        <div className="oe4-before-after">
-          <span>Recibo Python</span>
-          <strong>{run.execution.pythonReceipt.syntax.status} / {run.execution.pythonReceipt.execution.status}</strong>
-          <small>{run.execution.pythonReceipt.receiptHash.slice(0, 16)}…</small>
+        <div className="oe4-panel" data-testid="oe4-python-evidence-receipt">
+          <div className="oe4-panel-heading"><h2>Evidencia Python</h2></div>
+          <div className="oe4-info">
+            <p data-testid="oe4-python-syntax-status">Sintaxis: {run.execution.pythonReceipt.syntax.status === 'passed' ? 'Superada' : 'Fallida'}</p>
+            <p data-testid="oe4-python-execution-status">Ejecución: {run.execution.pythonReceipt.execution.status === 'passed' ? 'Superada' : 'Fallida'}</p>
+            <p data-testid="oe4-python-version">Python {run.execution.pythonReceipt.pythonVersion}</p>
+            {run.execution.pythonReceipt.pandasVersion && (
+              <p data-testid="oe4-python-pandas-version">pandas {run.execution.pythonReceipt.pandasVersion}</p>
+            )}
+            <p data-testid="oe4-python-platform">Plataforma: {run.execution.pythonReceipt.platform}</p>
+            {run.execution.pythonReceipt.output && (
+              <p data-testid="oe4-python-output-dimensions">
+                Salida: {run.execution.pythonReceipt.output.rowCount} filas × {run.execution.pythonReceipt.output.columnCount} columnas
+              </p>
+            )}
+            <p data-testid="oe4-python-duration">
+              Duración: {run.execution.pythonReceipt.execution.durationMs}ms
+            </p>
+          </div>
+          <div className="diagnosis-tech-section">
+            <h4 className="diagnosis-tech-section-title">Hashes del recibo Python</h4>
+            <div className="diagnosis-tech-row">
+              <CopyableHash value={run.execution.pythonReceipt.receiptHash} label="Recibo" testId="oe4-python-receipt-hash" />
+              <CopyableHash value={run.execution.pythonReceipt.approvedScriptHash} label="Script" testId="oe4-python-script-hash" />
+              <CopyableHash value={run.execution.pythonReceipt.beforeDatasetSha256} label="Dataset origen" testId="oe4-python-before-hash" />
+              {run.execution.pythonReceipt.afterDatasetSha256 && (
+                <CopyableHash value={run.execution.pythonReceipt.afterDatasetSha256} label="Dataset salida" testId="oe4-python-after-hash" />
+              )}
+            </div>
+          </div>
         </div>
       )}
     </section>

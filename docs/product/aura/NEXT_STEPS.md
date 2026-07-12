@@ -104,6 +104,26 @@ P1-04 cierra la claridad UX, trazabilidad y exportaciones:
 | Script | Recibo verificable implementado; falta ejecutar los nueve representantes reales |
 | Smokes | Instalar/verificar los tres modelos Ollama; ejecutar 1×3×1 y 3×1×1 |
 
+## Gates obligatorios antes de la campaña completa
+
+Antes de lanzar los 45 diagnósticos reales, cada uno de los siguientes gates debe pasar sin fallos:
+
+- Hash del CSV de entrada no coincide con el esperado en el experimento.
+- Versión de Ollama inferior a la requerida (>= 0.5.0).
+- Modelos formales ausentes en la lista de Ollama (qwen2.5:3b, gemma3:4b, mistral:7b).
+- Digest de un modelo descargado no coincide con el digest de referencia.
+- Modelo observado en la respuesta del LLM no coincide con el modelo solicitado.
+- Warmup ausente o incompleto para un bloque de modelo antes de las repeticiones.
+- Un bloque de diagnosis se asocia a un warmup del bloque incorrecto.
+- Contrato de diagnosis devuelve `validationStatus !== 'valid'`.
+- Recibo de ejecución de diagnosis ausente o corrupto.
+- Snapshot de entrada ausente o no corresponde al snapshot canónico del método.
+- Smoke 1×3×1 falla en alguna de las 3 corridas.
+- Smoke 3×1×1 falla en alguna de las 3 corridas.
+- Errores de persistencia en IndexedDB durante la campaña (pérdida de runs tras recarga).
+- Denominador de evaluaciones no coincide con el número de corridas ejecutadas.
+- Sustitución silenciosa: un resultado de una corrida anterior se mezcla con otra sin registro de auditoría.
+
 ## Hoja de ruta desde este punto
 
 1. Instalar/verificar los tres modelos formales en Ollama.

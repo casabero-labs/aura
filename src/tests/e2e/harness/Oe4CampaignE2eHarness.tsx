@@ -14,8 +14,11 @@ declare global {
   interface Window {
     __OE4_E2E_WAITING__?: boolean;
     __OE4_E2E_RELEASE__?: () => void;
+    __OE4_E2E_GENERATE_CALL_COUNT__: number;
   }
 }
+
+window.__OE4_E2E_GENERATE_CALL_COUNT__ = 0;
 
 const planned = (run: ExperimentRunV1): ExperimentRunV1 => ({
   ...run,
@@ -64,6 +67,7 @@ const controlledEvaluation = async (run: ExperimentRunV1): Promise<AutomaticEval
 };
 
 const controlledGenerateText = async (prompt: string, model: string) => {
+    window.__OE4_E2E_GENERATE_CALL_COUNT__ = (window.__OE4_E2E_GENERATE_CALL_COUNT__ ?? 0) + 1;
     if (localStorage.getItem(RELEASE_KEY) !== 'true') {
       window.__OE4_E2E_WAITING__ = true;
       await new Promise<void>((resolve) => {

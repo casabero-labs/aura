@@ -319,13 +319,12 @@ const DiagnosticInvocationSummary: React.FC<{
   const inputMode = report.diagnosisSummary.inputMode ?? '—';
   const latency = report.diagnosisSummary.latencyMs;
   const contractCompliant = receipt?.validationStatus === 'valid';
-  const contractErrorCount = evaluation?.contractErrorsCount ?? 0;
-  const unsupportedCount = evaluation?.unsupportedClaimsCount ?? 0;
-  const badRefsCount = evaluation?.anchoredBadSampleRefsCount ?? 0;
-  const syntaxValid = evaluation?.syntaxValid;
-  const pythonStatus = evaluation?.pythonExecutionStatus;
-  const reaudit = evaluation?.reauditSummary;
-  const repetition = evaluation?.repetition;
+  const hasEvaluation = evaluation != null;
+
+  const evalField = <T,>(value: T | null | undefined, render: (v: T) => React.ReactNode): React.ReactNode => {
+    if (value === null || value === undefined) return <span className="diagnostic-invocation-muted">No medido</span>;
+    return render(value);
+  };
 
   const statusIndicator = (value: boolean | null | undefined, okLabel: string, failLabel: string) => {
     if (value === null || value === undefined) return <span className="diagnostic-invocation-status diagnostic-invocation-status--muted"><HelpCircle size={12} /> No medido</span>;
@@ -355,12 +354,6 @@ const DiagnosticInvocationSummary: React.FC<{
           <span className="diagnostic-invocation-label">Método evaluado</span>
           <span className="diagnostic-invocation-value">{inputMode}</span>
         </div>
-        {repetition !== null && repetition !== undefined && (
-          <div className="diagnostic-invocation-item">
-            <span className="diagnostic-invocation-label">Repetición</span>
-            <span className="diagnostic-invocation-value">{repetition}</span>
-          </div>
-        )}
         <div className="diagnostic-invocation-item">
           <span className="diagnostic-invocation-label">Latencia</span>
           <span className="diagnostic-invocation-value">{latency !== undefined ? `${(latency / 1000).toFixed(1)}s` : '—'}</span>
@@ -371,31 +364,56 @@ const DiagnosticInvocationSummary: React.FC<{
             {receipt
               ? (contractCompliant
                 ? <><CheckCircle size={12} className="diagnostic-invocation-inline-ok" /> Cumple</>
-                : <><XCircle size={12} className="diagnostic-invocation-inline-fail" /> No cumple ({contractErrorCount} error{contractErrorCount === 1 ? '' : 'es'})</>)
+                : <><XCircle size={12} className="diagnostic-invocation-inline-fail" /> No cumple</>)
               : <span className="diagnostic-invocation-muted">No evaluado</span>}
           </span>
         </div>
-        <div className="diagnostic-invocation-item">
-          <span className="diagnostic-invocation-label">Claims sin soporte</span>
-          <span className="diagnostic-invocation-value">{unsupportedCount} claim{unsupportedCount === 1 ? '' : 's'}</span>
-        </div>
-        <div className="diagnostic-invocation-item">
-          <span className="diagnostic-invocation-label">Referencias de muestras inválidas</span>
-          <span className="diagnostic-invocation-value">{badRefsCount} referencia{badRefsCount === 1 ? '' : 's'}</span>
-        </div>
-        <div className="diagnostic-invocation-item">
-          <span className="diagnostic-invocation-label">Estado de sintaxis</span>
-          <span className="diagnostic-invocation-value">{statusIndicator(syntaxValid, 'Verificado', 'Fallido')}</span>
-        </div>
-        <div className="diagnostic-invocation-item">
-          <span className="diagnostic-invocation-label">Estado de ejecución Python</span>
-          <span className="diagnostic-invocation-value">{pythonStatus ?? <span className="diagnostic-invocation-muted">No ejecutado</span>}</span>
-        </div>
-        <div className="diagnostic-invocation-item">
-          <span className="diagnostic-invocation-label">Estado de reauditoría</span>
-          <span className="diagnostic-invocation-value">{reaudit ?? <span className="diagnostic-invocation-muted">No realizada</span>}</span>
-        </div>
       </div>
+
+      {hasEvaluation && (
+        <div className="diagnostic-invocation-grid" data-testid="diagnostic-invocation-evaluation">
+          {evaluation!.repetition != null && (
+            <div className="diagnostic-invocation-item">
+              <span className="diagnostic-invocation-label">Repetición</span>
+              <span className="diagnostic-invocation-value">{evaluation!.repetition}</span>
+            </div>
+          )}
+          <div className="diagnostic-invocation-item">
+            <span className="diagnostic-invocation-label">Errores del contrato</span>
+            <span className="diagnostic-invocation-value">
+              {evalField(evaluation!.contractErrorsCount, (v) => `${v} error${v === 1 ? '' : 'es'}`)}
+            </span>
+          </div>
+          <div className="diagnostic-invocation-item">
+            <span className="diagnostic-invocation-label">Claims sin soporte</span>
+            <span className="diagnostic-invocation-value">
+              {evalField(evaluation!.unsupportedClaimsCount, (v) => `${v} claim${v === 1 ? '' : 's'}`)}
+            </span>
+          </div>
+          <div className="diagnostic-invocation-item">
+            <span className="diagnostic-invocation-label">Referencias de muestras inválidas</span>
+            <span className="diagnostic-invocation-value">
+              {evalField(evaluation!.anchoredBadSampleRefsCount, (v) => `${v} referencia${v === 1 ? '' : 's'}`)}
+            </span>
+          </div>
+          <div className="diagnostic-invocation-item">
+            <span className="diagnostic-invocation-label">Estado de sintaxis</span>
+            <span className="diagnostic-invocation-value">{statusIndicator(evaluation!.syntaxValid, 'Verificado', 'Fallido')}</span>
+          </div>
+          <div className="diagnostic-invocation-item">
+            <span className="diagnostic-invocation-label">Estado de ejecución Python</span>
+            <span className="diagnostic-invocation-value">
+              {evaluation!.pythonExecutionStatus ?? <span className="diagnostic-invocation-muted">No ejecutado</span>}
+            </span>
+          </div>
+          <div className="diagnostic-invocation-item">
+            <span className="diagnostic-invocation-label">Estado de reauditoría</span>
+            <span className="diagnostic-invocation-value">
+              {evaluation!.reauditSummary ?? <span className="diagnostic-invocation-muted">No realizada</span>}
+            </span>
+          </div>
+        </div>
+      )}
     </section>
   );
 };

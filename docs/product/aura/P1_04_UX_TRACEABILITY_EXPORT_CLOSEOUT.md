@@ -1,7 +1,7 @@
 # P1-04 — Claridad UX, trazabilidad visible y exportaciones
 
 **Commit base**: `055bbeec3f25ee5737c9e36e9eda19886d4ab266`
-**Commit final**: (ver HEAD tras push)
+**Commit final**: `26bfb588afb9e97f869dc2d87c9d3a9c75792c47`
 **Fecha**: 2026-07-12
 
 ## Objetivo
@@ -57,3 +57,13 @@ smokes reales y realice la intervención humana, sin ejecutar la campaña formal
 ## Siguiente paso
 
 Instalar/verificar los tres modelos Ollama, ejecutar smoke 1×3×1, luego 3×1×1. Detenerse si cualquiera falla.
+
+## Addendum P1-04R1 — Cierre adversarial
+
+- Recibo LLM y recibo Python diferenciados en UI.
+- ExecutionEvidencePanel muestra todos los campos del recibo Python.
+- DiagnosticInvocationSummary no convierte ausencia en cero.
+- E2E: 6 escenarios (reporte sin evidencia, pre-recibo, post-recibo, clipboard, exportaciones, no-auto-ejecución).
+- Gates de campaña restaurados en NEXT_STEPS.
+- Validaciones ejecutadas localmente: 1744 tests, typecheck, build, 4 E2E → verde.
+- No se usaron modelos reales.

@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Brain, Database, Play, Lock, Globe, ChevronDown, ChevronRight, FileCode2, Trash2, HardDrive, X, AlertTriangle, ShieldAlert, ListChecks, FileJson, FileText, Settings, Activity, CheckCircle, Circle, Clock, AlertCircle, Server, Shield, Eye, EyeOff, Download, RefreshCw, Hash, Copy, Check } from 'lucide-react';
+import { Brain, Database, Play, Lock, Globe, ChevronDown, ChevronRight, FileCode2, Trash2, HardDrive, X, AlertTriangle, ShieldAlert, ListChecks, FileJson, FileText, Settings, Activity, CheckCircle, Circle, Clock, AlertCircle, Server, Shield, Eye, EyeOff, Download, RefreshCw, Hash } from 'lucide-react';
 import GeminiAdvisor from './GeminiAdvisor';
 import ProgressDisclosure from './ProgressDisclosure';
 import ChromeAiStatusPanel from './ChromeAiStatusPanel';
 import OllamaSetupWizard from './OllamaSetupWizard';
+import CopyableHash from './CopyableHash';
 import { DiagnosisHeroPanel, TechnicalEvidencePanel } from './diagnosis';
 import { AIConfig, AIProvider, AuditReport, AuditExecutionEvidence, ProviderMetrics, LocalModelStatus, DiagnosisEvent, ProviderProgressEvent, ProgressDisclosureStatus, InputMode } from '../types';
 import { buildSmartSample, buildAnalysisPrompt } from '../services/providers/prompts';
@@ -47,25 +48,6 @@ export const buildDiagnosisInputSummary = (report: AuditReport | null | undefine
     warning,
     affectedColumns,
   };
-};
-
-const CopyHash: React.FC<{ hash: string; label?: string }> = ({ hash, label }) => {
-  const [copied, setCopied] = useState(false);
-  const handleCopy = () => {
-    navigator.clipboard.writeText(hash).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }).catch(() => {});
-  };
-  return (
-    <span className="diagnosis-hash-display">
-      {label && <span className="diagnosis-hash-label">{label}</span>}
-      <code className="diagnosis-hash-code">{hash}</code>
-      <button type="button" className="diagnosis-hash-copy-btn" onClick={handleCopy} title="Copiar hash completo">
-        {copied ? <Check size={11} /> : <Copy size={11} />}
-      </button>
-    </span>
-  );
 };
 
 const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
@@ -1032,9 +1014,12 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
             {structuredDiagnosis?.executionReceipt ? (
               <>
                 <div className="diagnosis-tech-section">
-                  <h4 className="diagnosis-tech-section-title">Recibo de ejecución V2</h4>
+                  <h4 className="diagnosis-tech-section-title" data-testid="diagnosis-llm-receipt">Recibo del diagnóstico LLM V2</h4>
+                  <p style={{fontSize:'11px', color:'var(--ink3)', marginBottom:'8px'}}>
+                    Este recibo documenta la invocación del modelo de lenguaje. No acredita ejecución Python ni que un script haya producido un CSV.
+                  </p>
                   <div className="diagnosis-tech-row">
-                    <CopyHash hash={structuredDiagnosis.executionReceipt.receiptHash} label="Receipt" />
+                    <CopyableHash value={structuredDiagnosis.executionReceipt.receiptHash} label="Receipt" testId="diagnosis-llm-receipt-hash" />
                     <span>
                       <Hash size={11} /> Estado: {structuredDiagnosis.executionReceipt.validationStatus}
                     </span>
@@ -1061,7 +1046,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
                     </span>
                     <span>
                       {structuredDiagnosis.executionReceipt.modelDigest
-                        ? <CopyHash hash={structuredDiagnosis.executionReceipt.modelDigest} label="Digest" />
+                        ? <CopyableHash value={structuredDiagnosis.executionReceipt.modelDigest} label="Digest" />
                         : <span><Hash size={11} /> Digest: n/d</span>}
                     </span>
                   </div>
@@ -1098,11 +1083,11 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
                 <div className="diagnosis-tech-section">
                   <h4 className="diagnosis-tech-section-title">Hashes de auditoría</h4>
                   <div className="diagnosis-tech-row">
-                    <CopyHash hash={structuredDiagnosis.executionReceipt.promptHash} label="Prompt" />
-                    <CopyHash hash={structuredDiagnosis.executionReceipt.inputHash} label="Input" />
-                    <CopyHash hash={structuredDiagnosis.executionReceipt.responseSchemaHash} label="Schema" />
-                    <CopyHash hash={structuredDiagnosis.executionReceipt.inferenceHash} label="Inferencia" />
-                    <CopyHash hash={structuredDiagnosis.executionReceipt.rawResponseHash} label="Respuesta cruda" />
+                    <CopyableHash value={structuredDiagnosis.executionReceipt.promptHash} label="Prompt" testId="diagnosis-llm-prompt-hash" />
+                    <CopyableHash value={structuredDiagnosis.executionReceipt.inputHash} label="Input" testId="diagnosis-llm-input-hash" />
+                    <CopyableHash value={structuredDiagnosis.executionReceipt.responseSchemaHash} label="Schema" testId="diagnosis-llm-schema-hash" />
+                    <CopyableHash value={structuredDiagnosis.executionReceipt.inferenceHash} label="Inferencia" testId="diagnosis-llm-inference-hash" />
+                    <CopyableHash value={structuredDiagnosis.executionReceipt.rawResponseHash} label="Respuesta cruda" testId="diagnosis-llm-raw-response-hash" />
                   </div>
                 </div>
 
