@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ArrowRight, FileCode2, RotateCcw, ShieldCheck, ChevronDown } from 'lucide-react';
+import { ArrowRight, FileCode2, RotateCcw, ShieldCheck, ChevronDown, CheckCircle, XCircle, AlertCircle, HelpCircle } from 'lucide-react';
 import type { DiagnosticReport, DiagnosticFinding, DiagnosticPresentation } from '../services/diagnosticReport';
 import {
   buildDiagnosticPresentation,
@@ -11,8 +11,19 @@ import {
   DiagnosticReportChartPreview,
 } from './diagnosticReport';
 
+interface DiagnosticReportEvaluationSummary {
+  contractErrorsCount?: number;
+  unsupportedClaimsCount?: number;
+  anchoredBadSampleRefsCount?: number;
+  syntaxValid?: boolean | null;
+  pythonExecutionStatus?: string | null;
+  reauditSummary?: string | null;
+  repetition?: number | null;
+}
+
 interface DiagnosticReportStepProps {
   diagnosticReport: DiagnosticReport;
+  evaluationSummary?: DiagnosticReportEvaluationSummary | null;
   onExportMain: () => void;
   onGenerateScript: () => void;
   onBackToDiagnosis: () => void;
@@ -298,8 +309,100 @@ const ReportDisclosure: React.FC<{
   </details>
 );
 
+const DiagnosticInvocationSummary: React.FC<{
+  report: DiagnosticReport;
+  evaluation?: DiagnosticReportEvaluationSummary | null;
+}> = ({ report, evaluation }) => {
+  const receipt = report.diagnosisSummary.executionReceipt;
+  const requestedModel = receipt?.requestedModel ?? report.diagnosisSummary.model ?? '—';
+  const observedModel = receipt?.observedModel ?? 'no observado';
+  const inputMode = report.diagnosisSummary.inputMode ?? '—';
+  const latency = report.diagnosisSummary.latencyMs;
+  const contractCompliant = receipt?.validationStatus === 'valid';
+  const contractErrorCount = evaluation?.contractErrorsCount ?? 0;
+  const unsupportedCount = evaluation?.unsupportedClaimsCount ?? 0;
+  const badRefsCount = evaluation?.anchoredBadSampleRefsCount ?? 0;
+  const syntaxValid = evaluation?.syntaxValid;
+  const pythonStatus = evaluation?.pythonExecutionStatus;
+  const reaudit = evaluation?.reauditSummary;
+  const repetition = evaluation?.repetition;
+
+  const statusIndicator = (value: boolean | null | undefined, okLabel: string, failLabel: string) => {
+    if (value === null || value === undefined) return <span className="diagnostic-invocation-status diagnostic-invocation-status--muted"><HelpCircle size={12} /> No medido</span>;
+    return value
+      ? <span className="diagnostic-invocation-status diagnostic-invocation-status--ok"><CheckCircle size={12} /> {okLabel}</span>
+      : <span className="diagnostic-invocation-status diagnostic-invocation-status--fail"><XCircle size={12} /> {failLabel}</span>;
+  };
+
+  return (
+    <section className="diagnostic-invocation-summary" data-testid="diagnostic-invocation-summary">
+      <div className="diagnostic-report-section-head">
+        <div>
+          <p className="sec-eye">resumen del diagnóstico</p>
+          <h3>Resumen del diagnóstico</h3>
+        </div>
+      </div>
+      <div className="diagnostic-invocation-grid">
+        <div className="diagnostic-invocation-item">
+          <span className="diagnostic-invocation-label">Modelo solicitado</span>
+          <span className="diagnostic-invocation-value">{requestedModel}</span>
+        </div>
+        <div className="diagnostic-invocation-item">
+          <span className="diagnostic-invocation-label">Modelo observado</span>
+          <span className="diagnostic-invocation-value">{observedModel}</span>
+        </div>
+        <div className="diagnostic-invocation-item">
+          <span className="diagnostic-invocation-label">Método evaluado</span>
+          <span className="diagnostic-invocation-value">{inputMode}</span>
+        </div>
+        {repetition !== null && repetition !== undefined && (
+          <div className="diagnostic-invocation-item">
+            <span className="diagnostic-invocation-label">Repetición</span>
+            <span className="diagnostic-invocation-value">{repetition}</span>
+          </div>
+        )}
+        <div className="diagnostic-invocation-item">
+          <span className="diagnostic-invocation-label">Latencia</span>
+          <span className="diagnostic-invocation-value">{latency !== undefined ? `${(latency / 1000).toFixed(1)}s` : '—'}</span>
+        </div>
+        <div className="diagnostic-invocation-item">
+          <span className="diagnostic-invocation-label">Cumplimiento del contrato</span>
+          <span className="diagnostic-invocation-value">
+            {receipt
+              ? (contractCompliant
+                ? <><CheckCircle size={12} className="diagnostic-invocation-inline-ok" /> Cumple</>
+                : <><XCircle size={12} className="diagnostic-invocation-inline-fail" /> No cumple ({contractErrorCount} error{contractErrorCount === 1 ? '' : 'es'})</>)
+              : <span className="diagnostic-invocation-muted">No evaluado</span>}
+          </span>
+        </div>
+        <div className="diagnostic-invocation-item">
+          <span className="diagnostic-invocation-label">Claims sin soporte</span>
+          <span className="diagnostic-invocation-value">{unsupportedCount} claim{unsupportedCount === 1 ? '' : 's'}</span>
+        </div>
+        <div className="diagnostic-invocation-item">
+          <span className="diagnostic-invocation-label">Referencias de muestras inválidas</span>
+          <span className="diagnostic-invocation-value">{badRefsCount} referencia{badRefsCount === 1 ? '' : 's'}</span>
+        </div>
+        <div className="diagnostic-invocation-item">
+          <span className="diagnostic-invocation-label">Estado de sintaxis</span>
+          <span className="diagnostic-invocation-value">{statusIndicator(syntaxValid, 'Verificado', 'Fallido')}</span>
+        </div>
+        <div className="diagnostic-invocation-item">
+          <span className="diagnostic-invocation-label">Estado de ejecución Python</span>
+          <span className="diagnostic-invocation-value">{pythonStatus ?? <span className="diagnostic-invocation-muted">No ejecutado</span>}</span>
+        </div>
+        <div className="diagnostic-invocation-item">
+          <span className="diagnostic-invocation-label">Estado de reauditoría</span>
+          <span className="diagnostic-invocation-value">{reaudit ?? <span className="diagnostic-invocation-muted">No realizada</span>}</span>
+        </div>
+      </div>
+    </section>
+  );
+};
+
 const DiagnosticReportStep: React.FC<DiagnosticReportStepProps> = ({
   diagnosticReport,
+  evaluationSummary,
   onExportMain,
   onGenerateScript,
   onBackToDiagnosis,
@@ -330,6 +433,8 @@ const DiagnosticReportStep: React.FC<DiagnosticReportStepProps> = ({
         </div>
 
       <DatasetSummaryStrip report={diagnosticReport} />
+
+      <DiagnosticInvocationSummary report={diagnosticReport} evaluation={evaluationSummary} />
 
       <DiagnosticDecisionBrief presentation={presentation} />
 

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
+  Activity,
   AlertTriangle,
   ArrowLeft,
   CheckCircle,
@@ -12,6 +13,7 @@ import {
   Lock,
   Save,
   Server,
+  Settings,
   Shield,
   RefreshCw,
 } from 'lucide-react';
@@ -381,6 +383,69 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
       </div>
 
       <div className="settings-workspace-body">
+        <section className="settings-workspace-section" data-testid="settings-provider-summary">
+          <div className="settings-privacy-summary">
+            <div className="settings-privacy-summary-header">
+              <div className="settings-privacy-summary-icon">
+                {activeProviderType === 'chrome' ? <Shield size={18} /> : activeProviderType === 'ollama' ? <Server size={18} /> : <Cloud size={18} />}
+              </div>
+              <div>
+                <strong className="settings-privacy-summary-title">
+                  {activeProviderType === 'chrome' ? 'Navegador (Chrome AI)' : activeProviderType === 'ollama' ? 'Local (Ollama)' : 'Externo (Cloud)'}
+                </strong>
+                <span className={`settings-privacy-summary-status settings-privacy-summary-status--${activeProviderType === 'cloud' ? 'external' : 'local'}`}>
+                  {activeProviderType === 'cloud' ? 'Requiere API key' : '100 % local'}
+                </span>
+              </div>
+            </div>
+            <div className="settings-privacy-summary-body">
+              <div className="settings-privacy-summary-col">
+                <span className="settings-privacy-summary-col-label">Se queda en tu dispositivo</span>
+                <ul>
+                  <li>El archivo CSV completo</li>
+                  <li>Perfil determinista y hallazgos</li>
+                  {activeProviderType !== 'cloud' && <li>El diagnóstico del modelo</li>}
+                  {activeProviderType === 'cloud' && <li>El modelo de IA con los datos cargados en nuestro entorno</li>}
+                </ul>
+              </div>
+              <div className="settings-privacy-summary-col">
+                <span className="settings-privacy-summary-col-label">
+                  {activeProviderType === 'cloud' ? 'Puede salir de tu dispositivo' : 'Nada sale de tu dispositivo'}
+                </span>
+                {activeProviderType === 'cloud' ? (
+                  <ul>
+                    <li>Paquete estructurado (columnas, estadísticas, hallazgos)</li>
+                    <li>API key hacia el proveedor</li>
+                  </ul>
+                ) : (
+                  <p className="settings-privacy-summary-note">La inferencia ocurre completamente dentro de tu navegador o red local.</p>
+                )}
+              </div>
+            </div>
+            <div className="settings-privacy-summary-footer">
+              <span className={`settings-privacy-indicator settings-privacy-indicator--${activeProviderStatus.includes('Conectado') || activeProviderStatus.includes('Listo') || activeProviderStatus.includes('configurado') ? 'ok' : activeProviderStatus.includes('Sin') || activeProviderStatus.includes('pendiente') ? 'warn' : 'checking'}`} />
+              <span className="settings-privacy-summary-footer-text" data-testid="settings-privacy-footer-status">
+                {activeProviderType === 'chrome'
+                  ? chromeDiagnostic?.status === 'available' ? 'Modelo listo en navegador' : chromeDiagnostic?.status === 'downloading' ? 'Descargando modelo' : 'No detectado en navegador'
+                  : activeProviderType === 'ollama'
+                    ? ollamaConnected === true ? 'Servidor Ollama respondiendo' : ollamaConnected === false ? 'Servidor sin respuesta' : 'Verificando conexión'
+                    : localConfig.apiKey ? 'Clave API presente' : 'Requiere clave API'}
+              </span>
+            </div>
+          </div>
+        </section>
+
+        <section className="settings-workspace-section">
+          <div className="settings-links-row">
+            <button className="btn-s btn-sm" onClick={() => window.location.assign('/settings-advanced.html')} data-testid="settings-advanced-link">
+              <Settings size={12} /> Configuración avanzada
+            </button>
+            <button className="btn-s btn-sm" onClick={() => window.location.assign('/lab-experimental.html')} data-testid="settings-lab-link">
+              <Activity size={12} /> Laboratorio experimental
+            </button>
+          </div>
+        </section>
+
         <section className="settings-workspace-section">
           <h2 className="settings-section-title">Proveedor activo</h2>
           <div className="settings-active-provider-card">

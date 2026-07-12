@@ -83,34 +83,32 @@ P1-03 cierra la procedencia de la ejecución Python:
 
 **P1-03 COMPLETO.** La campaña real continúa bloqueada hasta cerrar UX y superar los smokes con modelos reales.
 
-## Pendientes no cubiertos por P0
+## Estado AURA-CIERRE-P1-04 (12 julio 2026)
 
-**La campaña real sigue BLOQUEADA** hasta cerrar las métricas reales P1,
-instalar los tres modelos y superar los smokes.
+P1-04 cierra la claridad UX, trazabilidad y exportaciones:
+- Reporte diagnóstico: `DiagnosticInvocationSummary` muestra modelo, método, latencia, cumplimiento, claims, sintaxis, ejecución y reauditoría. `syntaxValid: null` → "No medido".
+- Trazabilidad técnica: `CopyHash` con botón de copiar hash completo; nota de integridad local.
+- Configuración: resumen de privacidad (local/externo); indicador de disponibilidad.
+- Terminología: "Laboratorio", "experimento", "corrida" unificados en interfaz visible.
+- Nueva sesión: diálogo modal con descripción de eliminación, preservación y aviso de irreversibilidad.
+- Exportaciones: descripciones de cada artefacto; nota de validez sobre recibos requeridos.
 
-Además, el producto tiene las siguientes limitaciones conocidas:
+**P1-04 COMPLETO.** Suite 1744 tests, typecheck, build, 4 E2E → verde.
+
+## Pendientes no cubiertos por P1
+
+**La campaña real sigue BLOQUEADA** hasta instalar los tres modelos y superar los smokes.
 
 | Área | Pendiente |
 |---|---|
 | Script | Recibo verificable implementado; falta ejecutar los nueve representantes reales |
-| Reporte diagnóstico | Claridad de secciones, visualizaciones, PDF profesional |
-| Trazabilidad técnica | Mostrar recibo completo en UI, no solo resumen |
-| Laboratorio | Nombres consistentes (Laboratorio/experimento/corrida/campaña) |
-| UX general | Mensaje de nueva sesión; explicación de qué contiene cada exportación |
-| Exportación | Documentar contrato de exportación técnica para terceros
+| Smokes | Instalar/verificar los tres modelos Ollama; ejecutar 1×3×1 y 3×1×1 |
 
 ## Hoja de ruta desde este punto
 
-1. Cerrar la claridad de Reporte diagnóstico, Trazabilidad técnica,
-   Configuración, nombres del Laboratorio, nueva sesión y exportaciones.
-2. Instalar/verificar los tres modelos formales en Ollama.
-3. Ejecutar primero los smokes reales: 1×3×1 y 3×1×1.
-4. Si ambos pasan, ejecutar manualmente la campaña completa de 45 diagnósticos.
-5. Evaluar la rúbrica humana, aprobar o rechazar los nueve representantes,
+1. Instalar/verificar los tres modelos formales en Ollama.
+2. Ejecutar primero los smokes reales: 1×3×1 y 3×1×1.
+3. Si ambos pasan, ejecutar manualmente la campaña completa de 45 diagnósticos.
+4. Evaluar la rúbrica humana, aprobar o rechazar los nueve representantes,
    ejecutar los scripts aprobados sobre copias y reauditar.
-6. Exportar el expediente final y redactar el documento de depósito.
-
-No se debe iniciar la campaña completa si falla la igualdad de hashes, cambia
-el modelo observado, falta un calentamiento, una respuesta no supera el
-contrato completo, o una corrida completed carece de warmupReceipt o
-executionReceipt válido.
+5. Exportar el expediente final y redactar el documento de depósito.

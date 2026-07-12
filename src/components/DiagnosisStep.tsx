@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Brain, Database, Play, Lock, Globe, ChevronDown, ChevronRight, FileCode2, Trash2, HardDrive, X, AlertTriangle, ShieldAlert, ListChecks, FileJson, FileText, Settings, Activity, CheckCircle, Circle, Clock, AlertCircle, Server, Shield, Eye, EyeOff, Download, RefreshCw, Hash } from 'lucide-react';
+import { Brain, Database, Play, Lock, Globe, ChevronDown, ChevronRight, FileCode2, Trash2, HardDrive, X, AlertTriangle, ShieldAlert, ListChecks, FileJson, FileText, Settings, Activity, CheckCircle, Circle, Clock, AlertCircle, Server, Shield, Eye, EyeOff, Download, RefreshCw, Hash, Copy, Check } from 'lucide-react';
 import GeminiAdvisor from './GeminiAdvisor';
 import ProgressDisclosure from './ProgressDisclosure';
 import ChromeAiStatusPanel from './ChromeAiStatusPanel';
@@ -47,6 +47,25 @@ export const buildDiagnosisInputSummary = (report: AuditReport | null | undefine
     warning,
     affectedColumns,
   };
+};
+
+const CopyHash: React.FC<{ hash: string; label?: string }> = ({ hash, label }) => {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = () => {
+    navigator.clipboard.writeText(hash).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }).catch(() => {});
+  };
+  return (
+    <span className="diagnosis-hash-display">
+      {label && <span className="diagnosis-hash-label">{label}</span>}
+      <code className="diagnosis-hash-code">{hash}</code>
+      <button type="button" className="diagnosis-hash-copy-btn" onClick={handleCopy} title="Copiar hash completo">
+        {copied ? <Check size={11} /> : <Copy size={11} />}
+      </button>
+    </span>
+  );
 };
 
 const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
@@ -1012,11 +1031,10 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
           <div className="diagnosis-tech-disclosure-body">
             {structuredDiagnosis?.executionReceipt ? (
               <>
-                {/* Receipt summary */}
                 <div className="diagnosis-tech-section">
                   <h4 className="diagnosis-tech-section-title">Recibo de ejecución V2</h4>
                   <div className="diagnosis-tech-row">
-                    <span><Hash size={11} /> Receipt: {structuredDiagnosis.executionReceipt.receiptHash.substring(0, 16)}…</span>
+                    <CopyHash hash={structuredDiagnosis.executionReceipt.receiptHash} label="Receipt" />
                     <span>
                       <Hash size={11} /> Estado: {structuredDiagnosis.executionReceipt.validationStatus}
                     </span>
@@ -1042,22 +1060,49 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
                       <Hash size={11} /> Modelo observado: {structuredDiagnosis.executionReceipt.observedModel ?? 'no observado'}
                     </span>
                     <span>
-                      <Hash size={11} /> Digest: {structuredDiagnosis.executionReceipt.modelDigest
-                        ? structuredDiagnosis.executionReceipt.modelDigest.substring(0, 16)
-                        : 'n/d'}…
+                      {structuredDiagnosis.executionReceipt.modelDigest
+                        ? <CopyHash hash={structuredDiagnosis.executionReceipt.modelDigest} label="Digest" />
+                        : <span><Hash size={11} /> Digest: n/d</span>}
                     </span>
                   </div>
+                  {structuredDiagnosis.executionReceipt.startedAt && (
+                    <div className="diagnosis-tech-row">
+                      <span><Clock size={11} /> Inicio: {new Date(structuredDiagnosis.executionReceipt.startedAt).toLocaleString('es-CO')}</span>
+                      <span><Clock size={11} /> Fin: {new Date(structuredDiagnosis.executionReceipt.completedAt).toLocaleString('es-CO')}</span>
+                    </div>
+                  )}
+                  {structuredDiagnosis.executionReceipt.startedAt && structuredDiagnosis.executionReceipt.completedAt && (
+                    <div className="diagnosis-tech-row">
+                      <span>
+                        <Clock size={11} /> Duración: {(() => {
+                          const start = new Date(structuredDiagnosis.executionReceipt.startedAt).getTime();
+                          const end = new Date(structuredDiagnosis.executionReceipt.completedAt).getTime();
+                          const ms = end - start;
+                          return ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`;
+                        })()}
+                      </span>
+                      <span>
+                        <Activity size={11} /> Código de salida: {structuredDiagnosis.executionReceipt.validationErrorCodes.length > 0 ? `errores (${structuredDiagnosis.executionReceipt.validationErrorCodes.join(', ')})` : 'limpio'}
+                      </span>
+                    </div>
+                  )}
+                  {structuredDiagnosis.executionReceipt.validationErrorCodes.length > 0 && (
+                    <div className="diagnosis-tech-row">
+                      <span style={{ color: 'var(--error)', fontSize: '11px' }}>
+                        <AlertTriangle size={11} /> Errores de validación: {structuredDiagnosis.executionReceipt.validationErrorCodes.join(', ')}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
-                {/* Snapshot hashes */}
                 <div className="diagnosis-tech-section">
                   <h4 className="diagnosis-tech-section-title">Hashes de auditoría</h4>
                   <div className="diagnosis-tech-row">
-                    <span><Hash size={11} /> Prompt: {structuredDiagnosis.executionReceipt.promptHash.substring(0, 16)}…</span>
-                    <span><Hash size={11} /> Input: {structuredDiagnosis.executionReceipt.inputHash.substring(0, 16)}…</span>
-                    <span><Hash size={11} /> Schema: {structuredDiagnosis.executionReceipt.responseSchemaHash.substring(0, 16)}…</span>
-                    <span><Hash size={11} /> Inferencia: {structuredDiagnosis.executionReceipt.inferenceHash.substring(0, 16)}…</span>
-                    <span><Hash size={11} /> Respuesta cruda: {structuredDiagnosis.executionReceipt.rawResponseHash.substring(0, 16)}…</span>
+                    <CopyHash hash={structuredDiagnosis.executionReceipt.promptHash} label="Prompt" />
+                    <CopyHash hash={structuredDiagnosis.executionReceipt.inputHash} label="Input" />
+                    <CopyHash hash={structuredDiagnosis.executionReceipt.responseSchemaHash} label="Schema" />
+                    <CopyHash hash={structuredDiagnosis.executionReceipt.inferenceHash} label="Inferencia" />
+                    <CopyHash hash={structuredDiagnosis.executionReceipt.rawResponseHash} label="Respuesta cruda" />
                   </div>
                 </div>
 
@@ -1264,6 +1309,12 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
                 isOpen={isTechnicalEvidenceOpen}
                 onToggle={setIsTechnicalEvidenceOpen}
               />
+            </div>
+
+            <div className="diagnosis-tech-section">
+              <p className="diagnosis-tech-integrity-note">
+                Esta evidencia de integridad fue generada por un ejecutor local confiable. No constituye firma digital ni certificación externa.
+              </p>
             </div>
           </div>
         </details>

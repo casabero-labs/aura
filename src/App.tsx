@@ -9,7 +9,7 @@ if (typeof __AURA_BUILD_SHA__ !== 'undefined') {
     'color: #888; font-size: 11px; font-family: monospace;',
   );
 }
-import { Download, FileJson, FileText, Sun, Moon } from 'lucide-react';
+import { Download, FileJson, FileText, Sun, Moon, AlertTriangle, Trash2, X } from 'lucide-react';
 import ChangelogModal from './components/ChangelogModal';
 import ErrorBoundary from './components/ErrorBoundary';
 import AuditLogViewer from './components/AuditLogViewer';
@@ -301,6 +301,9 @@ const App: React.FC = () => {
   const [pdfProgressStatus, setPdfProgressStatus] = useState<'idle' | 'running' | 'success' | 'error'>('idle');
   const [exportJsonPreflightError, setExportJsonPreflightError] = useState<string | null>(null);
   const [sessionDestroyed, setSessionDestroyed] = useState(false);
+  const [showNewAnalysisDialog, setShowNewAnalysisDialog] = useState(false);
+  const [showDestroySessionDialog, setShowDestroySessionDialog] = useState(false);
+  const [newSessionMessage, setNewSessionMessage] = useState<string | null>(null);
 
   const hasData = !!report;
 
@@ -459,6 +462,10 @@ const App: React.FC = () => {
   };
 
   const handleDestroySession = () => {
+    setShowDestroySessionDialog(true);
+  };
+
+  const confirmDestroySession = () => {
     clearPipelineSession();
     setPipelineData(INITIAL_PIPELINE_DATA);
     setShowHome(false);
@@ -466,15 +473,18 @@ const App: React.FC = () => {
     setPdfProgressStatus('idle');
     setPdfProgressMsg('');
     setSessionDestroyed(true);
+    setShowDestroySessionDialog(false);
   };
 
   const handleNewAnalysis = () => {
-    if (typeof window !== 'undefined' && typeof window.confirm === 'function') {
-      const confirmed = window.confirm(
-        'Esto limpiará el análisis actual del navegador y volverá a la carga inicial. ¿Deseas continuar?',
-      );
-      if (!confirmed) return;
+    if (hasData) {
+      setShowNewAnalysisDialog(true);
+    } else {
+      performNewAnalysis();
     }
+  };
+
+  const performNewAnalysis = () => {
     clearPipelineSession();
     setPipelineData(INITIAL_PIPELINE_DATA);
     setShowHome(true);
@@ -489,6 +499,9 @@ const App: React.FC = () => {
     setPdfProgressMsg('');
     setSessionDestroyed(false);
     setExportJsonPreflightError(null);
+    setShowNewAnalysisDialog(false);
+    setNewSessionMessage('Nueva sesión iniciada — el espacio de trabajo quedó limpio.');
+    setTimeout(() => setNewSessionMessage(null), 4000);
     if (typeof window !== 'undefined') {
       window.scrollTo({ top: 0, behavior: 'auto' });
     }
@@ -671,6 +684,14 @@ const App: React.FC = () => {
           </section>
         )}
 
+        {newSessionMessage && (
+          <section className="section" style={{ textAlign: 'center' }} data-testid="new-session-msg">
+            <p className="sec-eye" style={{ color: 'var(--success)', fontSize: 13, fontWeight: 600 }}>
+              {newSessionMessage}
+            </p>
+          </section>
+        )}
+
         {/* Main Pipeline — Phase 1: Upload + Diagnostic */}
         {!showHome && pipelineState !== 'export' && (
           <section id="sistema" className="audit-workspace">
@@ -695,6 +716,10 @@ const App: React.FC = () => {
             </div>
             <p className="section-note export-closure-hero-desc">
               Descarga los resultados del análisis y cierra la sesión local cuando ya no necesites conservar los datos en el navegador.
+            </p>
+
+            <p className="export-validity-note" data-testid="export-validity-note">
+              Una corrida completada sin los recibos requeridos no se exportará como válida. Verifica que el diagnóstico esté completo antes de exportar.
             </p>
 
             <div className="export-delivery-block" data-testid="export-main-block">
@@ -722,9 +747,12 @@ const App: React.FC = () => {
                         />
                       </>
                     ) : (
-                      <button className="btn-p btn-sm" onClick={handleDownloadPdf} disabled={isPdfGenerating} data-testid="export-download-pdf">
-                        Descargar PDF
-                      </button>
+                      <>
+                        <p className="export-delivery-card-desc" data-testid="export-pdf-desc">Informe diagnóstico profesional con hallazgos, gráficos y recomendaciones. Para revisión humana.</p>
+                        <button className="btn-p btn-sm" onClick={handleDownloadPdf} disabled={isPdfGenerating} data-testid="export-download-pdf">
+                          Descargar PDF
+                        </button>
+                      </>
                     )}
                   </div>
                 </article>
@@ -744,6 +772,7 @@ const App: React.FC = () => {
                     </div>
                   ) : (
                     <div className="export-delivery-card-action">
+                      <p className="export-delivery-card-desc" data-testid="export-json-desc">Paquete técnico completo con manifiesto, perfil, diagnóstico, script y calibración. Para auditoría y reproducibilidad.</p>
                       <button className="btn-s btn-sm" onClick={handleExportJson} data-testid="export-download-json">
                         Descargar JSON
                       </button>
@@ -760,6 +789,7 @@ const App: React.FC = () => {
                     </div>
                   </div>
                   <div className="export-delivery-card-action">
+                    <p className="export-delivery-card-desc" data-testid="export-csv-desc">Listado de hallazgos deterministas con severidad, categoría y muestras. Para análisis externo.</p>
                     <button className="btn-s btn-sm" onClick={handleExportIssuesCsv}>
                       Descargar CSV
                     </button>
@@ -795,7 +825,67 @@ const App: React.FC = () => {
         </div>
         <span className="footer-copy">casabero · tfm · 2026</span>
       </footer>
-    </div></ErrorBoundary>
+    </div>
+
+      {showNewAnalysisDialog && (
+        <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowNewAnalysisDialog(false); }} data-testid="new-analysis-dialog">
+          <div className="modal-container modal-container--sm">
+            <div className="modal-header">
+              <AlertTriangle size={20} style={{ color: 'var(--orange)' }} />
+              <h3>Nuevo análisis</h3>
+              <button className="modal-close" onClick={() => setShowNewAnalysisDialog(false)}><X size={16} /></button>
+            </div>
+            <div className="modal-body" style={{ padding: 'var(--space-md)' }}>
+              <p style={{ marginBottom: 'var(--space-sm)', color: 'var(--ink2)', fontSize: '13px', lineHeight: 1.6 }}>
+                <strong>Se eliminarán</strong> el análisis actual, diagnósticos, scripts, decisiones humanas y archivos preparados.
+              </p>
+              <p style={{ marginBottom: 'var(--space-sm)', color: 'var(--ink2)', fontSize: '13px', lineHeight: 1.6 }}>
+                <strong>Se preservarán.</strong> La configuración del proveedor y los modelos no se modificarán.
+              </p>
+              <p style={{ color: 'var(--ink3)', fontSize: '12px', fontStyle: 'italic' }}>
+                Esta acción no se puede deshacer.
+              </p>
+            </div>
+            <div className="modal-actions" style={{ display: 'flex', gap: 'var(--space-sm)', justifyContent: 'flex-end', padding: 'var(--space-md)', borderTop: '1px solid var(--border-faint)' }}>
+              <button className="btn-s" onClick={() => setShowNewAnalysisDialog(false)}>Cancelar</button>
+              <button className="btn-p btn-p--destructive" onClick={performNewAnalysis} data-testid="new-analysis-confirm">
+                <Trash2 size={14} /> Limpiar y nueva sesión
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDestroySessionDialog && (
+        <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowDestroySessionDialog(false); }} data-testid="destroy-session-dialog">
+          <div className="modal-container modal-container--sm">
+            <div className="modal-header">
+              <AlertTriangle size={20} style={{ color: 'var(--error)' }} />
+              <h3>Cerrar sesión y destruir datos</h3>
+              <button className="modal-close" onClick={() => setShowDestroySessionDialog(false)}><X size={16} /></button>
+            </div>
+            <div className="modal-body" style={{ padding: 'var(--space-md)' }}>
+              <p style={{ marginBottom: 'var(--space-sm)', color: 'var(--ink2)', fontSize: '13px', lineHeight: 1.6 }}>
+                <strong>Se eliminarán</strong> el análisis actual, diagnósticos, scripts, decisiones humanas y archivos preparados.
+              </p>
+              <p style={{ marginBottom: 'var(--space-sm)', color: 'var(--ink2)', fontSize: '13px', lineHeight: 1.6 }}>
+                <strong>Se preservarán.</strong> La configuración del proveedor y los modelos no se modificarán.
+              </p>
+              <p style={{ color: 'var(--ink3)', fontSize: '12px', fontStyle: 'italic' }}>
+                Esta acción no se puede deshacer.
+              </p>
+            </div>
+            <div className="modal-actions" style={{ display: 'flex', gap: 'var(--space-sm)', justifyContent: 'flex-end', padding: 'var(--space-md)', borderTop: '1px solid var(--border-faint)' }}>
+              <button className="btn-s" onClick={() => setShowDestroySessionDialog(false)}>Cancelar</button>
+              <button className="btn-p btn-p--destructive" onClick={confirmDestroySession} data-testid="destroy-session-confirm">
+                <Trash2 size={14} /> Destruir datos locales
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </ErrorBoundary>
   );
 };
 
