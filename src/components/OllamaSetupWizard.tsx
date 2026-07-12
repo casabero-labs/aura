@@ -1,14 +1,33 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Server, Terminal, CheckCircle, AlertCircle, Activity, ExternalLink,
-  ChevronDown, ChevronUp, Shield, Globe, HardDrive, Zap, Wrench, Lock, Info, Download,
+  Activity,
+  AlertCircle,
+  CheckCircle,
+  Download,
+  Globe,
+  HardDrive,
+  Lock,
+  Server,
+  Shield,
+  Wrench,
+  Zap,
 } from 'lucide-react';
 import {
-  diagnoseOllamaLocal, fetchOllamaModels, isModelHeavy,
-  OllamaLocalDiagnostic, OllamaLocalStatus, OllamaModelInfo,
-  normalizeEndpoint, isLocalLoopback,
+  diagnoseOllamaLocal,
+  fetchOllamaModels,
+  isModelHeavy,
+  normalizeEndpoint,
+  OllamaLocalDiagnostic,
+  OllamaLocalStatus,
+  OllamaModelInfo,
 } from '../services/ollamaLocalBridge';
-import { detectOS, detectBrowser, DesktopOS, BrowserFamily, PlatformInfo, getOSLabel } from '../services/platformDetection';
+import {
+  detectBrowser,
+  detectOS,
+  DesktopOS,
+  getOSLabel,
+  PlatformInfo,
+} from '../services/platformDetection';
 
 interface OllamaSetupWizardProps {
   endpoint?: string;
@@ -16,14 +35,40 @@ interface OllamaSetupWizardProps {
   onCancel?: () => void;
 }
 
-const ORIGIN = typeof window !== 'undefined' ? window.location.origin : 'https://aura.casabero.com';
+interface FormalOllamaModel {
+  name: string;
+  label: string;
+  purpose: string;
+}
+
+const ORIGIN = typeof window !== 'undefined'
+  ? window.location.origin
+  : 'https://aura.casabero.com';
+
+const FORMAL_OLLAMA_MODELS: readonly FormalOllamaModel[] = [
+  {
+    name: 'qwen2.5:3b',
+    label: 'Qwen 2.5 3B',
+    purpose: 'Modelo compacto y rápido para diagnóstico local.',
+  },
+  {
+    name: 'gemma3:4b',
+    label: 'Gemma 3 4B',
+    purpose: 'Modelo intermedio para contraste de cumplimiento y claridad.',
+  },
+  {
+    name: 'mistral:7b',
+    label: 'Mistral 7B',
+    purpose: 'Modelo de mayor tamaño para la comparación experimental.',
+  },
+] as const;
 
 const INSTRUCTIONS_WINDOWS = [
   '1. Cierra Ollama desde la bandeja del sistema.',
   '2. Abre Configuración → busca "Variables de entorno".',
   '3. Abre "Editar las variables de entorno de tu cuenta".',
   '4. En "Variables de usuario", pulsa "Nueva".',
-  `5. Nombre: OLLAMA_ORIGINS`,
+  '5. Nombre: OLLAMA_ORIGINS',
   `6. Valor: ${ORIGIN}`,
   '7. Guarda con "Aceptar".',
   '8. Abre Ollama nuevamente desde Inicio.',
@@ -41,7 +86,7 @@ const INSTRUCTIONS_MACOS = [
 
 const INSTRUCTIONS_LINUX = [
   '1. Abre Terminal.',
-  `2. Ejecuta: sudo systemctl edit ollama.service`,
+  '2. Ejecuta: sudo systemctl edit ollama.service',
   '3. Agrega:',
   '[Service]',
   `Environment="OLLAMA_ORIGINS=${ORIGIN}"`,
@@ -55,19 +100,79 @@ const INSTRUCTIONS_LINUX = [
 
 const PS_WINDOWS = `setx OLLAMA_ORIGINS "${ORIGIN}"`;
 
-const STATUS_INFO: Record<OllamaLocalStatus, { icon: React.ReactNode; color: string; title: string }> = {
-  not_configured: { icon: <Wrench size={16} />, color: 'var(--orange)', title: 'Falta configurar OLLAMA_ORIGINS' },
-  permission_required: { icon: <Shield size={16} />, color: 'var(--blue)', title: 'Permiso de red local requerido' },
-  permission_denied: { icon: <AlertCircle size={16} />, color: 'var(--error)', title: 'Permiso de red local denegado' },
-  cors_blocked: { icon: <AlertCircle size={16} />, color: 'var(--error)', title: 'OLLAMA_ORIGINS no configurado' },
-  server_unreachable: { icon: <Server size={16} />, color: 'var(--error)', title: 'Ollama no está iniciado' },
-  timeout: { icon: <AlertCircle size={16} />, color: 'var(--orange)', title: 'Ollama no respondió a tiempo' },
-  model_missing: { icon: <HardDrive size={16} />, color: 'var(--orange)', title: 'Modelo no instalado' },
-  insecure_context: { icon: <Lock size={16} />, color: 'var(--error)', title: 'Contexto no seguro (HTTPS requerido)' },
-  unsupported_browser: { icon: <Globe size={16} />, color: 'var(--error)', title: 'Navegador no compatible' },
-  ready: { icon: <CheckCircle size={16} />, color: 'var(--success)', title: 'Ollama listo' },
-  unknown_error: { icon: <AlertCircle size={16} />, color: 'var(--error)', title: 'Error desconocido' },
+const STATUS_INFO: Record<OllamaLocalStatus, {
+  icon: React.ReactNode;
+  color: string;
+  title: string;
+}> = {
+  not_configured: {
+    icon: <Wrench size={16} />,
+    color: 'var(--orange)',
+    title: 'Falta configurar OLLAMA_ORIGINS',
+  },
+  permission_required: {
+    icon: <Shield size={16} />,
+    color: 'var(--blue)',
+    title: 'Permiso de red local requerido',
+  },
+  permission_denied: {
+    icon: <AlertCircle size={16} />,
+    color: 'var(--error)',
+    title: 'Permiso de red local denegado',
+  },
+  cors_blocked: {
+    icon: <AlertCircle size={16} />,
+    color: 'var(--error)',
+    title: 'Ollama no autoriza a AURA',
+  },
+  server_unreachable: {
+    icon: <Server size={16} />,
+    color: 'var(--error)',
+    title: 'Ollama no está iniciado',
+  },
+  timeout: {
+    icon: <AlertCircle size={16} />,
+    color: 'var(--orange)',
+    title: 'Ollama no respondió a tiempo',
+  },
+  model_missing: {
+    icon: <HardDrive size={16} />,
+    color: 'var(--orange)',
+    title: 'Modelo no instalado',
+  },
+  insecure_context: {
+    icon: <Lock size={16} />,
+    color: 'var(--error)',
+    title: 'Contexto no seguro',
+  },
+  unsupported_browser: {
+    icon: <Globe size={16} />,
+    color: 'var(--error)',
+    title: 'Navegador no compatible',
+  },
+  ready: {
+    icon: <CheckCircle size={16} />,
+    color: 'var(--success)',
+    title: 'Ollama listo',
+  },
+  unknown_error: {
+    icon: <AlertCircle size={16} />,
+    color: 'var(--error)',
+    title: 'No se pudo diagnosticar la conexión',
+  },
 };
+
+const matchesModel = (installedName: string, formalName: string): boolean => (
+  installedName === formalName
+  || installedName.startsWith(`${formalName}-`)
+  || installedName.startsWith(`${formalName}@`)
+);
+
+const friendlyScanFallback = (endpoint: string): string => (
+  `AURA no pudo consultar ${endpoint}/api/tags. `
+  + 'Confirma que Ollama esté abierto, reinícialo después de configurar OLLAMA_ORIGINS '
+  + 'y permite el acceso a la red local cuando Chrome o Edge lo soliciten.'
+);
 
 export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
   endpoint,
@@ -89,6 +194,8 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
+  const [scanActions, setScanActions] = useState<string[]>([]);
+  const [copiedCommand, setCopiedCommand] = useState<string | null>(null);
 
   useEffect(() => {
     setPlatform({
@@ -101,6 +208,14 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
 
   const currentOS = overrideOS ?? platform.os;
   const osLabel = getOSLabel(currentOS);
+  const normalizedEndpoint = normalizeEndpoint(endpoint);
+
+  const formalModelStatus = useMemo(() => FORMAL_OLLAMA_MODELS.map(model => ({
+    ...model,
+    installed: installedModels.some(installed => matchesModel(installed.name, model.name)),
+  })), [installedModels]);
+
+  const installedFormalCount = formalModelStatus.filter(model => model.installed).length;
 
   const getInstructions = useCallback(() => {
     switch (currentOS) {
@@ -111,40 +226,99 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
     }
   }, [currentOS]);
 
+  const copyCommand = useCallback(async (command: string) => {
+    try {
+      await navigator.clipboard.writeText(command);
+      setCopiedCommand(command);
+      window.setTimeout(() => setCopiedCommand(null), 1600);
+    } catch {
+      setCopiedCommand(null);
+    }
+  }, []);
+
   const handleScanModels = useCallback(async () => {
     setIsScanning(true);
     setScanError(null);
+    setScanActions([]);
+    setDiagnostic(null);
+
     try {
-      const ep = normalizeEndpoint(endpoint);
-      const models = await fetchOllamaModels(ep);
+      const models = await fetchOllamaModels(normalizedEndpoint);
       setInstalledModels(models);
+
+      const preferred = FORMAL_OLLAMA_MODELS
+        .map(formal => models.find(model => matchesModel(model.name, formal.name)))
+        .find(Boolean);
+
+      setSelectedModel(current => current ?? preferred?.name ?? models[0]?.name ?? null);
+
       if (models.length === 0) {
-        setScanError('No se encontraron modelos instalados. Descarga uno para continuar.');
+        setScanError('Ollama respondió correctamente, pero todavía no tiene modelos instalados.');
+        setScanActions([
+          'Instala al menos uno de los modelos formales mostrados abajo para usar el diagnóstico.',
+          'Instala los tres antes de ejecutar la comparación experimental de AURA.',
+        ]);
       }
-    } catch (e: any) {
-      setScanError(e.message || 'Error al escanear modelos');
+    } catch (error: unknown) {
+      let connectionDiagnostic: OllamaLocalDiagnostic | null = null;
+
+      try {
+        connectionDiagnostic = await diagnoseOllamaLocal(normalizedEndpoint);
+        setDiagnostic(connectionDiagnostic);
+      } catch {
+        connectionDiagnostic = null;
+      }
+
+      if (connectionDiagnostic && connectionDiagnostic.status !== 'ready') {
+        const status = STATUS_INFO[connectionDiagnostic.status];
+        setScanError(`${status.title}. ${connectionDiagnostic.message}`);
+        setScanActions(connectionDiagnostic.recommendedActions);
+      } else {
+        setScanError(friendlyScanFallback(normalizedEndpoint));
+        setScanActions([
+          'Comprueba que Ollama esté abierto y responda en el puerto 11434.',
+          `Configura OLLAMA_ORIGINS="${ORIGIN}" y reinicia Ollama completamente.`,
+          'En Chrome o Edge, permite el acceso a dispositivos de la red local.',
+          'Vuelve a escanear después de completar estos pasos.',
+        ]);
+      }
+
+      if (error instanceof Error && error.name === 'AbortError') {
+        setScanError(`Ollama no respondió dentro del tiempo esperado en ${normalizedEndpoint}.`);
+      }
     } finally {
       setIsScanning(false);
     }
-  }, [endpoint]);
+  }, [normalizedEndpoint]);
 
   const handleDiagnose = useCallback(async () => {
     setIsChecking(true);
     setErrorDetail(null);
+
     try {
-      const result = await diagnoseOllamaLocal(endpoint, selectedModel || undefined);
+      const result = await diagnoseOllamaLocal(normalizedEndpoint, selectedModel || undefined);
       setDiagnostic(result);
+
+      if (result.details.modelsInstalled.length > 0 && installedModels.length === 0) {
+        setInstalledModels(result.details.modelsInstalled.map(name => ({
+          name,
+          modified_at: '',
+          size: 0,
+        })));
+      }
+
       if (result.status === 'ready') {
+        if (result.details.selectedModel) {
+          setSelectedModel(result.details.selectedModel);
+        }
         onReady?.(result);
       }
-    } catch (e: any) {
-      setErrorDetail(e.message || 'Error desconocido');
+    } catch (error: unknown) {
+      setErrorDetail(error instanceof Error ? error.message : 'Error desconocido');
     } finally {
       setIsChecking(false);
     }
-  }, [endpoint, selectedModel, onReady]);
-
-  const totalSteps = 5;
+  }, [installedModels.length, normalizedEndpoint, onReady, selectedModel]);
 
   return (
     <div className="ollama-wizard" data-testid="ollama-setup-wizard">
@@ -158,16 +332,15 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
         </div>
       </div>
 
-      <div className="ollama-wizard-steps">
-        {[0, 1, 2, 3, 4].map(i => (
+      <div className="ollama-wizard-steps" aria-label="Progreso de configuración de Ollama">
+        {[0, 1, 2, 3, 4].map(index => (
           <div
-            key={i}
-            className={`ollama-wizard-step-dot ${i === step ? 'ollama-wizard-step-dot--active' : ''} ${i < step ? 'ollama-wizard-step-dot--done' : ''}`}
+            key={index}
+            className={`ollama-wizard-step-dot ${index === step ? 'ollama-wizard-step-dot--active' : ''} ${index < step ? 'ollama-wizard-step-dot--done' : ''}`}
           />
         ))}
       </div>
 
-      {/* Step 0: Privacy & Architecture */}
       {step === 0 && (
         <div className="ollama-wizard-section">
           <div className="ollama-wizard-section-header">
@@ -183,14 +356,13 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
             </code>
           </div>
           <div className="ollama-wizard-actions">
-            <button className="btn-p" onClick={() => setStep(1)}>
+            <button type="button" className="btn-p" onClick={() => setStep(1)}>
               Continuar
             </button>
           </div>
         </div>
       )}
 
-      {/* Step 1: OS Detection */}
       {step === 1 && (
         <div className="ollama-wizard-section">
           <div className="ollama-wizard-section-header">
@@ -202,6 +374,7 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
             <div className="ollama-wizard-os-options">
               {(['windows', 'macos', 'linux', 'unknown'] as DesktopOS[]).map(os => (
                 <button
+                  type="button"
                   key={os}
                   className={`btn-s btn-sm ${currentOS === os ? 'ollama-wizard-os-btn--active' : ''}`}
                   onClick={() => setOverrideOS(os === 'unknown' ? null : os)}
@@ -213,10 +386,13 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
           </div>
           <div className="ollama-wizard-section-header" style={{ marginTop: 'var(--space-md)' }}>
             <Globe size={14} />
-            <strong>Navegador: {platform.browser === 'chrome' ? 'Chrome (recomendado)' :
-              platform.browser === 'edge' ? 'Edge (compatible)' :
-              platform.browser === 'firefox' ? 'Firefox (puede requerir ajustes)' :
-              platform.browser === 'safari' ? 'Safari (no compatible con loopback)' : 'Otro'}</strong>
+            <strong>
+              Navegador: {platform.browser === 'chrome' ? 'Chrome (recomendado)'
+                : platform.browser === 'edge' ? 'Edge (compatible)'
+                  : platform.browser === 'firefox' ? 'Firefox (puede requerir ajustes)'
+                    : platform.browser === 'safari' ? 'Safari (no compatible con loopback)'
+                      : 'Otro'}
+            </strong>
           </div>
           {platform.browser !== 'chrome' && platform.browser !== 'edge' && (
             <p className="ollama-wizard-warning">
@@ -224,25 +400,34 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
             </p>
           )}
           <div className="ollama-wizard-actions">
-            <button className="btn-s btn-sm" onClick={() => setStep(0)}>Atrás</button>
-            <button className="btn-p" onClick={() => setStep(2)}>Continuar</button>
+            <button type="button" className="btn-s btn-sm" onClick={() => setStep(0)}>Atrás</button>
+            <button type="button" className="btn-p" onClick={() => setStep(2)}>Continuar</button>
           </div>
         </div>
       )}
 
-      {/* Step 2: OLLAMA_ORIGINS Instructions */}
       {step === 2 && (
         <div className="ollama-wizard-section">
           <div className="ollama-wizard-section-header">
             <Wrench size={14} />
-            <strong>Configurar OLLAMA_ORIGINS — {osLabel}</strong>
+            <strong>Configurar OLLAMA_ORIGINS · {osLabel}</strong>
           </div>
           <div className="ollama-wizard-origin-box">
             <code>OLLAMA_ORIGINS="{ORIGIN}"</code>
           </div>
           <div className="ollama-wizard-instructions">
-            {getInstructions().map((line, i) => (
-              <p key={i} className={line.startsWith('O') || line.startsWith('sudo') || line.startsWith('setx') || line.startsWith('launchctl') || line.startsWith('[') || line.startsWith('Environment') ? 'ollama-wizard-instruction-cmd' : 'ollama-wizard-instruction-step'}>
+            {getInstructions().map((line, index) => (
+              <p
+                key={`${line}-${index}`}
+                className={line.startsWith('O')
+                  || line.startsWith('sudo')
+                  || line.startsWith('setx')
+                  || line.startsWith('launchctl')
+                  || line.startsWith('[')
+                  || line.startsWith('Environment')
+                  ? 'ollama-wizard-instruction-cmd'
+                  : 'ollama-wizard-instruction-step'}
+              >
                 {line || '\u00A0'}
               </p>
             ))}
@@ -250,22 +435,19 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
           {currentOS === 'windows' && (
             <div className="ollama-wizard-subsection">
               <strong>PowerShell:</strong>
-              <div className="ollama-wizard-code-block">
-                <code>{PS_WINDOWS}</code>
-              </div>
+              <div className="ollama-wizard-code-block"><code>{PS_WINDOWS}</code></div>
             </div>
           )}
           <p className="ollama-wizard-note">
-            El cambio aplica a procesos nuevos. Cierra Ollama completamente y ábrelo otra vez.
+            El cambio solo aplica a procesos nuevos. Cierra Ollama completamente y ábrelo otra vez antes de escanear.
           </p>
           <div className="ollama-wizard-actions">
-            <button className="btn-s btn-sm" onClick={() => setStep(1)}>Atrás</button>
-            <button className="btn-p" onClick={() => setStep(3)}>Ya configuré OLLAMA_ORIGINS</button>
+            <button type="button" className="btn-s btn-sm" onClick={() => setStep(1)}>Atrás</button>
+            <button type="button" className="btn-p" onClick={() => setStep(3)}>Ya configuré y reinicié Ollama</button>
           </div>
         </div>
       )}
 
-      {/* Step 3: Model Selection */}
       {step === 3 && (
         <div className="ollama-wizard-section">
           <div className="ollama-wizard-section-header">
@@ -273,7 +455,7 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
             <strong>Seleccionar modelo</strong>
           </div>
           <p className="ollama-wizard-text">
-            Escanea los modelos instalados en Ollama o descarga uno nuevo.
+            AURA consulta <code>{normalizedEndpoint}/api/tags</code> para detectar los modelos disponibles.
             {selectedModel && (
               <span style={{ display: 'block', marginTop: '8px', color: 'var(--success)', fontWeight: 600 }}>
                 Modelo seleccionado: {selectedModel}
@@ -281,37 +463,60 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
             )}
           </p>
 
-          {installedModels.length === 0 && !scanError && !isScanning && (
-            <div className="ollama-wizard-connect-area">
-              <button
-                className="btn-p"
-                onClick={handleScanModels}
-                disabled={isScanning}
-                data-testid="ollama-scan-btn"
-              >
-                {isScanning ? (
-                  <><Activity size={16} className="spinning" /> Escaneando...</>
-                ) : (
-                  <><Activity size={16} /> Escanear modelos instalados</>
-                )}
-              </button>
-            </div>
-          )}
+          <div className="ollama-wizard-connect-area">
+            <button
+              type="button"
+              className="btn-p"
+              onClick={handleScanModels}
+              disabled={isScanning}
+              data-testid="ollama-scan-btn"
+            >
+              {isScanning
+                ? <><Activity size={16} className="spinning" /> Escaneando...</>
+                : <><Activity size={16} /> Escanear modelos instalados</>}
+            </button>
+          </div>
 
           {isScanning && (
             <div className="ollama-wizard-diagnostic ollama-wizard-diagnostic--warning" style={{ marginTop: '12px' }}>
               <div className="ollama-wizard-diagnostic-header">
                 <Activity size={16} className="spinning" />
-                <span>Escaneando modelos en Ollama...</span>
+                <span>Consultando Ollama en este equipo...</span>
               </div>
             </div>
           )}
 
-          {scanError && installedModels.length === 0 && (
-            <div className="ollama-wizard-diagnostic ollama-wizard-diagnostic--warning" style={{ marginTop: '12px' }}>
+          {scanError && (
+            <div
+              className="ollama-wizard-diagnostic ollama-wizard-diagnostic--warning"
+              style={{ marginTop: '12px' }}
+              data-testid="ollama-scan-error"
+            >
               <div className="ollama-wizard-diagnostic-header">
                 <AlertCircle size={16} style={{ color: 'var(--orange)' }} />
-                <span>{scanError}</span>
+                <div>
+                  <strong>No se pudo completar el escaneo</strong>
+                  <p className="ollama-wizard-diagnostic-msg">{scanError}</p>
+                </div>
+              </div>
+              {scanActions.length > 0 && (
+                <div className="ollama-wizard-checklist">
+                  <div className="ollama-wizard-checklist-title">
+                    <Wrench size={12} />
+                    <span>Qué revisar:</span>
+                  </div>
+                  <ul>
+                    {scanActions.map(action => <li key={action}>{action}</li>)}
+                  </ul>
+                </div>
+              )}
+              <div className="ollama-wizard-actions">
+                <button type="button" className="btn-s" onClick={handleScanModels} disabled={isScanning}>
+                  <Activity size={12} /> Volver a escanear
+                </button>
+                <button type="button" className="btn-s" onClick={() => setStep(4)}>
+                  Diagnosticar conexión
+                </button>
               </div>
             </div>
           )}
@@ -319,79 +524,107 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
           {installedModels.length > 0 && (
             <div className="ollama-wizard-model-list" style={{ marginTop: '12px' }}>
               <span className="ollama-wizard-model-label">Modelos instalados:</span>
-              {installedModels.map(m => {
-                const isHeavy = isModelHeavy(m.size);
-                const sizeGB = (m.size / (1024 * 1024 * 1024)).toFixed(1);
-                const isSelected = selectedModel === m.name;
+              {installedModels.map(model => {
+                const isHeavy = isModelHeavy(model.size);
+                const sizeGB = model.size > 0
+                  ? (model.size / (1024 * 1024 * 1024)).toFixed(1)
+                  : null;
+                const isSelected = selectedModel === model.name;
+                const isFormal = FORMAL_OLLAMA_MODELS.some(formal => matchesModel(model.name, formal.name));
+
                 return (
-                  <div
-                    key={m.name}
+                  <button
+                    type="button"
+                    key={model.name}
                     className={`ollama-wizard-model-chip ${isSelected ? 'ollama-wizard-model-chip--selected' : ''}`}
                     style={{
-                      display: 'flex', alignItems: 'center', gap: '8px',
-                      padding: '8px 12px', marginBottom: '8px',
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '8px 12px',
+                      marginBottom: '8px',
                       border: isSelected ? '2px solid var(--success)' : '1px solid var(--border)',
-                      borderRadius: '6px', cursor: 'pointer',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      textAlign: 'left',
                       background: isSelected ? 'var(--surface-success, #f0faf0)' : 'var(--surface1)',
                     }}
-                    onClick={() => setSelectedModel(m.name)}
-                    data-testid={`ollama-model-${m.name.replace(/[^a-zA-Z0-9]/g, '-')}`}
+                    onClick={() => setSelectedModel(model.name)}
+                    data-testid={`ollama-model-${model.name.replace(/[^a-zA-Z0-9]/g, '-')}`}
                   >
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 600, fontSize: '13px' }}>{m.name}</div>
+                      <div style={{ fontWeight: 600, fontSize: '13px' }}>{model.name}</div>
                       <div style={{ fontSize: '11px', color: 'var(--ink3)' }}>
-                        {sizeGB} GB{isHeavy && ' · Modelo pesado'}
+                        {sizeGB ? `${sizeGB} GB` : 'Tamaño no informado'}
+                        {isFormal ? ' · Modelo formal AURA' : ''}
+                        {isHeavy ? ' · Modelo pesado' : ''}
                       </div>
                     </div>
-                    {isHeavy && (
-                      <span
-                        style={{ fontSize: '10px', color: 'var(--orange)', fontWeight: 600, whiteSpace: 'nowrap', padding: '2px 6px', borderRadius: '4px', background: 'var(--warning-bg, #fff3cd)' }}
-                        title="Este modelo pesa más de 10 GB. Puede consumir mucha memoria RAM/VRAM."
-                      >
-                        {'>'}10 GB
-                      </span>
-                    )}
-                    {isSelected && (
-                      <CheckCircle size={16} style={{ color: 'var(--success)', flexShrink: 0 }} />
-                    )}
-                  </div>
+                    {isSelected && <CheckCircle size={16} style={{ color: 'var(--success)', flexShrink: 0 }} />}
+                  </button>
                 );
               })}
             </div>
           )}
 
-          {installedModels.length > 0 && !selectedModel && (
-            <p className="ollama-wizard-note" style={{ marginTop: '8px' }}>
-              Selecciona un modelo de la lista para usarlo en el diagnóstico.
-            </p>
-          )}
-
           <div className="ollama-wizard-section-header" style={{ marginTop: 'var(--space-md)' }}>
             <Download size={14} />
-            <strong>Descargar modelo recomendado</strong>
+            <strong>Modelos formales de AURA</strong>
           </div>
           <p className="ollama-wizard-text">
-            AURA funciona mejor con modelos de ~3B parámetros para diagnóstico local rápido.
+            Para un diagnóstico normal basta con uno. Para ejecutar la comparación experimental deben estar instalados los tres.
           </p>
-          <div className="ollama-wizard-code-block" style={{ marginBottom: '8px' }}>
-            <code>ollama pull qwen2.5:3b</code>
-          </div>
-          <p className="ollama-wizard-text" style={{ fontSize: '12px', color: 'var(--ink3)' }}>
-            Alternativa más ligera:
+          <p className="ollama-wizard-note" data-testid="ollama-formal-model-count">
+            Detectados: {installedFormalCount} de {FORMAL_OLLAMA_MODELS.length} modelos formales.
           </p>
-          <div className="ollama-wizard-code-block">
-            <code>ollama pull gemma2:2b</code>
+
+          <div style={{ display: 'grid', gap: '10px' }}>
+            {formalModelStatus.map(model => {
+              const command = `ollama pull ${model.name}`;
+              return (
+                <div
+                  key={model.name}
+                  className="ollama-wizard-code-block"
+                  style={{ display: 'grid', gap: '6px' }}
+                  data-testid={`ollama-formal-model-${model.name.replace(/[^a-zA-Z0-9]/g, '-')}`}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
+                    <div>
+                      <strong>{model.label}</strong>
+                      <p style={{ margin: '3px 0 0', fontSize: '11px', color: 'var(--ink3)' }}>{model.purpose}</p>
+                    </div>
+                    <span style={{
+                      color: model.installed ? 'var(--success)' : 'var(--ink3)',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      whiteSpace: 'nowrap',
+                    }}>
+                      {model.installed ? 'Instalado' : 'Pendiente'}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <code style={{ flex: 1 }}>{command}</code>
+                    <button type="button" className="btn-s btn-sm" onClick={() => void copyCommand(command)}>
+                      {copiedCommand === command ? 'Copiado' : 'Copiar'}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
+
           <p className="ollama-wizard-note">
-            Después de descargar, pulsa "Escanear modelos instalados" para detectarlo.
+            Después de una descarga, espera a que termine y vuelve a pulsar “Escanear modelos instalados”.
           </p>
           <div className="ollama-wizard-actions">
-            <button className="btn-s btn-sm" onClick={() => setStep(2)}>Atrás</button>
+            <button type="button" className="btn-s btn-sm" onClick={() => setStep(2)}>Atrás</button>
             <button
+              type="button"
               className="btn-p"
               onClick={() => setStep(4)}
               disabled={!selectedModel}
-              title={!selectedModel ? 'Selecciona un modelo instalado primero' : undefined}
+              title={!selectedModel ? 'Escanea y selecciona un modelo instalado primero' : undefined}
               data-testid="ollama-step3-continue"
             >
               {selectedModel ? `Usar ${selectedModel}` : 'Selecciona un modelo'}
@@ -400,7 +633,6 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
         </div>
       )}
 
-      {/* Step 4: Connect & Diagnose */}
       {step === 4 && (
         <div className="ollama-wizard-section">
           <div className="ollama-wizard-section-header">
@@ -408,22 +640,21 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
             <strong>Verificar conexión</strong>
           </div>
           <p className="ollama-wizard-text">
-            Al pulsar "Conectar", el navegador puede pedir permiso para acceder a la red local.
+            La verificación distingue servidor cerrado, permiso de red local, autorización de origen y modelos ausentes.
           </p>
 
           {!diagnostic && (
             <div className="ollama-wizard-connect-area">
               <button
+                type="button"
                 className="btn-p btn-lg"
                 onClick={handleDiagnose}
                 disabled={isChecking}
                 data-testid="ollama-connect-btn"
               >
-                {isChecking ? (
-                  <><Activity size={16} className="spinning" /> Verificando...</>
-                ) : (
-                  <><Zap size={16} /> Solicitar permiso y conectar</>
-                )}
+                {isChecking
+                  ? <><Activity size={16} className="spinning" /> Verificando...</>
+                  : <><Zap size={16} /> Solicitar permiso y conectar</>}
               </button>
               {errorDetail && (
                 <div className="ollama-wizard-error">
@@ -452,22 +683,14 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
                   <code className="ollama-wizard-model-chip" style={{ background: 'var(--accent-bg, #e8f0fe)', fontWeight: 600 }}>
                     {diagnostic.details.selectedModel}
                   </code>
-                  {diagnostic.details.selectedModelSize != null && isModelHeavy(diagnostic.details.selectedModelSize) && (
-                    <span
-                      style={{ fontSize: '11px', color: 'var(--orange)', marginLeft: '8px', padding: '2px 6px', borderRadius: '4px', background: 'var(--warning-bg, #fff3cd)' }}
-                      title="Modelo pesado: puede consumir mucha memoria RAM/VRAM"
-                    >
-                      {'>'}10 GB — modelo pesado
-                    </span>
-                  )}
                 </div>
               )}
 
               {diagnostic.details.modelsInstalled.length > 0 && (
                 <div className="ollama-wizard-model-list">
                   <span className="ollama-wizard-model-label">Modelos instalados:</span>
-                  {diagnostic.details.modelsInstalled.map(m => (
-                    <code key={m} className="ollama-wizard-model-chip">{m}</code>
+                  {diagnostic.details.modelsInstalled.map(model => (
+                    <code key={model} className="ollama-wizard-model-chip">{model}</code>
                   ))}
                 </div>
               )}
@@ -479,16 +702,17 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
                     <span>Acciones recomendadas:</span>
                   </div>
                   <ul>
-                    {diagnostic.recommendedActions.map((action, i) => (
-                      <li key={i}>{action}</li>
-                    ))}
+                    {diagnostic.recommendedActions.map(action => <li key={action}>{action}</li>)}
                   </ul>
                 </div>
               )}
 
               <div className="ollama-wizard-actions">
+                <button type="button" className="btn-s btn-sm" onClick={() => setStep(3)}>
+                  Volver a modelos
+                </button>
                 {diagnostic.status !== 'ready' && (
-                  <button className="btn-s" onClick={handleDiagnose} disabled={isChecking}>
+                  <button type="button" className="btn-s" onClick={handleDiagnose} disabled={isChecking}>
                     <Activity size={12} /> {isChecking ? 'Verificando...' : 'Volver a intentar'}
                   </button>
                 )}
@@ -506,7 +730,7 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
 
       <div className="ollama-wizard-footer">
         {onCancel && (
-          <button className="btn-s btn-sm" onClick={onCancel}>
+          <button type="button" className="btn-s btn-sm" onClick={onCancel}>
             Cancelar
           </button>
         )}
