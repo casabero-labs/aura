@@ -94,8 +94,9 @@ P1-04 cierra la claridad UX, trazabilidad y exportaciones:
 - Exportaciones: descripciones de cada artefacto; nota de validez sobre recibos requeridos.
 - Ollama: asistente React integrado con verificación de conexión, descarga real de los tres modelos recomendados, progreso y registro técnico visible. La antigua implementación HTML quedó reducida a una redirección segura de compatibilidad.
 - Configuración: eliminados los enlaces sin destino a configuración avanzada y laboratorio experimental.
+- Despliegue: el oráculo formal conserva una copia desplegable dentro de `src`, verificada byte a byte contra la fuente canónica de `experiments`, para que el build aislado de Coolify no pierda evidencia.
 
-**P1-04 COMPLETO.** Suite 1737 tests, typecheck y build en verde; 6/6 E2E del cierre UX aprobados en Chromium.
+**P1-04 COMPLETO.** Suite 1738 tests, typecheck y build en verde; 6/6 E2E del cierre UX aprobados en Chromium.
 
 ## Pendientes no cubiertos por P1
 

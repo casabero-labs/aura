@@ -171,4 +171,18 @@ describe('evaluateDiagnosticOracle', () => {
     expect(result.engineCoverage).toBe(41 / 55);
     expect(result.evidenceFidelity).toBe(0);
   });
+
+  it('keeps the deployable oracle byte-identical to the canonical experiment oracle', () => {
+    const repoRoot = join(__dirname, '..', '..');
+    const canonical = readFileSync(
+      join(repoRoot, 'experiments/final-evaluation/oracles/diagnostic-oracle.v1.json'),
+      'utf-8',
+    );
+    const deployable = readFileSync(
+      join(repoRoot, 'src/services/benchmark/oracles/diagnostic-oracle.v1.json'),
+      'utf-8',
+    );
+
+    expect(deployable).toBe(canonical);
+  });
 });

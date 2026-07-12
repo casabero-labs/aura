@@ -1,0 +1,67 @@
+{
+  "oracleId": "aura.diagnostic-oracle.v1",
+  "version": "1.0.0",
+  "frozenAt": "2026-07-10",
+  "dataset": {
+    "id": "controlled_customers_phase8",
+    "fingerprintSha256": "7438bbdc96499d04bd7e485d6450f740304a7c878dce7d1a720dc4d9f2025faf",
+    "rows": 50,
+    "columns": 15
+  },
+  "source": {
+    "groundTruthFile": "oracles/controlled_customers_phase8_ground_truth.source.json",
+    "groundTruthSha256": "38c846856860519d248b42e53afe3cacacff714f115af6cec4b3d050fe79040d",
+    "auditFile": "docs/archive/academic/entrega_03_historica/03_evidencia/phase_08/pilot_run_l3/aura_audit_controlled_customers_phase8.json",
+    "declaredSummary": { "deterministic_expected": 50, "cognitive_expected": 3, "human_review_expected": 2, "out_of_scope": 0, "total_issues": 55 },
+    "recalculatedSummary": { "deterministic_expected": 51, "cognitive_expected": 2, "human_review_expected": 2, "out_of_scope": 0, "total_issues": 55 },
+    "sourceMetadataMismatch": true,
+    "mismatchDetail": "declaredSummary counts (50/3/2) do not match issues array (51/2/2). Oracle counts are always derived from the issues array, never from declaredSummary."
+  },
+  "scopes": {
+    "engineCoverage": "Cobertura del motor AURA sobre las 55 incidencias fuente del ground truth.",
+    "primaryDiagnosticF1": "F1 diagnóstico del LLM sobre las claves engine_exposed. Únicas que entran al denominador de TP/FP/FN.",
+    "evidenceFidelity": "Anclaje de los hallazgos del LLM al snapshot de evidencia de cada uno de los tres modos de entrada.",
+    "extendedDiscovery": "Descubrimientos correctos del LLM fuera del snapshot determinista; se reportan aparte y nunca como TP/FN primarios."
+  },
+  "coverage": {
+    "totalSourceIssues": 55,
+    "canonicalKeys": 32,
+    "byReachability": { "engine_exposed": 16, "engine_supported_not_exposed": 7, "out_of_engine_scope": 9 },
+    "byClassification": { "deterministic_expected": 29, "human_review_expected": 2, "cognitive_expected": 1 },
+    "primaryF1Denominator": 16
+  },
+  "findings": [
+    { "key": "rule:capitalization-chaos|city|column", "canonicalRuleId": "rule:capitalization-chaos", "columnId": "city", "scope": "column", "classification": "deterministic_expected", "reachability": "engine_exposed", "primaryEligible": true, "visibleEvidenceModes": ["smart_sample", "recommended"], "severity": "warning", "sourceIssueIds": ["GT-023"] },
+    { "key": "rule:capitalization-chaos|plan_type|column", "canonicalRuleId": "rule:capitalization-chaos", "columnId": "plan_type", "scope": "column", "classification": "deterministic_expected", "reachability": "engine_exposed", "primaryEligible": true, "visibleEvidenceModes": ["smart_sample", "recommended"], "severity": "warning", "sourceIssueIds": ["GT-016", "GT-031"] },
+    { "key": "rule:cross-constraint|credits_used,total_credits|dataset", "canonicalRuleId": "rule:cross-constraint", "columnId": "credits_used,total_credits", "scope": "dataset", "classification": "deterministic_expected", "reachability": "out_of_engine_scope", "primaryEligible": false, "visibleEvidenceModes": [], "severity": "warning", "sourceIssueIds": ["GT-037", "GT-038"] },
+    { "key": "rule:domain-allowed|country|column", "canonicalRuleId": "rule:domain-allowed", "columnId": "country", "scope": "column", "classification": "deterministic_expected", "reachability": "out_of_engine_scope", "primaryEligible": false, "visibleEvidenceModes": [], "severity": "warning", "sourceIssueIds": ["GT-010", "GT-024"] },
+    { "key": "rule:domain-allowed|plan_type|column", "canonicalRuleId": "rule:domain-allowed", "columnId": "plan_type", "scope": "column", "classification": "deterministic_expected", "reachability": "out_of_engine_scope", "primaryEligible": false, "visibleEvidenceModes": [], "severity": "warning", "sourceIssueIds": ["GT-042", "GT-051"] },
+    { "key": "rule:unique-id|customer_id|column", "canonicalRuleId": "rule:unique-id", "columnId": "customer_id", "scope": "column", "classification": "deterministic_expected", "reachability": "out_of_engine_scope", "primaryEligible": false, "visibleEvidenceModes": [], "severity": "critical", "sourceIssueIds": ["GT-039"] },
+    { "key": "rule:future-dates|birth_date|column", "canonicalRuleId": "rule:future-dates", "columnId": "birth_date", "scope": "column", "classification": "deterministic_expected", "reachability": "engine_supported_not_exposed", "primaryEligible": false, "visibleEvidenceModes": [], "severity": "warning", "sourceIssueIds": ["GT-041"] },
+    { "key": "rule:future-dates|registration_date|column", "canonicalRuleId": "rule:future-dates", "columnId": "registration_date", "scope": "column", "classification": "deterministic_expected", "reachability": "engine_supported_not_exposed", "primaryEligible": false, "visibleEvidenceModes": [], "severity": "warning", "sourceIssueIds": ["GT-033", "GT-045"] },
+    { "key": "rule:human-review|full_name|column", "canonicalRuleId": "rule:human-review", "columnId": "full_name", "scope": "column", "classification": "human_review_expected", "reachability": "out_of_engine_scope", "primaryEligible": false, "visibleEvidenceModes": [], "severity": "warning", "sourceIssueIds": ["GT-054"] },
+    { "key": "rule:human-review|status|column", "canonicalRuleId": "rule:human-review", "columnId": "status", "scope": "column", "classification": "human_review_expected", "reachability": "out_of_engine_scope", "primaryEligible": false, "visibleEvidenceModes": [], "severity": "warning", "sourceIssueIds": ["GT-052"] },
+    { "key": "rule:impossible-negatives|credits_used|column", "canonicalRuleId": "rule:impossible-negatives", "columnId": "credits_used", "scope": "column", "classification": "deterministic_expected", "reachability": "engine_exposed", "primaryEligible": true, "visibleEvidenceModes": ["smart_sample", "recommended"], "severity": "critical", "sourceIssueIds": ["GT-043"] },
+    { "key": "rule:invalid-date|birth_date|column", "canonicalRuleId": "rule:invalid-date", "columnId": "birth_date", "scope": "column", "classification": "deterministic_expected", "reachability": "out_of_engine_scope", "primaryEligible": false, "visibleEvidenceModes": [], "severity": "critical", "sourceIssueIds": ["GT-007", "GT-040"] },
+    { "key": "rule:invalid-email|email|column", "canonicalRuleId": "rule:invalid-email", "columnId": "email", "scope": "column", "classification": "deterministic_expected", "reachability": "engine_exposed", "primaryEligible": true, "visibleEvidenceModes": ["smart_sample", "recommended"], "severity": "critical", "sourceIssueIds": ["GT-002", "GT-018"] },
+    { "key": "rule:invalid-format|birth_date|column", "canonicalRuleId": "rule:invalid-format", "columnId": "birth_date", "scope": "column", "classification": "deterministic_expected", "reachability": "out_of_engine_scope", "primaryEligible": false, "visibleEvidenceModes": [], "severity": "warning", "sourceIssueIds": ["GT-012"] },
+    { "key": "rule:null-values|birth_date|column", "canonicalRuleId": "rule:null-values", "columnId": "birth_date", "scope": "column", "classification": "deterministic_expected", "reachability": "engine_supported_not_exposed", "primaryEligible": false, "visibleEvidenceModes": [], "severity": "warning", "sourceIssueIds": ["GT-011"] },
+    { "key": "rule:null-values|city|column", "canonicalRuleId": "rule:null-values", "columnId": "city", "scope": "column", "classification": "deterministic_expected", "reachability": "engine_exposed", "primaryEligible": true, "visibleEvidenceModes": ["smart_sample", "recommended"], "severity": "warning", "sourceIssueIds": ["GT-013", "GT-019", "GT-022", "GT-034", "GT-036"] },
+    { "key": "rule:null-values|country|column", "canonicalRuleId": "rule:null-values", "columnId": "country", "scope": "column", "classification": "deterministic_expected", "reachability": "engine_exposed", "primaryEligible": true, "visibleEvidenceModes": ["smart_sample", "recommended"], "severity": "warning", "sourceIssueIds": ["GT-014", "GT-020", "GT-029"] },
+    { "key": "rule:null-values|email|column", "canonicalRuleId": "rule:null-values", "columnId": "email", "scope": "column", "classification": "deterministic_expected", "reachability": "engine_exposed", "primaryEligible": true, "visibleEvidenceModes": ["smart_sample", "recommended"], "severity": "critical", "sourceIssueIds": ["GT-005", "GT-028", "GT-046"] },
+    { "key": "rule:null-values|full_name|column", "canonicalRuleId": "rule:null-values", "columnId": "full_name", "scope": "column", "classification": "deterministic_expected", "reachability": "engine_exposed", "primaryEligible": true, "visibleEvidenceModes": ["smart_sample", "recommended"], "severity": "critical", "sourceIssueIds": ["GT-001", "GT-004"] },
+    { "key": "rule:null-values|phone|column", "canonicalRuleId": "rule:null-values", "columnId": "phone", "scope": "column", "classification": "deterministic_expected", "reachability": "engine_exposed", "primaryEligible": true, "visibleEvidenceModes": ["smart_sample", "recommended"], "severity": "warning", "sourceIssueIds": ["GT-032", "GT-044"] },
+    { "key": "rule:null-values|plan_type|column", "canonicalRuleId": "rule:null-values", "columnId": "plan_type", "scope": "column", "classification": "deterministic_expected", "reachability": "engine_exposed", "primaryEligible": true, "visibleEvidenceModes": ["smart_sample", "recommended"], "severity": "critical", "sourceIssueIds": ["GT-035"] },
+    { "key": "rule:null-values|registration_date|column", "canonicalRuleId": "rule:null-values", "columnId": "registration_date", "scope": "column", "classification": "deterministic_expected", "reachability": "engine_supported_not_exposed", "primaryEligible": false, "visibleEvidenceModes": [], "severity": "critical", "sourceIssueIds": ["GT-008"] },
+    { "key": "rule:null-values|total_credits|column", "canonicalRuleId": "rule:null-values", "columnId": "total_credits", "scope": "column", "classification": "deterministic_expected", "reachability": "engine_supported_not_exposed", "primaryEligible": false, "visibleEvidenceModes": [], "severity": "warning", "sourceIssueIds": ["GT-015", "GT-030"] },
+    { "key": "rule:reasonable-age|birth_date|column", "canonicalRuleId": "rule:reasonable-age", "columnId": "birth_date", "scope": "column", "classification": "cognitive_expected", "reachability": "out_of_engine_scope", "primaryEligible": false, "visibleEvidenceModes": [], "severity": "warning", "sourceIssueIds": ["GT-017", "GT-053"] },
+    { "key": "rule:toxic-placeholders|city|column", "canonicalRuleId": "rule:toxic-placeholders", "columnId": "city", "scope": "column", "classification": "deterministic_expected", "reachability": "engine_supported_not_exposed", "primaryEligible": false, "visibleEvidenceModes": [], "severity": "warning", "sourceIssueIds": ["GT-009", "GT-050"] },
+    { "key": "rule:toxic-placeholders|email|column", "canonicalRuleId": "rule:toxic-placeholders", "columnId": "email", "scope": "column", "classification": "deterministic_expected", "reachability": "engine_exposed", "primaryEligible": true, "visibleEvidenceModes": ["smart_sample", "recommended"], "severity": "critical", "sourceIssueIds": ["GT-003", "GT-049"] },
+    { "key": "rule:toxic-placeholders|full_name|column", "canonicalRuleId": "rule:toxic-placeholders", "columnId": "full_name", "scope": "column", "classification": "deterministic_expected", "reachability": "engine_exposed", "primaryEligible": true, "visibleEvidenceModes": ["smart_sample", "recommended"], "severity": "critical", "sourceIssueIds": ["GT-048"] },
+    { "key": "rule:toxic-placeholders|phone|column", "canonicalRuleId": "rule:toxic-placeholders", "columnId": "phone", "scope": "column", "classification": "deterministic_expected", "reachability": "engine_exposed", "primaryEligible": true, "visibleEvidenceModes": ["smart_sample", "recommended"], "severity": "warning", "sourceIssueIds": ["GT-006", "GT-055"] },
+    { "key": "rule:trim-whitespace|city|column", "canonicalRuleId": "rule:trim-whitespace", "columnId": "city", "scope": "column", "classification": "deterministic_expected", "reachability": "engine_exposed", "primaryEligible": true, "visibleEvidenceModes": ["smart_sample", "recommended"], "severity": "warning", "sourceIssueIds": ["GT-027", "GT-047"] },
+    { "key": "rule:trim-whitespace|full_name|column", "canonicalRuleId": "rule:trim-whitespace", "columnId": "full_name", "scope": "column", "classification": "deterministic_expected", "reachability": "engine_exposed", "primaryEligible": true, "visibleEvidenceModes": ["smart_sample", "recommended"], "severity": "warning", "sourceIssueIds": ["GT-025"] },
+    { "key": "rule:trim-whitespace|phone|column", "canonicalRuleId": "rule:trim-whitespace", "columnId": "phone", "scope": "column", "classification": "deterministic_expected", "reachability": "engine_exposed", "primaryEligible": true, "visibleEvidenceModes": ["smart_sample", "recommended"], "severity": "warning", "sourceIssueIds": ["GT-026"] },
+    { "key": "rule:variable-phone-length|phone|column", "canonicalRuleId": "rule:variable-phone-length", "columnId": "phone", "scope": "column", "classification": "deterministic_expected", "reachability": "engine_supported_not_exposed", "primaryEligible": false, "visibleEvidenceModes": [], "severity": "warning", "sourceIssueIds": ["GT-021"] }
+  ]
+}

@@ -1,4 +1,4 @@
-import diagnosticOracleJson from '../../../experiments/final-evaluation/oracles/diagnostic-oracle.v1.json';
+import diagnosticOracleJson from './oracles/diagnostic-oracle.v1.json';
 import type { DiagnosisResponseV2, EvidenceEnvelopeV2 } from '../../contracts/llm/types';
 import type { AutomaticEvaluationV1, ExperimentRunV1 } from './experimentTypes';
 import {
