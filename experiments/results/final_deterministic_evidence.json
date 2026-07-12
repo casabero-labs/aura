@@ -28,20 +28,20 @@
       "groundTruthScope": "13 reglas predeclaradas, incluida 1 regla negativa conocida",
       "binaryRuleMetrics": {
         "unit": "rule_activation",
-        "evaluatedRules": 13,
+        "evaluatedRules": 12,
         "tp": 12,
-        "fp": 1,
+        "fp": 0,
         "fn": 0,
-        "precision": 0.9230769230769231,
+        "precision": 1,
         "recall": 1,
-        "f1": 0.9600000000000001,
+        "f1": 1,
         "precisionKind": "scoped_with_explicit_negatives"
       },
       "occurrenceCounts": {
         "unit": "issue_occurrences_not_unique_rows",
         "expectedPositiveOccurrences": 30,
         "detectedOccurrencesOnExpectedKeys": 30,
-        "knownFalsePositiveOccurrences": 14,
+        "knownFalsePositiveOccurrences": 0,
         "exactRowMatchingAvailable": false
       },
       "perRule": [
@@ -164,16 +164,6 @@
           "fp": 0,
           "fn": 0,
           "status": "match"
-        },
-        {
-          "ruleKey": "semantic-burned-range-fecha_ingreso",
-          "ruleName": "R24 — Rangos Demográficos Quemados (FP)",
-          "expectedOccurrences": 0,
-          "detectedOccurrences": 14,
-          "tp": 0,
-          "fp": 1,
-          "fn": 0,
-          "status": "expected_fp"
         }
       ],
       "additionalDetections": [],

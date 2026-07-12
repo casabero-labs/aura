@@ -105,15 +105,15 @@ describe('pipeline diagnostic report state', () => {
     );
 
     const stage = screen.getByTestId('diagnostic-report-stage');
-    expect(stage.textContent).toContain('Informe diagnóstico de calidad del dato');
-    expect(stage.textContent).toContain('AURA generó un reporte con evidencia determinista. El diagnóstico asistido no está disponible.');
+    expect(stage.textContent).toContain('Qué encontró AURA y qué puedes hacer');
+    expect(stage.textContent).toContain('AURA generó un informe basado en evidencia determinista.');
     expect(stage.textContent).toContain('72/100');
     expect(stage.textContent).toContain('891');
     expect(stage.textContent).toContain('12');
     expect(stage.textContent).toContain('Evidencia determinista');
     expect(stage.textContent).not.toContain('deterministic_only');
     expect(stage.textContent).toContain('Riesgos confirmados');
-    expect(stage.textContent).toContain('Posibles falsos positivos contextuales');
+    expect(stage.textContent).toContain('Revisar antes de corregir');
     expect(stage.textContent).toContain('Recomendaciones');
     expect(stage.textContent).toContain('Score base calculado por motor determinista.');
     expect(stage.textContent).toContain('El informe principal puede cerrarse sin generar script.');

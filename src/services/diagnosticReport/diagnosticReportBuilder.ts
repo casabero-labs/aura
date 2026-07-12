@@ -87,7 +87,7 @@ export const buildDiagnosticReport = ({
     aiAnalysis,
     deterministicValidation,
   });
-  const findingGroups = buildFindingGroups(report, structuredDiagnosis);
+  const findingGroups = buildFindingGroups(report, structuredDiagnosis, deterministicValidation);
   const recommendations = buildRecommendations(report, findingGroups);
   const scriptRecommended =
     findingGroups.optionalRemediationCandidates.length > 0 ||
@@ -108,6 +108,11 @@ export const buildDiagnosticReport = ({
         diagnosisSummary.source,
         structuredDiagnosis?.diagnosis.responseId ?? '',
       ].join(':'))}`,
+      ...(auditEvidence?.id ? { runId: auditEvidence.id } : {}),
+      ...(auditEvidence?.datasetSha256 ? { datasetSha256: auditEvidence.datasetSha256 } : {}),
+      ...(structuredDiagnosis?.executionReceipt?.receiptHash
+        ? { diagnosisReceiptHash: structuredDiagnosis.executionReceipt.receiptHash }
+        : {}),
       generatedAt,
       version: REPORT_VERSION,
       sourceDatasetFingerprint,
@@ -238,7 +243,7 @@ const buildDiagnosisSummary = ({
       observations,
       limitations: [
         ...structuredDiagnosis.diagnosis.limitations.map((limitation) => truncateText(limitation, 280)),
-        'El diagnostico asistido contextualiza evidencia; no modifica score ni convierte interpretacion en validacion formal.',
+        'El diagnóstico asistido contextualiza evidencia; no modifica el score ni convierte interpretación en validación formal.',
         ...(deterministicValidation?.groundTruthMatched ? [] : ['Sin validacion determinista formal asociada a ground truth en este reporte.']),
       ],
     };
@@ -253,8 +258,8 @@ const buildDiagnosisSummary = ({
       executiveSummary: buildLegacyExecutiveSummary(report, legacyText),
       observations: splitLegacyObservations(legacyText),
       limitations: [
-        'Diagnostico legacy en texto libre: no contiene referencias estructuradas verificables por contrato v2.',
-        'El diagnostico asistido contextualiza evidencia; no modifica score ni convierte interpretacion en validacion formal.',
+        'Diagnóstico histórico en texto libre: no contiene referencias estructuradas verificables por contrato v2.',
+        'El diagnóstico asistido contextualiza evidencia; no modifica el score ni convierte interpretación en validación formal.',
       ],
     };
   }
@@ -266,8 +271,8 @@ const buildDiagnosisSummary = ({
     executiveSummary: `Reporte construido con evidencia determinista: score ${report.score}/100, ${report.issues.length} hallazgos y ${report.duplicateRows} filas duplicadas.`,
     observations: [],
     limitations: [
-      'Diagnostico asistido no disponible; reporte generado solo con evidencia determinista.',
-      'Sin interpretacion contextual LLM. Revisar hallazgos con criterio de dominio antes de remediar.',
+      'Diagnóstico asistido no disponible; reporte generado solo con evidencia determinista.',
+      'Sin interpretación contextual LLM. Revisar hallazgos con criterio de dominio antes de remediar.',
     ],
   };
 };
@@ -275,15 +280,44 @@ const buildDiagnosisSummary = ({
 const buildFindingGroups = (
   report: AuditReport,
   structuredDiagnosis: DiagnosisExecutionResult | null,
+  deterministicValidation: DeterministicValidationReport | null,
 ): DiagnosticFindingGroups => {
   const structuredReviewIssueIds = new Set(
     structuredDiagnosis?.diagnosis.issues
       .filter((issue) => issue.requiresHumanReview)
       .map((issue) => issue.issueId) ?? [],
   );
-  const issueFindings = sortIssues(report.issues).map((issue) => issueToFinding(issue, structuredReviewIssueIds));
-  const falsePositiveCandidates = buildFalsePositiveCandidates(report);
+  const structuredBlockByIssueId = new Map(
+    structuredDiagnosis?.diagnosis.diagnosisBlocks.map((block) => [block.issueId, block]) ?? [],
+  );
+  const expectedFalsePositiveIssueIds = new Set(
+    deterministicValidation?.perRuleMetrics
+      .filter((metric) => metric.status === 'expected_fp')
+      .map((metric) => metric.ruleId) ?? [],
+  );
+  const issueFindings = sortIssues(report.issues).map((issue) => issueToFinding(
+    issue,
+    structuredReviewIssueIds,
+    structuredBlockByIssueId.get(issue.id),
+  ));
+  const documentedFalsePositives = issueFindings
+    .filter((finding) => finding.sourceIssueIds.some((issueId) => expectedFalsePositiveIssueIds.has(issueId)))
+    .map((finding) => ({
+      ...finding,
+      id: `fp-documented-${finding.id}`,
+      contextualInterpretation: 'Falso positivo documentado por la validación determinista. No modifica el score y no debe corregirse automáticamente.',
+      confidence: 'high' as const,
+      requiresHumanReview: true,
+      canGenerateScript: false,
+    }));
+  const falsePositiveCandidates = dedupeFindings([
+    ...documentedFalsePositives,
+    ...buildFalsePositiveCandidates(report),
+  ]);
   const falsePositiveIds = new Set(falsePositiveCandidates.map((finding) => finding.id));
+  const falsePositiveSourceIssueIds = new Set(
+    falsePositiveCandidates.flatMap((finding) => finding.sourceIssueIds),
+  );
   const humanReviewRequired = dedupeFindings([
     ...issueFindings.filter((finding) => finding.requiresHumanReview),
     ...falsePositiveCandidates,
@@ -292,7 +326,8 @@ const buildFindingGroups = (
   return {
     confirmedRisks: issueFindings
       .filter((finding) => finding.severity === IssueSeverity.CRITICAL || finding.severity === IssueSeverity.WARNING)
-      .filter((finding) => !falsePositiveIds.has(finding.id)),
+      .filter((finding) => !falsePositiveIds.has(finding.id))
+      .filter((finding) => !finding.sourceIssueIds.some((issueId) => falsePositiveSourceIssueIds.has(issueId))),
     possibleFalsePositiveCandidates: falsePositiveCandidates,
     humanReviewRequired,
     optionalRemediationCandidates: issueFindings.filter((finding) => finding.canGenerateScript),
@@ -332,7 +367,7 @@ const buildFalsePositiveCandidates = (report: AuditReport): DiagnosticFinding[] 
         severity: firstSeverity(relatedIssues, IssueSeverity.WARNING),
         columns: [name],
         sourceIssueIds,
-        evidenceSummary: `${name} registra ${column.outlierCount ?? 0} outlier(s). Es posible que valores altos sean tarifas, costos o precios validos del dominio.`,
+        evidenceSummary: `${name} registra ${column.outlierCount ?? 0} valor(es) atípico(s). Es posible que valores altos sean tarifas, costos o precios válidos del dominio.`,
         contextualInterpretation: 'posible falso positivo contextual; requiere revisión humana; no modifica score; no corregir automáticamente.',
       }));
     }
@@ -345,7 +380,7 @@ const buildFalsePositiveCandidates = (report: AuditReport): DiagnosticFinding[] 
         severity: firstSeverity(relatedIssues, IssueSeverity.INFO),
         columns: [name],
         sourceIssueIds,
-        evidenceSummary: `${name} tiene ${column.uniqueCount} valores unicos sobre ${report.rowCount} filas.`,
+        evidenceSummary: `${name} tiene ${column.uniqueCount} valores únicos sobre ${report.rowCount} filas.`,
         contextualInterpretation: 'posible falso positivo contextual; requiere revisión humana; no modifica score; no corregir automáticamente.',
       }));
     }
@@ -366,7 +401,7 @@ const buildFalsePositiveCandidates = (report: AuditReport): DiagnosticFinding[] 
     if ((column.min as number | undefined) !== undefined && typeof column.min === 'number' && column.min < 0 && hasAllowedNegativeContext) {
       candidates.push(falsePositiveFinding({
         id: `fp-negative-${slugify(name)}`,
-        title: `${name}: negativos posiblemente validos por contexto`,
+        title: `${name}: negativos posiblemente válidos por contexto`,
         category: firstCategory(relatedIssues, IssueCategory.LOGIC),
         severity: firstSeverity(relatedIssues, IssueSeverity.INFO),
         columns: [name],
@@ -384,7 +419,7 @@ const buildFalsePositiveCandidates = (report: AuditReport): DiagnosticFinding[] 
         severity: firstSeverity(relatedIssues, IssueSeverity.INFO),
         columns: [name],
         sourceIssueIds,
-        evidenceSummary: `${name} tiene ${column.uniqueCount} valores unicos; puede ser identificador, nombre, ticket, codigo o descriptor granular.`,
+        evidenceSummary: `${name} tiene ${column.uniqueCount} valores únicos; puede ser identificador, nombre, ticket, código o descriptor granular.`,
         contextualInterpretation: 'posible falso positivo contextual; requiere revisión humana; no modifica score; no corregir automáticamente.',
       }));
     }
@@ -412,7 +447,7 @@ const buildRecommendations = (
     recommendations.push({
       id: 'rec-inspect-critical-nulls',
       priority: nullIssues.some((issue) => issue.severity === IssueSeverity.CRITICAL) ? 'high' : 'medium',
-      title: 'Inspeccionar patron de ausencia antes de imputar',
+      title: 'Inspeccionar patrón de ausencia antes de imputar',
       rationale: 'Los nulos pueden indicar ausencia informativa, sesgo de captura o campos no aplicables. No deben imputarse sin revisar el contexto.',
       actionType: 'inspect',
       sourceIssueIds: nullIssues.map((issue) => issue.id),
@@ -426,7 +461,7 @@ const buildRecommendations = (
       id: 'rec-review-outliers-context',
       priority: 'medium',
       title: 'Revisar contexto de outliers antes de recortar o capar',
-      rationale: 'Valores extremos pueden ser errores o eventos validos del dominio. La revision humana debe preceder cualquier transformacion.',
+      rationale: 'Valores extremos pueden ser errores o eventos válidos del dominio. La revisión humana debe preceder cualquier transformación.',
       actionType: 'do_not_auto_fix',
       sourceIssueIds: outlierIssues.map((issue) => issue.id),
       requiresScript: false,
@@ -438,8 +473,8 @@ const buildRecommendations = (
     recommendations.push({
       id: 'rec-document-unique-identifiers',
       priority: 'medium',
-      title: 'No eliminar automaticamente columnas unicas si son identificadores',
-      rationale: `${uniqueIdentifierColumns.map((column) => column.name).slice(0, 4).join(', ')} pueden ser llaves, tickets o codigos necesarios para trazabilidad.`,
+      title: 'No eliminar automáticamente columnas únicas si son identificadores',
+      rationale: `${uniqueIdentifierColumns.map((column) => column.name).slice(0, 4).join(', ')} pueden ser llaves, tickets o códigos necesarios para trazabilidad.`,
       actionType: 'document',
       sourceIssueIds: [],
       requiresScript: false,
@@ -464,8 +499,8 @@ const buildRecommendations = (
     recommendations.push({
       id: 'rec-apply-privacy-policy',
       priority: 'high',
-      title: 'Aplicar politica de privacidad o anonimizacion segun objetivo',
-      rationale: 'Los campos con posible PII requieren decision de uso, minimizacion o anonimizacion antes de compartir o publicar evidencia.',
+      title: 'Aplicar política de privacidad o anonimización según el objetivo',
+      rationale: 'Los campos con posible PII requieren decisión de uso, minimización o anonimización antes de compartir o publicar evidencia.',
       actionType: 'do_not_auto_fix',
       sourceIssueIds: piiIssues.map((issue) => issue.id),
       requiresScript: false,
@@ -477,7 +512,7 @@ const buildRecommendations = (
     recommendations.push({
       id: 'rec-generate-script-optional',
       priority: 'low',
-      title: 'Generar script solo como rama opcional de remediacion',
+      title: 'Generar script solo como rama opcional de remediación',
       rationale: 'El reporte principal no requiere script. Si se decide remediar, el script debe quedar como anexo revisado humanamente.',
       actionType: 'generate_script_optional',
       sourceIssueIds: findingGroups.optionalRemediationCandidates.flatMap((finding) => finding.sourceIssueIds),
@@ -530,8 +565,8 @@ const buildDeterministicChartSpecs = (evidenceBase: DiagnosticEvidenceBase): Dia
   },
   {
     id: 'category_counts',
-    title: 'Hallazgos por categoria',
-    description: 'Conteo de hallazgos deterministas agrupados por categoria.',
+    title: 'Hallazgos por categoría',
+    description: 'Conteo de hallazgos deterministas agrupados por categoría.',
     kind: 'horizontal_bar',
     data: Object.entries(evidenceBase.categoryCounts).map(([category, count]) => ({ category, count })),
     xKey: 'count',
@@ -541,7 +576,7 @@ const buildDeterministicChartSpecs = (evidenceBase: DiagnosticEvidenceBase): Dia
   {
     id: 'column_type_counts',
     title: 'Columnas por tipo inferido',
-    description: 'Distribucion de tipos inferidos desde el perfil tecnico base.',
+    description: 'Distribución de tipos inferidos desde el perfil técnico base.',
     kind: 'pie',
     data: Object.entries(evidenceBase.columnTypeCounts).map(([type, count]) => ({ type, count })),
     xKey: 'type',
@@ -550,7 +585,7 @@ const buildDeterministicChartSpecs = (evidenceBase: DiagnosticEvidenceBase): Dia
   },
   {
     id: 'top_null_columns',
-    title: 'Columnas con mas nulos',
+    title: 'Columnas con más nulos',
     description: 'Columnas ordenadas por porcentaje de nulos.',
     kind: 'horizontal_bar',
     data: evidenceBase.topNullColumns.slice(0, TOP_CHART_ROWS_LIMIT).map((column) => ({
@@ -565,7 +600,7 @@ const buildDeterministicChartSpecs = (evidenceBase: DiagnosticEvidenceBase): Dia
   },
   {
     id: 'top_affected_issues',
-    title: 'Hallazgos con mayor afectacion',
+    title: 'Hallazgos con mayor afectación',
     description: 'Hallazgos ordenados por severidad y porcentaje afectado.',
     kind: 'table',
     data: evidenceBase.topIssues.slice(0, TOP_CHART_ROWS_LIMIT).map((issue) => ({
@@ -583,7 +618,7 @@ const buildDeterministicChartSpecs = (evidenceBase: DiagnosticEvidenceBase): Dia
   {
     id: 'top_cardinality_columns',
     title: 'Columnas con mayor cardinalidad',
-    description: 'Columnas ordenadas por porcentaje de valores unicos.',
+    description: 'Columnas ordenadas por porcentaje de valores únicos.',
     kind: 'horizontal_bar',
     data: evidenceBase.topCardinalityColumns.slice(0, TOP_CHART_ROWS_LIMIT).map((column) => ({
       column: column.column,
@@ -608,7 +643,7 @@ const toDiagnosisSelectedChart = (
   kind: visualization.kind,
   source: 'diagnosis',
   notes: [
-    `Seleccionada por diagnostico asistido desde ${visualization.dataSource}.`,
+    `Seleccionada por diagnóstico asistido desde ${visualization.dataSource}.`,
     ...(visualization.issueIds.length > 0
       ? [`Relacionada con ${visualization.issueIds.slice(0, 6).join(', ')}.`]
       : ['Contexto agregado de dataset.']),
@@ -674,7 +709,11 @@ const toOutlierColumnSummary = (column: ColumnStats, rowCount: number): Diagnost
   };
 };
 
-const issueToFinding = (issue: QualityIssue, structuredReviewIssueIds: Set<string>): DiagnosticFinding => {
+const issueToFinding = (
+  issue: QualityIssue,
+  structuredReviewIssueIds: Set<string>,
+  structuredBlock?: { observation: string; recommendation: string },
+): DiagnosticFinding => {
   const canGenerateScript = isScriptableIssue(issue);
   const requiresHumanReview =
     issue.severity === IssueSeverity.CRITICAL ||
@@ -690,7 +729,9 @@ const issueToFinding = (issue: QualityIssue, structuredReviewIssueIds: Set<strin
     sourceIssueIds: [issue.id],
     columns: issue.column ? [issue.column] : [],
     evidenceSummary: `${issue.count} registro(s), ${round2(issue.affectedPercentage)}% afectado. ${truncateText(issue.description, 220)}`,
-    contextualInterpretation: 'Riesgo observado por regla determinista. El diagnostico asistido puede contextualizarlo, pero no modifica score.',
+    contextualInterpretation: structuredBlock
+      ? `Lectura asistida: ${truncateText(structuredBlock.observation, 170)} Recomendación: ${truncateText(structuredBlock.recommendation, 170)}`
+      : 'Riesgo observado por regla determinista. El diagnóstico asistido puede contextualizarlo, pero no modifica el score.',
     confidence: issue.severity === IssueSeverity.CRITICAL ? 'high' : issue.severity === IssueSeverity.WARNING ? 'medium' : 'low',
     scoreModified: false,
     requiresHumanReview,
@@ -724,7 +765,7 @@ const buildStructuredExecutiveSummary = (
   report: AuditReport,
   observations: DiagnosticObservation[],
 ) => {
-  const lead = `Diagnostico estructurado construido sobre ${report.issues.length} hallazgo(s) determinista(s), score base ${report.score}/100.`;
+  const lead = `Diagnóstico estructurado construido sobre ${report.issues.length} hallazgo(s) determinista(s), score base ${report.score}/100.`;
   if (observations.length === 0) return lead;
   return `${lead} Observacion principal: ${observations[0].text}`;
 };

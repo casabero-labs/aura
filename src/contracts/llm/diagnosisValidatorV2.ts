@@ -21,6 +21,10 @@ import type {
   ValidationErrorV2,
 } from './types';
 import { buildEnvelopeRef } from './diagnosisPromptV2';
+import {
+  findUnsafeRecommendationsWithoutReview,
+  findUnsupportedDiagnosisClaims,
+} from './diagnosisEvidenceReview';
 
 function err(code: string, path: string, message: string, value: unknown): ValidationErrorV2 {
   return { code, path, message, value };
@@ -818,6 +822,25 @@ export function validateDiagnosisResponseV2(
         errors.push(err('DIAGNOSIS_EXECUTABLE_CONTENT', `limitations[${i}]`, 'Contains executable content', lim.slice(0, 100)));
       }
     }
+  }
+
+  // 15. Explicit sample claims must exist in the evidence scope of that issue.
+  for (const claim of findUnsupportedDiagnosisClaims(response, envelope)) {
+    errors.push(err(
+      'DIAGNOSIS_REFERENCE_INVALID',
+      claim.path,
+      'Quoted data value is not supported by evidence for this issue',
+      { issueId: claim.issueId, literal: claim.literal },
+    ));
+  }
+
+  for (const unsafe of findUnsafeRecommendationsWithoutReview(response)) {
+    errors.push(err(
+      'DIAGNOSIS_REVIEW_DOWNGRADE',
+      unsafe.path,
+      'A potentially destructive recommendation requires human review',
+      { issueId: unsafe.issueId, recommendation: unsafe.recommendation },
+    ));
   }
 
   return errors.length > 0 ? fail(errors) : ok(warnings);

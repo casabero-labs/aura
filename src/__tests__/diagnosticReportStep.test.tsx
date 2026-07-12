@@ -195,7 +195,7 @@ describe('DiagnosticReportStep', () => {
   it('renderiza header y resumen principal', () => {
     renderStep();
 
-    expect(screen.getByTestId('diagnostic-report-header').textContent).toContain('Informe diagnóstico de calidad del dato');
+    expect(screen.getByTestId('diagnostic-report-header').textContent).toContain('Qué encontró AURA y qué puedes hacer');
     const summary = screen.getByTestId('diagnostic-report-summary-strip');
     expect(summary.textContent).toContain('72/100');
     expect(summary.textContent).toContain('891');
@@ -246,9 +246,10 @@ describe('DiagnosticReportStep', () => {
     renderStep();
 
     expect(screen.getByTestId('diagnostic-report-chart-disclosure').tagName).toBe('DETAILS');
-    expect(screen.getByTestId('diagnostic-report-findings-disclosure').tagName).toBe('DETAILS');
-    expect(screen.getByTestId('diagnostic-report-recommendations-disclosure').tagName).toBe('DETAILS');
+    expect(screen.getByTestId('diagnostic-report-findings').tagName).toBe('SECTION');
+    expect(screen.getByTestId('diagnostic-report-recommendations-section').tagName).toBe('SECTION');
     expect(screen.getByTestId('diagnostic-report-remediation-disclosure').tagName).toBe('DETAILS');
+    expect(screen.getByTestId('diagnostic-report-tech-disclosure').tagName).toBe('DETAILS');
   });
 
   it('renderiza al menos una chartSpec', () => {

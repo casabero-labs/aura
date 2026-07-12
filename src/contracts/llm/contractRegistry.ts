@@ -182,13 +182,9 @@ export function validateAgainstContract(
 }
 
 export function isContractsV2Enabled(): boolean {
-  try {
-    if (typeof import.meta !== 'undefined' && import.meta.env) {
-      return import.meta.env.VITE_CONTRACTS_V2_ENABLED === 'true';
-    }
-  } catch { /* not Vite */ }
-  try {
-    return process.env.CONTRACTS_V2_ENABLED === 'true';
-  } catch { /* not Node */ }
-  return false;
+  // Contracts V2 is the only supported production path.  Keep this function
+  // as a compatibility seam for historical callers, but never let a missing
+  // deployment flag silently route a diagnosis through the legacy free-text
+  // pipeline again.
+  return true;
 }

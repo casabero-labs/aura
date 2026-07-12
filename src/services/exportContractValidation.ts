@@ -169,10 +169,11 @@ export const validateAuraExportPackage = (
 
     if (
       !Array.isArray(exportContract.canonicalBlocks) ||
-      !exportContract.canonicalBlocks.includes('calibrationEvidence')
+      !exportContract.canonicalBlocks.includes('calibrationEvidence') ||
+      !exportContract.canonicalBlocks.includes('artifactIdentity')
     ) {
       errors.push(
-        'exportContract.canonicalBlocks debe incluir calibrationEvidence.',
+        'exportContract.canonicalBlocks debe incluir artifactIdentity y calibrationEvidence.',
       );
     }
 
@@ -197,6 +198,43 @@ export const validateAuraExportPackage = (
     errors.push(
       'El bloque raíz experiment no está permitido en el contrato 2.0.',
     );
+  }
+
+  const artifactIdentity = packageLike.artifactIdentity;
+  if (!isRecord(artifactIdentity)) {
+    errors.push('El paquete debe incluir artifactIdentity.');
+  } else {
+    if (typeof artifactIdentity.runId !== 'string' || artifactIdentity.runId.length === 0) {
+      errors.push('artifactIdentity.runId debe ser un string no vacío.');
+    }
+    if (typeof artifactIdentity.reportId !== 'string' || artifactIdentity.reportId.length === 0) {
+      errors.push('artifactIdentity.reportId debe ser un string no vacío.');
+    }
+    if (artifactIdentity.datasetSha256 !== null && (
+      typeof artifactIdentity.datasetSha256 !== 'string'
+      || !/^[a-f0-9]{64}$/.test(artifactIdentity.datasetSha256)
+    )) {
+      errors.push('artifactIdentity.datasetSha256 debe ser null o SHA-256 hexadecimal.');
+    }
+    if (artifactIdentity.diagnosisReceiptHash !== null && typeof artifactIdentity.diagnosisReceiptHash !== 'string') {
+      errors.push('artifactIdentity.diagnosisReceiptHash debe ser null o string.');
+    }
+    const canonicalReport = isRecord(packageLike.diagnosticReport)
+      ? packageLike.diagnosticReport
+      : isRecord(packageLike.profile) && isRecord(packageLike.profile.report)
+        ? packageLike.profile.report
+        : null;
+    if (!canonicalReport || artifactIdentity.reportContentHash !== sha256hex(canonicalJson(canonicalReport))) {
+      errors.push('artifactIdentity.reportContentHash no corresponde al reporte canónico.');
+    }
+    if (isRecord(packageLike.diagnosticReport) && isRecord(packageLike.diagnosticReport.metadata)
+      && artifactIdentity.reportId !== packageLike.diagnosticReport.metadata.reportId) {
+      errors.push('artifactIdentity.reportId no corresponde a diagnosticReport.metadata.reportId.');
+    }
+    if (isRecord(packageLike.profile) && isRecord(packageLike.profile.auditEvidence)
+      && artifactIdentity.datasetSha256 !== packageLike.profile.auditEvidence.datasetSha256) {
+      errors.push('artifactIdentity.datasetSha256 no corresponde a profile.auditEvidence.datasetSha256.');
+    }
   }
 
   const calibrationEvidence = packageLike.calibrationEvidence;
@@ -264,6 +302,9 @@ export const validateAuraExportPackage = (
     }
 
     if (diagStatus === 'not_run') {
+      if (typeof diagnostics.diagnosisText === 'string' && diagnostics.diagnosisText.trim().length > 0) {
+        errors.push('diagnosis.diagnosisText debe estar vacío cuando status es not_run. Una respuesta sin recibo no puede exportarse como diagnóstico ejecutado.');
+      }
       if (diagnostics.structuredDiagnosis !== null && diagnostics.structuredDiagnosis !== undefined) {
         errors.push('diagnosis.structuredDiagnosis debe ser null/ausente cuando status es not_run.');
       }
@@ -278,6 +319,15 @@ export const validateAuraExportPackage = (
       }
       if (diagnostics.rawResponseHash !== null && diagnostics.rawResponseHash !== undefined) {
         errors.push('diagnosis.rawResponseHash debe ser null/ausente cuando status es not_run.');
+      }
+    }
+
+    if (isRecord(artifactIdentity)) {
+      const receiptHash = isRecord(diagnostics.executionReceipt)
+        ? diagnostics.executionReceipt.receiptHash
+        : null;
+      if (artifactIdentity.diagnosisReceiptHash !== receiptHash) {
+        errors.push('artifactIdentity.diagnosisReceiptHash no corresponde al recibo exportado.');
       }
     }
   }

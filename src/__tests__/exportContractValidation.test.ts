@@ -140,12 +140,19 @@ const buildTrace = (status: 'valid' | 'invalid') => {
   };
 };
 
-const withDiagnosis = (diagnosis: ReturnType<typeof buildTrace>) => ({
-  ...buildValidPackage(),
-  diagnosis,
-});
+const withDiagnosis = (diagnosis: ReturnType<typeof buildTrace>) => {
+  const base = buildValidPackage();
+  return {
+    ...base,
+    artifactIdentity: {
+      ...base.artifactIdentity,
+      diagnosisReceiptHash: diagnosis.executionReceipt.receiptHash,
+    },
+    diagnosis,
+  };
+};
 
-describe('validateAuraExportPackage', () => {
+  describe('validateAuraExportPackage', () => {
   it('acepta el paquete técnico 2.0 construido por AURA', () => {
     const result = validateAuraExportPackage(buildValidPackage());
 
@@ -186,7 +193,7 @@ describe('validateAuraExportPackage', () => {
       expect.arrayContaining([
         'exportContract.name debe ser aura-technical-export.',
         'exportContract.version debe ser 2.0.',
-        'exportContract.canonicalBlocks debe incluir calibrationEvidence.',
+        'exportContract.canonicalBlocks debe incluir artifactIdentity y calibrationEvidence.',
         'exportContract.compatibility.legacyAliasIncluded debe ser false.',
       ]),
     );
@@ -261,6 +268,16 @@ describe('validateAuraExportPackage', () => {
       diagnosis: { ...base.diagnosis, rawResponseHash: 'a'.repeat(64) },
     });
     expect(result.valid).toBe(false);
+  });
+
+  it('rechaza not_run cuando existe texto de una respuesta sin recibo', () => {
+    const base = buildValidPackage();
+    const result = validateAuraExportPackage({
+      ...base,
+      diagnosis: { ...base.diagnosis, diagnosisText: 'respuesta legacy sin trazabilidad' },
+    });
+    expect(result.valid).toBe(false);
+    expect(result.errors.join(' ')).toContain('diagnosisText debe estar vacío');
   });
 
   it('rechaza alteraciones de snapshot, recibo y hash de respuesta', () => {

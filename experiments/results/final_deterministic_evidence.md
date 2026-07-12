@@ -11,7 +11,7 @@
 
 | Dataset | Filas | Score AURA | Reglas | TP | FP | FN | Precisión | Recall | F1 | Adicionales no puntuadas |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| synthetic_ground_truth | 15 | 0 | 13 | 12 | 1 | 0 | 92.31% | 100.00% | 96.00% | 0 |
+| synthetic_ground_truth | 15 | 0 | 12 | 12 | 0 | 0 | 100.00% | 100.00% | 100.00% | 0 |
 | titanic | 891 | 58 | 3 | 3 | 0 | 0 | 100.00% | 100.00% | 100.00% | 7 |
 | controlled_customers_phase8 | 50 | 0 | 29 | 16 | 0 | 13 | 100.00% | 55.17% | 71.11% | 13 |
 
@@ -33,7 +33,7 @@ AURA_EVIDENCE_COMMIT=450ba6a334812e25d67201250eaf8b0b7bd75992 AURA_EVIDENCE_GENE
 - Advertencias de parseo CSV: 0
 - Ocurrencias positivas esperadas: 30
 - Ocurrencias detectadas sobre claves esperadas: 30
-- Ocurrencias de FP conocidos: 14
+- Ocurrencias de FP conocidos: 0
 - Reglas omitidas: ninguna
 
 Limitaciones:

@@ -8,6 +8,7 @@ import {
 import {
   DiagnosticFindingGroup,
   DiagnosticRecommendationsPanel,
+  DiagnosticReportChartPreview,
 } from './diagnosticReport';
 import SyntaxDisplay from './SyntaxDisplay';
 
@@ -143,7 +144,10 @@ const DatasetSummaryStrip: React.FC<{ report: DiagnosticReport }> = ({ report })
   </div>
 );
 
-const DiagnosticInvocationSummary: React.FC<{ report: DiagnosticReport }> = ({ report }) => {
+const DiagnosticInvocationSummary: React.FC<{
+  report: DiagnosticReport;
+  evaluation?: DiagnosticReportEvaluationSummary | null;
+}> = ({ report, evaluation }) => {
   const receipt = report.diagnosisSummary.executionReceipt;
   const hasRealInvocation = Boolean(
     receipt
@@ -195,6 +199,48 @@ const DiagnosticInvocationSummary: React.FC<{ report: DiagnosticReport }> = ({ r
           </span>
         </div>
       </div>
+      {evaluation && (
+        <div className="diagnostic-invocation-grid" data-testid="diagnostic-invocation-evaluation">
+          <div className="diagnostic-invocation-item">
+            <span className="diagnostic-invocation-label">Errores del contrato</span>
+            <span className="diagnostic-invocation-value">
+              {evaluation.contractErrorsCount == null
+                ? 'No medido'
+                : `${evaluation.contractErrorsCount} error${evaluation.contractErrorsCount === 1 ? '' : 'es'}`}
+            </span>
+          </div>
+          <div className="diagnostic-invocation-item">
+            <span className="diagnostic-invocation-label">Claims sin soporte</span>
+            <span className="diagnostic-invocation-value">
+              {evaluation.unsupportedClaimsCount == null
+                ? 'No medido'
+                : `${evaluation.unsupportedClaimsCount} claim${evaluation.unsupportedClaimsCount === 1 ? '' : 's'}`}
+            </span>
+          </div>
+          <div className="diagnostic-invocation-item">
+            <span className="diagnostic-invocation-label">Muestras problemáticas ancladas</span>
+            <span className="diagnostic-invocation-value">
+              {evaluation.anchoredBadSampleRefsCount == null
+                ? 'No medido'
+                : `${evaluation.anchoredBadSampleRefsCount} referencia${evaluation.anchoredBadSampleRefsCount === 1 ? '' : 's'}`}
+            </span>
+          </div>
+          <div className="diagnostic-invocation-item">
+            <span className="diagnostic-invocation-label">Sintaxis del script</span>
+            <span className="diagnostic-invocation-value">
+              {evaluation.syntaxValid == null ? 'No medido' : evaluation.syntaxValid ? 'Verificada' : 'Fallida'}
+            </span>
+          </div>
+          <div className="diagnostic-invocation-item">
+            <span className="diagnostic-invocation-label">Ejecución Python</span>
+            <span className="diagnostic-invocation-value">{evaluation.pythonExecutionStatus ?? 'No medido'}</span>
+          </div>
+          <div className="diagnostic-invocation-item">
+            <span className="diagnostic-invocation-label">Reauditoría</span>
+            <span className="diagnostic-invocation-value">{evaluation.reauditSummary ?? 'No medido'}</span>
+          </div>
+        </div>
+      )}
     </section>
   );
 };
@@ -211,10 +257,42 @@ const DiagnosticDecisionBrief: React.FC<{ presentation: DiagnosticPresentation }
     </div>
     <div className="diagnostic-report-decision-aside">
       <span>Siguiente paso</span>
-      <strong>Revisar y decidir</strong>
-      <p>Puedes exportar el informe o corregir una copia del dataset.</p>
+      <strong>Exportar resultados</strong>
+      <p>El cierre no exige script de limpieza.</p>
     </div>
   </section>
+);
+
+const GovernanceSummary: React.FC<{ presentation: DiagnosticPresentation }> = ({ presentation }) => (
+  <div className="diagnostic-report-governance-grid" data-testid="diagnostic-report-governance">
+    <section className="diagnostic-report-governance-card">
+      <div className="diagnostic-report-governance-head">
+        <ShieldCheck size={16} />
+        <strong>Qué está respaldado</strong>
+      </div>
+      <ul>{presentation.supportedClaims.map((claim) => <li key={claim}>{claim}</li>)}</ul>
+    </section>
+    <section className="diagnostic-report-governance-card diagnostic-report-governance-card--pending">
+      <div className="diagnostic-report-governance-head"><strong>Qué sigue pendiente</strong></div>
+      <ul>{presentation.pendingClaims.map((claim) => <li key={claim}>{claim}</li>)}</ul>
+    </section>
+  </div>
+);
+
+const ReportDisclosure: React.FC<{
+  title: string;
+  hint: string;
+  testId: string;
+  children: React.ReactNode;
+}> = ({ title, hint, testId, children }) => (
+  <details className="diagnostic-report-disclosure" data-testid={testId}>
+    <summary className="diagnostic-report-disclosure-summary">
+      <ChevronDown size={14} className="diagnostic-report-disclosure-chevron" />
+      <span>{title}</span>
+      <span className="diagnostic-report-disclosure-hint">{hint}</span>
+    </summary>
+    <div className="diagnostic-report-disclosure-body">{children}</div>
+  </details>
 );
 
 const TechnicalEvidenceDisclosure: React.FC<{ report: DiagnosticReport }> = ({ report }) => {
@@ -253,6 +331,7 @@ const TechnicalEvidenceDisclosure: React.FC<{ report: DiagnosticReport }> = ({ r
 
 const DiagnosticReportStep: React.FC<DiagnosticReportStepProps> = ({
   diagnosticReport,
+  evaluationSummary,
   onExportMain,
   onGenerateScript,
   onBackToDiagnosis,
@@ -276,11 +355,11 @@ const DiagnosticReportStep: React.FC<DiagnosticReportStepProps> = ({
             <p className="section-note">{subtitleByStatus[diagnosticReport.status.diagnosticStatus]}</p>
           </div>
           <div className="diagnostic-report-actions diagnostic-report-actions--top">
-            <button className="btn-p" onClick={onGenerateScript} data-testid="diagnostic-report-generate-script-top">
-              <FileCode2 size={14} /> Corregir una copia
-            </button>
-            <button className="btn-s" onClick={onExportMain} data-testid="diagnostic-report-export-main">
+            <button className="btn-p" onClick={onExportMain} data-testid="diagnostic-report-export-main">
               <ArrowRight size={14} /> Exportar informe
+            </button>
+            <button className="btn-s" onClick={onGenerateScript} data-testid="diagnostic-report-generate-script-top">
+              <FileCode2 size={14} /> Corregir una copia
             </button>
             <button className="btn-s" onClick={onBackToDiagnosis} data-testid="diagnostic-report-back-diagnosis">
               <RotateCcw size={14} /> Volver al diagnóstico
@@ -289,7 +368,7 @@ const DiagnosticReportStep: React.FC<DiagnosticReportStepProps> = ({
         </div>
 
         <DatasetSummaryStrip report={diagnosticReport} />
-        <DiagnosticInvocationSummary report={diagnosticReport} />
+        <DiagnosticInvocationSummary report={diagnosticReport} evaluation={evaluationSummary} />
         <DiagnosticDecisionBrief presentation={presentation} />
 
         <section className="diagnostic-report-executive" data-testid="diagnostic-report-executive-summary">
@@ -320,6 +399,14 @@ const DiagnosticReportStep: React.FC<DiagnosticReportStepProps> = ({
             </p>
           )}
         </section>
+
+        <ReportDisclosure
+          title="Ver gráficos del informe"
+          hint="visualizaciones reproducibles de la evidencia"
+          testId="diagnostic-report-chart-disclosure"
+        >
+          <DiagnosticReportChartPreview chartSpecs={diagnosticReport.chartSpecs} />
+        </ReportDisclosure>
 
         <section className="diagnostic-report-executive" data-testid="diagnostic-report-findings">
           <div className="diagnostic-report-section-head">
@@ -359,7 +446,7 @@ const DiagnosticReportStep: React.FC<DiagnosticReportStepProps> = ({
           )}
         </section>
 
-        <section className="diagnostic-report-executive" data-testid="diagnostic-report-recommendations">
+        <section className="diagnostic-report-executive" data-testid="diagnostic-report-recommendations-section">
           <div className="diagnostic-report-section-head">
             <div>
               <p className="sec-eye">acciones sugeridas</p>
@@ -369,18 +456,26 @@ const DiagnosticReportStep: React.FC<DiagnosticReportStepProps> = ({
           <DiagnosticRecommendationsPanel recommendations={diagnosticReport.recommendations} />
         </section>
 
-        <section className="diagnostic-report-remediation-lite" data-testid="diagnostic-report-remediation">
-          <div>
-            <p className="sec-eye">siguiente paso</p>
-            <h3>Corregir una copia del dataset</h3>
-            <p>
-              AURA puede preparar un script revisable para los hallazgos corregibles. El archivo original no se modifica y ninguna acción se aplica sin tu aprobación.
-            </p>
-          </div>
-          <button className="btn-p" onClick={onGenerateScript} data-testid="diagnostic-report-generate-script">
-            <FileCode2 size={14} /> Generar script de limpieza
-          </button>
-        </section>
+        <GovernanceSummary presentation={presentation} />
+
+        <ReportDisclosure
+          title="Remediación opcional"
+          hint="solo si decides corregir una copia después de revisar"
+          testId="diagnostic-report-remediation-disclosure"
+        >
+          <section className="diagnostic-report-remediation-lite" data-testid="diagnostic-report-remediation">
+            <div>
+              <p className="sec-eye">rama opcional</p>
+              <h3>Corregir una copia del dataset</h3>
+              <p>
+                La exportación del informe no depende de un script. AURA puede preparar uno revisable sin modificar el archivo original y ninguna acción se aplica sin tu aprobación.
+              </p>
+            </div>
+            <button className="btn-s" onClick={onGenerateScript} data-testid="diagnostic-report-generate-script">
+              <FileCode2 size={14} /> Preparar script revisable
+            </button>
+          </section>
+        </ReportDisclosure>
 
         <section className="diagnostic-report-governance-card" data-testid="diagnostic-report-export-choice">
           <div className="diagnostic-report-governance-head">

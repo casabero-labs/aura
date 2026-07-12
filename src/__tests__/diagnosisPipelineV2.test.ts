@@ -114,20 +114,16 @@ describe('runDiagnosisPipeline — imports and execution', () => {
   });
 });
 
-describe('runDiagnosisPipeline — flag integration', () => {
-  it('returns CONTRACTS_V2_DISABLED when flag is false', async () => {
-    vi.mocked(isContractsV2Enabled).mockReturnValue(false);
-    const result = await runDiagnosisPipeline(envelope, promptPackage, mockAdapter({}));
-    expect(result.success).toBe(false);
-    expect((result as any).code).toBe('CONTRACTS_V2_DISABLED');
-  });
-
-  it('does not call adapter when flag is false', async () => {
+describe('runDiagnosisPipeline — always-on V2 integration', () => {
+  it('calls the adapter even if a historical flag mock returns false', async () => {
     vi.mocked(isContractsV2Enabled).mockReturnValue(false);
     let adapterCalled = false;
-    const trackingAdapter: DiagnosisAdapter = async () => { adapterCalled = true; return '{}'; };
+    const trackingAdapter: DiagnosisAdapter = async () => {
+      adapterCalled = true;
+      return JSON.stringify(validResponseForEnvelope());
+    };
     await runDiagnosisPipeline(envelope, promptPackage, trackingAdapter);
-    expect(adapterCalled).toBe(false);
+    expect(adapterCalled).toBe(true);
   });
 
   it('calls adapter when flag is true', async () => {
@@ -237,11 +233,10 @@ describe('diagnoseWithV2', () => {
     expect(result.success).toBe(true);
   });
 
-  it('returns CONTRACTS_V2_DISABLED when flag is false', async () => {
+  it('does not disable the diagnosis when a historical flag mock is false', async () => {
     vi.mocked(isContractsV2Enabled).mockReturnValue(false);
-    const result = await diagnoseWithV2(envelope, mockAdapter({}));
-    expect(result.success).toBe(false);
-    expect((result as any).code).toBe('CONTRACTS_V2_DISABLED');
+    const result = await diagnoseWithV2(envelope, mockAdapter(validResponseForEnvelope()));
+    expect(result.success).toBe(true);
   });
 });
 

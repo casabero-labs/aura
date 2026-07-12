@@ -102,9 +102,36 @@ P1-04 cierra la claridad UX, trazabilidad y exportaciones:
 
 **P1-04 COMPLETO.** Suite 1744 tests, typecheck y build en verde; el E2E focal de Ollama/macOS y los 10/10 E2E de cierre fueron aprobados en Chromium, incluida la verificación visual computada del Syntax display, los tres comandos formales, el reinicio de Homebrew y la navegación actual de Laboratorio.
 
+## Estado del cierre de diagnóstico normal y PDF (12 julio 2026)
+
+Se revisaron conjuntamente `flujo1`, `flujo2` y el commit
+`85d5d400a175d1997207e5be2ce80293b7d087e7`. El cierre implementado deja:
+
+- una sola ruta de diagnóstico normal mediante `aura.diagnosis.v2`, sin nueva ejecución legacy ni feature flag;
+- configuración Ollama única para llamada y recibo, con `numPredict=2400` y modelo observado real;
+- `status` de exportación derivado del resultado: nunca `not_run` si existe respuesta;
+- fechas e IP con semántica correcta, teléfono restringido, R24 eliminado y evidencia sintética con F1 1.0;
+- rechazo de muestras citadas que no existan en la evidencia del hallazgo y de acciones destructivas sin revisión humana;
+- `DiagnosticReport` como fuente común y lectura LLM enlazada a cada hallazgo por `issueId`;
+- PDF, JSON y CSV unidos por `runId`, `reportId`, SHA-256 del dataset, recibo y hash del reporte;
+- PDF principal de cinco páginas: decisión, resumen, perfil con gráficos, hallazgos confirmados, falsos positivos, plan y certificado;
+- exportación como salida principal y generación de script como rama secundaria opcional.
+
+El PDF se renderizó con el dataset sintético y se revisaron visualmente sus cinco
+páginas. No presenta filas partidas, secciones huérfanas ni escalas porcentuales
+engañosas. Los hallazgos completos permanecen en JSON y CSV; el PDF muestra los
+seis confirmados más importantes para mantener una lectura ejecutiva.
+
+Gate local: 1756 pruebas aprobadas, 6 omitidas, typecheck y build correctos, y
+8 recorridos E2E focales aprobados en Chromium.
+
+**Siguiente acción:** desplegar este cierre y realizar una única corrida normal
+con Qwen3 8B. Guardar PDF, JSON y CSV en `experiments/tests/flujo3/` y revisarlos
+antes de repetir con Gemma o autorizar la campaña de 45 corridas.
+
 ## Pendientes no cubiertos por P1
 
-**La campaña real sigue BLOQUEADA** hasta instalar los tres modelos y superar los smokes.
+**La campaña real sigue BLOQUEADA** hasta superar los smokes y aprobar las corridas normales de cierre.
 
 | Área | Pendiente |
 |---|---|

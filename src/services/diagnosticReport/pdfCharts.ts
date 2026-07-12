@@ -8,7 +8,7 @@ import {
   truncateText,
 } from './pdfLayout';
 
-const palette = ['#2563eb', '#0f766e', '#7c3aed', '#0891b2', '#64748b', '#16a34a', '#dc2626', '#ca8a04'];
+const palette = ['#1e1e1c', '#70695f', '#9a6738', '#56675c', '#8f302b', '#a66a24'];
 
 const asNumber = (value: unknown) => {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
@@ -24,8 +24,20 @@ const formatValue = (value: number, suffix?: string) => {
   return `${formatNumber(value)}${suffix ?? ''}`;
 };
 
+const translateLabel = (value: unknown) => {
+  const text = value === undefined || value === null ? '' : String(value);
+  if (text === 'critical') return 'Crítica';
+  if (text === 'warning') return 'Advertencia';
+  if (text === 'info') return 'Información';
+  if (text === 'good') return 'Correcto';
+  if (text === 'number') return 'Número';
+  if (text === 'string') return 'Texto';
+  if (text === 'date') return 'Fecha';
+  return text;
+};
+
 const labelFor = (row: Record<string, string | number | boolean | null>, key: string) =>
-  truncateText(row[key], 38) || 'Sin etiqueta';
+  truncateText(translateLabel(row[key]), 38) || 'Sin etiqueta';
 
 const valueFor = (row: Record<string, string | number | boolean | null>, key: string) =>
   asNumber(row[key]);
@@ -75,15 +87,17 @@ export const drawHorizontalBarChart = (ctx: PdfLayoutContext, chart: DiagnosticC
   const labelWidth = 44;
   const valueWidth = 22;
   const barWidth = getContentWidth(ctx) - labelWidth - valueWidth - 8;
-  const maxValue = Math.max(...rows.map((row) => valueFor(row, chart.xKey)), 1);
-  const xScale = d3.scaleLinear().domain([0, maxValue]).nice().range([0, barWidth]);
+  const maxValue = chart.valueSuffix === '%'
+    ? 100
+    : Math.max(...rows.map((row) => valueFor(row, chart.xKey)), 1);
+  const xScale = d3.scaleLinear().domain([0, maxValue]).range([0, barWidth]);
   const color = buildColorScale(rows.map((row, index) => rowKey(chart, row, index)));
 
   rows.forEach((row, index) => {
     ensureSpace(ctx, 8);
     const value = valueFor(row, chart.xKey);
     const key = rowKey(chart, row, index);
-    const bar = Math.max(2, xScale(value));
+    const bar = value > 0 ? Math.max(1.2, xScale(Math.min(value, maxValue))) : 0;
     const y = ctx.cursorY;
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7.5);

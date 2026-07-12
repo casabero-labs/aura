@@ -252,7 +252,7 @@ describe('generateDiagnosticPdfReport', () => {
   it('genera PDF con solo DiagnosticReport determinista', () => {
     const { result, capturedDoc } = renderPdf(buildDiagnosticReportFixture());
 
-    expect(result.pageCount).toBeGreaterThanOrEqual(1);
+    expect(result.pageCount).toBe(5);
     expect(capturedDoc?.getNumberOfPages()).toBe(result.pageCount);
   });
 

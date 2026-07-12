@@ -25,6 +25,8 @@ import { generateDiagnosticPdfReport } from './services/diagnosticReport';
 import { buildEvidenceManifest } from './services/evidenceManifest';
 import { buildAuraExportPackage } from './services/exportPackage';
 import { validateAuraExportPackage } from './services/exportContractValidation';
+import { deriveDiagnosisExportStatus } from './services/diagnosisExportState';
+import { buildExportArtifactIdentity } from './services/exportArtifactIdentity';
 import { savePipelineSession, loadPipelineSession, clearPipelineSession } from './services/pipelineSession';
 import { downloadTextFile } from './utils/download';
 import { AIConfig, AuditReport, DeterministicValidationReport, EvidenceManifest, ExecutiveReportContent, IssueSeverity } from './types';
@@ -350,7 +352,10 @@ const App: React.FC = () => {
     });
     const structDiag = pipelineData.structuredDiagnosis;
     const failureEv = pipelineData.diagnosisFailureEvidence;
-    const diagnosisStatus: 'valid' | 'invalid' | 'not_run' = structDiag ? 'valid' : failureEv ? 'invalid' : 'not_run';
+    const diagnosisStatus = deriveDiagnosisExportStatus({
+      structuredDiagnosis: structDiag,
+      failureEvidence: failureEv,
+    });
     const exportPackage = buildAuraExportPackage({
       manifest,
       profile: {
@@ -358,6 +363,7 @@ const App: React.FC = () => {
         auditEvidence,
       },
       deterministicValidation,
+      diagnosticReport,
       hitlDecision: improvementRun?.hitlDecision ?? null,
       diagnosis: {
         status: diagnosisStatus,
@@ -403,9 +409,24 @@ const App: React.FC = () => {
 
   const handleExportIssuesCsv = () => {
     if (!report) return;
-    const header = ['id', 'severity', 'category', 'ruleName', 'column', 'count', 'affectedPercentage', 'description', 'sampleValues'];
+    const receiptHash = pipelineData.structuredDiagnosis?.executionReceipt?.receiptHash
+      ?? pipelineData.diagnosisFailureEvidence?.executionReceipt.receiptHash
+      ?? null;
+    const identity = buildExportArtifactIdentity({
+      report,
+      auditEvidence,
+      diagnosticReport,
+      diagnosisReceiptHash: receiptHash,
+    });
+    const header = [
+      'runId', 'reportId', 'datasetSha256', 'diagnosisReceiptHash', 'reportContentHash',
+      'id', 'ruleId', 'severity', 'category', 'ruleName', 'column', 'count',
+      'affectedPercentage', 'description', 'sampleValues',
+    ];
     const rows = report.issues.map((issue) => [
-      issue.id, issue.severity, issue.category, issue.ruleName,
+      identity.runId, identity.reportId, identity.datasetSha256 ?? '',
+      identity.diagnosisReceiptHash ?? '', identity.reportContentHash,
+      issue.id, issue.ruleId, issue.severity, issue.category, issue.ruleName,
       issue.column ?? '', issue.count,
       issue.affectedPercentage.toFixed(2), issue.description,
       issue.sampleValues.map(String).join(' | '),

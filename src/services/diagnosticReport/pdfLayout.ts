@@ -43,18 +43,18 @@ export const createPdfTheme = (): PdfTheme => ({
     left: 18,
   },
   colors: {
-    ink: '#20242b',
-    muted: '#4f5967',
-    faint: '#858d99',
-    border: '#d9dde3',
-    panel: '#f5f6f8',
-    accent: '#20242b',
-    accentSoft: '#c8ced6',
-    critical: '#9b2f2f',
-    warning: '#b97627',
-    info: '#3f6f91',
-    good: '#2f6f55',
-    white: '#ffffff',
+    ink: '#1e1e1c',
+    muted: '#4a4540',
+    faint: '#8a857e',
+    border: '#d9d4ca',
+    panel: '#f5f1e8',
+    accent: '#3a3632',
+    accentSoft: '#ebe6db',
+    critical: '#8f302b',
+    warning: '#a66a24',
+    info: '#5f6b64',
+    good: '#456554',
+    white: '#faf8f4',
   },
 });
 
@@ -68,7 +68,7 @@ export const getContentWidth = (ctx: PdfLayoutContext) =>
 export const truncateText = (value: unknown, maxLength = 140) => {
   const text = value === undefined || value === null ? '' : String(value).replace(/\s+/g, ' ').trim();
   if (text.length <= maxLength) return text;
-  return `${text.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`;
+  return `${text.slice(0, Math.max(0, maxLength - 3)).trimEnd()}...`;
 };
 
 export const formatNumber = (value: number) =>
@@ -240,16 +240,4 @@ export const addGovernanceCallout = (ctx: PdfLayoutContext, title: string, items
     y += lines.length * 4.8 + 1;
   });
   ctx.cursorY += height + 8;
-};
-
-export const addMethodologyNote = (ctx: PdfLayoutContext, source: string) => {
-  addGovernanceCallout(ctx, 'Nota metodológica', [
-    'El score pertenece al motor determinista y no fue modificado por LLM.',
-    'El diagnóstico asistido contextualiza evidencia, no reemplaza hallazgos reproducibles.',
-    source === 'legacy_text'
-      ? 'El diagnóstico legacy no entrega las garantías estructuradas del contrato v2.'
-      : source === 'unavailable'
-        ? 'Este reporte se construyó solo con evidencia determinista.'
-        : 'El diagnóstico estructurado se conserva como interpretación contextual.',
-  ]);
 };

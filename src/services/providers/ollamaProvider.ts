@@ -11,6 +11,7 @@ import { AuditReport, AIProvider, ProviderMetrics, ExecutiveReportContent, Provi
 import { buildAnalysisPrompt, buildExecutivePrompt, buildCompactAnalysisPrompt } from './prompts';
 import { normalizeAiProviderError } from './errors';
 import { DEFAULT_OLLAMA_MODEL_ID, OLLAMA_MODELS } from '../modelRegistry';
+import { resolveOllamaInferenceConfig } from '../ollamaInferenceConfig';
 
 export interface OllamaModel {
   name: string;
@@ -37,10 +38,6 @@ interface OllamaUsageFields {
 
 const DEFAULT_BASE_URL = 'http://localhost:11434';
 const DEFAULT_MODEL = DEFAULT_OLLAMA_MODEL_ID;
-const DEFAULT_KEEP_ALIVE = '10m';
-const DEFAULT_NUM_CTX = 16384;
-const DEFAULT_NUM_PREDICT = 1200;
-const DEFAULT_TOP_P = 0.9;
 const COMPACT_MARGIN = 2048;
 
 export const OLLAMA_SUGGESTED_MODELS = OLLAMA_MODELS
@@ -77,12 +74,13 @@ export class OllamaProvider implements AIProvider {
     this.temperature = temperature;
     this.baseUrl = baseUrl;
     this.aiConfig = aiConfig;
-    this.numCtx = aiConfig?.ollamaNumCtx ?? DEFAULT_NUM_CTX;
-    this.numPredict = aiConfig?.ollamaNumPredict ?? DEFAULT_NUM_PREDICT;
-    this.topP = aiConfig?.ollamaTopP ?? DEFAULT_TOP_P;
-    this.seed = aiConfig?.ollamaSeed ?? null;
-    this.keepAlive = aiConfig?.ollamaKeepAlive ?? DEFAULT_KEEP_ALIVE;
-    this.timeoutSeconds = aiConfig?.ollamaTimeoutSeconds ?? 600;
+    const inference = resolveOllamaInferenceConfig(aiConfig ?? { temperature });
+    this.numCtx = inference.numCtx;
+    this.numPredict = inference.numPredict;
+    this.topP = inference.topP;
+    this.seed = inference.seed;
+    this.keepAlive = inference.keepAlive;
+    this.timeoutSeconds = inference.timeoutSeconds;
   }
 
   private buildOptions(): Record<string, unknown> {
@@ -292,7 +290,7 @@ export class OllamaProvider implements AIProvider {
           messages: [{ role: 'user', content: prompt }],
           think: false,
           options: this.buildOptions(),
-          keep_alive: DEFAULT_KEEP_ALIVE,
+          keep_alive: this.keepAlive,
           stream: true,
         }),
       });
@@ -403,7 +401,7 @@ export class OllamaProvider implements AIProvider {
           messages: [{ role: 'user', content: prompt }],
           think: false,
           options: this.buildOptions(),
-          keep_alive: DEFAULT_KEEP_ALIVE,
+          keep_alive: this.keepAlive,
           stream: true,
         }),
       });
@@ -473,7 +471,7 @@ export class OllamaProvider implements AIProvider {
         messages: [{ role: 'user', content: prompt }],
         think: false,
         options: this.buildOptions(),
-        keep_alive: DEFAULT_KEEP_ALIVE,
+        keep_alive: this.keepAlive,
         stream: false,
       }),
     });
@@ -523,7 +521,7 @@ export class OllamaProvider implements AIProvider {
           messages: [{ role: 'user', content: prompt }],
           think: false,
           options: this.buildOptions(),
-          keep_alive: DEFAULT_KEEP_ALIVE,
+          keep_alive: this.keepAlive,
           stream: true,
         }),
       });

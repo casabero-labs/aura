@@ -78,16 +78,16 @@ describe('final deterministic evidence', () => {
 
     const synthetic = byId.get('synthetic_ground_truth');
     expect(synthetic?.binaryRuleMetrics).toMatchObject({
-      evaluatedRules: 13,
+      evaluatedRules: 12,
       tp: 12,
-      fp: 1,
+      fp: 0,
       fn: 0,
       precisionKind: 'scoped_with_explicit_negatives',
     });
-    expect(synthetic?.binaryRuleMetrics.precision).toBeCloseTo(12 / 13, 12);
+    expect(synthetic?.binaryRuleMetrics.precision).toBe(1);
     expect(synthetic?.binaryRuleMetrics.recall).toBe(1);
-    expect(synthetic?.binaryRuleMetrics.f1).toBeCloseTo(0.96, 12);
-    expect(synthetic?.occurrenceCounts.knownFalsePositiveOccurrences).toBe(14);
+    expect(synthetic?.binaryRuleMetrics.f1).toBe(1);
+    expect(synthetic?.occurrenceCounts.knownFalsePositiveOccurrences).toBe(0);
 
     const titanic = byId.get('titanic');
     expect(titanic?.binaryRuleMetrics).toMatchObject({

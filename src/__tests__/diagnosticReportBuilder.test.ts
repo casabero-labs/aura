@@ -202,6 +202,50 @@ const structuredDiagnosis: DiagnosisExecutionResult = {
 };
 
 describe('buildDiagnosticReport', () => {
+  it('keeps documented deterministic false positives out of confirmed risks', () => {
+    const report = buildTitanicReport();
+    const falsePositiveIssue = report.issues[0];
+    const diagnosticReport = buildDiagnosticReport({
+      report,
+      auditEvidence: null,
+      deterministicValidation: {
+        datasetName: 'fixture.csv',
+        groundTruthMatched: true,
+        perRuleMetrics: [{
+          ruleId: falsePositiveIssue.id,
+          ruleName: falsePositiveIssue.ruleName,
+          category: falsePositiveIssue.category,
+          tp: 0,
+          fp: 1,
+          fn: 0,
+          precision: 0,
+          recall: 1,
+          f1: 0,
+          expectedTP: 0,
+          actualDetected: falsePositiveIssue.count,
+          status: 'expected_fp',
+        }],
+        summary: {
+          totalTP: 0,
+          totalFP: 1,
+          totalFN: 0,
+          macroPrecision: 0,
+          macroRecall: 1,
+          macroF1: 0,
+          rulesMatched: 0,
+          rulesPartial: 0,
+          rulesMissed: 0,
+          rulesUnexpectedFP: 0,
+        },
+      },
+    });
+
+    expect(diagnosticReport.findingGroups.confirmedRisks
+      .some((finding) => finding.sourceIssueIds.includes(falsePositiveIssue.id))).toBe(false);
+    expect(diagnosticReport.findingGroups.possibleFalsePositiveCandidates
+      .some((finding) => finding.sourceIssueIds.includes(falsePositiveIssue.id))).toBe(true);
+  });
+
   it('construye reporte con solo AuditReport', () => {
     const report = buildTitanicReport();
     const diagnosticReport = buildDiagnosticReport({ report, auditEvidence: null });
@@ -274,6 +318,9 @@ describe('buildDiagnosticReport', () => {
     }));
     expect(diagnosticReport.diagnosisSummary.executionReceipt?.receiptHash).toBe('receipt-input-1');
     expect(diagnosticReport.diagnosisSummary.observations[0].sourceIssueId).toBe('issue-null-age');
+    expect(diagnosticReport.findingGroups.confirmedRisks
+      .find((finding) => finding.sourceIssueIds.includes('issue-null-age'))
+      ?.contextualInterpretation).toContain('Age concentra valores ausentes');
   });
 
   it('usa aiAnalysis legacy cuando no hay structuredDiagnosis', () => {
@@ -368,7 +415,7 @@ describe('buildDiagnosticReport', () => {
       yKey: 'column',
     });
     expect(diagnosticReport.chartSpecs[0].data[0]).toHaveProperty('column', 'Cabin');
-    expect(diagnosticReport.chartSpecs[0].notes?.join(' ')).toContain('Seleccionada por diagnostico asistido');
+    expect(diagnosticReport.chartSpecs[0].notes?.join(' ')).toContain('Seleccionada por diagnóstico asistido');
   });
 
   it('respeta visualizations vacio como decision de no incluir graficas asistidas', () => {

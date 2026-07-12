@@ -30,6 +30,22 @@ function scoreRule(label: string, tp: number, fp: number, fn: number): RuleResul
 
 describe('AuditEngine - Deterministic Rules', () => {
   describe('Dataset situations from UNIR cleaning activity', () => {
+    it('classifies dates and IPv4 values without confusing them with phones', () => {
+      const data = [
+        { fecha_ingreso: '2023-01-15', ip_acceso: '192.168.1.10' },
+        { fecha_ingreso: '2023-02-01', ip_acceso: '10.0.0.5' },
+        { fecha_ingreso: '01/15/2023', ip_acceso: '172.16.0.100' },
+      ];
+
+      const result = runAudit(data, ['fecha_ingreso', 'ip_acceso'], ',');
+
+      expect(result.columnStats.fecha_ingreso.semanticType).toBe('date');
+      expect(result.columnStats.ip_acceso.semanticType).toBe('ip');
+      expect(result.issues.find((issue) => issue.id === 'semantic-burned-range-fecha_ingreso')).toBeUndefined();
+      expect(result.issues.find((issue) => issue.id === 'logic-mixed-date-fecha_ingreso')?.sampleValues)
+        .toContain('01/15/2023');
+    });
+
     it('detects survey-question headers as metadata/schema friction', () => {
       const field = '8_¿Cuál es su grupo de edad?';
       const data = Array.from({ length: 12 }, (_, i) => ({

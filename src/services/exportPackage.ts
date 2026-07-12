@@ -10,11 +10,14 @@ import {
   ScriptValidationResult,
 } from '../types';
 import type { DiagnosisExecutionResult, DiagnosisFailureEvidenceV2 } from '../contracts/llm';
+import type { DiagnosticReport } from './diagnosticReport';
+import { buildExportArtifactIdentity } from './exportArtifactIdentity';
 
 export const AURA_EXPORT_CONTRACT_NAME = 'aura-technical-export';
 export const AURA_EXPORT_CONTRACT_VERSION = '2.0';
 
 const CANONICAL_BLOCKS = [
+  'artifactIdentity',
   'manifest',
   'profile',
   'diagnosis',
@@ -29,6 +32,7 @@ export interface BuildAuraExportPackageParams {
     auditEvidence: AuditExecutionEvidence | null;
   };
   deterministicValidation?: DeterministicValidationReport | null;
+  diagnosticReport?: DiagnosticReport | null;
   hitlDecision?: HitlDecision | null;
   diagnosis: {
     status: 'valid' | 'invalid' | 'not_run';
@@ -54,12 +58,22 @@ export const buildAuraExportPackage = ({
   manifest,
   profile,
   deterministicValidation,
+  diagnosticReport = null,
   hitlDecision,
   diagnosis,
   script,
   benchmarkResults,
   improvementRun,
-}: BuildAuraExportPackageParams) => ({
+}: BuildAuraExportPackageParams) => {
+  const receipt = diagnosis.executionReceipt as { receiptHash?: unknown } | null | undefined;
+  const artifactIdentity = buildExportArtifactIdentity({
+    report: profile.report,
+    auditEvidence: profile.auditEvidence,
+    diagnosticReport,
+    diagnosisReceiptHash: typeof receipt?.receiptHash === 'string' ? receipt.receiptHash : null,
+  });
+
+  return {
   exportContract: {
     name: AURA_EXPORT_CONTRACT_NAME,
     version: AURA_EXPORT_CONTRACT_VERSION,
@@ -79,8 +93,10 @@ export const buildAuraExportPackage = ({
       migration: 'Leer calibrationEvidence.results en lugar de experiment.benchmarkResults y usar calibrationEvidence.summary para interpretar el nivel de evidencia.',
     },
   },
+  artifactIdentity,
   manifest,
   profile,
+  diagnosticReport,
   ...(deterministicValidation?.groundTruthMatched && {
     deterministicValidation,
   }),
@@ -95,4 +111,5 @@ export const buildAuraExportPackage = ({
     results: benchmarkResults,
     improvementRun: improvementRun ?? null,
   },
-});
+  };
+};

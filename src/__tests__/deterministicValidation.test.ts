@@ -57,15 +57,13 @@ describe('deterministicValidation service', () => {
       const report = runAudit(data, fields, delimiter);
       const metrics = computePerRuleMetrics(report, SYNTHETIC_GROUND_TRUTH);
 
-      // Exclude documented FPs (expected_fp status) — those are known false positives
-      const expectedDetections = metrics.filter((m) => m.status !== 'unexpected_fp' && m.status !== 'expected_fp');
+      const expectedDetections = metrics.filter((m) => m.status !== 'unexpected_fp');
       for (const m of expectedDetections) {
         expect(m.status, `${m.ruleName}: expected match, got ${m.status}`).toBe('match');
       }
 
-      // Verify the documented FP is correctly marked
       const documentedFPs = metrics.filter((m) => m.status === 'expected_fp');
-      expect(documentedFPs.length).toBe(1);
+      expect(documentedFPs.length).toBe(0);
     });
 
     it('reports correct detection for each synthetic rule', () => {
@@ -91,11 +89,7 @@ describe('deterministicValidation service', () => {
       expect(byId.get('sec-pii-ip_acceso')?.actualDetected).toBe(15);
       // R12: mixed date detected
       expect(byId.get('logic-mixed-date-fecha_ingreso')?.tp).toBe(1);
-      // R24 burned range FP: known false positive
-      const burned = byId.get('semantic-burned-range-fecha_ingreso');
-      expect(burned?.tp).toBe(0);
-      expect(burned?.fp).toBe(1);
-      expect(burned?.actualDetected).toBe(14);
+      expect(report.issues.find((issue) => issue.id === 'semantic-burned-range-fecha_ingreso')).toBeUndefined();
     });
 
     it('reports only documented FPs on synthetic dataset', () => {
@@ -106,12 +100,8 @@ describe('deterministicValidation service', () => {
       const unexpectedFPs = metrics.filter((m) => m.status === 'unexpected_fp');
       expect(unexpectedFPs.length).toBe(0);
 
-      // Verify the known FP is correctly marked
       const burnedRange = metrics.find((m) => m.ruleId === 'semantic-burned-range-fecha_ingreso');
-      expect(burnedRange).toBeDefined();
-      expect(burnedRange!.status).toBe('expected_fp');
-      expect(burnedRange!.fp).toBe(1);
-      expect(burnedRange!.tp).toBe(0);
+      expect(burnedRange).toBeUndefined();
     });
 
     it('produces macro F1 >= 0.9 on synthetic dataset', () => {
@@ -120,7 +110,7 @@ describe('deterministicValidation service', () => {
       const validation = buildDeterministicValidationReport(report, SYNTHETIC_GROUND_TRUTH);
 
       expect(validation.groundTruthMatched).toBe(true);
-      expect(validation.summary.macroF1).toBeGreaterThanOrEqual(0.9);
+      expect(validation.summary.macroF1).toBe(1);
     });
   });
 

@@ -46,6 +46,9 @@ export interface DiagnosticReport {
 
 export interface DiagnosticReportMetadata {
   reportId: string;
+  runId?: string;
+  datasetSha256?: string;
+  diagnosisReceiptHash?: string;
   generatedAt: string;
   version: string;
   sourceDatasetFingerprint: string;

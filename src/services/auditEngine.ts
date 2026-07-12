@@ -40,7 +40,7 @@ const REGEX_CREDIT_CARD = /^(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9
 const TOXIC_PLACEHOLDERS = ['nan', 'null', 'n/a', '?', 'undefined', 'none', 'nil', 'sin dato', 'no data', '999', 'unknown', '..'];
 
 // --- Semantic Type Detection Patterns ---
-const REGEX_PHONE = /^[\+]?[\d\s\(\)\-\.]{7,20}$/;
+const REGEX_PHONE = /^[\+]?[\d\s\(\)\-]{7,20}$/;
 const REGEX_CURRENCY = /^[\$\€\£\¥]?\s?\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?\s?[\$\€\£\¥]?$/;
 const REGEX_PERCENTAGE = /^\d+(?:\.\d+)?\s?%$/;
 const REGEX_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -242,7 +242,7 @@ const detectSemanticType = (
   const total = Math.min(nonNullCount, sample);
 
   const emailCount = strSample.filter(v => REGEX_EMAIL.test(v)).length;
-  const phoneCount = strSample.filter(v => REGEX_PHONE.test(v)).length;
+  const phoneCount = strSample.filter(v => !isDate(v) && !REGEX_IP.test(v) && REGEX_PHONE.test(v)).length;
   const ipCount = strSample.filter(v => REGEX_IP.test(v)).length;
   const urlCount = strSample.filter(v => REGEX_URL.test(v)).length;
   const uuidCount = strSample.filter(v => REGEX_UUID.test(v)).length;
@@ -260,10 +260,10 @@ const detectSemanticType = (
   };
 
   if (matchesType(emailCount, SEMANTIC_KEYWORDS.email)) return 'email';
-  if (matchesType(phoneCount, SEMANTIC_KEYWORDS.phone)) return 'phone';
   if (matchesType(ipCount, SEMANTIC_KEYWORDS.ip)) return 'ip';
   if (matchesType(urlCount, SEMANTIC_KEYWORDS.url)) return 'url';
   if (matchesType(uuidCount, SEMANTIC_KEYWORDS.uuid)) return 'uuid';
+  if (matchesType(phoneCount, SEMANTIC_KEYWORDS.phone)) return 'phone';
   if (matchesType(zipCount, SEMANTIC_KEYWORDS.zip)) return 'zip';
   if (matchesType(currencyCount, SEMANTIC_KEYWORDS.currency)) return 'currency';
   if (matchesType(percentCount, SEMANTIC_KEYWORDS.percentage)) return 'percentage';
@@ -334,7 +334,9 @@ const calculateStats = (data: any[], fields: string[]): Record<string, ColumnSta
     stats[field] = {
       name: field,
       inferredType,
-      semanticType: detectSemanticType(field, strValues, numValues, nonNulls.length),
+      semanticType: inferredType === 'date'
+        ? 'date'
+        : detectSemanticType(field, strValues, numValues, nonNulls.length),
       nullCount: values.length - nonNulls.length,
       uniqueCount: freqMap.size,
       topFreq: sortedFreq,
@@ -646,7 +648,15 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
         const isDmy = REGEX_DATE_DMY.test(val);
         if (isIso) isoDateCount++;
         if (isDmy) dmyDateCount++;
-        if ((isIso || isDmy) && samples.mixedDate.length < 3) samples.mixedDate.push(val);
+        if (isIso && !samples.mixedDate.some((sample) => REGEX_DATE_ISO.test(String(sample)))) {
+          samples.mixedDate.push(val);
+        }
+        if (isDmy && !samples.mixedDate.some((sample) => REGEX_DATE_DMY.test(String(sample)))) {
+          samples.mixedDate.push(val);
+        }
+        if ((isIso || isDmy) && samples.mixedDate.length < 3 && !samples.mixedDate.includes(val)) {
+          samples.mixedDate.push(val);
+        }
       }
 
       // 10. Disguised Numbers
@@ -752,7 +762,12 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
       }
 
       // 24. Burned demographic ranges
-      if (typeof val === 'string' && REGEX_BURNED_RANGE.test(normalizeText(val))) {
+      if (
+        typeof val === 'string'
+        && stats.inferredType !== 'date'
+        && !isDate(val)
+        && REGEX_BURNED_RANGE.test(normalizeText(val))
+      ) {
         burnedRangeCount++;
         if (samples.burnedRange.length < 3) samples.burnedRange.push(val);
       }
@@ -778,7 +793,7 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
 
     if (isoDateCount > 0 && dmyDateCount > 0) {
       addDeduction(`Formatos de Fecha Mixtos en [${col}]`, 5, IssueCategory.LOGIC, RULE_IDS.MIXED_DATE_FORMATS);
-      addIssue({ id: `logic-mixed-date-${col}`, column: col, category: IssueCategory.LOGIC, ruleName: 'Formatos de Fecha Mixtos', description: 'Múltiples estándares de fecha (ISO y DMY) en la misma columna.', severity: IssueSeverity.WARNING, count: Math.min(isoDateCount, dmyDateCount), affectedPercentage: (Math.min(isoDateCount, dmyDateCount) / rowCount) * 100, sampleValues: samples.mixedDate, ruleId: RULE_IDS.MIXED_DATE_FORMATS, automaticAuthorization: autoAuth('standardize_date_format', false, [], 'Requires locale-aware conversion') });
+      addIssue({ id: `logic-mixed-date-${col}`, column: col, category: IssueCategory.LOGIC, ruleName: 'Formatos de Fecha Mixtos', description: 'La columna mezcla fechas ISO con fechas escritas mediante barras; el orden día/mes debe confirmarse antes de convertir.', severity: IssueSeverity.WARNING, count: Math.min(isoDateCount, dmyDateCount), affectedPercentage: (Math.min(isoDateCount, dmyDateCount) / rowCount) * 100, sampleValues: samples.mixedDate, ruleId: RULE_IDS.MIXED_DATE_FORMATS, automaticAuthorization: autoAuth('standardize_date_format', false, [], 'Requires locale-aware conversion') });
     }
 
     if (!shouldSkipCapitalizationChaos(col, stats, values, rowCount)) {

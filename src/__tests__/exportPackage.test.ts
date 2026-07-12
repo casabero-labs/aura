@@ -78,6 +78,7 @@ describe('buildAuraExportPackage', () => {
     expect(exported.exportContract.version).toBe('2.0');
     expect(exported.exportContract.generatedAt).toBe(exported.manifest.generatedAt);
     expect(exported.exportContract.canonicalBlocks).toEqual([
+      'artifactIdentity',
       'manifest',
       'profile',
       'diagnosis',

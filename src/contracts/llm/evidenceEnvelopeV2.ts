@@ -411,26 +411,12 @@ export function _buildEvidenceEnvelopeV2(
   return envelope;
 }
 
-// ── Public wrapper (gated by CONTRACTS_V2_ENABLED) ──
+// ── Public wrapper ──
 
 export function buildEvidenceEnvelopeV2(
   report: AuditReportInput,
   options: EvidenceEnvelopeOptionsV2,
 ): EvidenceEnvelopeV2 {
-  let enabled = false;
-  try {
-    if (typeof import.meta !== 'undefined' && import.meta.env) {
-      enabled = import.meta.env.VITE_CONTRACTS_V2_ENABLED === 'true';
-    }
-  } catch { /* not Vite */ }
-  try {
-    if (process.env.CONTRACTS_V2_ENABLED === 'true') enabled = true;
-  } catch { /* not Node */ }
-
-  if (!enabled) {
-    throw buildError('CONTRACTS_V2_DISABLED', 'Set CONTRACTS_V2_ENABLED=true');
-  }
-
   return _buildEvidenceEnvelopeV2(report, options);
 }
 

@@ -19,7 +19,6 @@ import {
   buildExecutionReceiptV1,
   runDiagnosisPipeline,
 } from './index';
-import { isContractsV2Enabled } from './contractRegistry';
 import { sha256hex } from './hash';
 import { AIProviderDiagnosisAdapter } from '../../services/providers/diagnosisAdapter';
 import { buildRemediationContext } from './remediationContextV2';
@@ -127,16 +126,6 @@ export async function runStructuredDiagnosis(
   report: AuditReportInput,
   options: DiagnosisSelectorOptions,
 ): Promise<StructuredDiagnosisOutcome> {
-  if (!isContractsV2Enabled()) {
-    return {
-      success: false,
-      code: 'CONTRACTS_V2_DISABLED',
-      message: 'Diagnosis v2 is not enabled. Use v1 flow.',
-      path: '',
-      details: {},
-    };
-  }
-
   const datasetSha256 = options.auditEvidence?.datasetSha256
     ?? options.envelopeOptions?.datasetSha256;
   if (!datasetSha256) {

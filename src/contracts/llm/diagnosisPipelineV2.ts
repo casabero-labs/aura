@@ -20,7 +20,6 @@ import type { ProviderMetrics } from '../../types';
 import { sha256hex } from './hash';
 import { parseDiagnosisResponseV2, type DiagnosisParseOutcome, type ParseFailure } from './diagnosisParserV2';
 import { validateDiagnosisResponseV2 } from './diagnosisValidatorV2';
-import { isContractsV2Enabled } from './contractRegistry';
 
 /**
  * Provider adapter interface — returns raw model output as string.
@@ -69,15 +68,6 @@ export async function runDiagnosisPipeline(
   promptPackage: DiagnosisPromptPackageV2,
   adapter: DiagnosisAdapter,
 ): Promise<DiagnosisPipelineOutcome> {
-  if (!isContractsV2Enabled()) {
-    return failure(
-      'CONTRACTS_V2_DISABLED',
-      'Contracts v2 is not enabled',
-      '',
-      'Set CONTRACTS_V2_ENABLED=true to use Diagnosis v2 pipeline',
-    );
-  }
-
   // 1. Invoke provider adapter
   let raw: string;
   try {

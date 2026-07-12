@@ -217,7 +217,7 @@ describe('OllamaProvider', () => {
       fetchSpy.mockRestore();
     });
 
-    it('uses default num_ctx 16384 and num_predict 1200 when not configured', async () => {
+    it('uses canonical default num_ctx 16384 and num_predict 2400 when not configured', async () => {
       const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(() =>
         Promise.resolve({
           ok: true,
@@ -234,7 +234,7 @@ describe('OllamaProvider', () => {
       const body = JSON.parse(call[1].body as string);
       expect(body.options).toMatchObject({
         num_ctx: 16384,
-        num_predict: 1200,
+        num_predict: 2400,
       });
 
       fetchSpy.mockRestore();

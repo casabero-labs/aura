@@ -1,6 +1,6 @@
 {
   "testRun": {
-    "timestamp": "2026-07-07T02:29:52.094Z",
+    "timestamp": "2026-07-12T23:32:59.249Z",
     "phase": "L10B",
     "testId": "L10B-01",
     "fixture": "aura_l10_full_flow_issues.csv",
@@ -46,6 +46,7 @@
     "calibrationEvidence_canonical": {
       "passed": true,
       "actual": [
+        "artifactIdentity",
         "manifest",
         "profile",
         "diagnosis",
@@ -92,8 +93,9 @@
   "exportContract": {
     "name": "aura-technical-export",
     "version": "2.0",
-    "generatedAt": "2026-07-07T02:29:51.997Z",
+    "generatedAt": "2026-07-12T23:32:59.107Z",
     "canonicalBlocks": [
+      "artifactIdentity",
       "manifest",
       "profile",
       "diagnosis",
@@ -134,7 +136,7 @@
     "improvementRun": null
   },
   "manifest": {
-    "generatedAt": "2026-07-07T02:29:51.997Z",
+    "generatedAt": "2026-07-12T23:32:59.107Z",
     "dataset": {
       "name": "aura_l10_full_flow_issues.csv",
       "fingerprint": "70b8e5ae",
@@ -493,19 +495,20 @@
         ],
         "coalescencePairs": [],
         "pruningCandidates": [],
-        "generatedAt": "2026-07-07T02:29:51.592Z"
+        "generatedAt": "2026-07-12T23:32:58.747Z"
       }
     },
     "auditEvidence": {
-      "id": "audit-1783391391592",
+      "id": "audit-1783899178747",
       "fileName": "aura_l10_full_flow_issues.csv",
       "fileSize": 191,
       "datasetFingerprint": "70b8e5ae",
-      "startedAt": "2026-07-07T02:29:51.539Z",
-      "completedAt": "2026-07-07T02:29:51.592Z",
-      "parseDurationMs": 46,
+      "datasetSha256": "48afcf44cb5a97abff1059e485148957734bb5aad63af8bbbc967bc669f93478",
+      "startedAt": "2026-07-12T23:32:58.702Z",
+      "completedAt": "2026-07-12T23:32:58.747Z",
+      "parseDurationMs": 32,
       "auditDurationMs": 5,
-      "totalDurationMs": 51,
+      "totalDurationMs": 37,
       "rowsProcessed": 6,
       "columnsProcessed": 5,
       "delimiter": ",",
@@ -516,7 +519,7 @@
       "trace": [
         {
           "stage": "csv.parse.start",
-          "timestamp": "2026-07-07T02:29:51.540Z",
+          "timestamp": "2026-07-12T23:32:58.703Z",
           "elapsedMs": 1,
           "details": {
             "fileName": "aura_l10_full_flow_issues.csv",
@@ -525,28 +528,28 @@
         },
         {
           "stage": "csv.parse.end",
-          "timestamp": "2026-07-07T02:29:51.586Z",
-          "elapsedMs": 47,
+          "timestamp": "2026-07-12T23:32:58.735Z",
+          "elapsedMs": 33,
           "details": {
             "rows": 6,
             "columns": 5,
             "delimiter": ",",
             "truncated": false,
-            "durationMs": 46
+            "durationMs": 32
           }
         },
         {
           "stage": "audit.run.start",
-          "timestamp": "2026-07-07T02:29:51.586Z",
-          "elapsedMs": 48,
+          "timestamp": "2026-07-12T23:32:58.742Z",
+          "elapsedMs": 40,
           "details": {
             "datasetFingerprint": "70b8e5ae"
           }
         },
         {
           "stage": "audit.run.end",
-          "timestamp": "2026-07-07T02:29:51.592Z",
-          "elapsedMs": 53,
+          "timestamp": "2026-07-12T23:32:58.747Z",
+          "elapsedMs": 45,
           "details": {
             "durationMs": 5,
             "score": 96,

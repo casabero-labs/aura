@@ -111,6 +111,17 @@ describe('validateDiagnosisResponseV2 — valid cases', () => {
     expect(result.valid).toBe(true);
   });
 
+  it('accepts a quoted sample value supported by the same issue evidence', () => {
+    const resp = validResponse();
+    resp.diagnosisBlocks[1] = {
+      ...resp.diagnosisBlocks[1],
+      observation: 'The evidence includes the observed value "22".',
+    };
+
+    const result = validateDiagnosisResponseV2(resp, envelope);
+    expect(result.valid).toBe(true);
+  });
+
   it('accepts declarative visualization recommendations for the PDF', () => {
     const resp = validResponse({
       visualizations: [
@@ -141,6 +152,42 @@ describe('validateDiagnosisResponseV2 — valid cases', () => {
 });
 
 describe('validateDiagnosisResponseV2 — reference errors', () => {
+  it('rejects a quoted sample value unsupported by the referenced issue evidence', () => {
+    const resp = validResponse();
+    resp.diagnosisBlocks[1] = {
+      ...resp.diagnosisBlocks[1],
+      observation: 'The Age issue contains the sample "N/A".',
+    };
+
+    const result = validateDiagnosisResponseV2(resp, envelope);
+    expect(result.valid).toBe(false);
+    expect(result.errors).toContainEqual(expect.objectContaining({
+      path: 'diagnosisBlocks[1].observation',
+      message: expect.stringContaining('not supported by evidence'),
+    }));
+  });
+
+  it('rejects a destructive recommendation when the response removes human review', () => {
+    const relaxedEnvelope = structuredClone(envelope);
+    const relaxedIssue = relaxedEnvelope.issues.find((candidate) => candidate.issueId === issue2.issueId)!;
+    relaxedIssue.actionability = 'not_actionable';
+    const resp = validResponse();
+    resp.evidenceEnvelopeRef = buildEnvelopeRef(relaxedEnvelope);
+    resp.issues[1] = { ...resp.issues[1], requiresHumanReview: false };
+    resp.diagnosisBlocks[1] = {
+      ...resp.diagnosisBlocks[1],
+      recommendation: 'Eliminar automáticamente todos los valores atípicos.',
+    };
+
+    const result = validateDiagnosisResponseV2(resp, relaxedEnvelope);
+    expect(result.valid).toBe(false);
+    expect(result.errors).toContainEqual(expect.objectContaining({
+      code: 'DIAGNOSIS_REVIEW_DOWNGRADE',
+      path: 'diagnosisBlocks[1].recommendation',
+    }));
+  });
+
+
   it('rejects non-existent issueId', () => {
     const resp = validResponse({
       issues: [{ issueId: 'nonexistent', evidenceRefs: [], hypothesis: 'x', confidence: 0.5, requiresHumanReview: true, limits: [] }],

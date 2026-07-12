@@ -81,15 +81,19 @@ function setupValidProvider(p: AIProvider, model = 'gemini-2.5-flash') {
   });
 }
 
-describe('v2 flag selection', () => {
+describe('always-on v2 selection', () => {
   beforeEach(() => { vi.mocked(isContractsV2Enabled).mockReturnValue(false); });
   afterEach(() => { vi.mocked(isContractsV2Enabled).mockReset(); });
 
-  it('flag false → CONTRACTS_V2_DISABLED', async () => {
+  it('a historical false flag cannot route a new diagnosis to legacy', async () => {
     const p = makeProvider('cloud');
-    const r = await runStructuredDiagnosis(minimalReport, { provider: p, auditEvidence });
-    expect('success' in r && r.success).toBe(false);
-    expect((r as unknown as { success: false; code: string }).code).toBe('CONTRACTS_V2_DISABLED');
+    setupValidProvider(p);
+    const r = await runStructuredDiagnosis(minimalReport, {
+      provider: p,
+      auditEvidence,
+      requestedModel: 'gemini-2.5-flash',
+    });
+    expect('success' in r && r.success).toBe(true);
   });
 
   it('flag true → success with structured result', async () => {

@@ -1,19 +1,16 @@
 import { jsPDF } from 'jspdf';
+import { canonicalJson, sha256hex } from '../../contracts/llm';
 import type { DiagnosticReport } from './types';
 import { drawChartSpec } from './pdfCharts';
 import {
   actionTypeLabel,
   addFindingsTable,
-  addRecommendationsTable,
-  addTechnicalAnnexTables,
-  addTopIssuesTable,
 } from './pdfTables';
 import {
   PdfLayoutContext,
   addBulletList,
   addGovernanceCallout,
   addKpiGrid,
-  addMethodologyNote,
   addNewPage,
   addParagraph,
   addSectionTitle,
@@ -81,7 +78,7 @@ const drawCover = (ctx: PdfLayoutContext, report: DiagnosticReport) => {
   doc.setFontSize(28);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(theme.colors.ink);
-  doc.text('Informe diagnostico', theme.margin.left, 48);
+  doc.text('Informe diagnóstico', theme.margin.left, 48);
   doc.text('de calidad del dato', theme.margin.left, 60);
 
   doc.setFont('helvetica', 'normal');
@@ -148,51 +145,74 @@ const drawCover = (ctx: PdfLayoutContext, report: DiagnosticReport) => {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.setTextColor(theme.colors.muted);
-  doc.text('Score no modificado por IA. El diagnostico contextualiza evidencia, no recalcula la calificacion.', theme.margin.left, pageHeight - 48);
+  doc.text('Score no modificado por IA. El diagnóstico contextualiza evidencia, no recalcula la calificación.', theme.margin.left, pageHeight - 48);
 
   ctx.cursorY = pageHeight - theme.margin.bottom;
 };
 
 const addEvidenceCounts = (ctx: PdfLayoutContext, title: string, counts: Record<string, number>) => {
   const entries = Object.entries(counts);
+  const translateCountLabel = (key: string) => {
+    if (key === 'critical') return 'críticos';
+    if (key === 'warning') return 'advertencias';
+    if (key === 'info') return 'informativos';
+    if (key === 'good') return 'correctos';
+    return key;
+  };
   addParagraph(
     ctx,
     entries.length === 0
       ? `${title}: sin datos.`
-      : `${title}: ${entries.map(([key, value]) => `${key}: ${formatNumber(value)}`).join(' · ')}`,
+      : `${title}: ${entries.map(([key, value]) => `${translateCountLabel(key)}: ${formatNumber(value)}`).join(' · ')}`,
     { fontSize: 8.6 },
   );
+};
+
+const addTraceCertificate = (ctx: PdfLayoutContext, rows: Array<[string, string]>) => {
+  const { doc, theme } = ctx;
+  const labelWidth = 35;
+  ensureSpace(ctx, rows.length * 5 + 4);
+  rows.forEach(([label, value]) => {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(6.7);
+    doc.setTextColor(theme.colors.faint);
+    doc.text(label, theme.margin.left, ctx.cursorY);
+    doc.setFont(/hash|sha/i.test(label) ? 'courier' : 'helvetica', 'normal');
+    doc.setTextColor(theme.colors.muted);
+    doc.text(truncateText(value, 92), theme.margin.left + labelWidth, ctx.cursorY);
+    ctx.cursorY += 5;
+  });
+  ctx.cursorY += 2;
 };
 
 const addTechnicalProfile = (ctx: PdfLayoutContext, report: DiagnosticReport) => {
   addSectionTitle(ctx, 'Perfil técnico base', 'evidencia determinista');
   addKpiGrid(ctx, [
-    { label: 'Score base', value: `${report.metadata.scoreBase}/100`, note: 'Sin modificación LLM' },
-    { label: 'Filas', value: formatNumber(report.metadata.rowCount) },
-    { label: 'Columnas', value: formatNumber(report.metadata.colCount) },
     { label: 'Delimitador', value: report.metadata.delimiter },
     { label: 'Duplicados', value: formatNumber(report.evidenceBase.duplicateRows) },
-    { label: 'Hallazgos', value: formatNumber(report.evidenceBase.totalIssues) },
     { label: 'Críticos', value: formatNumber(report.evidenceBase.criticalIssues) },
     { label: 'Advertencias', value: formatNumber(report.evidenceBase.warningIssues) },
   ]);
   addEvidenceCounts(ctx, 'Severidad', report.evidenceBase.severityCounts);
   addEvidenceCounts(ctx, 'Categoría', report.evidenceBase.categoryCounts);
-  addEvidenceCounts(ctx, 'Tipos inferidos', report.evidenceBase.columnTypeCounts);
-  addEvidenceCounts(ctx, 'Tipos semánticos', report.evidenceBase.semanticTypeCounts);
 };
 
 const addCharts = (ctx: PdfLayoutContext, report: DiagnosticReport) => {
   addSectionTitle(ctx, 'Gráficos estadísticos reproducibles', 'vectores PDF');
   addParagraph(
     ctx,
-    'Los gráficos se dibujan como vectores PDF desde las especificaciones serializables del reporte. No dependen de imágenes externas, capturas ni DOM.',
+    'Vectores PDF reproducibles derivados del reporte, sin imágenes externas.',
+    { fontSize: 8.2 },
   );
   if (report.chartSpecs.length === 0) {
     addParagraph(ctx, 'Sin especificaciones de gráficos disponibles para este reporte.', { color: ctx.theme.colors.faint });
     return;
   }
-  report.chartSpecs.forEach((chart) => {
+  const selectedCharts = report.chartSpecs.filter((chart) => [
+    'severity_counts',
+    'top_null_columns',
+  ].includes(chart.id));
+  (selectedCharts.length > 0 ? selectedCharts : report.chartSpecs.slice(0, 2)).forEach((chart) => {
     drawChartSpec(ctx, chart);
   });
 };
@@ -225,88 +245,52 @@ const addExecutiveSummary = (ctx: PdfLayoutContext, report: DiagnosticReport) =>
     addBulletList(ctx, presentation.topRisks.map((risk) => `${risk.title}: ${risk.evidenceSummary}`), 5);
   }
 
-  if (presentation.recommendations.length > 0) {
-    addSectionTitle(ctx, 'Siguiente decision recomendada');
-    addBulletList(ctx, presentation.recommendations.map((recommendation) => `${recommendation.title}: ${recommendation.rationale}`), 4);
-  }
-
-  addSectionTitle(ctx, 'Gobernanza y limitaciones');
-  addBulletList(ctx, presentation.supportedClaims, 5);
-  addBulletList(ctx, presentation.pendingClaims, 5);
-  addBulletList(ctx, report.diagnosisSummary.limitations, 6);
-  addMethodologyNote(ctx, report.diagnosisSummary.source);
+  addSectionTitle(ctx, 'Alcance de esta lectura');
+  addBulletList(ctx, [
+    'El score pertenece al motor determinista y no fue modificado por el modelo.',
+    'La interpretación asistida no sustituye la evidencia ni autoriza correcciones automáticas.',
+    ...report.diagnosisSummary.limitations.slice(0, 2),
+  ], 4);
 };
 
 const addRisksAndFindings = (ctx: PdfLayoutContext, report: DiagnosticReport) => {
-  addSectionTitle(ctx, 'Hallazgos priorizados', 'motor determinista');
-  addTopIssuesTable(ctx, report);
-
-  addSectionTitle(ctx, 'Riesgos confirmados');
-  addFindingsTable(ctx, report.findingGroups.confirmedRisks);
-
-  addSectionTitle(ctx, 'Posibles falsos positivos contextuales');
-  addParagraph(ctx, 'Posible, no definitivo. No modifica score. Estos elementos requieren revisión humana antes de remediar, descartar o documentar.');
-  addFindingsTable(ctx, report.findingGroups.possibleFalsePositiveCandidates, { falsePositive: true });
+  const confirmed = report.findingGroups.confirmedRisks;
+  const visibleCount = Math.min(6, confirmed.length);
+  addSectionTitle(ctx, 'Hallazgos confirmados principales', 'evidencia y alcance');
+  addParagraph(ctx, `Se presentan ${visibleCount} de ${confirmed.length} hallazgos confirmados, priorizados por severidad. El detalle completo permanece en JSON y CSV; los falsos positivos documentados no aparecen aquí.`);
+  addFindingsTable(ctx, confirmed, { maxRows: 6 });
 };
 
 const addRecommendations = (ctx: PdfLayoutContext, report: DiagnosticReport) => {
-  addSectionTitle(ctx, 'Recomendaciones');
-  addRecommendationsTable(ctx, report.recommendations);
-};
-
-const addOptionalActions = (ctx: PdfLayoutContext, report: DiagnosticReport) => {
-  addSectionTitle(ctx, 'Acciones opcionales', 'remediación');
-  addGovernanceCallout(ctx, 'Cierre del análisis', [
-    'El informe puede cerrarse sin script.',
-    'La generación de script es una rama opcional.',
-    'HITL solo es obligatorio si se genera/remedia con script.',
-    'La reauditoría se usa para medir delta si el usuario decide remediar.',
-  ]);
-
-  if (report.findingGroups.optionalRemediationCandidates.length > 0) {
-    addParagraph(
-      ctx,
-      `Candidatos de remediación opcional: ${report.findingGroups.optionalRemediationCandidates.map((finding) => truncateText(finding.title, 58)).join(' · ')}`,
-      { fontSize: 8.6 },
-    );
-  } else {
-    addParagraph(ctx, 'No se registraron candidatos de remediación opcional en el reporte.', { fontSize: 8.6 });
-  }
-
-  const scriptRecommendation = report.recommendations.find((recommendation) => recommendation.requiresScript);
-  if (scriptRecommendation) {
-    addParagraph(
-      ctx,
-      `Recomendación asociada a script: ${actionTypeLabel(scriptRecommendation.actionType)} - ${truncateText(scriptRecommendation.title, 120)}.`,
-      { fontSize: 8.6 },
-    );
-  }
-};
-
-const addMethodologyLimitations = (ctx: PdfLayoutContext, report: DiagnosticReport) => {
-  addSectionTitle(ctx, 'Limitaciones metodológicas');
-  addBulletList(ctx, [
-    'El score pertenece al motor determinista.',
-    'El diagnóstico asistido contextualiza, no reemplaza evidencia.',
-    'El reporte no modifica el dataset.',
-    'No hay corrección automática.',
-    'Los posibles falsos positivos son candidatos, no conclusiones definitivas.',
-    report.diagnosisSummary.source === 'unavailable'
-      ? 'No hubo diagnóstico asistido; el reporte declara determinismo solamente.'
-      : 'El diagnóstico asistido se presenta como interpretación contextual.',
-    report.diagnosisSummary.source === 'legacy_text'
-      ? 'El diagnóstico legacy no tiene garantías estructuradas v2.'
-      : 'La evidencia estructurada o determinista queda separada de la interpretación.',
-  ], 8);
-};
-
-const addTechnicalAnnex = (ctx: PdfLayoutContext, report: DiagnosticReport) => {
-  addSectionTitle(ctx, 'Anexo técnico');
+  const reportContentHash = sha256hex(canonicalJson(report));
+  addSectionTitle(ctx, 'Revisión antes de corregir', 'decisión humana');
+  addParagraph(ctx, 'Estos casos son posibles falsos positivos o dependen del contexto. No modifican el score y no deben corregirse automáticamente.');
+  addBulletList(ctx, report.findingGroups.possibleFalsePositiveCandidates.slice(0, 3).map((finding) =>
+    `${finding.title}. ${finding.evidenceSummary} Decisión: revisar humanamente; no modifica el score.`,
+  ), 3);
+  addSectionTitle(ctx, 'Plan de acción');
+  addBulletList(ctx, report.recommendations.map((recommendation) => [
+    `${recommendation.priority === 'high' ? 'Alta' : recommendation.priority === 'medium' ? 'Media' : 'Baja'} prioridad`,
+    actionTypeLabel(recommendation.actionType),
+    recommendation.title,
+    recommendation.rationale,
+  ].join(' - ')), 5);
   addParagraph(
     ctx,
-    'El anexo resume metadatos, preparación de exportación, especificaciones de gráficos y listas técnicas derivadas del reporte. No incluye datos crudos completos.',
+    'Remediación opcional: el informe puede cerrarse sin script; cualquier corrección se realiza sobre una copia y con revisión humana.',
+    { fontSize: 8.2 },
   );
-  addTechnicalAnnexTables(ctx, report);
+  addSectionTitle(ctx, 'Certificado de trazabilidad');
+  addTraceCertificate(ctx, [
+    ['Run ID', report.metadata.runId ?? 'no disponible'],
+    ['Report ID', report.metadata.reportId],
+    ['SHA-256 dataset', report.metadata.datasetSha256 ?? 'no disponible'],
+    ['SHA-256 reporte', reportContentHash],
+    ['Receipt hash', report.metadata.diagnosisReceiptHash ?? report.diagnosisSummary.inputReceiptRef ?? 'no disponible'],
+    ['Modelo solicitado', report.diagnosisSummary.executionReceipt?.requestedModel ?? report.diagnosisSummary.model ?? 'no disponible'],
+    ['Modelo observado', report.diagnosisSummary.executionReceipt?.observedModel ?? 'no observado'],
+    ['Método', report.diagnosisSummary.inputMode ?? 'no disponible'],
+  ]);
 };
 
 const addPythonScriptAppendix = (ctx: PdfLayoutContext, script: string, approved: boolean) => {
@@ -386,6 +370,19 @@ export const generateDiagnosticPdfReport = ({
   save = defaultSave,
 }: GenerateDiagnosticPdfReportParams): GenerateDiagnosticPdfReportResult => {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  doc.setProperties({
+    title: `AURA - Informe diagnóstico - ${diagnosticReport.metadata.fileName ?? diagnosticReport.metadata.reportId}`,
+    subject: `Reporte verificable ${diagnosticReport.metadata.reportId}`,
+    author: 'AURA',
+    keywords: [
+      'calidad de datos',
+      diagnosticReport.metadata.reportId,
+      diagnosticReport.metadata.runId,
+      diagnosticReport.metadata.datasetSha256,
+      diagnosticReport.metadata.diagnosisReceiptHash,
+    ].filter((value): value is string => Boolean(value)).join(', '),
+    creator: 'AURA',
+  });
   const theme = createPdfTheme();
   const ctx: PdfLayoutContext = {
     doc,
@@ -398,14 +395,15 @@ export const generateDiagnosticPdfReport = ({
   addNewPage(ctx);
   addExecutiveSummary(ctx, diagnosticReport);
 
-  ensureSpace(ctx, 20);
+  addNewPage(ctx);
   addTechnicalProfile(ctx, diagnosticReport);
   addCharts(ctx, diagnosticReport);
+
+  addNewPage(ctx);
   addRisksAndFindings(ctx, diagnosticReport);
+
+  addNewPage(ctx);
   addRecommendations(ctx, diagnosticReport);
-  addOptionalActions(ctx, diagnosticReport);
-  addMethodologyLimitations(ctx, diagnosticReport);
-  addTechnicalAnnex(ctx, diagnosticReport);
   if (pythonScript?.trim()) {
     addPythonScriptAppendix(ctx, pythonScript, pythonScriptApproved);
   }

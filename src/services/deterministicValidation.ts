@@ -119,15 +119,6 @@ export const SYNTHETIC_GROUND_TRUTH: DeterministicGroundTruth = {
       column: 'ip_acceso',
       description: '15 filas contienen direcciones IPv4',
     },
-    {
-      ruleIdPrefix: 'semantic-burned-range-fecha_ingreso',
-      ruleName: 'R24 — Rangos Demográficos Quemados (FP)',
-      category: IssueCategory.SEMANTIC,
-      expectedTP: 0,
-      expectedFP: 14,
-      column: 'fecha_ingreso',
-      description: 'Falso positivo: el regex de rangos quema fechas ISO como 2023-01-15 (23-01 coincide con \\d{1,3}[-–]\\d{1,3}). Deuda documentada.',
-    },
   ],
 };
 

@@ -99,6 +99,7 @@ export const addTopIssuesTable = (ctx: PdfLayoutContext, report: DiagnosticRepor
     styles: commonStyles(ctx),
     headStyles: headStyles(ctx),
     alternateRowStyles: { fillColor: [247, 244, 239] },
+    rowPageBreak: 'avoid',
     columnStyles: {
       0: { cellWidth: 28, fontStyle: 'bold' },
       1: { cellWidth: 19 },
@@ -115,7 +116,7 @@ export const addTopIssuesTable = (ctx: PdfLayoutContext, report: DiagnosticRepor
 export const addFindingsTable = (
   ctx: PdfLayoutContext,
   findings: DiagnosticFinding[] | undefined,
-  options: { falsePositive?: boolean } = {},
+  options: { falsePositive?: boolean; maxRows?: number } = {},
 ) => {
   const safeFindings = findings ?? [];
   ensureSpace(ctx, 26);
@@ -125,7 +126,7 @@ export const addFindingsTable = (
     return;
   }
 
-  const rows = safeFindings.slice(0, 8).map((finding) => [
+  const rows = safeFindings.slice(0, options.maxRows ?? 8).map((finding) => [
     truncateText(finding.title, 58),
     severityLabel(finding.severity),
     truncateText(finding.columns.join(', ') || 'Dataset', 34),
@@ -148,6 +149,7 @@ export const addFindingsTable = (
     styles: commonStyles(ctx),
     headStyles: headStyles(ctx),
     alternateRowStyles: { fillColor: [247, 244, 239] },
+    rowPageBreak: 'avoid',
     columnStyles: {
       0: { cellWidth: 33, fontStyle: 'bold' },
       1: { cellWidth: 15 },
@@ -183,12 +185,13 @@ export const addRecommendationsTable = (
   autoTable(ctx.doc, {
     startY: ctx.cursorY,
     margin: tableMargin(ctx),
-    head: [['Prioridad', 'Acción', 'Recomendación', 'Rationale', 'Script', 'HITL']],
+    head: [['Prioridad', 'Acción', 'Recomendación', 'Fundamento', 'Script', 'HITL']],
     body: rows,
     theme: 'grid',
     styles: commonStyles(ctx),
     headStyles: headStyles(ctx),
     alternateRowStyles: { fillColor: [247, 244, 239] },
+    rowPageBreak: 'avoid',
     columnStyles: {
       0: { cellWidth: 20, fontStyle: 'bold' },
       1: { cellWidth: 32 },
@@ -204,6 +207,9 @@ export const addRecommendationsTable = (
 export const addTechnicalAnnexTables = (ctx: PdfLayoutContext, report: DiagnosticReport) => {
   const metadataRows = [
     ['reportId', report.metadata.reportId],
+    ...(report.metadata.runId ? [['runId', report.metadata.runId]] : []),
+    ...(report.metadata.datasetSha256 ? [['datasetSha256', report.metadata.datasetSha256]] : []),
+    ...(report.metadata.diagnosisReceiptHash ? [['diagnosisReceiptHash', report.metadata.diagnosisReceiptHash]] : []),
     ['generatedAt', report.metadata.generatedAt],
     ['version', report.metadata.version],
     ['sourceDatasetFingerprint', report.metadata.sourceDatasetFingerprint],
