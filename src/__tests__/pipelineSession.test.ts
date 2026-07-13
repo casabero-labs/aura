@@ -129,4 +129,84 @@ describe('pipelineSession', () => {
     expect(restored?.state).toBe('upload');
     expect(restored?.fileMeta).toBeUndefined();
   });
+
+  it('never restores executionState=verified from JSON even when fileMeta is present', () => {
+    mockLs.setItem('aura_pipeline_session_v1', JSON.stringify({
+      state: 'execution',
+      file: null,
+      fileMeta: { name: 'demo.csv', size: 10, type: 'text/csv', lastModified: 0 },
+      report: null,
+      auditEvidence: null,
+      rawData: [], csvFields: [], csvDelimiter: ',',
+      cleaningScript: '', approvedScript: '', healthDelta: null,
+      aiAnalysis: '',
+      structuredDiagnosis: null,
+      diagnosisFailureEvidence: null,
+      diagnosticReport: null,
+      remediationPlan: null,
+      scriptContractV2: null,
+      scriptContractVerificationV2: null,
+      benchmarkResults: [], improvementRun: null,
+      scriptValidation: null, deterministicValidation: null, logs: [],
+      executionState: 'verified',
+      executionBundleJson: '{"contractId":"test"}',
+      executionReceipt: { contractId: 'aura.python-execution-receipt.v1', contractVersion: '1.0.0' },
+      executionValidationError: '',
+    }));
+
+    const restored = loadPipelineSession();
+    expect(restored?.executionState).toBe('awaiting_external_output');
+    expect(restored?.executionValidationError).toContain('memoria');
+  });
+
+  it('persists all cryptographic fields of executionReceipt', () => {
+    savePipelineSession({
+      state: 'execution',
+      file: null,
+      report: null,
+      auditEvidence: null,
+      rawData: [], csvFields: [], csvDelimiter: ',',
+      cleaningScript: '', approvedScript: '', healthDelta: null,
+      aiAnalysis: '',
+      structuredDiagnosis: null,
+      diagnosisFailureEvidence: null,
+      diagnosticReport: null,
+      remediationPlan: null,
+      scriptContractV2: null,
+      scriptContractVerificationV2: null,
+      benchmarkResults: [], improvementRun: null,
+      scriptValidation: null, deterministicValidation: null, logs: [],
+      executionState: 'verified',
+      executionBundleJson: '{}',
+      executionReceipt: {
+        contractId: 'aura.python-execution-receipt.v1',
+        contractVersion: '1.0.0',
+        runId: 'exec:test',
+        approvedScriptHash: 'a'.repeat(64),
+        scriptTextSha256: 'b'.repeat(64),
+        beforeDatasetSha256: 'c'.repeat(64),
+        afterDatasetSha256: 'd'.repeat(64),
+        pythonVersion: '3.12.1',
+        pandasVersion: '2.2.0',
+        platform: 'darwin',
+        bundleHash: 'e'.repeat(64),
+        inputReceiptRef: 'f'.repeat(64),
+        evidenceEnvelopeRef: 'env:' + '0'.repeat(64),
+        syntax: { status: 'passed', error: null },
+        execution: {
+          status: 'passed', startedAt: '2026-07-12T12:00:00.000Z', completedAt: '2026-07-12T12:00:01.000Z',
+          durationMs: 1000, stdoutSha256: '1'.repeat(64), stderrSha256: '2'.repeat(64), error: null,
+        },
+        output: { rowCount: 1, columnCount: 1 },
+        receiptHash: '9'.repeat(64),
+      } as any,
+      executionValidationError: '',
+    });
+
+    const stored = mockLs.setItem.mock.calls[0]?.[1] ?? '';
+    const parsed = JSON.parse(stored);
+    expect(parsed.executionReceipt.bundleHash).toBe('e'.repeat(64));
+    expect(parsed.executionReceipt.inputReceiptRef).toBe('f'.repeat(64));
+    expect(parsed.executionReceipt.evidenceEnvelopeRef).toBe('env:' + '0'.repeat(64));
+  });
 });

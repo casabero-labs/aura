@@ -1,12 +1,15 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { ArrowLeft, ArrowRight, CheckCircle2, ClipboardCheck, Download, FileJson, FileText, Loader2, ShieldAlert, ShieldCheck, Terminal, Upload } from 'lucide-react';
 import { buildPythonExecutionBundle, parsePythonExecutionBundle, parsePythonExecutionReceipt, validatePythonExecutionChain } from '../services/remediationExecution/pythonExecutionContract';
-import type { PythonExecutionReceiptV1 } from '../services/remediationExecution/pythonExecutionContract';
+import type { PythonExecutionBundleV1, PythonExecutionReceiptV1 } from '../services/remediationExecution/pythonExecutionContract';
 import { buildScriptHashPayloadV2 } from '../contracts/llm';
 import { sha256BytesHex } from '../contracts/llm/hash';
 import type { AuditReport, AuditExecutionEvidence } from '../types';
 import type { DiagnosisExecutionResult, ScriptContractV2, ScriptValidationResultV2 } from '../contracts/llm';
 import type { ApplyVerifyState } from './MainPipeline';
+
+const SHA256_HEX = /^[a-f0-9]{64}$/;
+const ENVELOPE_REF = /^env:[a-f0-9]{64}$/;
 
 interface ApplyVerifyStepProps {
   state: ApplyVerifyState;
@@ -27,13 +30,14 @@ interface ApplyVerifyStepProps {
   onBundleJsonChange: (json: string) => void;
   onAfterFileChange: (afterFile: File | null) => void;
   onSourceFileChange: (file: File | null) => void;
+  onVerifiedExecution: (result: VerifiedRemediationExecution) => void;
   onLog: (stage: string, msg: string) => void;
   onContinue: () => void;
   onBack: () => void;
 }
 
 export interface VerifiedRemediationExecution {
-  bundle: Record<string, unknown>;
+  bundle: PythonExecutionBundleV1;
   receipt: PythonExecutionReceiptV1;
   afterFile: File;
 }
@@ -62,6 +66,7 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
   onBundleJsonChange,
   onAfterFileChange,
   onSourceFileChange,
+  onVerifiedExecution,
   onLog,
   onContinue,
   onBack,
@@ -85,12 +90,13 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
   const preconditions = useMemo(() => {
     const errors: string[] = [];
     const fingerprint = sourceDatasetFingerprint ?? auditEvidence?.datasetSha256 ?? null;
-    if (!fingerprint || fingerprint.length !== 64) errors.push('El SHA-256 del CSV fuente no es válido.');
+    if (!fingerprint || !SHA256_HEX.test(fingerprint)) errors.push('El SHA-256 del CSV fuente no es válido.');
     if (!sourceFile) errors.push('El archivo CSV fuente no está disponible; volvé a seleccionarlo.');
     if (!scriptContractV2) errors.push('No hay contrato de script V2.');
+    if (!SHA256_HEX.test(scriptContractV2?.scriptHash ?? '')) errors.push('El hash del script V2 no es 64-hex.');
     const verif = scriptContractVerificationV2;
     if (!verif || verif.valid !== true || verif.pythonSyntax.state !== 'passed') {
-      errors.push('La validación del script V2 no está completa o falló.');
+      errors.push('La verificación V2 del script no es válida o no pasó la sintaxis.');
     }
     if (!scriptContractV2) return { ok: false, errors };
     const currentScript = approvedScript ?? '';
@@ -103,9 +109,10 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
     const diagReceiptHash = structuredDiagnosis?.executionReceipt?.receiptHash;
     const diagEnvelopeRef = structuredDiagnosis?.evidenceEnvelopeRef;
     const contractInputRef = scriptContractV2.inputReceiptRef;
-    if (!diagReceiptHash || !diagEnvelopeRef || !contractInputRef) {
-      errors.push('Faltan referencias del diagnóstico (receiptHash, envelopeRef, inputReceiptRef).');
-    } else if (contractInputRef !== diagReceiptHash) {
+    if (!diagReceiptHash || !SHA256_HEX.test(diagReceiptHash)) errors.push('El receiptHash del diagnóstico no es 64-hex.');
+    if (!diagEnvelopeRef || !ENVELOPE_REF.test(diagEnvelopeRef)) errors.push('El evidenceEnvelopeRef del diagnóstico no tiene formato env:<sha256>.');
+    if (!contractInputRef || !SHA256_HEX.test(contractInputRef)) errors.push('El inputReceiptRef del contrato V2 no es 64-hex.');
+    if (diagReceiptHash && contractInputRef && diagReceiptHash !== contractInputRef) {
       errors.push('La referencia del recibo de diagnóstico no coincide con el contrato V2.');
     }
     return { ok: errors.length === 0, errors, fingerprint };
@@ -212,6 +219,7 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
       }
       onReceiptChange(receipt);
       onAfterFileChange(afterFile);
+      onVerifiedExecution({ bundle, receipt, afterFile });
       onStateChange('verified');
       onLog('execution.verified', `receipt=${receipt.receiptHash.slice(0, 12)} rows=${receipt.output?.rowCount} cols=${receipt.output?.columnCount}`);
     } catch (err) {

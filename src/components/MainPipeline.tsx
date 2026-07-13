@@ -22,7 +22,7 @@ import { AIConfig, AIProvider, AuditReport, AuditExecutionEvidence, BenchmarkRes
 import type { DiagnosisExecutionResult, DiagnosisFailureEvidenceV2, RemediationPlanV2, ScriptContractV2, ScriptValidationResultV2 } from '../contracts/llm';
 import { buildScriptHashPayloadV2, validateRemediationPlanV2, isContractsV2Enabled, verifyScriptContractV2 } from '../contracts/llm';
 import type { PythonExecutionReceiptV1 } from '../services/remediationExecution/pythonExecutionContract';
-import ApplyVerifyStep from './ApplyVerifyStep';
+import ApplyVerifyStep, { type VerifiedRemediationExecution } from './ApplyVerifyStep';
 
 export type PipelineState = 'upload' | 'profile' | 'diagnosis' | 'diagnostic_report' | 'script' | 'review' | 'execution' | 'export';
 
@@ -126,6 +126,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
   const [executionReceipt, setExecutionReceipt] = useState<PythonExecutionReceiptV1 | undefined>(() => initialData?.executionReceipt);
   const [executionValidationError, setExecutionValidationError] = useState(() => initialData?.executionValidationError ?? '');
   const [executionAfterFile, setExecutionAfterFile] = useState<File | null>(null);
+  const [verifiedExecution, setVerifiedExecution] = useState<VerifiedRemediationExecution | null>(null);
 
   const invalidateDescendants = (level: 'plan' | 'script' | 'approval') => {
     if (level === 'plan') {
@@ -143,6 +144,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
     setExecutionReceipt(undefined);
     setExecutionValidationError('');
     setExecutionAfterFile(null);
+    setVerifiedExecution(null);
   };
 
   // Sync pipeline data upward to parent (deferred to avoid overwriting App's session restore)
@@ -747,11 +749,13 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
             setDiagnosticReport(null);
           }}
           onDiagnosisStarted={() => {
+            invalidateDescendants('plan');
             setStructuredDiagnosis(null);
             setDiagnosisFailureEvidence(null);
             setDiagnosticReport(null);
           }}
           onStructuredDiagnosisComplete={(diagnosis) => {
+            invalidateDescendants('plan');
             setStructuredDiagnosis(diagnosis);
             setDiagnosisFailureEvidence(null);
             setDiagnosticReport(null);
@@ -817,8 +821,14 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
             remediationPlan={remediationPlan}
             scriptContractV2={scriptContractV2}
             scriptContractVerificationV2={scriptContractVerificationV2}
-            onRemediationPlanChange={setRemediationPlan}
+            onRemediationPlanChange={(plan) => {
+              if (plan && (!remediationPlan || plan.planId !== remediationPlan.planId)) {
+                invalidateDescendants('plan');
+              }
+              setRemediationPlan(plan);
+            }}
             onScriptContractChange={(contract, verification) => {
+              invalidateDescendants('script');
               setScriptContractV2(contract);
               setScriptContractVerificationV2(verification);
               if (contract) {
@@ -944,6 +954,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
             onBundleJsonChange={setExecutionBundleJson}
             onAfterFileChange={setExecutionAfterFile}
             onSourceFileChange={setFile}
+            onVerifiedExecution={setVerifiedExecution}
             executionReceipt={executionReceipt}
             executionBundleJson={executionBundleJson}
             onLog={(stage, msg) => addLog(`${stage} :: ${msg}`)}

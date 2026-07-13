@@ -1,246 +1,420 @@
 // @vitest-environment jsdom
 
 import React from 'react';
+import { act } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import ApplyVerifyStep from '../components/ApplyVerifyStep';
-import type { PythonExecutionReceiptV1 } from '../services/remediationExecution/pythonExecutionContract';
-import type { AuditReport } from '../types';
+import type { PythonExecutionReceiptV1, PythonExecutionBundleV1 } from '../services/remediationExecution/pythonExecutionContract';
+import { buildPythonExecutionBundle, buildPythonExecutionReceipt } from '../services/remediationExecution/pythonExecutionContract';
+import { sha256hex } from '../contracts/llm/hash';
+import { computeScriptHashV2 } from '../contracts/llm/scriptBuilderV2';
 import type { ScriptContractV2 } from '../contracts/llm';
+import type { AuditReport } from '../types';
 
 const SCRIPT_TEXT = 'import pandas as pd\n\ndef clean_dataset(df):\n    df["Name"] = df["Name"].str.strip()\n    return df\n';
+const canonicalScriptHash = (text: string) => sha256hex(JSON.stringify({ scriptText: text }));
+const SCRIPT_HASH = canonicalScriptHash(SCRIPT_TEXT);
+const BEFORE_CSV = 'Name\n Alice \n';
+const AFTER_CSV = 'Name\nAlice\n';
+const FINGERPRINT = sha256hex(BEFORE_CSV);
+const DIAG_RECEIPT_HASH = 'b'.repeat(64);
+const ENVELOPE_REF = 'env:' + 'c'.repeat(64);
 
-const makeContract = (): ScriptContractV2 => ({
-  contractId: 'aura.script.v2',
-  contractVersion: '2.0.0',
+const buildCanonicalContract = (): ScriptContractV2 => {
+  const draft: ScriptContractV2 = {
+    contractId: 'aura.script.v2',
+    contractVersion: '2.0.0',
+    scriptText: SCRIPT_TEXT,
+    scriptHash: '0'.repeat(64),
+    acceptedActionIds: ['action:trim'],
+    rejectedActionIds: [],
+    excludedActionIds: [],
+    columnRefs: [],
+    cleanDatasetFn: 'clean_dataset',
+    rendererVersion: '1.0.0',
+    placeholderVocabularyVersion: '1.0.0',
+    remediationRef: 'plan:test',
+    datasetFingerprint: FINGERPRINT,
+    generatedAt: '2026-07-12T12:00:00.000Z',
+    inputReceiptRef: DIAG_RECEIPT_HASH,
+    inputTrace: { envelopeRef: ENVELOPE_REF, fingerprint: FINGERPRINT, promptHash: 'd'.repeat(64) },
+    validationResult: { pythonSyntax: { state: 'passed' } } as any,
+  } as unknown as ScriptContractV2;
+  draft.scriptHash = computeScriptHashV2(draft);
+  return draft;
+};
+
+const buildCanonicalBundle = (): PythonExecutionBundleV1 => buildPythonExecutionBundle({
+  generatedAt: '2026-07-12T12:05:00.000Z',
+  executionId: 'run:verified',
+  approvedScriptHash: SCRIPT_HASH,
+  beforeDatasetSha256: FINGERPRINT,
   scriptText: SCRIPT_TEXT,
-  scriptHash: 'a'.repeat(64),
-  acceptedActionIds: ['action:trim'],
-  rejectedActionIds: [],
-  excludedActionIds: [],
-  columnRefs: [],
-  cleanDatasetFn: 'clean_dataset',
-  rendererVersion: '1.0.0',
-  placeholderVocabularyVersion: '1.0.0',
-  remediationRef: 'plan:test',
-  datasetFingerprint: 'a'.repeat(64),
-  generatedAt: '2026-07-12T12:00:00.000Z',
-  inputReceiptRef: 'b'.repeat(64),
-  validationResult: { pythonSyntax: { state: 'passed' } } as any,
-} as unknown as ScriptContractV2);
+  scriptHashPayload: { scriptText: SCRIPT_TEXT },
+  inputReceiptRef: DIAG_RECEIPT_HASH,
+  evidenceEnvelopeRef: ENVELOPE_REF,
+});
 
-const makeReceipt = (overrides: Partial<PythonExecutionReceiptV1> = {}): PythonExecutionReceiptV1 => ({
+const makeReceipt = (bundle: PythonExecutionBundleV1, overrides: Partial<PythonExecutionReceiptV1> = {}): PythonExecutionReceiptV1 => buildPythonExecutionReceipt({
   contractId: 'aura.python-execution-receipt.v1',
   contractVersion: '1.0.0',
-  runId: 'exec:abc',
-  approvedScriptHash: 'a'.repeat(64),
-  scriptTextSha256: 'b'.repeat(64),
-  beforeDatasetSha256: 'c'.repeat(64),
-  afterDatasetSha256: 'd'.repeat(64),
-  pythonVersion: '3.12.1',
-  pandasVersion: '2.2.0',
-  platform: 'darwin',
-  bundleHash: 'h'.repeat(64),
-  inputReceiptRef: 'b'.repeat(64),
-  evidenceEnvelopeRef: 'env:' + 'e'.repeat(64),
-  syntax: { status: 'passed' as const, error: null },
+  runId: bundle.runId,
+  approvedScriptHash: bundle.approvedScriptHash,
+  scriptTextSha256: bundle.scriptTextSha256,
+  beforeDatasetSha256: bundle.beforeDatasetSha256,
+  afterDatasetSha256: sha256hex(AFTER_CSV),
+  pythonVersion: '3.12.1', pandasVersion: '2.2.0', platform: 'darwin',
+  bundleHash: bundle.bundleHash,
+  inputReceiptRef: bundle.inputReceiptRef,
+  evidenceEnvelopeRef: bundle.evidenceEnvelopeRef,
+  syntax: { status: 'passed', error: null },
   execution: {
-    status: 'passed' as const,
-    startedAt: '2026-07-12T12:00:00.000Z',
-    completedAt: '2026-07-12T12:00:01.000Z',
-    durationMs: 1000,
-    stdoutSha256: 'f'.repeat(64),
-    stderrSha256: 'g'.repeat(64),
-    error: null,
+    status: 'passed', startedAt: '2026-07-12T12:10:00.000Z', completedAt: '2026-07-12T12:10:01.000Z',
+    durationMs: 1000, stdoutSha256: sha256hex(''), stderrSha256: sha256hex(''), error: null,
   },
-  output: { rowCount: 100, columnCount: 5 },
-  receiptHash: 'i'.repeat(64),
+  output: { rowCount: 1, columnCount: 1 },
   ...overrides,
 });
 
-const sourceFile = new File(['col\nval'], 'test.csv', { type: 'text/csv' });
-const afterFile = new File(['col\nval2'], 'corrected.csv', { type: 'text/csv' });
+const sourceFile = new File([BEFORE_CSV], 'source.csv', { type: 'text/csv' });
+const afterFile = new File([AFTER_CSV], 'corrected.csv', { type: 'text/csv' });
 
 const defaultProps = {
   state: 'not_prepared' as const,
   report: null as unknown as AuditReport,
   sourceFile: null,
-  sourceDatasetFingerprint: 'c'.repeat(64),
+  sourceDatasetFingerprint: FINGERPRINT,
   onStateChange: vi.fn(),
   onReceiptChange: vi.fn(),
   onErrorChange: vi.fn(),
   onBundleJsonChange: vi.fn(),
   onAfterFileChange: vi.fn(),
   onSourceFileChange: vi.fn(),
+  onVerifiedExecution: vi.fn(),
   onLog: vi.fn(),
   onContinue: vi.fn(),
   onBack: vi.fn(),
 };
 
-const fullContract = makeContract();
-const fullVerif = {
-  valid: true,
-  pythonSyntax: { state: 'passed' as const },
-} as any;
+const fullVerif = { valid: true, pythonSyntax: { state: 'passed' as const } } as any;
+const fullDiag = { executionReceipt: { receiptHash: DIAG_RECEIPT_HASH }, evidenceEnvelopeRef: ENVELOPE_REF } as any;
 
-describe('ApplyVerifyStep R2', () => {
-  describe('preconditions', () => {
+describe('ApplyVerifyStep R3', () => {
+  describe('preconditions — strict format validation', () => {
+    it('blocks when sourceDatasetFingerprint is not 64-hex', () => {
+      render(<ApplyVerifyStep {...defaultProps} sourceDatasetFingerprint="bad" sourceFile={sourceFile} />);
+      expect(screen.queryByTestId('apply-verify-prepare')).toBeFalsy();
+    });
+
+    it('blocks when evidenceEnvelopeRef is malformed', () => {
+      render(<ApplyVerifyStep
+        {...defaultProps}
+        sourceFile={sourceFile}
+        scriptContractV2={buildCanonicalContract()}
+        scriptContractVerificationV2={fullVerif}
+        approvedScript={SCRIPT_TEXT}
+        structuredDiagnosis={{ executionReceipt: { receiptHash: DIAG_RECEIPT_HASH }, evidenceEnvelopeRef: 'env:test' } as any}
+      />);
+      expect(screen.queryByTestId('apply-verify-prepare')).toBeFalsy();
+    });
+
+    it('blocks when inputReceiptRef is malformed', () => {
+      const badContract = buildCanonicalContract();
+      (badContract as any).inputReceiptRef = 'not-hex';
+      render(<ApplyVerifyStep
+        {...defaultProps}
+        sourceFile={sourceFile}
+        scriptContractV2={badContract}
+        scriptContractVerificationV2={fullVerif}
+        approvedScript={SCRIPT_TEXT}
+        structuredDiagnosis={fullDiag}
+      />);
+      expect(screen.queryByTestId('apply-verify-prepare')).toBeFalsy();
+    });
+
+    it('blocks when verification.valid !== true', () => {
+      render(<ApplyVerifyStep
+        {...defaultProps}
+        sourceFile={sourceFile}
+        scriptContractV2={buildCanonicalContract()}
+        scriptContractVerificationV2={{ valid: false, pythonSyntax: { state: 'passed' } } as any}
+        approvedScript={SCRIPT_TEXT}
+        structuredDiagnosis={fullDiag}
+      />);
+      expect(screen.queryByTestId('apply-verify-prepare')).toBeFalsy();
+    });
+
     it('shows prepare button when all preconditions are met', () => {
       render(<ApplyVerifyStep
         {...defaultProps}
         sourceFile={sourceFile}
-        sourceDatasetFingerprint={'a'.repeat(64)}
-        scriptContractV2={fullContract}
+        scriptContractV2={buildCanonicalContract()}
         scriptContractVerificationV2={fullVerif}
         approvedScript={SCRIPT_TEXT}
-        structuredDiagnosis={{
-          executionReceipt: { receiptHash: 'b'.repeat(64) } as any,
-          evidenceEnvelopeRef: 'env:test',
-        } as any}
+        structuredDiagnosis={fullDiag}
       />);
       expect(screen.getByTestId('apply-verify-prepare')).toBeTruthy();
     });
+  });
 
-    it('blocks when scriptContractVerificationV2.valid !== true', () => {
+  describe('click Preparar emits canonical bundle', () => {
+    it('captures onBundleJsonChange and revalidates with buildPythonExecutionBundle', async () => {
+      const onBundleJsonChange = vi.fn();
+      const onStateChange = vi.fn();
       render(<ApplyVerifyStep
         {...defaultProps}
+        state="not_prepared"
         sourceFile={sourceFile}
-        sourceDatasetFingerprint={'a'.repeat(64)}
-        scriptContractV2={fullContract}
-        scriptContractVerificationV2={{ valid: false, pythonSyntax: { state: 'passed' } } as any}
-        approvedScript={SCRIPT_TEXT}
-      />);
-      expect(screen.queryByTestId('apply-verify-prepare')).toBeFalsy();
-    });
-
-    it('blocks when sourceFile is null', () => {
-      render(<ApplyVerifyStep
-        {...defaultProps}
-        sourceFile={null}
-        sourceDatasetFingerprint={'a'.repeat(64)}
-        scriptContractV2={fullContract}
+        scriptContractV2={buildCanonicalContract()}
         scriptContractVerificationV2={fullVerif}
         approvedScript={SCRIPT_TEXT}
+        structuredDiagnosis={fullDiag}
+        onBundleJsonChange={onBundleJsonChange}
+        onStateChange={onStateChange}
       />);
-      expect(screen.queryByTestId('apply-verify-prepare')).toBeFalsy();
-      expect(screen.getByTestId('apply-verify-reselect-source')).toBeTruthy();
-    });
 
-    it('blocks when inputReceiptRef does not match diagnosis receiptHash', () => {
-      render(<ApplyVerifyStep
-        {...defaultProps}
-        sourceFile={sourceFile}
-        sourceDatasetFingerprint={'a'.repeat(64)}
-        scriptContractV2={fullContract}
-        scriptContractVerificationV2={fullVerif}
-        approvedScript={SCRIPT_TEXT}
-        structuredDiagnosis={{
-          executionReceipt: { receiptHash: 'z'.repeat(64) } as any,
-          evidenceEnvelopeRef: 'env:test',
-        } as any}
-      />);
-      expect(screen.queryByTestId('apply-verify-prepare')).toBeFalsy();
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('apply-verify-prepare'));
+      });
+
+      expect(onBundleJsonChange).toHaveBeenCalled();
+      const emittedJson = onBundleJsonChange.mock.calls[0][0];
+      const parsed = JSON.parse(emittedJson);
+      expect(parsed.contractId).toBe('aura.python-execution-bundle.v1');
+      expect(parsed.scriptHashPayload.scriptText).toBe(SCRIPT_TEXT);
+      expect(parsed.inputReceiptRef).toBe(DIAG_RECEIPT_HASH);
+      expect(parsed.evidenceEnvelopeRef).toBe(ENVELOPE_REF);
+      expect(parsed.beforeDatasetSha256).toBe(FINGERPRINT);
+
+      // canonical guard: bundle must validate as a valid PythonExecutionBundleV1
+      const { validatePythonExecutionBundle, parsePythonExecutionBundle } = await import('../services/remediationExecution/pythonExecutionContract');
+      const errors = validatePythonExecutionBundle(parsePythonExecutionBundle(emittedJson));
+      expect(errors).toEqual([]);
+      expect(onStateChange).toHaveBeenCalledWith('ready');
     });
   });
 
-  describe('re-selection', () => {
-    it('re-selection with correct SHA calls onSourceFileChange', async () => {
+  describe('re-selección real', () => {
+    it('accepts correct file and calls onSourceFileChange; rejects tampered', async () => {
       const onSourceFileChange = vi.fn();
       const onErrorChange = vi.fn();
       render(<ApplyVerifyStep
         {...defaultProps}
         sourceFile={null}
-        sourceDatasetFingerprint={'a'.repeat(64)}
-        scriptContractV2={fullContract}
+        scriptContractV2={buildCanonicalContract()}
         scriptContractVerificationV2={fullVerif}
         approvedScript={SCRIPT_TEXT}
+        structuredDiagnosis={fullDiag}
         onSourceFileChange={onSourceFileChange}
         onErrorChange={onErrorChange}
       />);
-      const shaContent = 'a'.repeat(64);
-      const file = new File([shaContent], 'correct.csv', { type: 'text/csv' });
-      // Reselect input exists
+
       const input = screen.getByTestId('apply-verify-reselect-source') as HTMLInputElement;
-      expect(input).toBeTruthy();
+
+      const correctFile = new File([BEFORE_CSV], 'correct.csv', { type: 'text/csv' });
+      Object.defineProperty(input, 'files', { value: [correctFile], configurable: true });
+      await act(async () => {
+        fireEvent.change(input);
+      });
+      expect(onSourceFileChange).toHaveBeenCalledWith(correctFile);
+
+      onSourceFileChange.mockClear();
+      onErrorChange.mockClear();
+      const tamperedFile = new File(['Name\n Eve \n'], 'tampered.csv', { type: 'text/csv' });
+      Object.defineProperty(input, 'files', { value: [tamperedFile], configurable: true });
+      await act(async () => {
+        fireEvent.change(input);
+      });
+      expect(onSourceFileChange).not.toHaveBeenCalled();
+      expect(onErrorChange).toHaveBeenCalledWith(expect.stringContaining('no coincide'));
     });
   });
 
-  describe('command and download', () => {
-    it('shows node command with correct runner path', () => {
-      render(<ApplyVerifyStep
-        {...defaultProps}
-        state="ready"
-        executionBundleJson={'{"contractId":"test"}'}
-        sourceFile={sourceFile}
-        sourceDatasetFingerprint={'a'.repeat(64)}
-        scriptContractV2={fullContract}
-        scriptContractVerificationV2={fullVerif}
-        approvedScript={SCRIPT_TEXT}
-      />);
-      expect(screen.getByTestId('apply-verify-command').textContent).toContain('node experiments/runners/run-aura-remediation.mjs');
-    });
+  describe('validation chain', () => {
+    it('valid chain → verified emits onVerifiedExecution with typed result', async () => {
+      const onVerifiedExecution = vi.fn();
+      const onStateChange = vi.fn();
+      const bundle = buildCanonicalBundle();
+      const receipt = makeReceipt(bundle);
+      const receiptJson = JSON.stringify(receipt);
+      const receiptFile = new File([receiptJson], 'receipt.json', { type: 'application/json' });
 
-    it('copy command button exists', () => {
-      render(<ApplyVerifyStep
-        {...defaultProps}
-        state="ready"
-        executionBundleJson={'{"contractId":"test"}'}
-        sourceFile={sourceFile}
-        sourceDatasetFingerprint={'a'.repeat(64)}
-        scriptContractV2={fullContract}
-        scriptContractVerificationV2={fullVerif}
-        approvedScript={SCRIPT_TEXT}
-      />);
-      expect(screen.getByTestId('apply-verify-copy-command')).toBeTruthy();
-    });
-  });
-
-  describe('validation', () => {
-    it('shows verified state with info grid and continue', () => {
-      const onContinue = vi.fn();
-      render(<ApplyVerifyStep
-        {...defaultProps}
-        state="verified"
-        executionReceipt={makeReceipt()}
-        sourceFile={sourceFile}
-        sourceDatasetFingerprint={'a'.repeat(64)}
-        scriptContractV2={fullContract}
-        scriptContractVerificationV2={fullVerif}
-        approvedScript={SCRIPT_TEXT}
-        onContinue={onContinue}
-      />);
-      expect(screen.getByTestId('apply-verify-verified')).toBeTruthy();
-      expect(screen.getByText('3.12.1')).toBeTruthy();
-      fireEvent.click(screen.getByTestId('apply-verify-continue'));
-      expect(onContinue).toHaveBeenCalled();
-    });
-
-    it('shows error message when state is invalid', () => {
-      render(<ApplyVerifyStep
-        {...defaultProps}
-        state="invalid"
-        executionValidationError="Cadena inválida: bundle bundleHash mismatch"
-        sourceFile={sourceFile}
-        sourceDatasetFingerprint={'a'.repeat(64)}
-        scriptContractV2={fullContract}
-        scriptContractVerificationV2={fullVerif}
-        approvedScript={SCRIPT_TEXT}
-      />);
-      expect(screen.getByTestId('apply-verify-error')).toBeTruthy();
-      expect(screen.getByText(/Cadena inválida/)).toBeTruthy();
-    });
-
-    it('validate button is disabled without files', () => {
       render(<ApplyVerifyStep
         {...defaultProps}
         state="awaiting_external_output"
         sourceFile={sourceFile}
-        sourceDatasetFingerprint={'a'.repeat(64)}
-        scriptContractV2={fullContract}
+        executionBundleJson={JSON.stringify(bundle)}
+        scriptContractV2={buildCanonicalContract()}
         scriptContractVerificationV2={fullVerif}
         approvedScript={SCRIPT_TEXT}
+        structuredDiagnosis={fullDiag}
+        onVerifiedExecution={onVerifiedExecution}
+        onStateChange={onStateChange}
       />);
-      expect((screen.getByTestId('apply-verify-validate') as HTMLButtonElement).disabled).toBe(true);
+
+      const afterInput = screen.getByTestId('apply-verify-after-file') as HTMLInputElement;
+      const receiptInput = screen.getByTestId('apply-verify-receipt-file') as HTMLInputElement;
+      Object.defineProperty(afterInput, 'files', { value: [afterFile], configurable: true });
+      Object.defineProperty(receiptInput, 'files', { value: [receiptFile], configurable: true });
+      await act(async () => {
+        fireEvent.change(afterInput);
+        fireEvent.change(receiptInput);
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('apply-verify-validate'));
+      });
+
+      expect(onVerifiedExecution).toHaveBeenCalledTimes(1);
+      const result = onVerifiedExecution.mock.calls[0][0];
+      expect(result.bundle.bundleHash).toBe(bundle.bundleHash);
+      expect(result.receipt.receiptHash).toBe(receipt.receiptHash);
+      expect(result.afterFile).toBe(afterFile);
+      expect(onStateChange).toHaveBeenCalledWith('verified');
+    });
+
+    it('tampered bundleHash → invalid, no verified execution emitted', async () => {
+      const onVerifiedExecution = vi.fn();
+      const onStateChange = vi.fn();
+      const bundle = buildCanonicalBundle();
+      const tamperedBundle = { ...bundle, bundleHash: 'z'.repeat(64) };
+      const receipt = makeReceipt(bundle);
+      const receiptFile = new File([JSON.stringify(receipt)], 'receipt.json', { type: 'application/json' });
+
+      render(<ApplyVerifyStep
+        {...defaultProps}
+        state="awaiting_external_output"
+        sourceFile={sourceFile}
+        executionBundleJson={JSON.stringify(tamperedBundle)}
+        onVerifiedExecution={onVerifiedExecution}
+        onStateChange={onStateChange}
+      />);
+
+      const afterInput = screen.getByTestId('apply-verify-after-file') as HTMLInputElement;
+      const receiptInput = screen.getByTestId('apply-verify-receipt-file') as HTMLInputElement;
+      Object.defineProperty(afterInput, 'files', { value: [afterFile], configurable: true });
+      Object.defineProperty(receiptInput, 'files', { value: [receiptFile], configurable: true });
+      await act(async () => {
+        fireEvent.change(afterInput);
+        fireEvent.change(receiptInput);
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('apply-verify-validate'));
+      });
+
+      expect(onVerifiedExecution).not.toHaveBeenCalled();
+      expect(onStateChange).toHaveBeenCalledWith('invalid');
+    });
+
+    it('tampered runId → invalid', async () => {
+      const onVerifiedExecution = vi.fn();
+      const onStateChange = vi.fn();
+      const bundle = buildCanonicalBundle();
+      const receipt = makeReceipt(bundle, { runId: 'run:TAMPERED' });
+      const receiptFile = new File([JSON.stringify(receipt)], 'receipt.json', { type: 'application/json' });
+
+      render(<ApplyVerifyStep
+        {...defaultProps}
+        state="awaiting_external_output"
+        sourceFile={sourceFile}
+        executionBundleJson={JSON.stringify(bundle)}
+        onVerifiedExecution={onVerifiedExecution}
+        onStateChange={onStateChange}
+      />);
+
+      const afterInput = screen.getByTestId('apply-verify-after-file') as HTMLInputElement;
+      const receiptInput = screen.getByTestId('apply-verify-receipt-file') as HTMLInputElement;
+      Object.defineProperty(afterInput, 'files', { value: [afterFile], configurable: true });
+      Object.defineProperty(receiptInput, 'files', { value: [receiptFile], configurable: true });
+      await act(async () => {
+        fireEvent.change(afterInput);
+        fireEvent.change(receiptInput);
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('apply-verify-validate'));
+      });
+
+      expect(onVerifiedExecution).not.toHaveBeenCalled();
+      expect(onStateChange).toHaveBeenCalledWith('invalid');
+    });
+
+    it('tampered afterCsv (output bytes) → invalid', async () => {
+      const onVerifiedExecution = vi.fn();
+      const onStateChange = vi.fn();
+      const bundle = buildCanonicalBundle();
+      const receipt = makeReceipt(bundle);
+      const receiptFile = new File([JSON.stringify(receipt)], 'receipt.json', { type: 'application/json' });
+      const tamperedAfter = new File(['Name\nEve\n'], 'corrected.csv', { type: 'text/csv' });
+
+      render(<ApplyVerifyStep
+        {...defaultProps}
+        state="awaiting_external_output"
+        sourceFile={sourceFile}
+        executionBundleJson={JSON.stringify(bundle)}
+        onVerifiedExecution={onVerifiedExecution}
+        onStateChange={onStateChange}
+      />);
+
+      const afterInput = screen.getByTestId('apply-verify-after-file') as HTMLInputElement;
+      const receiptInput = screen.getByTestId('apply-verify-receipt-file') as HTMLInputElement;
+      Object.defineProperty(afterInput, 'files', { value: [tamperedAfter], configurable: true });
+      Object.defineProperty(receiptInput, 'files', { value: [receiptFile], configurable: true });
+      await act(async () => {
+        fireEvent.change(afterInput);
+        fireEvent.change(receiptInput);
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('apply-verify-validate'));
+      });
+
+      expect(onVerifiedExecution).not.toHaveBeenCalled();
+      expect(onStateChange).toHaveBeenCalledWith('invalid');
+    });
+  });
+
+  describe('download and copy', () => {
+    it('download source.csv byte-equal to original File with forced name', () => {
+      const originalBytes = new Uint8Array([78, 97, 109, 101, 10, 65, 108, 105, 99, 101, 10]);
+      const original = new File([originalBytes], 'controlled_customers_phase8.csv', { type: 'text/csv' });
+      let capturedBlob: Blob | null = null;
+      let capturedDownloadName = '';
+      const origCreate = URL.createObjectURL;
+      const origRevoke = URL.revokeObjectURL;
+      const origClick = HTMLAnchorElement.prototype.click;
+      URL.createObjectURL = vi.fn((b: any) => { capturedBlob = b; return 'blob:test'; }) as any;
+      URL.revokeObjectURL = vi.fn();
+      HTMLAnchorElement.prototype.click = vi.fn(function(this: HTMLAnchorElement) { capturedDownloadName = this.download; });
+
+      try {
+        render(<ApplyVerifyStep
+          {...defaultProps}
+          state="ready"
+          executionBundleJson={'{"contractId":"test"}'}
+          sourceFile={original}
+        />);
+        fireEvent.click(screen.getByTestId('apply-verify-download-source'));
+        expect(capturedDownloadName).toBe('source.csv');
+        expect(capturedBlob).not.toBeNull();
+      } finally {
+        URL.createObjectURL = origCreate;
+        URL.revokeObjectURL = origRevoke;
+        HTMLAnchorElement.prototype.click = origClick;
+      }
+    });
+
+    it('copy command writes exact CLI string', async () => {
+      const writeText = vi.fn().mockResolvedValue(undefined);
+      Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+      render(<ApplyVerifyStep
+        {...defaultProps}
+        state="ready"
+        executionBundleJson={'{"contractId":"test"}'}
+        sourceFile={sourceFile}
+      />);
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('apply-verify-copy-command'));
+      });
+      expect(writeText).toHaveBeenCalledWith('node experiments/runners/run-aura-remediation.mjs --bundle ./execution-bundle.json --input ./source.csv --output ./corrected.csv --receipt ./receipt.json');
     });
   });
 });
