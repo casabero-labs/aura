@@ -1,6 +1,6 @@
 # Hoja de ruta definitiva de AURA
 
-Última actualización: 13 de julio de 2026, 18:35 (America/Bogota).
+Última actualización: 13 de julio de 2026, 18:45 (America/Bogota).
 
 Este documento es la única referencia operativa para cerrar el TFM. La entrega
 académica vence el **miércoles 15 de julio de 2026 a las 15:00**. Hasta entregar,
@@ -26,7 +26,7 @@ esta fase; en el documento se verificará su grado de cumplimiento con evidencia
 | Área | Estado para el TFM |
 |---|---|
 | Motor determinista | Cerrado y utilizable. |
-| Diagnóstico normal V2 | Funcional con evidencia válida en `flujo4`. |
+| Diagnóstico normal V2 | Funcional; muestra modelo y método activos e incluye configuración rápida para `flujo5`. |
 | Informe PDF y exportación | Funcionales; existe ZIP de evidencia. |
 | Plan y script | Implementados con revisión humana. |
 | Aplicar y verificar | Integrado mediante PR #36; suficiente para esta entrega. |

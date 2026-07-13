@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import Papa from 'papaparse';
 import { describe, expect, it } from 'vitest';
 import { _buildEvidenceEnvelopeV2 } from '../contracts/llm/evidenceEnvelopeV2';
+import type { AuditReportInput } from '../contracts/llm/evidenceEnvelopeV2';
 import { buildDiagnosisInputPackageV2 } from '../contracts/llm/diagnosisInputPackageV2';
 import { defaultBudget } from '../contracts/llm/tokenBudget';
 import { runAudit } from '../services/auditEngine';
@@ -29,7 +30,18 @@ describe('controlled Phase 8 diagnosis inputs', () => {
     });
     const columns = parsed.meta.fields ?? [];
     const report = runAudit(parsed.data, columns, parsed.meta.delimiter || ',');
-    const envelope = _buildEvidenceEnvelopeV2(report, {
+    const compatibleReport: AuditReportInput = {
+      ...report,
+      datasetProfile: report.datasetProfile ? {
+        columns: report.datasetProfile.columns.map((column) => ({
+          name: column.name,
+          inferredType: column.inferredType,
+          semanticType: column.semanticType,
+          cardinality: report.columnStats[column.name]?.uniqueCount,
+        })),
+      } : undefined,
+    };
+    const envelope = _buildEvidenceEnvelopeV2(compatibleReport, {
       privacyLevel: 'local_full',
       datasetSha256: createHash('sha256').update(csv).digest('hex'),
       delimiter: report.delimiterDetected,

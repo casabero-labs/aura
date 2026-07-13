@@ -33,7 +33,7 @@ import {
 } from '../contracts/llm';
 import { resolveOllamaInferenceConfig } from '../services/ollamaInferenceConfig';
 import { diagnoseOllamaLocal, type OllamaLocalDiagnostic, type OllamaLocalStatus } from '../services/ollamaLocalBridge';
-import { DEFAULT_OLLAMA_MODEL_ID } from '../services/modelRegistry';
+import { DEFAULT_OLLAMA_MODEL_ID, FINAL_EVALUATION_OLLAMA_MODELS } from '../services/modelRegistry';
 
 interface DiagnosisStepProps {
   report: AuditReport;
@@ -680,6 +680,10 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
     : aiConfig.providerType === 'ollama' ? 'Ollama Local'
     : aiConfig.providerType === 'webllm_experimental' ? 'WebLLM'
     : aiConfig.cloudProvider ? `${aiConfig.cloudProvider} Cloud` : 'Cloud';
+  const activeModelDefinition = FINAL_EVALUATION_OLLAMA_MODELS.find((model) => model.id === aiConfig.model);
+  const quickConfigModels = activeModelDefinition
+    ? FINAL_EVALUATION_OLLAMA_MODELS
+    : [{ id: aiConfig.model, name: aiConfig.model }, ...FINAL_EVALUATION_OLLAMA_MODELS];
 
   return (
     <>
@@ -695,7 +699,11 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
           onGenerateDiagnosis={runDiagnosis}
           providerName={providerName}
           providerAvailable={providerAvailable}
-          onOpenSettings={onOpenSettings}
+          model={aiConfig.model}
+          modelName={activeModelDefinition?.name ?? aiConfig.model}
+          inputMode={aiConfig.inputMode ?? 'smart_sample'}
+          models={quickConfigModels}
+          onQuickConfigSave={({ model, inputMode }) => onAiConfigChange({ ...aiConfig, model, inputMode })}
         />
 
         {/* 3. Progress disclosure during execution */}

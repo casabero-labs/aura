@@ -8187,6 +8187,172 @@ tr:hover td {
   white-space: nowrap;
 }
 
+.diagnosis-active-mode-entry strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* ─── Diagnosis quick configuration modal ─── */
+
+.diagnosis-quick-config-overlay {
+  padding: 24px;
+  background: rgba(30, 30, 28, 0.4);
+}
+
+.diagnosis-quick-config-modal {
+  width: min(480px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card-medium);
+}
+
+.diagnosis-quick-config-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: 24px 24px 0;
+}
+
+.diagnosis-quick-config-header h2 {
+  margin: 4px 0 0;
+  color: var(--ink);
+  font-family: var(--font-serif);
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.diagnosis-quick-config-header .modal-close {
+  position: static;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 44px;
+}
+
+.diagnosis-quick-config-eyebrow {
+  margin: 0;
+  color: var(--ink2);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+}
+
+.diagnosis-quick-config-body {
+  padding: 20px 24px;
+  overflow-y: auto;
+}
+
+.diagnosis-quick-config-description {
+  margin: 0 0 var(--space-lg);
+  color: var(--ink2);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.diagnosis-quick-mode-fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0;
+  margin: 0;
+  border: 0;
+}
+
+.diagnosis-quick-mode-fieldset legend {
+  margin-bottom: 8px;
+  color: var(--ink2);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.diagnosis-quick-mode-option {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--ink);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.diagnosis-quick-mode-option:hover,
+.diagnosis-quick-mode-option--active {
+  border-color: var(--border-strong);
+  background: var(--surface);
+}
+
+.diagnosis-quick-mode-option input {
+  width: 16px;
+  min-width: 16px;
+  height: 16px;
+  min-height: 16px;
+  margin: 2px 0 0;
+  padding: 0;
+}
+
+.diagnosis-quick-mode-option span {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.diagnosis-quick-mode-option strong {
+  font-size: 13px;
+}
+
+.diagnosis-quick-mode-option small {
+  color: var(--ink2);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.diagnosis-quick-config-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 0 24px 24px;
+}
+
+@media (max-width: 640px) {
+  .diagnosis-quick-config-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .diagnosis-quick-config-modal {
+    width: 100%;
+    max-width: none;
+    max-height: 92vh;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  }
+
+  .diagnosis-quick-config-header,
+  .diagnosis-quick-config-body,
+  .diagnosis-quick-config-footer {
+    padding-left: var(--space-md);
+    padding-right: var(--space-md);
+  }
+
+  .diagnosis-quick-config-footer {
+    flex-direction: column-reverse;
+  }
+
+  .diagnosis-quick-config-footer button {
+    width: 100%;
+  }
+}
+
 /* ─── Diagnosis Config Section ─── */
 
 .diagnosis-config-section {

@@ -1,5 +1,11 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { Brain, Settings, RefreshCw } from 'lucide-react';
+import type { InputMode } from '../../types';
+import {
+  DiagnosisQuickConfigModal,
+  diagnosisInputModeLabel,
+  type DiagnosisQuickConfigModel,
+} from './DiagnosisQuickConfigModal';
 
 interface DiagnosisHeroPanelProps {
   fileName: string;
@@ -11,7 +17,11 @@ interface DiagnosisHeroPanelProps {
   onGenerateDiagnosis: () => void;
   providerName: string;
   providerAvailable: boolean | null;
-  onOpenSettings?: () => void;
+  model: string;
+  modelName: string;
+  inputMode: InputMode;
+  models: readonly DiagnosisQuickConfigModel[];
+  onQuickConfigSave: (selection: { model: string; inputMode: InputMode }) => void;
 }
 
 export const DiagnosisHeroPanel: React.FC<DiagnosisHeroPanelProps> = ({
@@ -24,8 +34,19 @@ export const DiagnosisHeroPanel: React.FC<DiagnosisHeroPanelProps> = ({
   onGenerateDiagnosis,
   providerName,
   providerAvailable,
-  onOpenSettings,
+  model,
+  modelName,
+  inputMode,
+  models,
+  onQuickConfigSave,
 }) => {
+  const [showQuickConfig, setShowQuickConfig] = useState(false);
+  const configButtonRef = useRef<HTMLButtonElement>(null);
+  const closeQuickConfig = () => {
+    setShowQuickConfig(false);
+    window.setTimeout(() => configButtonRef.current?.focus(), 0);
+  };
+
   return (
     <div className="diagnosis-hero-panel" data-testid="diagnosis-hero-panel">
       <div className="diagnosis-hero-eyebrow">DIAGNÓSTICO ASISTIDO</div>
@@ -82,10 +103,19 @@ export const DiagnosisHeroPanel: React.FC<DiagnosisHeroPanelProps> = ({
               </>
             )}
           </span>
+          <span className="diagnosis-active-mode-sep" />
+          <span className="diagnosis-active-mode-entry" title={model} data-testid="diagnosis-active-model">
+            <strong>Modelo:</strong> {modelName}
+          </span>
+          <span className="diagnosis-active-mode-sep" />
+          <span className="diagnosis-active-mode-entry" data-testid="diagnosis-active-input-mode">
+            <strong>Entrada:</strong> {diagnosisInputModeLabel(inputMode)}
+          </span>
         </div>
         <button
+          ref={configButtonRef}
           className="diagnosis-active-mode-config-btn btn-s btn-sm"
-          onClick={onOpenSettings}
+          onClick={() => setShowQuickConfig(true)}
           data-testid="diagnosis-config-toggle"
           type="button"
           style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
@@ -94,6 +124,19 @@ export const DiagnosisHeroPanel: React.FC<DiagnosisHeroPanelProps> = ({
           <span>Configurar</span>
         </button>
       </div>
+
+      {showQuickConfig && (
+        <DiagnosisQuickConfigModal
+          model={model}
+          inputMode={inputMode}
+          models={models}
+          onClose={closeQuickConfig}
+          onSave={(selection) => {
+            onQuickConfigSave(selection);
+            closeQuickConfig();
+          }}
+        />
+      )}
 
       {/* CTA del hero:
           - Antes del diagnóstico: btn-p "Generar diagnóstico asistido"
