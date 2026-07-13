@@ -1,4 +1,4 @@
-import { Brain, ClipboardCheck, FileCode2, FileText, Search, Upload } from 'lucide-react';
+import { Brain, ClipboardCheck, FileCode2, FileText, Search, Terminal, Upload } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { PipelineState } from './MainPipeline';
 import { PIPELINE_DEVELOPMENT_MATRIX, PipelineDevelopmentMatrixRow } from '../services/pipelineDevelopmentMatrix';
@@ -10,6 +10,7 @@ const stageIcons: Record<PipelineState, LucideIcon> = {
   diagnostic_report: ClipboardCheck,
   script: FileCode2,
   review: ClipboardCheck,
+  execution: Terminal,
   export: FileText,
 };
 

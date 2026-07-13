@@ -997,3 +997,68 @@ describe('Loop 3R: Runtime shape validation', () => {
     expect(() => buildScriptCandidateCoreV2(badPlan, ctx)).toThrow(ScriptBuilderError);
   });
 });
+
+describe('Hash payload undefined → null normalization', () => {
+  it('normalizes inputReceiptRef undefined to null', () => {
+    const columns = buildColumnRegistry(['Age']);
+    const plan = makePlan([makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false })], { inputReceiptRef: undefined });
+    const ctx = makeBuildContext(plan, ['Age']);
+    const candidate = buildScriptCandidateCoreV2(plan, ctx);
+    const payload = buildScriptHashPayloadV2(candidate);
+    expect(payload.inputReceiptRef).toBeNull();
+  });
+
+  it('normalizes inputTrace undefined to null', () => {
+    const columns = buildColumnRegistry(['Age']);
+    const plan = makePlan([makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false })]);
+    const ctx = makeBuildContext(plan, ['Age']);
+    const candidate = buildScriptCandidateCoreV2(plan, ctx);
+    const payload = buildScriptHashPayloadV2(candidate);
+    expect(payload.inputTrace).toBeNull();
+  });
+
+  it('hash survives JSON round-trip (serialization stable)', () => {
+    const columns = buildColumnRegistry(['Age']);
+    const plan = makePlan([makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false })]);
+    const ctx = makeBuildContext(plan, ['Age']);
+    const candidate = buildScriptCandidateCoreV2(plan, ctx);
+    const hash = computeScriptHashV2(candidate);
+
+    const payload = buildScriptHashPayloadV2(candidate);
+    const serialized = JSON.stringify(payload);
+    const deserialized = JSON.parse(serialized);
+
+    const recomputedHash = sha256hex(canonicalJson(deserialized));
+    expect(recomputedHash).toBe(hash);
+  });
+
+  it('structuredClone preserves null values for bundle runner consistency', () => {
+    const columns = buildColumnRegistry(['Age']);
+    const plan = makePlan([makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false })]);
+    const ctx = makeBuildContext(plan, ['Age']);
+    const candidate = buildScriptCandidateCoreV2(plan, ctx);
+    const hash = computeScriptHashV2(candidate);
+
+    const payload = buildScriptHashPayloadV2(candidate);
+    const cloned = structuredClone(payload);
+
+    expect(cloned.inputReceiptRef).toBeNull();
+    expect(cloned.inputTrace).toBeNull();
+
+    const clonedHash = sha256hex(canonicalJson(cloned));
+    expect(clonedHash).toBe(hash);
+  });
+
+  it('hash differs when inputReceiptRef is set vs null', () => {
+    const columns = buildColumnRegistry(['Age']);
+    const planWithRef = makePlan([makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false })], { inputReceiptRef: 'a'.repeat(64) });
+    const planNoRef = makePlan([makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false })]);
+    const ctxWith = makeBuildContext(planWithRef, ['Age']);
+    const ctxNo = makeBuildContext(planNoRef, ['Age']);
+
+    const cWith = buildScriptCandidateCoreV2(planWithRef, ctxWith);
+    const cNo = buildScriptCandidateCoreV2(planNoRef, ctxNo);
+
+    expect(computeScriptHashV2(cWith)).not.toBe(computeScriptHashV2(cNo));
+  });
+});

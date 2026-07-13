@@ -1,4 +1,4 @@
-export type PipelineState = 'upload' | 'profile' | 'diagnosis' | 'diagnostic_report' | 'script' | 'review' | 'export';
+export type PipelineState = 'upload' | 'profile' | 'diagnosis' | 'diagnostic_report' | 'script' | 'review' | 'execution' | 'export';
 
 interface PipelineProgressProps {
   currentStep: PipelineState;
@@ -21,6 +21,7 @@ const mainFlowIndex: Record<PipelineState, number> = {
   export: 4,
   script: 3,
   review: 3,
+  execution: 3,
 };
 
 const branchLabelFor: Record<PipelineState, string | null> = {
@@ -31,6 +32,7 @@ const branchLabelFor: Record<PipelineState, string | null> = {
   export: null,
   script: 'Rama opcional: Remediación',
   review: 'Rama opcional: Remediación',
+  execution: 'Rama opcional: Remediación',
 };
 
 const getStepStatus = (stepState: PipelineState, currentStep: PipelineState) => {

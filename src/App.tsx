@@ -42,6 +42,10 @@ const Oe4CampaignE2eHarness = import.meta.env.DEV
   && import.meta.env.VITE_OE4_E2E_HARNESS === 'true'
   ? lazy(() => import('./tests/e2e/harness/Oe4CampaignE2eHarness'))
   : null;
+const AvFixture = import.meta.env.DEV
+  && import.meta.env.VITE_PHASE3_E2E_HARNESS === 'true'
+  ? lazy(() => import('./components/AvFixturePage'))
+  : null;
 
 const countBySeverity = (report: AuditReport | null, severity: IssueSeverity) =>
   report?.issues.filter((issue) => issue.severity === severity).length ?? 0;
@@ -139,6 +143,10 @@ const App: React.FC = () => {
         scriptValidation: snap.scriptValidation,
         deterministicValidation: snap.deterministicValidation,
         logs: snap.logs,
+        executionState: (snap as any).executionState ?? 'not_prepared',
+        executionBundleJson: (snap as any).executionBundleJson ?? '',
+        executionReceipt: (snap as any).executionReceipt ?? undefined,
+        executionValidationError: (snap as any).executionValidationError ?? '',
       };
     }
     return INITIAL_PIPELINE_DATA;
@@ -791,6 +799,15 @@ const App: React.FC = () => {
         </Suspense>
       )}
 
+      {/* AV Fixture — render Apply & Verify step visual states */}
+      {AvFixture && window.location.search.includes('av-fixture=') && (
+        <Suspense fallback={<div className="step-card" style={{ padding: '2rem', textAlign: 'center' }}>Cargando fixture visual…</div>}>
+          <AvFixture />
+        </Suspense>
+      )}
+
+      {AvFixture && window.location.search.includes('av-fixture=') ? null : (
+      <>
       {/* Main Content — only show when not in settings or help. */}
       <main className="sys-main" style={{ display: showExperimentCampaign || showSettings || showHelp ? 'none' : undefined }}>
         {showHome && (
@@ -999,8 +1016,6 @@ const App: React.FC = () => {
           </section>
         )}
       </main>
-
-      {/* Footer */}
       <footer className="sys-footer" style={{ display: showSettings || showHelp ? 'none' : undefined }}>
         <span className="footer-brand">AURA</span>
         <div className="footer-links">
@@ -1009,6 +1024,8 @@ const App: React.FC = () => {
         </div>
         <span className="footer-copy">casabero · tfm · 2026</span>
       </footer>
+      </>
+      )}
     </div>
 
       {showNewAnalysisDialog && (
