@@ -1,173 +1,129 @@
 # Hoja de ruta definitiva de AURA
 
-Última actualización: 12 de julio de 2026.
+Última actualización: 13 de julio de 2026, 18:00 (America/Bogota).
 
-Este documento es la única referencia operativa para cerrar AURA. El historial
-de correcciones queda en Git y en los planes anteriores; aquí solo se conserva
-el estado vigente y el trabajo que falta.
+Este documento es la única referencia operativa para cerrar el TFM. La entrega
+académica vence el **miércoles 15 de julio de 2026 a las 15:00**. Hasta entregar,
+la prioridad es producir evidencia diagnóstica real, consolidar resultados y
+terminar el documento. El desarrollo adicional de AURA continuará después.
 
-## Objetivo de cierre
+## Objetivo de cierre académico
 
-Entregar AURA como un sistema local-first que:
+Entregar evidencia suficiente y honesta de que AURA:
 
-1. audita un CSV con reglas deterministas;
-2. produce un diagnóstico LLM restringido por evidencia;
-3. genera un informe defendible y un expediente técnico verificable;
-4. propone un plan y un script reproducible bajo revisión humana;
-5. ejecuta la corrección sobre una copia y comprueba el resultado;
-6. evalúa modelos y métodos de entrada mediante el Laboratorio.
+1. ingiere y perfila un CSV localmente;
+2. detecta problemas mediante reglas deterministas;
+3. restringe el diagnóstico LLM a la evidencia observada;
+4. permite comparar modelos y métodos de entrada;
+5. conserva resultados, métricas y trazabilidad para análisis;
+6. genera un informe defendible y exportable.
 
-Estos son los **seis objetivos específicos definitivos**. No se deben volver a
-reformular durante el cierre.
+Estos son los **seis objetivos específicos definitivos**. No se reformulan en
+esta fase; en el documento se verificará su grado de cumplimiento con evidencia.
 
-## Estado actual confirmado
+## Estado congelado al inicio del cierre
 
-| Área | Estado | Qué significa |
-|---|---|---|
-| Motor determinista | Cerrado | Audita, calcula el score y conserva evidencia reproducible. |
-| Diagnóstico normal V2 | Cerrado con Qwen | `flujo4` produjo 15 hallazgos, 15 bloques, modelo observado correcto y recibo válido. |
-| Informe PDF | Cerrado | PDF `showcase-ink` revisado visualmente, sin cortes ni afirmaciones infladas. |
-| Exportación | Cerrada en código | PDF, JSON y CSV comparten identidad; existe un ZIP completo de evidencia. |
-| Plan y script | Cerrado | AURA genera el script de forma determinista y exige revisión humana; el LLM no escribe código. |
-| Aplicar y verificar | Pendiente | Todavía falta ejecutar el script sobre una copia, validar el recibo y reauditar. |
-| Laboratorio | Preparado, sin campaña real | Protocolo, contratos, métricas, persistencia y exportadores están implementados. |
-| Evaluación formal | Pendiente | No se han ejecutado los smokes ni las 45 corridas formales. |
-| Documento final TFM | Pendiente de resultados | Se redactará con la evidencia real de la campaña y la remediación verificada. |
+| Área | Estado para el TFM |
+|---|---|
+| Motor determinista | Cerrado y utilizable. |
+| Diagnóstico normal V2 | Funcional con evidencia válida en `flujo4`. |
+| Informe PDF y exportación | Funcionales; existe ZIP de evidencia. |
+| Plan y script | Implementados con revisión humana. |
+| Aplicar y verificar | Integrado mediante PR #36; suficiente para esta entrega. |
+| Laboratorio | Preparado para piloto y campaña real. |
+| Evaluación formal | Pendiente de ejecutar. Es la prioridad inmediata. |
+| Documento final | Pendiente de resultados y consolidación. |
 
-Gate técnico actual: 1.774 pruebas aprobadas, 6 omitidas, typecheck y build
-correctos, 9 recorridos Playwright aprobados y grafo actualizado.
+## Decisiones congeladas para las pruebas
 
-## Decisiones congeladas
-
-- Modelos formales:
+- Dataset: `controlled_customers_phase8.csv`.
+- Modelos:
   - `hf.co/unsloth/Qwen3-8B-GGUF:UD-Q4_K_XL`;
   - `hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL`;
   - `hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL`.
-- Métodos de entrada: `prompt_libre`, `smart_sample` y `recommended`.
-- Campaña: 3 modelos × 3 métodos × 5 repeticiones = **45 diagnósticos**.
-- Calentamientos: 15 en total, excluidos de las métricas.
-- Llamadas reales previstas: 60, contando diagnósticos y calentamientos.
-- Scripts de evaluación: 9 representantes, uno por combinación modelo × método.
-- Dataset controlado: `controlled_customers_phase8.csv`.
+- Métodos: `prompt_libre`, `smart_sample` y `recommended`.
+- Piloto: 3 modelos x 3 métodos x 1 repetición = **9 diagnósticos**.
+- Campaña formal: 3 modelos x 3 métodos x 5 repeticiones = **45 diagnósticos**.
 - El score y los hallazgos pertenecen al motor determinista; el LLM no los modifica.
-- La remediación siempre requiere revisión humana y nunca modifica el CSV original.
-- DeepSeek no forma parte de la matriz final.
+- Un fallo se conserva como resultado. No se repite silenciosamente para ocultarlo.
+- No se cambia dataset, modelo, método o parámetros después de iniciar la campaña formal.
 
-## Hoja de ruta restante
+## Plan urgente hasta el depósito
 
-### 1. Implementar “Aplicar y verificar” en el flujo normal
+### Lunes 13, 18:00-21:00 — piloto y control de evidencia
 
-Es el siguiente trabajo de desarrollo y el único bloque funcional importante
-que falta en la auditoría normal.
+1. Confirmar que Ollama y los tres modelos estén disponibles.
+2. Ejecutar el piloto de 9 diagnósticos en el Laboratorio.
+3. Verificar que cada combinación conserve prompt, respuesta, modelo observado,
+   recibo, latencia, errores y evaluación automática.
+4. Exportar y guardar el resultado del piloto.
+5. Corregir únicamente bloqueos que impidan una corrida real. No pulir UI ni
+   añadir contratos o métricas nuevas.
 
-Debe permitir:
+Condición de salida: las nueve combinaciones terminan o sus fallos quedan
+registrados y explicados.
 
-- preparar una ejecución Python/Pandas desde el script aprobado;
-- enlazar el bundle con el SHA-256 del CSV original y el hash del script;
-- ejecutar siempre sobre una copia;
-- producir `corrected.csv` y un recibo Python;
-- importar juntos el CSV corregido y el recibo;
-- validar hashes, versiones, sintaxis y ejecución;
-- reauditar el resultado;
-- mostrar score, hallazgos resueltos, persistentes y nuevos;
-- añadir al ZIP el script, bundle, recibo, CSV corregido y comparación antes/después.
+### Lunes noche / martes mañana — campaña formal
 
-Condición de salida: AURA debe mostrar **“Ejecución verificada; resultado
-reauditable”**. No debe afirmar que el dataset es correcto para el negocio.
+Si el piloto confirma que la ejecución y exportación funcionan:
 
-### 2. Realizar una corrida normal final con Gemma
+1. congelar la configuración;
+2. ejecutar los 45 diagnósticos y calentamientos definidos por el protocolo;
+3. exportar la campaña completa;
+4. verificar denominadores, combinaciones y corridas fallidas;
+5. conservar una copia inmutable de los artefactos.
 
-Después de desplegar el paso anterior:
+Si la campaña completa queda bloqueada, no se inventarán resultados: se usará
+el piloto como evaluación exploratoria y se declarará la limitación.
 
-- repetir el mismo dataset y método usados en `flujo4`;
-- confirmar modelo solicitado = modelo observado;
-- revisar PDF, JSON, CSV y ZIP;
-- guardar la evidencia como un nuevo flujo;
-- no repetir Qwen salvo que una modificación posterior invalide `flujo4`.
+### Martes 14 — consolidación y redacción
 
-Condición de salida: Qwen y Gemma tienen corridas normales válidas sobre el
-cierre actual.
+1. Generar la tabla modelo x método.
+2. Consolidar precisión, recall, F1, cumplimiento del contrato, claims sin
+   soporte, anclaje, latencia, errores y estabilidad.
+3. Redactar resultados del objetivo experimental.
+4. Contrastar los seis objetivos específicos con la evidencia disponible.
+5. Redactar discusión, limitaciones, amenazas a la validez y conclusiones.
+6. Incorporar figuras y tablas al documento final.
 
-### 3. Ejecutar los dos smokes del Laboratorio
+### Miércoles 15, 08:00-12:00 — cierre del documento
 
-El usuario realizará las corridas reales cuando el orquestador indique el paso
-a paso.
+1. Revisión completa de coherencia entre objetivos, método, resultados y conclusiones.
+2. Revisar numeración, referencias, tablas, figuras y anexos.
+3. Exportar PDF final y verificarlo visualmente.
+4. Preparar carpeta de entrega y copia de respaldo.
+5. Congelar cambios a las 12:00 para conservar tres horas de margen.
 
-1. **1 × 3 × 1:** Qwen con los tres métodos, una repetición por método.
-2. **3 × 1 × 1:** los tres modelos con `recommended`, una repetición por modelo.
+## Trabajo diferido después del depósito
 
-Cada corrida debe conservar snapshot, prompt, respuesta, modelo observado,
-recibo, métricas y errores. Un fallo se registra como evidencia; no se sustituye
-silenciosamente.
+No bloquea el documento del miércoles:
 
-Condición de salida: las seis corridas smoke terminan sin problemas de modelo,
-contrato, persistencia o exportación.
+- #32: reauditoría completa del CSV corregido;
+- #33: ampliar JSON y ZIP de remediación;
+- #34: QA integral y pulido final;
+- mejoras adicionales de hashes, contratos y recibos que no bloqueen corridas;
+- pulido visual menor de la rama opcional;
+- nuevas reglas, datasets, proveedores o modelos;
+- mejoras productivas previstas para el mes de desarrollo restante.
 
-### 4. Ejecutar la campaña formal
-
-Solo si los dos smokes pasan:
-
-- ejecutar 45 diagnósticos y 15 calentamientos;
-- no cambiar modelos, parámetros, dataset ni protocolo durante la campaña;
-- conservar cada corrida en el Laboratorio;
-- verificar que los denominadores del reporte coincidan con las corridas reales.
-
-Condición de salida: campaña completa, persistida y exportable sin corridas
-faltantes ni mezcladas.
-
-### 5. Evaluar los nueve representantes
-
-Para cada combinación modelo × método:
-
-- seleccionar el representante definido por el protocolo;
-- completar la evaluación humana de claridad, trazabilidad y accionabilidad;
-- aprobar o rechazar el plan y el script;
-- ejecutar solamente los scripts aprobados;
-- validar el recibo Python y reauditar el CSV resultante.
-
-Las métricas consolidadas serán:
+## Métricas que sí deben llegar al TFM
 
 - precisión, recall y F1 del diagnóstico;
 - cumplimiento del contrato;
 - columnas inventadas y claims sin soporte;
 - anclaje a reglas y muestras problemáticas;
 - latencia, tokens, errores y estabilidad;
-- validez, seguridad y cobertura del script;
-- score e issues antes/después;
-- claridad, trazabilidad y accionabilidad humana en escala 0–4.
+- claridad, trazabilidad y accionabilidad humana cuando se mida;
+- score e issues antes/después únicamente si existe ejecución verificada.
 
-### 6. Consolidar resultados y cerrar el TFM
-
-El Laboratorio debe generar el reporte consolidado. Con ese expediente se hará:
-
-- tabla comparativa de modelos y métodos;
-- resultados del OE4;
-- evidencia de revisión humana y scripts del OE5/OE6;
-- discusión de límites y fallos;
-- conclusiones sin declarar un ganador universal;
-- actualización del documento final de entrega.
-
-Condición de salida: resultados reproducibles, anexos completos y documento de
-depósito coherente con los seis objetivos.
-
-## Bloqueos vigentes
-
-- No ejecutar las 45 corridas antes de completar “Aplicar y verificar”, la
-  corrida normal Gemma y los dos smokes.
-- No presentar un script revisado como ejecutado sin recibo Python.
-- No presentar las vistas SVG del ZIP como capturas reales del navegador.
-- No incluir el CSV original ni credenciales en el expediente de evidencia.
-- No cambiar la matriz de modelos o el protocolo durante una campaña iniciada.
+No se declarará un ganador universal. Las conclusiones se limitarán al dataset,
+los modelos, los métodos y las condiciones realmente evaluadas.
 
 ## Próxima acción exacta
 
-**Implementar “Aplicar y verificar” en el flujo normal reutilizando el ejecutor
-Python/Pandas y el recibo ya probados en el Laboratorio, sin acoplar el flujo
-normal a `ExperimentRunV1`.**
-
-Al terminar ese bloque se actualizará esta hoja, se desplegará y se acompañará
-al usuario en la corrida normal Gemma. La campaña formal continúa bloqueada
-hasta entonces.
+**Ejecutar primero el piloto de 9 diagnósticos. No iniciar todavía las 45
+corridas.** El orquestador acompañará la preparación, comprobará el primer
+resultado exportado y autorizará la campaña formal solo si no obliga a repetirla.
 
 ## Documentos vigentes relacionados
 
