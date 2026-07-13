@@ -209,7 +209,23 @@ export const DIAGNOSIS_RESPONSE_SCHEMA_V2 = {
 
 // ── Prompt Builder ──
 
-export const DIAGNOSIS_PROMPT_VERSION_V2 = '1.2.0';
+export const DIAGNOSIS_PROMPT_VERSION_V2 = '1.3.0';
+
+export function composeExactDiagnosisPromptV2(
+  systemInstruction: string,
+  userPayload: string,
+  responseSchema: Record<string, unknown>,
+): string {
+  return `${systemInstruction}
+
+=== INPUT EVIDENCE ===
+${userPayload}
+
+=== REQUIRED RESPONSE JSON SCHEMA ===
+${canonicalJson(responseSchema)}
+
+Return exactly one JSON object that satisfies the schema above. Copy contractId, contractVersion and evidenceEnvelopeRef exactly. Do not omit required fields. Output JSON only.`;
+}
 
 export function buildDiagnosisPromptV2(
   envelope: EvidenceEnvelopeV2,
@@ -220,7 +236,8 @@ export function buildDiagnosisPromptV2(
   const systemInstruction = buildDiagnosisSystemInstructionV2();
   const userPayload = buildUserPayload(envelope, evidenceEnvelopeRef, options);
 
-  const fullPrompt = systemInstruction + '\n\n' + userPayload;
+  const responseSchema = DIAGNOSIS_RESPONSE_SCHEMA_V2 as Record<string, unknown>;
+  const fullPrompt = composeExactDiagnosisPromptV2(systemInstruction, userPayload, responseSchema);
   const promptHash = sha256hex(fullPrompt);
 
   return {
@@ -231,7 +248,7 @@ export function buildDiagnosisPromptV2(
     promptHash,
     systemInstruction,
     userPayload,
-    responseSchema: DIAGNOSIS_RESPONSE_SCHEMA_V2 as Record<string, unknown>,
+    responseSchema,
     generatedAt: new Date().toISOString(),
   };
 }
@@ -249,7 +266,8 @@ export function buildCompactDiagnosisPromptV2(
   const systemInstruction = buildDiagnosisSystemInstructionV2();
   const userPayload = buildCompactUserPayload(envelope, evidenceEnvelopeRef, options);
 
-  const fullPrompt = systemInstruction + '\n\n' + userPayload;
+  const responseSchema = DIAGNOSIS_RESPONSE_SCHEMA_V2 as Record<string, unknown>;
+  const fullPrompt = composeExactDiagnosisPromptV2(systemInstruction, userPayload, responseSchema);
   const promptHash = sha256hex(fullPrompt);
 
   return {
@@ -260,7 +278,7 @@ export function buildCompactDiagnosisPromptV2(
     promptHash,
     systemInstruction,
     userPayload,
-    responseSchema: DIAGNOSIS_RESPONSE_SCHEMA_V2 as Record<string, unknown>,
+    responseSchema,
     generatedAt: new Date().toISOString(),
   };
 }

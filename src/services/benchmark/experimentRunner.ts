@@ -1,5 +1,6 @@
 import type { AIProvider, ProviderMetrics } from '../../types';
 import { buildExecutionReceiptV1 } from '../../contracts/llm/executionReceiptV1';
+import { exactDiagnosisPromptV2 } from '../../contracts/llm/diagnosisInputPackageV2';
 import type { DiagnosisInputPackageV2, ExecutionReceiptV1, InferenceSnapshotV1 } from '../../contracts/llm/types';
 import { parseDiagnosisResponseV2, type DiagnosisParseOutcome } from '../../contracts/llm/diagnosisParserV2';
 import { sha256hex } from '../../contracts/llm/hash';
@@ -103,10 +104,8 @@ const parseDiagnosisStrict = (
   };
 };
 
-export const buildFormalDiagnosisPrompt = (run: ExperimentRunV1): string => [
-  run.input.systemInstruction,
-  run.input.userPayload,
-].join('\n\n');
+export const buildFormalDiagnosisPrompt = (run: ExperimentRunV1): string =>
+  exactDiagnosisPromptV2(run.input);
 
 const errorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
@@ -311,7 +310,10 @@ export const createExperimentRunner = ({
     try {
       const effectiveProvider = providerFor(initialRun);
       if (!effectiveProvider) throw new Error('No formal provider was configured for this run.');
-      const providerResult = await effectiveProvider.generateText(prompt);
+      const providerResult = await effectiveProvider.generateText(
+        prompt,
+        stage === 'diagnosis' ? { responseSchema: snapshot.responseSchema } : undefined,
+      );
       providerName = providerResult.metrics.provider;
       providerMetrics = providerResult.metrics;
       rawResponse = providerResult.text;

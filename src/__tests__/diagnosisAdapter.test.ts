@@ -22,11 +22,14 @@ describe('AIProviderDiagnosisAdapter', () => {
         this: { contextMarker: string },
         _prompt: string,
         onProgress: (event: ProviderProgressEvent) => void,
+        options?: { responseSchema?: Record<string, unknown> },
       ) {
         if (this.contextMarker !== 'bound-provider') {
           throw new Error('provider context was lost');
         }
+        expect(options?.responseSchema).toEqual({ type: 'object' });
         onProgress({ stage: 'generating', message: 'Generando respuesta' });
+        onProgress({ stage: 'generating', message: 'Recibiendo respuesta', chunk: '{"ok":true}' });
         return { text: '{"ok":true}', metrics };
       },
       async generateText() {
@@ -36,11 +39,16 @@ describe('AIProviderDiagnosisAdapter', () => {
     const adapter = new AIProviderDiagnosisAdapter({ provider });
     const progress: string[] = [];
 
-    const result = await adapter.diagnoseWithProgress('prompt', (event) => {
-      progress.push(event.text);
-    });
+    const result = await adapter.diagnoseWithProgress(
+      'prompt',
+      (event) => progress.push(`${event.type}:${event.text}`),
+      { type: 'object' },
+    );
 
     expect(result.text).toBe('{"ok":true}');
-    expect(progress).toEqual(['Generando respuesta']);
+    expect(progress).toEqual([
+      'status:Generando respuesta',
+      'chunk:{"ok":true}',
+    ]);
   });
 });

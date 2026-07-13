@@ -108,7 +108,7 @@ Se revisaron conjuntamente `flujo1`, `flujo2` y el commit
 `85d5d400a175d1997207e5be2ce80293b7d087e7`. El cierre implementado deja:
 
 - una sola ruta de diagnóstico normal mediante `aura.diagnosis.v2`, sin nueva ejecución legacy ni feature flag;
-- configuración Ollama única para llamada y recibo, con `numPredict=2400` y modelo observado real;
+- configuración Ollama única para llamada y recibo, con `numPredict=4096` y modelo observado real;
 - `status` de exportación derivado del resultado: nunca `not_run` si existe respuesta;
 - fechas e IP con semántica correcta, teléfono restringido, R24 eliminado y evidencia sintética con F1 1.0;
 - rechazo de muestras citadas que no existan en la evidencia del hallazgo y de acciones destructivas sin revisión humana;
@@ -141,6 +141,37 @@ causa original en el error visible. Se verificaron Ollama 0.31.1, CORS desde
 `https://aura.casabero.com`, Qwen3 8B cargado con contexto 16 384 y una llamada
 directa correcta. La corrida de `flujo3` debe reiniciarse después de desplegar
 este hotfix; el intento fallido no cuenta como evidencia.
+
+### Cierre de `DIAGNOSIS_SCHEMA_INVALID` en la corrida Qwen
+
+La segunda prueba llegó correctamente a Qwen, pero la respuesta omitió
+`contractId`. La revisión confirmó dos causas internas:
+
+- el prompt V2 afirmaba que existía un esquema exacto, pero el texto enviado no
+  incluía ese esquema;
+- tras un fallo V2, el botón para copiar mostraba el prompt histórico de texto
+  libre y no la entrada realmente enviada al modelo.
+
+El cierre aplicado deja:
+
+- prompt V2 `1.3.0` con el JSON Schema completo dentro del texto exacto;
+- `format` con JSON Schema en las llamadas nativas de Ollama, tanto normales
+  como formales;
+- consola `diagnosis.response.stream.json` entre el progreso y el registro de
+  actividad, con el contenido exacto recibido en tiempo real;
+- prompt V2 y respuesta cruda visibles y copiables también cuando la validación
+  falla;
+- error de contrato diferenciado de un error de conexión o configuración;
+- el Laboratorio reutiliza el mismo constructor canónico de prompt y hash.
+
+Se comprobó directamente que Qwen3 8B acepta el esquema nativo de Ollama y
+devuelve `{"contractId":"aura.diagnosis.v2"}`. Este smoke técnico no cuenta
+como corrida normal ni formal. Gate local: 1.759 pruebas aprobadas, 6 omitidas,
+typecheck y build correctos.
+
+**Siguiente acción inmediata:** desplegar y repetir la corrida normal de
+`flujo3` con Qwen. El intento con `DIAGNOSIS_SCHEMA_INVALID` no cuenta como
+evidencia y la campaña de 45 corridas permanece bloqueada.
 
 ## Pendientes no cubiertos por P1
 

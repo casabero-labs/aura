@@ -7,7 +7,7 @@
  * Security: only localhost endpoints by default.
  */
 
-import { AuditReport, AIProvider, ProviderMetrics, ExecutiveReportContent, ProviderProgressEvent, AIConfig, ProviderTextResult } from '../../types';
+import { AuditReport, AIProvider, ProviderMetrics, ExecutiveReportContent, ProviderProgressEvent, AIConfig, ProviderTextResult, ProviderTextRequestOptions } from '../../types';
 import { buildAnalysisPrompt, buildExecutivePrompt, buildCompactAnalysisPrompt } from './prompts';
 import { normalizeAiProviderError } from './errors';
 import { DEFAULT_OLLAMA_MODEL_ID, OLLAMA_MODELS } from '../modelRegistry';
@@ -193,7 +193,7 @@ export class OllamaProvider implements AIProvider {
     }
   }
 
-  async generateText(prompt: string): Promise<ProviderTextResult> {
+  async generateText(prompt: string, requestOptions?: ProviderTextRequestOptions): Promise<ProviderTextResult> {
     const startTime = performance.now();
     let fullText = '';
 
@@ -206,6 +206,7 @@ export class OllamaProvider implements AIProvider {
           messages: [{ role: 'user', content: prompt }],
           think: false,
           options: this.buildOptions(),
+          ...(requestOptions?.responseSchema ? { format: requestOptions.responseSchema } : {}),
           keep_alive: this.keepAlive,
           stream: false,
         }),
@@ -261,6 +262,7 @@ export class OllamaProvider implements AIProvider {
   async generateTextWithProgress(
     prompt: string,
     onProgress: (event: ProviderProgressEvent) => void,
+    requestOptions?: ProviderTextRequestOptions,
   ): Promise<ProviderTextResult> {
     onProgress({ stage: 'checking', message: 'Verificando conexión con Ollama' });
 
@@ -290,6 +292,7 @@ export class OllamaProvider implements AIProvider {
           messages: [{ role: 'user', content: prompt }],
           think: false,
           options: this.buildOptions(),
+          ...(requestOptions?.responseSchema ? { format: requestOptions.responseSchema } : {}),
           keep_alive: this.keepAlive,
           stream: true,
         }),
@@ -344,6 +347,7 @@ export class OllamaProvider implements AIProvider {
               }
               tokensGenerated += Math.round(content.length / 4);
               fullText += content;
+              onProgress({ stage: 'generating', message: 'Recibiendo respuesta del modelo', chunk: content });
             }
           } catch {
             // skip malformed

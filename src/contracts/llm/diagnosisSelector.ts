@@ -21,6 +21,7 @@ import {
 } from './index';
 import { sha256hex } from './hash';
 import { AIProviderDiagnosisAdapter } from '../../services/providers/diagnosisAdapter';
+import type { DiagnosisAdapterProgressEvent } from '../../services/providers/diagnosisAdapter';
 import { buildRemediationContext } from './remediationContextV2';
 
 export { isContractsV2Enabled } from './contractRegistry';
@@ -47,7 +48,8 @@ export interface DiagnosisSelectorOptions {
   requestedModel?: string;
   modelDigest?: string | null;
   inference?: InferenceSnapshotV1;
-  onProgress?: (event: { type: 'chunk'; text: string }) => void;
+  onProgress?: (event: DiagnosisAdapterProgressEvent) => void;
+  onInputPrepared?: (input: DiagnosisInputPackageV2) => void;
 }
 
 export interface StructuredDiagnosisResult {
@@ -159,6 +161,7 @@ export async function runStructuredDiagnosis(
     });
     const inputMode = options.inputMode ?? 'smart_sample';
     const inputPackage = buildDiagnosisInputPackageV2(report, envelope, inputMode);
+    options.onInputPrepared?.(inputPackage);
     const exactPrompt = exactDiagnosisPromptV2(inputPackage);
     const startedAt = new Date().toISOString();
     const inference = options.inference ?? defaultInference();
@@ -192,6 +195,7 @@ export async function runStructuredDiagnosis(
   const envelope = buildEvidenceEnvelopeV2(report, envelopeOptions);
   const inputMode = options.inputMode ?? 'smart_sample';
   const inputPackage = buildDiagnosisInputPackageV2(report, envelope, inputMode);
+  options.onInputPrepared?.(inputPackage);
   const exactPrompt = exactDiagnosisPromptV2(inputPackage);
   const promptPackage: DiagnosisPromptPackageV2 = {
     contractId: 'aura.diagnosis.v2',
@@ -214,7 +218,7 @@ export async function runStructuredDiagnosis(
   const pipelineAdapter = async (_pkg: DiagnosisPromptPackageV2): Promise<string> => {
     const { text, metrics } = await adapter.diagnoseWithProgress(exactPrompt, (event) => {
       options.onProgress?.(event);
-    });
+    }, inputPackage.responseSchema);
     capturedMetrics = metrics;
     rawResponse = text;
     return text;

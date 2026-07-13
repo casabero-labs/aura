@@ -15,7 +15,13 @@ import { normalizeAiProviderError, NormalizedProviderError } from '../services/p
 import { detectChromeAiAvailability, NormalizedAvailability } from '../services/chromeAvailability';
 import { startNetworkMonitoring, stopNetworkMonitoring, NetworkGuardResult } from '../services/networkGuard';
 import { generateQuickReceipt, PrivacyReceipt } from '../services/privacyReceipt';
-import { runStructuredDiagnosis, type DiagnosisExecutionResult, type DiagnosisFailureEvidenceV2 } from '../contracts/llm';
+import {
+  exactDiagnosisPromptV2,
+  runStructuredDiagnosis,
+  type DiagnosisExecutionResult,
+  type DiagnosisFailureEvidenceV2,
+  type DiagnosisInputPackageV2,
+} from '../contracts/llm';
 import { resolveOllamaInferenceConfig } from '../services/ollamaInferenceConfig';
 import { diagnoseOllamaLocal, type OllamaLocalDiagnostic, type OllamaLocalStatus } from '../services/ollamaLocalBridge';
 import { DEFAULT_OLLAMA_MODEL_ID } from '../services/modelRegistry';
@@ -88,13 +94,19 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
   const [progressIndeterminate, setProgressIndeterminate] = useState(false);
   const [structuredDiagnosis, setStructuredDiagnosis] = useState<DiagnosisExecutionResult | null>(initialDiagnosis ?? null);
   const [diagnosisFailureEvidence, setDiagnosisFailureEvidence] = useState<DiagnosisFailureEvidenceV2 | null>(initialFailureEvidence ?? null);
+  const [preparedInputSnapshot, setPreparedInputSnapshot] = useState<DiagnosisInputPackageV2 | null>(
+    initialDiagnosis?.inputSnapshot ?? initialFailureEvidence?.inputSnapshot ?? null,
+  );
+  const [liveModelOutput, setLiveModelOutput] = useState('');
 
   useEffect(() => {
     setStructuredDiagnosis(initialDiagnosis ?? null);
+    if (initialDiagnosis?.inputSnapshot) setPreparedInputSnapshot(initialDiagnosis.inputSnapshot);
   }, [initialDiagnosis]);
 
   useEffect(() => {
     setDiagnosisFailureEvidence(initialFailureEvidence ?? null);
+    if (initialFailureEvidence?.inputSnapshot) setPreparedInputSnapshot(initialFailureEvidence.inputSnapshot);
   }, [initialFailureEvidence]);
 
   // Chrome AI guided UX states
@@ -393,6 +405,8 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
     setError(null);
     setStructuredDiagnosis(null);
     setDiagnosisFailureEvidence(null);
+    setPreparedInputSnapshot(null);
+    setLiveModelOutput('');
     onDiagnosisStarted?.();
     setDraftAnalysis('');
     setDiagnosisEvents([]);
@@ -449,8 +463,15 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
               : 'smart_sample',
             requestedModel: aiConfig.model,
             inference: resolveOllamaInferenceConfig(aiConfig),
+            onInputPrepared: setPreparedInputSnapshot,
             onProgress: (event) => {
-              pushEvent(event.type === 'chunk' ? 'info' : 'info', event.text);
+              if (event.type === 'chunk') {
+                finalText += event.text;
+                setLiveModelOutput((current) => current + event.text);
+              } else {
+                pushEvent('info', event.text);
+                setProgressStep(event.text);
+              }
             },
           });
 
@@ -464,6 +485,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
             setProgressStep(`Error: ${failureEvidence.code}`);
             setStructuredDiagnosis(null);
             setDiagnosisFailureEvidence(failureEvidence);
+            setPreparedInputSnapshot(failureEvidence.inputSnapshot);
             onDiagnosisFailure?.(failureEvidence);
             recordLlmCall({
               callType: 'diagnosis',
@@ -524,6 +546,8 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
             const v2Success = v2Result as import('../contracts/llm').StructuredDiagnosisResult;
             setDiagnosisFailureEvidence(null);
             setStructuredDiagnosis(v2Success.result);
+            if (v2Success.result.inputSnapshot) setPreparedInputSnapshot(v2Success.result.inputSnapshot);
+            setLiveModelOutput((current) => current || JSON.stringify(v2Success.result.diagnosis, null, 2));
             setLastMetrics(v2Success.result.metrics as ProviderMetrics);
             onMetrics?.(v2Success.result.metrics as ProviderMetrics);
             onStructuredDiagnosisComplete?.(v2Success.result);
@@ -617,6 +641,20 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
   const isChrome = aiConfig.providerType === 'chrome';
   const isV2 = structuredDiagnosis !== null;
   const hasDiagnosis = draftAnalysis.trim().length > 0 || isV2;
+  const activeInputSnapshot = structuredDiagnosis?.inputSnapshot
+    ?? diagnosisFailureEvidence?.inputSnapshot
+    ?? preparedInputSnapshot;
+  const activeExecutionReceipt = structuredDiagnosis?.executionReceipt
+    ?? diagnosisFailureEvidence?.executionReceipt
+    ?? null;
+  const exactPrompt = activeInputSnapshot ? exactDiagnosisPromptV2(activeInputSnapshot) : '';
+  const isResponseContractFailure = diagnosisFailureEvidence?.code === 'DIAGNOSIS_SCHEMA_INVALID';
+  const displayedErrorTitle = isResponseContractFailure
+    ? 'La respuesta del modelo no cumple el contrato'
+    : normalizedError?.title;
+  const displayedErrorCause = isResponseContractFailure
+    ? diagnosisFailureEvidence.message
+    : normalizedError?.cause;
 
   const providerName = aiConfig.providerType === 'chrome' ? 'Chrome AI / Gemini Nano'
     : aiConfig.providerType === 'ollama' ? 'Ollama Local'
@@ -653,7 +691,23 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
           />
         )}
 
-        {/* 4. Technical activity while loading (visible alongside the progress bar) */}
+        {/* 4. Exact provider stream — the text the LLM is producing right now. */}
+        {(isLoading || liveModelOutput) && (
+          <SyntaxDisplay
+            filename="diagnosis.response.stream.json"
+            content={liveModelOutput || 'Esperando la primera parte de la respuesta del modelo…'}
+            className="diagnosis-response-stream"
+            maxHeight={320}
+            wrap
+            autoScroll
+            testId="diagnosis-response-stream"
+            contentTestId="diagnosis-response-stream-content"
+            role="log"
+            ariaLive="polite"
+          />
+        )}
+
+        {/* 5. Technical activity while loading (visible alongside the progress bar) */}
         {isLoading && diagnosisEvents.length > 0 && (
           <SyntaxDisplay
             filename="diagnosis.activity.log"
@@ -780,13 +834,19 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
           <div className="provider-error-notice">
             <div className="provider-error-header">
               <AlertTriangle size={14} style={{ color: 'var(--error)' }} />
-              <strong style={{ color: 'var(--error)' }}>{normalizedError.title}</strong>
+              <strong style={{ color: 'var(--error)' }}>{displayedErrorTitle}</strong>
             </div>
-            <p className="provider-error-cause">Causa probable: {normalizedError.cause}</p>
+            <p className="provider-error-cause">Detalle verificable: {displayedErrorCause}</p>
             <div className="provider-error-actions">
-              <button className="btn-s btn-sm" onClick={() => onOpenSettings?.()}>
-                <Settings size={12} /> Abrir Configuración
-              </button>
+              {isResponseContractFailure ? (
+                <button className="btn-s btn-sm" onClick={runDiagnosis}>
+                  <RefreshCw size={12} /> Reintentar diagnóstico
+                </button>
+              ) : (
+                <button className="btn-s btn-sm" onClick={() => onOpenSettings?.()}>
+                  <Settings size={12} /> Abrir Configuración
+                </button>
+              )}
               {aiConfig.providerType === 'webllm_experimental' && (
                 <button
                   className="btn-s btn-sm"
@@ -906,7 +966,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
             <span className="diagnosis-tech-disclosure-hint">evidencia necesaria para verificar el método, la entrada y la respuesta del diagnóstico</span>
           </summary>
           <div className="diagnosis-tech-disclosure-body">
-            {structuredDiagnosis?.executionReceipt ? (
+            {activeExecutionReceipt && activeInputSnapshot ? (
               <>
                 <div className="diagnosis-tech-section">
                   <h4 className="diagnosis-tech-section-title" data-testid="diagnosis-llm-receipt">Recibo del diagnóstico LLM V2</h4>
@@ -914,62 +974,62 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
                     Este recibo documenta la invocación del modelo de lenguaje. No acredita ejecución Python ni que un script haya producido un CSV.
                   </p>
                   <div className="diagnosis-tech-row">
-                    <CopyableHash value={structuredDiagnosis.executionReceipt.receiptHash} label="Receipt" testId="diagnosis-llm-receipt-hash" />
+                    <CopyableHash value={activeExecutionReceipt.receiptHash} label="Receipt" testId="diagnosis-llm-receipt-hash" />
                     <span>
-                      <Hash size={11} /> Estado: {structuredDiagnosis.executionReceipt.validationStatus}
+                      <Hash size={11} /> Estado: {activeExecutionReceipt.validationStatus}
                     </span>
                   </div>
                   <div className="diagnosis-tech-row">
                     <span>
-                      <Hash size={11} /> Método solicitado: {structuredDiagnosis.executionReceipt.requestedInputMode}
+                      <Hash size={11} /> Método solicitado: {activeExecutionReceipt.requestedInputMode}
                     </span>
                     <span>
-                      <Hash size={11} /> Método efectivo: {structuredDiagnosis.executionReceipt.effectiveInputMode}
-                    </span>
-                  </div>
-                  <div className="diagnosis-tech-row">
-                    <span>
-                      <Hash size={11} /> Proveedor: {structuredDiagnosis.executionReceipt.provider}
-                    </span>
-                    <span>
-                      <Hash size={11} /> Modelo solicitado: {structuredDiagnosis.executionReceipt.requestedModel}
+                      <Hash size={11} /> Método efectivo: {activeExecutionReceipt.effectiveInputMode}
                     </span>
                   </div>
                   <div className="diagnosis-tech-row">
                     <span>
-                      <Hash size={11} /> Modelo observado: {structuredDiagnosis.executionReceipt.observedModel ?? 'no observado'}
+                      <Hash size={11} /> Proveedor: {activeExecutionReceipt.provider}
                     </span>
                     <span>
-                      {structuredDiagnosis.executionReceipt.modelDigest
-                        ? <CopyableHash value={structuredDiagnosis.executionReceipt.modelDigest} label="Digest" />
+                      <Hash size={11} /> Modelo solicitado: {activeExecutionReceipt.requestedModel}
+                    </span>
+                  </div>
+                  <div className="diagnosis-tech-row">
+                    <span>
+                      <Hash size={11} /> Modelo observado: {activeExecutionReceipt.observedModel ?? 'no observado'}
+                    </span>
+                    <span>
+                      {activeExecutionReceipt.modelDigest
+                        ? <CopyableHash value={activeExecutionReceipt.modelDigest} label="Digest" />
                         : <span><Hash size={11} /> Digest: n/d</span>}
                     </span>
                   </div>
-                  {structuredDiagnosis.executionReceipt.startedAt && (
+                  {activeExecutionReceipt.startedAt && (
                     <div className="diagnosis-tech-row">
-                      <span><Clock size={11} /> Inicio: {new Date(structuredDiagnosis.executionReceipt.startedAt).toLocaleString('es-CO')}</span>
-                      <span><Clock size={11} /> Fin: {new Date(structuredDiagnosis.executionReceipt.completedAt).toLocaleString('es-CO')}</span>
+                      <span><Clock size={11} /> Inicio: {new Date(activeExecutionReceipt.startedAt).toLocaleString('es-CO')}</span>
+                      <span><Clock size={11} /> Fin: {new Date(activeExecutionReceipt.completedAt).toLocaleString('es-CO')}</span>
                     </div>
                   )}
-                  {structuredDiagnosis.executionReceipt.startedAt && structuredDiagnosis.executionReceipt.completedAt && (
+                  {activeExecutionReceipt.startedAt && activeExecutionReceipt.completedAt && (
                     <div className="diagnosis-tech-row">
                       <span>
                         <Clock size={11} /> Duración: {(() => {
-                          const start = new Date(structuredDiagnosis.executionReceipt.startedAt).getTime();
-                          const end = new Date(structuredDiagnosis.executionReceipt.completedAt).getTime();
+                          const start = new Date(activeExecutionReceipt.startedAt).getTime();
+                          const end = new Date(activeExecutionReceipt.completedAt).getTime();
                           const ms = end - start;
                           return ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`;
                         })()}
                       </span>
                       <span>
-                        <Activity size={11} /> Validación de respuesta: {structuredDiagnosis.executionReceipt.validationErrorCodes.length > 0 ? `errores (${structuredDiagnosis.executionReceipt.validationErrorCodes.join(', ')})` : 'válida'}
+                        <Activity size={11} /> Validación de respuesta: {activeExecutionReceipt.validationErrorCodes.length > 0 ? `errores (${activeExecutionReceipt.validationErrorCodes.join(', ')})` : 'válida'}
                       </span>
                     </div>
                   )}
-                  {structuredDiagnosis.executionReceipt.validationErrorCodes.length > 0 && (
+                  {activeExecutionReceipt.validationErrorCodes.length > 0 && (
                     <div className="diagnosis-tech-row">
                       <span style={{ color: 'var(--error)', fontSize: '11px' }}>
-                        <AlertTriangle size={11} /> Errores de validación: {structuredDiagnosis.executionReceipt.validationErrorCodes.join(', ')}
+                        <AlertTriangle size={11} /> Errores de validación: {activeExecutionReceipt.validationErrorCodes.join(', ')}
                       </span>
                     </div>
                   )}
@@ -978,11 +1038,11 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
                 <div className="diagnosis-tech-section">
                   <h4 className="diagnosis-tech-section-title">Hashes de auditoría</h4>
                   <div className="diagnosis-tech-row">
-                    <CopyableHash value={structuredDiagnosis.executionReceipt.promptHash} label="Prompt" testId="diagnosis-llm-prompt-hash" />
-                    <CopyableHash value={structuredDiagnosis.executionReceipt.inputHash} label="Input" testId="diagnosis-llm-input-hash" />
-                    <CopyableHash value={structuredDiagnosis.executionReceipt.responseSchemaHash} label="Schema" testId="diagnosis-llm-schema-hash" />
-                    <CopyableHash value={structuredDiagnosis.executionReceipt.inferenceHash} label="Inferencia" testId="diagnosis-llm-inference-hash" />
-                    <CopyableHash value={structuredDiagnosis.executionReceipt.rawResponseHash} label="Respuesta cruda" testId="diagnosis-llm-raw-response-hash" />
+                    <CopyableHash value={activeExecutionReceipt.promptHash} label="Prompt" testId="diagnosis-llm-prompt-hash" />
+                    <CopyableHash value={activeExecutionReceipt.inputHash} label="Input" testId="diagnosis-llm-input-hash" />
+                    <CopyableHash value={activeExecutionReceipt.responseSchemaHash} label="Schema" testId="diagnosis-llm-schema-hash" />
+                    <CopyableHash value={activeExecutionReceipt.inferenceHash} label="Inferencia" testId="diagnosis-llm-inference-hash" />
+                    <CopyableHash value={activeExecutionReceipt.rawResponseHash} label="Respuesta cruda" testId="diagnosis-llm-raw-response-hash" />
                   </div>
                 </div>
 
@@ -990,7 +1050,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
                 <div className="diagnosis-tech-section">
                   <h4 className="diagnosis-tech-section-title">Secciones del snapshot</h4>
                   <div className="diagnosis-tech-row">
-                    {structuredDiagnosis.executionReceipt.includedSections.map((section) => (
+                    {activeExecutionReceipt.includedSections.map((section) => (
                       <span key={section} className="diagnosis-tech-chip">{section}</span>
                     ))}
                   </div>
@@ -1007,11 +1067,11 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
                     </div>
                   </div>
                 )}
-                {structuredDiagnosis.inputSnapshot && (
+                {activeInputSnapshot && (
                   <div className="diagnosis-tech-section">
                     <div className="diagnosis-tech-row">
                       <span>
-                        <Hash size={11} /> Referencia del envelope: {structuredDiagnosis.inputSnapshot.evidenceEnvelopeRef}
+                        <Hash size={11} /> Referencia del envelope: {activeInputSnapshot.evidenceEnvelopeRef}
                       </span>
                     </div>
                   </div>
@@ -1029,20 +1089,29 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
                 )}
 
                 {/* System instruction + user payload */}
-                {structuredDiagnosis.inputSnapshot && (
+                {activeInputSnapshot && (
                   <>
                     <div className="diagnosis-tech-section">
-                      <SyntaxDisplay filename="system.instruction.txt" content={structuredDiagnosis.inputSnapshot.systemInstruction} maxHeight={320} />
+                      <SyntaxDisplay filename="system.instruction.txt" content={activeInputSnapshot.systemInstruction} maxHeight={320} />
                     </div>
                     <div className="diagnosis-tech-section">
-                      <SyntaxDisplay filename="user-payload.json" content={structuredDiagnosis.inputSnapshot.userPayload} maxHeight={320} />
+                      <SyntaxDisplay filename="user-payload.json" content={activeInputSnapshot.userPayload} maxHeight={320} />
+                    </div>
+                    <div className="diagnosis-tech-section">
+                      <SyntaxDisplay filename="diagnosis.prompt.v2.txt" content={exactPrompt} maxHeight={320} />
                     </div>
                   </>
                 )}
 
                 {/* Raw response */}
                 <div className="diagnosis-tech-section">
-                  <SyntaxDisplay filename="provider-response.json" content={JSON.stringify(structuredDiagnosis, null, 2)} maxHeight={320} />
+                  <SyntaxDisplay
+                    filename="provider-response.raw.json"
+                    content={liveModelOutput || (structuredDiagnosis
+                      ? JSON.stringify(structuredDiagnosis.diagnosis, null, 2)
+                      : 'La respuesta cruda no está disponible en esta sesión; su hash permanece en el recibo.')}
+                    maxHeight={320}
+                  />
                 </div>
               </>
             ) : (

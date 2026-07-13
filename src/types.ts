@@ -199,6 +199,13 @@ export interface ProviderProgressEvent {
   stage: 'checking' | 'downloading' | 'loading' | 'compiling' | 'generating' | 'completed' | 'error';
   progress?: number;
   message: string;
+  /** Exact response fragment emitted by the provider, when streaming is available. */
+  chunk?: string;
+}
+
+export interface ProviderTextRequestOptions {
+  /** Provider-native JSON Schema constraint for structured outputs. */
+  responseSchema?: Record<string, unknown>;
 }
 
 export interface PromptContractConfig {
@@ -556,10 +563,14 @@ export interface AIProvider {
   ): Promise<{ content: ExecutiveReportContent; metrics: ProviderMetrics }>;
 
   /** Respuesta libre para benchmarks de prompt no controlado */
-  generateText(prompt: string): Promise<ProviderTextResult>;
+  generateText(prompt: string, options?: ProviderTextRequestOptions): Promise<ProviderTextResult>;
 
   /** Respuesta libre con callback de progreso observable */
-  generateTextWithProgress?(prompt: string, onProgress: (event: ProviderProgressEvent) => void): Promise<ProviderTextResult>;
+  generateTextWithProgress?(
+    prompt: string,
+    onProgress: (event: ProviderProgressEvent) => void,
+    options?: ProviderTextRequestOptions,
+  ): Promise<ProviderTextResult>;
 
   /** Verifica si el proveedor está disponible en el entorno actual */
   isAvailable(): Promise<boolean>;

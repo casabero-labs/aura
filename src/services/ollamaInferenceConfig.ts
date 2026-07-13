@@ -6,7 +6,7 @@ export const DEFAULT_OLLAMA_INFERENCE: Readonly<InferenceSnapshotV1> = Object.fr
   topP: 0.9,
   think: false,
   numCtx: 16384,
-  numPredict: 2400,
+  numPredict: 4096,
   seed: null,
   keepAlive: '10m',
   timeoutSeconds: 600,

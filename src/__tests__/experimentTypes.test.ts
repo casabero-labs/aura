@@ -65,7 +65,8 @@ const makeEnvironment = (modelId: OE4ModelId): EnvironmentSnapshotV1 => ({
 const makeInput = (mode: OE4InputMode): DiagnosisInputPackageV2 => {
   const systemInstruction = 'Responde bajo aura.diagnosis.v2.';
   const userPayload = '{"dataset":"controlled_customers_phase8"}';
-  const promptHash = sha256hex(`${systemInstruction}\n\n${userPayload}`);
+  const responseSchema = { type: 'object', required: ['contractId'] };
+  const promptHash = sha256hex(exactDiagnosisPromptV2({ systemInstruction, userPayload, responseSchema }));
   return {
     contractId: 'aura.input-snapshot.v2',
     contractVersion: '2.0.0',
@@ -76,7 +77,7 @@ const makeInput = (mode: OE4InputMode): DiagnosisInputPackageV2 => {
       : ['dataset_summary', 'column_registry', 'rule_activations'],
     systemInstruction,
     userPayload,
-    responseSchema: { type: 'object', required: ['contractId'] },
+    responseSchema,
     promptVersion: 'oe4.prompt.v1',
     promptHash,
     responseSchemaHash: HASH_A,

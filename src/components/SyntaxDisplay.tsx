@@ -12,6 +12,7 @@ interface SyntaxDisplayProps {
   contentTestId?: string;
   role?: React.AriaRole;
   ariaLive?: 'off' | 'polite' | 'assertive';
+  autoScroll?: boolean;
 }
 
 const SyntaxDisplay: React.FC<SyntaxDisplayProps> = ({
@@ -26,14 +27,21 @@ const SyntaxDisplay: React.FC<SyntaxDisplayProps> = ({
   contentTestId,
   role,
   ariaLive,
+  autoScroll = false,
 }) => {
   const [copied, setCopied] = useState(false);
   const resetTimer = useRef<number | null>(null);
+  const bodyRef = useRef<HTMLElement | null>(null);
   const textToCopy = copyText ?? content;
 
   useEffect(() => () => {
     if (resetTimer.current !== null) window.clearTimeout(resetTimer.current);
   }, []);
+
+  useEffect(() => {
+    if (!autoScroll || !bodyRef.current) return;
+    bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
+  }, [autoScroll, children, content]);
 
   const handleCopy = async () => {
     if (textToCopy === undefined || !navigator.clipboard) return;
@@ -68,6 +76,7 @@ const SyntaxDisplay: React.FC<SyntaxDisplayProps> = ({
       </div>
       {content !== undefined ? (
         <pre
+          ref={bodyRef as React.RefObject<HTMLPreElement>}
           className={bodyClassName}
           style={bodyStyle}
           data-testid={contentTestId}
@@ -76,6 +85,7 @@ const SyntaxDisplay: React.FC<SyntaxDisplayProps> = ({
         ><code>{content}</code></pre>
       ) : (
         <div
+          ref={bodyRef as React.RefObject<HTMLDivElement>}
           className={`${bodyClassName} syntax-display__body--custom`}
           style={bodyStyle}
           data-testid={contentTestId}

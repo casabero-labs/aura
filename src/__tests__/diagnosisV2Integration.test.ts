@@ -113,6 +113,16 @@ describe('always-on v2 selection', () => {
       expect(r.result.executionReceipt?.validationStatus).toBe('valid');
       expect(r.result.executionReceipt?.inputHash).toBe(r.result.inputHash);
     }
+    expect(p.generateTextWithProgress).toHaveBeenCalledWith(
+      expect.stringContaining('=== REQUIRED RESPONSE JSON SCHEMA ==='),
+      expect.any(Function),
+      expect.objectContaining({
+        responseSchema: expect.objectContaining({
+          required: expect.arrayContaining(['contractId', 'contractVersion', 'evidenceEnvelopeRef']),
+        }),
+      }),
+    );
+    expect(vi.mocked(p.generateTextWithProgress!).mock.calls[0][0]).toContain('"contractId"');
   });
 });
 

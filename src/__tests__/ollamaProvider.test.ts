@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { OllamaProvider } from '../services/providers/ollamaProvider';
 import { buildCompactAnalysisPrompt } from '../services/providers/prompts';
-import type { AuditReport } from '../types';
+import type { AuditReport, ProviderProgressEvent } from '../types';
 
 describe('OllamaProvider', () => {
   const baseUrl = 'http://localhost:11434';
@@ -217,7 +217,7 @@ describe('OllamaProvider', () => {
       fetchSpy.mockRestore();
     });
 
-    it('uses canonical default num_ctx 16384 and num_predict 2400 when not configured', async () => {
+    it('uses canonical default num_ctx 16384 and num_predict 4096 when not configured', async () => {
       const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(() =>
         Promise.resolve({
           ok: true,
@@ -234,7 +234,7 @@ describe('OllamaProvider', () => {
       const body = JSON.parse(call[1].body as string);
       expect(body.options).toMatchObject({
         num_ctx: 16384,
-        num_predict: 2400,
+        num_predict: 4096,
       });
 
       fetchSpy.mockRestore();
@@ -361,6 +361,44 @@ describe('OllamaProvider', () => {
       ];
 
       expect(observed).toEqual(Array(5).fill(observedModel));
+      fetchSpy.mockRestore();
+    });
+
+    it('passes the diagnosis JSON Schema to Ollama and emits exact response chunks', async () => {
+      const schema = {
+        type: 'object',
+        required: ['contractId'],
+        properties: { contractId: { const: 'aura.diagnosis.v2' } },
+      };
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+        if (String(input).endsWith('/api/tags')) {
+          return new Response('{"models":[]}', { status: 200 });
+        }
+        const event = JSON.stringify({
+          model,
+          message: { content: '{"contractId":"aura.diagnosis.v2"}' },
+          eval_count: 8,
+          done: true,
+        });
+        return new Response(`${event}\n`, {
+          status: 200,
+          headers: { 'Content-Type': 'application/x-ndjson' },
+        });
+      });
+      const provider = new OllamaProvider(model, 0.1, baseUrl);
+      const events: ProviderProgressEvent[] = [];
+
+      const result = await provider.generateTextWithProgress(
+        'diagnosis',
+        (event) => events.push(event),
+        { responseSchema: schema },
+      );
+
+      const chatCall = fetchSpy.mock.calls.find(([url]) => String(url).endsWith('/api/chat'))!;
+      const body = JSON.parse(String(chatCall[1]?.body ?? '{}'));
+      expect(body.format).toEqual(schema);
+      expect(result.text).toBe('{"contractId":"aura.diagnosis.v2"}');
+      expect(events.some((event) => event.chunk === result.text)).toBe(true);
       fetchSpy.mockRestore();
     });
   });

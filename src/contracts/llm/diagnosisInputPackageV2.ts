@@ -3,6 +3,7 @@ import {
   buildDiagnosisSystemInstructionV2,
   buildEnvelopeRef,
   canonicalJson,
+  composeExactDiagnosisPromptV2,
   DIAGNOSIS_PROMPT_VERSION_V2,
   DIAGNOSIS_RESPONSE_SCHEMA_V2,
 } from './diagnosisPromptV2';
@@ -121,8 +122,13 @@ const assertReportMatchesEnvelope = (report: DiagnosisInputReport, envelope: Evi
   ) throw new Error('Audit report and evidence envelope do not describe the same dataset state.');
 };
 
-export const exactDiagnosisPromptV2 = (input: Pick<DiagnosisInputPackageV2, 'systemInstruction' | 'userPayload'>): string =>
-  `${input.systemInstruction}\n\n${input.userPayload}`;
+export const exactDiagnosisPromptV2 = (
+  input: Pick<DiagnosisInputPackageV2, 'systemInstruction' | 'userPayload' | 'responseSchema'>,
+): string => composeExactDiagnosisPromptV2(
+  input.systemInstruction,
+  input.userPayload,
+  input.responseSchema,
+);
 
 export const buildDiagnosisInputPackageV2 = (
   report: DiagnosisInputReport,
@@ -153,7 +159,7 @@ export const buildDiagnosisInputPackageV2 = (
   });
   const responseSchema = JSON.parse(canonicalJson(DIAGNOSIS_RESPONSE_SCHEMA_V2)) as Record<string, unknown>;
   const promptVersion = DIAGNOSIS_PROMPT_VERSION_V2;
-  const promptHash = sha256hex(`${systemInstruction}\n\n${userPayload}`);
+  const promptHash = sha256hex(composeExactDiagnosisPromptV2(systemInstruction, userPayload, responseSchema));
   const responseSchemaHash = sha256hex(canonicalJson(responseSchema));
   const stable = {
     contractId: 'aura.input-snapshot.v2' as const,

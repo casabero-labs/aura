@@ -17,6 +17,7 @@ import {
 } from '../services/benchmark/finalEvaluationProtocol';
 import { validateExperimentRunV1 } from '../services/benchmark/experimentGuards';
 import { sha256hex } from '../contracts/llm/hash';
+import { exactDiagnosisPromptV2 } from '../contracts/llm/diagnosisInputPackageV2';
 import { buildExperimentSchedule } from '../services/benchmark/experimentSchedule';
 
 const HASH_A = 'a'.repeat(64);
@@ -47,6 +48,7 @@ const makeEnvironment = (modelId: OE4ModelId): EnvironmentSnapshotV1 => ({
 const makeInput = (mode: OE4InputMode): DiagnosisInputPackageV2 => {
   const systemInstruction = 'Return one aura.diagnosis.v2 JSON object.';
   const userPayload = JSON.stringify({ mode, evidenceEnvelopeRef: `env:${HASH_A}` });
+  const responseSchema = { type: 'object', required: ['contractId'] };
   return {
     contractId: 'aura.input-snapshot.v2',
     contractVersion: '2.0.0',
@@ -55,9 +57,9 @@ const makeInput = (mode: OE4InputMode): DiagnosisInputPackageV2 => {
     includedSections: ['dataset_summary', 'dataset_schema'],
     systemInstruction,
     userPayload,
-    responseSchema: { type: 'object', required: ['contractId'] },
+    responseSchema,
     promptVersion: '1.2.0',
-    promptHash: sha256hex(`${systemInstruction}\n\n${userPayload}`),
+    promptHash: sha256hex(exactDiagnosisPromptV2({ systemInstruction, userPayload, responseSchema })),
     responseSchemaHash: HASH_A,
     inputHash: HASH_B,
   };
