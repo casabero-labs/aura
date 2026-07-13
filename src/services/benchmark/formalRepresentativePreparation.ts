@@ -21,7 +21,7 @@ import {
   parsePythonExecutionReceipt,
   validatePythonExecutionReceipt,
   type PythonExecutionBundleV1,
-} from './pythonExecutionReceipt';
+} from '../remediationExecution/pythonExecutionContract';
 
 export const buildFormalRepresentativeExecutionBundle = (
   run: ExperimentRunV1,
@@ -37,11 +37,13 @@ export const buildFormalRepresentativeExecutionBundle = (
   if (!scriptContract || typeof scriptContract !== 'object') throw new Error('La corrida no conserva el contrato del script aprobado.');
   return buildPythonExecutionBundle({
     generatedAt,
-    runId: run.runId,
+    executionId: run.runId,
     approvedScriptHash,
     beforeDatasetSha256: run.execution.beforeDatasetSha256,
     scriptText,
     scriptHashPayload: buildScriptHashPayloadV2(scriptContract as Parameters<typeof buildScriptHashPayloadV2>[0]),
+    inputReceiptRef: run.executionReceipt?.receiptHash,
+    evidenceEnvelopeRef: run.input.evidenceEnvelopeRef,
   });
 };
 

@@ -92,6 +92,8 @@ describe('formal representative deterministic preparation', () => {
     const bundle = buildFormalRepresentativeExecutionBundle(prepared, '2026-07-11T22:06:00.000Z');
     expect(bundle.approvedScriptHash).toBe(contract.scriptHash);
     expect(bundle.scriptTextSha256).toBe(sha256hex(prepared.script!.rawOutput));
+    expect(bundle.inputReceiptRef).toBe(receipt.receiptHash);
+    expect(bundle.evidenceEnvelopeRef).toBe(pkg.evidenceEnvelopeRef);
 
     const beforeCsv = 'Name\n" Alice "\n';
     const afterCsv = 'Name\nAlice\n';
