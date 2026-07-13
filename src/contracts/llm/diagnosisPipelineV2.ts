@@ -73,11 +73,12 @@ export async function runDiagnosisPipeline(
   try {
     raw = await adapter(promptPackage);
   } catch (err) {
+    const cause = err instanceof Error ? err.message : String(err);
     return failure(
       'DIAGNOSIS_ADAPTER_ERROR',
-      'Adapter threw an error',
+      `Adapter error: ${cause}`,
       'adapter',
-      err instanceof Error ? err.message : String(err),
+      cause,
     );
   }
 

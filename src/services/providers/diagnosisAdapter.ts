@@ -29,11 +29,10 @@ export class AIProviderDiagnosisAdapter {
     prompt: string,
     onProgress: (event: { type: 'chunk'; text: string }) => void
   ): Promise<DiagnosisAdapterResult> {
-    const withProgress = this.provider.generateTextWithProgress;
-    if (!withProgress) {
+    if (!this.provider.generateTextWithProgress) {
       return this.diagnose(prompt);
     }
-    const result = await withProgress(prompt, (event: ProviderProgressEvent) => {
+    const result = await this.provider.generateTextWithProgress(prompt, (event: ProviderProgressEvent) => {
       if (event.stage === 'generating' || event.stage === 'completed') {
         onProgress({ type: 'chunk', text: event.message });
       }

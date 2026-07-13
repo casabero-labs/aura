@@ -215,6 +215,7 @@ describe('runDiagnosisPipeline — adapter error handling', () => {
     const result = await runDiagnosisPipeline(envelope, promptPackage, brokenAdapter());
     expect(result.success).toBe(false);
     expect((result as any).code).toBe('DIAGNOSIS_ADAPTER_ERROR');
+    expect((result as any).message).toContain('Adapter network failure');
   });
 
   it('returns DIAGNOSIS_ADAPTER_ERROR when adapter returns non-string', async () => {

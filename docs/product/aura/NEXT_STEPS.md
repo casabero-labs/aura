@@ -129,6 +129,19 @@ Gate local: 1756 pruebas aprobadas, 6 omitidas, typecheck y build correctos, y
 con Qwen3 8B. Guardar PDF, JSON y CSV en `experiments/tests/flujo3/` y revisarlos
 antes de repetir con Gemma o autorizar la campaña de 45 corridas.
 
+### Hotfix de la primera corrida Qwen
+
+La primera prueba real reveló `DIAGNOSIS_ADAPTER_ERROR` aunque Ollama aparecía
+disponible. La causa era interna: `AIProviderDiagnosisAdapter` separaba el método
+`generateTextWithProgress` de su instancia y perdía el contexto `this` de
+`OllamaProvider`. La llamada fallaba antes de enviar el diagnóstico.
+
+El adaptador conserva ahora la instancia del proveedor y el pipeline incluye la
+causa original en el error visible. Se verificaron Ollama 0.31.1, CORS desde
+`https://aura.casabero.com`, Qwen3 8B cargado con contexto 16 384 y una llamada
+directa correcta. La corrida de `flujo3` debe reiniciarse después de desplegar
+este hotfix; el intento fallido no cuenta como evidencia.
+
 ## Pendientes no cubiertos por P1
 
 **La campaña real sigue BLOQUEADA** hasta superar los smokes y aprobar las corridas normales de cierre.
