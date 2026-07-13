@@ -124,9 +124,7 @@ export default function AvFixturePage() {
 
   return (
     <div className="step-card" style={{ maxWidth: 960, margin: '1.5rem auto' }}>
-      <p className="sec-eye" style={{ marginBottom: '0.75rem', padding: '0 1.5rem', paddingTop: '1rem' }}>
-        FIXTURE VISUAL — Apply &amp; Verify: {fixture}
-      </p>
+
       <ApplyVerifyStep
         key={fixture}
         {...sharedProps}

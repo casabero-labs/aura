@@ -389,8 +389,8 @@ export function buildScriptHashPayloadV2(
 ): Record<string, unknown> {
   return {
     remediationRef: candidate.remediationRef,
-    inputReceiptRef: candidate.inputReceiptRef,
-    inputTrace: candidate.inputTrace,
+    inputReceiptRef: candidate.inputReceiptRef ?? null,
+    inputTrace: candidate.inputTrace ?? null,
     datasetFingerprint: candidate.datasetFingerprint,
     acceptedActionIds: [...candidate.acceptedActionIds].sort(),
     columnRefs: [...candidate.columnRefs]

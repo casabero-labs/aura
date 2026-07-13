@@ -261,6 +261,12 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
         return { ...prev, ...patch };
       });
     };
+    (window as any).__PHASE4_TAMPER_VERIFICATION__ = (patch: Partial<ScriptValidationResultV2>) => {
+      setScriptContractVerificationV2((prev) => {
+        if (!prev) return prev;
+        return { ...prev, ...patch, pythonSyntax: { ...prev.pythonSyntax, ...(patch.pythonSyntax || {}) } };
+      });
+    };
     (window as any).__PHASE4_GET_STATE__ = () => ({ ...phase4StateRef.current });
 
     // ── Phase 9/10 L9 E2E Harness: expose minimal report + export JSON generation ──
@@ -359,6 +365,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
       delete (window as any).__PHASE4_INJECT__;
       delete (window as any).__PHASE4_SET_STATE__;
       delete (window as any).__PHASE4_TAMPER_CONTRACT__;
+      delete (window as any).__PHASE4_TAMPER_VERIFICATION__;
       delete (window as any).__PHASE4_GET_STATE__;
       delete (window as any).__L9_SET_REPORT__;
       delete (window as any).__L9_SET_AUDIT_EVIDENCE__;
@@ -779,8 +786,8 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
         <DiagnosticReportStep
           diagnosticReport={diagnosticReport}
           evaluationSummary={{
-            contractErrorsCount: structuredDiagnosis?.executionReceipt.validationErrorCodes.length
-              ?? diagnosisFailureEvidence?.executionReceipt.validationErrorCodes.length
+            contractErrorsCount: structuredDiagnosis?.executionReceipt?.validationErrorCodes?.length
+              ?? diagnosisFailureEvidence?.executionReceipt?.validationErrorCodes?.length
               ?? null,
             unsupportedClaimsCount: null,
             anchoredBadSampleRefsCount: null,

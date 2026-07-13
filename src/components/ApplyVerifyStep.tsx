@@ -300,7 +300,7 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
               <FileText size={14} /> source.csv
             </button>
           </div>
-          <div className="mono-block" style={{ marginTop: 'var(--space-md)' }} data-testid="apply-verify-command">
+          <div className="apply-verify-mono-block" style={{ marginTop: 'var(--space-md)' }} data-testid="apply-verify-command">
             <code>{CLI_COMMAND}</code>
           </div>
           <div className="btn-row" style={{ marginTop: 'var(--space-xs)' }}>
@@ -387,37 +387,37 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
               <strong>Ejecución verificada.</strong>
             </div>
           </div>
-          <div className="info-grid">
-            <div className="info-item">
-              <span className="info-label">Python</span>
-              <span className="info-value">{executionReceipt.pythonVersion}</span>
+          <div className="apply-verify-info-grid">
+            <div className="apply-verify-info-item">
+              <span className="apply-verify-info-label">Python</span>
+              <span className="apply-verify-info-value">{executionReceipt.pythonVersion}</span>
             </div>
-            <div className="info-item">
-              <span className="info-label">Pandas</span>
-              <span className="info-value">{executionReceipt.pandasVersion ?? '—'}</span>
+            <div className="apply-verify-info-item">
+              <span className="apply-verify-info-label">Pandas</span>
+              <span className="apply-verify-info-value">{executionReceipt.pandasVersion ?? '—'}</span>
             </div>
-            <div className="info-item">
-              <span className="info-label">Plataforma</span>
-              <span className="info-value">{executionReceipt.platform}</span>
+            <div className="apply-verify-info-item">
+              <span className="apply-verify-info-label">Plataforma</span>
+              <span className="apply-verify-info-value">{executionReceipt.platform}</span>
             </div>
-            <div className="info-item">
-              <span className="info-label">Duración</span>
-              <span className="info-value">{executionReceipt.execution.durationMs} ms</span>
+            <div className="apply-verify-info-item">
+              <span className="apply-verify-info-label">Duración</span>
+              <span className="apply-verify-info-value">{executionReceipt.execution.durationMs} ms</span>
             </div>
-            <div className="info-item">
-              <span className="info-label">Filas</span>
-              <span className="info-value">{executionReceipt.output?.rowCount ?? '—'}</span>
+            <div className="apply-verify-info-item">
+              <span className="apply-verify-info-label">Filas</span>
+              <span className="apply-verify-info-value">{executionReceipt.output?.rowCount ?? '—'}</span>
             </div>
-            <div className="info-item">
-              <span className="info-label">Columnas</span>
-              <span className="info-value">{executionReceipt.output?.columnCount ?? '—'}</span>
+            <div className="apply-verify-info-item">
+              <span className="apply-verify-info-label">Columnas</span>
+              <span className="apply-verify-info-value">{executionReceipt.output?.columnCount ?? '—'}</span>
             </div>
-            <div className="info-item">
-              <span className="info-label">Hash salida</span>
+            <div className="apply-verify-info-item">
+              <span className="apply-verify-info-label">Hash salida</span>
               <span className="info-value mono">{formatHashShort(executionReceipt.afterDatasetSha256)}</span>
             </div>
-            <div className="info-item">
-              <span className="info-label">Hash recibo</span>
+            <div className="apply-verify-info-item">
+              <span className="apply-verify-info-label">Hash recibo</span>
               <span className="info-value mono">{formatHashShort(executionReceipt.receiptHash)}</span>
             </div>
           </div>
