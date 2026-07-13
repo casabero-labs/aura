@@ -154,7 +154,7 @@ La segunda prueba llegó correctamente a Qwen, pero la respuesta omitió
 
 El cierre aplicado deja:
 
-- prompt V2 `1.3.0` con el JSON Schema completo dentro del texto exacto;
+- prompt V2 `1.4.0` con el JSON Schema completo dentro del texto exacto y cobertura dinámica;
 - `format` con JSON Schema en las llamadas nativas de Ollama, tanto normales
   como formales;
 - consola `diagnosis.response.stream.json` entre el progreso y el registro de
@@ -172,6 +172,68 @@ typecheck y build correctos.
 **Siguiente acción inmediata:** desplegar y repetir la corrida normal de
 `flujo3` con Qwen. El intento con `DIAGNOSIS_SCHEMA_INVALID` no cuenta como
 evidencia y la campaña de 45 corridas permanece bloqueada.
+
+### Cierre de `DIAGNOSIS_REFERENCE_INVALID` en la corrida Qwen
+
+La tercera prueba produjo JSON válido, pero Qwen devolvió únicamente 5 de los
+15 hallazgos visibles. También usó nombres de categorías como si fueran
+`issueId` dentro de una visualización. El validador hizo lo correcto al rechazar
+la respuesta: no se relajó ninguna regla.
+
+La causa estaba antes de la inferencia: el payload incluía
+`exactCoverageRequired: true`, pero el esquema permitía entre 0 y 50 elementos
+y no limitaba los identificadores al inventario observado. El cierre deja:
+
+- `issues` y `diagnosisBlocks` con `minItems` y `maxItems` iguales al número
+  real de hallazgos;
+- enumeración permitida de `issueId`, `ruleId`, `columnId` y referencia del
+  envelope dentro del esquema entregado a Ollama;
+- `visualizations.issueIds` limitado a los `issueId` observados;
+- instrucciones explícitas con conteo, lista completa y prohibición de omitir
+  hallazgos sin muestras;
+- eliminación del expediente técnico duplicado cuyo botón **Copiar prompt**
+  todavía copiaba el prompt legacy;
+- `DIAGNOSIS_REFERENCE_INVALID` presentado como incumplimiento del contrato y
+  no como error de conexión del proveedor.
+
+Smoke real completo con Qwen3 8B y el CSV sintético: 15 hallazgos
+deterministas, 15 `DiagnosisIssueV2`, 15 `DiagnosisBlockV2`, 0 visualizaciones
+inventadas, modelo observado correcto y recibo `valid`. Este smoke técnico no
+cuenta como corrida normal ni formal. Gate local: 1.761 pruebas aprobadas,
+6 omitidas, typecheck y build correctos.
+
+**Siguiente acción inmediata:** desplegar y repetir `flujo3` desde la interfaz.
+Los tres intentos fallidos anteriores no cuentan como evidencia.
+
+## Pendiente prioritario: rama normal de remediación
+
+La remediación seguirá siendo opcional, pero debe tener protagonismo visible
+desde el Informe diagnóstico. El diseño pendiente queda congelado así:
+
+```text
+Flujo principal: Carga → Perfil → Diagnóstico → Informe → Exportación
+Rama destacada: Plan y script → Revisión humana → Aplicar y verificar → Exportación
+```
+
+La etapa **Aplicar y verificar** deberá reutilizar el bundle y el recibo Python
+ya probados, sin acoplar el flujo normal a `ExperimentRunV1` ni alterar el
+protocolo del Laboratorio. AURA no ejecuta hoy Python real dentro del navegador:
+el Laboratorio dispone de un ejecutor externo local con Python/Pandas. La ruta
+normal debe extraer esa capacidad común y exigir:
+
+- script aprobado y hash coincidente;
+- SHA-256 completo del CSV original;
+- ejecución explícita sobre una copia;
+- CSV corregido y recibo Python importados juntos;
+- verificación de hashes, versiones, sintaxis y ejecución;
+- reauditoría únicamente después de una ejecución verificada;
+- estado honesto **Ejecución verificada; resultado reauditable**, sin afirmar
+  que el dataset es correcto para el negocio;
+- navegación reversible desde Exportación y invalidación en cascada solo al
+  modificar diagnóstico, plan o script.
+
+Este frente queda **PENDIENTE** hasta aprobar `flujo3`. No bloquea el validador
+del diagnóstico, pero sí forma parte del cierre funcional del producto.
 
 ## Pendientes no cubiertos por P1
 

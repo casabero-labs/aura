@@ -6,7 +6,7 @@ import ChromeAiStatusPanel from './ChromeAiStatusPanel';
 import OllamaSetupWizard from './OllamaSetupWizard';
 import CopyableHash from './CopyableHash';
 import SyntaxDisplay from './SyntaxDisplay';
-import { DiagnosisHeroPanel, TechnicalEvidencePanel } from './diagnosis';
+import { DiagnosisHeroPanel } from './diagnosis';
 import { AIConfig, AIProvider, AuditReport, AuditExecutionEvidence, ProviderMetrics, LocalModelStatus, DiagnosisEvent, ProgressDisclosureStatus, InputMode } from '../types';
 import { buildSmartSample, buildAnalysisPrompt } from '../services/providers/prompts';
 import { AVAILABLE_MODELS, LOCAL_MODELS, getLocalModelStatus, clearPreloadVerification, deleteDownloadedModel, getChromeAiDiagnostic } from '../services/aiProvider';
@@ -58,6 +58,18 @@ export const buildDiagnosisInputSummary = (report: AuditReport | null | undefine
     affectedColumns,
   };
 };
+
+const RESPONSE_CONTRACT_FAILURE_CODES = new Set([
+  'DIAGNOSIS_JSON_INVALID',
+  'DIAGNOSIS_SCHEMA_INVALID',
+  'DIAGNOSIS_REFERENCE_INVALID',
+  'DIAGNOSIS_ENVELOPE_MISMATCH',
+  'DIAGNOSIS_REVIEW_DOWNGRADE',
+  'DIAGNOSIS_EXECUTABLE_CONTENT',
+]);
+
+export const isDiagnosisResponseContractFailure = (code: string | null | undefined): boolean =>
+  typeof code === 'string' && RESPONSE_CONTRACT_FAILURE_CODES.has(code);
 
 const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
   report,
@@ -118,7 +130,6 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
   const [privacyReceipt, setPrivacyReceipt] = useState<PrivacyReceipt | null>(null);
   const [showPrivacyDetails, setShowPrivacyDetails] = useState(false);
   const [networkResult, setNetworkResult] = useState<NetworkGuardResult | null>(null);
-  const [isTechnicalEvidenceOpen, setIsTechnicalEvidenceOpen] = useState(false);
   const [ollamaDiagnostic, setOllamaDiagnostic] = useState<OllamaLocalDiagnostic | null>(null);
   const [showOllamaWizard, setShowOllamaWizard] = useState(false);
 
@@ -648,7 +659,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
     ?? diagnosisFailureEvidence?.executionReceipt
     ?? null;
   const exactPrompt = activeInputSnapshot ? exactDiagnosisPromptV2(activeInputSnapshot) : '';
-  const isResponseContractFailure = diagnosisFailureEvidence?.code === 'DIAGNOSIS_SCHEMA_INVALID';
+  const isResponseContractFailure = isDiagnosisResponseContractFailure(diagnosisFailureEvidence?.code);
   const displayedErrorTitle = isResponseContractFailure
     ? 'La respuesta del modelo no cumple el contrato'
     : normalizedError?.title;
@@ -1232,17 +1243,6 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
                 />
               </div>
             )}
-
-            {/* Technical evidence panel (pre-existing, fully reused) */}
-            <div className="diagnosis-tech-section">
-              <h4 className="diagnosis-tech-section-title">Expediente técnico detallado</h4>
-              <TechnicalEvidencePanel
-                report={report}
-                aiConfig={aiConfig}
-                isOpen={isTechnicalEvidenceOpen}
-                onToggle={setIsTechnicalEvidenceOpen}
-              />
-            </div>
 
             <div className="diagnosis-tech-section">
               <p className="diagnosis-tech-integrity-note">

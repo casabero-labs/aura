@@ -5,6 +5,7 @@ import {
   buildExperimentInputPackage,
   OE4_INCLUDED_SECTIONS_BY_MODE,
 } from '../services/benchmark/experimentInputModes';
+import { exactDiagnosisPromptV2 } from '../contracts/llm/diagnosisInputPackageV2';
 import { OE4_INPUT_MODES } from '../services/benchmark/finalEvaluationProtocol';
 import type { AuditReport } from '../types';
 import { IssueCategory, IssueSeverity } from '../types';
@@ -135,6 +136,53 @@ const packages = OE4_INPUT_MODES.map((mode) =>
   buildExperimentInputPackage(report, envelope, mode),
 );
 
+const fifteenIssueReport: AuditReport = {
+  ...report,
+  issues: Array.from({ length: 15 }, (_, index) => ({
+    ...report.issues[index % report.issues.length],
+    id: `controlled-issue-${String(index + 1).padStart(2, '0')}`,
+    ruleId: `rule:controlled-${String(index + 1).padStart(2, '0')}`,
+    sampleValues: [`sample-${index + 1}`],
+  })),
+};
+
+const fifteenIssueEnvelope = _buildEvidenceEnvelopeV2(
+  {
+    ...fifteenIssueReport,
+    columnStats: Object.fromEntries(
+      Object.entries(fifteenIssueReport.columnStats).map(([name, stats]) => [
+        name,
+        {
+          inferredType: stats.inferredType,
+          semanticType: stats.semanticType,
+          distinctCount: stats.uniqueCount,
+          nullCount: stats.nullCount,
+          nullPercentage: (stats.nullCount / fifteenIssueReport.rowCount) * 100,
+          topValues: (stats.topFreq ?? []).map((value) => ({
+            value: value.value,
+            count: value.count,
+            percentage: (value.count / fifteenIssueReport.rowCount) * 100,
+          })),
+          stats: {},
+        },
+      ]),
+    ),
+    datasetProfile: {
+      columns: fifteenIssueReport.datasetProfile?.columns.map((column) => ({
+        name: column.name,
+        inferredType: column.inferredType,
+        semanticType: column.semanticType,
+        cardinality: fifteenIssueReport.columnStats[column.name]?.uniqueCount ?? 0,
+      })),
+    },
+  },
+  {
+    privacyLevel: 'local_full',
+    datasetSha256: 'b'.repeat(64),
+    delimiter: ',',
+  },
+);
+
 describe('OE4 formal input contracts — Task 4', () => {
   it('uses one diagnosis response contract and three distinct input hashes', () => {
     expect(new Set(packages.map((pkg) => pkg.responseSchemaHash))).toHaveLength(1);
@@ -149,6 +197,50 @@ describe('OE4 formal input contracts — Task 4', () => {
       expect(schema.properties.contractId.enum).toEqual(['aura.diagnosis.v2']);
       expect(pkg.systemInstruction).toMatch(/unsupported claims/i);
     }
+  });
+
+  it('pins exact 15-issue coverage and only allows observed issue references', () => {
+    const pkg = buildExperimentInputPackage(
+      fifteenIssueReport,
+      fifteenIssueEnvelope,
+      'smart_sample',
+    );
+    const payload = JSON.parse(pkg.userPayload) as {
+      task: {
+        expectedIssueCount: number;
+        expectedDiagnosisBlockCount: number;
+        requiredIssueIds: string[];
+      };
+    };
+    const schema = pkg.responseSchema as {
+      properties: {
+        issues: {
+          minItems: number;
+          maxItems: number;
+          items: { properties: { issueId: { enum: string[] } } };
+        };
+        diagnosisBlocks: {
+          minItems: number;
+          maxItems: number;
+          items: { properties: { issueId: { enum: string[] } } };
+        };
+        visualizations: {
+          items: { properties: { issueIds: { items: { enum: string[] } } } };
+        };
+      };
+    };
+
+    expect(payload.task.expectedIssueCount).toBe(15);
+    expect(payload.task.expectedDiagnosisBlockCount).toBe(15);
+    expect(payload.task.requiredIssueIds).toHaveLength(15);
+    expect(schema.properties.issues.minItems).toBe(15);
+    expect(schema.properties.issues.maxItems).toBe(15);
+    expect(schema.properties.diagnosisBlocks.minItems).toBe(15);
+    expect(schema.properties.diagnosisBlocks.maxItems).toBe(15);
+    expect(schema.properties.issues.items.properties.issueId.enum).toEqual(payload.task.requiredIssueIds);
+    expect(schema.properties.diagnosisBlocks.items.properties.issueId.enum).toEqual(payload.task.requiredIssueIds);
+    expect(schema.properties.visualizations.items.properties.issueIds.items.enum).toEqual(payload.task.requiredIssueIds);
+    expect(exactDiagnosisPromptV2(pkg)).toMatch(/exactly one.*every required issueId/i);
   });
 
   it('pins the exact visible sections for every formal mode', () => {

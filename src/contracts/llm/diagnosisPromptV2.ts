@@ -207,9 +207,47 @@ export const DIAGNOSIS_RESPONSE_SCHEMA_V2 = {
   },
 } as const;
 
+export function buildDiagnosisResponseSchemaV2(
+  envelope: EvidenceEnvelopeV2,
+): Record<string, unknown> {
+  const schema = JSON.parse(canonicalJson(DIAGNOSIS_RESPONSE_SCHEMA_V2)) as Record<string, unknown>;
+  const properties = schema.properties as Record<string, Record<string, unknown>>;
+  const issueIds = envelope.issues.map((issue) => issue.issueId);
+  const ruleIds = [...new Set(envelope.issues.map((issue) => issue.ruleId))];
+  const columnIds = envelope.columns.map((column) => column.columnId);
+  const issueCount = issueIds.length;
+
+  properties.evidenceEnvelopeRef.enum = [buildEnvelopeRef(envelope)];
+
+  const issues = properties.issues;
+  issues.minItems = issueCount;
+  issues.maxItems = issueCount;
+  const issueItem = issues.items as Record<string, unknown>;
+  const issueProperties = issueItem.properties as Record<string, Record<string, unknown>>;
+  issueProperties.issueId.enum = issueIds;
+
+  const diagnosisBlocks = properties.diagnosisBlocks;
+  diagnosisBlocks.minItems = issueCount;
+  diagnosisBlocks.maxItems = issueCount;
+  const blockItem = diagnosisBlocks.items as Record<string, unknown>;
+  const blockProperties = blockItem.properties as Record<string, Record<string, unknown>>;
+  blockProperties.issueId.enum = issueIds;
+  blockProperties.ruleId.enum = ruleIds;
+  blockProperties.columnId.enum = [null, ...columnIds];
+
+  const visualizations = properties.visualizations;
+  const visualizationItem = visualizations.items as Record<string, unknown>;
+  const visualizationProperties = visualizationItem.properties as Record<string, Record<string, unknown>>;
+  const visualizationIssueIds = visualizationProperties.issueIds;
+  const visualizationIssueItem = visualizationIssueIds.items as Record<string, unknown>;
+  visualizationIssueItem.enum = issueIds;
+
+  return schema;
+}
+
 // ── Prompt Builder ──
 
-export const DIAGNOSIS_PROMPT_VERSION_V2 = '1.3.0';
+export const DIAGNOSIS_PROMPT_VERSION_V2 = '1.4.0';
 
 export function composeExactDiagnosisPromptV2(
   systemInstruction: string,
@@ -236,7 +274,7 @@ export function buildDiagnosisPromptV2(
   const systemInstruction = buildDiagnosisSystemInstructionV2();
   const userPayload = buildUserPayload(envelope, evidenceEnvelopeRef, options);
 
-  const responseSchema = DIAGNOSIS_RESPONSE_SCHEMA_V2 as Record<string, unknown>;
+  const responseSchema = buildDiagnosisResponseSchemaV2(envelope);
   const fullPrompt = composeExactDiagnosisPromptV2(systemInstruction, userPayload, responseSchema);
   const promptHash = sha256hex(fullPrompt);
 
@@ -266,7 +304,7 @@ export function buildCompactDiagnosisPromptV2(
   const systemInstruction = buildDiagnosisSystemInstructionV2();
   const userPayload = buildCompactUserPayload(envelope, evidenceEnvelopeRef, options);
 
-  const responseSchema = DIAGNOSIS_RESPONSE_SCHEMA_V2 as Record<string, unknown>;
+  const responseSchema = buildDiagnosisResponseSchemaV2(envelope);
   const fullPrompt = composeExactDiagnosisPromptV2(systemInstruction, userPayload, responseSchema);
   const promptHash = sha256hex(fullPrompt);
 
@@ -455,7 +493,13 @@ CRITICAL RULES — VIOLATING ANY OF THESE IS AN ERROR:
    - No prose before or after the JSON
    - No trailing commas
    - No comments
-   - The entire response must parse as a single JSON object.`;
+   - The entire response must parse as a single JSON object.
+
+8. EXACT COVERAGE IS MANDATORY:
+   - Produce exactly one issues item and exactly one diagnosisBlocks item for every required issueId.
+   - Do not select only the most important issues. Do not omit issues without evidence samples.
+   - Use every required issueId exactly once in issues and exactly once in diagnosisBlocks.
+   - visualizations.issueIds may contain only required issueId values, never category names.`;
 }
 
 // ── User Payload ──

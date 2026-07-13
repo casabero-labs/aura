@@ -119,6 +119,10 @@ describe('always-on v2 selection', () => {
       expect.objectContaining({
         responseSchema: expect.objectContaining({
           required: expect.arrayContaining(['contractId', 'contractVersion', 'evidenceEnvelopeRef']),
+          properties: expect.objectContaining({
+            issues: expect.objectContaining({ minItems: 2, maxItems: 2 }),
+            diagnosisBlocks: expect.objectContaining({ minItems: 2, maxItems: 2 }),
+          }),
         }),
       }),
     );

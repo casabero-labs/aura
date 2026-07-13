@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { uploadCopy } from '../components/FileUpload';
 import { buildProfileStageModel } from '../components/ProfileStageHeader';
-import { buildDiagnosisInputSummary } from '../components/DiagnosisStep';
+import {
+  buildDiagnosisInputSummary,
+  isDiagnosisResponseContractFailure,
+} from '../components/DiagnosisStep';
 import { AuditReport, IssueCategory, IssueSeverity } from '../types';
 
 const report: AuditReport = {
@@ -58,5 +61,11 @@ describe('AURA UI flow contracts', () => {
     expect(summary.warning).toBe(0);
     expect(summary.affectedColumns).toBe(1);
     expect(visibleText).not.toMatch(/dataset crudo/i);
+  });
+
+  it('distinguishes an invalid model response from a provider connection error', () => {
+    expect(isDiagnosisResponseContractFailure('DIAGNOSIS_REFERENCE_INVALID')).toBe(true);
+    expect(isDiagnosisResponseContractFailure('DIAGNOSIS_SCHEMA_INVALID')).toBe(true);
+    expect(isDiagnosisResponseContractFailure('DIAGNOSIS_ADAPTER_ERROR')).toBe(false);
   });
 });

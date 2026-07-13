@@ -1,11 +1,11 @@
 import { sha256hex } from './hash';
 import {
   buildDiagnosisSystemInstructionV2,
+  buildDiagnosisResponseSchemaV2,
   buildEnvelopeRef,
   canonicalJson,
   composeExactDiagnosisPromptV2,
   DIAGNOSIS_PROMPT_VERSION_V2,
-  DIAGNOSIS_RESPONSE_SCHEMA_V2,
 } from './diagnosisPromptV2';
 import type {
   DiagnosisInputModeV2,
@@ -138,6 +138,10 @@ export const buildDiagnosisInputPackageV2 = (
   if (!MODES.includes(inputMode)) throw new Error(`Unsupported diagnosis input mode: ${String(inputMode)}`);
   assertReportMatchesEnvelope(report, envelope);
   const evidenceEnvelopeRef = buildEnvelopeRef(envelope);
+  const requiredIssueIds = envelope.issues.map((issue) => issue.issueId);
+  const issueIdsWithoutEvidenceRefs = envelope.issues
+    .filter((issue) => issue.evidenceRefs.length === 0)
+    .map((issue) => issue.issueId);
   const includedSections = [...DIAGNOSIS_INCLUDED_SECTIONS_BY_MODE[inputMode]];
   const systemInstruction = buildDiagnosisSystemInstructionV2();
   const userPayload = canonicalJson({
@@ -147,6 +151,12 @@ export const buildDiagnosisInputPackageV2 = (
     task: {
       responseContract: 'aura.diagnosis.v2',
       exactCoverageRequired: true,
+      expectedIssueCount: requiredIssueIds.length,
+      expectedDiagnosisBlockCount: requiredIssueIds.length,
+      requiredIssueIds,
+      issueIdsWithoutEvidenceRefs,
+      exactCoverageInstruction: 'Produce exactly one issues item and exactly one diagnosisBlocks item for every required issueId. Do not omit or duplicate any required issueId.',
+      visualizationInstruction: 'visualizations.issueIds may use only requiredIssueIds. Use [] when no chart is justified.',
       evidenceRefsRequiredOnlyWhenVisible: true,
       samplesVisible: inputMode !== 'prompt_libre',
       whenSamplesAreHidden: inputMode === 'prompt_libre' ? {
@@ -157,7 +167,7 @@ export const buildDiagnosisInputPackageV2 = (
       prohibitUnsupportedClaims: true,
     },
   });
-  const responseSchema = JSON.parse(canonicalJson(DIAGNOSIS_RESPONSE_SCHEMA_V2)) as Record<string, unknown>;
+  const responseSchema = buildDiagnosisResponseSchemaV2(envelope);
   const promptVersion = DIAGNOSIS_PROMPT_VERSION_V2;
   const promptHash = sha256hex(composeExactDiagnosisPromptV2(systemInstruction, userPayload, responseSchema));
   const responseSchemaHash = sha256hex(canonicalJson(responseSchema));
