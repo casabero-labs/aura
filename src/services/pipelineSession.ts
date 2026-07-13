@@ -37,6 +37,9 @@ export const savePipelineSession = (data: PipelineData) => {
             pythonVersion: snapshot.executionReceipt.pythonVersion,
             pandasVersion: snapshot.executionReceipt.pandasVersion,
             platform: snapshot.executionReceipt.platform,
+            bundleHash: snapshot.executionReceipt.bundleHash,
+            inputReceiptRef: snapshot.executionReceipt.inputReceiptRef,
+            evidenceEnvelopeRef: snapshot.executionReceipt.evidenceEnvelopeRef,
             syntax: snapshot.executionReceipt.syntax,
             execution: {
               status: snapshot.executionReceipt.execution.status,
@@ -64,7 +67,12 @@ export const loadPipelineSession = (): PipelineSessionSnapshot | null => {
     if (snapshot.state === 'calibration') {
       return { ...snapshot, state: 'diagnosis' } as PipelineSessionSnapshot;
     }
-    return snapshot as PipelineSessionSnapshot;
+    const result = snapshot as PipelineSessionSnapshot;
+    if (result.executionState === 'verified' && !result.fileMeta) {
+      result.executionState = 'awaiting_external_output';
+      result.executionValidationError = 'Sesión restaurada sin archivos. Volvé a seleccionar corrected.csv y receipt.json.';
+    }
+    return result;
   } catch {
     try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
     return null;

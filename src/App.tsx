@@ -139,6 +139,10 @@ const App: React.FC = () => {
         scriptValidation: snap.scriptValidation,
         deterministicValidation: snap.deterministicValidation,
         logs: snap.logs,
+        executionState: (snap as any).executionState ?? 'not_prepared',
+        executionBundleJson: (snap as any).executionBundleJson ?? '',
+        executionReceipt: (snap as any).executionReceipt ?? undefined,
+        executionValidationError: (snap as any).executionValidationError ?? '',
       };
     }
     return INITIAL_PIPELINE_DATA;

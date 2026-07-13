@@ -20,9 +20,8 @@ import { buildAuraExportPackage } from '../services/exportPackage';
 import { buildDiagnosticReport, type DiagnosticReport } from '../services/diagnosticReport';
 import { AIConfig, AIProvider, AuditReport, AuditExecutionEvidence, BenchmarkResult, DeterministicValidationReport, HealthDelta, ImprovementRun, ProviderMetrics, ScriptValidationResult, ProgressDisclosureStatus } from '../types';
 import type { DiagnosisExecutionResult, DiagnosisFailureEvidenceV2, RemediationPlanV2, ScriptContractV2, ScriptValidationResultV2 } from '../contracts/llm';
-import { buildFormalRepresentativeExecutionBundle, importFormalRepresentativeOutput } from '../services/benchmark/formalRepresentativePreparation';
+import { buildScriptHashPayloadV2, validateRemediationPlanV2, isContractsV2Enabled, verifyScriptContractV2 } from '../contracts/llm';
 import type { PythonExecutionReceiptV1 } from '../services/remediationExecution/pythonExecutionContract';
-import { validateRemediationPlanV2, isContractsV2Enabled, verifyScriptContractV2 } from '../contracts/llm';
 import ApplyVerifyStep from './ApplyVerifyStep';
 
 export type PipelineState = 'upload' | 'profile' | 'diagnosis' | 'diagnostic_report' | 'script' | 'review' | 'execution' | 'export';
@@ -126,6 +125,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
   const [executionBundleJson, setExecutionBundleJson] = useState(() => initialData?.executionBundleJson ?? '');
   const [executionReceipt, setExecutionReceipt] = useState<PythonExecutionReceiptV1 | undefined>(() => initialData?.executionReceipt);
   const [executionValidationError, setExecutionValidationError] = useState(() => initialData?.executionValidationError ?? '');
+  const [executionAfterFile, setExecutionAfterFile] = useState<File | null>(null);
 
   const invalidateDescendants = (level: 'plan' | 'script' | 'approval') => {
     if (level === 'plan') {
@@ -381,6 +381,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
       setScriptContractVerificationV2(null);
       setCleaningScript('');
       setApprovedScript('');
+      invalidateDescendants('script');
       addLog('script.contract.v2.invalidated :: inputs changed');
     }
     prevContractKeyRef.current = key;
@@ -404,6 +405,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
       // No diagnosis — clear plan
       if (remediationPlan !== null) {
         setRemediationPlan(null);
+        invalidateDescendants('plan');
       }
       prevDiagnosisRef.current = null;
       prevEnvelopeRef.current = null;
@@ -419,9 +421,10 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
       prevDiagnosisRef.current !== currentDiagRef;
 
     if (isNewDiagnosis) {
-      // New diagnosis — clear old remediationPlan
+      // New diagnosis — clear old remediationPlan and descendants
       if (remediationPlan !== null) {
         setRemediationPlan(null);
+        invalidateDescendants('plan');
         addLog('remediation.plan.cleared :: new structuredDiagnosis arrived');
       }
       prevDiagnosisRef.current = currentDiagRef;
@@ -541,6 +544,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
     setScriptValidation(null);
     setScriptContractV2(null);
     setScriptContractVerificationV2(null);
+    invalidateDescendants('plan');
     setBenchmarkResults([]); setImprovementRun(null);
     setProcessProgressStatus('running');
     setProcessProgressStep('Leyendo archivo CSV');
@@ -891,6 +895,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
             scriptValidation={scriptValidation}
             onScriptApproved={(script) => {
               setApprovedScript(script);
+              invalidateDescendants('approval');
               addLog('Script aprobado por revisión humana');
             }}
             onHealthDelta={(delta) => setHealthDelta(delta)}
@@ -936,6 +941,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
             onReceiptChange={setExecutionReceipt}
             onErrorChange={setExecutionValidationError}
             onBundleJsonChange={setExecutionBundleJson}
+            onAfterFileChange={setExecutionAfterFile}
             executionReceipt={executionReceipt}
             executionBundleJson={executionBundleJson}
             onLog={(stage, msg) => addLog(`${stage} :: ${msg}`)}

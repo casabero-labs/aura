@@ -1,9 +1,9 @@
-import React, { useCallback, useMemo, useState } from 'react';
-import { ArrowLeft, ArrowRight, Download, FileJson, FileText, Terminal, Upload, ShieldCheck, ShieldAlert, Loader2, CheckCircle2 } from 'lucide-react';
-import { buildPythonExecutionBundle, parsePythonExecutionReceipt, validatePythonExecutionReceipt } from '../services/remediationExecution/pythonExecutionContract';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { ArrowLeft, ArrowRight, CheckCircle2, ClipboardCheck, Download, FileJson, FileText, Loader2, ShieldAlert, ShieldCheck, Terminal, Upload } from 'lucide-react';
+import { buildPythonExecutionBundle, parsePythonExecutionBundle, parsePythonExecutionReceipt, validatePythonExecutionChain } from '../services/remediationExecution/pythonExecutionContract';
 import type { PythonExecutionReceiptV1 } from '../services/remediationExecution/pythonExecutionContract';
-import { sha256hex } from '../contracts/llm/hash';
-import { computeExactCsvFingerprint } from '../services/reauditService';
+import { buildScriptHashPayloadV2 } from '../contracts/llm';
+import { sha256BytesHex } from '../contracts/llm/hash';
 import type { AuditReport, AuditExecutionEvidence } from '../types';
 import type { DiagnosisExecutionResult, ScriptContractV2, ScriptValidationResultV2 } from '../contracts/llm';
 import type { ApplyVerifyState } from './MainPipeline';
@@ -19,22 +19,22 @@ interface ApplyVerifyStepProps {
   sourceFile: File | null;
   sourceDatasetFingerprint?: string | null;
   executionValidationError?: string;
+  executionBundleJson?: string;
+  executionReceipt?: PythonExecutionReceiptV1;
   onStateChange: (state: ApplyVerifyState) => void;
   onReceiptChange: (receipt?: PythonExecutionReceiptV1) => void;
   onErrorChange: (error: string) => void;
   onBundleJsonChange: (json: string) => void;
-  executionReceipt?: PythonExecutionReceiptV1;
-  executionBundleJson?: string;
+  onAfterFileChange: (afterFile: File | null) => void;
   onLog: (stage: string, msg: string) => void;
   onContinue: () => void;
   onBack: () => void;
 }
 
-const RUNNER = 'npx experiments/runners/run-aura-remediation.mjs';
+const RUNNER = 'node experiments/runners/run-aura-remediation.mjs';
+const CLI_COMMAND = `${RUNNER} --bundle ./execution-bundle.json --input ./source.csv --output ./corrected.csv --receipt ./receipt.json`;
 
 const formatHashShort = (hash?: string | null) => hash ? `${hash.slice(0, 8)}…${hash.slice(-6)}` : '—';
-
-const fileToText = (f: File): Promise<string> => f.text();
 
 const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
   state,
@@ -47,12 +47,13 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
   sourceFile,
   sourceDatasetFingerprint,
   executionValidationError,
-  executionReceipt,
   executionBundleJson,
+  executionReceipt,
   onStateChange,
   onReceiptChange,
   onErrorChange,
   onBundleJsonChange,
+  onAfterFileChange,
   onLog,
   onContinue,
   onBack,
@@ -60,12 +61,24 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
   const [afterFile, setAfterFile] = useState<File | null>(null);
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [validating, setValidating] = useState(false);
+  const [copyLabel, setCopyLabel] = useState('Copiar comando');
   const [storedBundleJson, setStoredBundleJson] = useState(executionBundleJson ?? '');
+
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(CLI_COMMAND);
+      setCopyLabel('Copiado');
+      setTimeout(() => setCopyLabel('Copiar comando'), 2000);
+    } catch {
+      setCopyLabel('Error al copiar');
+    }
+  };
 
   const preconditions = useMemo(() => {
     const errors: string[] = [];
     const fingerprint = sourceDatasetFingerprint ?? auditEvidence?.datasetSha256 ?? null;
     if (!fingerprint || fingerprint.length !== 64) errors.push('El SHA-256 del CSV fuente no es válido.');
+    if (!sourceFile) errors.push('El archivo CSV fuente no está disponible; volvé a seleccionarlo.');
     if (!scriptContractV2) errors.push('No hay contrato de script V2.');
     if (!scriptContractVerificationV2 || scriptContractVerificationV2.pythonSyntax.state !== 'passed') {
       errors.push('La validación del script V2 no está completa o falló.');
@@ -79,19 +92,33 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
       errors.push('No hay acciones aceptadas en el plan.');
     }
     return { ok: errors.length === 0, errors, fingerprint };
-  }, [sourceDatasetFingerprint, auditEvidence, scriptContractV2, scriptContractVerificationV2, approvedScript]);
+  }, [sourceDatasetFingerprint, auditEvidence, scriptContractV2, scriptContractVerificationV2, approvedScript, sourceFile]);
 
-  const prepareBundle = useCallback(() => {
-    if (!preconditions.ok || !preconditions.fingerprint || !scriptContractV2) return;
+  const handleReuploadSource = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const f = files[0];
+    const buf = new Uint8Array(await f.arrayBuffer());
+    const hash = sha256BytesHex(buf);
+    if (preconditions.fingerprint && hash !== preconditions.fingerprint) {
+      onErrorChange('El SHA-256 del archivo seleccionado no coincide con el dataset congelado.');
+      return;
+    }
+    onLog('execution.source', `re-selected source SHA256=${hash.slice(0, 12)}`);
+    onStateChange(state);
+  };
+
+  const prepareBundle = useCallback(async () => {
+    if (!preconditions.ok || !preconditions.fingerprint || !scriptContractV2 || !sourceFile) return;
     try {
       const fingerprint = preconditions.fingerprint;
+      const hashPayload = buildScriptHashPayloadV2(scriptContractV2 as Parameters<typeof buildScriptHashPayloadV2>[0]);
       const bundle = buildPythonExecutionBundle({
         generatedAt: new Date().toISOString(),
         executionId: `exec:${fingerprint.slice(0, 12)}`,
         approvedScriptHash: scriptContractV2.scriptHash,
         beforeDatasetSha256: fingerprint,
         scriptText: scriptContractV2.scriptText,
-        scriptHashPayload: { scriptText: scriptContractV2.scriptText },
+        scriptHashPayload: hashPayload,
         inputReceiptRef: structuredDiagnosis?.executionReceipt?.receiptHash,
         evidenceEnvelopeRef: structuredDiagnosis?.evidenceEnvelopeRef,
       });
@@ -104,87 +131,75 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
       const msg = err instanceof Error ? err.message : String(err);
       onErrorChange(msg);
       onLog('execution.prepare.error', msg);
+      onStateChange('not_prepared');
     }
-  }, [preconditions, structuredDiagnosis, scriptContractV2, onBundleJsonChange, onStateChange, onErrorChange, onLog]);
-
-  const downloadBlob = (content: string, filename: string, mime: string) => {
-    const blob = new Blob([content], { type: mime });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+  }, [preconditions, sourceFile, scriptContractV2, structuredDiagnosis, onBundleJsonChange, onStateChange, onErrorChange, onLog]);
 
   const downloadBundle = () => {
-    if (storedBundleJson) downloadBlob(storedBundleJson, 'execution-bundle.json', 'application/json');
+    if (storedBundleJson) {
+      const blob = new Blob([storedBundleJson], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'execution-bundle.json'; a.click();
+      URL.revokeObjectURL(url);
+    }
   };
 
-  const downloadSourceCsv = async () => {
+  const downloadSourceCsv = () => {
     if (!sourceFile) return;
-    const text = await sourceFile.text();
-    downloadBlob(text, 'source.csv', 'text/csv');
+    const url = URL.createObjectURL(sourceFile);
+    const a = document.createElement('a');
+    a.href = url; a.download = sourceFile.name || 'source.csv'; a.click();
+    URL.revokeObjectURL(url);
   };
-
-  const cliCommand = `${RUNNER} --bundle ./execution-bundle.json --input ./source.csv --output ./corrected.csv --receipt ./receipt.json`;
 
   const startAwaitingFiles = () => {
     onStateChange('awaiting_external_output');
   };
 
-  const reuploadSourceFile = async (f: File) => {
-    const text = await f.text();
-    const hash = sha256hex(text);
-    if (preconditions.fingerprint && hash !== preconditions.fingerprint) {
-      onErrorChange('El SHA-256 del archivo seleccionado no coincide con el dataset congelado.');
-      return;
-    }
-    onLog('execution.source', `re-selected source SHA256=${hash.slice(0, 12)}`);
-  };
-
   const handleValidate = async () => {
-    if (!afterFile || !receiptFile || !sourceFile) return;
+    if (!afterFile || !receiptFile || !sourceFile || !storedBundleJson) return;
     setValidating(true);
     onStateChange('validating');
     onReceiptChange(undefined);
     onErrorChange('');
     try {
-      const [sourceCsv, afterCsv, receiptText] = await Promise.all([
-        sourceFile.text(),
-        afterFile.text(),
+      const [sourceBuf, afterBuf, receiptText] = await Promise.all([
+        sourceFile.arrayBuffer().then(b => new Uint8Array(b)),
+        afterFile.arrayBuffer().then(b => new Uint8Array(b)),
         receiptFile.text(),
       ]);
-      const receipt = parsePythonExecutionReceipt(receiptText);
-      const beforeHash = computeExactCsvFingerprint(sourceCsv);
-      if (preconditions.fingerprint && beforeHash !== preconditions.fingerprint) {
+      const sourceHash = sha256BytesHex(sourceBuf);
+      if (preconditions.fingerprint && sourceHash !== preconditions.fingerprint) {
         throw new Error('El CSV fuente no coincide byte a byte con el dataset congelado.');
       }
-      const errors = validatePythonExecutionReceipt(receipt, {
-        runId: receipt.runId,
-        approvedScriptHash: scriptContractV2?.scriptHash ?? '',
-        scriptText: scriptContractV2?.scriptText ?? '',
-        beforeDatasetSha256: beforeHash,
-        bundleHash: null,
-        inputReceiptRef: null,
-        evidenceEnvelopeRef: null,
-        afterCsv,
+      const bundle = parsePythonExecutionBundle(storedBundleJson);
+      const receipt = parsePythonExecutionReceipt(receiptText);
+      const chainErrors = validatePythonExecutionChain({
+        bundle,
+        receipt,
+        sourceCsv: sourceBuf,
+        outputCsv: afterBuf,
       });
-      if (errors.length > 0) {
-        throw new Error(`Recibo inválido: ${errors.join('; ')}`);
+      if (chainErrors.length > 0) {
+        throw new Error(`Cadena inválida: ${chainErrors.join('; ')}`);
       }
       if (receipt.syntax.status !== 'passed' || receipt.execution.status !== 'passed') {
         throw new Error(`Ejecución no exitosa: syntax=${receipt.syntax.status} execution=${receipt.execution.status}`);
       }
-      if (!afterCsv || !afterCsv.trim()) {
+      const decoder = new TextDecoder();
+      const afterText = decoder.decode(afterBuf);
+      if (!afterText.trim()) {
         throw new Error('El CSV corregido está vacío.');
       }
       onReceiptChange(receipt);
+      onAfterFileChange(afterFile);
       onStateChange('verified');
       onLog('execution.verified', `receipt=${receipt.receiptHash.slice(0, 12)} rows=${receipt.output?.rowCount} cols=${receipt.output?.columnCount}`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       onErrorChange(msg);
+      onAfterFileChange(null);
       onStateChange('invalid');
       onLog('execution.invalid', msg);
     } finally {
@@ -197,7 +212,7 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
       <div className="step-header">
         <h2 className="step-heading">Aplicar y verificar</h2>
         <p className="step-subtitle">
-          Descarga el bundle y el CSV fuente, ejecuta el script de remediación en tu entorno Python local y sube el resultado junto con el recibo.
+          Descargá el bundle y el CSV fuente, ejecutá el script de remediación en tu entorno Python local y subí el resultado junto con el recibo.
         </p>
       </div>
 
@@ -212,6 +227,21 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
               ))}
             </ul>
           </div>
+        </div>
+      )}
+
+      {!sourceFile && preconditions.errors.some(e => e.includes('archivo CSV fuente')) && (
+        <div className="btn-row" style={{ marginTop: 'var(--space-sm)' }}>
+          <label className="btn-p btn-sm" style={{ cursor: 'pointer' }}>
+            <FileText size={14} /> Seleccionar CSV fuente
+            <input
+              type="file"
+              accept=".csv"
+              style={{ position: 'absolute', width: '1px', height: '1px', margin: '-1px', overflow: 'hidden', clip: 'rect(0,0,0,0)' }}
+              onChange={(e) => handleReuploadSource(e.target.files)}
+              data-testid="apply-verify-reselect-source"
+            />
+          </label>
         </div>
       )}
 
@@ -230,9 +260,12 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
           <div className="evidence-options" style={{ marginBottom: 'var(--space-md)' }}>
             <ShieldCheck size={16} />
             <div>
-              <strong>Ejecución preparada.</strong> Descarga los dos archivos y ejecutá el comando abajo en tu terminal.
+              <strong>Ejecución preparada.</strong> Descargá los dos archivos y ejecutá el comando abajo en tu terminal.
             </div>
           </div>
+          <p style={{ fontSize: '13px', color: 'var(--ink-muted)', marginBottom: 'var(--space-xs)' }}>
+            El comando debe ejecutarse desde la raíz del repositorio (<code>aura/</code>).
+          </p>
           <div className="btn-row">
             <button className="btn-p btn-sm" onClick={downloadBundle} data-testid="apply-verify-download-bundle">
               <FileJson size={14} /> execution-bundle.json
@@ -242,10 +275,15 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
             </button>
           </div>
           <div className="mono-block" style={{ marginTop: 'var(--space-md)' }} data-testid="apply-verify-command">
-            <code>{cliCommand}</code>
+            <code>{CLI_COMMAND}</code>
+          </div>
+          <div className="btn-row" style={{ marginTop: 'var(--space-xs)' }}>
+            <button className="btn-s btn-sm" onClick={copyToClipboard} data-testid="apply-verify-copy-command">
+              <ClipboardCheck size={14} /> {copyLabel}
+            </button>
           </div>
           <p style={{ fontSize: '13px', color: 'var(--ink-muted)', marginTop: 'var(--space-xs)' }}>
-            Ejecutá el comando en tu terminal. AURA no ejecuta Python. Cuando termine, arrastrá o seleccioná los dos archivos de salida.
+            AURA no ejecuta Python. Cuando termine, arrastrá o seleccioná los dos archivos de salida.
           </p>
           <div className="btn-row" style={{ marginTop: 'var(--space-md)' }}>
             <button className="btn-s btn-sm" onClick={startAwaitingFiles} data-testid="apply-verify-await-files">
@@ -272,7 +310,7 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
               <input
                 type="file"
                 accept=".csv"
-                style={{ display: 'none' }}
+                style={{ position: 'absolute', width: '1px', height: '1px', margin: '-1px', overflow: 'hidden', clip: 'rect(0,0,0,0)' }}
                 onChange={(e) => setAfterFile(e.target.files?.[0] ?? null)}
                 data-testid="apply-verify-after-file"
               />
@@ -282,7 +320,7 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
               <input
                 type="file"
                 accept=".json"
-                style={{ display: 'none' }}
+                style={{ position: 'absolute', width: '1px', height: '1px', margin: '-1px', overflow: 'hidden', clip: 'rect(0,0,0,0)' }}
                 onChange={(e) => setReceiptFile(e.target.files?.[0] ?? null)}
                 data-testid="apply-verify-receipt-file"
               />

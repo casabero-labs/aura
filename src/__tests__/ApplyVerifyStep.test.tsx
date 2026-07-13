@@ -44,6 +44,7 @@ const defaultProps = {
   onReceiptChange: vi.fn(),
   onErrorChange: vi.fn(),
   onBundleJsonChange: vi.fn(),
+  onAfterFileChange: vi.fn(),
   onLog: vi.fn(),
   onContinue: vi.fn(),
   onBack: vi.fn(),
@@ -70,6 +71,7 @@ describe('ApplyVerifyStep', () => {
   it('shows prepare button when preconditions are met', () => {
     render(<ApplyVerifyStep
       {...defaultProps}
+      sourceFile={new File(['col\nval'], 'test.csv', { type: 'text/csv' })}
       sourceDatasetFingerprint={'a'.repeat(64)}
       scriptContractV2={makeContract()}
       scriptContractVerificationV2={{ pythonSyntax: { state: 'passed' } } as any}
