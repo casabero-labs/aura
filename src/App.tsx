@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import React, { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 declare const __AURA_BUILD_SHA__: string;
 declare const __AURA_BUILD_TIME__: string;
@@ -36,6 +36,7 @@ import { buildEnvelopeRef, validateDiagnosisResponseV2, type DiagnosisResponseV2
 import type { ExperimentRunV1 } from './services/benchmark/experimentTypes';
 import { evaluateFormalDiagnosisRun } from './services/benchmark/formalDiagnosisEvaluator';
 import { buildFormalRepresentativeExecutionBundle, importFormalRepresentativeOutput, prepareFormalRepresentative } from './services/benchmark/formalRepresentativePreparation';
+import type { PythonExecutionBundleV1 } from './services/remediationExecution/pythonExecutionContract';
 
 const BenchmarkCampaignLab = lazy(() => import('./components/benchmark/BenchmarkCampaignLab'));
 const Oe4CampaignE2eHarness = import.meta.env.DEV
@@ -257,8 +258,11 @@ const App: React.FC = () => {
     return prepareFormalRepresentative(run, formalEvidenceEnvelope);
   }, [formalEvidenceEnvelope]);
 
+  const representativeBundleRef = useRef<PythonExecutionBundleV1 | null>(null);
+
   const downloadRepresentativeBundle = useCallback((run: ExperimentRunV1) => {
     const bundle = buildFormalRepresentativeExecutionBundle(run);
+    representativeBundleRef.current = bundle;
     downloadTextFile(
       `aura-python-${run.runId}.json`,
       `${JSON.stringify(bundle, null, 2)}\n`,
@@ -268,8 +272,10 @@ const App: React.FC = () => {
 
   const importRepresentativeCsv = useCallback(async (run: ExperimentRunV1, afterFile: File, receiptFile: File) => {
     if (!pipelineData.file) throw new Error('Vuelve a cargar el CSV controlado original antes de reauditar.');
-    const approvedBundle = buildFormalRepresentativeExecutionBundle(run);
-    return importFormalRepresentativeOutput(run, pipelineData.file, afterFile, receiptFile, approvedBundle);
+    if (!representativeBundleRef.current) {
+      representativeBundleRef.current = buildFormalRepresentativeExecutionBundle(run);
+    }
+    return importFormalRepresentativeOutput(run, pipelineData.file, afterFile, receiptFile, representativeBundleRef.current);
   }, [pipelineData.file]);
 
   // Liberar memoria VRAM del WebLLM anterior al cambiar de proveedor o desmontar

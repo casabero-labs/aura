@@ -300,10 +300,23 @@ export const validatePythonExecutionReceipt = (
   if (syntaxStatus !== 'passed' && executionStatus === 'passed') {
     errors.push('execution cannot pass when syntax failed');
   }
+
+  if (syntaxStatus === 'passed' && receipt.syntax.error !== null) {
+    errors.push('passed syntax cannot declare an error');
+  }
+  if (syntaxStatus === 'failed' && !receipt.syntax.error) {
+    errors.push('syntax failure requires an error');
+  }
+  if (executionStatus === 'passed' && receipt.execution.error !== null) {
+    errors.push('passed execution cannot declare an error');
+  }
+  if (executionStatus === 'failed' && !receipt.execution.error) {
+    errors.push('execution failure requires an error');
+  }
+
   const fullyPassed = syntaxStatus === 'passed' && executionStatus === 'passed';
   if (fullyPassed) {
     if (!SHA256.test(receipt.afterDatasetSha256 ?? '')) errors.push('successful execution requires an output hash');
-    if (receipt.syntax.error !== null || receipt.execution.error !== null) errors.push('successful execution cannot contain errors');
     if (!receipt.output || !Number.isInteger(receipt.output.rowCount) || receipt.output.rowCount < 0
       || !Number.isInteger(receipt.output.columnCount) || receipt.output.columnCount < 0) {
       errors.push('successful execution requires valid output dimensions');
@@ -316,11 +329,6 @@ export const validatePythonExecutionReceipt = (
   } else {
     if (receipt.afterDatasetSha256 !== null || receipt.output !== null) errors.push('failed execution cannot certify an output');
     if (expected.afterCsv !== undefined && expected.afterCsv !== null) errors.push('failed execution cannot include an output CSV');
-    if (syntaxStatus === 'failed' && !receipt.syntax.error) errors.push('syntax failure requires an error');
-    if (executionStatus === 'failed' && !receipt.execution.error) errors.push('execution failure requires an error');
-    if (syntaxStatus === 'passed' && executionStatus === 'failed' && receipt.execution.error === null) {
-      errors.push('execution failure requires an error');
-    }
   }
   return deduplicate(errors);
 };

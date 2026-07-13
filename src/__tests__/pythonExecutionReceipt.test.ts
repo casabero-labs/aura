@@ -301,10 +301,10 @@ describe('adversarial: impossible state combinations', () => {
       sourceCsv: BEFORE,
       outputCsv: AFTER,
     });
-    expect(errors).toContain('successful execution cannot contain errors');
+    expect(errors).toContain('passed execution cannot declare an error');
   });
 
-  it('rejects inverted or equal timestamps', () => {
+  it('rejects inverted timestamps (completedAt < startedAt)', () => {
     const receipt = buildReceipt({
       execution: {
         status: 'passed', startedAt: '2026-07-12T12:00:01.000Z',
@@ -337,6 +337,42 @@ describe('adversarial: impossible state combinations', () => {
       outputCsv: null,
     });
     expect(errors).toContain('failed execution cannot certify an output');
+  });
+
+  it('rejects syntax passed when syntax.error is non-null', () => {
+    const receipt = buildReceipt({
+      syntax: { status: 'passed', error: 'phantom' },
+      execution: {
+        status: 'failed', startedAt: NOW, completedAt: NOW, durationMs: 1,
+        stdoutSha256: sha256hex(''), stderrSha256: sha256hex(''), error: 'real',
+      },
+      output: null,
+      afterDatasetSha256: null,
+    });
+    const errors = validatePythonExecutionChain({
+      bundle: makeBundle(),
+      receipt,
+      sourceCsv: BEFORE,
+      outputCsv: null,
+    });
+    expect(errors).toContain('passed syntax cannot declare an error');
+  });
+
+  it('rejects execution passed when execution.error is non-null', () => {
+    const receipt = buildReceipt({
+      syntax: { status: 'passed', error: null },
+      execution: {
+        status: 'passed', startedAt: NOW, completedAt: NOW, durationMs: 1,
+        stdoutSha256: sha256hex(''), stderrSha256: sha256hex(''), error: 'phantom',
+      },
+    });
+    const errors = validatePythonExecutionChain({
+      bundle: makeBundle(),
+      receipt,
+      sourceCsv: BEFORE,
+      outputCsv: AFTER,
+    });
+    expect(errors).toContain('passed execution cannot declare an error');
   });
 });
 
