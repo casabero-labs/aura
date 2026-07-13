@@ -7,8 +7,10 @@
   "type": "object",
   "required": [
     "exportContract",
+    "artifactIdentity",
     "manifest",
     "profile",
+    "diagnosticReport",
     "diagnosis",
     "script",
     "calibrationEvidence"
@@ -43,9 +45,12 @@
         },
         "canonicalBlocks": {
           "type": "array",
-          "minItems": 5,
-          "maxItems": 5,
+          "minItems": 6,
+          "maxItems": 6,
           "prefixItems": [
+            {
+              "const": "artifactIdentity"
+            },
             {
               "const": "manifest"
             },
@@ -124,6 +129,24 @@
       },
       "additionalProperties": false
     },
+    "artifactIdentity": {
+      "type": "object",
+      "required": [
+        "runId",
+        "reportId",
+        "datasetSha256",
+        "diagnosisReceiptHash",
+        "reportContentHash"
+      ],
+      "properties": {
+        "runId": { "type": "string", "minLength": 1 },
+        "reportId": { "type": "string", "minLength": 1 },
+        "datasetSha256": { "type": ["string", "null"] },
+        "diagnosisReceiptHash": { "type": ["string", "null"] },
+        "reportContentHash": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
     "manifest": {
       "type": "object",
       "required": [
@@ -191,14 +214,27 @@
       },
       "additionalProperties": false
     },
+    "diagnosticReport": {
+      "type": ["object", "null"]
+    },
     "diagnosis": {
       "type": "object",
       "required": [
+        "status",
         "model",
         "providerType",
-        "diagnosisText"
+        "diagnosisText",
+        "structuredDiagnosis",
+        "failureEvidence",
+        "inputSnapshot",
+        "executionReceipt",
+        "rawResponseHash",
+        "rawResponse"
       ],
       "properties": {
+        "status": {
+          "enum": ["valid", "invalid", "not_run"]
+        },
         "model": {
           "type": "string"
         },
@@ -213,6 +249,24 @@
         },
         "diagnosisText": {
           "type": "string"
+        },
+        "structuredDiagnosis": {
+          "type": ["object", "null"]
+        },
+        "failureEvidence": {
+          "type": ["object", "null"]
+        },
+        "inputSnapshot": {
+          "type": ["object", "null"]
+        },
+        "executionReceipt": {
+          "type": ["object", "null"]
+        },
+        "rawResponseHash": {
+          "type": ["string", "null"]
+        },
+        "rawResponse": {
+          "type": ["string", "null"]
         }
       },
       "additionalProperties": false
@@ -222,7 +276,11 @@
       "required": [
         "generatedScript",
         "scriptValidation",
-        "approvedScript"
+        "approvedScript",
+        "remediationPlan",
+        "contract",
+        "verification",
+        "approvalStatus"
       ],
       "properties": {
         "generatedScript": {
@@ -236,6 +294,18 @@
         },
         "approvedScript": {
           "type": "string"
+        },
+        "remediationPlan": {
+          "type": ["object", "null"]
+        },
+        "contract": {
+          "type": ["object", "null"]
+        },
+        "verification": {
+          "type": ["object", "null"]
+        },
+        "approvalStatus": {
+          "enum": ["not_requested", "pending", "approved", "unverified"]
         }
       },
       "additionalProperties": false

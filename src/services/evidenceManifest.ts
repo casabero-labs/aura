@@ -296,7 +296,7 @@ export const buildEvidenceManifest = (params: {
     validationSummary: {
       deterministicF1: hasGroundTruth ? deterministicValidation!.summary.macroF1 : undefined,
       scriptSafetyScore: scriptValidation?.safetyScore,
-      hitlApproved: hitlDecision?.approved ?? false,
+      hitlApproved: Boolean(hitlDecision?.approved || remediationReview?.scriptApproved),
       healthDeltaPoints,
     },
     limitations,

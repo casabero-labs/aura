@@ -306,6 +306,23 @@ describe('buildEvidenceManifest', () => {
     expect(oe5!.evidence).toContain('15 aprobadas');
   });
 
+  it('declara HITL aprobado cuando el script del plan fue aprobado', () => {
+    const manifest = buildEvidenceManifest({
+      auditEvidence: stubEvidence,
+      benchmarkResults: [],
+      remediationReview: {
+        totalActions: 15,
+        approvedActions: 15,
+        rejectedActions: 0,
+        pendingActions: 0,
+        scriptApproved: true,
+      },
+    });
+
+    expect(manifest.validationSummary.hitlApproved).toBe(true);
+    expect(manifest.objectivesCoverage.find(o => o.id === 'OE5')!.status).toBe('completed');
+  });
+
   it('allowedClaims no habilita claims de calibración sin corridas', () => {
     const manifest = buildEvidenceManifest({
       auditEvidence: stubEvidence,

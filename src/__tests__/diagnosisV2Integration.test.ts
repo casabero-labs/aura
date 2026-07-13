@@ -175,13 +175,19 @@ describe('result structure', () => {
 
   it('success narrowing → all fields present', async () => {
     const p = makeProvider('cloud');
-    setupValidProvider(p);
+    const rawResponse = validResponseForProviderType('cloud');
+    p.generateTextWithProgress = vi.fn().mockResolvedValue({
+      text: rawResponse,
+      metrics: { latencyMs: 800, tokensGenerated: 250, model: 'gemini-2.5-flash', provider: 'google', isLocal: false },
+    });
     const r = await runStructuredDiagnosis(minimalReport, { provider: p, auditEvidence, requestedModel: 'gemini-2.5-flash' });
     expect('success' in r && r.success).toBe(true);
     if ('success' in r && r.success) {
       expect(r.result.version).toBe(2);
       expect(r.result.diagnosis.contractId).toBe('aura.diagnosis.v2');
       expect(r.result.metrics.latencyMs).toBeGreaterThan(0);
+      expect(r.result.rawResponse).toBe(rawResponse);
+      expect(r.result.rawResponseHash).toBe(r.result.executionReceipt.rawResponseHash);
     }
   });
 
@@ -210,8 +216,9 @@ describe('result structure', () => {
     ['another-model', 'different observed model'],
   ])('persists canonical failure evidence for %s', async (observedModel) => {
     const provider = makeProvider('ollama');
+    const rawResponse = validResponseForProviderType('ollama');
     provider.generateTextWithProgress = vi.fn().mockResolvedValue({
-      text: validResponseForProviderType('ollama'),
+      text: rawResponse,
       metrics: { latencyMs: 10, tokensGenerated: 20, model: observedModel, provider: 'Ollama', isLocal: true },
     });
 
@@ -229,6 +236,7 @@ describe('result structure', () => {
       expect(result.executionReceipt.validationStatus).toBe('invalid');
       expect(result.executionReceipt.observedModel).toBe(observedModel);
       expect(result.rawResponseHash).toBe(result.executionReceipt.rawResponseHash);
+      expect(result.rawResponse).toBe(rawResponse);
     }
   });
 

@@ -95,6 +95,43 @@ describe('buildAuraExportPackage', () => {
     expect(exported.calibrationEvidence.results).toEqual([]);
   });
 
+  it('normaliza diagnóstico y script para que el contrato exportado sea explícito', () => {
+    const exported = buildPackage();
+
+    expect(exported.diagnosis).toEqual(expect.objectContaining({
+      rawResponse: null,
+      structuredDiagnosis: null,
+      failureEvidence: null,
+      inputSnapshot: null,
+      executionReceipt: null,
+    }));
+    expect(exported.script).toEqual(expect.objectContaining({
+      remediationPlan: null,
+      contract: null,
+      verification: null,
+      approvalStatus: 'not_requested',
+    }));
+  });
+
+  it('no presenta un script sin contrato V2 como aprobado contractual', () => {
+    const manifest = buildEvidenceManifest({ auditEvidence: null, benchmarkResults: [] });
+    const exported = buildAuraExportPackage({
+      manifest,
+      profile: { report, auditEvidence: null },
+      diagnosis: {
+        status: 'not_run', model: 'test-model', providerType: 'ollama', diagnosisText: '',
+      },
+      script: {
+        generatedScript: 'print("ok")\n',
+        scriptValidation: null,
+        approvedScript: 'print("ok")\n',
+      },
+      benchmarkResults: [],
+    });
+
+    expect(exported.script.approvalStatus).toBe('unverified');
+  });
+
   it('no reintroduce experiment como bloque silencioso', () => {
     const exported = buildPackage();
 

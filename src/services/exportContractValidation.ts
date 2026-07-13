@@ -1,11 +1,13 @@
 import { CalibrationEvidenceStatus } from '../types';
 import {
   canonicalJson,
+  computeScriptHashV2,
   exactDiagnosisPromptV2,
   sha256hex,
   validateExecutionReceiptIntegrityV1,
   type DiagnosisInputPackageV2,
   type ExecutionReceiptV1,
+  type ScriptContractV2,
 } from '../contracts/llm';
 import {
   AURA_EXPORT_CONTRACT_NAME,
@@ -107,6 +109,9 @@ const validateDiagnosisTrace = (
   if (receipt.validationStatus !== expectedStatus) errors.push(`diagnosis.executionReceipt.validationStatus debe ser ${expectedStatus}.`);
   if (diagnostics.model !== receipt.requestedModel) errors.push('diagnosis.model no corresponde al modelo solicitado del recibo.');
   if (diagnostics.rawResponseHash !== receipt.rawResponseHash) errors.push('diagnosis.rawResponseHash no corresponde al recibo.');
+  if (typeof diagnostics.rawResponse === 'string' && sha256hex(diagnostics.rawResponse) !== receipt.rawResponseHash) {
+    errors.push('diagnosis.rawResponse no corresponde al hash de la respuesta cruda.');
+  }
 
   if (expectedStatus === 'valid') {
     const structured = diagnostics.structuredDiagnosis;
@@ -320,6 +325,9 @@ export const validateAuraExportPackage = (
       if (diagnostics.rawResponseHash !== null && diagnostics.rawResponseHash !== undefined) {
         errors.push('diagnosis.rawResponseHash debe ser null/ausente cuando status es not_run.');
       }
+      if (diagnostics.rawResponse !== null && diagnostics.rawResponse !== undefined) {
+        errors.push('diagnosis.rawResponse debe ser null/ausente cuando status es not_run.');
+      }
     }
 
     if (isRecord(artifactIdentity)) {
@@ -329,6 +337,75 @@ export const validateAuraExportPackage = (
       if (artifactIdentity.diagnosisReceiptHash !== receiptHash) {
         errors.push('artifactIdentity.diagnosisReceiptHash no corresponde al recibo exportado.');
       }
+    }
+  }
+
+  const script = packageLike.script;
+  if (!isRecord(script)) {
+    errors.push('El paquete debe incluir script.');
+  } else {
+    const generatedScript = script.generatedScript;
+    const approvedScript = script.approvedScript;
+    const approvalStatus = script.approvalStatus;
+    if (typeof generatedScript !== 'string' || typeof approvedScript !== 'string') {
+      errors.push('script.generatedScript y script.approvedScript deben ser strings.');
+    }
+    if (!['not_requested', 'pending', 'approved', 'unverified'].includes(String(approvalStatus))) {
+      errors.push('script.approvalStatus no es un estado permitido.');
+    }
+
+    const contract = script.contract;
+    const plan = script.remediationPlan;
+    const verification = script.verification;
+    const hasApprovedScript = typeof approvedScript === 'string' && approvedScript.trim().length > 0;
+
+    if (hasApprovedScript && approvalStatus === 'unverified' && !isRecord(contract)) {
+      warnings.push('El script revisado no tiene contrato aura.script.v2; se exporta como unverified y no como ejecución certificada.');
+    } else if (hasApprovedScript) {
+      if (!isRecord(contract)) errors.push('script.contract es obligatorio cuando existe un script aprobado.');
+      if (!isRecord(plan)) errors.push('script.remediationPlan es obligatorio cuando existe un script aprobado.');
+      if (!isRecord(verification)) errors.push('script.verification es obligatorio cuando existe un script aprobado.');
+      if (approvalStatus !== 'approved') errors.push('script.approvalStatus debe ser approved cuando existe un script aprobado.');
+
+      if (isRecord(contract)) {
+        if (contract.contractId !== 'aura.script.v2' || contract.contractVersion !== '2.0.0') {
+          errors.push('script.contract no cumple aura.script.v2.');
+        }
+        if (contract.scriptText !== approvedScript || generatedScript !== approvedScript) {
+          errors.push('El script aprobado no coincide exactamente con el contrato y el script generado.');
+        }
+        if (isRecord(artifactIdentity) && contract.datasetFingerprint !== artifactIdentity.datasetSha256) {
+          errors.push('script.contract.datasetFingerprint no corresponde al SHA-256 del dataset.');
+        }
+        try {
+          if (contract.scriptHash !== computeScriptHashV2(contract as unknown as ScriptContractV2)) {
+            errors.push('script.contract.scriptHash no corresponde al contrato canónico.');
+          }
+        } catch {
+          errors.push('script.contract no contiene los campos necesarios para verificar su hash.');
+        }
+      }
+
+      if (isRecord(verification) && verification.valid !== true) {
+        errors.push('script.verification.valid debe ser true para un script aprobado.');
+      }
+      if (isRecord(plan) && isRecord(contract)) {
+        if (contract.remediationRef !== plan.planId) {
+          errors.push('script.contract.remediationRef no corresponde al plan exportado.');
+        }
+        const planActions = Array.isArray(plan.plan) ? plan.plan : [];
+        const approvedActionIds = new Set(
+          planActions
+            .filter((action) => isRecord(action) && action.approvalStatus === 'approved' && typeof action.actionId === 'string')
+            .map((action) => (action as Record<string, unknown>).actionId),
+        );
+        const acceptedActionIds = Array.isArray(contract.acceptedActionIds) ? contract.acceptedActionIds : [];
+        if (!acceptedActionIds.every((actionId) => approvedActionIds.has(actionId))) {
+          errors.push('script.contract contiene acciones aceptadas sin aprobación en remediationPlan.');
+        }
+      }
+    } else if (approvalStatus === 'approved' || approvalStatus === 'unverified') {
+      errors.push(`script.approvalStatus no puede ser ${String(approvalStatus)} sin script revisado.`);
     }
   }
 

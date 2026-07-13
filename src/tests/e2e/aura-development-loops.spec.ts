@@ -110,7 +110,14 @@ test('AURA: flujo completo perfil → diagnóstico → script → revisar → ex
   await expect(page.locator('[data-testid="export-stage"]')).toBeVisible();
   await expect(page.getByRole('button', { name: /Descargar PDF/i })).toBeVisible();
 
-  // ── Task 5: Real download checks ──
+  // ── Task 5: Complete evidence package ──
+  const [zipDownload] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByTestId('export-download-evidence-package').click(),
+  ]);
+  expect(zipDownload.suggestedFilename()).toMatch(/\.zip$/);
+
+  // ── Task 5a: Real JSON download check ──
   const [jsonDownload] = await Promise.all([
     page.waitForEvent('download'),
     page.getByRole('button', { name: /Descargar JSON/i }).click(),

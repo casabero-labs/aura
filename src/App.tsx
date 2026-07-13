@@ -24,11 +24,12 @@ import { generatePdfReport } from './services/pdfGenerator';
 import { generateDiagnosticPdfReport } from './services/diagnosticReport';
 import { buildEvidenceManifest } from './services/evidenceManifest';
 import { buildAuraExportPackage } from './services/exportPackage';
+import { buildEvidenceArchive } from './services/evidenceArchive';
 import { validateAuraExportPackage } from './services/exportContractValidation';
 import { deriveDiagnosisExportStatus } from './services/diagnosisExportState';
 import { buildExportArtifactIdentity } from './services/exportArtifactIdentity';
 import { savePipelineSession, loadPipelineSession, clearPipelineSession } from './services/pipelineSession';
-import { downloadTextFile } from './utils/download';
+import { downloadBlob, downloadTextFile } from './utils/download';
 import { AIConfig, AuditReport, DeterministicValidationReport, EvidenceManifest, ExecutiveReportContent, IssueSeverity } from './types';
 import { createFormalCampaignBundle, buildFormalEvidenceEnvelope } from './services/benchmark/formalCampaignFactory';
 import { buildEnvelopeRef, validateDiagnosisResponseV2, type DiagnosisResponseV2, type DiagnosisFailureEvidenceV2, type DiagnosisExecutionResult } from './contracts/llm';
@@ -302,6 +303,8 @@ const App: React.FC = () => {
   const [pdfProgressMsg, setPdfProgressMsg] = useState('');
   const [pdfProgressStatus, setPdfProgressStatus] = useState<'idle' | 'running' | 'success' | 'error'>('idle');
   const [exportJsonPreflightError, setExportJsonPreflightError] = useState<string | null>(null);
+  const [isEvidencePackageGenerating, setIsEvidencePackageGenerating] = useState(false);
+  const [evidencePackageError, setEvidencePackageError] = useState<string | null>(null);
   const [sessionDestroyed, setSessionDestroyed] = useState(false);
   const [showNewAnalysisDialog, setShowNewAnalysisDialog] = useState(false);
   const [showDestroySessionDialog, setShowDestroySessionDialog] = useState(false);
@@ -340,8 +343,8 @@ const App: React.FC = () => {
     }
   };
 
-  const handleExportJson = () => {
-    if (!report) return;
+  const buildCurrentTechnicalExport = () => {
+    if (!report) return null;
     const structDiag = pipelineData.structuredDiagnosis;
     const failureEv = pipelineData.diagnosisFailureEvidence;
     const diagnosisStatus = deriveDiagnosisExportStatus({
@@ -350,6 +353,21 @@ const App: React.FC = () => {
     });
     const receipt = structDiag?.executionReceipt ?? failureEv?.executionReceipt ?? null;
     const remediationActions = pipelineData.remediationPlan?.plan ?? [];
+    const scriptApproved = Boolean(
+      pipelineData.approvedScript
+      && pipelineData.scriptContractV2
+      && pipelineData.scriptContractVerificationV2?.valid === true
+      && pipelineData.approvedScript === pipelineData.scriptContractV2.scriptText
+    );
+    const exportDiagnosticReport = diagnosticReport
+      ? {
+          ...diagnosticReport,
+          exportReadiness: {
+            ...diagnosticReport.exportReadiness,
+            scriptExportsReady: scriptApproved,
+          },
+        }
+      : null;
     const manifest = buildEvidenceManifest({
       auditEvidence,
       deterministicValidation,
@@ -366,11 +384,7 @@ const App: React.FC = () => {
             approvedActions: remediationActions.filter(action => action.approvalStatus === 'approved').length,
             rejectedActions: remediationActions.filter(action => action.approvalStatus === 'rejected').length,
             pendingActions: remediationActions.filter(action => action.approvalStatus === 'pending').length,
-            scriptApproved: Boolean(
-              pipelineData.approvedScript
-              && pipelineData.scriptContractV2
-              && pipelineData.approvedScript === pipelineData.scriptContractV2.scriptText
-            ),
+            scriptApproved,
           }
         : null,
       scriptContractEvidence: {
@@ -389,11 +403,11 @@ const App: React.FC = () => {
         auditEvidence,
       },
       deterministicValidation,
-      diagnosticReport,
+      diagnosticReport: exportDiagnosticReport,
       hitlDecision: improvementRun?.hitlDecision ?? null,
       diagnosis: {
         status: diagnosisStatus,
-        model: aiConfig.model,
+        model: receipt?.requestedModel ?? aiConfig.model,
         providerType: aiConfig.providerType,
         diagnosisText: aiAnalysis,
         structuredDiagnosis: structDiag ?? null,
@@ -401,16 +415,69 @@ const App: React.FC = () => {
         inputSnapshot: (structDiag?.inputSnapshot ?? failureEv?.inputSnapshot ?? null) as unknown as Record<string, unknown> | null,
         executionReceipt: (structDiag?.executionReceipt ?? failureEv?.executionReceipt ?? null) as unknown as Record<string, unknown> | null,
         rawResponseHash: structDiag?.rawResponseHash ?? failureEv?.rawResponseHash ?? null,
+        rawResponse: structDiag?.rawResponse ?? failureEv?.rawResponse ?? null,
       },
       script: {
         generatedScript: pipelineData.cleaningScript,
         scriptValidation,
         approvedScript: pipelineData.approvedScript,
+        remediationPlan: pipelineData.remediationPlan,
+        contract: pipelineData.scriptContractV2,
+        verification: pipelineData.scriptContractVerificationV2,
       },
       benchmarkResults,
       improvementRun,
     });
     const preflight = validateAuraExportPackage(exportPackage);
+    return { exportPackage, preflight, exportDiagnosticReport };
+  };
+
+  const buildCurrentIssuesCsv = () => {
+    if (!report) return null;
+    const receiptHash = pipelineData.structuredDiagnosis?.executionReceipt?.receiptHash
+      ?? pipelineData.diagnosisFailureEvidence?.executionReceipt.receiptHash
+      ?? null;
+    const scriptApproved = Boolean(
+      pipelineData.approvedScript
+      && pipelineData.scriptContractV2
+      && pipelineData.scriptContractVerificationV2?.valid === true
+      && pipelineData.approvedScript === pipelineData.scriptContractV2.scriptText
+    );
+    const exportDiagnosticReport = diagnosticReport
+      ? {
+          ...diagnosticReport,
+          exportReadiness: {
+            ...diagnosticReport.exportReadiness,
+            scriptExportsReady: scriptApproved,
+          },
+        }
+      : null;
+    const identity = buildExportArtifactIdentity({
+      report,
+      auditEvidence,
+      diagnosticReport: exportDiagnosticReport,
+      diagnosisReceiptHash: receiptHash,
+    });
+    const header = [
+      'runId', 'reportId', 'datasetSha256', 'diagnosisReceiptHash', 'reportContentHash',
+      'id', 'ruleId', 'severity', 'category', 'ruleName', 'column', 'count',
+      'affectedPercentage', 'description', 'sampleValues',
+    ];
+    const rows = report.issues.map((issue) => [
+      identity.runId, identity.reportId, identity.datasetSha256 ?? '',
+      identity.diagnosisReceiptHash ?? '', identity.reportContentHash,
+      issue.id, issue.ruleId, issue.severity, issue.category, issue.ruleName,
+      issue.column ?? '', issue.count,
+      issue.affectedPercentage.toFixed(2), issue.description,
+      issue.sampleValues.map(String).join(' | '),
+    ]);
+    return [header, ...rows].map((row) => row.map(csvCell).join(',')).join('\n');
+  };
+
+  const handleExportJson = () => {
+    const current = buildCurrentTechnicalExport();
+    if (!current) return;
+    const { exportPackage, preflight } = current;
     if (!preflight.valid) {
       console.warn('export.preflight.failed', {
         errors: preflight.errors,
@@ -434,32 +501,56 @@ const App: React.FC = () => {
   };
 
   const handleExportIssuesCsv = () => {
-    if (!report) return;
-    const receiptHash = pipelineData.structuredDiagnosis?.executionReceipt?.receiptHash
-      ?? pipelineData.diagnosisFailureEvidence?.executionReceipt.receiptHash
-      ?? null;
-    const identity = buildExportArtifactIdentity({
-      report,
-      auditEvidence,
-      diagnosticReport,
-      diagnosisReceiptHash: receiptHash,
-    });
-    const header = [
-      'runId', 'reportId', 'datasetSha256', 'diagnosisReceiptHash', 'reportContentHash',
-      'id', 'ruleId', 'severity', 'category', 'ruleName', 'column', 'count',
-      'affectedPercentage', 'description', 'sampleValues',
-    ];
-    const rows = report.issues.map((issue) => [
-      identity.runId, identity.reportId, identity.datasetSha256 ?? '',
-      identity.diagnosisReceiptHash ?? '', identity.reportContentHash,
-      issue.id, issue.ruleId, issue.severity, issue.category, issue.ruleName,
-      issue.column ?? '', issue.count,
-      issue.affectedPercentage.toFixed(2), issue.description,
-      issue.sampleValues.map(String).join(' | '),
-    ]);
-    const csv = [header, ...rows].map((row) => row.map(csvCell).join(',')).join('\n');
+    const csv = buildCurrentIssuesCsv();
+    if (!csv) return;
     downloadTextFile(`aura_issues_${Date.now()}.csv`, csv, 'text/csv;charset=utf-8');
     setHasExported(true);
+  };
+
+  const handleExportEvidencePackage = async () => {
+    const current = buildCurrentTechnicalExport();
+    const issuesCsv = buildCurrentIssuesCsv();
+    if (!current || !issuesCsv) return;
+    if (!current.preflight.valid) {
+      console.warn('evidence-package.preflight.failed', current.preflight.errors);
+      setEvidencePackageError(
+        'El paquete no se descargó porque el expediente técnico no superó la validación interna.',
+      );
+      return;
+    }
+
+    setIsEvidencePackageGenerating(true);
+    setEvidencePackageError(null);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 50));
+      let diagnosticPdf: Uint8Array | null = null;
+      if (current.exportDiagnosticReport) {
+        generateDiagnosticPdfReport({
+          diagnosticReport: current.exportDiagnosticReport,
+          pythonScript: approvedCleaningScript || pipelineData.cleaningScript || undefined,
+          pythonScriptApproved: Boolean(approvedCleaningScript),
+          save: (doc) => {
+            diagnosticPdf = new Uint8Array(doc.output('arraybuffer'));
+          },
+        });
+      }
+      const archive = await buildEvidenceArchive({
+        technicalExport: current.exportPackage,
+        issuesCsv,
+        diagnosticPdf,
+        activityLog: logs,
+      });
+      downloadBlob(
+        archive.filename,
+        new Blob([Uint8Array.from(archive.bytes)], { type: 'application/zip' }),
+      );
+      setHasExported(true);
+    } catch (error) {
+      console.error('evidence-package.failed', error);
+      setEvidencePackageError('No fue posible construir el ZIP de evidencia. La sesión permanece intacta.');
+    } finally {
+      setIsEvidencePackageGenerating(false);
+    }
   };
 
   const returnToDiagnosticReport = () => {
@@ -789,7 +880,36 @@ const App: React.FC = () => {
               <p className="export-delivery-block-eyebrow">Resultados</p>
               <h3 className="export-delivery-block-title">Archivos disponibles</h3>
               <div className="export-delivery-cards">
-                <article className="export-delivery-card export-delivery-card--primary">
+                <article className="export-delivery-card export-delivery-card--primary export-delivery-card--evidence">
+                  <div className="export-delivery-card-head">
+                    <Download size={20} />
+                    <div>
+                      <h4>Paquete completo de evidencia</h4>
+                      <p>Un solo ZIP con el PDF, JSON técnico, hallazgos, prompt exacto, respuesta del modelo, recibo, plan, contrato, verificación, script, actividad y vistas SVG reproducibles.</p>
+                    </div>
+                  </div>
+                  <div className="export-delivery-card-action">
+                    <p className="export-delivery-card-desc">
+                      El CSV original no se incluye; queda identificado por su SHA-256. El expediente puede contener muestras de los hallazgos, por lo que debes revisarlo antes de compartirlo. Cada artefacto lleva hash y tamaño en manifest.json.
+                    </p>
+                    <button
+                      className="btn-p btn-sm"
+                      onClick={handleExportEvidencePackage}
+                      disabled={isEvidencePackageGenerating}
+                      data-testid="export-download-evidence-package"
+                    >
+                      {isEvidencePackageGenerating ? 'Preparando ZIP…' : 'Descargar evidencia completa (.zip)'}
+                    </button>
+                  </div>
+                  {evidencePackageError && (
+                    <div className="provider-unavailable-notice" role="alert" data-testid="export-evidence-package-warning">
+                      <strong>Paquete no exportado.</strong>{' '}
+                      {evidencePackageError}
+                    </div>
+                  )}
+                </article>
+
+                <article className="export-delivery-card">
                   <div className="export-delivery-card-head">
                     <FileText size={20} />
                     <div>

@@ -2,16 +2,22 @@
 
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from '../App';
-import { downloadTextFile } from '../utils/download';
+import { downloadBlob, downloadTextFile } from '../utils/download';
 import { loadPipelineSession } from '../services/pipelineSession';
 import { validateAuraExportPackage } from '../services/exportContractValidation';
+import { buildEvidenceArchive } from '../services/evidenceArchive';
 import { AuditReport } from '../types';
 
 vi.mock('../utils/download', () => ({
+  downloadBlob: vi.fn(),
   downloadTextFile: vi.fn(),
+}));
+
+vi.mock('../services/evidenceArchive', () => ({
+  buildEvidenceArchive: vi.fn(),
 }));
 
 vi.mock('../services/exportContractValidation', () => ({
@@ -156,5 +162,36 @@ describe('JSON technical export preflight integration', () => {
 
     expect(screen.getByTestId('main-pipeline')).toBeTruthy();
     expect(screen.queryByTestId('export-stage')).toBeNull();
+  });
+
+  it('downloads one complete evidence ZIP after the same technical preflight', async () => {
+    const user = userEvent.setup();
+    vi.mocked(validateAuraExportPackage).mockReturnValue({
+      valid: true,
+      errors: [],
+      warnings: [],
+    });
+    vi.mocked(buildEvidenceArchive).mockResolvedValue({
+      filename: 'aura_evidencia_test.zip',
+      bytes: new Uint8Array([1, 2, 3]),
+      manifest: {} as any,
+    });
+
+    render(<App />);
+    await user.click(screen.getByRole('button', { name: 'Empezar auditoría' }));
+    await user.click(screen.getByTestId('export-download-evidence-package'));
+
+    await waitFor(() => {
+      expect(validateAuraExportPackage).toHaveBeenCalledOnce();
+      expect(buildEvidenceArchive).toHaveBeenCalledWith(expect.objectContaining({
+        issuesCsv: expect.stringContaining('runId'),
+        diagnosticPdf: null,
+        activityLog: [],
+      }));
+      expect(downloadBlob).toHaveBeenCalledWith(
+        'aura_evidencia_test.zip',
+        expect.any(Blob),
+      );
+    });
   });
 });

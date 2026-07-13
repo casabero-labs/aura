@@ -1,0 +1,279 @@
+import { strToU8, zipSync } from 'fflate';
+import {
+  exactDiagnosisPromptV2,
+  type DiagnosisInputPackageV2,
+} from '../contracts/llm';
+import type { buildAuraExportPackage } from './exportPackage';
+
+export const AURA_EVIDENCE_PACKAGE_CONTRACT = 'aura.evidence-package.v1' as const;
+
+type AuraTechnicalExport = ReturnType<typeof buildAuraExportPackage>;
+
+export interface EvidenceArchiveInput {
+  technicalExport: AuraTechnicalExport;
+  issuesCsv: string;
+  diagnosticPdf?: Uint8Array | null;
+  activityLog?: Array<{ time: string; msg: string }>;
+}
+
+export interface EvidenceArchiveManifestFile {
+  path: string;
+  mediaType: string;
+  bytes: number;
+  sha256: string;
+  description: string;
+}
+
+export interface EvidenceArchiveManifest {
+  contractId: typeof AURA_EVIDENCE_PACKAGE_CONTRACT;
+  contractVersion: '1.0.0';
+  generatedAt: string;
+  runId: string;
+  reportId: string;
+  datasetSha256: string | null;
+  diagnosisReceiptHash: string | null;
+  privacy: {
+    rawDatasetIncluded: false;
+    note: string;
+  };
+  snapshots: {
+    kind: 'reproducible_svg_evidence';
+    browserScreenshots: false;
+    note: string;
+  };
+  files: EvidenceArchiveManifestFile[];
+}
+
+export interface EvidenceArchiveResult {
+  filename: string;
+  bytes: Uint8Array;
+  manifest: EvidenceArchiveManifest;
+}
+
+interface PendingFile {
+  content: string | Uint8Array;
+  mediaType: string;
+  description: string;
+}
+
+const asBytes = (content: string | Uint8Array): Uint8Array =>
+  typeof content === 'string' ? strToU8(content) : content;
+
+const json = (value: unknown): string => `${JSON.stringify(value, null, 2)}\n`;
+
+const isRecord = (value: unknown): value is Record<string, any> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const safeFilename = (value: unknown): string => {
+  const normalized = String(value ?? 'dataset')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9._-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return normalized || 'dataset';
+};
+
+const sha256Bytes = async (content: Uint8Array): Promise<string> => {
+  const stable = Uint8Array.from(content);
+  const digest = await globalThis.crypto.subtle.digest('SHA-256', stable);
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('');
+};
+
+const escapeXml = (value: unknown): string => String(value ?? '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&apos;');
+
+const truncate = (value: unknown, length = 88): string => {
+  const text = String(value ?? 'n/d').replace(/\s+/g, ' ').trim();
+  return text.length <= length ? text : `${text.slice(0, length - 3)}...`;
+};
+
+const buildSnapshotSvg = (
+  eyebrow: string,
+  title: string,
+  rows: Array<[string, unknown]>,
+): string => {
+  const height = 190 + rows.length * 52;
+  const body = rows.map(([label, value], index) => {
+    const y = 190 + index * 52;
+    return [
+      `<text x="72" y="${y}" class="label">${escapeXml(label.toUpperCase())}</text>`,
+      `<text x="330" y="${y}" class="value">${escapeXml(truncate(value))}</text>`,
+      `<line x1="72" y1="${y + 18}" x2="1128" y2="${y + 18}" class="rule" />`,
+    ].join('');
+  }).join('');
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="${height}" viewBox="0 0 1200 ${height}">
+  <style>
+    .bg { fill: #ffffff; }
+    .ink { fill: #20242b; font-family: Inter, Arial, sans-serif; }
+    .eyebrow { fill: #5b626d; font-family: "JetBrains Mono", monospace; font-size: 16px; letter-spacing: 3px; }
+    .title { fill: #20242b; font-family: Inter, Arial, sans-serif; font-size: 42px; font-weight: 700; }
+    .label { fill: #7b8490; font-family: "JetBrains Mono", monospace; font-size: 14px; letter-spacing: 1px; }
+    .value { fill: #20242b; font-family: Inter, Arial, sans-serif; font-size: 18px; }
+    .rule { stroke: #d8dce1; stroke-width: 1; }
+  </style>
+  <rect class="bg" width="1200" height="${height}" />
+  <text x="72" y="62" class="eyebrow">${escapeXml(eyebrow.toUpperCase())}</text>
+  <text x="72" y="122" class="title">${escapeXml(title)}</text>
+  <line x1="72" y1="148" x2="1128" y2="148" class="rule" />
+  ${body}
+</svg>\n`;
+};
+
+const addFile = (
+  files: Record<string, PendingFile>,
+  path: string,
+  content: string | Uint8Array | null | undefined,
+  mediaType: string,
+  description: string,
+) => {
+  if (content === null || content === undefined || (typeof content === 'string' && content.length === 0)) return;
+  files[path] = { content, mediaType, description };
+};
+
+export const buildEvidenceArchive = async ({
+  technicalExport,
+  issuesCsv,
+  diagnosticPdf = null,
+  activityLog = [],
+}: EvidenceArchiveInput): Promise<EvidenceArchiveResult> => {
+  const files: Record<string, PendingFile> = {};
+  const identity = technicalExport.artifactIdentity;
+  const diagnosis = technicalExport.diagnosis;
+  const script = technicalExport.script;
+  const snapshot = isRecord(diagnosis.inputSnapshot)
+    ? diagnosis.inputSnapshot as unknown as DiagnosisInputPackageV2
+    : null;
+
+  const readme = [
+    '# AURA - Paquete completo de evidencia',
+    '',
+    `Run ID: ${identity.runId}`,
+    `Report ID: ${identity.reportId}`,
+    `Dataset SHA-256: ${identity.datasetSha256 ?? 'no disponible'}`,
+    `Recibo diagnóstico: ${identity.diagnosisReceiptHash ?? 'no disponible'}`,
+    '',
+    'Este ZIP reúne los artefactos de una misma sesión para revisión, auditoría y reproducción.',
+    'No incluye el CSV original ni API keys. El dataset se identifica por su SHA-256.',
+    'Puede incluir muestras visibles de los hallazgos y del payload; revísalo antes de compartirlo fuera del entorno autorizado.',
+    'Las capturas SVG son vistas reproducibles generadas desde los contratos; no son screenshots del navegador.',
+    'manifest.json contiene el SHA-256 y tamaño de cada archivo incluido.',
+    '',
+  ].join('\n');
+
+  addFile(files, 'README.md', readme, 'text/markdown', 'Guía humana y alcance de privacidad del expediente.');
+  addFile(files, 'technical/aura-technical-export.json', json(technicalExport), 'application/json', 'Fuente técnica consolidada de la sesión.');
+  addFile(files, 'profile/audit-report.json', json(technicalExport.profile.report), 'application/json', 'Reporte determinista original.');
+  addFile(files, 'profile/audit-evidence.json', json(technicalExport.profile.auditEvidence), 'application/json', 'Trazas de carga, SHA-256 y ejecución del motor.');
+  addFile(files, 'profile/deterministic-validation.json', technicalExport.deterministicValidation ? json(technicalExport.deterministicValidation) : null, 'application/json', 'Comparación contra ground truth cuando existe.');
+  addFile(files, 'report/diagnostic-report.json', technicalExport.diagnosticReport ? json(technicalExport.diagnosticReport) : null, 'application/json', 'Modelo canónico usado para PDF y lectura humana.');
+  addFile(files, 'report/diagnostic-report.pdf', diagnosticPdf, 'application/pdf', 'Informe diagnóstico Showcase Ink.');
+  addFile(files, 'findings/issues.csv', issuesCsv, 'text/csv', 'Hallazgos deterministas en formato tabular.');
+
+  if (snapshot) {
+    addFile(files, 'diagnosis/01-system-instruction.en.txt', snapshot.systemInstruction, 'text/plain', 'Instrucción técnica estable del contrato V2.');
+    addFile(files, 'diagnosis/02-evidence-payload.json', snapshot.userPayload, 'application/json', 'Evidencia exacta entregada al modelo.');
+    addFile(files, 'diagnosis/03-request-sent-once.txt', exactDiagnosisPromptV2(snapshot), 'text/plain', 'Solicitud exacta certificada por promptHash.');
+    addFile(files, 'diagnosis/response-schema.json', json(snapshot.responseSchema), 'application/json', 'JSON Schema exigido a la respuesta.');
+  }
+  addFile(files, 'diagnosis/execution-receipt.json', diagnosis.executionReceipt ? json(diagnosis.executionReceipt) : null, 'application/json', 'Recibo de modelo, método, tiempos y hashes.');
+  if (typeof diagnosis.rawResponse === 'string' && diagnosis.rawResponse.length > 0) {
+    addFile(files, 'diagnosis/provider-response.raw.json', diagnosis.rawResponse, 'application/json', 'Respuesta exacta recibida del proveedor.');
+  } else if (isRecord(diagnosis.structuredDiagnosis) && isRecord(diagnosis.structuredDiagnosis.diagnosis)) {
+    addFile(files, 'diagnosis/provider-response.normalized.json', json(diagnosis.structuredDiagnosis.diagnosis), 'application/json', 'Respuesta estructurada normalizada; la sesión no conservó el cuerpo crudo.');
+  }
+
+  addFile(files, 'remediation/remediation-plan.json', script.remediationPlan ? json(script.remediationPlan) : null, 'application/json', 'Plan con decisiones humanas por acción.');
+  addFile(files, 'remediation/script-contract.json', script.contract ? json(script.contract) : null, 'application/json', 'Contrato canónico del script, partición e identidad.');
+  addFile(files, 'remediation/script-verification.json', script.verification ? json(script.verification) : null, 'application/json', 'Resultado de la verificación fresca del contrato.');
+  const scriptPath = script.approvalStatus === 'approved'
+    ? 'remediation/approved-script.py'
+    : 'remediation/reviewed-script-unverified.py';
+  const scriptDescription = script.approvalStatus === 'approved'
+    ? 'Script exacto aprobado y enlazado al contrato aura.script.v2.'
+    : 'Script revisado sin contrato aura.script.v2; no acredita ejecución ni procedencia contractual.';
+  addFile(files, scriptPath, script.approvedScript, 'text/x-python', scriptDescription);
+  addFile(files, 'activity/pipeline.log', activityLog.map((entry) => `${entry.time}\t${entry.msg}`).join('\n') + (activityLog.length ? '\n' : ''), 'text/plain', 'Secuencia local de eventos del flujo.');
+
+  const report = isRecord(technicalExport.diagnosticReport) ? technicalExport.diagnosticReport : null;
+  const reportMetadata: Record<string, any> = report && isRecord(report.metadata) ? report.metadata : {};
+  const evidenceBase: Record<string, any> = report && isRecord(report.evidenceBase) ? report.evidenceBase : {};
+  const receipt: Record<string, any> = isRecord(diagnosis.executionReceipt) ? diagnosis.executionReceipt : {};
+  const contract: Record<string, any> = isRecord(script.contract) ? script.contract : {};
+
+  addFile(files, 'snapshots/diagnosis.svg', buildSnapshotSvg('Diagnóstico V2', 'Evidencia de inferencia', [
+    ['Estado', diagnosis.status],
+    ['Proveedor / modelo', `${receipt.provider ?? diagnosis.providerType} / ${receipt.observedModel ?? diagnosis.model}`],
+    ['Método', receipt.effectiveInputMode ?? snapshot?.inputMode ?? 'n/d'],
+    ['Hallazgos', isRecord(diagnosis.structuredDiagnosis) && isRecord(diagnosis.structuredDiagnosis.diagnosis) && Array.isArray(diagnosis.structuredDiagnosis.diagnosis.issues) ? diagnosis.structuredDiagnosis.diagnosis.issues.length : 0],
+    ['Prompt hash', receipt.promptHash ?? diagnosis.rawResponseHash ?? 'n/d'],
+    ['Receipt hash', receipt.receiptHash ?? 'n/d'],
+  ]), 'image/svg+xml', 'Captura vectorial reproducible del diagnóstico.');
+  addFile(files, 'snapshots/report.svg', buildSnapshotSvg('Informe', 'Resumen de evidencia', [
+    ['Dataset', reportMetadata.fileName ?? technicalExport.manifest.dataset.name],
+    ['Filas / columnas', `${reportMetadata.rowCount ?? technicalExport.manifest.dataset.rows} / ${reportMetadata.colCount ?? technicalExport.manifest.dataset.columns}`],
+    ['Score base', reportMetadata.scoreBase ?? technicalExport.profile.report.score],
+    ['Hallazgos', evidenceBase.totalIssues ?? technicalExport.profile.report.issues.length],
+    ['Report ID', identity.reportId],
+    ['Dataset SHA-256', identity.datasetSha256 ?? 'n/d'],
+  ]), 'image/svg+xml', 'Captura vectorial reproducible del informe.');
+  addFile(files, 'snapshots/script.svg', buildSnapshotSvg('Gobernanza HITL', 'Contrato de script', [
+    ['Estado', script.approvalStatus],
+    ['Acciones aceptadas', Array.isArray(contract.acceptedActionIds) ? contract.acceptedActionIds.length : 0],
+    ['Acciones rechazadas', Array.isArray(contract.rejectedActionIds) ? contract.rejectedActionIds.length : 0],
+    ['Acciones excluidas', Array.isArray(contract.excludedActionIds) ? contract.excludedActionIds.length : 0],
+    ['Sintaxis Python', isRecord(contract.validationResult) && isRecord(contract.validationResult.pythonSyntax) ? contract.validationResult.pythonSyntax.state : 'n/d'],
+    ['Script hash', contract.scriptHash ?? 'n/d'],
+  ]), 'image/svg+xml', 'Captura vectorial reproducible de revisión y partición del script.');
+
+  const manifestFiles: EvidenceArchiveManifestFile[] = [];
+  for (const path of Object.keys(files).sort()) {
+    const file = files[path];
+    const content = asBytes(file.content);
+    manifestFiles.push({
+      path,
+      mediaType: file.mediaType,
+      bytes: content.byteLength,
+      sha256: await sha256Bytes(content),
+      description: file.description,
+    });
+  }
+
+  const manifest: EvidenceArchiveManifest = {
+    contractId: AURA_EVIDENCE_PACKAGE_CONTRACT,
+    contractVersion: '1.0.0',
+    generatedAt: technicalExport.exportContract.generatedAt,
+    runId: identity.runId,
+    reportId: identity.reportId,
+    datasetSha256: identity.datasetSha256,
+    diagnosisReceiptHash: identity.diagnosisReceiptHash,
+    privacy: {
+      rawDatasetIncluded: false,
+      note: 'El CSV original permanece fuera del ZIP; su identidad se verifica mediante datasetSha256. El expediente puede conservar muestras visibles de la evidencia.',
+    },
+    snapshots: {
+      kind: 'reproducible_svg_evidence',
+      browserScreenshots: false,
+      note: 'Las vistas SVG se generan desde datos contractuales y evitan depender del estado visual del navegador.',
+    },
+    files: manifestFiles,
+  };
+
+  const zipped: Record<string, Uint8Array> = {};
+  for (const [path, file] of Object.entries(files)) zipped[path] = asBytes(file.content);
+  zipped['manifest.json'] = strToU8(json(manifest));
+
+  const datasetName = technicalExport.manifest.dataset.name;
+  return {
+    filename: `aura_evidencia_${safeFilename(datasetName)}_${safeFilename(identity.runId)}.zip`,
+    bytes: zipSync(zipped, { level: 6 }),
+    manifest,
+  };
+};

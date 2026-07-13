@@ -104,6 +104,10 @@ describe('aura-technical-export JSON Schema', () => {
     for (const requiredBlock of schema.required ?? []) {
       expect(exported).toHaveProperty(requiredBlock);
     }
+    expect(schema.required).toEqual(expect.arrayContaining([
+      'artifactIdentity',
+      'diagnosticReport',
+    ]));
 
     const exportContract = property(schema, 'exportContract');
     expect(exported.exportContract.name).toBe(property(exportContract, 'name').const);
@@ -111,6 +115,14 @@ describe('aura-technical-export JSON Schema', () => {
     expect(exported.exportContract.canonicalBlocks).toContain(
       property(exportContract, 'canonicalBlocks').contains?.const,
     );
+    expect(exported.exportContract.canonicalBlocks).toEqual([
+      'artifactIdentity',
+      'manifest',
+      'profile',
+      'diagnosis',
+      'script',
+      'calibrationEvidence',
+    ]);
 
     const compatibility = property(exportContract, 'compatibility');
     expect(exported.exportContract.compatibility.legacyAliasIncluded).toBe(

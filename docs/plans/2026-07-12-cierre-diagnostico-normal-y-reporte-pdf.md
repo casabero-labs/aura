@@ -646,3 +646,35 @@ Repetir el mismo procedimiento con Gemma. No iniciar la campaña de 45 diagnóst
 5. Validación manual: Task 12 — una corrida Qwen, revisión, luego una corrida Gemma.
 
 La campaña formal permanece **bloqueada** hasta cerrar este plan y aprobar ambas corridas de repetición.
+
+---
+
+## Addendum — revisión de `flujo4` y expediente único
+
+`flujo4` aprueba la repetición normal Qwen: 15/15 hallazgos, 15/15 bloques,
+modelo solicitado = observado, método `smart_sample` y recibo válido. El PDF de
+siete páginas fue inspeccionado visualmente y el script descargado compila.
+
+La trazabilidad demuestra que el script no procede del LLM. Se reconstruyó con
+`buildScriptCandidateV2` → `validateScriptCandidateV2` →
+`finalizeScriptContractV2` → `verifyScriptContractV2` y coincide byte por byte
+con el archivo descargado. De 15 acciones aprobadas por la persona, 4 fueron
+aceptadas por el renderer y 11 excluidas como no soportadas.
+
+Se añadió un expediente ZIP canónico para evitar descargas manuales dispersas.
+El paquete incluye artefactos humanos y técnicos, respuesta exacta cuando la
+sesión la conserva, gobierno de remediación, script y manifiesto de hashes. No
+incluye el CSV original ni pretende que una vista SVG contractual sea una
+captura real del navegador.
+
+Gate: 1.774 pruebas Vitest aprobadas, 6 omitidas, typecheck y build correctos;
+9 escenarios Playwright aprobados, incluida una descarga ZIP real desde la
+etapa Exportación.
+
+La siguiente condición de salida ya no es otra corrida Qwen. Es:
+
+1. desplegar y verificar el ZIP completo;
+2. realizar una corrida normal Gemma sobre el mismo cierre;
+3. implementar **Aplicar y verificar** para ejecutar el script sobre una copia,
+   validar el recibo Python e iniciar la reauditoría;
+4. solo después ejecutar los smokes del Laboratorio.

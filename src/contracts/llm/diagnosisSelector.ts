@@ -91,6 +91,7 @@ function makeFailureEvidence(
     inputSnapshot: inputPackage,
     executionReceipt: receipt,
     rawResponseHash: receipt.rawResponseHash,
+    rawResponse,
   };
 }
 
@@ -312,6 +313,7 @@ export async function runStructuredDiagnosis(
     evidenceEnvelopeRef: promptPackage.evidenceEnvelopeRef,
     promptVersion: promptPackage.promptVersion,
     rawResponseHash: executionReceipt.rawResponseHash,
+    rawResponse,
     inputMode,
     inputHash: inputPackage.inputHash,
     inputSnapshot: inputPackage,

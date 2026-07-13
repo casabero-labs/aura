@@ -4,9 +4,15 @@ import { buildEvidenceManifest } from '../services/evidenceManifest';
 import { buildAuraExportPackage } from '../services/exportPackage';
 import { AuditReport } from '../types';
 import {
+  buildColumnRegistry,
+  buildScriptCandidateV2,
+  buildScriptContext,
   buildDiagnosisInputPackageV2,
   buildExecutionReceiptV1,
   exactDiagnosisPromptV2,
+  finalizeScriptContractV2,
+  validateScriptCandidateV2,
+  type RemediationPlanV2,
 } from '../contracts/llm';
 import { _buildEvidenceEnvelopeV2 } from '../contracts/llm/evidenceEnvelopeV2';
 
@@ -263,11 +269,12 @@ const withDiagnosis = (diagnosis: ReturnType<typeof buildTrace>) => {
 
   it('rechaza not_run con cualquier evidencia técnica', () => {
     const base = buildValidPackage();
-    const result = validateAuraExportPackage({
-      ...base,
-      diagnosis: { ...base.diagnosis, rawResponseHash: 'a'.repeat(64) },
-    });
-    expect(result.valid).toBe(false);
+    for (const diagnosis of [
+      { ...base.diagnosis, rawResponseHash: 'a'.repeat(64) },
+      { ...base.diagnosis, rawResponse: '{}' },
+    ]) {
+      expect(validateAuraExportPackage({ ...base, diagnosis }).valid).toBe(false);
+    }
   });
 
   it('rechaza not_run cuando existe texto de una respuesta sin recibo', () => {
@@ -296,5 +303,69 @@ const withDiagnosis = (diagnosis: ReturnType<typeof buildTrace>) => {
     const packageLike = buildValidPackage() as any;
     packageLike.calibrationEvidence.results = [{ nested: [{ [key]: 'secret' }] }];
     expect(validateAuraExportPackage(packageLike).valid).toBe(false);
+  });
+
+  it('permite un script histórico solo como evidencia no verificada', () => {
+    const base = buildValidPackage();
+    const packageLike = {
+      ...base,
+      script: {
+        ...base.script,
+        generatedScript: 'print("ok")\n',
+        approvedScript: 'print("ok")\n',
+        approvalStatus: 'unverified',
+      },
+    };
+    const result = validateAuraExportPackage(packageLike);
+
+    expect(result.valid).toBe(true);
+    expect(result.warnings.join(' ')).toContain('no tiene contrato aura.script.v2');
+  });
+
+  it('acepta un script aprobado enlazado a plan, contrato y verificación V2', () => {
+    const datasetSha256 = 'a'.repeat(64);
+    const plan: RemediationPlanV2 = {
+      contractId: 'aura.remediation.v2',
+      contractVersion: '2.0.0',
+      planId: 'plan:export-test',
+      diagnosisRef: 'diag:export-test',
+      evidenceEnvelopeRef: 'env:export-test',
+      datasetFingerprint: datasetSha256,
+      plan: [],
+      actionabilityMap: {},
+      exclusions: [],
+      generatedAt: '2026-07-12T00:00:00.000Z',
+    };
+    const columnRefs = buildColumnRegistry([]);
+    const context = buildScriptContext({
+      evidenceEnvelopeRef: plan.evidenceEnvelopeRef,
+      datasetFingerprint: datasetSha256,
+      columns: [],
+      issues: [],
+    }, columnRefs, datasetSha256);
+    const candidate = buildScriptCandidateV2(plan, context, {
+      generatedAt: '2026-07-12T00:00:00.000Z',
+    });
+    const verification = validateScriptCandidateV2(candidate, plan, context);
+    const contract = finalizeScriptContractV2(candidate, verification);
+    const base = buildValidPackage();
+    const result = validateAuraExportPackage({
+      ...base,
+      artifactIdentity: {
+        ...base.artifactIdentity,
+        datasetSha256,
+      },
+      script: {
+        generatedScript: contract.scriptText,
+        scriptValidation: null,
+        approvedScript: contract.scriptText,
+        remediationPlan: plan,
+        contract,
+        verification,
+        approvalStatus: 'approved',
+      },
+    });
+
+    expect(result).toEqual({ valid: true, errors: [], warnings: [] });
   });
 });

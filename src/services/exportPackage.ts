@@ -9,7 +9,13 @@ import {
   ImprovementRun,
   ScriptValidationResult,
 } from '../types';
-import type { DiagnosisExecutionResult, DiagnosisFailureEvidenceV2 } from '../contracts/llm';
+import type {
+  DiagnosisExecutionResult,
+  DiagnosisFailureEvidenceV2,
+  RemediationPlanV2,
+  ScriptContractV2,
+  ScriptValidationResultV2,
+} from '../contracts/llm';
 import type { DiagnosticReport } from './diagnosticReport';
 import { buildExportArtifactIdentity } from './exportArtifactIdentity';
 
@@ -44,11 +50,15 @@ export interface BuildAuraExportPackageParams {
     inputSnapshot?: Record<string, unknown> | null;
     executionReceipt?: Record<string, unknown> | null;
     rawResponseHash?: string | null;
+    rawResponse?: string | null;
   };
   script: {
     generatedScript: string;
     scriptValidation: ScriptValidationResult | null;
     approvedScript: string;
+    remediationPlan?: RemediationPlanV2 | null;
+    contract?: ScriptContractV2 | null;
+    verification?: ScriptValidationResultV2 | null;
   };
   benchmarkResults: BenchmarkResult[];
   improvementRun?: ImprovementRun | null;
@@ -72,6 +82,36 @@ export const buildAuraExportPackage = ({
     diagnosticReport,
     diagnosisReceiptHash: typeof receipt?.receiptHash === 'string' ? receipt.receiptHash : null,
   });
+  const normalizedScript = {
+    generatedScript: script.generatedScript,
+    scriptValidation: script.scriptValidation,
+    approvedScript: script.approvedScript,
+    remediationPlan: script.remediationPlan ?? null,
+    contract: script.contract ?? null,
+    verification: script.verification ?? null,
+    approvalStatus: (
+      script.approvedScript.trim().length > 0
+      && script.contract?.scriptText === script.approvedScript
+    )
+      ? 'approved' as const
+      : script.approvedScript.trim().length > 0 && !script.contract
+        ? 'unverified' as const
+        : script.contract
+          ? 'pending' as const
+          : 'not_requested' as const,
+  };
+  const normalizedDiagnosis = {
+    status: diagnosis.status,
+    model: diagnosis.model,
+    providerType: diagnosis.providerType,
+    diagnosisText: diagnosis.diagnosisText,
+    structuredDiagnosis: diagnosis.structuredDiagnosis ?? null,
+    failureEvidence: diagnosis.failureEvidence ?? null,
+    inputSnapshot: diagnosis.inputSnapshot ?? null,
+    executionReceipt: diagnosis.executionReceipt ?? null,
+    rawResponseHash: diagnosis.rawResponseHash ?? null,
+    rawResponse: diagnosis.rawResponse ?? null,
+  };
 
   return {
   exportContract: {
@@ -103,8 +143,8 @@ export const buildAuraExportPackage = ({
   ...(hitlDecision && {
     hitlDecision,
   }),
-  diagnosis,
-  script,
+  diagnosis: normalizedDiagnosis,
+  script: normalizedScript,
   calibrationEvidence: {
     classification: 'experimental' as const,
     summary: manifest.calibrationSummary,

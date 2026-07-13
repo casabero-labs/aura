@@ -562,6 +562,8 @@ export interface DiagnosisExecutionResult {
   evidenceEnvelopeRef: string;
   promptVersion: string;
   rawResponseHash: string;
+  /** Exact provider body retained locally for the evidence package. */
+  rawResponse?: string;
   inputMode?: DiagnosisInputModeV2;
   inputHash?: string;
   inputSnapshot?: DiagnosisInputPackageV2;
@@ -585,6 +587,8 @@ export interface DiagnosisFailureEvidenceV2 {
   inputSnapshot: DiagnosisInputPackageV2;
   executionReceipt: ExecutionReceiptV1;
   rawResponseHash: string;
+  /** Exact invalid provider body when one was received. */
+  rawResponse?: string;
 }
 
 export const isDiagnosisFailureEvidenceV2 = (

@@ -1,320 +1,176 @@
-# Próximo paso de AURA
-
-La hoja de ruta vigente es:
-
-- [`docs/plans/2026-07-09-cierre-definitivo-aura.md`](../../plans/2026-07-09-cierre-definitivo-aura.md)
-- Corrección comprobable de los issues 26 y 27:
-  [`docs/plans/2026-07-11-issues-26-27-ruta-v2-unica.md`](../../plans/2026-07-11-issues-26-27-ruta-v2-unica.md)
-
-## Estado actual
-
-AURA ya tiene una única ruta V2 para el diagnóstico normal y el Laboratorio.
-Los tres métodos producen un snapshot canónico distinto y conservan un
-recibo verificable con método, secciones, prompt, hashes, modelo, digest y
-parámetros observados.
-
-En la interfaz, `Laboratorio` es el módulo completo, cada ejecución preparada es
-un `experimento` y cada combinación modelo × método × repetición es una
-`corrida`. `Campaña` queda reservado a contratos y artefactos internos.
-
-El protocolo ejecutable es `aura.oe4.final-evaluation.v2`:
-
-- 3 modelos × 3 métodos × 5 repeticiones = 45 diagnósticos evaluados;
-- 15 calentamientos reales, uno por bloque de modelo, excluidos de las métricas;
-- 60 llamadas reales en total;
-- ninguna llamada LLM para generar scripts;
-- 9 scripts deterministas, uno por representante seleccionado mediante la
-  mediana del F1, siempre después de revisión y aprobación humana.
-
-El `Laboratorio` ya puede crear un experimento formal desde
-`controlled_customers_phase8.csv`. Antes de crearlo verifica el hash del CSV,
-la versión de Ollama, los tres modelos y sus digests. Cada salida pasa por el
-validador completo `aura.diagnosis.v2` y por el oráculo diagnóstico. Las claves
-API no se guardan en localStorage ni se sincronizan al backend.
-
-El SHA-256 del dataset se calcula sobre los bytes reales del archivo; no se
-confunde con el fingerprint operativo corto de la interfaz. Los calentamientos
-guardan su propio recibo en IndexedDB para no repetirse al recargar la página.
-
-## Estado aprobado AURA-CIERRE-P0-01R3 (12 julio 2026)
-
-Los gates técnicos de trazabilidad P0 quedaron cerrados y aprobados por el orquestador:
-- Suite 1725 tests, typecheck, build y E2E → verde.
-- `DiagnosisFailureEvidenceV2` separa fallo de éxito; sin `as any`.
-- `buildExecutionReceiptV1` rechaza en construcción: valid sin modelo, valid con códigos, invalid sin códigos.
-- `runStructuredDiagnosis` valida `requestedModel` ANTES de llamar al proveedor.
-- Todas las rutas Ollama capturan `data.model`/`event.model`.
-- Exportación estricta: `valid`, `invalid`, `not_run`, recálculo de hashes y correspondencia entre snapshot, diagnóstico/fallo y recibo.
-- Detección case-insensitive de `apiKey`, `api_key`, `api-key` recursiva.
-- Estado exclusivo éxito/fallo: limpieza local y superior al iniciar una nueva ejecución; restauración desde sesión.
-- SHA-256 del dataset solo desde `auditEvidence.datasetSha256`.
-- Warm-ups como `Map<blockKey, WarmupReceiptV1>`; 15 instancias para 45 corridas.
-
-Se añadieron las pruebas adversariales que faltaban: modelo solicitado ausente,
-modelo observado nulo o diferente, fallo de transporte, hashes alterados,
-estados de exportación, credenciales dentro de arrays, cinco rutas Ollama y
-validación de 45 corridas con 15 warm-ups únicos.
-
-**P0-01R3 está COMPLETO.** Esto cierra la trazabilidad técnica; no autoriza todavía la campaña real.
-
-## Estado AURA-CIERRE-P1-02 (12 julio 2026)
-
-P1-02 extrae métricas reales del diagnóstico:
-- Suite completa, typecheck, build y E2E → verde.
-- `formalDiagnosisEvidence.ts` revalida `DiagnosisResponseV2` contra el envelope y el recibo reales.
-- `contractCompliant`, `contractErrors` y `unsupportedClaims` ya no son constantes.
-- `badSampleRefs` solo de `userPayload.visibleEvidence.badSampleAnchors`.
-- `syntaxValid: boolean | null` — null = Python no ejecutado. Importar CSV no lo cambia.
-- El reporte cuenta la sintaxis solo sobre corridas evaluadas y exporta `not_measured` de forma explícita.
-- Pruebas adversariales cubren recibo ausente, salida alterada, referencia de otro issue y números instructivos.
-- Greps de ausencia: cero `contractCompliant: true`, cero `syntaxValid: true` en los archivos evaluados.
-
-**P1-02 COMPLETO.** La campaña real continúa bloqueada.
-
-## Estado AURA-CIERRE-P1-03 (12 julio 2026)
-
-P1-03 cierra la procedencia de la ejecución Python:
-- AURA descarga un bundle ligado al `runId`, contrato del script aprobado y CSV fuente.
-- `npm run oe4:python:run` compila y ejecuta `clean_dataset(df)` con Python/pandas.
-- El ejecutor produce el CSV y `aura.python-execution-receipt.v1` con versiones, tiempos y hashes.
-- El Laboratorio exige CSV + recibo y recalcula script, entrada, salida y hash del propio recibo.
-- `syntaxValid` solo cambia a `true` tras verificar una ejecución aprobada; importar únicamente un CSV ya no es posible.
-- `campaign.json`, `runs.csv` y el reporte consolidan la evidencia Python.
-
-**P1-03 COMPLETO.** La campaña real continúa bloqueada hasta cerrar UX y superar los smokes con modelos reales.
-
-## Estado AURA-CIERRE-P1-04 (12 julio 2026)
-
-P1-04 cierra la claridad UX, trazabilidad y exportaciones:
-- Reporte diagnóstico: `DiagnosticInvocationSummary` muestra modelo, método, latencia, cumplimiento, claims, sintaxis, ejecución y reauditoría. `syntaxValid: null` → "No medido".
-- Trazabilidad técnica: recibo, método solicitado y efectivo, secciones, modelo observado y hashes verificables.
-- Configuración: resumen de privacidad (local/externo); indicador de disponibilidad.
-- Terminología: "Laboratorio", "experimento", "corrida" unificados en interfaz visible.
-- Nueva sesión: diálogo modal con descripción de eliminación, preservación y aviso de irreversibilidad.
-- Exportaciones: descripciones de cada artefacto; nota de validez sobre recibos requeridos.
-- Ollama: asistente React integrado con verificación de conexión, descarga real de los tres modelos recomendados, progreso y registro técnico visible. La antigua implementación HTML quedó reducida a una redirección segura de compatibilidad.
-- macOS: el asistente distingue el servicio Homebrew de la aplicación. Si Homebrew ya ocupa el puerto 11434, indica `launchctl setenv OLLAMA_ORIGINS "https://aura.casabero.com"` seguido de `brew services restart ollama`; ya no recomienda iniciar un segundo `ollama serve`. También explica el error `bind: address already in use`, ofrece verificación CORS copiable y recuerda repetir la autorización después de reiniciar macOS si fuera necesario.
-- Matriz corregida antes de la primera corrida: Qwen3 8B (5.14 GB), Gemma 4 E4B IT QAT (4.22 GB) y SmolLM3 3B (1.94 GB). SmolLM3 sustituye a DeepSeek para trabajar con margen en el MacBook Air M4 de 16 GB; los tres comandos `ollama run` se pueden copiar desde el asistente.
-- Configuraciones locales o sincronizadas que todavía apunten a los dos modelos retirados se migran automáticamente a Gemma 4 y SmolLM3; no se conserva un selector inválido después de actualizar AURA.
-- Estilo técnico: un único componente `SyntaxDisplay`, fiel a `showcase-ink`, presenta logs, JSON, prompts, respuestas y salidas del Laboratorio con cabecera clara, cuerpo gris, JetBrains Mono, sombra sutil y copia. Los terminales oscuros aislados fueron retirados.
-- Configuración: eliminados los enlaces sin destino a configuración avanzada y laboratorio experimental.
-- Despliegue: el oráculo formal conserva una copia desplegable dentro de `src`, verificada byte a byte contra la fuente canónica de `experiments`, para que el build aislado de Coolify no pierda evidencia.
-
-**P1-04 COMPLETO.** Suite 1744 tests, typecheck y build en verde; el E2E focal de Ollama/macOS y los 10/10 E2E de cierre fueron aprobados en Chromium, incluida la verificación visual computada del Syntax display, los tres comandos formales, el reinicio de Homebrew y la navegación actual de Laboratorio.
-
-## Estado del cierre de diagnóstico normal y PDF (12 julio 2026)
-
-Se revisaron conjuntamente `flujo1`, `flujo2` y el commit
-`85d5d400a175d1997207e5be2ce80293b7d087e7`. El cierre implementado deja:
-
-- una sola ruta de diagnóstico normal mediante `aura.diagnosis.v2`, sin nueva ejecución legacy ni feature flag;
-- configuración Ollama única para llamada y recibo, con `numPredict=4096` y modelo observado real;
-- `status` de exportación derivado del resultado: nunca `not_run` si existe respuesta;
-- fechas e IP con semántica correcta, teléfono restringido, R24 eliminado y evidencia sintética con F1 1.0;
-- rechazo de muestras citadas que no existan en la evidencia del hallazgo y de acciones destructivas sin revisión humana;
-- `DiagnosticReport` como fuente común y lectura LLM enlazada a cada hallazgo por `issueId`;
-- PDF, JSON y CSV unidos por `runId`, `reportId`, SHA-256 del dataset, recibo y hash del reporte;
-- PDF principal minimalista con estilo `showcase-ink`: decisión, resumen, seis gráficos, hallazgos confirmados, falsos positivos, plan y certificado;
-- exportación como salida principal y generación de script como rama secundaria opcional.
-
-El PDF se renderizó con el dataset sintético y se revisaron visualmente sus
-páginas. No presenta filas partidas, secciones huérfanas ni escalas porcentuales
-engañosas. Los hallazgos completos permanecen en JSON y CSV; el PDF muestra los
-seis confirmados más importantes para mantener una lectura ejecutiva.
-
-Gate local: 1756 pruebas aprobadas, 6 omitidas, typecheck y build correctos, y
-8 recorridos E2E focales aprobados en Chromium.
-
-**Siguiente acción:** desplegar este cierre y realizar una única corrida normal
-con Qwen3 8B. Guardar PDF, JSON y CSV en `experiments/tests/flujo3/` y revisarlos
-antes de repetir con Gemma o autorizar la campaña de 45 corridas.
-
-### Hotfix de la primera corrida Qwen
-
-La primera prueba real reveló `DIAGNOSIS_ADAPTER_ERROR` aunque Ollama aparecía
-disponible. La causa era interna: `AIProviderDiagnosisAdapter` separaba el método
-`generateTextWithProgress` de su instancia y perdía el contexto `this` de
-`OllamaProvider`. La llamada fallaba antes de enviar el diagnóstico.
-
-El adaptador conserva ahora la instancia del proveedor y el pipeline incluye la
-causa original en el error visible. Se verificaron Ollama 0.31.1, CORS desde
-`https://aura.casabero.com`, Qwen3 8B cargado con contexto 16 384 y una llamada
-directa correcta. La corrida de `flujo3` debe reiniciarse después de desplegar
-este hotfix; el intento fallido no cuenta como evidencia.
-
-### Cierre de `DIAGNOSIS_SCHEMA_INVALID` en la corrida Qwen
-
-La segunda prueba llegó correctamente a Qwen, pero la respuesta omitió
-`contractId`. La revisión confirmó dos causas internas:
-
-- el prompt V2 afirmaba que existía un esquema exacto, pero el texto enviado no
-  incluía ese esquema;
-- tras un fallo V2, el botón para copiar mostraba el prompt histórico de texto
-  libre y no la entrada realmente enviada al modelo.
-
-El cierre aplicado deja:
-
-- prompt V2 `1.4.0` con el JSON Schema completo dentro del texto exacto y cobertura dinámica;
-- `format` con JSON Schema en las llamadas nativas de Ollama, tanto normales
-  como formales;
-- consola `diagnosis.response.stream.json` entre el progreso y el registro de
-  actividad, con el contenido exacto recibido en tiempo real;
-- prompt V2 y respuesta cruda visibles y copiables también cuando la validación
-  falla;
-- error de contrato diferenciado de un error de conexión o configuración;
-- el Laboratorio reutiliza el mismo constructor canónico de prompt y hash.
-
-Se comprobó directamente que Qwen3 8B acepta el esquema nativo de Ollama y
-devuelve `{"contractId":"aura.diagnosis.v2"}`. Este smoke técnico no cuenta
-como corrida normal ni formal. Gate local: 1.759 pruebas aprobadas, 6 omitidas,
-typecheck y build correctos.
-
-**Siguiente acción inmediata:** desplegar y repetir la corrida normal de
-`flujo3` con Qwen. El intento con `DIAGNOSIS_SCHEMA_INVALID` no cuenta como
-evidencia y la campaña de 45 corridas permanece bloqueada.
-
-### Cierre de `DIAGNOSIS_REFERENCE_INVALID` en la corrida Qwen
-
-La tercera prueba produjo JSON válido, pero Qwen devolvió únicamente 5 de los
-15 hallazgos visibles. También usó nombres de categorías como si fueran
-`issueId` dentro de una visualización. El validador hizo lo correcto al rechazar
-la respuesta: no se relajó ninguna regla.
-
-La causa estaba antes de la inferencia: el payload incluía
-`exactCoverageRequired: true`, pero el esquema permitía entre 0 y 50 elementos
-y no limitaba los identificadores al inventario observado. El cierre deja:
-
-- `issues` y `diagnosisBlocks` con `minItems` y `maxItems` iguales al número
-  real de hallazgos;
-- enumeración permitida de `issueId`, `ruleId`, `columnId` y referencia del
-  envelope dentro del esquema entregado a Ollama;
-- `visualizations.issueIds` limitado a los `issueId` observados;
-- instrucciones explícitas con conteo, lista completa y prohibición de omitir
-  hallazgos sin muestras;
-- eliminación del expediente técnico duplicado cuyo botón **Copiar prompt**
-  todavía copiaba el prompt legacy;
-- `DIAGNOSIS_REFERENCE_INVALID` presentado como incumplimiento del contrato y
-  no como error de conexión del proveedor.
-
-Smoke real completo con Qwen3 8B y el CSV sintético: 15 hallazgos
-deterministas, 15 `DiagnosisIssueV2`, 15 `DiagnosisBlockV2`, 0 visualizaciones
-inventadas, modelo observado correcto y recibo `valid`. Este smoke técnico no
-cuenta como corrida normal ni formal. Gate local: 1.761 pruebas aprobadas,
-6 omitidas, typecheck y build correctos.
-
-**Siguiente acción inmediata:** desplegar y repetir `flujo3` desde la interfaz.
-Los tres intentos fallidos anteriores no cuentan como evidencia.
-
-### Cierre posterior a `flujo3`: integridad y presentación
-
-La corrida normal de `flujo3` confirmó 15 de 15 hallazgos, 15 bloques y un
-recibo V2 válido. Su revisión posterior descubrió problemas ajenos a la
-inferencia que podían afectar la entrega; quedaron corregidos sin relajar el
-contrato del diagnóstico:
-
-- la rama de remediación usa ahora el SHA-256 completo del dataset; el
-  fingerprint corto deja de presentarse como identidad compatible con el
-  contrato del script;
-- el manifiesto de evidencia representa los seis objetivos específicos
-  definitivos: OE1 arquitectura local-first, OE2 motor determinista, OE3
-  diagnóstico asistido restringido, OE4 Laboratorio, OE5 revisión humana y OE6
-  scripts Python/Pandas trazables;
-- la fecha y el identificador del informe se derivan del recibo real y de sus
-  hashes, no de fechas o identificadores propuestos por el modelo;
-- la trazabilidad aclara que V2 realiza una sola llamada con tres vistas
-  auditables: instrucción técnica estable en inglés, evidencia del motor en
-  español y solicitud exacta compuesta. El prompt en español queda identificado
-  únicamente como formato histórico V1;
-- el PDF abandona el aspecto cálido y adopta `showcase-ink`: blanco, gris frío,
-  tinta, tipografía sobria, seis gráficos y paginación sin páginas vacías ni
-  contenido cortado;
-- Exportación permite volver al informe sin destruir la sesión.
-
-El PDF de control se renderizó en seis páginas A4 y todas fueron revisadas
-visualmente. La repetición formal continúa pendiente: primero debe confirmarse
-en producción la rama Informe → Plan y script → Revisión humana con el SHA-256
-completo.
-
-Gate local del cierre: 1.766 pruebas Vitest aprobadas, 6 omitidas, 102 pruebas
-focales aprobadas, typecheck y build correctos. Playwright aprobó los 8
-escenarios de contrato de script y el recorrido real CSV → perfil → exportación.
-
-## Pendiente prioritario: rama normal de remediación
-
-La remediación seguirá siendo opcional, pero debe tener protagonismo visible
-desde el Informe diagnóstico. El diseño pendiente queda congelado así:
-
-```text
-Flujo principal: Carga → Perfil → Diagnóstico → Informe → Exportación
-Rama destacada: Plan y script → Revisión humana → Aplicar y verificar → Exportación
-```
-
-La etapa **Aplicar y verificar** deberá reutilizar el bundle y el recibo Python
-ya probados, sin acoplar el flujo normal a `ExperimentRunV1` ni alterar el
-protocolo del Laboratorio. AURA no ejecuta hoy Python real dentro del navegador:
-el Laboratorio dispone de un ejecutor externo local con Python/Pandas. La ruta
-normal debe extraer esa capacidad común y exigir:
-
-- script aprobado y hash coincidente;
-- SHA-256 completo del CSV original;
-- ejecución explícita sobre una copia;
-- CSV corregido y recibo Python importados juntos;
-- verificación de hashes, versiones, sintaxis y ejecución;
-- reauditoría únicamente después de una ejecución verificada;
-- estado honesto **Ejecución verificada; resultado reauditable**, sin afirmar
-  que el dataset es correcto para el negocio;
-- navegación reversible desde Exportación y invalidación en cascada solo al
-  modificar diagnóstico, plan o script.
-
-Este frente queda **PENDIENTE** hasta aprobar `flujo3`. No bloquea el validador
-del diagnóstico, pero sí forma parte del cierre funcional del producto.
-
-## Pendientes no cubiertos por P1
-
-**La campaña real sigue BLOQUEADA** hasta superar los smokes y aprobar las corridas normales de cierre.
-
-| Área | Pendiente |
-|---|---|
-| Script | Recibo verificable implementado; falta ejecutar los nueve representantes reales |
-| Smokes | Tres modelos instalados y conexión local autorizada; falta ejecutar 1×3×1 y 3×1×1 |
-
-## Verificación local de Ollama (12 julio 2026)
-
-En el MacBook Air M4 de referencia se comprobó:
-
-- servicio Homebrew `ollama` iniciado y reiniciado después de configurar `OLLAMA_ORIGINS`;
-- Ollama cliente/servidor `0.31.1` después del reinicio;
-- tres modelos formales presentes en `ollama list`;
-- petición con origen `https://aura.casabero.com` → `HTTP 200` y `Access-Control-Allow-Origin` correcto;
-- preflight del navegador hacia `/api/chat` → `HTTP 204` con `GET/POST/OPTIONS` autorizados.
-
-Esta verificación cierra instalación y autorización local. No sustituye los smokes del diagnóstico ni autoriza todavía las 45 corridas.
-
-## Gates obligatorios antes de la campaña completa
-
-Antes de lanzar los 45 diagnósticos reales, cada uno de los siguientes gates debe pasar sin fallos:
-
-- Hash del CSV de entrada no coincide con el esperado en el experimento.
-- Versión de Ollama inferior a la requerida (>= 0.5.0).
-- Modelos formales ausentes en la lista de Ollama (`hf.co/unsloth/Qwen3-8B-GGUF:UD-Q4_K_XL`, `hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL`, `hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL`).
-- Digest local ausente o con formato inválido. AURA lo captura para congelar el entorno; el SHA-256 de referencia del archivo GGUF se conserva por separado y no se presenta como si fuera el digest de Ollama.
-- Modelo observado en la respuesta del LLM no coincide con el modelo solicitado.
-- Warmup ausente o incompleto para un bloque de modelo antes de las repeticiones.
-- Un bloque de diagnosis se asocia a un warmup del bloque incorrecto.
-- Contrato de diagnosis devuelve `validationStatus !== 'valid'`.
-- Recibo de ejecución de diagnosis ausente o corrupto.
-- Snapshot de entrada ausente o no corresponde al snapshot canónico del método.
-- Smoke 1×3×1 falla en alguna de las 3 corridas.
-- Smoke 3×1×1 falla en alguna de las 3 corridas.
-- Errores de persistencia en IndexedDB durante la campaña (pérdida de runs tras recarga).
-- Denominador de evaluaciones no coincide con el número de corridas ejecutadas.
-- Sustitución silenciosa: un resultado de una corrida anterior se mezcla con otra sin registro de auditoría.
-
-## Hoja de ruta desde este punto
-
-1. ~~Instalar/verificar los tres modelos formales y autorizar Ollama en macOS.~~ Completado el 12 de julio de 2026.
-2. Ejecutar primero los smokes reales: 1×3×1 y 3×1×1.
-3. Si ambos pasan, ejecutar manualmente la campaña completa de 45 diagnósticos.
-4. Evaluar la rúbrica humana, aprobar o rechazar los nueve representantes,
-   ejecutar los scripts aprobados sobre copias y reauditar.
-5. Exportar el expediente final y redactar el documento de depósito.
+# Hoja de ruta definitiva de AURA
+
+Última actualización: 12 de julio de 2026.
+
+Este documento es la única referencia operativa para cerrar AURA. El historial
+de correcciones queda en Git y en los planes anteriores; aquí solo se conserva
+el estado vigente y el trabajo que falta.
+
+## Objetivo de cierre
+
+Entregar AURA como un sistema local-first que:
+
+1. audita un CSV con reglas deterministas;
+2. produce un diagnóstico LLM restringido por evidencia;
+3. genera un informe defendible y un expediente técnico verificable;
+4. propone un plan y un script reproducible bajo revisión humana;
+5. ejecuta la corrección sobre una copia y comprueba el resultado;
+6. evalúa modelos y métodos de entrada mediante el Laboratorio.
+
+Estos son los **seis objetivos específicos definitivos**. No se deben volver a
+reformular durante el cierre.
+
+## Estado actual confirmado
+
+| Área | Estado | Qué significa |
+|---|---|---|
+| Motor determinista | Cerrado | Audita, calcula el score y conserva evidencia reproducible. |
+| Diagnóstico normal V2 | Cerrado con Qwen | `flujo4` produjo 15 hallazgos, 15 bloques, modelo observado correcto y recibo válido. |
+| Informe PDF | Cerrado | PDF `showcase-ink` revisado visualmente, sin cortes ni afirmaciones infladas. |
+| Exportación | Cerrada en código | PDF, JSON y CSV comparten identidad; existe un ZIP completo de evidencia. |
+| Plan y script | Cerrado | AURA genera el script de forma determinista y exige revisión humana; el LLM no escribe código. |
+| Aplicar y verificar | Pendiente | Todavía falta ejecutar el script sobre una copia, validar el recibo y reauditar. |
+| Laboratorio | Preparado, sin campaña real | Protocolo, contratos, métricas, persistencia y exportadores están implementados. |
+| Evaluación formal | Pendiente | No se han ejecutado los smokes ni las 45 corridas formales. |
+| Documento final TFM | Pendiente de resultados | Se redactará con la evidencia real de la campaña y la remediación verificada. |
+
+Gate técnico actual: 1.774 pruebas aprobadas, 6 omitidas, typecheck y build
+correctos, 9 recorridos Playwright aprobados y grafo actualizado.
+
+## Decisiones congeladas
+
+- Modelos formales:
+  - `hf.co/unsloth/Qwen3-8B-GGUF:UD-Q4_K_XL`;
+  - `hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL`;
+  - `hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL`.
+- Métodos de entrada: `prompt_libre`, `smart_sample` y `recommended`.
+- Campaña: 3 modelos × 3 métodos × 5 repeticiones = **45 diagnósticos**.
+- Calentamientos: 15 en total, excluidos de las métricas.
+- Llamadas reales previstas: 60, contando diagnósticos y calentamientos.
+- Scripts de evaluación: 9 representantes, uno por combinación modelo × método.
+- Dataset controlado: `controlled_customers_phase8.csv`.
+- El score y los hallazgos pertenecen al motor determinista; el LLM no los modifica.
+- La remediación siempre requiere revisión humana y nunca modifica el CSV original.
+- DeepSeek no forma parte de la matriz final.
+
+## Hoja de ruta restante
+
+### 1. Implementar “Aplicar y verificar” en el flujo normal
+
+Es el siguiente trabajo de desarrollo y el único bloque funcional importante
+que falta en la auditoría normal.
+
+Debe permitir:
+
+- preparar una ejecución Python/Pandas desde el script aprobado;
+- enlazar el bundle con el SHA-256 del CSV original y el hash del script;
+- ejecutar siempre sobre una copia;
+- producir `corrected.csv` y un recibo Python;
+- importar juntos el CSV corregido y el recibo;
+- validar hashes, versiones, sintaxis y ejecución;
+- reauditar el resultado;
+- mostrar score, hallazgos resueltos, persistentes y nuevos;
+- añadir al ZIP el script, bundle, recibo, CSV corregido y comparación antes/después.
+
+Condición de salida: AURA debe mostrar **“Ejecución verificada; resultado
+reauditable”**. No debe afirmar que el dataset es correcto para el negocio.
+
+### 2. Realizar una corrida normal final con Gemma
+
+Después de desplegar el paso anterior:
+
+- repetir el mismo dataset y método usados en `flujo4`;
+- confirmar modelo solicitado = modelo observado;
+- revisar PDF, JSON, CSV y ZIP;
+- guardar la evidencia como un nuevo flujo;
+- no repetir Qwen salvo que una modificación posterior invalide `flujo4`.
+
+Condición de salida: Qwen y Gemma tienen corridas normales válidas sobre el
+cierre actual.
+
+### 3. Ejecutar los dos smokes del Laboratorio
+
+El usuario realizará las corridas reales cuando el orquestador indique el paso
+a paso.
+
+1. **1 × 3 × 1:** Qwen con los tres métodos, una repetición por método.
+2. **3 × 1 × 1:** los tres modelos con `recommended`, una repetición por modelo.
+
+Cada corrida debe conservar snapshot, prompt, respuesta, modelo observado,
+recibo, métricas y errores. Un fallo se registra como evidencia; no se sustituye
+silenciosamente.
+
+Condición de salida: las seis corridas smoke terminan sin problemas de modelo,
+contrato, persistencia o exportación.
+
+### 4. Ejecutar la campaña formal
+
+Solo si los dos smokes pasan:
+
+- ejecutar 45 diagnósticos y 15 calentamientos;
+- no cambiar modelos, parámetros, dataset ni protocolo durante la campaña;
+- conservar cada corrida en el Laboratorio;
+- verificar que los denominadores del reporte coincidan con las corridas reales.
+
+Condición de salida: campaña completa, persistida y exportable sin corridas
+faltantes ni mezcladas.
+
+### 5. Evaluar los nueve representantes
+
+Para cada combinación modelo × método:
+
+- seleccionar el representante definido por el protocolo;
+- completar la evaluación humana de claridad, trazabilidad y accionabilidad;
+- aprobar o rechazar el plan y el script;
+- ejecutar solamente los scripts aprobados;
+- validar el recibo Python y reauditar el CSV resultante.
+
+Las métricas consolidadas serán:
+
+- precisión, recall y F1 del diagnóstico;
+- cumplimiento del contrato;
+- columnas inventadas y claims sin soporte;
+- anclaje a reglas y muestras problemáticas;
+- latencia, tokens, errores y estabilidad;
+- validez, seguridad y cobertura del script;
+- score e issues antes/después;
+- claridad, trazabilidad y accionabilidad humana en escala 0–4.
+
+### 6. Consolidar resultados y cerrar el TFM
+
+El Laboratorio debe generar el reporte consolidado. Con ese expediente se hará:
+
+- tabla comparativa de modelos y métodos;
+- resultados del OE4;
+- evidencia de revisión humana y scripts del OE5/OE6;
+- discusión de límites y fallos;
+- conclusiones sin declarar un ganador universal;
+- actualización del documento final de entrega.
+
+Condición de salida: resultados reproducibles, anexos completos y documento de
+depósito coherente con los seis objetivos.
+
+## Bloqueos vigentes
+
+- No ejecutar las 45 corridas antes de completar “Aplicar y verificar”, la
+  corrida normal Gemma y los dos smokes.
+- No presentar un script revisado como ejecutado sin recibo Python.
+- No presentar las vistas SVG del ZIP como capturas reales del navegador.
+- No incluir el CSV original ni credenciales en el expediente de evidencia.
+- No cambiar la matriz de modelos o el protocolo durante una campaña iniciada.
+
+## Próxima acción exacta
+
+**Implementar “Aplicar y verificar” en el flujo normal reutilizando el ejecutor
+Python/Pandas y el recibo ya probados en el Laboratorio, sin acoplar el flujo
+normal a `ExperimentRunV1`.**
+
+Al terminar ese bloque se actualizará esta hoja, se desplegará y se acompañará
+al usuario en la corrida normal Gemma. La campaña formal continúa bloqueada
+hasta entonces.
+
+## Documentos vigentes relacionados
+
+- [Plan de cierre del diagnóstico normal y PDF](../../plans/2026-07-12-cierre-diagnostico-normal-y-reporte-pdf.md)
+- [Contrato del paquete completo de evidencia](contracts/aura-evidence-package-v1.md)
+- [Protocolo del Laboratorio](../../plans/2026-07-10-laboratorio-oe4-evaluacion-llm.md)

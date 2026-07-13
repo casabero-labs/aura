@@ -14948,6 +14948,21 @@ textarea:focus {
   background: var(--surface);
 }
 
+.export-delivery-card--evidence {
+  grid-column: 1 / -1;
+  min-height: 0;
+  border-color: var(--border-strong);
+}
+
+.export-delivery-card--evidence .export-delivery-card-action {
+  justify-content: space-between;
+}
+
+.export-delivery-card--evidence .export-delivery-card-desc {
+  max-width: 680px;
+  margin: 0;
+}
+
 .export-delivery-card-head p,
 .export-session-block-desc {
   color: var(--ink2);
