@@ -139,4 +139,22 @@ describe('JSON technical export preflight integration', () => {
     expect(screen.queryByText(/Laboratorio de Modelos/i)).toBeNull();
     expect(screen.getAllByRole('button', { name: 'Laboratorio' })).toHaveLength(2);
   });
+
+  it('returns from Exportación to the preserved diagnostic results', async () => {
+    const user = userEvent.setup();
+    vi.mocked(validateAuraExportPackage).mockReturnValue({
+      valid: true,
+      errors: [],
+      warnings: [],
+    });
+
+    render(<App />);
+    await user.click(screen.getByRole('button', { name: 'Empezar auditoría' }));
+    expect(screen.getByTestId('export-stage')).toBeTruthy();
+
+    await user.click(screen.getByRole('button', { name: 'Volver al informe diagnóstico' }));
+
+    expect(screen.getByTestId('main-pipeline')).toBeTruthy();
+    expect(screen.queryByTestId('export-stage')).toBeNull();
+  });
 });

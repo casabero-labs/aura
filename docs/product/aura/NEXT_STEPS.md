@@ -114,10 +114,10 @@ Se revisaron conjuntamente `flujo1`, `flujo2` y el commit
 - rechazo de muestras citadas que no existan en la evidencia del hallazgo y de acciones destructivas sin revisión humana;
 - `DiagnosticReport` como fuente común y lectura LLM enlazada a cada hallazgo por `issueId`;
 - PDF, JSON y CSV unidos por `runId`, `reportId`, SHA-256 del dataset, recibo y hash del reporte;
-- PDF principal de cinco páginas: decisión, resumen, perfil con gráficos, hallazgos confirmados, falsos positivos, plan y certificado;
+- PDF principal minimalista con estilo `showcase-ink`: decisión, resumen, seis gráficos, hallazgos confirmados, falsos positivos, plan y certificado;
 - exportación como salida principal y generación de script como rama secundaria opcional.
 
-El PDF se renderizó con el dataset sintético y se revisaron visualmente sus cinco
+El PDF se renderizó con el dataset sintético y se revisaron visualmente sus
 páginas. No presenta filas partidas, secciones huérfanas ni escalas porcentuales
 engañosas. Los hallazgos completos permanecen en JSON y CSV; el PDF muestra los
 seis confirmados más importantes para mantener una lectura ejecutiva.
@@ -204,6 +204,40 @@ cuenta como corrida normal ni formal. Gate local: 1.761 pruebas aprobadas,
 
 **Siguiente acción inmediata:** desplegar y repetir `flujo3` desde la interfaz.
 Los tres intentos fallidos anteriores no cuentan como evidencia.
+
+### Cierre posterior a `flujo3`: integridad y presentación
+
+La corrida normal de `flujo3` confirmó 15 de 15 hallazgos, 15 bloques y un
+recibo V2 válido. Su revisión posterior descubrió problemas ajenos a la
+inferencia que podían afectar la entrega; quedaron corregidos sin relajar el
+contrato del diagnóstico:
+
+- la rama de remediación usa ahora el SHA-256 completo del dataset; el
+  fingerprint corto deja de presentarse como identidad compatible con el
+  contrato del script;
+- el manifiesto de evidencia representa los seis objetivos específicos
+  definitivos: OE1 arquitectura local-first, OE2 motor determinista, OE3
+  diagnóstico asistido restringido, OE4 Laboratorio, OE5 revisión humana y OE6
+  scripts Python/Pandas trazables;
+- la fecha y el identificador del informe se derivan del recibo real y de sus
+  hashes, no de fechas o identificadores propuestos por el modelo;
+- la trazabilidad aclara que V2 realiza una sola llamada con tres vistas
+  auditables: instrucción técnica estable en inglés, evidencia del motor en
+  español y solicitud exacta compuesta. El prompt en español queda identificado
+  únicamente como formato histórico V1;
+- el PDF abandona el aspecto cálido y adopta `showcase-ink`: blanco, gris frío,
+  tinta, tipografía sobria, seis gráficos y paginación sin páginas vacías ni
+  contenido cortado;
+- Exportación permite volver al informe sin destruir la sesión.
+
+El PDF de control se renderizó en seis páginas A4 y todas fueron revisadas
+visualmente. La repetición formal continúa pendiente: primero debe confirmarse
+en producción la rama Informe → Plan y script → Revisión humana con el SHA-256
+completo.
+
+Gate local del cierre: 1.766 pruebas Vitest aprobadas, 6 omitidas, 102 pruebas
+focales aprobadas, typecheck y build correctos. Playwright aprobó los 8
+escenarios de contrato de script y el recorrido real CSV → perfil → exportación.
 
 ## Pendiente prioritario: rama normal de remediación
 

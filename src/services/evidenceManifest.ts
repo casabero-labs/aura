@@ -86,12 +86,41 @@ export const buildEvidenceManifest = (params: {
   auditEvidence?: AuditExecutionEvidence | null;
   deterministicValidation?: DeterministicValidationReport | null;
   benchmarkResults: BenchmarkResult[];
+  diagnosisEvidence?: {
+    status: 'valid' | 'invalid' | 'not_run';
+    receiptHash?: string | null;
+    model?: string | null;
+    inputMode?: string | null;
+  } | null;
+  remediationReview?: {
+    totalActions: number;
+    approvedActions: number;
+    rejectedActions: number;
+    pendingActions: number;
+    scriptApproved: boolean;
+  } | null;
+  scriptContractEvidence?: {
+    exists: boolean;
+    verified: boolean;
+    scriptHash?: string | null;
+  } | null;
   scriptValidation?: ScriptValidationResult | null;
   hitlDecision?: HitlDecision | null;
   healthDeltaPoints?: number;
   remediationClassification?: 'source_debt_preserved' | 'improvement';
 }): EvidenceManifest => {
-  const { auditEvidence, deterministicValidation, benchmarkResults, scriptValidation, hitlDecision, healthDeltaPoints, remediationClassification } = params;
+  const {
+    auditEvidence,
+    deterministicValidation,
+    benchmarkResults,
+    diagnosisEvidence,
+    remediationReview,
+    scriptContractEvidence,
+    scriptValidation,
+    hitlDecision,
+    healthDeltaPoints,
+    remediationClassification,
+  } = params;
 
   const hasGroundTruth = deterministicValidation?.groundTruthMatched ?? false;
   const calibrationSummary = buildCalibrationSummary(benchmarkResults);
@@ -100,7 +129,7 @@ export const buildEvidenceManifest = (params: {
   const objectives: ObjectiveCoverage[] = [
     {
       id: 'OE1',
-      label: 'Ingestión y perfilamiento determinista',
+      label: 'Arquitectura local-first',
       status: auditEvidence?.ingestionStatus === 'success' ? 'completed' : 'blocked',
       evidence: auditEvidence
         ? `CSV cargado: ${auditEvidence.fileName ?? 'desconocido'}, ${auditEvidence.rowsProcessed} filas, ${auditEvidence.columnsProcessed} columnas, fingerprint=${auditEvidence.datasetFingerprint}.`
@@ -109,7 +138,7 @@ export const buildEvidenceManifest = (params: {
     },
     {
       id: 'OE2',
-      label: 'Validación determinista formal por regla',
+      label: 'Motor determinista evaluable',
       status: hasGroundTruth ? 'completed' : 'partial',
       evidence: hasGroundTruth
         ? `Ground truth ${deterministicValidation!.datasetName}. Macro F1=${(deterministicValidation!.summary.macroF1 * 100).toFixed(1)}%, ${deterministicValidation!.summary.rulesMatched} reglas match, ${deterministicValidation!.summary.rulesUnexpectedFP} FP inesperados.`
@@ -120,7 +149,24 @@ export const buildEvidenceManifest = (params: {
     },
     {
       id: 'OE3',
-      label: 'Diagnóstico LLM y calibración experimental',
+      label: 'Diagnóstico asistido restringido',
+      status: diagnosisEvidence?.status === 'valid'
+        ? 'completed'
+        : diagnosisEvidence?.status === 'invalid'
+          ? 'partial'
+          : 'blocked',
+      evidence: diagnosisEvidence?.status === 'valid'
+        ? `Diagnóstico V2 válido${diagnosisEvidence.model ? ` con ${diagnosisEvidence.model}` : ''}${diagnosisEvidence.inputMode ? ` mediante ${diagnosisEvidence.inputMode}` : ''}; recibo=${diagnosisEvidence.receiptHash ?? 'no disponible'}.`
+        : diagnosisEvidence?.status === 'invalid'
+          ? `Se intentó el diagnóstico asistido, pero su recibo quedó inválido (${diagnosisEvidence.receiptHash ?? 'sin recibo'}).`
+          : 'No se ejecutó diagnóstico asistido en esta sesión.',
+      limitations: diagnosisEvidence?.status === 'valid'
+        ? []
+        : ['Sin un recibo V2 válido no se afirma diagnóstico asistido completado.'],
+    },
+    {
+      id: 'OE4',
+      label: 'Laboratorio de comparación de modelos',
       status: calibrationSummary.status === 'formal'
         ? 'completed'
         : calibrationSummary.status === 'none'
@@ -130,30 +176,42 @@ export const buildEvidenceManifest = (params: {
       limitations: calibrationSummary.limitations,
     },
     {
-      id: 'OE4',
-      label: 'Script seguro y validación HITL',
-      status: scriptValidation?.hasScript
-        ? (scriptValidation.valid && !scriptValidation.requiresHumanReview ? 'completed' : 'partial')
-        : 'blocked',
-      evidence: scriptValidation?.hasScript
-        ? `Script generado (origen=${scriptValidation.scriptOrigin}), safetyScore=${scriptValidation.safetyScore}/100, cobertura=${scriptValidation.coveragePercentage}%, columnas fantasma=${scriptValidation.invalidColumns.length}.`
-        : 'Sin script generado.',
+      id: 'OE5',
+      label: 'Gobernanza human-in-the-loop',
+      status: hitlDecision?.approved || remediationReview?.scriptApproved
+        ? 'completed'
+        : remediationReview
+          ? 'partial'
+          : 'blocked',
+      evidence: hitlDecision?.approved
+        ? `Decisión HITL registrada: safetyScore=${hitlDecision.safetyScoreAtApproval}/100, cobertura=${hitlDecision.coverageAtApproval}%, checklist=${hitlDecision.checklist.filter(c => c.passed).length}/${hitlDecision.checklist.length} criterios OK.`
+        : remediationReview
+          ? `Plan revisado: ${remediationReview.approvedActions} aprobadas, ${remediationReview.rejectedActions} rechazadas y ${remediationReview.pendingActions} pendientes de ${remediationReview.totalActions} acciones.`
+          : 'Sin plan de remediación revisado en esta sesión.',
       limitations: [
-        !scriptValidation?.valid ? `Script no válido: ${scriptValidation?.warnings.join('; ') || 'razón desconocida'}.` : '',
-        scriptValidation?.requiresHumanReview ? 'Requiere revisión humana explícita.' : '',
-        scriptValidation?.scriptOrigin === 'deterministic' ? 'Script generado por respaldo determinista, no por LLM.' : '',
+        !hitlDecision && !remediationReview?.scriptApproved ? 'La revisión del plan no equivale todavía a la aprobación final de un script.' : '',
+        healthDeltaPoints === undefined ? 'Sin delta de salud simulado.' : '',
       ].filter(Boolean),
     },
     {
-      id: 'OE5',
-      label: 'Exportación, gobernanza y resultados',
-      status: hitlDecision?.approved ? 'completed' : 'partial',
-      evidence: hitlDecision?.approved
-        ? `Decisión HITL registrada: safetyScore=${hitlDecision.safetyScoreAtApproval}/100, cobertura=${hitlDecision.coverageAtApproval}%, checklist=${hitlDecision.checklist.filter(c => c.passed).length}/${hitlDecision.checklist.length} criterios OK.`
-        : 'Sin decisión HITL registrada.',
+      id: 'OE6',
+      label: 'Scripts Python/Pandas revisables y trazables',
+      status: scriptContractEvidence?.exists
+        ? (scriptContractEvidence.verified ? 'completed' : 'partial')
+        : scriptValidation?.hasScript
+          ? (scriptValidation.valid ? 'completed' : 'partial')
+          : 'blocked',
+      evidence: scriptContractEvidence?.exists
+        ? `Contrato de script V2 ${scriptContractEvidence.verified ? 'verificado' : 'no verificado'}; hash=${scriptContractEvidence.scriptHash ?? 'no disponible'}.`
+        : scriptValidation?.hasScript
+          ? `Script generado (origen=${scriptValidation.scriptOrigin}), safetyScore=${scriptValidation.safetyScore}/100, cobertura=${scriptValidation.coveragePercentage}%, columnas fantasma=${scriptValidation.invalidColumns.length}.`
+          : 'Sin script generado.',
       limitations: [
-        !hitlDecision ? 'Sin decisión humana registrada.' : '',
-        healthDeltaPoints === undefined ? 'Sin delta de salud simulado.' : '',
+        scriptContractEvidence?.exists && !scriptContractEvidence.verified ? 'El contrato V2 no superó la verificación fresca.' : '',
+        !scriptContractEvidence?.exists && scriptValidation?.hasScript && !scriptValidation.valid
+          ? `Script no válido: ${scriptValidation.warnings.join('; ') || 'razón desconocida'}.`
+          : '',
+        scriptValidation?.requiresHumanReview ? 'Requiere revisión humana explícita.' : '',
       ].filter(Boolean),
     },
   ];
@@ -168,9 +226,21 @@ export const buildEvidenceManifest = (params: {
           ? 'preliminary'
           : 'none'
     ) as 'formal' | 'preliminary' | 'none',
-    scriptSafety: (scriptValidation?.valid && !scriptValidation?.requiresHumanReview ? 'formal' : scriptValidation?.hasScript ? 'preliminary' : 'none') as 'formal' | 'preliminary' | 'none',
-    hitlDecision: (hitlDecision?.approved ? 'formal' : hitlDecision ? 'preliminary' : 'none') as 'formal' | 'preliminary' | 'none',
-    healthDelta: (healthDeltaPoints !== undefined && hitlDecision?.approved ? 'formal' : healthDeltaPoints !== undefined ? 'preliminary' : 'none') as 'formal' | 'preliminary' | 'none',
+    scriptSafety: (scriptContractEvidence?.verified || (scriptValidation?.valid && !scriptValidation?.requiresHumanReview)
+      ? 'formal'
+      : scriptContractEvidence?.exists || scriptValidation?.hasScript
+        ? 'preliminary'
+        : 'none') as 'formal' | 'preliminary' | 'none',
+    hitlDecision: (hitlDecision?.approved || remediationReview?.scriptApproved
+      ? 'formal'
+      : hitlDecision || remediationReview
+        ? 'preliminary'
+        : 'none') as 'formal' | 'preliminary' | 'none',
+    healthDelta: (healthDeltaPoints !== undefined && (hitlDecision?.approved || remediationReview?.scriptApproved)
+      ? 'formal'
+      : healthDeltaPoints !== undefined
+        ? 'preliminary'
+        : 'none') as 'formal' | 'preliminary' | 'none',
   };
 
   const limitations: string[] = [
@@ -195,7 +265,10 @@ export const buildEvidenceManifest = (params: {
   const artifacts: string[] = [];
   if (auditEvidence?.ingestionStatus === 'success') artifacts.push('auditEvidence (JSON)');
   if (hasGroundTruth) artifacts.push('deterministicValidation (JSON)');
+  if (diagnosisEvidence?.receiptHash) artifacts.push('diagnosisReceipt (JSON)');
   if (calibrationSummary.totalRuns > 0) artifacts.push('calibrationResults (JSON)');
+  if (remediationReview) artifacts.push('remediationReview (JSON)');
+  if (scriptContractEvidence?.exists) artifacts.push('scriptContractV2 (JSON)');
   if (scriptValidation?.hasScript) artifacts.push('scriptValidation (JSON)');
   if (scriptValidation?.hasScript) artifacts.push('cleaningScript (Python)');
   if (hitlDecision?.approved) artifacts.push('hitlDecision (JSON)');

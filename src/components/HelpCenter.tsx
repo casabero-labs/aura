@@ -157,7 +157,7 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
       id: 'configuracion',
       title: 'E. Configuración de modelos',
       icon: <Settings size={14} />,
-      searchText: 'configuracion modelos chrome ai gemini nano ollama cloud temperatura contrato prompt webgpu',
+      searchText: 'configuracion modelos chrome ai gemini nano ollama cloud temperatura contrato prompt idioma ingles español una llamada webgpu',
       content: (
         <div className="help-section-body">
           <dl className="help-glossary">
@@ -166,6 +166,7 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
             <dt>Cloud</dt><dd>Útil cuando necesitas más capacidad o estabilidad de respuesta. Implica enviar evidencia estructurada a un proveedor externo.</dd>
             <dt>Temperatura</dt><dd>Para auditoría usa valores bajos, normalmente 0.1 o 0.2. Valores altos aumentan variación y riesgo de respuestas inventadas.</dd>
             <dt>Contrato</dt><dd>Instrucciones que limitan cómo debe responder el modelo. Si no sabes qué tocar, conserva el valor por defecto.</dd>
+            <dt>¿Por qué aparecen inglés y español?</dt><dd>No son dos diagnósticos ni dos llamadas. En V2, AURA conserva en inglés la instrucción técnica estable, incorpora en español la evidencia procedente del motor y compone ambas piezas en una sola solicitud exacta, certificada por su hash. Un prompt completamente en español solo identifica una sesión histórica V1.</dd>
             <dt>WebLLM</dt><dd>Modo experimental. Puede fallar por caché, IndexedDB o descarga de modelos; Chrome AI u Ollama son preferibles.</dd>
           </dl>
         </div>

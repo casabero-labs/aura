@@ -98,7 +98,7 @@ export const addTopIssuesTable = (ctx: PdfLayoutContext, report: DiagnosticRepor
     theme: 'grid',
     styles: commonStyles(ctx),
     headStyles: headStyles(ctx),
-    alternateRowStyles: { fillColor: [247, 244, 239] },
+    alternateRowStyles: { fillColor: [244, 245, 247] },
     rowPageBreak: 'avoid',
     columnStyles: {
       0: { cellWidth: 28, fontStyle: 'bold' },
@@ -148,7 +148,7 @@ export const addFindingsTable = (
     theme: 'grid',
     styles: commonStyles(ctx),
     headStyles: headStyles(ctx),
-    alternateRowStyles: { fillColor: [247, 244, 239] },
+    alternateRowStyles: { fillColor: [244, 245, 247] },
     rowPageBreak: 'avoid',
     columnStyles: {
       0: { cellWidth: 33, fontStyle: 'bold' },
@@ -190,7 +190,7 @@ export const addRecommendationsTable = (
     theme: 'grid',
     styles: commonStyles(ctx),
     headStyles: headStyles(ctx),
-    alternateRowStyles: { fillColor: [247, 244, 239] },
+    alternateRowStyles: { fillColor: [244, 245, 247] },
     rowPageBreak: 'avoid',
     columnStyles: {
       0: { cellWidth: 20, fontStyle: 'bold' },
@@ -229,7 +229,7 @@ export const addTechnicalAnnexTables = (ctx: PdfLayoutContext, report: Diagnosti
     theme: 'grid',
     styles: commonStyles(ctx),
     headStyles: headStyles(ctx),
-    alternateRowStyles: { fillColor: [247, 244, 239] },
+    alternateRowStyles: { fillColor: [244, 245, 247] },
     columnStyles: {
       0: { cellWidth: 48, fontStyle: 'bold' },
       1: { cellWidth: 'auto' },
@@ -252,7 +252,7 @@ export const addTechnicalAnnexTables = (ctx: PdfLayoutContext, report: Diagnosti
     theme: 'grid',
     styles: commonStyles(ctx),
     headStyles: headStyles(ctx),
-    alternateRowStyles: { fillColor: [247, 244, 239] },
+    alternateRowStyles: { fillColor: [244, 245, 247] },
   });
   updateCursorAfterTable(ctx);
 
@@ -272,7 +272,7 @@ export const addTechnicalAnnexTables = (ctx: PdfLayoutContext, report: Diagnosti
       theme: 'grid',
       styles: commonStyles(ctx),
       headStyles: headStyles(ctx),
-      alternateRowStyles: { fillColor: [247, 244, 239] },
+      alternateRowStyles: { fillColor: [244, 245, 247] },
     });
     updateCursorAfterTable(ctx);
   }
@@ -293,7 +293,7 @@ export const addTechnicalAnnexTables = (ctx: PdfLayoutContext, report: Diagnosti
       theme: 'grid',
       styles: commonStyles(ctx),
       headStyles: headStyles(ctx),
-      alternateRowStyles: { fillColor: [247, 244, 239] },
+      alternateRowStyles: { fillColor: [244, 245, 247] },
     });
     updateCursorAfterTable(ctx);
   }
@@ -316,7 +316,7 @@ export const addTechnicalAnnexTables = (ctx: PdfLayoutContext, report: Diagnosti
       theme: 'grid',
       styles: commonStyles(ctx),
       headStyles: headStyles(ctx),
-      alternateRowStyles: { fillColor: [247, 244, 239] },
+      alternateRowStyles: { fillColor: [244, 245, 247] },
     });
     updateCursorAfterTable(ctx);
   }

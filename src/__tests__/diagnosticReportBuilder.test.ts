@@ -323,6 +323,30 @@ describe('buildDiagnosticReport', () => {
       ?.contextualInterpretation).toContain('Age concentra valores ausentes');
   });
 
+  it('usa fecha e identidad del recibo y no valores inventados por el modelo', () => {
+    const first = buildDiagnosticReport({
+      report: buildTitanicReport(),
+      auditEvidence,
+      structuredDiagnosis,
+    });
+    const modelTampered: DiagnosisExecutionResult = {
+      ...structuredDiagnosis,
+      diagnosis: {
+        ...structuredDiagnosis.diagnosis,
+        responseId: 'response:1234567890abcdef',
+        generatedAt: '2023-09-25T12:00:00.000Z',
+      },
+    };
+    const second = buildDiagnosticReport({
+      report: buildTitanicReport(),
+      auditEvidence,
+      structuredDiagnosis: modelTampered,
+    });
+
+    expect(second.metadata.generatedAt).toBe('2026-07-07T10:00:02.000Z');
+    expect(second.metadata.reportId).toBe(first.metadata.reportId);
+  });
+
   it('usa aiAnalysis legacy cuando no hay structuredDiagnosis', () => {
     const diagnosticReport = buildDiagnosticReport({
       report: buildTitanicReport(),

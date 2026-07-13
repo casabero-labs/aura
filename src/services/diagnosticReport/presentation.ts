@@ -114,7 +114,7 @@ const buildDecision = (report: DiagnosticReport): DiagnosticPresentationDecision
     return {
       eyebrow: 'lectura ejecutiva',
       title: 'Revisión humana antes de publicar o corregir datos',
-      body: `El diagnóstico puede cerrarse, pero el dataset mantiene ${critical} hallazgo(s) crítico(s) y ${riskCount} riesgo(s) confirmado(s). La salida defendible hoy es informe y trazabilidad; la remediación debe ser una rama revisada.`,
+      body: `El diagnóstico puede cerrarse: ${riskCount} de ${report.evidenceBase.totalIssues} hallazgo(s) se clasifican como riesgos confirmados y, dentro de ese grupo, ${critical} son críticos. La salida defendible hoy es informe y trazabilidad; la remediación debe ser una rama revisada.`,
       tone: 'critical',
     };
   }
@@ -150,7 +150,7 @@ export const buildDiagnosticPresentation = (report: DiagnosticReport): Diagnosti
     decision: buildDecision(report),
     metrics: [
       { label: 'Score base', value: `${report.metadata.scoreBase}/100`, note: 'No modificado por IA' },
-      { label: 'Riesgos confirmados', value: numberFormatter.format(report.findingGroups.confirmedRisks.length) },
+      { label: 'Riesgos confirmados', value: numberFormatter.format(report.findingGroups.confirmedRisks.length), note: `Incluye ${report.evidenceBase.criticalIssues} críticos` },
       { label: 'Hallazgos', value: numberFormatter.format(report.evidenceBase.totalIssues) },
       { label: 'Filas / columnas', value: `${numberFormatter.format(report.metadata.rowCount)} / ${numberFormatter.format(report.metadata.colCount)}` },
     ],

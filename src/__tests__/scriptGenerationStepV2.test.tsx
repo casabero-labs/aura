@@ -1047,7 +1047,8 @@ describe('MainPipeline session restoration', () => {
       file: null,
       report: { score: 100, issues: [], rowCount: 10, colCount: 3 } as any,
       auditEvidence: {
-        datasetFingerprint: 'sha256:fingerprint123',
+        datasetFingerprint: 'short-fingerprint',
+        datasetSha256: 'sha256:fingerprint123',
         fileName: 'test.csv',
         fileSize: 100,
         startedAt: '2025-01-01T00:00:00.000Z',
@@ -1175,7 +1176,7 @@ describe('MainPipeline session restoration', () => {
         initialData={makeInitialData({
           auditEvidence: {
             ...makeInitialData().auditEvidence,
-            datasetFingerprint: 'sha256:old-fingerprint',
+            datasetSha256: 'sha256:old-fingerprint',
           },
         })}
         onLog={vi.fn()}
@@ -1219,7 +1220,8 @@ describe('Full flow to ReviewStep', () => {
       file: null,
       report: { score: 100, issues: [], rowCount: 10, colCount: 3 } as any,
       auditEvidence: {
-        datasetFingerprint: 'sha256:fingerprint123',
+        datasetFingerprint: 'short-fingerprint',
+        datasetSha256: 'sha256:fingerprint123',
         fileName: 'test.csv',
         fileSize: 100,
         startedAt: '2025-01-01T00:00:00.000Z',

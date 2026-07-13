@@ -8,7 +8,7 @@ import {
   truncateText,
 } from './pdfLayout';
 
-const palette = ['#1e1e1c', '#70695f', '#9a6738', '#56675c', '#8f302b', '#a66a24'];
+const palette = ['#20242b', '#5b626d', '#2563eb', '#0f766e', '#b54708', '#b42318'];
 
 const asNumber = (value: unknown) => {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
@@ -71,8 +71,12 @@ const drawChartShell = (ctx: PdfLayoutContext, chart: DiagnosticChartSpec, heigh
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.6);
   doc.setTextColor(theme.colors.faint);
-  doc.text(truncateText(chart.description, 120), theme.margin.left, ctx.cursorY + 5);
-  ctx.cursorY += 10;
+  const descriptionLines = doc.splitTextToSize(
+    truncateText(chart.description, 180),
+    getContentWidth(ctx),
+  ) as string[];
+  doc.text(descriptionLines, theme.margin.left, ctx.cursorY + 5);
+  ctx.cursorY += 7 + Math.max(1, descriptionLines.length) * 3.2;
 };
 
 export const drawHorizontalBarChart = (ctx: PdfLayoutContext, chart: DiagnosticChartSpec) => {

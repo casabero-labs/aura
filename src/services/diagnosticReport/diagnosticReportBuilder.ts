@@ -94,9 +94,14 @@ export const buildDiagnosticReport = ({
     recommendations.some((recommendation) => recommendation.requiresScript);
 
   const generatedAt =
-    structuredDiagnosis?.diagnosis.generatedAt ??
+    structuredDiagnosis?.executionReceipt?.completedAt ??
     auditEvidence?.completedAt ??
+    structuredDiagnosis?.diagnosis.generatedAt ??
     '1970-01-01T00:00:00.000Z';
+  const trustedDiagnosisIdentity =
+    structuredDiagnosis?.executionReceipt?.receiptHash ??
+    structuredDiagnosis?.rawResponseHash ??
+    '';
 
   return {
     metadata: {
@@ -106,7 +111,7 @@ export const buildDiagnosticReport = ({
         report.rowCount,
         report.colCount,
         diagnosisSummary.source,
-        structuredDiagnosis?.diagnosis.responseId ?? '',
+        trustedDiagnosisIdentity,
       ].join(':'))}`,
       ...(auditEvidence?.id ? { runId: auditEvidence.id } : {}),
       ...(auditEvidence?.datasetSha256 ? { datasetSha256: auditEvidence.datasetSha256 } : {}),

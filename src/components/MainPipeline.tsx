@@ -61,6 +61,9 @@ interface MainPipelineProps {
 
 const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initialData, onLog, onPipelineChange, onAiConfigChange, onOpenSettings }) => {
 
+  const getScriptDatasetSha256 = (evidence: AuditExecutionEvidence | null | undefined) =>
+    evidence?.datasetSha256 ?? null;
+
   const deriveDiagnosisIdentity = (diagnosis: DiagnosisExecutionResult | null) => {
     if (!diagnosis) return { diagRef: null, envelopeRef: null };
     return {
@@ -74,7 +77,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
   // Initialize prevContractKeyRef from restored session
   const getInitialContractKey = () => {
     if (!initialData?.scriptContractV2) return null;
-    const fp = initialData.auditEvidence?.datasetFingerprint ?? null;
+    const fp = getScriptDatasetSha256(initialData.auditEvidence);
     return buildScriptContractInputKey({
       fingerprint: fp,
       envelopeRef: initialData.structuredDiagnosis?.evidenceEnvelopeRef ?? null,
@@ -191,7 +194,9 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
     hasContract: !!scriptContractV2,
     hasPlan: !!remediationPlan,
     hasDiagnosis: !!structuredDiagnosis,
-    fingerprint: auditEvidence?.datasetFingerprint ?? null,
+    // Compatibility name retained for sealed E2E consumers; script contracts
+    // must receive the same full SHA-256 used by the production flow.
+    fingerprint: getScriptDatasetSha256(auditEvidence),
     contractHash: scriptContractV2?.scriptHash ?? null,
     planId: remediationPlan?.planId ?? null,
   };
@@ -330,7 +335,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
   const prevContractKeyRef = useRef<string | null>(getInitialContractKey());
   useEffect(() => {
     if (!isContractsV2Enabled()) return;
-    const fingerprint = auditEvidence?.datasetFingerprint ?? null;
+    const fingerprint = getScriptDatasetSha256(auditEvidence);
     const key = buildScriptContractInputKey({
       fingerprint,
       envelopeRef: structuredDiagnosis?.evidenceEnvelopeRef ?? null,
@@ -412,7 +417,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
     if (!initialData?.scriptContractV2 || !isContractsV2Enabled()) return;
     const { diagRef: currentDiagRef, envelopeRef: currentEnvelopeRef } = deriveDiagnosisIdentity(initialData.structuredDiagnosis);
     const restoredKey = buildScriptContractInputKey({
-      fingerprint: initialData.auditEvidence?.datasetFingerprint ?? null,
+      fingerprint: getScriptDatasetSha256(initialData.auditEvidence),
       envelopeRef: currentEnvelopeRef,
       planId: initialData.remediationPlan?.planId ?? null,
       plan: initialData.remediationPlan?.plan ?? null,
@@ -420,7 +425,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
     });
 
     // Only verify if the restored contract key matches what we'd compute now
-    const currentFp = auditEvidence?.datasetFingerprint ?? null;
+    const currentFp = getScriptDatasetSha256(auditEvidence);
     const currentKey = buildScriptContractInputKey({
       fingerprint: currentFp,
       envelopeRef: structuredDiagnosis?.evidenceEnvelopeRef ?? null,
@@ -441,7 +446,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
     const context = buildUiScriptContext({
       structuredDiagnosis: initialData.structuredDiagnosis ?? null,
       csvFields: initialData.csvFields ?? [],
-      sourceDatasetFingerprint: initialData.auditEvidence?.datasetFingerprint ?? null,
+      sourceDatasetFingerprint: getScriptDatasetSha256(initialData.auditEvidence),
     });
     if (!context.ok) {
       setScriptContractV2(null);
@@ -769,7 +774,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
           <ScriptGenerationStepV2
             report={report}
             csvFields={csvFields}
-            sourceDatasetFingerprint={auditEvidence?.datasetFingerprint ?? null}
+            sourceDatasetFingerprint={getScriptDatasetSha256(auditEvidence)}
             structuredDiagnosis={structuredDiagnosis}
             remediationPlan={remediationPlan}
             scriptContractV2={scriptContractV2}
@@ -862,7 +867,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
             scriptContractV2={scriptContractV2}
             remediationPlanV2={remediationPlan}
             structuredDiagnosis={structuredDiagnosis}
-            sourceDatasetFingerprint={auditEvidence?.datasetFingerprint ?? null}
+            sourceDatasetFingerprint={getScriptDatasetSha256(auditEvidence)}
           />
         </>
       )}

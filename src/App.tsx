@@ -9,7 +9,7 @@ if (typeof __AURA_BUILD_SHA__ !== 'undefined') {
     'color: #888; font-size: 11px; font-family: monospace;',
   );
 }
-import { Download, FileJson, FileText, Sun, Moon, AlertTriangle, Trash2, X } from 'lucide-react';
+import { ArrowLeft, Download, FileJson, FileText, Sun, Moon, AlertTriangle, Trash2, X } from 'lucide-react';
 import ChangelogModal from './components/ChangelogModal';
 import ErrorBoundary from './components/ErrorBoundary';
 import AuditLogViewer from './components/AuditLogViewer';
@@ -342,19 +342,45 @@ const App: React.FC = () => {
 
   const handleExportJson = () => {
     if (!report) return;
-    const manifest = buildEvidenceManifest({
-      auditEvidence,
-      deterministicValidation,
-      benchmarkResults,
-      scriptValidation,
-      hitlDecision: improvementRun?.hitlDecision ?? null,
-      healthDeltaPoints: improvementRun?.healthDelta?.scoreDelta,
-    });
     const structDiag = pipelineData.structuredDiagnosis;
     const failureEv = pipelineData.diagnosisFailureEvidence;
     const diagnosisStatus = deriveDiagnosisExportStatus({
       structuredDiagnosis: structDiag,
       failureEvidence: failureEv,
+    });
+    const receipt = structDiag?.executionReceipt ?? failureEv?.executionReceipt ?? null;
+    const remediationActions = pipelineData.remediationPlan?.plan ?? [];
+    const manifest = buildEvidenceManifest({
+      auditEvidence,
+      deterministicValidation,
+      benchmarkResults,
+      diagnosisEvidence: {
+        status: diagnosisStatus,
+        receiptHash: receipt?.receiptHash ?? null,
+        model: receipt?.observedModel ?? receipt?.requestedModel ?? null,
+        inputMode: receipt?.effectiveInputMode ?? null,
+      },
+      remediationReview: pipelineData.remediationPlan
+        ? {
+            totalActions: remediationActions.length,
+            approvedActions: remediationActions.filter(action => action.approvalStatus === 'approved').length,
+            rejectedActions: remediationActions.filter(action => action.approvalStatus === 'rejected').length,
+            pendingActions: remediationActions.filter(action => action.approvalStatus === 'pending').length,
+            scriptApproved: Boolean(
+              pipelineData.approvedScript
+              && pipelineData.scriptContractV2
+              && pipelineData.approvedScript === pipelineData.scriptContractV2.scriptText
+            ),
+          }
+        : null,
+      scriptContractEvidence: {
+        exists: Boolean(pipelineData.scriptContractV2),
+        verified: pipelineData.scriptContractVerificationV2?.valid === true,
+        scriptHash: pipelineData.scriptContractV2?.scriptHash ?? null,
+      },
+      scriptValidation,
+      hitlDecision: improvementRun?.hitlDecision ?? null,
+      healthDeltaPoints: improvementRun?.healthDelta?.scoreDelta,
     });
     const exportPackage = buildAuraExportPackage({
       manifest,
@@ -434,6 +460,14 @@ const App: React.FC = () => {
     const csv = [header, ...rows].map((row) => row.map(csvCell).join(',')).join('\n');
     downloadTextFile(`aura_issues_${Date.now()}.csv`, csv, 'text/csv;charset=utf-8');
     setHasExported(true);
+  };
+
+  const returnToDiagnosticReport = () => {
+    setPipelineData(current => ({
+      ...current,
+      state: current.diagnosticReport ? 'diagnostic_report' : 'diagnosis',
+    }));
+    requestAnimationFrame(() => scrollTo('sistema'));
   };
 
   const scrollTo = (id: string) => {
@@ -731,6 +765,14 @@ const App: React.FC = () => {
         {/* ── Export Section ── */}
         {!showHome && report && pipelineState === 'export' && (
           <section className="export-closure" id="export-section" data-testid="export-stage">
+            <button
+              type="button"
+              className="btn-s export-return-button"
+              onClick={returnToDiagnosticReport}
+              data-testid="export-return-to-results"
+            >
+              <ArrowLeft size={14} /> Volver al informe diagnóstico
+            </button>
             <div className="export-closure-header">
               <p className="sec-eye">EXPORTACIÓN</p>
               <h2 className="sec-title">Exportación de resultados</h2>

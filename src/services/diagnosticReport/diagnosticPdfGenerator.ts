@@ -171,16 +171,23 @@ const addEvidenceCounts = (ctx: PdfLayoutContext, title: string, counts: Record<
 const addTraceCertificate = (ctx: PdfLayoutContext, rows: Array<[string, string]>) => {
   const { doc, theme } = ctx;
   const labelWidth = 35;
-  ensureSpace(ctx, rows.length * 5 + 4);
   rows.forEach(([label, value]) => {
+    const valueX = theme.margin.left + labelWidth;
+    const valueWidth = getPageWidth(doc) - theme.margin.right - valueX;
+    const valueFont = /hash|sha|receipt|envelope/i.test(label) ? 'courier' : 'helvetica';
+    doc.setFont(valueFont, 'normal');
+    doc.setFontSize(6.7);
+    const valueLines = doc.splitTextToSize(value || 'no disponible', valueWidth) as string[];
+    const rowHeight = Math.max(5, valueLines.length * 3.6 + 1.2);
+    ensureSpace(ctx, rowHeight);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(6.7);
     doc.setTextColor(theme.colors.faint);
     doc.text(label, theme.margin.left, ctx.cursorY);
-    doc.setFont(/hash|sha/i.test(label) ? 'courier' : 'helvetica', 'normal');
+    doc.setFont(valueFont, 'normal');
     doc.setTextColor(theme.colors.muted);
-    doc.text(truncateText(value, 92), theme.margin.left + labelWidth, ctx.cursorY);
-    ctx.cursorY += 5;
+    doc.text(valueLines, valueX, ctx.cursorY);
+    ctx.cursorY += rowHeight;
   });
   ctx.cursorY += 2;
 };
@@ -208,11 +215,7 @@ const addCharts = (ctx: PdfLayoutContext, report: DiagnosticReport) => {
     addParagraph(ctx, 'Sin especificaciones de gráficos disponibles para este reporte.', { color: ctx.theme.colors.faint });
     return;
   }
-  const selectedCharts = report.chartSpecs.filter((chart) => [
-    'severity_counts',
-    'top_null_columns',
-  ].includes(chart.id));
-  (selectedCharts.length > 0 ? selectedCharts : report.chartSpecs.slice(0, 2)).forEach((chart) => {
+  report.chartSpecs.slice(0, 6).forEach((chart) => {
     drawChartSpec(ctx, chart);
   });
 };
@@ -225,19 +228,16 @@ const addExecutiveSummary = (ctx: PdfLayoutContext, report: DiagnosticReport) =>
   addParagraph(ctx, presentation.executiveSummary);
   if (report.diagnosisSummary.inputReceiptRef) {
     addSectionTitle(ctx, 'Trazabilidad de ejecución LLM');
-    addParagraph(ctx, [
-      `Método: ${report.diagnosisSummary.inputMode ?? 'n/d'}`,
-      `Proveedor/modelo: ${report.diagnosisSummary.provider ?? 'n/d'} / ${report.diagnosisSummary.model ?? 'n/d'}`,
-      `Prompt hash: ${report.diagnosisSummary.promptHash ?? 'n/d'}`,
-      `Input hash: ${report.diagnosisSummary.inputHash ?? 'n/d'}`,
-      `Receipt hash: ${report.diagnosisSummary.inputReceiptRef}`,
-      `Evidence envelope: ${report.diagnosisSummary.evidenceEnvelopeRef ?? 'n/d'}`,
-      `Fecha: ${report.diagnosisSummary.executionCompletedAt ?? 'n/d'}`,
-      `Validación: ${report.diagnosisSummary.executionValidationStatus ?? 'n/d'}`,
-    ].join('\n'), {
-      fontSize: 7.5,
-      color: ctx.theme.colors.faint,
-    });
+    addTraceCertificate(ctx, [
+      ['Método', report.diagnosisSummary.inputMode ?? 'n/d'],
+      ['Proveedor / modelo', `${report.diagnosisSummary.provider ?? 'n/d'} / ${report.diagnosisSummary.model ?? 'n/d'}`],
+      ['Prompt hash', report.diagnosisSummary.promptHash ?? 'n/d'],
+      ['Input hash', report.diagnosisSummary.inputHash ?? 'n/d'],
+      ['Receipt hash', report.diagnosisSummary.inputReceiptRef],
+      ['Evidence envelope', report.diagnosisSummary.evidenceEnvelopeRef ?? 'n/d'],
+      ['Fecha', report.diagnosisSummary.executionCompletedAt ?? 'n/d'],
+      ['Validación', report.diagnosisSummary.executionValidationStatus ?? 'n/d'],
+    ]);
   }
 
   if (presentation.topRisks.length > 0) {
@@ -393,9 +393,14 @@ export const generateDiagnosticPdfReport = ({
   drawCover(ctx, diagnosticReport);
 
   addNewPage(ctx);
+  const executivePage = doc.getCurrentPageInfo().pageNumber;
   addExecutiveSummary(ctx, diagnosticReport);
 
-  addNewPage(ctx);
+  if (doc.getCurrentPageInfo().pageNumber === executivePage) {
+    addNewPage(ctx);
+  } else {
+    ctx.cursorY += 6;
+  }
   addTechnicalProfile(ctx, diagnosticReport);
   addCharts(ctx, diagnosticReport);
 

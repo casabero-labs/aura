@@ -3,6 +3,7 @@ import { uploadCopy } from '../components/FileUpload';
 import { buildProfileStageModel } from '../components/ProfileStageHeader';
 import {
   buildDiagnosisInputSummary,
+  diagnosisPromptTraceCopy,
   isDiagnosisResponseContractFailure,
 } from '../components/DiagnosisStep';
 import { AuditReport, IssueCategory, IssueSeverity } from '../types';
@@ -67,5 +68,17 @@ describe('AURA UI flow contracts', () => {
     expect(isDiagnosisResponseContractFailure('DIAGNOSIS_REFERENCE_INVALID')).toBe(true);
     expect(isDiagnosisResponseContractFailure('DIAGNOSIS_SCHEMA_INVALID')).toBe(true);
     expect(isDiagnosisResponseContractFailure('DIAGNOSIS_ADAPTER_ERROR')).toBe(false);
+  });
+
+  it('explains that the bilingual prompt trace is one provider request', () => {
+    const visibleText = Object.values(diagnosisPromptTraceCopy).join(' ');
+
+    expect(diagnosisPromptTraceCopy.title).toContain('Una sola solicitud');
+    expect(diagnosisPromptTraceCopy.system).toContain('inglés técnico');
+    expect(diagnosisPromptTraceCopy.system).toContain('no es un segundo diagnóstico');
+    expect(diagnosisPromptTraceCopy.exact).toContain('única composición');
+    expect(diagnosisPromptTraceCopy.legacy).toContain('sesiones antiguas');
+    expect(diagnosisPromptTraceCopy.legacy).toContain('No se mezcla');
+    expect(visibleText).toContain('promptHash');
   });
 });

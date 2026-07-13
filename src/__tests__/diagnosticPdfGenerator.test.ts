@@ -9,6 +9,7 @@ import type {
   DiagnosticReport,
 } from '../services/diagnosticReport';
 import { IssueCategory, IssueSeverity } from '../types';
+import { createPdfTheme } from '../services/diagnosticReport/pdfLayout';
 
 const finding = (overrides: Partial<DiagnosticFinding> = {}): DiagnosticFinding => ({
   id: 'finding-age-nulls',
@@ -249,6 +250,19 @@ const renderPdf = (
 };
 
 describe('generateDiagnosticPdfReport', () => {
+  it('usa la paleta fría Showcase Ink sin superficies warm', () => {
+    const theme = createPdfTheme();
+
+    expect(theme.colors).toEqual(expect.objectContaining({
+      ink: '#20242b',
+      muted: '#5b626d',
+      border: '#d8dce1',
+      panel: '#f4f5f7',
+      white: '#ffffff',
+    }));
+    expect(Object.values(theme.colors)).not.toContain('#faf8f4');
+    expect(Object.values(theme.colors)).not.toContain('#f5f1e8');
+  });
   it('genera PDF con solo DiagnosticReport determinista', () => {
     const { result, capturedDoc } = renderPdf(buildDiagnosticReportFixture());
 

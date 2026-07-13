@@ -43,18 +43,18 @@ export const createPdfTheme = (): PdfTheme => ({
     left: 18,
   },
   colors: {
-    ink: '#1e1e1c',
-    muted: '#4a4540',
-    faint: '#8a857e',
-    border: '#d9d4ca',
-    panel: '#f5f1e8',
-    accent: '#3a3632',
-    accentSoft: '#ebe6db',
-    critical: '#8f302b',
-    warning: '#a66a24',
-    info: '#5f6b64',
-    good: '#456554',
-    white: '#faf8f4',
+    ink: '#20242b',
+    muted: '#5b626d',
+    faint: '#7b8490',
+    border: '#d8dce1',
+    panel: '#f4f5f7',
+    accent: '#20242b',
+    accentSoft: '#eef2f6',
+    critical: '#b42318',
+    warning: '#b54708',
+    info: '#5b626d',
+    good: '#0f766e',
+    white: '#ffffff',
   },
 });
 
@@ -132,7 +132,7 @@ export const addSectionTitle = (ctx: PdfLayoutContext, title: string, eyebrow?: 
   ensureSpace(ctx, eyebrow ? 22 : 16);
   const { doc, theme } = ctx;
   if (eyebrow) {
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('courier', 'normal');
     doc.setFontSize(7);
     doc.setTextColor(theme.colors.accent);
     doc.text(eyebrow.toUpperCase(), theme.margin.left, ctx.cursorY);
@@ -154,6 +154,8 @@ export const addParagraph = (ctx: PdfLayoutContext, text: string, options: { fon
   const { doc, theme } = ctx;
   const fontSize = options.fontSize ?? 9.5;
   const leading = options.leading ?? 5;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(fontSize);
   const lines = doc.splitTextToSize(text || 'Sin información disponible.', getContentWidth(ctx));
   for (const line of lines) {
     ensureSpace(ctx, leading + 2);
@@ -169,6 +171,8 @@ export const addParagraph = (ctx: PdfLayoutContext, text: string, options: { fon
 export const addBulletList = (ctx: PdfLayoutContext, items: string[], maxItems = 8) => {
   const visibleItems = items.length > 0 ? items.slice(0, maxItems) : ['Sin limitaciones registradas.'];
   const { doc, theme } = ctx;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8.7);
   for (const item of visibleItems) {
     const lines = doc.splitTextToSize(truncateText(item, 260), getContentWidth(ctx) - 6);
     ensureSpace(ctx, lines.length * 4.8 + 2);
@@ -217,6 +221,8 @@ export const addKpiGrid = (ctx: PdfLayoutContext, items: KpiItem[]) => {
 export const addGovernanceCallout = (ctx: PdfLayoutContext, title: string, items: string[]) => {
   const { doc, theme } = ctx;
   const width = getContentWidth(ctx);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8.2);
   const itemLines = items.map((item) => doc.splitTextToSize(item, width - 12));
   const height = 14 + itemLines.reduce((sum, lines) => sum + Math.max(1, lines.length) * 4.8 + 1, 0);
   ensureSpace(ctx, height + 4);

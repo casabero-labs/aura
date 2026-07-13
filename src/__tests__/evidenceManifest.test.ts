@@ -99,7 +99,10 @@ describe('buildEvidenceManifest', () => {
     expect(manifest.app.version).toBeTruthy();
     expect(manifest.dataset.name).toBe('test.csv');
     expect(manifest.dataset.fingerprint).toBe('abc12345');
-    expect(manifest.objectivesCoverage).toHaveLength(5);
+    expect(manifest.objectivesCoverage).toHaveLength(6);
+    expect(manifest.objectivesCoverage.map(objective => objective.id)).toEqual([
+      'OE1', 'OE2', 'OE3', 'OE4', 'OE5', 'OE6',
+    ]);
     expect(manifest.artifacts.length).toBeGreaterThan(0);
     expect(manifest.allowedClaims).toBeDefined();
     expect(manifest.calibrationSummary).toBeDefined();
@@ -149,7 +152,7 @@ describe('buildEvidenceManifest', () => {
     expect(oe2!.status).toBe('partial');
   });
 
-  it('marca OE3 como blocked sin corridas', () => {
+  it('marca OE3 como blocked sin diagnóstico asistido', () => {
     const manifest = buildEvidenceManifest({
       auditEvidence: stubEvidence,
       benchmarkResults: [],
@@ -159,14 +162,20 @@ describe('buildEvidenceManifest', () => {
     expect(oe3!.status).toBe('blocked');
   });
 
-  it('marca OE3 como partial con corridas pero sin formal', () => {
+  it('marca OE3 como completed con diagnóstico V2 válido', () => {
     const manifest = buildEvidenceManifest({
       auditEvidence: stubEvidence,
-      benchmarkResults: [stubBenchmark],
+      benchmarkResults: [],
+      diagnosisEvidence: {
+        status: 'valid',
+        receiptHash: 'receipt-v2',
+        model: 'qwen3:8b',
+        inputMode: 'smart_sample',
+      },
     });
 
-    const oe3 = manifest.objectivesCoverage.find(o => o.id === 'OE3');
-    expect(oe3!.status).toBe('partial');
+    expect(manifest.objectivesCoverage.find(o => o.id === 'OE3')!.status).toBe('completed');
+    expect(manifest.artifacts).toContain('diagnosisReceipt (JSON)');
   });
 
   it('resume calibración como attempted cuando solo hay intentos fallidos o no disponibles', () => {
@@ -189,7 +198,7 @@ describe('buildEvidenceManifest', () => {
       formalRuns: 0,
       status: 'attempted',
     }));
-    expect(manifest.objectivesCoverage.find(o => o.id === 'OE3')!.status).toBe('partial');
+    expect(manifest.objectivesCoverage.find(o => o.id === 'OE4')!.status).toBe('partial');
     expect(manifest.allowedClaims.calibrationEvidence).toBe('none');
     expect(manifest.artifacts).toContain('calibrationResults (JSON)');
   });
@@ -257,15 +266,15 @@ describe('buildEvidenceManifest', () => {
     expect(manifest.allowedClaims.calibrationEvidence).toBe('none');
   });
 
-  it('marca OE4 como completed con script válido y sin revisión requerida', () => {
+  it('marca OE6 como completed con script válido y sin revisión requerida', () => {
     const manifest = buildEvidenceManifest({
       auditEvidence: stubEvidence,
       benchmarkResults: [],
       scriptValidation: stubScriptValidation,
     });
 
-    const oe4 = manifest.objectivesCoverage.find(o => o.id === 'OE4');
-    expect(oe4!.status).toBe('completed');
+    const oe6 = manifest.objectivesCoverage.find(o => o.id === 'OE6');
+    expect(oe6!.status).toBe('completed');
   });
 
   it('marca OE5 como completed con HITL aprobado', () => {
@@ -277,6 +286,24 @@ describe('buildEvidenceManifest', () => {
 
     const oe5 = manifest.objectivesCoverage.find(o => o.id === 'OE5');
     expect(oe5!.status).toBe('completed');
+  });
+
+  it('mantiene OE5 partial cuando hay revisión de acciones pero no aprobación final del script', () => {
+    const manifest = buildEvidenceManifest({
+      auditEvidence: stubEvidence,
+      benchmarkResults: [],
+      remediationReview: {
+        totalActions: 15,
+        approvedActions: 15,
+        rejectedActions: 0,
+        pendingActions: 0,
+        scriptApproved: false,
+      },
+    });
+
+    const oe5 = manifest.objectivesCoverage.find(o => o.id === 'OE5');
+    expect(oe5!.status).toBe('partial');
+    expect(oe5!.evidence).toContain('15 aprobadas');
   });
 
   it('allowedClaims no habilita claims de calibración sin corridas', () => {

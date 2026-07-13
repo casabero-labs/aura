@@ -99,6 +99,31 @@ Consolidar AURA como una arquitectura local-first, reproducible y evaluable para
 - Los resultados L18–L20 son útiles para validar contratos, pero usan proveedor mock y no constituyen comparación formal de LLM.
 - La evidencia de producción y los issues solo se consideran cerrados cuando la ejecución o el estado remoto lo demuestran.
 
+### Actualización post-`flujo3` — 12 de julio de 2026
+
+La corrida normal Qwen3 8B alcanzó el contrato V2 completo: 15 hallazgos, 15
+bloques y recibo válido. La revisión de sus artefactos no modifica los
+objetivos ni abre una fase nueva; cierra inconsistencias de implementación:
+
+- el manifiesto exportado declara exactamente OE1–OE6 según este documento;
+- el informe usa la fecha y la identidad criptográfica del recibo, no valores
+  propuestos por el LLM;
+- la generación de script compara el SHA-256 completo del dataset y deja de
+  usar el fingerprint corto como identidad contractual;
+- V2 conserva una sola solicitud: instrucción técnica estable en inglés,
+  evidencia descriptiva en español y composición exacta certificada por
+  `promptHash`; el prompt español separado pertenece únicamente a sesiones V1;
+- el PDF adopta el lenguaje visual minimalista `showcase-ink`, muestra seis
+  gráficos y supera la revisión de paginación sin páginas vacías ni cortes;
+- Exportación permite regresar al informe conservando la sesión.
+
+Esto fortalece OE3, OE5 y OE6, pero no cierra la evaluación formal OE4. El
+siguiente gate de producto es repetir en producción la rama opcional desde el
+informe hasta la revisión humana y confirmar la compatibilidad del SHA-256.
+El gate local quedó verde con 1.766 pruebas Vitest, typecheck, build, 8/8
+escenarios Playwright del contrato de script y el recorrido real CSV → perfil
+→ exportación.
+
 ## 7. Hoja de ruta final
 
 Solo existen cuatro bloques. Se ejecutan en orden y no se abre trabajo nuevo fuera de ellos.

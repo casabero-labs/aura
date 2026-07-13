@@ -6,6 +6,15 @@ import ChromeAiStatusPanel from './ChromeAiStatusPanel';
 import OllamaSetupWizard from './OllamaSetupWizard';
 import CopyableHash from './CopyableHash';
 import SyntaxDisplay from './SyntaxDisplay';
+
+export const diagnosisPromptTraceCopy = {
+  title: 'Una sola solicitud, tres piezas auditables',
+  summary: 'AURA realiza una única llamada al modelo. Las tres vistas siguientes separan sus componentes para que puedas comprobar exactamente qué se envió.',
+  system: 'Instrucción del sistema: contrato estable de seguridad y formato. Se conserva en inglés técnico para mantener el mismo protocolo entre modelos; no es un segundo diagnóstico.',
+  payload: 'Carga de evidencia: JSON con el contexto permitido. Sus nombres y descripciones pueden estar en español porque provienen del motor y del dataset.',
+  exact: 'Solicitud exacta: composición de instrucción, evidencia y esquema. Esta única composición se envía a Ollama y es la que certifica el promptHash.',
+  legacy: 'Compatibilidad histórica: algunas sesiones antiguas conservan un único prompt V1 redactado en español. No se mezcla con el contrato V2 ni se utiliza en diagnósticos nuevos.',
+} as const;
 import { DiagnosisHeroPanel } from './diagnosis';
 import { AIConfig, AIProvider, AuditReport, AuditExecutionEvidence, ProviderMetrics, LocalModelStatus, DiagnosisEvent, ProgressDisclosureStatus, InputMode } from '../types';
 import { buildSmartSample, buildAnalysisPrompt } from '../services/providers/prompts';
@@ -1102,14 +1111,24 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
                 {/* System instruction + user payload */}
                 {activeInputSnapshot && (
                   <>
-                    <div className="diagnosis-tech-section">
-                      <SyntaxDisplay filename="system.instruction.txt" content={activeInputSnapshot.systemInstruction} maxHeight={320} />
+                    <div className="diagnosis-prompt-trace" data-testid="diagnosis-prompt-trace-explanation">
+                      <p className="diagnosis-prompt-trace__eyebrow">Arquitectura del prompt</p>
+                      <h4>{diagnosisPromptTraceCopy.title}</h4>
+                      <p>{diagnosisPromptTraceCopy.summary}</p>
+                      <ol>
+                        <li>{diagnosisPromptTraceCopy.system}</li>
+                        <li>{diagnosisPromptTraceCopy.payload}</li>
+                        <li>{diagnosisPromptTraceCopy.exact}</li>
+                      </ol>
                     </div>
                     <div className="diagnosis-tech-section">
-                      <SyntaxDisplay filename="user-payload.json" content={activeInputSnapshot.userPayload} maxHeight={320} />
+                      <SyntaxDisplay filename="01-system-instruction.en.txt" content={activeInputSnapshot.systemInstruction} maxHeight={320} />
                     </div>
                     <div className="diagnosis-tech-section">
-                      <SyntaxDisplay filename="diagnosis.prompt.v2.txt" content={exactPrompt} maxHeight={320} />
+                      <SyntaxDisplay filename="02-evidence-payload.json" content={activeInputSnapshot.userPayload} maxHeight={320} />
+                    </div>
+                    <div className="diagnosis-tech-section">
+                      <SyntaxDisplay filename="03-request-sent-once.txt" content={exactPrompt} maxHeight={320} />
                     </div>
                   </>
                 )}
@@ -1151,7 +1170,12 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
                   />
                 </div>
                 <div className="diagnosis-tech-section">
-                  <SyntaxDisplay filename="diagnosis.prompt.txt" content={diagnosisPrompt} maxHeight={320} />
+                  <div className="diagnosis-prompt-trace">
+                    <p className="diagnosis-prompt-trace__eyebrow">Sesión histórica</p>
+                    <h4>Prompt V1 en español</h4>
+                    <p>{diagnosisPromptTraceCopy.legacy}</p>
+                  </div>
+                  <SyntaxDisplay filename="legacy-v1-prompt.es.txt" content={diagnosisPrompt} maxHeight={320} />
                 </div>
                 <div className="diagnosis-tech-section">
                   <SyntaxDisplay filename="provider-response.txt" content={draftAnalysis} maxHeight={320} />
