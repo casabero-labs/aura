@@ -258,7 +258,7 @@ const App: React.FC = () => {
   }, [formalEvidenceEnvelope]);
 
   const downloadRepresentativeBundle = useCallback((run: ExperimentRunV1) => {
-    const bundle = buildFormalRepresentativeExecutionBundle(run);
+    const bundle = buildFormalRepresentativeExecutionBundle(run, run.updatedAt);
     downloadTextFile(
       `aura-python-${run.runId}.json`,
       `${JSON.stringify(bundle, null, 2)}\n`,
@@ -268,7 +268,8 @@ const App: React.FC = () => {
 
   const importRepresentativeCsv = useCallback(async (run: ExperimentRunV1, afterFile: File, receiptFile: File) => {
     if (!pipelineData.file) throw new Error('Vuelve a cargar el CSV controlado original antes de reauditar.');
-    return importFormalRepresentativeOutput(run, pipelineData.file, afterFile, receiptFile);
+    const approvedBundle = buildFormalRepresentativeExecutionBundle(run, run.updatedAt);
+    return importFormalRepresentativeOutput(run, pipelineData.file, afterFile, receiptFile, approvedBundle);
   }, [pipelineData.file]);
 
   // Liberar memoria VRAM del WebLLM anterior al cambiar de proveedor o desmontar
