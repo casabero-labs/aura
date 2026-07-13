@@ -68,9 +68,9 @@ export const loadPipelineSession = (): PipelineSessionSnapshot | null => {
       return { ...snapshot, state: 'diagnosis' } as PipelineSessionSnapshot;
     }
     const result = snapshot as PipelineSessionSnapshot;
-    if (result.executionState === 'verified' && !result.fileMeta) {
+    if (result.executionState === 'verified') {
       result.executionState = 'awaiting_external_output';
-      result.executionValidationError = 'Sesión restaurada sin archivos. Volvé a seleccionar corrected.csv y receipt.json.';
+      result.executionValidationError = 'Sesión restaurada. Los archivos CSV y recibo viven solo en memoria; volvé a seleccionarlos para revalidar.';
     }
     return result;
   } catch {

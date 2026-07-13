@@ -142,6 +142,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
     setExecutionBundleJson('');
     setExecutionReceipt(undefined);
     setExecutionValidationError('');
+    setExecutionAfterFile(null);
   };
 
   // Sync pipeline data upward to parent (deferred to avoid overwriting App's session restore)
@@ -942,6 +943,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
             onErrorChange={setExecutionValidationError}
             onBundleJsonChange={setExecutionBundleJson}
             onAfterFileChange={setExecutionAfterFile}
+            onSourceFileChange={setFile}
             executionReceipt={executionReceipt}
             executionBundleJson={executionBundleJson}
             onLog={(stage, msg) => addLog(`${stage} :: ${msg}`)}

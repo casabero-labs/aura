@@ -26,9 +26,16 @@ interface ApplyVerifyStepProps {
   onErrorChange: (error: string) => void;
   onBundleJsonChange: (json: string) => void;
   onAfterFileChange: (afterFile: File | null) => void;
+  onSourceFileChange: (file: File | null) => void;
   onLog: (stage: string, msg: string) => void;
   onContinue: () => void;
   onBack: () => void;
+}
+
+export interface VerifiedRemediationExecution {
+  bundle: Record<string, unknown>;
+  receipt: PythonExecutionReceiptV1;
+  afterFile: File;
 }
 
 const RUNNER = 'node experiments/runners/run-aura-remediation.mjs';
@@ -54,6 +61,7 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
   onErrorChange,
   onBundleJsonChange,
   onAfterFileChange,
+  onSourceFileChange,
   onLog,
   onContinue,
   onBack,
@@ -80,7 +88,8 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
     if (!fingerprint || fingerprint.length !== 64) errors.push('El SHA-256 del CSV fuente no es válido.');
     if (!sourceFile) errors.push('El archivo CSV fuente no está disponible; volvé a seleccionarlo.');
     if (!scriptContractV2) errors.push('No hay contrato de script V2.');
-    if (!scriptContractVerificationV2 || scriptContractVerificationV2.pythonSyntax.state !== 'passed') {
+    const verif = scriptContractVerificationV2;
+    if (!verif || verif.valid !== true || verif.pythonSyntax.state !== 'passed') {
       errors.push('La validación del script V2 no está completa o falló.');
     }
     if (!scriptContractV2) return { ok: false, errors };
@@ -91,8 +100,16 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
     if ((scriptContractV2.acceptedActionIds ?? []).length === 0) {
       errors.push('No hay acciones aceptadas en el plan.');
     }
+    const diagReceiptHash = structuredDiagnosis?.executionReceipt?.receiptHash;
+    const diagEnvelopeRef = structuredDiagnosis?.evidenceEnvelopeRef;
+    const contractInputRef = scriptContractV2.inputReceiptRef;
+    if (!diagReceiptHash || !diagEnvelopeRef || !contractInputRef) {
+      errors.push('Faltan referencias del diagnóstico (receiptHash, envelopeRef, inputReceiptRef).');
+    } else if (contractInputRef !== diagReceiptHash) {
+      errors.push('La referencia del recibo de diagnóstico no coincide con el contrato V2.');
+    }
     return { ok: errors.length === 0, errors, fingerprint };
-  }, [sourceDatasetFingerprint, auditEvidence, scriptContractV2, scriptContractVerificationV2, approvedScript, sourceFile]);
+  }, [sourceDatasetFingerprint, auditEvidence, scriptContractV2, scriptContractVerificationV2, approvedScript, sourceFile, structuredDiagnosis]);
 
   const handleReuploadSource = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -103,8 +120,9 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
       onErrorChange('El SHA-256 del archivo seleccionado no coincide con el dataset congelado.');
       return;
     }
+    onErrorChange('');
+    onSourceFileChange(f);
     onLog('execution.source', `re-selected source SHA256=${hash.slice(0, 12)}`);
-    onStateChange(state);
   };
 
   const prepareBundle = useCallback(async () => {
@@ -149,7 +167,7 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
     if (!sourceFile) return;
     const url = URL.createObjectURL(sourceFile);
     const a = document.createElement('a');
-    a.href = url; a.download = sourceFile.name || 'source.csv'; a.click();
+    a.href = url; a.download = 'source.csv'; a.click();
     URL.revokeObjectURL(url);
   };
 
