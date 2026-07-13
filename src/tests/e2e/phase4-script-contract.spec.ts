@@ -12,7 +12,7 @@ import {
 } from '../../contracts/llm';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const CSV = path.resolve(__dirname, '../../../experiments/datasets/titanic.csv');
+const CSV = path.resolve(__dirname, 'fixtures/titanic-mini.csv');
 const OUT = path.resolve(__dirname, '../../../docs/tercera_entrega_aura/03_evidencia/screenshots/phase4');
 const COLS = ['PassengerId','Survived','Pclass','Name','Sex','Age','SibSp','Parch','Ticket','Fare','Cabin','Embarked'];
 

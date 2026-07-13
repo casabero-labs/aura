@@ -21,6 +21,7 @@ import { buildDiagnosticReport, type DiagnosticReport } from '../services/diagno
 import { AIConfig, AIProvider, AuditReport, AuditExecutionEvidence, BenchmarkResult, DeterministicValidationReport, HealthDelta, ImprovementRun, ProviderMetrics, ScriptValidationResult, ProgressDisclosureStatus } from '../types';
 import type { DiagnosisExecutionResult, DiagnosisFailureEvidenceV2, RemediationPlanV2, ScriptContractV2, ScriptValidationResultV2 } from '../contracts/llm';
 import { buildScriptHashPayloadV2, validateRemediationPlanV2, isContractsV2Enabled, verifyScriptContractV2 } from '../contracts/llm';
+import { canonicalJson } from '../contracts/llm/diagnosisPromptV2';
 import type { PythonExecutionReceiptV1 } from '../services/remediationExecution/pythonExecutionContract';
 import ApplyVerifyStep, { type VerifiedRemediationExecution } from './ApplyVerifyStep';
 
@@ -55,6 +56,7 @@ export interface PipelineData {
   executionBundleJson?: string;
   executionReceipt?: PythonExecutionReceiptV1;
   executionValidationError?: string;
+  verifiedExecution?: VerifiedRemediationExecution;
 }
 
 interface MainPipelineProps {
@@ -164,7 +166,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
       scriptContractV2,
       scriptContractVerificationV2,
       benchmarkResults, improvementRun, scriptValidation, deterministicValidation, logs,
-      executionState, executionBundleJson, executionReceipt, executionValidationError,
+      executionState, executionBundleJson, executionReceipt, executionValidationError, verifiedExecution,
     };
     onPipelineChange?.(pipelineData);
   }, [state, file, report, auditEvidence, rawData, csvFields, csvDelimiter,
@@ -176,7 +178,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
       scriptContractV2,
       scriptContractVerificationV2,
       benchmarkResults, improvementRun, scriptValidation, deterministicValidation, logs,
-      executionState, executionBundleJson, executionReceipt, executionValidationError]);
+      executionState, executionBundleJson, executionReceipt, executionValidationError, verifiedExecution]);
 
   // ── Phase 3 E2E Harness: expose injection callbacks on window ──
   useEffect(() => {
@@ -822,7 +824,12 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
             scriptContractV2={scriptContractV2}
             scriptContractVerificationV2={scriptContractVerificationV2}
             onRemediationPlanChange={(plan) => {
-              if (plan && (!remediationPlan || plan.planId !== remediationPlan.planId)) {
+              const current = remediationPlan;
+              const isMaterialChange =
+                (plan === null && current !== null) ||
+                (plan !== null && current === null) ||
+                (plan && current && (plan.planId !== current.planId || canonicalJson(plan) !== canonicalJson(current)));
+              if (isMaterialChange) {
                 invalidateDescendants('plan');
               }
               setRemediationPlan(plan);
@@ -865,7 +872,15 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
             scriptValidation={scriptValidation}
             structuredDiagnosis={structuredDiagnosis}
             remediationPlan={remediationPlan}
-            onRemediationPlanChange={setRemediationPlan}
+            onRemediationPlanChange={(plan) => {
+              const current = remediationPlan;
+              const isMaterialChange =
+                (plan === null && current !== null) ||
+                (plan !== null && current === null) ||
+                (plan && current && (plan.planId !== current.planId || canonicalJson(plan) !== canonicalJson(current)));
+              if (isMaterialChange) invalidateDescendants('plan');
+              setRemediationPlan(plan);
+            }}
             onScriptGenerated={(script, metrics: ProviderMetrics) => {
               setCleaningScript(script);
               const origin = metrics.provider === 'AURA' ? 'deterministic' : 'model';

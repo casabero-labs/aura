@@ -8,17 +8,20 @@ export type PipelineSessionSnapshot = Omit<PipelineData, 'file'> & {
   savedAt: string;
 };
 
-export const toPipelineSessionSnapshot = (data: PipelineData): PipelineSessionSnapshot => ({
-  ...data,
-  file: null,
-  fileMeta: data.file ? {
-    name: data.file.name,
-    size: data.file.size,
-    type: data.file.type,
-    lastModified: data.file.lastModified,
-  } : undefined,
-  savedAt: new Date().toISOString(),
-});
+export const toPipelineSessionSnapshot = (data: PipelineData): PipelineSessionSnapshot => {
+  const { verifiedExecution: _verifiedExecution, ...rest } = data;
+  return {
+    ...rest,
+    file: null,
+    fileMeta: data.file ? {
+      name: data.file.name,
+      size: data.file.size,
+      type: data.file.type,
+      lastModified: data.file.lastModified,
+    } : undefined,
+    savedAt: new Date().toISOString(),
+  };
+};
 
 export const savePipelineSession = (data: PipelineData) => {
   try {

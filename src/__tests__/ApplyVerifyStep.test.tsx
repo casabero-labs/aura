@@ -370,10 +370,130 @@ describe('ApplyVerifyStep R3', () => {
       expect(onVerifiedExecution).not.toHaveBeenCalled();
       expect(onStateChange).toHaveBeenCalledWith('invalid');
     });
+
+    it('tampered approvedScriptHash → invalid', async () => {
+      const onVerifiedExecution = vi.fn();
+      const onStateChange = vi.fn();
+      const bundle = buildCanonicalBundle();
+      const receipt = makeReceipt(bundle, { approvedScriptHash: 'z'.repeat(64) });
+      const receiptFile = new File([JSON.stringify(receipt)], 'receipt.json', { type: 'application/json' });
+      render(<ApplyVerifyStep
+        {...defaultProps}
+        state="awaiting_external_output"
+        sourceFile={sourceFile}
+        executionBundleJson={JSON.stringify(bundle)}
+        onVerifiedExecution={onVerifiedExecution}
+        onStateChange={onStateChange}
+      />);
+      const afterInput = screen.getByTestId('apply-verify-after-file') as HTMLInputElement;
+      const receiptInput = screen.getByTestId('apply-verify-receipt-file') as HTMLInputElement;
+      Object.defineProperty(afterInput, 'files', { value: [afterFile], configurable: true });
+      Object.defineProperty(receiptInput, 'files', { value: [receiptFile], configurable: true });
+      await act(async () => { fireEvent.change(afterInput); fireEvent.change(receiptInput); });
+      await act(async () => { fireEvent.click(screen.getByTestId('apply-verify-validate')); });
+      expect(onVerifiedExecution).not.toHaveBeenCalled();
+      expect(onStateChange).toHaveBeenCalledWith('invalid');
+    });
+
+    it('tampered scriptTextSha256 → invalid', async () => {
+      const onVerifiedExecution = vi.fn();
+      const onStateChange = vi.fn();
+      const bundle = buildCanonicalBundle();
+      const receipt = makeReceipt(bundle, { scriptTextSha256: 'z'.repeat(64) });
+      const receiptFile = new File([JSON.stringify(receipt)], 'receipt.json', { type: 'application/json' });
+      render(<ApplyVerifyStep
+        {...defaultProps}
+        state="awaiting_external_output"
+        sourceFile={sourceFile}
+        executionBundleJson={JSON.stringify(bundle)}
+        onVerifiedExecution={onVerifiedExecution}
+        onStateChange={onStateChange}
+      />);
+      const afterInput = screen.getByTestId('apply-verify-after-file') as HTMLInputElement;
+      const receiptInput = screen.getByTestId('apply-verify-receipt-file') as HTMLInputElement;
+      Object.defineProperty(afterInput, 'files', { value: [afterFile], configurable: true });
+      Object.defineProperty(receiptInput, 'files', { value: [receiptFile], configurable: true });
+      await act(async () => { fireEvent.change(afterInput); fireEvent.change(receiptInput); });
+      await act(async () => { fireEvent.click(screen.getByTestId('apply-verify-validate')); });
+      expect(onVerifiedExecution).not.toHaveBeenCalled();
+      expect(onStateChange).toHaveBeenCalledWith('invalid');
+    });
+
+    it('tampered beforeDatasetSha256 in receipt → invalid', async () => {
+      const onVerifiedExecution = vi.fn();
+      const onStateChange = vi.fn();
+      const bundle = buildCanonicalBundle();
+      const receipt = makeReceipt(bundle, { beforeDatasetSha256: 'z'.repeat(64) });
+      const receiptFile = new File([JSON.stringify(receipt)], 'receipt.json', { type: 'application/json' });
+      render(<ApplyVerifyStep
+        {...defaultProps}
+        state="awaiting_external_output"
+        sourceFile={sourceFile}
+        executionBundleJson={JSON.stringify(bundle)}
+        onVerifiedExecution={onVerifiedExecution}
+        onStateChange={onStateChange}
+      />);
+      const afterInput = screen.getByTestId('apply-verify-after-file') as HTMLInputElement;
+      const receiptInput = screen.getByTestId('apply-verify-receipt-file') as HTMLInputElement;
+      Object.defineProperty(afterInput, 'files', { value: [afterFile], configurable: true });
+      Object.defineProperty(receiptInput, 'files', { value: [receiptFile], configurable: true });
+      await act(async () => { fireEvent.change(afterInput); fireEvent.change(receiptInput); });
+      await act(async () => { fireEvent.click(screen.getByTestId('apply-verify-validate')); });
+      expect(onVerifiedExecution).not.toHaveBeenCalled();
+      expect(onStateChange).toHaveBeenCalledWith('invalid');
+    });
+
+    it('tampered inputReceiptRef → invalid', async () => {
+      const onVerifiedExecution = vi.fn();
+      const onStateChange = vi.fn();
+      const bundle = buildCanonicalBundle();
+      const receipt = makeReceipt(bundle, { inputReceiptRef: 'z'.repeat(64) });
+      const receiptFile = new File([JSON.stringify(receipt)], 'receipt.json', { type: 'application/json' });
+      render(<ApplyVerifyStep
+        {...defaultProps}
+        state="awaiting_external_output"
+        sourceFile={sourceFile}
+        executionBundleJson={JSON.stringify(bundle)}
+        onVerifiedExecution={onVerifiedExecution}
+        onStateChange={onStateChange}
+      />);
+      const afterInput = screen.getByTestId('apply-verify-after-file') as HTMLInputElement;
+      const receiptInput = screen.getByTestId('apply-verify-receipt-file') as HTMLInputElement;
+      Object.defineProperty(afterInput, 'files', { value: [afterFile], configurable: true });
+      Object.defineProperty(receiptInput, 'files', { value: [receiptFile], configurable: true });
+      await act(async () => { fireEvent.change(afterInput); fireEvent.change(receiptInput); });
+      await act(async () => { fireEvent.click(screen.getByTestId('apply-verify-validate')); });
+      expect(onVerifiedExecution).not.toHaveBeenCalled();
+      expect(onStateChange).toHaveBeenCalledWith('invalid');
+    });
+
+    it('tampered evidenceEnvelopeRef → invalid', async () => {
+      const onVerifiedExecution = vi.fn();
+      const onStateChange = vi.fn();
+      const bundle = buildCanonicalBundle();
+      const receipt = makeReceipt(bundle, { evidenceEnvelopeRef: 'env:' + 'z'.repeat(64) });
+      const receiptFile = new File([JSON.stringify(receipt)], 'receipt.json', { type: 'application/json' });
+      render(<ApplyVerifyStep
+        {...defaultProps}
+        state="awaiting_external_output"
+        sourceFile={sourceFile}
+        executionBundleJson={JSON.stringify(bundle)}
+        onVerifiedExecution={onVerifiedExecution}
+        onStateChange={onStateChange}
+      />);
+      const afterInput = screen.getByTestId('apply-verify-after-file') as HTMLInputElement;
+      const receiptInput = screen.getByTestId('apply-verify-receipt-file') as HTMLInputElement;
+      Object.defineProperty(afterInput, 'files', { value: [afterFile], configurable: true });
+      Object.defineProperty(receiptInput, 'files', { value: [receiptFile], configurable: true });
+      await act(async () => { fireEvent.change(afterInput); fireEvent.change(receiptInput); });
+      await act(async () => { fireEvent.click(screen.getByTestId('apply-verify-validate')); });
+      expect(onVerifiedExecution).not.toHaveBeenCalled();
+      expect(onStateChange).toHaveBeenCalledWith('invalid');
+    });
   });
 
   describe('download and copy', () => {
-    it('download source.csv byte-equal to original File with forced name', () => {
+    it('download source.csv byte-equal to original File with forced name', async () => {
       const originalBytes = new Uint8Array([78, 97, 109, 101, 10, 65, 108, 105, 99, 101, 10]);
       const original = new File([originalBytes], 'controlled_customers_phase8.csv', { type: 'text/csv' });
       let capturedBlob: Blob | null = null;
@@ -395,6 +515,8 @@ describe('ApplyVerifyStep R3', () => {
         fireEvent.click(screen.getByTestId('apply-verify-download-source'));
         expect(capturedDownloadName).toBe('source.csv');
         expect(capturedBlob).not.toBeNull();
+        const blobBuf = new Uint8Array(await (capturedBlob as Blob).arrayBuffer());
+        expect(blobBuf).toEqual(originalBytes);
       } finally {
         URL.createObjectURL = origCreate;
         URL.revokeObjectURL = origRevoke;
