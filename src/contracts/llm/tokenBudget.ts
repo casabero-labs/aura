@@ -22,7 +22,11 @@ const DEFAULT_BUDGET: TokenBudgetV2 = {
   maxIssues: 24,
   maxSamplesPerIssue: 4,
   maxTopValues: 6,
-  maxCharacters: 16000,
+  // The controlled Phase 8 dataset produces a complete 24-issue envelope of
+  // roughly 26k characters. Keep it intact so smart_sample and recommended
+  // retain their statistics and evidence samples while still fitting the
+  // formal 16k-token Ollama context.
+  maxCharacters: 28000,
   limits: {},
 };
 
@@ -122,8 +126,9 @@ export function enforceCharacterBudget(
   for (const colId of Object.keys(working.evidence.columnStats)) {
     const stats = working.evidence.columnStats[colId];
     if (stats.topValues.length > 0) {
+      const actual = stats.topValues.length;
       stats.topValues = [];
-      logTopValueTruncation(manifest, colId, budget, stats.topValues.length || 999);
+      logTopValueTruncation(manifest, colId, budget, actual);
     }
   }
 

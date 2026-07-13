@@ -1,6 +1,6 @@
 # Hoja de ruta definitiva de AURA
 
-Última actualización: 13 de julio de 2026, 18:00 (America/Bogota).
+Última actualización: 13 de julio de 2026, 18:35 (America/Bogota).
 
 Este documento es la única referencia operativa para cerrar el TFM. La entrega
 académica vence el **miércoles 15 de julio de 2026 a las 15:00**. Hasta entregar,
@@ -42,36 +42,39 @@ esta fase; en el documento se verificará su grado de cumplimiento con evidencia
   - `hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL`;
   - `hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL`.
 - Métodos: `prompt_libre`, `smart_sample` y `recommended`.
-- Piloto: 3 modelos x 3 métodos x 1 repetición = **9 diagnósticos**.
-- Campaña formal: 3 modelos x 3 métodos x 5 repeticiones = **45 diagnósticos**.
+- Prueba previa: Qwen x 3 métodos x 1 ejecución = **3 diagnósticos exploratorios**.
+- Campaña formal prevista: 3 modelos x 3 métodos x 3 repeticiones = **27 diagnósticos**.
+- La reducción de 45 a 27 conserva tres observaciones por combinación y reduce
+  el tiempo de ejecución. Se declarará como evaluación descriptiva de muestra pequeña.
 - El score y los hallazgos pertenecen al motor determinista; el LLM no los modifica.
 - Un fallo se conserva como resultado. No se repite silenciosamente para ocultarlo.
 - No se cambia dataset, modelo, método o parámetros después de iniciar la campaña formal.
 
 ## Plan urgente hasta el depósito
 
-### Lunes 13, 18:00-21:00 — piloto y control de evidencia
+### Lunes 13, 18:00-21:00 — prueba previa y control de evidencia
 
 1. Confirmar que Ollama y los tres modelos estén disponibles.
-2. Ejecutar el piloto de 9 diagnósticos en el Laboratorio.
-3. Verificar que cada combinación conserve prompt, respuesta, modelo observado,
+2. Ejecutar con Qwen un diagnóstico normal por cada método de entrada.
+3. Guardar los tres ZIP en `experiments/tests/flujo5/` y verificar que cada uno conserve prompt, respuesta, modelo observado,
    recibo, latencia, errores y evaluación automática.
-4. Exportar y guardar el resultado del piloto.
+4. Corregir cualquier bloqueo común antes de congelar el protocolo formal.
 5. Corregir únicamente bloqueos que impidan una corrida real. No pulir UI ni
    añadir contratos o métricas nuevas.
 
-Condición de salida: las nueve combinaciones terminan o sus fallos quedan
-registrados y explicados.
+Condición de salida: las tres entradas de Qwen terminan y sus ZIP permiten
+compararlas sin evidencia faltante.
 
 ### Lunes noche / martes mañana — campaña formal
 
-Si el piloto confirma que la ejecución y exportación funcionan:
+Si la prueba previa confirma que la ejecución y exportación funcionan:
 
 1. congelar la configuración;
-2. ejecutar los 45 diagnósticos y calentamientos definidos por el protocolo;
-3. exportar la campaña completa;
-4. verificar denominadores, combinaciones y corridas fallidas;
-5. conservar una copia inmutable de los artefactos.
+2. ajustar y congelar el protocolo en 27 diagnósticos evaluados y 9 calentamientos;
+3. ejecutar los diagnósticos y calentamientos definidos por el protocolo;
+4. exportar la campaña completa;
+5. verificar denominadores, combinaciones y corridas fallidas;
+6. conservar una copia inmutable de los artefactos.
 
 Si la campaña completa queda bloqueada, no se inventarán resultados: se usará
 el piloto como evaluación exploratoria y se declarará la limitación.
@@ -121,9 +124,10 @@ los modelos, los métodos y las condiciones realmente evaluadas.
 
 ## Próxima acción exacta
 
-**Ejecutar primero el piloto de 9 diagnósticos. No iniciar todavía las 45
-corridas.** El orquestador acompañará la preparación, comprobará el primer
-resultado exportado y autorizará la campaña formal solo si no obliga a repetirla.
+**Completar primero `flujo5`: Qwen con `prompt_libre`, `smart_sample` y
+`recommended`. No iniciar todavía la campaña formal.** El orquestador revisará
+los tres ZIP y autorizará el cambio definitivo del protocolo a 27 corridas solo
+si la prueba no revela un bloqueo que obligue a repetirlas.
 
 ## Documentos vigentes relacionados
 
