@@ -106,6 +106,9 @@ describe('formal representative deterministic preparation', () => {
       scriptTextSha256: sha256hex(prepared.script!.rawOutput),
       beforeDatasetSha256: sha256hex(beforeCsv), afterDatasetSha256: sha256hex(afterCsv),
       pythonVersion: '3.12.1', pandasVersion: '2.2.0', platform: 'test',
+      bundleHash: bundle.bundleHash,
+      inputReceiptRef: bundle.inputReceiptRef,
+      evidenceEnvelopeRef: bundle.evidenceEnvelopeRef,
       syntax: { status: 'passed', error: null },
       execution: {
         status: 'passed', startedAt: '2026-07-11T22:09:00.000Z', completedAt: '2026-07-11T22:10:00.000Z',
@@ -119,6 +122,7 @@ describe('formal representative deterministic preparation', () => {
       { text: async () => beforeCsv },
       { text: async () => afterCsv },
       { text: async () => JSON.stringify(pythonReceipt) },
+      bundle,
       '2026-07-11T22:10:00.000Z',
     );
 

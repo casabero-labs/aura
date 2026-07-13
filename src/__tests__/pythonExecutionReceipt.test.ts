@@ -1,5 +1,5 @@
 import { execFile as execFileCallback } from 'node:child_process';
-import { access, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { access, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
@@ -9,12 +9,14 @@ import { canonicalJson } from '../contracts/llm/diagnosisPromptV2';
 import {
   buildPythonExecutionBundle,
   buildPythonExecutionReceipt,
+  computePythonBundleHash,
   parsePythonExecutionBundle,
   parsePythonExecutionReceipt,
   validatePythonExecutionBundle,
   validatePythonExecutionChain,
   validatePythonExecutionReceipt,
   type PythonExecutionBundleV1,
+  type PythonExecutionReceiptV1,
 } from '../services/remediationExecution/pythonExecutionContract';
 
 const execFile = promisify(execFileCallback);
@@ -40,12 +42,15 @@ const makeBundle = (scriptText = SCRIPT): PythonExecutionBundleV1 => {
   });
 };
 
-const makeSuccessReceipt = (bundle = makeBundle()) => buildPythonExecutionReceipt({
+const makeSuccessReceipt = (bundle = makeBundle()): PythonExecutionReceiptV1 => buildPythonExecutionReceipt({
   contractId: 'aura.python-execution-receipt.v1', contractVersion: '1.0.0',
   runId: bundle.runId, approvedScriptHash: bundle.approvedScriptHash,
   scriptTextSha256: bundle.scriptTextSha256,
   beforeDatasetSha256: bundle.beforeDatasetSha256, afterDatasetSha256: sha256hex(AFTER),
   pythonVersion: '3.12.1', pandasVersion: '2.2.0', platform: 'test',
+  bundleHash: bundle.bundleHash,
+  inputReceiptRef: bundle.inputReceiptRef,
+  evidenceEnvelopeRef: bundle.evidenceEnvelopeRef,
   syntax: { status: 'passed', error: null },
   execution: {
     status: 'passed', startedAt: NOW, completedAt: NOW, durationMs: 10,
@@ -104,12 +109,18 @@ describe('Python execution contract V1', () => {
   });
 
   it('accepts historical bundles without optional diagnosis references', () => {
-    const {
-      executionId: _executionId,
-      inputReceiptRef: _inputReceiptRef,
-      evidenceEnvelopeRef: _evidenceEnvelopeRef,
-      ...historical
-    } = makeBundle();
+    const scriptHashPayload = { scriptText: SCRIPT };
+    const historical: PythonExecutionBundleV1 = {
+      contractId: 'aura.python-execution-bundle.v1',
+      contractVersion: '1.0.0',
+      generatedAt: NOW,
+      runId: 'execution:legacy',
+      approvedScriptHash: sha256hex(canonicalJson(scriptHashPayload)),
+      scriptTextSha256: sha256hex(SCRIPT),
+      beforeDatasetSha256: sha256hex(BEFORE),
+      scriptText: SCRIPT,
+      scriptHashPayload,
+    };
     expect(validatePythonExecutionBundle(historical)).toEqual([]);
   });
 
@@ -194,6 +205,9 @@ describe('Python execution contract V1', () => {
       scriptTextSha256: bundle.scriptTextSha256,
       beforeDatasetSha256: bundle.beforeDatasetSha256, afterDatasetSha256: null,
       pythonVersion: '3.12.1', pandasVersion: '2.2.0', platform: 'test',
+      bundleHash: bundle.bundleHash,
+      inputReceiptRef: bundle.inputReceiptRef,
+      evidenceEnvelopeRef: bundle.evidenceEnvelopeRef,
       syntax: { status: 'passed', error: null },
       execution: {
         status: 'failed', startedAt: NOW, completedAt: NOW, durationMs: 10,
@@ -233,6 +247,255 @@ describe('Python execution contract V1', () => {
   });
 });
 
+describe('adversarial: impossible state combinations', () => {
+  const buildReceipt = (overrides: Partial<PythonExecutionReceiptV1> = {}): PythonExecutionReceiptV1 => {
+    const base = makeSuccessReceipt();
+    return { ...base, ...overrides };
+  };
+
+  it('rejects syntax failed while execution passed', () => {
+    const receipt = buildReceipt({
+      syntax: { status: 'failed', error: 'broken' },
+      execution: {
+        status: 'passed', startedAt: NOW, completedAt: NOW, durationMs: 1,
+        stdoutSha256: sha256hex(''), stderrSha256: sha256hex(''), error: null,
+      },
+    });
+    const errors = validatePythonExecutionChain({
+      bundle: makeBundle(),
+      receipt,
+      sourceCsv: BEFORE,
+      outputCsv: AFTER,
+    });
+    expect(errors).toContain('execution cannot pass when syntax failed');
+  });
+
+  it('rejects a failed execution that does not declare an error', () => {
+    const receipt = buildReceipt({
+      execution: {
+        status: 'failed', startedAt: NOW, completedAt: NOW, durationMs: 1,
+        stdoutSha256: sha256hex(''), stderrSha256: sha256hex(''), error: null,
+      },
+      output: null,
+      afterDatasetSha256: null,
+    });
+    const errors = validatePythonExecutionChain({
+      bundle: makeBundle(),
+      receipt,
+      sourceCsv: BEFORE,
+      outputCsv: null,
+    });
+    expect(errors).toContain('execution failure requires an error');
+  });
+
+  it('rejects a success receipt that carries a non-null error message', () => {
+    const receipt = buildReceipt({
+      execution: {
+        status: 'passed', startedAt: NOW, completedAt: NOW, durationMs: 1,
+        stdoutSha256: sha256hex(''), stderrSha256: sha256hex(''), error: 'boom',
+      },
+    });
+    const errors = validatePythonExecutionChain({
+      bundle: makeBundle(),
+      receipt,
+      sourceCsv: BEFORE,
+      outputCsv: AFTER,
+    });
+    expect(errors).toContain('successful execution cannot contain errors');
+  });
+
+  it('rejects inverted or equal timestamps', () => {
+    const receipt = buildReceipt({
+      execution: {
+        status: 'passed', startedAt: '2026-07-12T12:00:01.000Z',
+        completedAt: '2026-07-12T12:00:00.000Z', durationMs: 1,
+        stdoutSha256: sha256hex(''), stderrSha256: sha256hex(''), error: null,
+      },
+    });
+    const errors = validatePythonExecutionChain({
+      bundle: makeBundle(),
+      receipt,
+      sourceCsv: BEFORE,
+      outputCsv: AFTER,
+    });
+    expect(errors).toContain('execution timestamps are inverted');
+  });
+
+  it('rejects a failed receipt that still claims an output hash', () => {
+    const receipt = buildReceipt({
+      execution: {
+        status: 'failed', startedAt: NOW, completedAt: NOW, durationMs: 1,
+        stdoutSha256: sha256hex(''), stderrSha256: sha256hex(''), error: 'oops',
+      },
+      output: null,
+      afterDatasetSha256: sha256hex(AFTER),
+    });
+    const errors = validatePythonExecutionChain({
+      bundle: makeBundle(),
+      receipt,
+      sourceCsv: BEFORE,
+      outputCsv: null,
+    });
+    expect(errors).toContain('failed execution cannot certify an output');
+  });
+});
+
+describe('adversarial: bundleHash and provenance references', () => {
+  it('rejects a bundle whose bundleHash does not match its contents', () => {
+    const bundle = makeBundle();
+    expect(validatePythonExecutionBundle({
+      ...bundle,
+      bundleHash: 'a'.repeat(64),
+    })).toContain('bundle bundleHash mismatch');
+  });
+
+  it('accepts a bundle whose bundleHash matches its canonical contents', () => {
+    const bundle = makeBundle();
+    const sealed = { ...bundle, bundleHash: computePythonBundleHash(bundle) };
+    expect(validatePythonExecutionBundle(sealed)).toEqual([]);
+  });
+
+  it('rejects a receipt whose inputReceiptRef was swapped for another valid reference', () => {
+    const original = makeBundle();
+    const tampered = { ...original, inputReceiptRef: 'd'.repeat(64) };
+    const receipt = makeSuccessReceipt(original);
+    const errors = validatePythonExecutionChain({
+      bundle: tampered,
+      receipt,
+      sourceCsv: BEFORE,
+      outputCsv: AFTER,
+    });
+    expect(errors).toContain('bundle bundleHash mismatch');
+  });
+
+  it('rejects a receipt whose evidenceEnvelopeRef was swapped for another valid envelope', () => {
+    const original = makeBundle();
+    const swapped = {
+      ...original,
+      evidenceEnvelopeRef: `env:${'e'.repeat(64)}`,
+    };
+    const receipt = makeSuccessReceipt(original);
+    const errors = validatePythonExecutionChain({
+      bundle: swapped,
+      receipt,
+      sourceCsv: BEFORE,
+      outputCsv: AFTER,
+    });
+    expect(errors).toContain('bundle bundleHash mismatch');
+  });
+
+  it('rejects a bundle whose inputReceiptRef is not 64-hex', () => {
+    expect(() => buildPythonExecutionBundle({
+      generatedAt: NOW,
+      executionId: 'execution:test',
+      approvedScriptHash: sha256hex(canonicalJson({ scriptText: SCRIPT })),
+      beforeDatasetSha256: sha256hex(BEFORE),
+      scriptText: SCRIPT,
+      scriptHashPayload: { scriptText: SCRIPT },
+      inputReceiptRef: 'not-hex',
+    })).toThrow('PYTHON_BUNDLE_INPUT_RECEIPT_REF_INVALID');
+  });
+
+  it('rejects a bundle whose evidenceEnvelopeRef is not env:<sha256>', () => {
+    expect(() => buildPythonExecutionBundle({
+      generatedAt: NOW,
+      executionId: 'execution:test',
+      approvedScriptHash: sha256hex(canonicalJson({ scriptText: SCRIPT })),
+      beforeDatasetSha256: sha256hex(BEFORE),
+      scriptText: SCRIPT,
+      scriptHashPayload: { scriptText: SCRIPT },
+      evidenceEnvelopeRef: 'env:notahex',
+    })).toThrow('PYTHON_BUNDLE_EVIDENCE_ENVELOPE_REF_INVALID');
+  });
+});
+
+describe('adversarial: real-path identity and symlink aliasing', () => {
+  it('refuses to run when --input is a symlink that resolves to --output', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'aura-python-core-symlink-output-'));
+    try {
+      const bundle = makeBundle();
+      const paths = await writeCliFixture(dir, bundle);
+      const symlinkSource = join(dir, 'input-alias.csv');
+      await symlink(paths.outputPath, symlinkSource);
+      const result = await runCli([
+        '--bundle', paths.bundlePath,
+        '--input', symlinkSource,
+        '--output', paths.outputPath,
+        '--receipt', paths.receiptPath,
+      ]);
+      expect(result.exitCode).toBe(1);
+      expect(await readFile(paths.sourcePath, 'utf8')).toBe(BEFORE);
+      await expect(access(paths.outputPath)).rejects.toMatchObject({ code: 'ENOENT' });
+      await expect(access(paths.receiptPath)).rejects.toMatchObject({ code: 'ENOENT' });
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('refuses to run when --receipt is a symlink to the source CSV', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'aura-python-core-symlink-receipt-'));
+    try {
+      const bundle = makeBundle();
+      const paths = await writeCliFixture(dir, bundle);
+      const symlinkReceipt = join(dir, 'receipt-alias.json');
+      await symlink(paths.sourcePath, symlinkReceipt);
+      const result = await runCli([
+        '--bundle', paths.bundlePath,
+        '--input', paths.sourcePath,
+        '--output', paths.outputPath,
+        '--receipt', symlinkReceipt,
+      ]);
+      expect(result.exitCode).toBe(1);
+      expect(await readFile(paths.sourcePath, 'utf8')).toBe(BEFORE);
+      await expect(access(paths.outputPath)).rejects.toMatchObject({ code: 'ENOENT' });
+      await expect(access(symlinkReceipt)).rejects.toMatchObject({ code: 'ENOENT' });
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('refuses to run when --output resolves inside the source directory', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'aura-python-core-nested-output-'));
+    try {
+      const bundle = makeBundle();
+      const paths = await writeCliFixture(dir, bundle);
+      const symlinkOutput = join(dir, 'source.csv');
+      const result = await runCli([
+        '--bundle', paths.bundlePath,
+        '--input', paths.sourcePath,
+        '--output', symlinkOutput,
+        '--receipt', paths.receiptPath,
+      ]);
+      expect(result.exitCode).toBe(1);
+      expect(await readFile(paths.sourcePath, 'utf8')).toBe(BEFORE);
+      await expect(access(paths.outputPath)).rejects.toMatchObject({ code: 'ENOENT' });
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('refuses to run when --receipt is requested in a non-writable directory', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'aura-python-core-unwritable-receipt-'));
+    try {
+      const bundle = makeBundle();
+      const paths = await writeCliFixture(dir, bundle);
+      const unwritableReceipt = join(dir, 'no-write', 'receipt.json');
+      const result = await runCli([
+        '--bundle', paths.bundlePath,
+        '--input', paths.sourcePath,
+        '--output', paths.outputPath,
+        '--receipt', unwritableReceipt,
+      ]);
+      expect(result.exitCode).toBe(1);
+      expect(await readFile(paths.sourcePath, 'utf8')).toBe(BEFORE);
+      await expect(access(paths.outputPath)).rejects.toMatchObject({ code: 'ENOENT' });
+      await expect(access(unwritableReceipt)).rejects.toMatchObject({ code: 'ENOENT' });
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  }, 40_000);
+});
+
 describe('neutral Python remediation CLI', () => {
   it('prints usage with exit 0 for both CLIs and exit 2 when arguments are missing', async () => {
     const help = await runCli(['--help']);
@@ -251,6 +514,9 @@ describe('neutral Python remediation CLI', () => {
       const bundle = makeBundle();
       const paths = await writeCliFixture(dir, bundle);
       const result = await runCli(cliArgs(paths));
+      if (result.exitCode !== 0) {
+        throw new Error(`unexpected exit ${result.exitCode} stderr=${result.stderr} stdout=${result.stdout}`);
+      }
       expect(result.exitCode).toBe(0);
       const [sourceCsv, outputCsv, receiptText] = await Promise.all([
         readFile(paths.sourcePath, 'utf8'),

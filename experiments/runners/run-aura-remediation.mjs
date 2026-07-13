@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { realpathSync } from 'node:fs';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { lstatSync, realpathSync } from 'node:fs';
+import { access, constants, lstat, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { basename, join, resolve } from 'node:path';
+import { basename, dirname, isAbsolute, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 
@@ -47,14 +47,94 @@ const parseArguments = (args) => {
   return { bundle, input, output, receipt, python: values.get('--python') ?? 'python3' };
 };
 
-const validateArtifactPaths = (paths) => {
-  const protectedPaths = new Set([paths.bundle, paths.input]);
+const safeRealpath = (path) => {
+  try {
+    return realpathSync(path);
+  } catch {
+    return null;
+  }
+};
+
+const safeStat = (path) => {
+  try {
+    return lstatSync(path);
+  } catch {
+    return null;
+  }
+};
+
+const isWithin = (candidate, parent) => {
+  if (candidate === parent) return true;
+  const prefix = parent.endsWith(sep) ? parent : parent + sep;
+  return candidate.startsWith(prefix);
+};
+
+const resolveIdentity = (path) => {
+  const stat = safeStat(path);
+  if (!stat) return { path, realPath: null, exists: false, isSymlink: false, dir: dirname(path), parentReal: null };
+  const realPath = stat.isSymbolicLink() ? realpathSync(path) : path;
+  const parentReal = safeRealpath(dirname(path));
+  return {
+    path,
+    realPath,
+    exists: true,
+    isSymlink: stat.isSymbolicLink(),
+    dir: dirname(path),
+    parentReal,
+  };
+};
+
+const ensureParentWritable = async (path) => {
+  const parent = dirname(path);
+  try {
+    await access(parent, constants.W_OK);
+  } catch {
+    throw new Error(`El directorio padre de ${path} no existe o no es accesible.`);
+  }
+  const stat = safeStat(path);
+  if (stat) {
+    if (stat.isSymbolicLink()) throw new Error(`La ruta ${path} no puede ser un symlink preexistente.`);
+    try {
+      await access(path, constants.W_OK);
+    } catch {
+      throw new Error(`El archivo existente ${path} no es escribible; no se sobreescribirá.`);
+    }
+  }
+};
+
+const validateArtifactPaths = async (paths) => {
   if (paths.bundle === paths.input
-    || protectedPaths.has(paths.output)
-    || protectedPaths.has(paths.receipt)
+    || paths.bundle === paths.output
+    || paths.bundle === paths.receipt
+    || paths.input === paths.output
+    || paths.input === paths.receipt
     || paths.output === paths.receipt) {
     throw new Error('Las rutas de bundle, fuente, salida y recibo deben ser diferentes.');
   }
+  const bundle = resolveIdentity(paths.bundle);
+  const input = resolveIdentity(paths.input);
+  const output = resolveIdentity(paths.output);
+  const receipt = resolveIdentity(paths.receipt);
+
+  if (!bundle.exists || !bundle.realPath) throw new Error('El bundle no existe.');
+  if (!input.exists || !input.realPath) throw new Error('El CSV fuente no existe.');
+
+  for (const target of [output, receipt]) {
+    if (target.realPath && (target.realPath === bundle.realPath || target.realPath === input.realPath)) {
+      throw new Error('Las rutas de bundle, fuente, salida y recibo deben ser archivos distintos por identidad real.');
+    }
+    if (target.isSymlink) {
+      throw new Error('La ruta de salida o recibo no puede ser un symlink preexistente.');
+    }
+  }
+
+  await ensureParentWritable(paths.output);
+  await ensureParentWritable(paths.receipt);
+};
+
+const computeBundleHash = (bundle) => {
+  const { bundleHash: _bundleHash, ...rest } = bundle;
+  return sha256(canonicalJson(rest));
 };
 
 const validateBundle = (bundle) => {
@@ -75,6 +155,10 @@ const validateBundle = (bundle) => {
   if (sha256(canonicalJson(bundle.scriptHashPayload)) !== bundle.approvedScriptHash) throw new Error('El hash del contrato aprobado no coincide con el bundle.');
   if (bundle.inputReceiptRef !== undefined && !SHA256.test(bundle.inputReceiptRef)) throw new Error('La referencia del recibo de diagnóstico es inválida.');
   if (bundle.evidenceEnvelopeRef !== undefined && !ENVELOPE_REF.test(bundle.evidenceEnvelopeRef)) throw new Error('La referencia del envelope de evidencia es inválida.');
+  if (bundle.bundleHash !== undefined) {
+    if (!SHA256.test(bundle.bundleHash)) throw new Error('El bundleHash del bundle es inválido.');
+    if (computeBundleHash(bundle) !== bundle.bundleHash) throw new Error('El bundleHash del bundle no coincide con su contenido.');
+  }
 };
 
 const readBundle = async (bundlePath) => {
@@ -85,6 +169,7 @@ const readBundle = async (bundlePath) => {
     throw new Error('El bundle de ejecución no contiene JSON válido.');
   }
   validateBundle(bundle);
+  if (bundle.bundleHash === undefined) bundle.bundleHash = computeBundleHash(bundle);
   return bundle;
 };
 
@@ -125,6 +210,9 @@ const executeBundle = async ({ bundle, inputPath, outputPath, receiptPath, pytho
   const temporaryOutputPath = join(workDir, 'corrected.csv');
   const metadataPath = join(workDir, 'output-metadata.json');
   let executionPassed = false;
+  let receiptWritten = false;
+  let runStartedAt = new Date().toISOString();
+  let runStartedMs = Date.now();
   try {
     await writeFile(scriptPath, bundle.scriptText, 'utf8');
     const environment = await inspectEnvironment(python);
@@ -135,8 +223,8 @@ const executeBundle = async ({ bundle, inputPath, outputPath, receiptPath, pytho
     let stderr = '';
     let output = null;
     let afterDatasetSha256 = null;
-    const startedAt = new Date().toISOString();
-    const startedMs = Date.now();
+    const startedAt = runStartedAt;
+    const startedMs = runStartedMs;
 
     try {
       await exec(python, ['-m', 'py_compile', scriptPath], {
@@ -181,7 +269,6 @@ const executeBundle = async ({ bundle, inputPath, outputPath, receiptPath, pytho
         stdout = String(error?.stdout ?? '');
         stderr = String(error?.stderr ?? error?.message ?? '');
         executionError = 'Python execution failed.';
-        await rm(outputPath, { force: true });
       }
     }
 
@@ -197,6 +284,9 @@ const executeBundle = async ({ bundle, inputPath, outputPath, receiptPath, pytho
       pythonVersion: environment.pythonVersion,
       pandasVersion: environment.pandasVersion,
       platform: environment.platform,
+      bundleHash: bundle.bundleHash,
+      ...(bundle.inputReceiptRef === undefined ? {} : { inputReceiptRef: bundle.inputReceiptRef }),
+      ...(bundle.evidenceEnvelopeRef === undefined ? {} : { evidenceEnvelopeRef: bundle.evidenceEnvelopeRef }),
       syntax,
       execution: {
         status: executionStatus,
@@ -211,11 +301,17 @@ const executeBundle = async ({ bundle, inputPath, outputPath, receiptPath, pytho
     };
     const receipt = { ...payload, receiptHash: sha256(canonicalJson(payload)) };
     await writeFile(receiptPath, `${JSON.stringify(receipt, null, 2)}\n`, 'utf8');
+    receiptWritten = true;
     executionPassed = executionStatus === 'passed';
     return { receipt, passed: executionStatus === 'passed' };
   } finally {
     await rm(workDir, { recursive: true, force: true });
-    if (!executionPassed) await rm(outputPath, { force: true });
+    if (!receiptWritten) {
+      await rm(receiptPath, { force: true });
+    }
+    if (!executionPassed) {
+      await rm(outputPath, { force: true });
+    }
   }
 };
 
@@ -232,24 +328,33 @@ export const runAuraRemediationCli = async (
     stderr.write(usage(commandName));
     return 2;
   }
+  const cwd = process.cwd();
   const paths = {
-    bundle: resolve(process.cwd(), parsed.bundle),
-    input: resolve(process.cwd(), parsed.input),
-    output: resolve(process.cwd(), parsed.output),
-    receipt: resolve(process.cwd(), parsed.receipt),
+    bundle: resolve(cwd, parsed.bundle),
+    input: resolve(cwd, parsed.input),
+    output: resolve(cwd, parsed.output),
+    receipt: resolve(cwd, parsed.receipt),
   };
+  let bundle = null;
+  let result = null;
   try {
-    validateArtifactPaths(paths);
+    await validateArtifactPaths(paths);
+    const bundleIdentity = resolveIdentity(paths.bundle);
+    const inputIdentity = resolveIdentity(paths.input);
     await Promise.all([
       rm(paths.output, { force: true }),
       rm(paths.receipt, { force: true }),
     ]);
-    const bundle = await readBundle(paths.bundle);
+    bundle = await readBundle(paths.bundle);
+    if (bundleIdentity.realPath && inputIdentity.realPath
+      && bundleIdentity.realPath === inputIdentity.realPath) {
+      throw new Error('El bundle y la fuente no pueden ser el mismo archivo real.');
+    }
     const sourceBytes = await readFile(paths.input);
     if (sha256(sourceBytes) !== bundle.beforeDatasetSha256) {
       throw new Error('El CSV fuente no coincide con el hash congelado.');
     }
-    const result = await executeBundle({
+    result = await executeBundle({
       bundle,
       inputPath: paths.input,
       outputPath: paths.output,
@@ -259,7 +364,12 @@ export const runAuraRemediationCli = async (
     stdout.write(`${result.passed ? 'OK' : 'FAILED'} ${basename(paths.receipt)} ${result.receipt.receiptHash}\n`);
     return result.passed ? 0 : 1;
   } catch (error) {
-    await rm(paths.output, { force: true });
+    if (paths.output !== paths.bundle && paths.output !== paths.input) {
+      await rm(paths.output, { force: true });
+    }
+    if (paths.receipt !== paths.bundle && paths.receipt !== paths.input) {
+      await rm(paths.receipt, { force: true });
+    }
     stderr.write(`ERROR: ${String(error?.message ?? error)}\n`);
     return 1;
   }

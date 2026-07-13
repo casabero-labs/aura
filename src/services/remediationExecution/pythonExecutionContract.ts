@@ -14,6 +14,9 @@ export interface PythonExecutionReceiptV1 {
   pythonVersion: string;
   pandasVersion: string | null;
   platform: string;
+  bundleHash?: string;
+  inputReceiptRef?: string;
+  evidenceEnvelopeRef?: string;
   syntax: { status: PythonCheckStatus; error: string | null };
   execution: {
     status: PythonCheckStatus;
@@ -43,6 +46,7 @@ export interface PythonExecutionBundleV1 {
   scriptHashPayload: Record<string, unknown>;
   inputReceiptRef?: string;
   evidenceEnvelopeRef?: string;
+  bundleHash?: string;
 }
 
 export interface PythonExecutionBundleInput {
@@ -55,6 +59,7 @@ export interface PythonExecutionBundleInput {
   scriptHashPayload: Record<string, unknown>;
   inputReceiptRef?: string;
   evidenceEnvelopeRef?: string;
+  computeBundleHash?: boolean;
 }
 
 export type PythonArtifactContent = string | Uint8Array;
@@ -64,6 +69,9 @@ export interface PythonReceiptExpectation {
   approvedScriptHash: string;
   scriptText: string;
   beforeDatasetSha256: string;
+  bundleHash?: string | null;
+  inputReceiptRef?: string | null;
+  evidenceEnvelopeRef?: string | null;
   afterCsv?: PythonArtifactContent | null;
 }
 
@@ -72,6 +80,12 @@ export interface PythonExecutionChainInput {
   receipt: PythonExecutionReceiptV1;
   sourceCsv: PythonArtifactContent;
   outputCsv: PythonArtifactContent | null;
+}
+
+export interface PythonReceiptBuildOptions {
+  bundleHash?: string;
+  inputReceiptRef?: string;
+  evidenceEnvelopeRef?: string;
 }
 
 const SHA256 = /^[a-f0-9]{64}$/;
@@ -101,12 +115,13 @@ const deduplicate = (errors: string[]): string[] => [...new Set(errors)];
 const hashArtifact = (content: PythonArtifactContent): string =>
   typeof content === 'string' ? sha256hex(content) : sha256BytesHex(content);
 
-export const buildPythonExecutionReceipt = (
-  payload: PythonExecutionReceiptPayloadV1,
-): PythonExecutionReceiptV1 => {
-  const unsigned = { ...payload, receiptHash: '' } as PythonExecutionReceiptV1;
-  return { ...payload, receiptHash: computePythonReceiptHash(unsigned) };
+const serializeBundleForHash = (bundle: PythonExecutionBundleV1): Record<string, unknown> => {
+  const { bundleHash: _bundleHash, ...rest } = bundle;
+  return { ...rest };
 };
+
+export const computePythonBundleHash = (bundle: PythonExecutionBundleV1): string =>
+  sha256hex(canonicalJson(serializeBundleForHash(bundle)));
 
 export const computePythonReceiptHash = (
   receipt: PythonExecutionReceiptV1,
@@ -133,7 +148,7 @@ export const buildPythonExecutionBundle = (
   if (input.evidenceEnvelopeRef !== undefined && !ENVELOPE_REF.test(input.evidenceEnvelopeRef)) {
     throw new Error('PYTHON_BUNDLE_EVIDENCE_ENVELOPE_REF_INVALID');
   }
-  return {
+  const draft: PythonExecutionBundleV1 = {
     contractId: 'aura.python-execution-bundle.v1',
     contractVersion: '1.0.0',
     generatedAt: input.generatedAt,
@@ -147,6 +162,17 @@ export const buildPythonExecutionBundle = (
     ...(input.inputReceiptRef === undefined ? {} : { inputReceiptRef: input.inputReceiptRef }),
     ...(input.evidenceEnvelopeRef === undefined ? {} : { evidenceEnvelopeRef: input.evidenceEnvelopeRef }),
   };
+  if (input.computeBundleHash !== false) {
+    draft.bundleHash = computePythonBundleHash(draft);
+  }
+  return draft;
+};
+
+export const buildPythonExecutionReceipt = (
+  payload: PythonExecutionReceiptPayloadV1,
+): PythonExecutionReceiptV1 => {
+  const unsigned = { ...payload, receiptHash: '' } as PythonExecutionReceiptV1;
+  return { ...payload, receiptHash: computePythonReceiptHash(unsigned) };
 };
 
 export const parsePythonExecutionBundle = (text: string): PythonExecutionBundleV1 =>
@@ -155,7 +181,7 @@ export const parsePythonExecutionBundle = (text: string): PythonExecutionBundleV
 export const parsePythonExecutionReceipt = (text: string): PythonExecutionReceiptV1 =>
   parseJsonObject(text, 'PYTHON_RECEIPT_JSON_INVALID', 'PYTHON_RECEIPT_OBJECT_REQUIRED') as unknown as PythonExecutionReceiptV1;
 
-export const validatePythonExecutionBundle = (bundle: PythonExecutionBundleV1): string[] => {
+const validateBundleInternal = (bundle: PythonExecutionBundleV1): string[] => {
   const errors: string[] = [];
   if (!isRecord(bundle)) return ['bundle must be an object'];
   if (bundle.contractId !== 'aura.python-execution-bundle.v1') errors.push('bundle contractId is invalid');
@@ -188,7 +214,28 @@ export const validatePythonExecutionBundle = (bundle: PythonExecutionBundleV1): 
   if (bundle.evidenceEnvelopeRef !== undefined && !ENVELOPE_REF.test(bundle.evidenceEnvelopeRef)) {
     errors.push('bundle evidence envelope reference is invalid');
   }
+  if (bundle.bundleHash !== undefined) {
+    if (!SHA256.test(bundle.bundleHash)) {
+      errors.push('bundle bundleHash is invalid');
+    } else {
+      const expected = computePythonBundleHash({ ...bundle, bundleHash: undefined });
+      if (expected !== bundle.bundleHash) errors.push('bundle bundleHash mismatch');
+    }
+  }
   return deduplicate(errors);
+};
+
+export const validatePythonExecutionBundle = (bundle: PythonExecutionBundleV1): string[] =>
+  validateBundleInternal(bundle);
+
+const validateTimestamps = (receipt: PythonExecutionReceiptV1, errors: string[]): void => {
+  const started = Date.parse(receipt.execution?.startedAt ?? '');
+  const completed = Date.parse(receipt.execution?.completedAt ?? '');
+  if (Number.isNaN(started) || Number.isNaN(completed)) {
+    errors.push('execution timestamps are invalid');
+    return;
+  }
+  if (completed < started) errors.push('execution timestamps are inverted');
 };
 
 export const validatePythonExecutionReceipt = (
@@ -213,12 +260,48 @@ export const validatePythonExecutionReceipt = (
   }
   if (typeof receipt.platform !== 'string' || !receipt.platform.trim()) errors.push('platform is required');
   if (!Number.isFinite(receipt.execution?.durationMs) || receipt.execution.durationMs < 0) errors.push('execution duration is invalid');
-  if (Number.isNaN(Date.parse(receipt.execution?.startedAt)) || Number.isNaN(Date.parse(receipt.execution?.completedAt))) errors.push('execution timestamps are invalid');
+  validateTimestamps(receipt, errors);
   if (!SHA256.test(receipt.execution?.stdoutSha256 ?? '') || !SHA256.test(receipt.execution?.stderrSha256 ?? '')) errors.push('stream hashes are invalid');
   if (!SHA256.test(receipt.receiptHash) || computePythonReceiptHash(receipt) !== receipt.receiptHash) errors.push('receipt hash is invalid');
 
-  const passed = receipt.syntax?.status === 'passed' && receipt.execution?.status === 'passed';
-  if (passed) {
+  if (receipt.bundleHash !== undefined) {
+    if (!SHA256.test(receipt.bundleHash)) errors.push('receipt bundleHash is invalid');
+  }
+  if (expected.bundleHash !== undefined && expected.bundleHash !== null) {
+    if (!SHA256.test(expected.bundleHash)) {
+      errors.push('expected bundleHash is invalid');
+    } else if (receipt.bundleHash === undefined) {
+      errors.push('receipt is missing bundleHash');
+    } else if (receipt.bundleHash !== expected.bundleHash) {
+      errors.push('receipt bundleHash does not match the bundle');
+    }
+  }
+  if (expected.inputReceiptRef !== undefined && expected.inputReceiptRef !== null) {
+    if (!SHA256.test(expected.inputReceiptRef)) {
+      errors.push('expected inputReceiptRef is invalid');
+    } else if (receipt.inputReceiptRef === undefined) {
+      errors.push('receipt is missing inputReceiptRef');
+    } else if (receipt.inputReceiptRef !== expected.inputReceiptRef) {
+      errors.push('receipt inputReceiptRef does not match the bundle');
+    }
+  }
+  if (expected.evidenceEnvelopeRef !== undefined && expected.evidenceEnvelopeRef !== null) {
+    if (!ENVELOPE_REF.test(expected.evidenceEnvelopeRef)) {
+      errors.push('expected evidenceEnvelopeRef is invalid');
+    } else if (receipt.evidenceEnvelopeRef === undefined) {
+      errors.push('receipt is missing evidenceEnvelopeRef');
+    } else if (receipt.evidenceEnvelopeRef !== expected.evidenceEnvelopeRef) {
+      errors.push('receipt evidenceEnvelopeRef does not match the bundle');
+    }
+  }
+
+  const syntaxStatus = receipt.syntax?.status;
+  const executionStatus = receipt.execution?.status;
+  if (syntaxStatus !== 'passed' && executionStatus === 'passed') {
+    errors.push('execution cannot pass when syntax failed');
+  }
+  const fullyPassed = syntaxStatus === 'passed' && executionStatus === 'passed';
+  if (fullyPassed) {
     if (!SHA256.test(receipt.afterDatasetSha256 ?? '')) errors.push('successful execution requires an output hash');
     if (receipt.syntax.error !== null || receipt.execution.error !== null) errors.push('successful execution cannot contain errors');
     if (!receipt.output || !Number.isInteger(receipt.output.rowCount) || receipt.output.rowCount < 0
@@ -233,8 +316,11 @@ export const validatePythonExecutionReceipt = (
   } else {
     if (receipt.afterDatasetSha256 !== null || receipt.output !== null) errors.push('failed execution cannot certify an output');
     if (expected.afterCsv !== undefined && expected.afterCsv !== null) errors.push('failed execution cannot include an output CSV');
-    if (receipt.syntax?.status === 'failed' && !receipt.syntax.error) errors.push('syntax failure requires an error');
-    if (receipt.execution?.status === 'failed' && !receipt.execution.error) errors.push('execution failure requires an error');
+    if (syntaxStatus === 'failed' && !receipt.syntax.error) errors.push('syntax failure requires an error');
+    if (executionStatus === 'failed' && !receipt.execution.error) errors.push('execution failure requires an error');
+    if (syntaxStatus === 'passed' && executionStatus === 'failed' && receipt.execution.error === null) {
+      errors.push('execution failure requires an error');
+    }
   }
   return deduplicate(errors);
 };
@@ -242,15 +328,21 @@ export const validatePythonExecutionReceipt = (
 export const validatePythonExecutionChain = (
   input: PythonExecutionChainInput,
 ): string[] => {
-  const bundleErrors = validatePythonExecutionBundle(input.bundle);
+  const bundleErrors = validateBundleInternal(input.bundle);
   if (bundleErrors.length > 0) return bundleErrors;
   const errors = [...bundleErrors];
   if (hashArtifact(input.sourceCsv) !== input.bundle.beforeDatasetSha256) errors.push('source dataset hash mismatch');
+  const expectedBundleHash = input.bundle.bundleHash ?? null;
+  const expectedInputReceiptRef = input.bundle.inputReceiptRef ?? null;
+  const expectedEvidenceEnvelopeRef = input.bundle.evidenceEnvelopeRef ?? null;
   errors.push(...validatePythonExecutionReceipt(input.receipt, {
     runId: input.bundle.runId,
     approvedScriptHash: input.bundle.approvedScriptHash,
     scriptText: input.bundle.scriptText,
     beforeDatasetSha256: input.bundle.beforeDatasetSha256,
+    bundleHash: expectedBundleHash,
+    inputReceiptRef: expectedInputReceiptRef,
+    evidenceEnvelopeRef: expectedEvidenceEnvelopeRef,
     afterCsv: input.outputCsv,
   }));
   return deduplicate(errors);

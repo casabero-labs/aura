@@ -268,7 +268,8 @@ const App: React.FC = () => {
 
   const importRepresentativeCsv = useCallback(async (run: ExperimentRunV1, afterFile: File, receiptFile: File) => {
     if (!pipelineData.file) throw new Error('Vuelve a cargar el CSV controlado original antes de reauditar.');
-    return importFormalRepresentativeOutput(run, pipelineData.file, afterFile, receiptFile);
+    const approvedBundle = buildFormalRepresentativeExecutionBundle(run);
+    return importFormalRepresentativeOutput(run, pipelineData.file, afterFile, receiptFile, approvedBundle);
   }, [pipelineData.file]);
 
   // Liberar memoria VRAM del WebLLM anterior al cambiar de proveedor o desmontar

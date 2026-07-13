@@ -165,6 +165,7 @@ export const importFormalRepresentativeOutput = async (
   beforeFile: Pick<File, 'text'>,
   afterFile: Pick<File, 'text'> | null,
   receiptFile: Pick<File, 'text'>,
+  approvedBundle: PythonExecutionBundleV1,
   completedAt = new Date().toISOString(),
 ): Promise<ExperimentRunV1> => {
   if (
@@ -182,11 +183,29 @@ export const importFormalRepresentativeOutput = async (
     throw new Error('El CSV fuente no coincide byte a byte con el dataset congelado.');
   }
   const receipt = parsePythonExecutionReceipt(receiptText);
+  const expectedBundle = approvedBundle;
+  const expectedBundleHash = expectedBundle.bundleHash ?? null;
+  const expectedInputReceiptRef = expectedBundle.inputReceiptRef ?? null;
+  const expectedEvidenceEnvelopeRef = expectedBundle.evidenceEnvelopeRef ?? null;
+  if (expectedBundleHash && receipt.bundleHash !== undefined && receipt.bundleHash !== expectedBundleHash) {
+    throw new Error('El bundleHash del recibo no coincide con la corrida aprobada.');
+  }
+  if (expectedInputReceiptRef && receipt.inputReceiptRef !== undefined
+    && receipt.inputReceiptRef !== expectedInputReceiptRef) {
+    throw new Error('La referencia del recibo de diagnóstico no coincide con la corrida aprobada.');
+  }
+  if (expectedEvidenceEnvelopeRef && receipt.evidenceEnvelopeRef !== undefined
+    && receipt.evidenceEnvelopeRef !== expectedEvidenceEnvelopeRef) {
+    throw new Error('La referencia del envelope de evidencia no coincide con la corrida aprobada.');
+  }
   const receiptErrors = validatePythonExecutionReceipt(receipt, {
     runId: run.runId,
     approvedScriptHash: run.execution.approvedScriptHash ?? '',
     scriptText: run.script?.rawOutput ?? '',
     beforeDatasetSha256: beforeHash,
+    bundleHash: expectedBundleHash,
+    inputReceiptRef: expectedInputReceiptRef,
+    evidenceEnvelopeRef: expectedEvidenceEnvelopeRef,
     afterCsv,
   });
   if (receiptErrors.length > 0) {
