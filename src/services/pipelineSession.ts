@@ -22,7 +22,37 @@ export const toPipelineSessionSnapshot = (data: PipelineData): PipelineSessionSn
 
 export const savePipelineSession = (data: PipelineData) => {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(toPipelineSessionSnapshot(data)));
+    const snapshot = toPipelineSessionSnapshot(data);
+    const stored = {
+      ...snapshot,
+      executionReceipt: snapshot.executionReceipt
+        ? {
+            contractId: snapshot.executionReceipt.contractId,
+            contractVersion: snapshot.executionReceipt.contractVersion,
+            runId: snapshot.executionReceipt.runId,
+            approvedScriptHash: snapshot.executionReceipt.approvedScriptHash,
+            scriptTextSha256: snapshot.executionReceipt.scriptTextSha256,
+            beforeDatasetSha256: snapshot.executionReceipt.beforeDatasetSha256,
+            afterDatasetSha256: snapshot.executionReceipt.afterDatasetSha256,
+            pythonVersion: snapshot.executionReceipt.pythonVersion,
+            pandasVersion: snapshot.executionReceipt.pandasVersion,
+            platform: snapshot.executionReceipt.platform,
+            syntax: snapshot.executionReceipt.syntax,
+            execution: {
+              status: snapshot.executionReceipt.execution.status,
+              startedAt: snapshot.executionReceipt.execution.startedAt,
+              completedAt: snapshot.executionReceipt.execution.completedAt,
+              durationMs: snapshot.executionReceipt.execution.durationMs,
+              stdoutSha256: snapshot.executionReceipt.execution.stdoutSha256,
+              stderrSha256: snapshot.executionReceipt.execution.stderrSha256,
+              error: snapshot.executionReceipt.execution.error,
+            },
+            output: snapshot.executionReceipt.output,
+            receiptHash: snapshot.executionReceipt.receiptHash,
+          }
+        : undefined,
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
   } catch { /* storage unavailable */ }
 };
 

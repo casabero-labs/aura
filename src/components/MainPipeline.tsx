@@ -20,9 +20,14 @@ import { buildAuraExportPackage } from '../services/exportPackage';
 import { buildDiagnosticReport, type DiagnosticReport } from '../services/diagnosticReport';
 import { AIConfig, AIProvider, AuditReport, AuditExecutionEvidence, BenchmarkResult, DeterministicValidationReport, HealthDelta, ImprovementRun, ProviderMetrics, ScriptValidationResult, ProgressDisclosureStatus } from '../types';
 import type { DiagnosisExecutionResult, DiagnosisFailureEvidenceV2, RemediationPlanV2, ScriptContractV2, ScriptValidationResultV2 } from '../contracts/llm';
+import { buildFormalRepresentativeExecutionBundle, importFormalRepresentativeOutput } from '../services/benchmark/formalRepresentativePreparation';
+import type { PythonExecutionReceiptV1 } from '../services/remediationExecution/pythonExecutionContract';
 import { validateRemediationPlanV2, isContractsV2Enabled, verifyScriptContractV2 } from '../contracts/llm';
+import ApplyVerifyStep from './ApplyVerifyStep';
 
-export type PipelineState = 'upload' | 'profile' | 'diagnosis' | 'diagnostic_report' | 'script' | 'review' | 'export';
+export type PipelineState = 'upload' | 'profile' | 'diagnosis' | 'diagnostic_report' | 'script' | 'review' | 'execution' | 'export';
+
+export type ApplyVerifyState = 'not_prepared' | 'ready' | 'awaiting_external_output' | 'validating' | 'verified' | 'invalid';
 
 export interface PipelineData {
   state: PipelineState;
@@ -47,6 +52,10 @@ export interface PipelineData {
   scriptValidation: ScriptValidationResult | null;
   deterministicValidation: DeterministicValidationReport | null;
   logs: { time: string; msg: string }[];
+  executionState?: ApplyVerifyState;
+  executionBundleJson?: string;
+  executionReceipt?: PythonExecutionReceiptV1;
+  executionValidationError?: string;
 }
 
 interface MainPipelineProps {
@@ -113,6 +122,28 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
   const [scriptContractV2, setScriptContractV2] = useState<ScriptContractV2 | null>(() => initialData?.scriptContractV2 ?? null);
   const [scriptContractVerificationV2, setScriptContractVerificationV2] = useState<ScriptValidationResultV2 | null>(() => initialData?.scriptContractVerificationV2 ?? null);
 
+  const [executionState, setExecutionState] = useState<ApplyVerifyState>(() => initialData?.executionState ?? 'not_prepared');
+  const [executionBundleJson, setExecutionBundleJson] = useState(() => initialData?.executionBundleJson ?? '');
+  const [executionReceipt, setExecutionReceipt] = useState<PythonExecutionReceiptV1 | undefined>(() => initialData?.executionReceipt);
+  const [executionValidationError, setExecutionValidationError] = useState(() => initialData?.executionValidationError ?? '');
+
+  const invalidateDescendants = (level: 'plan' | 'script' | 'approval') => {
+    if (level === 'plan') {
+      setScriptContractV2(null);
+      setScriptContractVerificationV2(null);
+    }
+    if (level === 'plan' || level === 'script') {
+      setApprovedScript('');
+    }
+    setCleaningScript('');
+    setImprovementRun(null);
+    setHealthDelta(null);
+    setExecutionState('not_prepared');
+    setExecutionBundleJson('');
+    setExecutionReceipt(undefined);
+    setExecutionValidationError('');
+  };
+
   // Sync pipeline data upward to parent (deferred to avoid overwriting App's session restore)
   const mountCountRef = useRef(0);
   React.useEffect(() => {
@@ -130,6 +161,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
       scriptContractV2,
       scriptContractVerificationV2,
       benchmarkResults, improvementRun, scriptValidation, deterministicValidation, logs,
+      executionState, executionBundleJson, executionReceipt, executionValidationError,
     };
     onPipelineChange?.(pipelineData);
   }, [state, file, report, auditEvidence, rawData, csvFields, csvDelimiter,
@@ -140,7 +172,8 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
       remediationPlan,
       scriptContractV2,
       scriptContractVerificationV2,
-      benchmarkResults, improvementRun, scriptValidation, deterministicValidation, logs]);
+      benchmarkResults, improvementRun, scriptValidation, deterministicValidation, logs,
+      executionState, executionBundleJson, executionReceipt, executionValidationError]);
 
   // ── Phase 3 E2E Harness: expose injection callbacks on window ──
   useEffect(() => {
@@ -863,11 +896,51 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
             onHealthDelta={(delta) => setHealthDelta(delta)}
             onImprovementRun={(run) => setImprovementRun(run)}
             onLog={(stage, msg) => addLog(`${stage} :: ${msg}`)}
-            onContinue={() => setState('export')}
+            onContinue={() => setState('execution')}
             scriptContractV2={scriptContractV2}
             remediationPlanV2={remediationPlan}
             structuredDiagnosis={structuredDiagnosis}
             sourceDatasetFingerprint={getScriptDatasetSha256(auditEvidence)}
+          />
+        </>
+      )}
+
+      {/* ── Step 8: Apply & verify ── */}
+      {state === 'execution' && report && (
+        <>
+          <OptionalRemediationNotice />
+          <RemediationBranchActions
+            onBackToDiagnosticReport={() => {
+              addLog('remediation.branch.returned :: user returned to diagnostic report');
+              ensureDiagnosticReportForNavigation();
+              setState('diagnostic_report');
+            }}
+            onExportMain={() => {
+              addLog('remediation.branch.export_main :: user exported without remediation');
+              setState('export');
+            }}
+            showExportMain={executionState !== 'verified'}
+          />
+          <ApplyVerifyStep
+            state={executionState}
+            report={report}
+            auditEvidence={auditEvidence}
+            structuredDiagnosis={structuredDiagnosis}
+            scriptContractV2={scriptContractV2}
+            scriptContractVerificationV2={scriptContractVerificationV2}
+            approvedScript={approvedScript}
+            sourceFile={file}
+            sourceDatasetFingerprint={getScriptDatasetSha256(auditEvidence)}
+            executionValidationError={executionValidationError}
+            onStateChange={setExecutionState}
+            onReceiptChange={setExecutionReceipt}
+            onErrorChange={setExecutionValidationError}
+            onBundleJsonChange={setExecutionBundleJson}
+            executionReceipt={executionReceipt}
+            executionBundleJson={executionBundleJson}
+            onLog={(stage, msg) => addLog(`${stage} :: ${msg}`)}
+            onContinue={() => setState('export')}
+            onBack={() => setState('review')}
           />
         </>
       )}
