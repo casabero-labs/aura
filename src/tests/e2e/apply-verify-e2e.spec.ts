@@ -23,7 +23,11 @@ import { execSync } from 'node:child_process';
 import { existsSync, mkdtempSync, writeFileSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { buildPhase4TitanicFixture } from './harness/Phase4EvidenceHarness';
-import { sha256BytesHex } from '../../contracts/llm/hash';
+import { sha256BytesHex, sha256hex } from '../../contracts/llm/hash';
+import { buildExecutionReceiptV1 } from '../../contracts/llm/executionReceiptV1';
+import { exactDiagnosisPromptV2 } from '../../contracts/llm/diagnosisInputPackageV2';
+import { canonicalJson } from '../../contracts/llm/diagnosisPromptV2';
+import type { DiagnosisInputPackageV2 } from '../../contracts/llm/types';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(__dirname, '../../..');
@@ -50,7 +54,77 @@ async function setPipelineState(page: any, state: string) {
   await page.waitForTimeout(1000);
 }
 
-const VALID_64HEX = 'a'.repeat(64);
+const OBSERVED_MODEL = 'test-model';
+const RAW_RESPONSE = JSON.stringify({ diagnosis: { status: 'completed' } });
+
+function buildCanonicalExecutionReceipt(evidenceEnvelopeRef: string): {
+  inputSnapshot: DiagnosisInputPackageV2;
+  exactPrompt: string;
+  inputHash: string;
+  receipt: ReturnType<typeof buildExecutionReceiptV1>;
+} {
+  // Stage 1: build input without computed hashes
+  const inputSnapshot: DiagnosisInputPackageV2 = {
+    contractId: 'aura.input-snapshot.v2',
+    contractVersion: '2.0.0',
+    inputMode: 'prompt_libre',
+    includedSections: ['profile'],
+    systemInstruction: '',
+    userPayload: 'E2E fixed test payload',
+    responseSchema: {},
+    evidenceEnvelopeRef,
+    promptVersion: '2.0.0',
+    promptHash: '',
+    responseSchemaHash: sha256hex(canonicalJson({})),
+    inputHash: '',
+  };
+
+  // Stage 2: compute exactPrompt, set promptHash
+  const exactPrompt = exactDiagnosisPromptV2(inputSnapshot);
+  inputSnapshot.promptHash = sha256hex(exactPrompt);
+
+  // Stage 3: compute stableInput for inputHash
+  const stableInput = {
+    contractId: inputSnapshot.contractId,
+    contractVersion: inputSnapshot.contractVersion,
+    inputMode: inputSnapshot.inputMode,
+    includedSections: inputSnapshot.includedSections,
+    systemInstruction: inputSnapshot.systemInstruction,
+    userPayload: inputSnapshot.userPayload,
+    responseSchema: inputSnapshot.responseSchema,
+    evidenceEnvelopeRef: inputSnapshot.evidenceEnvelopeRef,
+    promptVersion: inputSnapshot.promptVersion,
+    promptHash: inputSnapshot.promptHash,
+    responseSchemaHash: inputSnapshot.responseSchemaHash,
+  };
+  inputSnapshot.inputHash = sha256hex(canonicalJson(stableInput));
+
+  // Stage 4: build receipt
+  const receipt = buildExecutionReceiptV1({
+    input: inputSnapshot,
+    requestedInputMode: 'prompt_libre',
+    exactPrompt,
+    provider: 'fixture',
+    requestedModel: OBSERVED_MODEL,
+    observedModel: OBSERVED_MODEL,
+    inference: {
+      temperature: 0,
+      topP: 0,
+      think: false as const,
+      numCtx: 2048,
+      numPredict: 1024,
+      seed: null,
+      keepAlive: '5m',
+      timeoutSeconds: 60,
+    },
+    startedAt: '2026-07-13T00:00:00.000Z',
+    completedAt: '2026-07-13T00:00:01.000Z',
+    rawResponse: RAW_RESPONSE,
+    validationStatus: 'valid',
+  });
+
+  return { inputSnapshot, exactPrompt, inputHash: inputSnapshot.inputHash, receipt };
+}
 
 async function injectDiagnosis(page: any) {
   await page.waitForFunction(
@@ -63,43 +137,32 @@ async function injectDiagnosis(page: any) {
   expect(fingerprint).toBeTruthy();
   const { diagnosis: diag, plan: planData } = buildPhase4TitanicFixture(fingerprint!);
 
-  // Patch diagnosis with inputSnapshot + executionReceipt so export preconditions pass
+  const { inputSnapshot, exactPrompt, inputHash, receipt } = buildCanonicalExecutionReceipt(diag.evidenceEnvelopeRef);
+
   const diagPatched = {
     ...diag,
-    inputSnapshot: {
-      contractId: 'aura.input-snapshot.v2',
-      contractVersion: '2.0.0',
-      inputMode: 'prompt_libre',
-      includedSections: ['profile'],
-      systemInstruction: '',
-      userPayload: 'E2E fixed fixture',
-      responseSchema: {},
-      evidenceEnvelopeRef: diag.evidenceEnvelopeRef,
-      promptVersion: '2.0.0',
-      promptHash: VALID_64HEX,
-      responseSchemaHash: VALID_64HEX,
-      inputHash: VALID_64HEX,
+    // Fields validated against receipt
+    rawResponseHash: receipt.rawResponseHash,
+    rawResponse: RAW_RESPONSE,
+    inputMode: 'prompt_libre',
+    inputHash,
+    promptHash: inputSnapshot.promptHash,
+    // Override metrics.model to match observedModel
+    metrics: {
+      ...diag.metrics,
+      model: OBSERVED_MODEL,
     },
-    executionReceipt: {
-      version: 1,
-      receiptHash: VALID_64HEX,
-      contractId: 'aura.diagnosis.v2',
-      contractVersion: '2.0.0',
-      rawResponseHash: VALID_64HEX,
-      evidenceEnvelopeRef: diag.evidenceEnvelopeRef,
-      promptVersion: diag.promptVersion ?? '2.0.0',
-      metrics: diag.metrics,
-      diagnosis: { status: 'completed' },
-    },
+    inputSnapshot,
+    executionReceipt: receipt,
     remediationContext: {
       ...diag.remediationContext,
-      inputReceiptRef: VALID_64HEX,
+      inputReceiptRef: receipt.receiptHash,
     },
   };
-  // Patch plan's inputReceiptRef so the generated contract carries the valid ref
+
   const planPatched = {
     ...planData,
-    inputReceiptRef: VALID_64HEX,
+    inputReceiptRef: receipt.receiptHash,
   };
 
   await page.evaluate(([d, p]: any[]) => {
@@ -108,15 +171,8 @@ async function injectDiagnosis(page: any) {
   await page.waitForTimeout(1500);
 }
 
-async function tamperVerificationPassed(page: any) {
-  await page.evaluate(() => {
-    (window as any).__PHASE4_TAMPER_VERIFICATION__({ pythonSyntax: { state: 'passed' } });
-  });
-  await page.waitForTimeout(300);
-}
-
 test.describe('Apply & Verify E2E', () => {
-  test('full flow: upload → script → review → execution → preparar → runner → verified → export → ZIP', async ({ page }) => {
+  test('full flow: upload → script → review → execution → runner → verified → export → ZIP', async ({ page }) => {
     const errors: any[] = [];
     page.on('pageerror', (err) => { console.log('PAGE_CRASH:', err.message); errors.push(err); });
     page.on('console', (msg) => {
@@ -126,7 +182,7 @@ test.describe('Apply & Verify E2E', () => {
     // ── 1. Upload CSV ──────────────────────────────────────────────────
     await uploadCsv(page, SOURCE_CSV);
 
-    // ── SCREENSHOT 01: Decisión opcional ────────────────────────────────
+    // ── SCREENSHOT 01 ──────────────────────────────────────────────────
     await setPipelineState(page, 'diagnosis');
     await injectDiagnosis(page);
     await setPipelineState(page, 'diagnostic_report');
@@ -137,13 +193,11 @@ test.describe('Apply & Verify E2E', () => {
       await page.screenshot({ path: path.join(OUT, `01_decision_optional_${vp.suffix}.png`), fullPage: true });
     }
 
-    // ── 2. Navigate to 'script' → approve action → generate V2 contract ──
+    // ── 2. Script stage ───────────────────────────────────────────────
     await setPipelineState(page, 'script');
     await page.waitForTimeout(1000);
-
     await page.locator('[data-testid="remediation-stage"]').waitFor({ state: 'visible', timeout: 15_000 });
 
-    // Approve at least one action in the plan before generating contract
     const approveActionBtn = page.locator('[data-testid="remediation-stage"]')
       .locator('.remediation-action').first()
       .locator('button', { hasText: 'Aprobar' });
@@ -152,13 +206,11 @@ test.describe('Apply & Verify E2E', () => {
       await page.waitForTimeout(500);
     }
 
-    const generateBtn = page.getByRole('button', { name: /Generar contrato de script/i });
-    await generateBtn.waitFor({ state: 'visible', timeout: 10_000 });
-    await generateBtn.click();
+    await page.getByRole('button', { name: /Generar contrato de script/i }).click();
     await page.waitForTimeout(2000);
     await page.locator('[data-testid="contract-hash"]').waitFor({ state: 'visible', timeout: 30_000 });
 
-    // Continue to review (syntax state not_run is now accepted by the gate)
+    // not_run accepted by the gate — no tamper needed
     const contBtn = page.getByRole('button', { name: /Continuar a revisión/i });
     if (await contBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
       await contBtn.click();
@@ -184,28 +236,24 @@ test.describe('Apply & Verify E2E', () => {
     await approveBtn.click();
     await page.waitForTimeout(2000);
 
-    // Wait for "Preparar exportación"
-    const prepExpBtn = page.getByRole('button', { name: /Preparar exportación/i });
-    await prepExpBtn.waitFor({ state: 'visible', timeout: 15_000 });
-    await prepExpBtn.click();
+    await page.getByRole('button', { name: /Preparar exportación/i }).waitFor({ state: 'visible', timeout: 15_000 });
+    await page.getByRole('button', { name: /Preparar exportación/i }).click();
     await page.waitForTimeout(1000);
 
-    // ── 4. Execution: ApplyVerifyStep ─────────────────────────────────
+    // ── 4. ApplyVerifyStep ────────────────────────────────────────────
     await page.locator('[data-testid="apply-verify-step"]').waitFor({ state: 'visible', timeout: 15_000 });
-
-    // ── 5. Click "Preparar ejecución" ─────────────────────────────────
     await page.locator('[data-testid="apply-verify-prepare"]').click();
     await page.waitForTimeout(1000);
     await page.locator('[data-testid="apply-verify-ready"]').waitFor({ state: 'visible', timeout: 15_000 });
 
-    // ── SCREENSHOT 02: Prepare ready ──────────────────────────────────
+    // ── SCREENSHOT 02 ─────────────────────────────────────────────────
     for (const vp of VIEWPORTS) {
       await page.setViewportSize({ width: vp.width, height: vp.height });
       await page.waitForTimeout(300);
       await page.screenshot({ path: path.join(OUT, `02_prepare_ready_${vp.suffix}.png`), fullPage: true });
     }
 
-    // ── 6. Extract bundle ─────────────────────────────────────────────
+    // ── 5. Extract bundle + run real Node runner ──────────────────────
     const bundleJson: string = await page.evaluate(() => {
       const el = document.querySelector('[data-execution-bundle-json]');
       if (!el) throw new Error('data-execution-bundle-json not found');
@@ -213,7 +261,6 @@ test.describe('Apply & Verify E2E', () => {
     });
     expect(JSON.parse(bundleJson).bundleHash).toBeTruthy();
 
-    // ── 7. Execute real Node runner ───────────────────────────────────
     const tmpDir = mkdtempSync(path.join(tmpdir(), 'av-e2e-'));
     writeFileSync(path.join(tmpDir, 'execution-bundle.json'), bundleJson, 'utf-8');
     writeFileSync(path.join(tmpDir, 'source.csv'), readFileSync(SOURCE_CSV, 'utf-8'), 'utf-8');
@@ -230,13 +277,13 @@ test.describe('Apply & Verify E2E', () => {
     expect(correctedCsv.length).toBeGreaterThan(0);
     expect(receipt.receiptHash).toBeTruthy();
     expect(receipt.execution.status).toBe('passed');
-    expect(receipt.syntax.status).toBe('passed'); // real runner compiles Python
+    expect(receipt.syntax.status).toBe('passed');
 
-    // ── 8. Upload outputs ─────────────────────────────────────────────
+    // ── 6. Upload outputs ─────────────────────────────────────────────
     await page.locator('[data-testid="apply-verify-await-files"]').click();
     await page.waitForTimeout(500);
 
-    // ── SCREENSHOT 03: Awaiting files ─────────────────────────────────
+    // ── SCREENSHOT 03 ─────────────────────────────────────────────────
     for (const vp of VIEWPORTS) {
       await page.setViewportSize({ width: vp.width, height: vp.height });
       await page.waitForTimeout(300);
@@ -250,33 +297,42 @@ test.describe('Apply & Verify E2E', () => {
     await page.setInputFiles('[data-testid="apply-verify-receipt-file"]', path.join(tmpDir, 'upload-receipt.json'));
     await page.waitForTimeout(500);
 
-    // ── 9. Click "Validar ejecución" ─────────────────────────────────
-    const validateBtn = page.locator('[data-testid="apply-verify-validate"]');
-    await expect(validateBtn).toBeEnabled({ timeout: 5000 });
-    await validateBtn.click();
+    await page.locator('[data-testid="apply-verify-validate"]').click();
 
-    // ── 10. Assert verified ───────────────────────────────────────────
+    // ── 7. Assert verified ────────────────────────────────────────────
     await page.locator('[data-testid="apply-verify-verified"]').waitFor({ state: 'visible', timeout: 20_000 });
     await expect(page.locator('.apply-verify-info-grid').first()).toBeVisible();
 
-    // ── SCREENSHOT 04: Verified ───────────────────────────────────────
+    // ── SCREENSHOT 04 ─────────────────────────────────────────────────
     for (const vp of VIEWPORTS) {
       await page.setViewportSize({ width: vp.width, height: vp.height });
       await page.waitForTimeout(300);
       await page.screenshot({ path: path.join(OUT, `04_verified_${vp.suffix}.png`), fullPage: true });
     }
 
-    // ── 11. Wait for reaudit completed ───────────────────────────────
+    // ── 8. Reaudit ────────────────────────────────────────────────────
     await page.locator('[data-testid="apply-verify-reaudit-summary"]').waitFor({ state: 'visible', timeout: 20_000 });
     await expect(page.getByTestId('reaudit-before-score')).toBeVisible();
     await expect(page.getByTestId('reaudit-after-score')).toBeVisible();
 
-    // ── 12. Click "Ir a Exportación" ─────────────────────────────────
     await page.locator('[data-testid="apply-verify-continue"]').click();
     await page.waitForTimeout(1000);
     await page.locator('[data-testid="export-stage"]').waitFor({ state: 'visible', timeout: 15_000 });
 
-    // ── 13. Download and verify evidence ZIP ─────────────────────────
+    // ── 9. Download and verify evidence ZIP ──────────────────────────
+    const capturedWarnings: string[] = [];
+    page.on('console', (msg) => {
+      if (msg.type() === 'warning') capturedWarnings.push(msg.text());
+    });
+    await page.locator('[data-testid="export-download-evidence-package"]').click();
+    await page.waitForTimeout(2000);
+    const preflightWarning = capturedWarnings.find(w => w.includes('evidence-package.preflight'));
+    if (preflightWarning) {
+      // Log the exact preflight errors and fail the test
+      console.log('PREFLIGHT ERRORS:', preflightWarning);
+      throw new Error(`Export preflight failed: ${preflightWarning}`);
+    }
+    // No preflight error shown; wait for the download event
     const [zipDownload] = await Promise.all([
       page.waitForEvent('download', { timeout: 30_000 }),
       page.locator('[data-testid="export-download-evidence-package"]').click(),
@@ -289,7 +345,6 @@ test.describe('Apply & Verify E2E', () => {
     const zipTmp = mkdtempSync(path.join(tmpdir(), 'av-zip-'));
     execSync(`unzip -o "${zipPath}" -d "${zipTmp}"`, { encoding: 'utf-8', timeout: 10_000 });
 
-    // Expected artefacts
     const expectedFiles = [
       'remediation/approved-script.py',
       'execution/execution-bundle.json',
@@ -304,28 +359,30 @@ test.describe('Apply & Verify E2E', () => {
       expect(readFileSync(fullPath).length).toBeGreaterThan(0);
     }
 
-    // manifest.json must exist and declare hashes
+    // manifest.json
     const manifestPath = path.join(zipTmp, 'manifest.json');
     expect(existsSync(manifestPath)).toBe(true);
     const manifest = JSON.parse(readFileSync(manifestPath, 'utf-8'));
-    expect(manifest.correctedDatasetIncluded).toBe(true);
-    expect(manifest.correctedDatasetMayContainPersonalData).toBe(true);
+    expect(manifest.privacy.correctedDatasetIncluded).toBe(true);
+    expect(manifest.privacy.correctedDatasetMayContainPersonalData).toBe(true);
 
-    // Every entry in manifest must have sha256 and sizeBytes
-    const fileEntries = manifest.files as Record<string, { sha256: string; sizeBytes: number }> | undefined;
-    for (const [entryPath, entry] of Object.entries(fileEntries ?? {})) {
-      expect(typeof entry.sha256).toBe('string');
-      expect(typeof entry.sizeBytes).toBe('number');
-      // Verify the actual file hash matches manifest
-      if (entryPath !== 'README.md' && existsSync(path.join(zipTmp, entryPath))) {
-        const actualBytes = readFileSync(path.join(zipTmp, entryPath));
+    // files is an array
+    expect(Array.isArray(manifest.files)).toBe(true);
+    for (const entry of manifest.files) {
+      expect(typeof entry.path).toBe('string');
+      expect(entry.sha256).toMatch(/^[a-f0-9]{64}$/);
+      expect(typeof entry.bytes).toBe('number');
+      const artifactPath = path.join(zipTmp, entry.path);
+      if (existsSync(artifactPath)) {
+        const actualBytes = readFileSync(artifactPath);
         expect(sha256BytesHex(new Uint8Array(actualBytes))).toBe(entry.sha256);
+        expect(actualBytes.byteLength).toBe(entry.bytes);
       }
     }
 
     // source.csv must NOT be present
     expect(existsSync(path.join(zipTmp, 'execution/source.csv'))).toBe(false);
-    // reaudit-result.json must not contain rawCsv, beforeOutput, afterOutput
+    // reaudit-result.json must not contain rawCsv / beforeOutput / afterOutput
     const reauditResult = JSON.parse(readFileSync(path.join(zipTmp, 'execution/reaudit-result.json'), 'utf-8'));
     expect(reauditResult).not.toHaveProperty('rawCsv');
     expect(reauditResult).not.toHaveProperty('beforeOutput');
@@ -333,7 +390,7 @@ test.describe('Apply & Verify E2E', () => {
   });
 
   // ─────────────────────────────────────────────────────────────────────
-  // TEST 2: Invalid state with tampered receipt
+  // TEST 2: Invalid state with tampered receipt (no pythonSyntax tamper)
   // ─────────────────────────────────────────────────────────────────────
   test('invalid state with tampered receipt', async ({ page }) => {
     await uploadCsv(page, SOURCE_CSV);
@@ -343,7 +400,6 @@ test.describe('Apply & Verify E2E', () => {
 
     await page.locator('[data-testid="remediation-stage"]').waitFor({ state: 'visible', timeout: 15_000 });
 
-    // Approve at least one action before generating contract
     const approveBtn = page.locator('[data-testid="remediation-stage"]')
       .locator('.remediation-action').first()
       .locator('button', { hasText: 'Aprobar' });
@@ -355,7 +411,6 @@ test.describe('Apply & Verify E2E', () => {
     await page.getByRole('button', { name: /Generar contrato de script/i }).click();
     await page.waitForTimeout(2000);
     await page.locator('[data-testid="contract-hash"]').waitFor({ state: 'visible', timeout: 30_000 });
-    await tamperVerificationPassed(page);
 
     const contBtn = page.getByRole('button', { name: /Continuar a revisión/i });
     if (await contBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
@@ -366,14 +421,13 @@ test.describe('Apply & Verify E2E', () => {
     await page.waitForTimeout(1000);
     await page.locator('[data-testid="review-stage"]').waitFor({ state: 'visible', timeout: 15_000 });
 
-    // Scroll + force-approve
     await page.evaluate(() => {
       const el = document.querySelector('.script-scroll');
       if (el) { el.scrollTop = el.scrollHeight; el.dispatchEvent(new Event('scroll', { bubbles: true })); }
     });
     await page.waitForTimeout(500);
     const scriptApproveBtn = page.getByRole('button', { name: /Aprobar script/i });
-    await scriptApproveBtn.click({ timeout: 3000 }).catch(() => scriptApproveBtn.click({ force: true }));
+    await scriptApproveBtn.click();
     await page.waitForTimeout(2000);
 
     await page.getByRole('button', { name: /Preparar exportación/i }).waitFor({ state: 'visible', timeout: 15_000 });
@@ -384,14 +438,12 @@ test.describe('Apply & Verify E2E', () => {
     await page.waitForTimeout(1000);
     await page.locator('[data-testid="apply-verify-ready"]').waitFor({ state: 'visible', timeout: 15_000 });
 
-    // Extract bundle
     const bundleJson: string = await page.evaluate(() => {
       const el = document.querySelector('[data-execution-bundle-json]');
       return el?.getAttribute('data-execution-bundle-json') || '';
     });
     const bundle = JSON.parse(bundleJson);
 
-    // Build tampered receipt
     const tamperedReceipt = {
       contractId: 'aura.python-execution-receipt.v1',
       contractVersion: '1.0.0',
@@ -422,7 +474,7 @@ test.describe('Apply & Verify E2E', () => {
     await page.locator('[data-testid="apply-verify-validate"]').click();
     await page.locator('[data-testid="apply-verify-error"]').waitFor({ state: 'visible', timeout: 15_000 });
 
-    // ── SCREENSHOT 05: Invalid ────────────────────────────────────────
+    // ── SCREENSHOT 05 ─────────────────────────────────────────────────
     for (const vp of VIEWPORTS) {
       await page.setViewportSize({ width: vp.width, height: vp.height });
       await page.waitForTimeout(300);
@@ -441,7 +493,6 @@ test.describe('Apply & Verify E2E', () => {
 
     await page.locator('[data-testid="remediation-stage"]').waitFor({ state: 'visible', timeout: 15_000 });
 
-    // Approve at least one action before generating contract
     const approveBtn = page.locator('[data-testid="remediation-stage"]')
       .locator('.remediation-action').first()
       .locator('button', { hasText: 'Aprobar' });
@@ -453,7 +504,6 @@ test.describe('Apply & Verify E2E', () => {
     await page.getByRole('button', { name: /Generar contrato de script/i }).click();
     await page.waitForTimeout(2000);
     await page.locator('[data-testid="contract-hash"]').waitFor({ state: 'visible', timeout: 30_000 });
-    await tamperVerificationPassed(page);
 
     const contBtn = page.getByRole('button', { name: /Continuar a revisión/i });
     if (await contBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
@@ -464,14 +514,12 @@ test.describe('Apply & Verify E2E', () => {
     await page.waitForTimeout(1000);
     await page.locator('[data-testid="review-stage"]').waitFor({ state: 'visible', timeout: 15_000 });
 
-    // Scroll + force-approve
     await page.evaluate(() => {
       const el = document.querySelector('.script-scroll');
       if (el) { el.scrollTop = el.scrollHeight; el.dispatchEvent(new Event('scroll', { bubbles: true })); }
     });
     await page.waitForTimeout(500);
-    await page.getByRole('button', { name: /Aprobar script/i })
-      .click({ timeout: 3000 }).catch(() => page.getByRole('button', { name: /Aprobar script/i }).click({ force: true }));
+    await page.getByRole('button', { name: /Aprobar script/i }).click();
     await page.waitForTimeout(2000);
 
     await page.getByRole('button', { name: /Preparar exportación/i }).waitFor({ state: 'visible', timeout: 15_000 });
@@ -481,7 +529,6 @@ test.describe('Apply & Verify E2E', () => {
     await page.setViewportSize({ width: 390, height: 844 }).catch(() => {});
     await page.waitForTimeout(300);
 
-    // Check overflow at not_prepared
     const checkOverflow = async () => page.evaluate(() => {
       const el = document.querySelector('[data-testid="apply-verify-step"]');
       return el ? (el as HTMLElement).scrollWidth <= (el as HTMLElement).clientWidth : false;
