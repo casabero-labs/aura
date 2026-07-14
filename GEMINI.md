@@ -1,101 +1,85 @@
-# AURA — Mandatos del Proyecto
+# AURA — instrucciones vigentes del repositorio
 
 ## Identidad
 
-- **Nombre**: AURA — Entorno de Diagnóstico Cognitivo para la Calidad del Dato mediante Benchmarking de LLMs
-- **Tipo**: Trabajo Fin de Máster (TFM) — Desarrollo de Software
-- **Universidad**: Universidad Internacional de La Rioja (UNIR)
-- **Programa**: Máster en Análisis y Visualización de Datos Masivos
-- **Autor**: Joseph David Gari Bustos
-- **Director**: Luis Guadalupe Macias Trejo
-- **Potencial**: Publicación científica (recomendado por el director)
+- Proyecto: AURA — Entorno de diagnóstico de calidad del dato con evaluación comparativa de LLM.
+- Tipo: Trabajo Fin de Máster, desarrollo de software.
+- Autor: Joseph David Gari Bustos.
+- Universidad: Universidad Internacional de La Rioja (UNIR).
 
-## Principio Rector
+## Fuentes que mandan
 
-El documento de tesis (`docs/memoria/`) es el **norte absoluto** del proyecto. Todo código, toda decisión de arquitectura, y toda documentación debe alinearse con lo que la memoria TFM define. El código existente en `src/` es un recurso que se adapta a la tesis, no al revés.
+1. `docs/product/aura/NEXT_STEPS.md` — estado técnico y experimental vigente.
+2. `docs/tfm/memoria_final/README.md` — mapa de fuentes canónicas para redactar el documento final.
+3. Artefactos exportados, código y tests del commit de trabajo.
+4. `docs/plans/2026-07-09-cierre-definitivo-aura.md` — línea base histórica del cierre, no bitácora operativa reciente.
+5. `docs/archive/academic/` — entregas históricas y antecedentes; no define trabajo nuevo.
 
-Para la segunda entrega, la línea oficial está en:
+Cuando dos documentos se contradicen, prevalece la evidencia reproducible más reciente y después `NEXT_STEPS.md`.
 
-`docs/memoria/entregas/segunda_entrega/LINEA_OFICIAL_AURA.md`
+## Objetivo de trabajo actual
 
-Resumen canónico: AURA no debe prometer precisión perfecta del motor determinista. La tesis defendible es que la Capa 1 genera evidencia reproducible, la Capa 2 interpreta esa evidencia bajo restricciones anti-alucinación y la Capa 3 conserva gobernanza humana.
+Cerrar la evidencia y preparar la memoria final. No abrir Phase 11, nuevas funcionalidades, roadmaps paralelos ni otra entrega intermedia.
 
-**Regla de oro**: Ningún feature se considera terminado hasta que:
-1. ✅ El código compila y funciona
-2. 📸 Se captura evidencia (screenshot/métricas)
-3. 📝 Se documenta en el capítulo correspondiente de la memoria
-4. 📊 Si aplica, se registran métricas en `experiments/results/`
+## Flujo vigente del producto
 
-## Arquitectura
-
-AURA sigue una **Arquitectura de 4 Capas de Estabilidad**:
-
-1. **Capa 0**: Infraestructura Soberana (Local-First) — CSV y auditoría determinista en navegador; inferencia local opcional con WebLLM/WebGPU
-2. **Capa 1**: Motor Determinista (`src/services/auditEngine.ts`) — 22+ reglas reproducibles que generan evidencia factual
-3. **Capa 2**: Estabilidad Cognitiva (`src/services/providers/`) — LLM cloud/local controlado con smart sample y anclaje semántico
-4. **Capa 3**: Gobernanza y Trazabilidad (`src/services/pdfGenerator.ts`) — HITL, scripts Pandas, PDF
-
-## Objetivos Específicos (OE)
-
-- **OE1**: Motor de auditoría determinista reproducible → `src/services/auditEngine.ts`
-- **OE2**: Benchmarking multi-modelo cloud/local → `experiments/benchmarks/`
-- **OE3**: Arquitectura local-first y comparación WebLLM/Gemini → `src/services/aiProvider.ts`
-- **OE4**: Scripts de limpieza auditables → generación vía proveedores IA y reporte PDF
-
-## Stack Tecnológico
-
-- React 19 + TypeScript + Vite 6
-- TailwindCSS (CDN) + CSS Variables
-- Google GenAI SDK (`@google/genai`)
-- PapaParse, Recharts, jsPDF, lucide-react
-
-## Estructura del Repositorio
-
-```
-aura/
-├── GEMINI.md                          ← Este archivo
-├── README.md                          ← Presentación académica
-├── docs/                              ← ESPACIO ACADÉMICO
-│   ├── CENTRO_COMANDO_ACADEMICO.md    ← Brújula del proyecto
-│   ├── README.md                      ← Navegación de docs
-│   ├── memoria/                       ← Documento TFM
-│   │   ├── entregas/                  ← Entregas formales al director
-│   │   ├── borradores/               ← Borradores de capítulos
-│   │   └── retroalimentacion/        ← Feedback del profesor
-│   ├── figuras/                       ← Diagramas, screenshots
-│   ├── tablas/                        ← Tablas comparativas, catálogos
-│   ├── referencias/                   ← Bibliografía organizada
-│   └── publicacion/                   ← Material para artículo científico
-├── src/                               ← Código fuente AURA
-│   ├── components/                    ← Componentes React UI
-│   └── services/                      ← Lógica de negocio (4 capas)
-└── experiments/                       ← Validación experimental
-    ├── datasets/                      ← Datasets de prueba
-    ├── benchmarks/                    ← Scripts de benchmark
-    └── results/                       ← Resultados de evaluación
+```text
+Carga → Perfil base → Diagnóstico → Reporte diagnóstico → Exportación
+                                 └→ Remediación opcional → revisión HITL → ejecución controlada y reauditoría
 ```
 
-## Infisical
+El Laboratorio OE4 es una capacidad experimental separada. Conserva campañas, corridas válidas y fallidas, prompts, respuestas, métricas, recibos y revisiones humanas.
 
-- No aplica para este proyecto (no hay backend ni secretos de infraestructura en producción).
-- La API key de Gemini se gestiona via `src/.env.local` o el panel de Settings de la UI.
+## Objetivos específicos definitivos
 
-## Reglas de Desarrollo
+- OE1 — Arquitectura local-first: carga, procesamiento y auditoría CSV en navegador con trazabilidad y minimización de datos compartidos.
+- OE2 — Motor determinista: reglas explícitas y evaluación TP, FP, FN, precisión, recall y F1.
+- OE3 — Diagnóstico asistido restringido: LLM limitado por evidencia estructurada y sin modificar el score determinista.
+- OE4 — Laboratorio de comparación: modelos y métodos bajo un contrato común, distinguiendo piloto, resultado experimental y benchmark formal.
+- OE5 — Gobernanza HITL: aprobación humana antes de generar o ejecutar remediaciones.
+- OE6 — Scripts revisables y trazables: Python/Pandas derivado de acciones aprobadas, con recibos, hashes y reauditoría.
 
-1. Todo cambio en el código debe poder justificarse desde un objetivo (OE1-OE4) de la tesis
-2. Los nombres de componentes y servicios deben mantener coherencia con la nomenclatura de las capas
-3. Toda experimentación va en `experiments/`, nunca en `src/`
-4. Las capturas de pantalla y diagramas para la memoria van en `docs/figuras/`
-5. El idioma del código (variables, comentarios) es español donde sea posible, inglés para APIs y frameworks
-6. Cada feature debe generar evidencia en `docs/` antes de considerarse terminado
-7. Las métricas experimentales se registran en `experiments/results/` con formato reproducible
-8. Las referencias bibliográficas se mantienen en `docs/referencias/registro_bibliografico.md`
-9. No introducir afirmaciones de "precisión 100%", "EM=1.00" o "todo local" sin evidencia experimental y matiz de modo de ejecución
+No reagrupar estos seis objetivos usando versiones históricas de cuatro, cinco u ocho objetivos.
 
-## Cronograma Crítico
+## Arquitectura vigente
 
-| Hito | Semana | Contenido |
-|---|---|---|
-| ✅ Primera entrega | 3 | Borrador inicial (completado) |
-| 🔴 **Segunda entrega** | **10** | Cap. 2+3 finales, Cap. 5 avanzado, resultados preliminares |
-| ⬜ Entrega final | 14 | Documento completo + depósito |
+- Motor determinista en TypeScript ejecutado sobre el CSV en el navegador.
+- Contratos V2 y paquetes de evidencia para restringir la capa LLM.
+- Proveedores principales: Ollama local, Chrome AI opt-in y proveedores cloud configurables.
+- WebLLM puede permanecer como compatibilidad o experimento, pero no debe describirse como proveedor principal de producción.
+- Plan y script de remediación generados bajo reglas deterministas y decisiones humanas.
+- Runner Python externo/local sobre una copia controlada; AURA no ejecuta Python dentro del navegador.
+- Exportaciones PDF, JSON, CSV, ZIP, recibos y manifiestos verificables.
+
+## Reglas de desarrollo durante el cierre
+
+1. No añadir features salvo que reparen un bloqueo real de evidencia o depósito.
+2. No alterar dataset, modelos, métodos, parámetros o contratos después de iniciar una campaña formal.
+3. Conservar fallos, pausas, truncamientos e incumplimientos contractuales; no repetir silenciosamente para mejorar resultados.
+4. El score y los hallazgos pertenecen al motor determinista. El LLM interpreta, no recalcula ni corrige la evidencia primaria.
+5. Ningún script se ejecuta sin aprobación humana y validación fail-closed.
+6. No usar datasets con PII real para la evidencia del TFM.
+7. No afirmar `production-ready`, corrección automática universal, benchmark definitivo o modelo ganador sin evidencia suficiente.
+8. Cada claim del documento final debe enlazar con un artefacto, hash, recibo, test o commit verificable.
+9. La redacción final se organiza únicamente bajo `docs/tfm/memoria_final/`.
+10. Los scripts específicos de primera, segunda o tercera entrega no deben reutilizarse para modificar el documento final.
+
+## Evidencia canónica mínima
+
+- `experiments/results/final_deterministic_evidence.json`
+- `experiments/results/final_deterministic_evidence.md`
+- campañas y expedientes bajo `experiments/final-evaluation/` y `experiments/tests/`
+- protocolo OE4 bajo `docs/plans/2026-07-10-laboratorio-oe4-evaluacion-llm*.md`
+- estado actualizado en `docs/product/aura/NEXT_STEPS.md`
+
+## Validaciones habituales
+
+Desde `src/`, según el alcance del cambio:
+
+```bash
+npm run typecheck
+npm run build
+npm test -- --run
+```
+
+Los E2E estándar no dependen de proveedores reales ni descargan modelos. Las pruebas reales de Chrome AI son opt-in, usan Google Chrome y un perfil persistente dedicado, nunca el perfil personal ni CI normal.
