@@ -1,6 +1,6 @@
 # Hoja de ruta definitiva de AURA
 
-Última actualización: 13 de julio de 2026, 23:45 (America/Bogota).
+Última actualización: 14 de julio de 2026, 04:46 (America/Bogota).
 
 Este documento es la única referencia operativa para cerrar el TFM. La entrega
 académica vence el **miércoles 15 de julio de 2026 a las 15:00**. Hasta entregar,
@@ -26,7 +26,7 @@ esta fase; en el documento se verificará su grado de cumplimiento con evidencia
 | Área | Estado para el TFM |
 |---|---|
 | Motor determinista | Cerrado y utilizable. |
-| Diagnóstico normal V2 | Validado con el dataset controlado simple y **Evidencia completa** (`recommended`). El intento con **Evidencia equilibrada** (`smart_sample`) fue rechazado correctamente por reducir la revisión humana. |
+| Diagnóstico normal V2 | Validado con el dataset controlado simple en **Contexto mínimo** (`prompt_libre`) y **Evidencia completa** (`recommended`). El intento con **Evidencia equilibrada** (`smart_sample`) fue rechazado correctamente por reducir la revisión humana y debe repetirse una sola vez con la configuración congelada. |
 | Informe PDF y exportación | El ZIP completo quedó validado en una corrida humana. **Los tres defectos visuales del PDF quedaron corregidos** (porcentajes `0.00%` en gráficos de distribución/impacto, etiquetas humanas ausentes y fondo incompleto en las páginas 4 y 6). El informe se regeneró desde el `report JSON` real del ZIP, se renderizaron sus siete páginas y se verificó fondo blanco completo, porcentajes correctos, etiquetas visibles y ausencia de regresiones. |
 | Plan y script | Implementados de forma determinista con revisión humana. El LLM no escribe código ejecutable. |
 | Aplicar y verificar | Cerrado y validado por una corrida humana real: runner Python, recibo, CSV corregido, reauditoría antes/después y ZIP completo. |
@@ -69,8 +69,9 @@ dataset, hashes, oracle, 27 diagnósticos y 9 calentamientos definitivos.
 
 1. Confirmar que Ollama y los tres modelos estén disponibles.
 2. Ejecutar con Qwen un diagnóstico normal por cada método de entrada.
-3. Guardar los tres ZIP en `experiments/tests/flujo5/` y verificar que cada uno conserve prompt, respuesta, modelo observado,
-   recibo, latencia, errores y evaluación automática.
+3. Guardar los ZIP en `experiments/tests/flujo5/`, `flujo6/` y `flujo7/`, y
+   verificar que cada uno conserve prompt, respuesta, modelo observado, recibo,
+   latencia y errores.
 4. Corregir cualquier bloqueo común antes de congelar el protocolo formal.
 5. Corregir únicamente bloqueos que impidan una corrida real. No pulir UI ni
    añadir contratos o métricas nuevas.
@@ -157,6 +158,34 @@ El primer intento de esta misma sesión con **Evidencia equilibrada** (`smart_sa
 `DIAGNOSIS_REVIEW_DOWNGRADE`: el modelo redujo indebidamente la revisión humana.
 Se conserva como resultado negativo del método, no como una corrida válida.
 
+### Prueba exploratoria de Contexto mínimo validada
+
+El 14 de julio se validó el ZIP de `experiments/tests/flujo6/` con Qwen3.5 4B y
+**Contexto mínimo** (`prompt_libre`):
+
+- método solicitado, efectivo y snapshot: `prompt_libre`;
+- únicamente tres secciones visibles: resumen del dataset, esquema y registro
+  mínimo de hallazgos;
+- 15 bloques y 15 issues, con cobertura exacta;
+- 0 referencias de evidencia y revisión humana obligatoria en los 15 issues,
+  comportamiento esperado porque este método no expone muestras;
+- diagnóstico y recibo válidos, sin errores de contrato;
+- latencia: 166.199 ms; salida: 3.195 tokens;
+- ZIP diagnóstico con 20 archivos totales: 19 declarados en el manifiesto y el
+  propio `manifest.json`; hashes y tamaños verificados;
+- dataset original y API keys ausentes.
+
+Comparado con **Evidencia completa**, esta observación exploratoria tardó un
+42,1 % menos y generó un 20,5 % menos de tokens. No se interpreta todavía como
+resultado general: falta Evidencia equilibrada y las repeticiones formales.
+
+El PDF incluido en ese ZIP fue generado desde una pestaña que mantenía el bundle
+anterior y conserva el defecto visual `0.0%` en un gráfico. El diagnóstico, el
+prompt, la respuesta y el recibo son válidos y no se repetirán. El mismo report
+JSON regenerado con `main` actual produce etiquetas y porcentajes correctos.
+Antes de la siguiente prueba se debe abrir una pestaña nueva o hacer recarga
+forzada para cargar el bundle publicado más reciente.
+
 Defectos observados que requieren seguimiento:
 
 - ~~el PDF muestra `0.00%` en gráficos cuyos valores no son cero~~ **corregido**: la
@@ -203,15 +232,10 @@ los modelos, los métodos y las condiciones realmente evaluadas.
 
 ## Próxima acción exacta
 
-El PDF quedó corregido y verificado (porcentajes, etiquetas y fondo blanco
-completo en las siete páginas), sin alterar el motor ni los resultados. Continuar
-`flujo5` con los dos diagnósticos exploratorios que faltan para Qwen:
-
-1. **Contexto mínimo** (`prompt_libre`);
-2. **Evidencia equilibrada** (`smart_sample`).
-
-El método **Evidencia completa** (`recommended`) ya quedó validado de extremo a
-extremo. No iniciar todavía la campaña formal.
+Hacer una recarga forzada de AURA y ejecutar la única prueba exploratoria que
+falta para Qwen3.5 4B: **Evidencia equilibrada** (`smart_sample`) con
+`synthetic_ground_truth.csv`. Exportar el ZIP diagnóstico sin remediación y
+guardarlo en `experiments/tests/flujo7/`. No iniciar todavía la campaña formal.
 
 ## Documentos vigentes relacionados
 
