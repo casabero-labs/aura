@@ -268,10 +268,26 @@ npm test -- --run __tests__/evidenceArchive.test.ts __tests__/exportJsonPrefligh
 ### Task 4: Certificar recorrido real de navegador
 
 **Files:**
+- Modify: `src/components/ApplyVerifyStep.tsx`
+- Test: `src/__tests__/ApplyVerifyStep.test.tsx`
 - Modify: `src/tests/e2e/apply-verify-e2e.spec.ts`
 - Optional Modify: `src/tests/e2e/aura-full-flow-export.spec.ts`
 
-**Step 1: Extend happy path**
+**Step 1: Remove the impossible browser-only syntax gate**
+
+El navegador no ejecuta Python y genera legítimamente `pythonSyntax.state='not_run'`. El runner local ejecuta `python -m py_compile` antes de aplicar el script y conserva ese resultado en `receipt.json`.
+
+Por tanto, las precondiciones de `ApplyVerifyStep` deben:
+
+```ts
+if (!verification || verification.valid !== true || verification.pythonSyntax.state === 'failed') {
+  errors.push('La verificación V2 del script falló.');
+}
+```
+
+Aceptar `passed` y `not_run`; bloquear `failed`. Añadir pruebas para ambos casos. No alterar ni fabricar el estado de sintaxis en el E2E.
+
+**Step 2: Extend happy path**
 
 El E2E debe:
 
@@ -285,9 +301,9 @@ El E2E debe:
 8. Descargar y descomprimir el ZIP.
 9. Confirmar los seis artefactos y sus hashes.
 
-No usar `force: true` ni alterar `pythonSyntax` en el camino feliz. Mantener recibo alterado como prueba negativa independiente.
+No usar `force: true` ni alterar `pythonSyntax` en el camino feliz. Mantener recibo alterado como prueba negativa independiente. El camino feliz debe comprobar `receipt.syntax.status === 'passed'`, producido por el runner local real.
 
-**Step 2: Run E2E**
+**Step 3: Run E2E**
 
 ```bash
 npx playwright test tests/e2e/apply-verify-e2e.spec.ts
