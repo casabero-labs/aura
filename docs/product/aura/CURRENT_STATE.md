@@ -1,7 +1,8 @@
 # Estado actual de AURA
 
-La fuente única de estado, objetivos, brechas y criterio de cierre es:
+Este archivo se conserva solo como ruta de compatibilidad.
 
-- [`docs/plans/2026-07-09-cierre-definitivo-aura.md`](../../plans/2026-07-09-cierre-definitivo-aura.md)
+- Estado técnico y experimental vigente: [`NEXT_STEPS.md`](./NEXT_STEPS.md)
+- Preparación de la memoria final y fuentes canónicas: [`../../tfm/memoria_final/README.md`](../../tfm/memoria_final/README.md)
 
-Este archivo se conserva únicamente como ruta de compatibilidad.
+El plan del 9 de julio permanece como línea base histórica, no como bitácora operativa más reciente.
