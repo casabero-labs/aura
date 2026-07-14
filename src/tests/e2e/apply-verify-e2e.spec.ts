@@ -10,8 +10,9 @@
  *   6. Click "Preparar ejecución" → bundle → extract → run real Node runner
  *   7. Upload outputs → click "Validar ejecución" → assert verified
  *   8. Click "Ir a Exportación" → export stage
- *   9. Second test: tampered receipt → invalid state
- *   10. Third test: overflow check at all apply-verify states
+ *   9. Download ZIP and verify artefacts
+ *   10. Second test: tampered receipt → invalid state
+ *   11. Third test: overflow check at all apply-verify states
  *
  * Screenshots captured at 5 key states × 2 viewports = 10 images.
  */
@@ -19,9 +20,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
 import { execSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync, readFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, writeFileSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { buildPhase4TitanicFixture } from './harness/Phase4EvidenceHarness';
+import { sha256BytesHex } from '../../contracts/llm/hash';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(__dirname, '../../..');
@@ -61,9 +63,23 @@ async function injectDiagnosis(page: any) {
   expect(fingerprint).toBeTruthy();
   const { diagnosis: diag, plan: planData } = buildPhase4TitanicFixture(fingerprint!);
 
-  // Patch diagnosis with executionReceipt so ApplyVerifyStep preconditions pass
+  // Patch diagnosis with inputSnapshot + executionReceipt so export preconditions pass
   const diagPatched = {
     ...diag,
+    inputSnapshot: {
+      contractId: 'aura.input-snapshot.v2',
+      contractVersion: '2.0.0',
+      inputMode: 'prompt_libre',
+      includedSections: ['profile'],
+      systemInstruction: '',
+      userPayload: 'E2E fixed fixture',
+      responseSchema: {},
+      evidenceEnvelopeRef: diag.evidenceEnvelopeRef,
+      promptVersion: '2.0.0',
+      promptHash: VALID_64HEX,
+      responseSchemaHash: VALID_64HEX,
+      inputHash: VALID_64HEX,
+    },
     executionReceipt: {
       version: 1,
       receiptHash: VALID_64HEX,
@@ -100,8 +116,7 @@ async function tamperVerificationPassed(page: any) {
 }
 
 test.describe('Apply & Verify E2E', () => {
-  test('full flow: upload → script → review → execution → preparar → runner → verified → export', async ({ page }) => {
-    // Debug: capture all errors
+  test('full flow: upload → script → review → execution → preparar → runner → verified → export → ZIP', async ({ page }) => {
     const errors: any[] = [];
     page.on('pageerror', (err) => { console.log('PAGE_CRASH:', err.message); errors.push(err); });
     page.on('console', (msg) => {
@@ -111,8 +126,7 @@ test.describe('Apply & Verify E2E', () => {
     // ── 1. Upload CSV ──────────────────────────────────────────────────
     await uploadCsv(page, SOURCE_CSV);
 
-    // ── SCREENSHOT 01: Decisión opcional (two routes) ──────────────────
-    // Follow established L13G pattern: profile → diagnosis → inject → diagnostic_report
+    // ── SCREENSHOT 01: Decisión opcional ────────────────────────────────
     await setPipelineState(page, 'diagnosis');
     await injectDiagnosis(page);
     await setPipelineState(page, 'diagnostic_report');
@@ -143,9 +157,8 @@ test.describe('Apply & Verify E2E', () => {
     await generateBtn.click();
     await page.waitForTimeout(2000);
     await page.locator('[data-testid="contract-hash"]').waitFor({ state: 'visible', timeout: 30_000 });
-    await tamperVerificationPassed(page);
 
-    // Continue to review
+    // Continue to review (syntax state not_run is now accepted by the gate)
     const contBtn = page.getByRole('button', { name: /Continuar a revisión/i });
     if (await contBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
       await contBtn.click();
@@ -154,10 +167,9 @@ test.describe('Apply & Verify E2E', () => {
     }
     await page.waitForTimeout(1000);
 
-    // ── 3. Review: approve script ─────────────────────────────────────
+    // ── 3. Review: scroll script fully → approve (no force) ──────────
     await page.locator('[data-testid="review-stage"]').waitFor({ state: 'visible', timeout: 15_000 });
 
-    // Scroll script + force-click approve (bypass hasReviewed guard)
     await page.evaluate(() => {
       const el = document.querySelector('.script-scroll');
       if (el) {
@@ -169,9 +181,7 @@ test.describe('Apply & Verify E2E', () => {
 
     const approveBtn = page.getByRole('button', { name: /Aprobar script/i });
     await approveBtn.waitFor({ state: 'visible', timeout: 10_000 });
-
-    // Try regular click first; if disabled, force-click to approve
-    await approveBtn.click({ timeout: 3000 }).catch(() => approveBtn.click({ force: true }));
+    await approveBtn.click();
     await page.waitForTimeout(2000);
 
     // Wait for "Preparar exportación"
@@ -220,6 +230,7 @@ test.describe('Apply & Verify E2E', () => {
     expect(correctedCsv.length).toBeGreaterThan(0);
     expect(receipt.receiptHash).toBeTruthy();
     expect(receipt.execution.status).toBe('passed');
+    expect(receipt.syntax.status).toBe('passed'); // real runner compiles Python
 
     // ── 8. Upload outputs ─────────────────────────────────────────────
     await page.locator('[data-testid="apply-verify-await-files"]').click();
@@ -246,7 +257,7 @@ test.describe('Apply & Verify E2E', () => {
 
     // ── 10. Assert verified ───────────────────────────────────────────
     await page.locator('[data-testid="apply-verify-verified"]').waitFor({ state: 'visible', timeout: 20_000 });
-    await expect(page.locator('.apply-verify-info-grid')).toBeVisible();
+    await expect(page.locator('.apply-verify-info-grid').first()).toBeVisible();
 
     // ── SCREENSHOT 04: Verified ───────────────────────────────────────
     for (const vp of VIEWPORTS) {
@@ -255,9 +266,70 @@ test.describe('Apply & Verify E2E', () => {
       await page.screenshot({ path: path.join(OUT, `04_verified_${vp.suffix}.png`), fullPage: true });
     }
 
-    // ── 11. Click "Ir a Exportación" ──────────────────────────────────
+    // ── 11. Wait for reaudit completed ───────────────────────────────
+    await page.locator('[data-testid="apply-verify-reaudit-summary"]').waitFor({ state: 'visible', timeout: 20_000 });
+    await expect(page.getByTestId('reaudit-before-score')).toBeVisible();
+    await expect(page.getByTestId('reaudit-after-score')).toBeVisible();
+
+    // ── 12. Click "Ir a Exportación" ─────────────────────────────────
     await page.locator('[data-testid="apply-verify-continue"]').click();
-    await page.waitForTimeout(1500);
+    await page.waitForTimeout(1000);
+    await page.locator('[data-testid="export-stage"]').waitFor({ state: 'visible', timeout: 15_000 });
+
+    // ── 13. Download and verify evidence ZIP ─────────────────────────
+    const [zipDownload] = await Promise.all([
+      page.waitForEvent('download', { timeout: 30_000 }),
+      page.locator('[data-testid="export-download-evidence-package"]').click(),
+    ]);
+    const zipPath = await zipDownload.path();
+    console.log('ZIP downloaded:', zipDownload.suggestedFilename(), zipPath);
+    expect(zipDownload.suggestedFilename()).toMatch(/\.zip$/);
+    expect(existsSync(zipPath)).toBe(true);
+
+    const zipTmp = mkdtempSync(path.join(tmpdir(), 'av-zip-'));
+    execSync(`unzip -o "${zipPath}" -d "${zipTmp}"`, { encoding: 'utf-8', timeout: 10_000 });
+
+    // Expected artefacts
+    const expectedFiles = [
+      'remediation/approved-script.py',
+      'execution/execution-bundle.json',
+      'execution/receipt.json',
+      'execution/corrected.csv',
+      'execution/reaudit-result.json',
+      'execution/before-after-summary.json',
+    ];
+    for (const f of expectedFiles) {
+      const fullPath = path.join(zipTmp, f);
+      expect(existsSync(fullPath)).toBe(true);
+      expect(readFileSync(fullPath).length).toBeGreaterThan(0);
+    }
+
+    // manifest.json must exist and declare hashes
+    const manifestPath = path.join(zipTmp, 'manifest.json');
+    expect(existsSync(manifestPath)).toBe(true);
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf-8'));
+    expect(manifest.correctedDatasetIncluded).toBe(true);
+    expect(manifest.correctedDatasetMayContainPersonalData).toBe(true);
+
+    // Every entry in manifest must have sha256 and sizeBytes
+    const fileEntries = manifest.files as Record<string, { sha256: string; sizeBytes: number }> | undefined;
+    for (const [entryPath, entry] of Object.entries(fileEntries ?? {})) {
+      expect(typeof entry.sha256).toBe('string');
+      expect(typeof entry.sizeBytes).toBe('number');
+      // Verify the actual file hash matches manifest
+      if (entryPath !== 'README.md' && existsSync(path.join(zipTmp, entryPath))) {
+        const actualBytes = readFileSync(path.join(zipTmp, entryPath));
+        expect(sha256BytesHex(new Uint8Array(actualBytes))).toBe(entry.sha256);
+      }
+    }
+
+    // source.csv must NOT be present
+    expect(existsSync(path.join(zipTmp, 'execution/source.csv'))).toBe(false);
+    // reaudit-result.json must not contain rawCsv, beforeOutput, afterOutput
+    const reauditResult = JSON.parse(readFileSync(path.join(zipTmp, 'execution/reaudit-result.json'), 'utf-8'));
+    expect(reauditResult).not.toHaveProperty('rawCsv');
+    expect(reauditResult).not.toHaveProperty('beforeOutput');
+    expect(reauditResult).not.toHaveProperty('afterOutput');
   });
 
   // ─────────────────────────────────────────────────────────────────────

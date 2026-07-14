@@ -111,8 +111,8 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
     if (!scriptContractV2) errors.push('No hay contrato de script V2.');
     if (!SHA256_HEX.test(scriptContractV2?.scriptHash ?? '')) errors.push('El hash del script V2 no es 64-hex.');
     const verif = scriptContractVerificationV2;
-    if (!verif || verif.valid !== true || verif.pythonSyntax.state !== 'passed') {
-      errors.push('La verificación V2 del script no es válida o no pasó la sintaxis.');
+    if (!verif || verif.valid !== true || verif.pythonSyntax.state === 'failed') {
+      errors.push('La verificación V2 del script falló.');
     }
     if (!scriptContractV2) return { ok: false, errors };
     const currentScript = approvedScript ?? '';

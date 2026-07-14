@@ -147,8 +147,8 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
     }
     if (level === 'plan' || level === 'script') {
       setApprovedScript('');
+      setCleaningScript('');
     }
-    setCleaningScript('');
     setImprovementRun(null);
     setHealthDelta(null);
     setExecutionState('not_prepared');

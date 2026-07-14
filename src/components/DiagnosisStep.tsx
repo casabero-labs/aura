@@ -1051,14 +1051,14 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
                         })()}
                       </span>
                       <span>
-                        <Activity size={11} /> Validación de respuesta: {activeExecutionReceipt.validationErrorCodes.length > 0 ? `errores (${activeExecutionReceipt.validationErrorCodes.join(', ')})` : 'válida'}
+                        <Activity size={11} /> Validación de respuesta: {(activeExecutionReceipt.validationErrorCodes?.length ?? 0) > 0 ? `errores (${activeExecutionReceipt.validationErrorCodes?.join(', ') ?? ''})` : 'válida'}
                       </span>
                     </div>
                   )}
-                  {activeExecutionReceipt.validationErrorCodes.length > 0 && (
+                  {(activeExecutionReceipt.validationErrorCodes?.length ?? 0) > 0 && (
                     <div className="diagnosis-tech-row">
                       <span style={{ color: 'var(--error)', fontSize: '11px' }}>
-                        <AlertTriangle size={11} /> Errores de validación: {activeExecutionReceipt.validationErrorCodes.join(', ')}
+                        <AlertTriangle size={11} /> Errores de validación: {activeExecutionReceipt.validationErrorCodes?.join(', ') ?? ''}
                       </span>
                     </div>
                   )}
@@ -1079,7 +1079,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
                 <div className="diagnosis-tech-section">
                   <h4 className="diagnosis-tech-section-title">Secciones del snapshot</h4>
                   <div className="diagnosis-tech-row">
-                    {activeExecutionReceipt.includedSections.map((section) => (
+                    {(activeExecutionReceipt.includedSections ?? []).map((section) => (
                       <span key={section} className="diagnosis-tech-chip">{section}</span>
                     ))}
                   </div>

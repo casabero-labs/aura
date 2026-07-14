@@ -147,6 +147,42 @@ describe('ApplyVerifyStep R3', () => {
       expect(screen.queryByTestId('apply-verify-prepare')).toBeFalsy();
     });
 
+    it('accepts pythonSyntax.state === passed → shows prepare', () => {
+      render(<ApplyVerifyStep
+        {...defaultProps}
+        sourceFile={sourceFile}
+        scriptContractV2={buildCanonicalContract()}
+        scriptContractVerificationV2={{ valid: true, pythonSyntax: { state: 'passed' } } as any}
+        approvedScript={SCRIPT_TEXT}
+        structuredDiagnosis={fullDiag}
+      />);
+      expect(screen.getByTestId('apply-verify-prepare')).toBeTruthy();
+    });
+
+    it('accepts pythonSyntax.state === not_run → shows prepare', () => {
+      render(<ApplyVerifyStep
+        {...defaultProps}
+        sourceFile={sourceFile}
+        scriptContractV2={buildCanonicalContract()}
+        scriptContractVerificationV2={{ valid: true, pythonSyntax: { state: 'not_run' } } as any}
+        approvedScript={SCRIPT_TEXT}
+        structuredDiagnosis={fullDiag}
+      />);
+      expect(screen.getByTestId('apply-verify-prepare')).toBeTruthy();
+    });
+
+    it('blocks pythonSyntax.state === failed', () => {
+      render(<ApplyVerifyStep
+        {...defaultProps}
+        sourceFile={sourceFile}
+        scriptContractV2={buildCanonicalContract()}
+        scriptContractVerificationV2={{ valid: true, pythonSyntax: { state: 'failed' } } as any}
+        approvedScript={SCRIPT_TEXT}
+        structuredDiagnosis={fullDiag}
+      />);
+      expect(screen.queryByTestId('apply-verify-prepare')).toBeFalsy();
+    });
+
     it('shows prepare button when all preconditions are met', () => {
       render(<ApplyVerifyStep
         {...defaultProps}
