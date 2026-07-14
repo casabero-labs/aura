@@ -644,6 +644,27 @@ final, y esa respuesta cerrada sigue siendo la que se valida, hashea y persiste
 en el recibo formal. Los proveedores sin streaming conservan el camino anterior
 sin alterar la campaña.
 
+## Cierre AURA-CIERRE-LAB-FAILURE-ARCHIVE-01 — expediente descargable del fallo
+
+La primera corrida de control V2.4 produjo un JSON completo, pero Qwen3.5 4B
+marcó como `false` varias revisiones humanas que la gobernanza determinista de
+AURA exige como obligatorias. El Laboratorio conservó correctamente la
+respuesta RAW y la calificó como incumplimiento
+`DIAGNOSIS_REVIEW_DOWNGRADE`; la campaña quedó pausada tras 1/27 intentos. Este
+resultado no se atribuye al equipo Windows ni a su potencia.
+
+Cada corrida diagnóstica fallida ofrece ahora **Descargar expediente del fallo
+(.zip)**. El archivo reúne campaña, corrida, entrada exacta, prompt, esquema,
+respuesta cruda, errores de validación, recibo, entorno y eventos de intento,
+además de un manifiesto con SHA-256 y tamaño de cada artefacto. No incluye el
+CSV original y advierte que el payload puede contener muestras transformadas o
+sensibles.
+
+La campaña V2.4 actual no debe reanudarse hasta decidir cómo contabilizar las
+respuestas parseables que incumplen el contrato: deben seguir recibiendo
+`contractCompliant = false` sin que AURA repare ni otorgue crédito artificial al
+modelo.
+
 ## Documentos vigentes relacionados
 
 - [Plan de cierre del diagnóstico normal y PDF](../../plans/2026-07-12-cierre-diagnostico-normal-y-reporte-pdf.md)

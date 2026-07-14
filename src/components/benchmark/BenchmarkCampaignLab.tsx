@@ -35,6 +35,8 @@ import {
   OE4_INPUT_MODE_LABELS,
 } from '../../services/benchmark/finalEvaluationProtocol';
 import SyntaxDisplay from '../SyntaxDisplay';
+import { buildExperimentFailureArchive } from '../../services/benchmark/experimentFailureArchive';
+import { downloadBlob } from '../../utils/download';
 
 export interface ExperimentCampaignBundle {
   campaign: ExperimentCampaignV1;
@@ -375,6 +377,16 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
     }
   };
 
+  const downloadFailurePackage = (run: ExperimentRunV1): void => {
+    if (!campaign) return;
+    const archive = buildExperimentFailureArchive({
+      campaign,
+      run,
+      generatedAt: now(),
+    });
+    downloadBlob(archive.filename, new Blob([archive.bytes], { type: 'application/zip' }));
+  };
+
   return (
     <div className="oe4-campaign-lab" data-testid="oe4-campaign-lab">
       <header className="oe4-hero">
@@ -488,7 +500,13 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
           {selectedRun && (
             <div className="oe4-detail-layout">
               <div>
-                <ExperimentRunDetail run={selectedRun} representative={representativeIds.has(selectedRun.runId)} />
+                <ExperimentRunDetail
+                  run={selectedRun}
+                  representative={representativeIds.has(selectedRun.runId)}
+                  onDownloadFailurePackage={selectedRun.status === 'failed'
+                    ? () => downloadFailurePackage(selectedRun)
+                    : undefined}
+                />
                 {selectedRun.status === 'awaiting_human' && (
                   <HumanRubricPanel reviewerId="reviewer:oe4" now={now} onSave={saveHumanReview} />
                 )}

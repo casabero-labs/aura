@@ -15370,6 +15370,7 @@ textarea:focus {
 .oe4-run-error { display: grid; gap: 5px; margin: var(--space-sm) 0; padding: 12px 14px; border-left: 3px solid var(--error); background: var(--error-surface); color: var(--ink2); font-size: 12px; }
 .oe4-run-error strong { color: var(--error); font-size: 13px; }
 .oe4-run-error span { line-height: 1.5; }
+.oe4-run-error .btn-s { width: fit-content; margin-top: 4px; background: var(--surface); }
 .oe4-run-technical,
 .oe4-report-technical { margin: var(--space-sm) 0; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg); overflow: hidden; }
 .oe4-run-technical summary,

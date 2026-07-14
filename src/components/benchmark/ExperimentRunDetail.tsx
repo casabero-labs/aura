@@ -6,6 +6,7 @@ import SyntaxDisplay from '../SyntaxDisplay';
 interface ExperimentRunDetailProps {
   run: ExperimentRunV1;
   representative: boolean;
+  onDownloadFailurePackage?: () => void;
 }
 
 const metric = (value: number | null | undefined, suffix = ''): string =>
@@ -43,7 +44,11 @@ const failurePresentation = (run: ExperimentRunV1): { title: string; message: st
   };
 };
 
-const ExperimentRunDetail: React.FC<ExperimentRunDetailProps> = ({ run, representative }) => (
+const ExperimentRunDetail: React.FC<ExperimentRunDetailProps> = ({
+  run,
+  representative,
+  onDownloadFailurePackage,
+}) => (
   <section className="oe4-panel oe4-run-detail" aria-labelledby="oe4-run-detail-title">
     <div className="oe4-panel-heading">
       <div>
@@ -62,6 +67,11 @@ const ExperimentRunDetail: React.FC<ExperimentRunDetailProps> = ({ run, represen
       <div className="oe4-run-error" role="alert">
         <strong>{failurePresentation(run).title}</strong>
         <span>{failurePresentation(run).message}</span>
+        {onDownloadFailurePackage && (
+          <button type="button" className="btn-s btn-sm" onClick={onDownloadFailurePackage}>
+            Descargar expediente del fallo (.zip)
+          </button>
+        )}
       </div>
     )}
     <details className="oe4-run-technical">
