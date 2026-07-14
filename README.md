@@ -2,7 +2,7 @@
 
 # AURA
 
-### Entorno de Diagnóstico Cognitivo para la Calidad del Dato mediante Benchmarking de LLMs
+### Auditoría local-first de calidad del dato con diagnóstico restringido y evaluación comparativa de LLM
 
 **Trabajo Fin de Máster** — Universidad Internacional de La Rioja (UNIR)  
 Máster Universitario en Análisis y Visualización de Datos Masivos
@@ -13,49 +13,67 @@ Máster Universitario en Análisis y Visualización de Datos Masivos
 
 </div>
 
-## Resumen
+## Qué es AURA
 
-AURA es una herramienta de auditoría inteligente de calidad del dato que combina un motor determinista de 22+ reglas con análisis cognitivo mediante LLMs (Large Language Models). A diferencia de las soluciones tradicionales que operan sobre reglas fijas y no comprenden el contexto, AURA integra tres capacidades en una sola arquitectura:
+AURA es una aplicación web para auditar datasets CSV antes de su explotación analítica. Separa tres responsabilidades:
 
-1. **Diagnóstico determinista** — Detección reproducible de anomalías estructurales, de higiene, tipado, lógica y seguridad
-2. **Análisis cognitivo** — Interpretación semántica de hallazgos usando modelos de lenguaje (Gemini, Llama)
-3. **Gobernanza auditable** — Generación de scripts de limpieza Python/Pandas revisables por humanos
+1. **Evidencia determinista**: reglas explícitas, perfilado y métricas reproducibles ejecutadas sobre el CSV en el navegador.
+2. **Diagnóstico asistido restringido**: el LLM recibe un paquete estructurado de evidencia, no autoridad para modificar el score ni inventar transformaciones.
+3. **Gobernanza y remediación opcional**: revisión humana, script Python/Pandas trazable, ejecución externa sobre una copia, recibos y reauditoría.
 
-La arquitectura es **local-first**: el CSV crudo y la auditoría determinista se procesan en el navegador. La capa cognitiva puede ejecutarse localmente con WebLLM/WebGPU o mediante proveedor cloud, enviando en ese caso un resumen inteligente en lugar del dataset completo.
+El flujo principal es:
 
-## Arquitectura de Capas de Estabilidad
-
+```text
+Carga → Perfil base → Diagnóstico → Reporte diagnóstico → Exportación
+                                 └→ Remediación opcional → revisión HITL
 ```
-┌─────────────────────────────────────────────────────┐
-│  Capa 3: Gobernanza y Trazabilidad (HITL)           │
-│  → Scripts Pandas · Reportes PDF · Human-in-the-Loop│
-├─────────────────────────────────────────────────────┤
-│  Capa 2: Estabilidad Cognitiva (IA Controlada)      │
-│  → Gemini / Llama · Anclaje Semántico · Copy-Paste  │
-├─────────────────────────────────────────────────────┤
-│  Capa 1: Motor Determinista (auditEngine.ts)        │
-│  → 22+ reglas · IQR · RegExp · Hashes 32-bit       │
-├─────────────────────────────────────────────────────┤
-│  Capa 0: Infraestructura Soberana (Local-First)     │
-│  → Browser-native · procesamiento local por defecto│
-└─────────────────────────────────────────────────────┘
-```
+
+El Laboratorio OE4 compara modelos y métodos de entrada bajo un contrato común, preservando tanto corridas válidas como fallidas.
+
+## Privacidad y proveedores
+
+- El CSV y la auditoría determinista se procesan localmente en el navegador.
+- Ollama permite inferencia local.
+- Chrome AI se valida de forma opt-in con un perfil dedicado.
+- Los proveedores cloud son opcionales y operan bajo políticas de minimización.
+- Python no se ejecuta dentro de AURA: el runner actúa externamente sobre una copia controlada.
 
 ## Estructura del repositorio
 
-```
+```text
 aura/
 ├── docs/
-│   ├── plans/               # Fuente única de cierre y hoja de ruta
-│   ├── product/aura/        # Evidencia y evolución del producto
-│   └── archive/academic/    # Entregas académicas históricas
-├── src/                     # Aplicación React/TypeScript y pruebas
-└── experiments/             # Datasets, protocolos y resultados reproducibles
+│   ├── tfm/memoria_final/    # entorno y fuentes canónicas del documento final
+│   ├── product/aura/         # estado y evidencia viva del producto
+│   ├── plans/                # diseños y planes técnicos fechados
+│   └── archive/academic/     # entregas académicas históricas
+├── src/                      # aplicación React/TypeScript y pruebas
+└── experiments/              # datasets, protocolos, campañas y resultados
 ```
 
-## Ejecución Local
+## Documentación vigente
 
-**Requisitos:** Node.js ≥ 18
+- [Memoria final y fuentes canónicas](./docs/tfm/memoria_final/README.md)
+- [Estado operativo y experimental](./docs/product/aura/NEXT_STEPS.md)
+- [Evidencia determinista final](./experiments/results/final_deterministic_evidence.md)
+- [Diseño del laboratorio OE4](./docs/plans/2026-07-10-laboratorio-oe4-evaluacion-llm-design.md)
+
+Los closeouts, freezes y entregas archivadas conservan trazabilidad, pero no definen el estado actual.
+
+## Objetivos específicos definitivos
+
+| ID | Objetivo | Descripción |
+|---|---|---|
+| OE1 | Arquitectura local-first | Carga, procesamiento y auditoría CSV en navegador con trazabilidad y minimización |
+| OE2 | Motor determinista | Reglas explícitas y métricas TP, FP, FN, precisión, recall y F1 |
+| OE3 | Diagnóstico restringido | LLM limitado por evidencia estructurada y sin modificar la evidencia primaria |
+| OE4 | Laboratorio de modelos | Comparación bajo contrato común, separando piloto, experimento y benchmark formal |
+| OE5 | Gobernanza HITL | Revisión y aprobación humana antes de generar o ejecutar remediaciones |
+| OE6 | Scripts trazables | Python/Pandas derivado de acciones aprobadas, con hashes, recibos y reauditoría |
+
+## Ejecución local
+
+**Requisito:** Node.js 18 o superior.
 
 ```bash
 cd src
@@ -63,30 +81,8 @@ npm install
 npm run dev
 ```
 
-Configurar la API Key de Gemini en `src/.env.local`:
-```
-GEMINI_API_KEY=tu_clave_aqui
-```
-
-## Objetivos definitivos del TFM
-
-| ID | Objetivo | Descripción |
-|---|---|---|
-| OE1 | Arquitectura local-first | Carga, procesamiento y auditoría CSV en navegador con trazabilidad y minimización de datos compartidos |
-| OE2 | Motor determinista | Reglas explícitas y métricas TP, FP, FN, precisión, recall y F1 |
-| OE3 | Diagnóstico asistido restringido | LLM limitado por evidencia estructurada y sin transformaciones libres |
-| OE4 | Laboratorio de modelos | Comparación bajo contrato común, separando pruebas, experimento y benchmark formal |
-| OE5 | Gobernanza HITL | Revisión y aprobación humana antes de generar o ejecutar scripts |
-| OE6 | Scripts revisables | Python/Pandas trazable desde hallazgos y decisiones aprobadas |
-
-La formulación completa, el estado de alineación y la hoja de ruta final están en [`docs/plans/2026-07-09-cierre-definitivo-aura.md`](./docs/plans/2026-07-09-cierre-definitivo-aura.md). El protocolo aprobado para cerrar OE4 está definido en [`docs/plans/2026-07-10-laboratorio-oe4-evaluacion-llm-design.md`](./docs/plans/2026-07-10-laboratorio-oe4-evaluacion-llm-design.md) y su ejecución TDD en [`docs/plans/2026-07-10-laboratorio-oe4-evaluacion-llm.md`](./docs/plans/2026-07-10-laboratorio-oe4-evaluacion-llm.md).
+La configuración de proveedores se realiza desde la interfaz o mediante las variables de entorno documentadas para cada integración. No se deben publicar claves en el repositorio.
 
 ## Licencia
 
-Este trabajo es parte de un Trabajo Fin de Máster. Todos los derechos reservados.
-
----
-
-<div align="center">
-  <sub>Desarrollado por <a href="https://casabero.com">casabero.com</a></sub>
-</div>
+Este repositorio forma parte de un Trabajo Fin de Máster. Todos los derechos reservados.
