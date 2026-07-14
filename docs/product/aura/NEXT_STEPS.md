@@ -1,6 +1,6 @@
 # Hoja de ruta definitiva de AURA
 
-Última actualización: 14 de julio de 2026, 06:06 (America/Bogota).
+Última actualización: 14 de julio de 2026, 06:27 (America/Bogota).
 
 Este documento es la única referencia operativa para cerrar el TFM. La entrega
 académica vence el **miércoles 15 de julio de 2026 a las 15:00**. Hasta entregar,
@@ -346,6 +346,26 @@ aceptada por el validador sin necesidad de tocar la regla. Esa única corrida
 se comparará contra la nueva lista determinista; las dos corridas anteriores
 con Qwen y Gemma **no deben presentarse** como comparación válida de modelos,
 solo como evidencia de la contradicción original.
+
+### Cierre de referencias de privacidad (AURA-CIERRE-PRIVACY-REFERENCE-01)
+
+La corrida posterior con Gemma superó la revisión humana obligatoria para los
+15 issues, pero fue rechazada porque el modelo resumió un valor anonimizado
+como `"sha256:..."`. El validador buscaba literalmente los tres puntos dentro
+del hash SHA-256 completo y produjo `DIAGNOSIS_REFERENCE_INVALID`. Era un falso
+rechazo: el texto describía una transformación de privacidad visible, no un
+valor inventado del CSV.
+
+La validación ahora acepta la abstracción `sha256:...` únicamente cuando la
+evidencia del mismo `issueId` contiene un SHA-256 concreto de 64 caracteres.
+Sigue rechazándola cuando el issue no contiene ese hash, por lo que no se
+relaja la protección frente a claims inventados. El prompt `1.6.0` también
+explica que hashes y valores enmascarados no son valores originales y prohíbe
+interpretarlos como el defecto de calidad. La corrida fallida se conserva como
+evidencia de regresión, no como resultado formal de modelo.
+
+Validación del cierre: 110/110 pruebas focalizadas, 1895 unitarias superadas
+y 6 omitidas, typecheck y build limpios, y 4/4 recorridos E2E superados.
 
 ## Documentos vigentes relacionados
 

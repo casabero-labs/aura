@@ -122,6 +122,28 @@ describe('validateDiagnosisResponseV2 — valid cases', () => {
     expect(result.valid).toBe(true);
   });
 
+  it('accepts sha256:... only as an abstraction of a scoped privacy hash', () => {
+    const hashedEnvelope = structuredClone(envelope);
+    const evidenceRef = hashedEnvelope.issues[1].evidenceRefs[0];
+    const sample = hashedEnvelope.evidence.samples.find(
+      (candidate) => candidate.evidenceRef === evidenceRef,
+    );
+    expect(sample).toBeDefined();
+    if (!sample) return;
+    sample.values = [`sha256:${'a'.repeat(64)}`];
+    sample.metadata = { ...sample.metadata, hashed: true };
+
+    const resp = validResponse();
+    resp.evidenceEnvelopeRef = buildEnvelopeRef(hashedEnvelope);
+    resp.diagnosisBlocks[1] = {
+      ...resp.diagnosisBlocks[1],
+      observation: 'The visible sample is privacy-redacted as "sha256:...".',
+    };
+
+    const result = validateDiagnosisResponseV2(resp, hashedEnvelope);
+    expect(result.valid).toBe(true);
+  });
+
   it('accepts declarative visualization recommendations for the PDF', () => {
     const resp = validResponse({
       visualizations: [
@@ -157,6 +179,21 @@ describe('validateDiagnosisResponseV2 — reference errors', () => {
     resp.diagnosisBlocks[1] = {
       ...resp.diagnosisBlocks[1],
       observation: 'The Age issue contains the sample "N/A".',
+    };
+
+    const result = validateDiagnosisResponseV2(resp, envelope);
+    expect(result.valid).toBe(false);
+    expect(result.errors).toContainEqual(expect.objectContaining({
+      path: 'diagnosisBlocks[1].observation',
+      message: expect.stringContaining('not supported by evidence'),
+    }));
+  });
+
+  it('rejects sha256:... when the scoped issue evidence has no privacy hash', () => {
+    const resp = validResponse();
+    resp.diagnosisBlocks[1] = {
+      ...resp.diagnosisBlocks[1],
+      observation: 'The visible sample is "sha256:...".',
     };
 
     const result = validateDiagnosisResponseV2(resp, envelope);

@@ -20,6 +20,8 @@ const normalize = (value: unknown) => String(value ?? '')
 
 const QUOTED_LITERAL = /["“”]([^"“”]{1,120})["“”]|`([^`]{1,120})`/g;
 const DATA_LIKE_LITERAL = /\d|@|\/|\\|\.|^(?:n\/?a|null|none|nan|vac[ií]o)$/i;
+const ABSTRACT_SHA256_LITERAL = /^sha256:(?:\.{3}|…|\*{3,})$/i;
+const CONCRETE_SHA256_VALUE = /sha256:[a-f0-9]{64}/i;
 const DESTRUCTIVE_RECOMMENDATION = /\b(?:eliminar|borrar|descartar|drop|imputar|reemplazar|recortar|capar|capping|anonimizar|decodificar|convertir)\b/i;
 
 const extractDataLikeLiterals = (text: string) => {
@@ -39,6 +41,19 @@ const scopedEvidenceText = (envelope: EvidenceEnvelopeV2, issueId: string) => {
   return normalize(JSON.stringify({ issue, samples, columnStats }));
 };
 
+const literalIsSupported = (literal: string, evidence: string): boolean => {
+  const normalizedLiteral = normalize(literal);
+  if (evidence.includes(normalizedLiteral)) return true;
+
+  // `sha256:...` is an abstract label for a privacy-redacted sample, not a
+  // claim that the literal three dots occurred in the source dataset. Accept
+  // it only when this issue's own evidence contains a concrete SHA-256 value.
+  // This keeps invented values fail-closed while avoiding false rejections of
+  // honest descriptions of AURA's deterministic privacy transform.
+  return ABSTRACT_SHA256_LITERAL.test(normalizedLiteral)
+    && CONCRETE_SHA256_VALUE.test(evidence);
+};
+
 /**
  * Checks only explicit, quoted data-like values. This deliberately stays narrow:
  * qualitative interpretation remains allowed, while sample values attributed to
@@ -52,7 +67,7 @@ export const findUnsupportedDiagnosisClaims = (
   const inspect = (issueId: string, path: string, text: string) => {
     const evidence = scopedEvidenceText(envelope, issueId);
     for (const literal of extractDataLikeLiterals(text)) {
-      if (!evidence.includes(normalize(literal))) {
+      if (!literalIsSupported(literal, evidence)) {
         claims.push({ issueId, path, literal });
       }
     }

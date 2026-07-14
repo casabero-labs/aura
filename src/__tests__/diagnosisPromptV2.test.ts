@@ -108,7 +108,7 @@ describe('buildDiagnosisPromptV2', () => {
     expect(pkg.contractId).toBe('aura.diagnosis.v2');
     expect(pkg.contractVersion).toBe('2.0.0');
     expect(pkg.evidenceEnvelopeRef).toMatch(/^env:/);
-    expect(pkg.promptVersion).toBe('1.5.0');
+    expect(pkg.promptVersion).toBe('1.6.0');
     expect(pkg.promptHash).toMatch(/^[a-f0-9]{64}$/);
     expect(pkg.systemInstruction.length).toBeGreaterThan(100);
     expect(pkg.userPayload.length).toBeGreaterThan(50);
@@ -338,7 +338,7 @@ describe('buildCompactDiagnosisPromptV2', () => {
     expect(pkg.contractId).toBe('aura.diagnosis.v2');
     expect(pkg.contractVersion).toBe('2.0.0');
     expect(pkg.evidenceEnvelopeRef).toMatch(/^env:/);
-    expect(pkg.promptVersion).toBe('1.5.0');
+    expect(pkg.promptVersion).toBe('1.6.0');
     expect(pkg.promptHash).toMatch(/^[a-f0-9]{64}$/);
     expect(pkg.systemInstruction.length).toBeGreaterThan(100);
     expect(pkg.userPayload.length).toBeGreaterThan(50);
