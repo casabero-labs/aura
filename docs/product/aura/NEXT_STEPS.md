@@ -1,6 +1,6 @@
 # Hoja de ruta definitiva de AURA
 
-Última actualización: 14 de julio de 2026, 18:45 (America/Bogota).
+Última actualización: 14 de julio de 2026, 15:20 (America/Bogota).
 
 Este documento es la única referencia operativa para cerrar el TFM. La entrega
 académica vence el **miércoles 15 de julio de 2026 a las 15:00**. Hasta entregar,
@@ -30,15 +30,15 @@ esta fase; en el documento se verificará su grado de cumplimiento con evidencia
 | Informe PDF y exportación | El ZIP completo quedó validado en una corrida humana. **Los tres defectos visuales del PDF quedaron corregidos** (porcentajes `0.00%` en gráficos de distribución/impacto, etiquetas humanas ausentes y fondo incompleto en las páginas 4 y 6). El informe se regeneró desde el `report JSON` real del ZIP, se renderizaron sus siete páginas y se verificó fondo blanco completo, porcentajes correctos, etiquetas visibles y ausencia de regresiones. |
 | Plan y script | Implementados de forma determinista con revisión humana. El LLM no escribe código ejecutable. |
 | Aplicar y verificar | Cerrado y validado por una corrida humana real: runner Python, recibo, CSV corregido, reauditoría antes/después y ZIP completo. |
-| Laboratorio | Protocolo V2.4 corregido para `synthetic_ground_truth.csv`: 27 diagnósticos y 9 calentamientos excluidos. El piloto V2.3 queda preservado e invalidado por truncamiento sistemático. |
-| Evaluación formal | Pendiente de una nueva campaña V2.4. La primera corrida funciona como puerta de control antes de continuar las 26 restantes. |
+| Laboratorio | Protocolo V2.5: usa el mismo procesador canónico del pipeline principal. Conserva la respuesta RAW para medir al modelo y acepta como efectiva únicamente la normalización determinista de `requiresHumanReview`; cualquier otro error sigue bloqueando. |
+| Evaluación formal | Pendiente de una nueva campaña V2.5. La configuración de inferencia se elige antes de crearla y queda congelada en sus 27 diagnósticos. |
 | Documento final | Pendiente de resultados y consolidación. |
 
 ## Configuración definitiva de la campaña formal
 
 El piloto exploratorio de Gemma con los tres métodos quedó cerrado y documentado
 en [2026-07-14-piloto-gemma4-tres-metodos.md](evidence/2026-07-14-piloto-gemma4-tres-metodos.md).
-No forma parte de los resultados formales. El protocolo V2.4 contiene el
+No forma parte de los resultados formales. El protocolo V2.5 contiene el
 dataset, hashes, oráculo, 27 diagnósticos y 9 calentamientos definitivos.
 
 - Dataset de cierre: `synthetic_ground_truth.csv` (15 filas, 9 columnas y ground truth explícito).
@@ -59,7 +59,11 @@ dataset, hashes, oráculo, 27 diagnósticos y 9 calentamientos definitivos.
   el tiempo de ejecución. Se declarará como evaluación descriptiva de muestra pequeña.
 - El score y los hallazgos pertenecen al motor determinista; el LLM no los modifica.
 - Un fallo se conserva como resultado. No se repite silenciosamente para ocultarlo.
-- El límite de salida formal es `numPredict=4096`. El piloto V2.3 demostró que
+- El perfil inicial del pipeline es `numCtx=16384`, `numPredict=4096` y
+  `temperature=0.1`. Para el equipo Windows de 64 GB puede elegirse antes de
+  crear la campaña el perfil `numCtx=32768`, `numPredict=8192` y
+  `temperature=0.1`. La selección queda congelada y registrada en cada recibo.
+- El piloto V2.3 demostró que
   `1600` tokens no alcanzaban para el contrato estructurado de 15 hallazgos.
 - `done_reason=length` se conserva como `DIAGNOSIS_RESPONSE_TRUNCATED`; no se
   intenta reparar ni certificar un JSON incompleto.
@@ -67,10 +71,11 @@ dataset, hashes, oráculo, 27 diagnósticos y 9 calentamientos definitivos.
 
 ## Próxima acción inmediata
 
-1. Esperar el despliegue que contiene el protocolo `2.4.0`.
-2. Abrir el **Laboratorio**. La campaña V2.3 debe aparecer preservada como
-   piloto inválido y no debe poder reanudarse.
-3. Pulsar **Crear nueva campaña v2.4.0** y después **Iniciar experimento**.
+1. Esperar el despliegue que contiene el protocolo `2.5.0`.
+2. Abrir el **Laboratorio**. Las campañas anteriores deben aparecer preservadas
+   como pilotos inválidos y no deben poder reanudarse.
+3. Seleccionar **Perfil 64 GB**, comprobar `32768 / 8192 / 0.1`, crear la nueva
+   campaña V2.5 y después pulsar **Iniciar experimento**.
 4. Vigilar la primera corrida en el panel de ejecución: modelo, método, fase,
    tiempo y progreso deben actualizarse en pantalla.
 5. Si la primera corrida completa el diagnóstico, continuar la campaña. Si

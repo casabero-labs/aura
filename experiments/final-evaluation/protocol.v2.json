@@ -1,6 +1,6 @@
 {
   "id": "aura.oe4.final-evaluation.v2",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "frozenAt": "2026-07-14",
   "supersedes": "aura.oe4.final-evaluation.v1",
   "dataset": {
@@ -30,7 +30,7 @@
     "maxLlmCalls": 27
   },
   "inference": {
-    "temperature": 0.2,
+    "temperature": 0.1,
     "topP": 0.9,
     "think": false,
     "numCtx": 16384,
@@ -60,7 +60,8 @@
   "rules": {
     "noChangeAfterFirstRun": "Any change to contracts v2, prompts, models or inference after the first formal run invalidates the campaign and requires a new protocol version.",
     "failuresPreserved": "Failed runs are persisted and count toward stability metrics; retries are linked, never overwrite.",
-    "singleModelAtATime": "Only one model is loaded into Ollama at a time. Hardware: MacBook Air M4 10-core / 16 GB.",
+    "singleModelAtATime": "Only one model is loaded into Ollama at a time. Hardware and inference limits are captured for the active campaign.",
+    "inferenceFrozenAtCreation": "Context window, output limit and sampling parameters are selected before the campaign and frozen in every run receipt.",
     "diagnosisOnly": "Each matrix unit performs one measured LLM call for diagnosis only.",
     "deterministicRepresentativeScripts": "Remediation scripts are generated deterministically only for the nine selected representatives and do not count as LLM calls."
   }

@@ -184,6 +184,7 @@ export {
 } from './diagnosisV2Errors';
 
 export {
+  processDiagnosisResponseV2,
   runDiagnosisPipeline,
   diagnoseWithV2,
 } from './diagnosisPipelineV2';

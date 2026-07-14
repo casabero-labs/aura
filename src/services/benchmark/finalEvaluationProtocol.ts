@@ -9,7 +9,7 @@
 import { FINAL_EVALUATION_OLLAMA_MODEL_IDS } from '../modelRegistry';
 
 export const OE4_FINAL_EVALUATION_PROTOCOL_ID = 'aura.oe4.final-evaluation.v2';
-export const OE4_FINAL_EVALUATION_PROTOCOL_VERSION = '2.4.0';
+export const OE4_FINAL_EVALUATION_PROTOCOL_VERSION = '2.5.0';
 export const OE4_FINAL_EVALUATION_DATASET_ID = 'synthetic_ground_truth';
 
 export const OE4_DATASET_FINGERPRINT_SHA256 =
@@ -43,7 +43,7 @@ export type OE4ModelId = (typeof OE4_MODELS)[number];
 export const OE4_REPETITIONS = 3 as const;
 
 export const OE4_INFERENCE = {
-  temperature: 0.2,
+  temperature: 0.1,
   topP: 0.9,
   think: false,
   numCtx: 16384,
@@ -90,7 +90,9 @@ export const OE4_PROTOCOL_RULES = {
   failuresPreserved:
     'Failed runs are persisted and count toward stability metrics; retries are linked, never overwrite.',
   singleModelAtATime:
-    'Only one model is loaded into Ollama at a time. Hardware: MacBook Air M4 10-core / 16 GB.',
+    'Only one model is loaded into Ollama at a time. Hardware and inference limits are captured for the active campaign.',
+  inferenceFrozenAtCreation:
+    'Context window, output limit and sampling parameters are selected before the campaign and frozen in every run receipt.',
   diagnosisOnly:
     'Each matrix unit performs one measured LLM call for diagnosis only.',
   deterministicRepresentativeScripts:

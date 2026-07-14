@@ -3,7 +3,7 @@ import { _buildEvidenceEnvelopeV2, type AuditReportInput } from '../../contracts
 import { buildDiagnosisInputPackageV2 } from '../../contracts/llm/diagnosisInputPackageV2';
 import { canonicalJson } from '../../contracts/llm/diagnosisPromptV2';
 import { sha256hex } from '../../contracts/llm/hash';
-import type { DiagnosisInputPackageV2, EvidenceEnvelopeV2 } from '../../contracts/llm/types';
+import type { DiagnosisInputPackageV2, EvidenceEnvelopeV2, InferenceSnapshotV1 } from '../../contracts/llm/types';
 import { FINAL_EVALUATION_PROTOCOL, type OE4ModelId } from './finalEvaluationProtocol';
 import { buildExperimentSchedule } from './experimentSchedule';
 import type {
@@ -107,6 +107,7 @@ export const createFormalCampaignBundle = async (input: {
   datasetFile: Pick<File, 'arrayBuffer'>;
   ollamaBaseUrl: string;
   appCommit: string;
+  inference?: InferenceSnapshotV1;
   now?: () => string;
 }): Promise<FormalCampaignBundle> => {
   const now = input.now ?? (() => new Date().toISOString());
@@ -118,6 +119,19 @@ export const createFormalCampaignBundle = async (input: {
     throw new Error('El Laboratorio formal solo acepta synthetic_ground_truth.csv con el SHA-256 congelado.');
   }
   const evidenceEnvelope = buildFormalEvidenceEnvelope(input.report, input.auditEvidence);
+  const inference = input.inference ?? { ...FINAL_EVALUATION_PROTOCOL.inference };
+  if (
+    !Number.isFinite(inference.temperature) || inference.temperature < 0 || inference.temperature > 2
+    || !Number.isFinite(inference.topP) || inference.topP <= 0 || inference.topP > 1
+    || inference.think !== false
+    || !Number.isInteger(inference.numCtx) || inference.numCtx < 4096 || inference.numCtx > 131072
+    || !Number.isInteger(inference.numPredict) || inference.numPredict < 512 || inference.numPredict > inference.numCtx
+    || !(inference.seed === null || Number.isInteger(inference.seed))
+    || typeof inference.keepAlive !== 'string' || inference.keepAlive.trim() === ''
+    || !Number.isInteger(inference.timeoutSeconds) || inference.timeoutSeconds < 60 || inference.timeoutSeconds > 3600
+  ) {
+    throw new Error('La configuración de inferencia no es válida para una campaña formal.');
+  }
   const preflight = await fetchOllamaPreflight(input.ollamaBaseUrl);
   const schedule = buildExperimentSchedule();
   const createdAt = now();
@@ -152,7 +166,7 @@ export const createFormalCampaignBundle = async (input: {
         expectedGgufSha256: preflight.digests[unit.modelId],
         localDigest: preflight.digests[unit.modelId],
       },
-      inference: { ...FINAL_EVALUATION_PROTOCOL.inference },
+      inference: { ...inference },
     };
     return {
       contractId: 'aura.experiment-run.v1', contractVersion: '1.0.0',

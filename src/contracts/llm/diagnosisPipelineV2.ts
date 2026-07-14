@@ -12,8 +12,8 @@
  * evidence) from the EFFECTIVE product response (governance-normalized).
  * The normalization only flips `requiresHumanReview` from `false` to
  * `true` for issueIds that the shared policy demands. Any other
- * validator error remains blocking. The Laboratory does not pass through
- * this pipeline; it parses and validates the raw response directly.
+ * validator error remains blocking. Both the principal pipeline and the
+ * Laboratory pass through the same response processor below.
  */
 
 import type {
@@ -128,25 +128,10 @@ function normalizeEvidence(
  *
  * Never returns the raw response as the effective result.
  */
-export async function runDiagnosisPipeline(
+export function processDiagnosisResponseV2(
   envelope: EvidenceEnvelopeV2,
-  promptPackage: DiagnosisPromptPackageV2,
-  adapter: DiagnosisAdapter,
-): Promise<DiagnosisPipelineOutcome> {
-  // 1. Invoke provider adapter
-  let raw: string;
-  try {
-    raw = await adapter(promptPackage);
-  } catch (err) {
-    const cause = err instanceof Error ? err.message : String(err);
-    return failure(
-      'DIAGNOSIS_ADAPTER_ERROR',
-      `Adapter error: ${cause}`,
-      'adapter',
-      cause,
-    );
-  }
-
+  raw: string,
+): DiagnosisPipelineOutcome {
   if (typeof raw !== 'string') {
     return failure(
       'DIAGNOSIS_ADAPTER_ERROR',
@@ -313,6 +298,30 @@ export async function runDiagnosisPipeline(
     rawValidation: rawSummary,
     normalizationEvidence: normalizeEvidence(evidence),
   };
+}
+
+/**
+ * Invoke the provider and process its exact raw response through the canonical
+ * parser, validator and deterministic governance normalization.
+ */
+export async function runDiagnosisPipeline(
+  envelope: EvidenceEnvelopeV2,
+  promptPackage: DiagnosisPromptPackageV2,
+  adapter: DiagnosisAdapter,
+): Promise<DiagnosisPipelineOutcome> {
+  let raw: string;
+  try {
+    raw = await adapter(promptPackage);
+  } catch (err) {
+    const cause = err instanceof Error ? err.message : String(err);
+    return failure(
+      'DIAGNOSIS_ADAPTER_ERROR',
+      `Adapter error: ${cause}`,
+      'adapter',
+      cause,
+    );
+  }
+  return processDiagnosisResponseV2(envelope, raw);
 }
 
 /**

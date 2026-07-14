@@ -1,5 +1,6 @@
 import type { AIProvider, ProviderMetrics } from '../../types';
 import { buildExecutionReceiptV1 } from '../../contracts/llm/executionReceiptV1';
+import type { DiagnosisPipelineOutcome } from '../../contracts/llm/diagnosisPipelineV2';
 import { exactDiagnosisPromptV2 } from '../../contracts/llm/diagnosisInputPackageV2';
 import type { DiagnosisInputPackageV2, ExecutionReceiptV1, InferenceSnapshotV1 } from '../../contracts/llm/types';
 import { parseDiagnosisResponseV2, type DiagnosisParseOutcome } from '../../contracts/llm/diagnosisParserV2';
@@ -24,10 +25,15 @@ type StageTerminalType = 'completed' | 'failed' | 'timeout';
 export interface ExperimentRunnerDependencies {
   provider?: Pick<AIProvider, 'generateText' | 'generateTextWithProgress'>;
   providerForRun?: (run: ExperimentRunV1) => Pick<AIProvider, 'generateText' | 'generateTextWithProgress'>;
-  validateDiagnosis: (
+  validateDiagnosis?: (
     parsed: unknown,
     run: ExperimentRunV1,
   ) => ExperimentValidationErrorV1[];
+  /** Canonical product response processor shared with the principal pipeline. */
+  processDiagnosis?: (
+    rawResponse: string,
+    run: ExperimentRunV1,
+  ) => DiagnosisPipelineOutcome;
   store: ExperimentRunnerStore;
   now?: () => string;
   providerName?: string;
@@ -188,6 +194,9 @@ const buildReceipt = (params: {
   rawResponse: string;
   validationStatus: ExecutionReceiptV1['validationStatus'];
   validationErrorCodes: string[];
+  rawValidationStatus?: ExecutionReceiptV1['rawValidationStatus'];
+  rawValidationErrorCodes?: string[];
+  normalizationApplied?: boolean;
 }): ExecutionReceiptV1 => buildExecutionReceiptV1({
   input: params.input,
   requestedInputMode: params.input.inputMode,
@@ -202,12 +211,16 @@ const buildReceipt = (params: {
   rawResponse: params.rawResponse,
   validationStatus: params.validationStatus,
   validationErrorCodes: params.validationErrorCodes,
+  rawValidationStatus: params.rawValidationStatus,
+  rawValidationErrorCodes: params.rawValidationErrorCodes,
+  normalizationApplied: params.normalizationApplied,
 });
 
 export const createExperimentRunner = ({
   provider,
   providerForRun,
   validateDiagnosis,
+  processDiagnosis,
   store,
   now = () => new Date().toISOString(),
   providerName: injectedProviderName,
@@ -334,6 +347,9 @@ export const createExperimentRunner = ({
   let parseErrorCodes: string[] = [];
   let parseErrorMessages: string[] = [];
   let diagnosisValidation: ExperimentValidationErrorV1[] = [];
+  let rawValidationStatus: ExecutionReceiptV1['rawValidationStatus'] | undefined;
+  let rawValidationErrorCodes: string[] | undefined;
+  let normalizationApplied = false;
 
     try {
       const effectiveProvider = providerFor(initialRun);
@@ -400,30 +416,60 @@ export const createExperimentRunner = ({
             }],
           );
         }
-        const parseOutcome = parseDiagnosisStrict(rawResponse, toStageMetrics(providerMetrics) as LlmStageMetricsV1);
-        parsedOutput = parseOutcome.parsed;
-        parseErrorCodes = parseOutcome.parseErrors.map((err) => err.code);
-        parseErrorMessages = parseOutcome.parseErrors.map((err) => err.message);
-        if (!parseOutcome.parsed) {
-          throw new StageOutputError(
-            parseOutcome.parseErrors[0]?.code ?? 'DIAGNOSIS_JSON_INVALID',
-            parseOutcome.parseErrors[0]?.message ?? 'The provider output is not a valid diagnosis v2 object.',
-            rawResponse,
-            null,
-            toStageMetrics(providerMetrics),
-            parseOutcome.parseErrors,
-          );
-        }
-        diagnosisValidation = validateDiagnosis(parsedOutput, initialRun);
-        if (diagnosisValidation.length > 0) {
-          throw new StageOutputError(
-            'DIAGNOSIS_CONTRACT_INVALID',
-            'The diagnosis failed the complete aura.diagnosis.v2 validation.',
-            rawResponse,
-            parsedOutput,
-            toStageMetrics(providerMetrics),
-            diagnosisValidation,
-          );
+        if (processDiagnosis) {
+          const outcome = processDiagnosis(rawResponse, initialRun);
+          if (outcome.success === false) {
+            const details = outcome.details as { validationErrors?: ExperimentValidationErrorV1[] } | null;
+            const validationErrors = details?.validationErrors?.length
+              ? details.validationErrors
+              : [{ code: outcome.code, path: outcome.path || '$', message: outcome.message }];
+            const parseOutcome = parseDiagnosisStrict(rawResponse, toStageMetrics(providerMetrics) as LlmStageMetricsV1);
+            throw new StageOutputError(
+              outcome.code,
+              outcome.message,
+              rawResponse,
+              parseOutcome.parsed,
+              toStageMetrics(providerMetrics),
+              validationErrors,
+            );
+          }
+          parsedOutput = outcome.rawResponse;
+          normalizationApplied = outcome.normalizationEvidence.applied;
+          rawValidationStatus = normalizationApplied ? 'invalid' : undefined;
+          rawValidationErrorCodes = normalizationApplied
+            ? [...new Set(outcome.rawValidation.errorCodes)]
+            : undefined;
+          diagnosisValidation = outcome.rawValidation.errorCodes.map((code, index) => ({
+            code,
+            path: '$',
+            message: `Raw provider response validation error ${index + 1}: ${code}`,
+          }));
+        } else {
+          const parseOutcome = parseDiagnosisStrict(rawResponse, toStageMetrics(providerMetrics) as LlmStageMetricsV1);
+          parsedOutput = parseOutcome.parsed;
+          parseErrorCodes = parseOutcome.parseErrors.map((err) => err.code);
+          parseErrorMessages = parseOutcome.parseErrors.map((err) => err.message);
+          if (!parseOutcome.parsed) {
+            throw new StageOutputError(
+              parseOutcome.parseErrors[0]?.code ?? 'DIAGNOSIS_JSON_INVALID',
+              parseOutcome.parseErrors[0]?.message ?? 'The provider output is not a valid diagnosis v2 object.',
+              rawResponse,
+              null,
+              toStageMetrics(providerMetrics),
+              parseOutcome.parseErrors,
+            );
+          }
+          diagnosisValidation = validateDiagnosis?.(parsedOutput, initialRun) ?? [];
+          if (diagnosisValidation.length > 0) {
+            throw new StageOutputError(
+              'DIAGNOSIS_CONTRACT_INVALID',
+              'The diagnosis failed the complete aura.diagnosis.v2 validation.',
+              rawResponse,
+              parsedOutput,
+              toStageMetrics(providerMetrics),
+              diagnosisValidation,
+            );
+          }
         }
       } else {
         throw new StageOutputError(
@@ -454,6 +500,9 @@ export const createExperimentRunner = ({
         rawResponse,
         validationStatus: 'valid',
         validationErrorCodes: [],
+        rawValidationStatus,
+        rawValidationErrorCodes,
+        normalizationApplied,
       });
       const result: LlmStageResultV1 = {
         contractId: 'aura.llm-stage-result.v1',
@@ -464,7 +513,7 @@ export const createExperimentRunner = ({
         completedAt,
         rawOutput: rawResponse,
         parsedOutput,
-        validationErrors: [],
+        validationErrors: diagnosisValidation,
         metrics,
         error: null,
       };

@@ -56,6 +56,36 @@ describe('formal OE4 campaign factory', () => {
     expect(fetch).toHaveBeenCalledTimes(2);
   });
 
+  it('freezes a user-selected inference profile in every run', async () => {
+    const models = FINAL_EVALUATION_PROTOCOL.models.map((model, index) => ({
+      name: model,
+      digest: `${String(index + 1).repeat(64)}`,
+    }));
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => ({
+      ok: true,
+      json: async () => url.endsWith('/api/version') ? { version: '0.20.3' } : { models },
+    })));
+    const inference = {
+      ...FINAL_EVALUATION_PROTOCOL.inference,
+      numCtx: 32768,
+      numPredict: 8192,
+      timeoutSeconds: 900,
+    };
+
+    const bundle = await createFormalCampaignBundle({
+      report,
+      auditEvidence: evidence,
+      datasetFile,
+      ollamaBaseUrl: 'http://127.0.0.1:11434',
+      appCommit: 'abcdef1234567',
+      inference,
+      now: () => '2026-07-11T22:00:00.000Z',
+    });
+
+    expect(bundle.runs.every((run) => JSON.stringify(run.environment.inference) === JSON.stringify(inference))).toBe(true);
+    expect(bundle.runs.every((run) => validateExperimentRunV1(run).valid)).toBe(true);
+  });
+
   it('rejects any dataset other than the frozen controlled CSV', async () => {
     await expect(createFormalCampaignBundle({
       report,

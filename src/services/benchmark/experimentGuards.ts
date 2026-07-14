@@ -166,8 +166,17 @@ const validateEnvironment = (value: unknown, errors: string[]): value is Environ
   }
 
   const inference = value.inference;
-  if (!isRecord(inference) || !sameJson(inference, FINAL_EVALUATION_PROTOCOL.inference)) {
-    errors.push('environment.inference must match the frozen protocol');
+  if (!isRecord(inference)) {
+    errors.push('environment.inference must be an object');
+  } else {
+    if (!isFiniteNumber(inference.temperature) || inference.temperature < 0 || inference.temperature > 2) errors.push('environment.inference.temperature must be within 0–2');
+    if (!isFiniteNumber(inference.topP) || inference.topP <= 0 || inference.topP > 1) errors.push('environment.inference.topP must be within (0, 1]');
+    if (inference.think !== false) errors.push('environment.inference.think must be false');
+    if (!Number.isInteger(inference.numCtx) || !isFiniteNumber(inference.numCtx) || inference.numCtx < 4096 || inference.numCtx > 131072) errors.push('environment.inference.numCtx must be an integer from 4096 to 131072');
+    if (!Number.isInteger(inference.numPredict) || !isFiniteNumber(inference.numPredict) || inference.numPredict < 512 || inference.numPredict > Number(inference.numCtx)) errors.push('environment.inference.numPredict must be an integer from 512 to numCtx');
+    if (!(inference.seed === null || Number.isInteger(inference.seed))) errors.push('environment.inference.seed must be an integer or null');
+    if (!isNonEmptyString(inference.keepAlive)) errors.push('environment.inference.keepAlive is required');
+    if (!Number.isInteger(inference.timeoutSeconds) || !isFiniteNumber(inference.timeoutSeconds) || inference.timeoutSeconds < 60 || inference.timeoutSeconds > 3600) errors.push('environment.inference.timeoutSeconds must be an integer from 60 to 3600');
   }
   return true;
 };

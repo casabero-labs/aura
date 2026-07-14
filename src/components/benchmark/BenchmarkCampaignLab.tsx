@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { AIProvider } from '../../types';
+import type { InferenceSnapshotV1 } from '../../contracts/llm/types';
+import type { DiagnosisPipelineOutcome } from '../../contracts/llm/diagnosisPipelineV2';
 import {
   createExperimentRunner,
   type ExperimentRunner,
@@ -49,7 +51,9 @@ interface BenchmarkCampaignLabProps {
   provider?: Pick<AIProvider, 'generateText' | 'generateTextWithProgress'>;
   providerForRun?: (run: ExperimentRunV1) => Pick<AIProvider, 'generateText' | 'generateTextWithProgress'>;
   validateDiagnosis?: (parsed: unknown, run: ExperimentRunV1) => ExperimentValidationErrorV1[];
-  createCampaignBundle?: () => Promise<ExperimentCampaignBundle>;
+  processDiagnosis?: (rawResponse: string, run: ExperimentRunV1) => DiagnosisPipelineOutcome;
+  initialInference?: InferenceSnapshotV1;
+  createCampaignBundle?: (inference: InferenceSnapshotV1) => Promise<ExperimentCampaignBundle>;
   evaluateRun?: (run: ExperimentRunV1) => Promise<AutomaticEvaluationV1>;
   prepareApprovedRepresentative?: (run: ExperimentRunV1) => Promise<ExperimentRunV1>;
   downloadExecutionBundle?: (run: ExperimentRunV1) => void;
@@ -93,6 +97,8 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
   provider,
   providerForRun,
   validateDiagnosis,
+  processDiagnosis,
+  initialInference = FINAL_EVALUATION_PROTOCOL.inference,
   createCampaignBundle,
   evaluateRun,
   prepareApprovedRepresentative,
@@ -108,10 +114,10 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
     [suppliedStore],
   );
   const runner = useMemo(
-    () => suppliedRunner ?? ((provider || providerForRun) && validateDiagnosis
-      ? createExperimentRunner({ provider, providerForRun, validateDiagnosis, store, now })
+    () => suppliedRunner ?? ((provider || providerForRun) && (processDiagnosis || validateDiagnosis)
+      ? createExperimentRunner({ provider, providerForRun, validateDiagnosis, processDiagnosis, store, now })
       : null),
-    [now, provider, providerForRun, store, suppliedRunner, validateDiagnosis],
+    [now, processDiagnosis, provider, providerForRun, store, suppliedRunner, validateDiagnosis],
   );
   const pauseRequested = useRef(false);
   const [campaign, setCampaign] = useState<ExperimentCampaignV1 | null>(null);
@@ -125,6 +131,7 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
   const [activeExecution, setActiveExecution] = useState<ActiveExecution | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [liveDiagnosisResponse, setLiveDiagnosisResponse] = useState('');
+  const [draftInference, setDraftInference] = useState<InferenceSnapshotV1>(() => ({ ...initialInference }));
 
   useEffect(() => {
     if (!activeExecution) {
@@ -220,7 +227,7 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
     setCreating(true);
     setError(null);
     try {
-      const bundle = await createCampaignBundle();
+      const bundle = await createCampaignBundle(draftInference);
       await store.createCampaign(bundle.campaign, bundle.runs);
       await refresh(bundle.campaign.campaignId, bundle.runs[0]?.runId);
       setMessage(`Experimento creado con ${bundle.campaign.plannedRuns} corridas planeadas.`);
@@ -396,11 +403,7 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
         </div>
         {campaign && (
           <div className="oe4-controls">
-            {!campaignUsesCurrentProtocol ? (
-              <button type="button" className="btn-p" disabled={creating || !createCampaignBundle} onClick={() => void createCampaign()}>
-                Crear nueva campaña v{FINAL_EVALUATION_PROTOCOL.version}
-              </button>
-            ) : phase === 'running' ? (
+            {!campaignUsesCurrentProtocol ? null : phase === 'running' ? (
               <button type="button" className="btn-s" onClick={() => {
                 pauseRequested.current = true;
                 setMessage('Pausa solicitada; terminará la corrida actual.');
@@ -425,7 +428,7 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
         </p>
       )}
 
-      {!campaign ? (
+      {!campaign || !campaignUsesCurrentProtocol ? (
         <CampaignSetupPanel
           creating={creating}
           canCreate={Boolean(createCampaignBundle) && formalModelsInstalled}
@@ -436,6 +439,8 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
               : undefined}
           installedModels={ollamaCatalog.models}
           modelCatalogLoading={ollamaCatalog.loading}
+          inference={draftInference}
+          onInferenceChange={setDraftInference}
           onRefreshModels={ollamaCatalog.refresh}
           onCreate={createCampaign}
         />

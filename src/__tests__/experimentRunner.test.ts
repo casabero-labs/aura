@@ -162,6 +162,55 @@ const makeRunner = (outputs: Array<ProviderTextResult | Error>) => {
 };
 
 describe('OE4 diagnosis-only and resumable runner — protocol V2', () => {
+  it('uses the canonical pipeline outcome and preserves RAW governance errors without failing the run', async () => {
+    const generateText = vi.fn<AIProvider['generateText']>()
+      .mockResolvedValueOnce(result('READY'))
+      .mockResolvedValueOnce(result(diagnosisOutput));
+    const rawDiagnosis = JSON.parse(diagnosisOutput);
+    const runner = createExperimentRunner({
+      provider: { generateText },
+      processDiagnosis: () => ({
+        success: true,
+        rawResponse: rawDiagnosis,
+        response: rawDiagnosis,
+        rawValidation: {
+          valid: false,
+          errorCodes: ['DIAGNOSIS_REVIEW_DOWNGRADE'],
+          downgradeCount: 1,
+        },
+        normalizationEvidence: {
+          applied: true,
+          field: 'requiresHumanReview',
+          reason: 'AURA_GOVERNANCE_ENFORCED',
+          policy: 'aura.human-review-policy.v2',
+          policyVersion: '1.0.0',
+          normalizedIssueIds: ['integrity-dupes'],
+          originalValuesByIssueId: { 'integrity-dupes': false },
+          effectiveValuesByIssueId: { 'integrity-dupes': true },
+        },
+      }),
+      store: makeStore(),
+      now: () => NOW,
+    });
+
+    const completed = await runner.runUnit(makeRun('smart_sample'));
+
+    expect(completed.status).toBe('completed');
+    expect(completed.diagnosis?.status).toBe('completed');
+    expect(completed.diagnosis?.parsedOutput).toEqual(rawDiagnosis);
+    expect(completed.diagnosis?.validationErrors.map((error) => error.code)).toEqual([
+      'DIAGNOSIS_REVIEW_DOWNGRADE',
+    ]);
+    expect(completed.executionReceipt).toMatchObject({
+      validationStatus: 'valid',
+      validationErrorCodes: [],
+      rawValidationStatus: 'invalid',
+      rawValidationErrorCodes: ['DIAGNOSIS_REVIEW_DOWNGRADE'],
+      normalizationApplied: true,
+    });
+    expect(validateExperimentRunV1(completed)).toEqual({ valid: true, errors: [] });
+  });
+
   it('executes exactly one measured diagnosis call for every formal mode', async () => {
     for (const mode of OE4_INPUT_MODES) {
       const { runner, store, generateText } = makeRunner([result(diagnosisOutput)]);

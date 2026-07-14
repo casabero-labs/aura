@@ -179,6 +179,7 @@ describe('BenchmarkCampaignLab - Task 10 human flow', () => {
   });
 
   it('blocks resuming an obsolete protocol and offers a new preserved campaign', async () => {
+    const user = userEvent.setup();
     const bundle = plannedFixture();
     const oldCampaign = { ...bundle.campaign, protocolVersion: '2.3.0' };
     const oldRuns = bundle.runs.map((run) => ({ ...run, protocolVersion: '2.3.0' }));
@@ -195,20 +196,30 @@ describe('BenchmarkCampaignLab - Task 10 human flow', () => {
       close: vi.fn(),
     };
 
+    const createCampaignBundle = vi.fn(async () => bundle);
     render(
       <BenchmarkCampaignLab
         store={store}
         runner={{ runUnit: vi.fn(), runUnits: vi.fn() }}
-        createCampaignBundle={async () => bundle}
+        createCampaignBundle={createCampaignBundle}
         now={() => LATER}
       />,
     );
 
     expect(await screen.findByRole('button', {
-      name: `Crear nueva campaña v${FINAL_EVALUATION_PROTOCOL.version}`,
+      name: 'Crear experimento',
     })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Perfil 64 GB' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Reanudar experimento' })).toBeNull();
     expect(screen.getByText(/Campaña anterior conservada como piloto inválido/)).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Perfil 64 GB' }));
+    await user.click(screen.getByRole('button', { name: 'Crear experimento' }));
+    expect(createCampaignBundle).toHaveBeenCalledWith(expect.objectContaining({
+      temperature: 0.1,
+      numCtx: 32768,
+      numPredict: 8192,
+      timeoutSeconds: 900,
+    }));
   });
 
   it('pauses automatically after the first failed run and does not consume the remaining units', async () => {

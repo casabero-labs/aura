@@ -32,7 +32,9 @@ import { savePipelineSession, loadPipelineSession, clearPipelineSession } from '
 import { downloadBlob, downloadTextFile } from './utils/download';
 import { AIConfig, AuditReport, DeterministicValidationReport, EvidenceManifest, ExecutiveReportContent, IssueSeverity } from './types';
 import { createFormalCampaignBundle, buildFormalEvidenceEnvelope } from './services/benchmark/formalCampaignFactory';
-import { buildEnvelopeRef, validateDiagnosisResponseV2, type DiagnosisResponseV2, type DiagnosisFailureEvidenceV2, type DiagnosisExecutionResult } from './contracts/llm';
+import { buildEnvelopeRef, processDiagnosisResponseV2, type DiagnosisFailureEvidenceV2, type DiagnosisExecutionResult } from './contracts/llm';
+import type { InferenceSnapshotV1 } from './contracts/llm/types';
+import { resolveOllamaInferenceConfig } from './services/ollamaInferenceConfig';
 import type { ExperimentRunV1 } from './services/benchmark/experimentTypes';
 import { evaluateFormalDiagnosisRun } from './services/benchmark/formalDiagnosisEvaluator';
 import { buildFormalRepresentativeExecutionBundle, importFormalRepresentativeOutput, prepareFormalRepresentative } from './services/benchmark/formalRepresentativePreparation';
@@ -218,7 +220,7 @@ const App: React.FC = () => {
     }
   }, [pipelineData.auditEvidence, pipelineData.report]);
 
-  const createFormalBundle = useCallback(async () => {
+  const createFormalBundle = useCallback(async (inference: InferenceSnapshotV1) => {
     if (!pipelineData.report || !pipelineData.auditEvidence || !pipelineData.file) {
       throw new Error('Primero carga y audita el dataset controlado en Auditoría.');
     }
@@ -228,6 +230,7 @@ const App: React.FC = () => {
       datasetFile: pipelineData.file,
       ollamaBaseUrl: aiConfig.ollamaBaseUrl || 'http://127.0.0.1:11434',
       appCommit: typeof __AURA_BUILD_SHA__ === 'string' ? __AURA_BUILD_SHA__ : '',
+      inference,
     });
   }, [aiConfig.ollamaBaseUrl, pipelineData.auditEvidence, pipelineData.file, pipelineData.report]);
 
@@ -246,17 +249,23 @@ const App: React.FC = () => {
     autoAnalyze: false,
   }), [aiConfig.ollamaBaseUrl]);
 
-  const validateFormalDiagnosis = useCallback((parsed: unknown, run: ExperimentRunV1) => {
+  const processFormalDiagnosis = useCallback((rawResponse: string, run: ExperimentRunV1) => {
     if (!formalEvidenceEnvelope || run.input.evidenceEnvelopeRef !== buildEnvelopeRef(formalEvidenceEnvelope)) {
-      return [{ code: 'EVIDENCE_ENVELOPE_UNAVAILABLE', path: '$', message: 'No está disponible el sobre de evidencia congelado.' }];
+      return {
+        success: false as const,
+        code: 'DIAGNOSIS_ENVELOPE_MISMATCH' as const,
+        path: '$',
+        message: 'No está disponible el sobre de evidencia congelado.',
+        details: null,
+      };
     }
-    const validation = validateDiagnosisResponseV2(parsed as DiagnosisResponseV2, formalEvidenceEnvelope);
-    return validation.errors.map((error) => ({
-      code: error.code,
-      path: error.path,
-      message: error.message,
-    }));
+    return processDiagnosisResponseV2(formalEvidenceEnvelope, rawResponse);
   }, [formalEvidenceEnvelope]);
+
+  const formalInitialInference = useMemo(
+    () => resolveOllamaInferenceConfig(aiConfig),
+    [aiConfig],
+  );
 
   const evaluateFormalRun = useCallback(async (run: ExperimentRunV1) => {
     if (!formalEvidenceEnvelope) throw new Error('No está disponible el sobre formal para evaluar la corrida.');
@@ -807,7 +816,8 @@ const App: React.FC = () => {
             : <BenchmarkCampaignLab
                 ollamaBaseUrl={aiConfig.ollamaBaseUrl || 'http://127.0.0.1:11434'}
                 providerForRun={formalProviderForRun}
-                validateDiagnosis={validateFormalDiagnosis}
+                processDiagnosis={processFormalDiagnosis}
+                initialInference={formalInitialInference}
                 createCampaignBundle={formalEvidenceEnvelope && pipelineData.file ? createFormalBundle : undefined}
                 evaluateRun={evaluateFormalRun}
                 prepareApprovedRepresentative={prepareRepresentative}
