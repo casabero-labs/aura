@@ -252,7 +252,7 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
   const campaignModelStatus = useMemo(() => FINAL_EVALUATION_OLLAMA_MODELS.map(model => ({
     ...model,
     installed: installedModels.some(installed => matchesModel(installed.name, model.id)),
-    purpose: CAMPAIGN_MODEL_PURPOSES[model.family] || 'Modelo congelado de la campaña OE4.',
+    purpose: CAMPAIGN_MODEL_PURPOSES[model.family] || 'Modelo seleccionado para la campaña formal.',
   })), [installedModels]);
 
   const installedCampaignCount = campaignModelStatus.filter(model => model.installed).length;
@@ -398,7 +398,7 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
         <div>
           <h3 className="ollama-wizard-title">Conectar Ollama de este equipo</h3>
           <p className="ollama-wizard-subtitle">
-            Configura diagnóstico local y prepara, cuando corresponda, los modelos congelados de OE4.
+            Configura el diagnóstico local y prepara, cuando corresponda, los modelos de evaluación.
           </p>
         </div>
       </div>
@@ -714,7 +714,7 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
                         <div
                           className="ollama-model-download-track"
                           role="progressbar"
-                          aria-label={`Descarga de ${model.name.replace(' · OE4', '')}`}
+                          aria-label={`Descarga de ${model.name}`}
                           aria-valuemin={0}
                           aria-valuemax={100}
                           aria-valuenow={download.progress}

@@ -25,11 +25,11 @@ export const generateExperimentPdfReport = (
   let y = 22;
 
   doc.setProperties({
-    title: `Expediente OE4 - ${document.campaign.campaignId}`,
+    title: `Informe de evaluación LLM - ${document.campaign.campaignId}`,
     subject: `Campaña ${document.campaign.campaignId}; ${document.runs.length} corridas`,
     author: 'AURA',
-    creator: 'AURA OE4 evidence exporter',
-    keywords: 'AURA, OE4, LLM, TFM, evidencia reproducible',
+    creator: 'AURA evidence exporter',
+    keywords: 'AURA, LLM, evaluación, evidencia reproducible',
   });
   const creationDate = new Date(document.generatedAt);
   if (!Number.isNaN(creationDate.getTime())) doc.setCreationDate(creationDate);
@@ -100,7 +100,7 @@ export const generateExperimentPdfReport = (
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7);
     doc.setTextColor(125, 122, 116);
-    doc.text(`AURA - OE4 - ${document.campaign.campaignId}`, margin, pageHeight - 7);
+    doc.text(`AURA - Evaluación LLM - ${document.campaign.campaignId}`, margin, pageHeight - 7);
     doc.text(`${page}/${pageCount}`, pageWidth - margin, pageHeight - 7, { align: 'right' });
   }
 

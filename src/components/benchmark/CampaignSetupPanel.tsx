@@ -32,7 +32,7 @@ const CampaignSetupPanel: React.FC<CampaignSetupPanelProps> = ({
       </p>
     </div>
     <dl className="oe4-protocol-grid">
-      <div><dt>Protocolo</dt><dd>{FINAL_EVALUATION_PROTOCOL.id}</dd></div>
+      <div><dt>Protocolo</dt><dd>Evaluación reproducible · v{FINAL_EVALUATION_PROTOCOL.version}</dd></div>
       <div><dt>Dataset</dt><dd>{FINAL_EVALUATION_PROTOCOL.dataset.id}</dd></div>
       <div><dt>Diagnósticos evaluados</dt><dd>{FINAL_EVALUATION_PROTOCOL.matrix.units}</dd></div>
       <div><dt>Calentamientos excluidos</dt><dd>{FINAL_EVALUATION_PROTOCOL.matrix.warmupCalls}</dd></div>

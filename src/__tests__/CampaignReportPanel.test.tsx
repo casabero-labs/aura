@@ -24,6 +24,7 @@ describe('CampaignReportPanel', () => {
     expect(list.textContent).toContain('Una fila por corrida');
     expect(list.textContent).toContain('Informe legible');
     expect(list.textContent).toContain('Versión PDF');
+    expect(list.textContent).not.toContain('TFM');
     expect(list.textContent).toContain('Hashes de todos los archivos');
   });
 });

@@ -145,7 +145,7 @@ export const renderExperimentReportMarkdown = (
     `| ${representative.modelId} | ${representative.inputMode} | ${representative.repetition} | ${formatNumber(representative.f1)} | ${representative.run.status} | ${representative.run.execution?.reaudit?.outcome ?? 'n/d'} |`);
 
   return [
-    `# Expediente OE4 - ${document.campaign.campaignId}`,
+    `# Informe de evaluación LLM - ${document.campaign.campaignId}`,
     '',
     `Generado: ${document.generatedAt}`,
     `Validez formal: **${document.formalValidity.valid ? 'formal_valid' : 'incompleta'}**`,

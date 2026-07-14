@@ -14,7 +14,8 @@ const openLab = async (page: import('@playwright/test').Page): Promise<void> => 
   await page.getByRole('button', { name: 'Laboratorio', exact: true }).first().click();
   await expect(page.getByTestId('oe4-campaign-lab')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Laboratorio de evaluación LLM' })).toBeVisible();
-  await expect(page.getByText('Objetivo específico 4')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Laboratorio de evaluación LLM' })).toBeVisible();
+  await expect(page.getByText('Objetivo específico 4')).toHaveCount(0);
 };
 
 const reviewRun = async (
@@ -96,7 +97,7 @@ test.describe.serial('Task 11 — recorrido humano OE4 y recuperación', () => {
 
     const downloaded: string[] = [];
     page.on('download', (download) => downloaded.push(download.suggestedFilename()));
-    const exportButton = page.getByRole('button', { name: 'Exportar expediente TFM' });
+    const exportButton = page.getByRole('button', { name: 'Exportar resultados' });
     await expect(exportButton).toBeEnabled();
     await exportButton.click();
     await expect.poll(() => downloaded.sort()).toEqual([...artifactNames].sort());

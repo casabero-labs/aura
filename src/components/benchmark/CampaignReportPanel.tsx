@@ -12,7 +12,7 @@ const ARTIFACT_DESCRIPTIONS: Record<string, string> = {
   'campaign.json': 'Fuente canónica del experimento: configuración, corridas, evaluaciones, recibos y reauditorías.',
   'runs.csv': 'Una fila por corrida para comparar modelos, métodos, métricas, errores, hashes y estados.',
   'report.md': 'Informe legible en Markdown con método, resultados, fallos, métricas y conclusiones.',
-  'report.pdf': 'Versión PDF del informe para revisión humana y anexos del TFM.',
+  'report.pdf': 'Versión PDF del informe para revisión humana, archivo o publicación.',
   'manifest.json': 'Hashes de todos los archivos exportados para comprobar que el expediente no fue alterado.',
 };
 
@@ -42,7 +42,7 @@ const CampaignReportPanel: React.FC<CampaignReportPanelProps> = ({ formalValidit
   return (
     <section className="oe4-panel" aria-labelledby="oe4-report-title">
       <div className="oe4-panel-heading">
-        <div><p className="oe4-eyebrow">Expediente TFM</p><h2 id="oe4-report-title">Preparación del reporte</h2></div>
+        <div><p className="oe4-eyebrow">Resultados reproducibles</p><h2 id="oe4-report-title">Preparación del reporte</h2></div>
         <span className={`oe4-status ${formalValidity.valid ? 'oe4-status--reaudited' : 'oe4-status--blocked'}`}>
           {formalValidity.valid ? 'listo' : 'bloqueado'}
         </span>
@@ -65,7 +65,7 @@ const CampaignReportPanel: React.FC<CampaignReportPanelProps> = ({ formalValidit
         </ul>
       )}
       <button type="button" className="btn-p" disabled={!formalValidity.valid || evidencePackage === null} onClick={exportAll}>
-        Exportar expediente TFM
+        Exportar resultados
       </button>
     </section>
   );

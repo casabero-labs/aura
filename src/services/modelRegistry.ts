@@ -105,7 +105,7 @@ export const DEFAULT_OLLAMA_MODEL_ID = FINAL_EVALUATION_OLLAMA_MODEL_IDS[0];
 export const FINAL_EVALUATION_OLLAMA_MODELS: readonly OllamaModelDef[] = [
   {
     id: FINAL_EVALUATION_OLLAMA_MODEL_IDS[0],
-    name: 'Qwen 3.5 4B · OE4 (UD-Q4_K_XL)',
+    name: 'Qwen 3.5 4B (UD-Q4_K_XL)',
     family: 'Qwen3.5',
     referenceSizeGB: 2.91,
     recommended: true,
@@ -115,7 +115,7 @@ export const FINAL_EVALUATION_OLLAMA_MODELS: readonly OllamaModelDef[] = [
   },
   {
     id: FINAL_EVALUATION_OLLAMA_MODEL_IDS[1],
-    name: 'Gemma 4 E4B IT QAT · OE4 (UD-Q4_K_XL)',
+    name: 'Gemma 4 E4B IT QAT (UD-Q4_K_XL)',
     family: 'Gemma 4',
     referenceSizeGB: 4.22,
     recommended: true,
@@ -125,7 +125,7 @@ export const FINAL_EVALUATION_OLLAMA_MODELS: readonly OllamaModelDef[] = [
   },
   {
     id: FINAL_EVALUATION_OLLAMA_MODEL_IDS[2],
-    name: 'SmolLM3 3B · OE4 (UD-Q4_K_XL)',
+    name: 'SmolLM3 3B (UD-Q4_K_XL)',
     family: 'SmolLM3',
     referenceSizeGB: 1.94,
     recommended: true,

@@ -1040,7 +1040,7 @@ const App: React.FC = () => {
           <button className="footer-link" onClick={() => setShowHelp(true)}>Ayuda</button>
           <button className="footer-link" onClick={() => setShowChangelog(true)}>Historial</button>
         </div>
-        <span className="footer-copy">casabero · tfm · 2026</span>
+        <span className="footer-copy">casabero · aura · 2026</span>
       </footer>
       </>
       )}

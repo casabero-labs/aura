@@ -86,7 +86,7 @@ const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     details: [
       'Se redujo ruido contextual en diagnóstico, script y revisión.',
       'Se corrigieron errores normalizados de WebLLM y restos visuales del perfil.',
-      'Se cerraron observaciones de QA antes de escritura TFM.',
+      'Se cerraron observaciones de QA antes de consolidar la documentación.',
     ],
     commits: [
       { hash: 'c8331a9', message: 'test: sync post-profile flow qa after casabero reset' },
@@ -98,26 +98,21 @@ const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       { hash: '865274a', message: 'ux: apply casabero aesthetic reset across AURA' },
       { hash: '982f469', message: 'docs: define casabero aesthetic blueprint for AURA' },
       { hash: '863a9c8', message: 'fix: remove duplicate mobile nav visual regression' },
-      { hash: '760ebe9', message: 'chore: close QA observations before TFM writing' },
-      { hash: 'baf4628', message: 'docs: add QA regression report for third delivery' },
       { hash: '2ba83c9', message: 'ux: apply strict casabero low-risk refinements' },
       { hash: '22956af', message: 'fix: close functional evidence gaps before UX strict audit' },
     ],
   },
   {
-    version: 'v0.5 · Pipeline de evidencia TFM',
+    version: 'v0.5 · Pipeline de evidencia reproducible',
     date: '14 de junio de 2026',
-    tag: 'tfm',
-    description: 'Consolidación del pipeline de evidencia, laboratorio de calibración y borrador de tercera entrega.',
+    tag: 'evidencia',
+    description: 'Consolidación del pipeline de evidencia, laboratorio de calibración y documentación inicial.',
     details: [
       'Ajuste del core UX y calibración de laboratorio.',
-      'Preparación documental para la tercera entrega.',
+      'Preparación de documentación de uso y evidencia.',
     ],
     commits: [
-      { hash: '3689178', message: 'Consolidate third delivery draft and benchmark evidence' },
       { hash: '42b67c0', message: 'Refine AURA core UX and calibration lab' },
-      { hash: 'ca140d4', message: 'Consolidate AURA evidence pipeline for third delivery' },
-      { hash: 'c8b6de7', message: 'docs: plan third TFM delivery for AURA' },
     ],
   },
   {

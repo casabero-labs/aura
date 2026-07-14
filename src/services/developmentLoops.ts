@@ -94,7 +94,7 @@ export const buildDevelopmentLoopProgram = (
     {
       id: 'loop-05',
       phase: 'CLOSEOUT',
-      title: 'Paquete de resultados para TFM/articulo',
+      title: 'Paquete de resultados reproducibles',
       objective: 'Consolidar tablas, JSON, capturas y claims permitidos para memoria y publicacion.',
       visibleResult: 'Anexo JSON, CSV de issues, script final, benchmark y tablas APA-ready.',
       e2eGate: 'Llegar a Exportar -> descargar artefactos -> confirmar que cada objetivo tiene evidencia.',
@@ -115,7 +115,7 @@ export const buildDevelopmentLoopProgram = (
     wants: [
       'Resultados formales que se vean en AURA y se exporten como evidencia.',
       'Loops cerrados con E2E: abrir, entender, completar, ejecutar, ver feedback y terminar.',
-      'Un camino directo desde prototipo a TFM defendible y articulo publicable.',
+      'Un camino directo desde el diagnóstico hasta resultados verificables y publicables.',
     ],
     mustDo: [
       'Formalizar metricas por regla y por dataset.',

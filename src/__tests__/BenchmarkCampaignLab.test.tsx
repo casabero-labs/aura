@@ -135,6 +135,10 @@ describe('BenchmarkCampaignLab - Task 10 human flow', () => {
       />,
     );
 
+    expect(screen.getByRole('heading', { name: 'Laboratorio de evaluación LLM' })).toBeTruthy();
+    expect(screen.queryByText('Objetivo específico 4')).toBeNull();
+    expect(screen.getByText(`Evaluación reproducible · v${FINAL_EVALUATION_PROTOCOL.version}`)).toBeTruthy();
+
     await user.click(await screen.findByRole('button', { name: 'Crear experimento' }));
     expect(await screen.findByText('0 / 27')).toBeTruthy();
     expect(screen.getAllByTestId('oe4-matrix-cell')).toHaveLength(9);
@@ -262,7 +266,7 @@ describe('BenchmarkCampaignLab - Task 10 human flow', () => {
 
     render(<BenchmarkCampaignLab store={store} onExport={onExport} now={() => fixture.generatedAt} />);
 
-    const exportButton = await screen.findByRole('button', { name: 'Exportar expediente TFM' });
+    const exportButton = await screen.findByRole('button', { name: 'Exportar resultados' });
     expect((exportButton as HTMLButtonElement).disabled).toBe(false);
     await user.click(exportButton);
 

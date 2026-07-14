@@ -2,18 +2,22 @@ import path from 'path';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import { execSync } from 'child_process';
+import { resolveBuildSha } from './buildIdentity';
 
-function getGitSHA(): string {
+function readGitSha(): string | undefined {
   try {
-    return execSync('git rev-parse HEAD').toString().trim().slice(0, 12);
+    return execSync('git rev-parse HEAD', {
+      cwd: path.resolve(__dirname, '..'),
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).toString().trim();
   } catch {
-    return 'unknown';
+    return undefined;
   }
 }
 
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
-    const sha = getGitSHA();
+    const sha = resolveBuildSha({ ...process.env, ...env }, readGitSha());
     const buildTime = new Date().toISOString();
     return {
       server: {

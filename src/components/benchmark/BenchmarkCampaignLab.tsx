@@ -295,7 +295,6 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
     <div className="oe4-campaign-lab" data-testid="oe4-campaign-lab">
       <header className="oe4-hero">
         <div>
-          <p className="oe4-eyebrow">Objetivo específico 4</p>
           <h1>Laboratorio de evaluación LLM</h1>
           <p>Compara modelos y métodos de entrada mediante {FINAL_EVALUATION_PROTOCOL.matrix.units} diagnósticos reproducibles, sin declarar un ganador universal.</p>
         </div>

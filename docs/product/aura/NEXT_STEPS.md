@@ -587,3 +587,17 @@ tres modelos instalados esperados; no se ejecutaron diagnósticos formales.
 - [Contrato del paquete completo de evidencia](contracts/aura-evidence-package-v1.md)
 - [Protocolo del Laboratorio](../../plans/2026-07-10-laboratorio-oe4-evaluacion-llm.md)
 - [Texto para limitaciones del LLM local en el TFM](documentation/TFM_LIMITACIONES_LLM_LOCAL.md)
+
+## Cierre de identidad pública y build del Laboratorio
+
+La interfaz pública ya no presenta el Laboratorio como un objetivo académico ni
+usa referencias a OE4 o TFM en títulos, botones, modelos, metadatos HTML o
+reportes exportados. Los identificadores internos del protocolo se conservan
+para no romper la trazabilidad histórica de la campaña.
+
+El build ahora resuelve el SHA verificable desde `VITE_AURA_BUILD_SHA`,
+`SOURCE_COMMIT` u otras variables estándar de CI, y usa `git rev-parse HEAD`
+cuando el repositorio está disponible. En Coolify debe permanecer habilitada la
+opción **Include Source Commit in Build**; sin ella Coolify excluye
+`SOURCE_COMMIT` deliberadamente y AURA mantiene bloqueada la creación formal en
+vez de inventar una identidad de despliegue.
