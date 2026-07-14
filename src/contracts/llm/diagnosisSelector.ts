@@ -229,6 +229,12 @@ export async function runStructuredDiagnosis(
 
   if (!outcome.success) {
     const failure = outcome as DiagnosisPipelineFailure;
+    const responseWasTruncated = capturedMetrics?.finishReason === 'length';
+    const failureCode = responseWasTruncated ? 'DIAGNOSIS_RESPONSE_TRUNCATED' : failure.code;
+    const failureMessage = responseWasTruncated
+      ? `Ollama alcanzó el límite de salida después de ${capturedMetrics?.tokensGenerated ?? 'un número desconocido de'} tokens antes de completar la respuesta JSON.`
+      : failure.message;
+    const failurePath = responseWasTruncated ? '$' : failure.path;
     const inference = options.inference ?? defaultInference();
     const invalidReceipt = makeInvalidReceipt(
       inputPackage, inputMode, exactPrompt,
@@ -237,10 +243,10 @@ export async function runStructuredDiagnosis(
       capturedMetrics?.model ?? null,
       options.modelDigest,
       inference, startedAt, rawResponse,
-      [failure.code],
+      [failureCode],
     );
     return makeFailureEvidence(
-      failure.code, failure.message, failure.path,
+      failureCode, failureMessage, failurePath,
       inputPackage, invalidReceipt, rawResponse,
     );
   }

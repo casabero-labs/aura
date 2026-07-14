@@ -1,6 +1,6 @@
 # Hoja de ruta definitiva de AURA
 
-Última actualización: 13 de julio de 2026, 18:45 (America/Bogota).
+Última actualización: 13 de julio de 2026, 19:27 (America/Bogota).
 
 Este documento es la única referencia operativa para cerrar el TFM. La entrega
 académica vence el **miércoles 15 de julio de 2026 a las 15:00**. Hasta entregar,
@@ -26,7 +26,7 @@ esta fase; en el documento se verificará su grado de cumplimiento con evidencia
 | Área | Estado para el TFM |
 |---|---|
 | Motor determinista | Cerrado y utilizable. |
-| Diagnóstico normal V2 | Funcional; muestra modelo y método activos e incluye configuración rápida para `flujo5`. |
+| Diagnóstico normal V2 | Conserva el contrato completo y ahora identifica explícitamente el truncamiento informado por Ollama. Pendiente repetir smoke con el dataset controlado simple. |
 | Informe PDF y exportación | Funcionales; existe ZIP de evidencia. |
 | Plan y script | Implementados con revisión humana. |
 | Aplicar y verificar | Integrado mediante PR #36; suficiente para esta entrega. |
@@ -34,9 +34,17 @@ esta fase; en el documento se verificará su grado de cumplimiento con evidencia
 | Evaluación formal | Pendiente de ejecutar. Es la prioridad inmediata. |
 | Documento final | Pendiente de resultados y consolidación. |
 
-## Decisiones congeladas para las pruebas
+## Decisiones vigentes para la prueba piloto
 
-- Dataset: `controlled_customers_phase8.csv`.
+Estas decisiones se validarán con las tres corridas de Qwen. El protocolo
+formal V2.1 todavía referencia Phase 8 y **no debe ejecutarse**. Si el piloto
+termina correctamente, se creará una única versión nueva del protocolo con el
+dataset, hashes, oracle, 27 diagnósticos y 9 calentamientos definitivos.
+
+- Dataset de cierre: `synthetic_ground_truth.csv` (15 filas, 9 columnas y ground truth explícito).
+- `controlled_customers_phase8.csv` se conserva como prueba de estrés posterior;
+  no será el dataset de la campaña del TFM porque su salida estructurada excedió
+  la capacidad práctica del modelo local probado.
 - Modelos:
   - `hf.co/unsloth/Qwen3-8B-GGUF:UD-Q4_K_XL`;
   - `hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL`;
@@ -48,6 +56,8 @@ esta fase; en el documento se verificará su grado de cumplimiento con evidencia
   el tiempo de ejecución. Se declarará como evaluación descriptiva de muestra pequeña.
 - El score y los hallazgos pertenecen al motor determinista; el LLM no los modifica.
 - Un fallo se conserva como resultado. No se repite silenciosamente para ocultarlo.
+- `done_reason=length` se conserva como `DIAGNOSIS_RESPONSE_TRUNCATED`; no se
+  intenta reparar ni certificar un JSON incompleto.
 - No se cambia dataset, modelo, método o parámetros después de iniciar la campaña formal.
 
 ## Plan urgente hasta el depósito
@@ -64,6 +74,12 @@ esta fase; en el documento se verificará su grado de cumplimiento con evidencia
 
 Condición de salida: las tres entradas de Qwen terminan y sus ZIP permiten
 compararlas sin evidencia faltante.
+
+El primer intento `smart_sample` de `flujo5` con Phase 8 alcanzó el límite de
+salida de 4096 tokens y produjo un JSON incompleto. No fue un fallo del motor
+determinista. No se recortará la evidencia para forzar la prueba: el smoke se
+repetirá con `synthetic_ground_truth.csv`, cuyo perfil completo genera 15
+hallazgos, y Phase 8 quedará documentado como prueba de estrés y limitación.
 
 ### Lunes noche / martes mañana — campaña formal
 
@@ -107,6 +123,8 @@ No bloquea el documento del miércoles:
 - mejoras adicionales de hashes, contratos y recibos que no bloqueen corridas;
 - pulido visual menor de la rama opcional;
 - nuevas reglas, datasets, proveedores o modelos;
+- recomendación de modelo y método después del perfil, basada en columnas,
+  hallazgos, tamaño estimado de entrada/salida y recursos locales disponibles;
 - mejoras productivas previstas para el mes de desarrollo restante.
 
 ## Métricas que sí deben llegar al TFM
@@ -124,8 +142,8 @@ los modelos, los métodos y las condiciones realmente evaluadas.
 
 ## Próxima acción exacta
 
-**Completar primero `flujo5`: Qwen con `prompt_libre`, `smart_sample` y
-`recommended`. No iniciar todavía la campaña formal.** El orquestador revisará
+**Completar primero `flujo5` con `synthetic_ground_truth.csv`: Qwen con
+`prompt_libre`, `smart_sample` y `recommended`. No iniciar todavía la campaña formal.** El orquestador revisará
 los tres ZIP y autorizará el cambio definitivo del protocolo a 27 corridas solo
 si la prueba no revela un bloqueo que obligue a repetirlas.
 
@@ -134,3 +152,4 @@ si la prueba no revela un bloqueo que obligue a repetirlas.
 - [Plan de cierre del diagnóstico normal y PDF](../../plans/2026-07-12-cierre-diagnostico-normal-y-reporte-pdf.md)
 - [Contrato del paquete completo de evidencia](contracts/aura-evidence-package-v1.md)
 - [Protocolo del Laboratorio](../../plans/2026-07-10-laboratorio-oe4-evaluacion-llm.md)
+- [Texto para limitaciones del LLM local en el TFM](documentation/TFM_LIMITACIONES_LLM_LOCAL.md)

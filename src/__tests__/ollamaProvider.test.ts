@@ -144,6 +144,30 @@ describe('OllamaProvider', () => {
   });
 
   describe('num_ctx and num_predict options', () => {
+    it('captures Ollama done_reason so truncated output is observable', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({
+          model,
+          done: true,
+          done_reason: 'length',
+          eval_count: 4096,
+          message: { content: '{"incomplete":' },
+        }),
+      } as Response);
+      const provider = new OllamaProvider(model, 0.1, baseUrl);
+
+      const output = await provider.generateText('formal prompt');
+
+      expect(output.metrics).toEqual(expect.objectContaining({
+        model,
+        tokensGenerated: 4096,
+        finishReason: 'length',
+      }));
+      fetchSpy.mockRestore();
+    });
+
     it('applies every frozen formal inference option to the real request', async () => {
       const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
         ok: true, status: 200,

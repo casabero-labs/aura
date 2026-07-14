@@ -400,6 +400,7 @@ export interface ExecutionReceiptV1 {
 // ── Diagnosis Error Codes ──
 export type DiagnosisErrorCode =
   | 'DIAGNOSIS_JSON_INVALID'
+  | 'DIAGNOSIS_RESPONSE_TRUNCATED'
   | 'DIAGNOSIS_SCHEMA_INVALID'
   | 'DIAGNOSIS_REFERENCE_INVALID'
   | 'DIAGNOSIS_ENVELOPE_MISMATCH'

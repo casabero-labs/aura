@@ -34,6 +34,7 @@ interface OllamaUsageFields {
   prompt_eval_duration?: number;
   eval_count?: number;
   eval_duration?: number;
+  done_reason?: string;
 }
 
 const DEFAULT_BASE_URL = 'http://localhost:11434';
@@ -123,6 +124,7 @@ export class OllamaProvider implements AIProvider {
       promptEvalDurationMs: nanosecondsToMilliseconds(usage.prompt_eval_duration),
       evalDurationMs: nanosecondsToMilliseconds(usage.eval_duration),
       reasoningTokens: null,
+      finishReason: typeof usage.done_reason === 'string' ? usage.done_reason : null,
       isLocal: true,
       timestamp: new Date().toISOString(),
     };

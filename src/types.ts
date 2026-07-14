@@ -276,6 +276,8 @@ export interface ProviderMetrics {
   promptEvalDurationMs?: number;
   evalDurationMs?: number;
   reasoningTokens?: number | null;
+  /** Provider-native completion reason. Ollama reports `length` when output was cut. */
+  finishReason?: string | null;
   isLocal: boolean;
   timestamp: string;
 }

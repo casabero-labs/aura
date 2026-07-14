@@ -112,6 +112,15 @@ const result = (text: string): ProviderTextResult => ({
   },
 });
 
+const truncatedResult = (text: string): ProviderTextResult => ({
+  ...result(text),
+  metrics: {
+    ...result(text).metrics,
+    tokensGenerated: 4096,
+    finishReason: 'length',
+  },
+});
+
 const diagnosisOutput = JSON.stringify({
   contractId: 'aura.diagnosis.v2',
   evidenceEnvelopeRef: `env:${HASH_A}`,
@@ -211,6 +220,21 @@ describe('OE4 diagnosis-only and resumable runner — protocol V2', () => {
     expect(failed.diagnosis?.error?.code).toBe('DIAGNOSIS_JSON_INVALID');
     expect(failed.diagnosis?.validationErrors[0].path).toBe('$');
     expect(failed.script).toBeNull();
+  });
+
+  it('records provider-reported output truncation before attempting JSON parsing', async () => {
+    const rawResponse = '{"contractId":"aura.diagnosis.v2","issues":[';
+    const { runner } = makeRunner([truncatedResult(rawResponse)]);
+
+    const failed = await runner.runUnit(makeRun('smart_sample'));
+
+    expect(failed.status).toBe('failed');
+    expect(failed.diagnosis?.error?.code).toBe('DIAGNOSIS_RESPONSE_TRUNCATED');
+    expect(failed.diagnosis?.rawOutput).toBe(rawResponse);
+    expect(failed.diagnosis?.validationErrors).toEqual([
+      expect.objectContaining({ code: 'DIAGNOSIS_RESPONSE_TRUNCATED', path: '$' }),
+    ]);
+    expect(failed.executionReceipt?.validationErrorCodes).toEqual(['DIAGNOSIS_RESPONSE_TRUNCATED']);
   });
 
   it('pauses safely between units and leaves later units untouched', async () => {

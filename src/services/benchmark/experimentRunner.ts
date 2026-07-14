@@ -319,6 +319,20 @@ export const createExperimentRunner = ({
       rawResponse = providerResult.text;
       observedModel = providerResult.metrics.model ?? null;
       if (stage === 'diagnosis') {
+        if (providerResult.metrics.finishReason === 'length') {
+          throw new StageOutputError(
+            'DIAGNOSIS_RESPONSE_TRUNCATED',
+            `Ollama reached its output limit after ${providerResult.metrics.tokensGenerated} tokens before completing the JSON response.`,
+            rawResponse,
+            null,
+            toStageMetrics(providerMetrics),
+            [{
+              code: 'DIAGNOSIS_RESPONSE_TRUNCATED',
+              path: '$',
+              message: 'Provider reported done_reason=length.',
+            }],
+          );
+        }
         if (!observedModel) {
           throw new StageOutputError(
             'DIAGNOSIS_MODEL_NOT_OBSERVED',

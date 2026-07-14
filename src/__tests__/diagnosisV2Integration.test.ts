@@ -256,6 +256,39 @@ describe('result structure', () => {
       expect(result.rawResponseHash).toMatch(/^[a-f0-9]{64}$/);
     }
   });
+
+  it('reports Ollama output truncation instead of a generic JSON error', async () => {
+    const provider = makeProvider('ollama');
+    const rawResponse = '{"contractId":"aura.diagnosis.v2","issues":[';
+    provider.generateTextWithProgress = vi.fn().mockResolvedValue({
+      text: rawResponse,
+      metrics: {
+        latencyMs: 10,
+        tokensGenerated: 4096,
+        model: 'model-a',
+        provider: 'Ollama',
+        finishReason: 'length',
+        isLocal: true,
+      },
+    });
+
+    const result = await runStructuredDiagnosis(minimalReport, {
+      provider,
+      auditEvidence,
+      requestedModel: 'model-a',
+    });
+
+    expect(result).toEqual(expect.objectContaining({
+      contractId: 'aura.diagnosis-failure-evidence.v2',
+      code: 'DIAGNOSIS_RESPONSE_TRUNCATED',
+      path: '$',
+      rawResponse,
+    }));
+    if ('contractId' in result) {
+      expect(result.message).toContain('4096 tokens');
+      expect(result.executionReceipt.validationErrorCodes).toEqual(['DIAGNOSIS_RESPONSE_TRUNCATED']);
+    }
+  });
 });
 
 describe('canonical input propagation', () => {
