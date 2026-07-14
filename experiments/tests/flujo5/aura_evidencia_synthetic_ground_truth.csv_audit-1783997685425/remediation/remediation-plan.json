@@ -1,0 +1,260 @@
+{
+  "contractId": "aura.remediation.v2",
+  "contractVersion": "2.0.0",
+  "planId": "plan:942373e1",
+  "diagnosisRef": "diag:a87759b6d6904f6bceb431bb9a1a8f79d8237061e37a93619070ab198653f744",
+  "evidenceEnvelopeRef": "env:84f35ac4e828fafaaea2af5469a405700881c1082ed31d221164bfcf54d480b0",
+  "inputReceiptRef": "9fd45fe7ad8acfe542f2fa6dc341345b85b3182556faa6e3b5567870a2988928",
+  "inputTrace": {
+    "inputMode": "recommended",
+    "promptHash": "d456c25581cddc11011a13b3ea46a42092ae6b750c95141bd306d3f8e98dfec0",
+    "inputHash": "d6c0c2fc53ede143ddbb15d3f6366801d8b593b80000e4f085af2d4e5afd5e5e",
+    "evidenceEnvelopeRef": "env:84f35ac4e828fafaaea2af5469a405700881c1082ed31d221164bfcf54d480b0"
+  },
+  "datasetFingerprint": "4e7d358f2141c6463146417a66f1c2312c7c3cdf6a39005780c92b061ff7ac49",
+  "plan": [
+    {
+      "actionId": "act:334a84be",
+      "issueId": "integrity-dupes",
+      "ruleId": "rule:exact-duplicates",
+      "columnId": null,
+      "actionType": "drop_exact_duplicates",
+      "parameters": {
+        "keep": "first"
+      },
+      "actionability": "review_only",
+      "evidenceRefs": [],
+      "approvalStatus": "approved"
+    },
+    {
+      "actionId": "act:92c1393d",
+      "issueId": "integrity-null-nombre",
+      "ruleId": "rule:null-values",
+      "columnId": "col:c48ed5501a3f61e9",
+      "actionType": "requires_human_review",
+      "parameters": {
+        "reasonCode": "review_only_rule"
+      },
+      "actionability": "review_only",
+      "evidenceRefs": [],
+      "approvalStatus": "rejected"
+    },
+    {
+      "actionId": "act:daf0b31f",
+      "issueId": "hygiene-moji-nombre",
+      "ruleId": "rule:mojibake",
+      "columnId": "col:c48ed5501a3f61e9",
+      "actionType": "requires_human_review",
+      "parameters": {
+        "reasonCode": "review_only_rule"
+      },
+      "actionability": "review_only",
+      "evidenceRefs": [
+        "ev-0000"
+      ],
+      "approvalStatus": "rejected"
+    },
+    {
+      "actionId": "act:dcb4d731",
+      "issueId": "integrity-null-edad",
+      "ruleId": "rule:null-values",
+      "columnId": "col:14a06a875d2805a1",
+      "actionType": "requires_human_review",
+      "parameters": {
+        "reasonCode": "review_only_rule"
+      },
+      "actionability": "review_only",
+      "evidenceRefs": [],
+      "approvalStatus": "rejected"
+    },
+    {
+      "actionId": "act:50a1151a",
+      "issueId": "hygiene-toxic-edad",
+      "ruleId": "rule:toxic-placeholders",
+      "columnId": "col:14a06a875d2805a1",
+      "actionType": "normalize_placeholders",
+      "parameters": {
+        "strategy": "controlled_vocabulary",
+        "replacement": null
+      },
+      "actionability": "review_only",
+      "evidenceRefs": [
+        "ev-0001"
+      ],
+      "approvalStatus": "approved"
+    },
+    {
+      "actionId": "act:9596fbc7",
+      "issueId": "logic-outlier-edad",
+      "ruleId": "rule:extreme-outliers",
+      "columnId": "col:14a06a875d2805a1",
+      "actionType": "requires_human_review",
+      "parameters": {
+        "reasonCode": "review_only_rule"
+      },
+      "actionability": "review_only",
+      "evidenceRefs": [
+        "ev-0002"
+      ],
+      "approvalStatus": "rejected"
+    },
+    {
+      "actionId": "act:5a41df1a",
+      "issueId": "logic-neg-salario",
+      "ruleId": "rule:impossible-negatives",
+      "columnId": "col:3ccf050c2a6ae5c6",
+      "actionType": "requires_human_review",
+      "parameters": {
+        "reasonCode": "review_only_rule"
+      },
+      "actionability": "review_only",
+      "evidenceRefs": [
+        "ev-0003"
+      ],
+      "approvalStatus": "rejected"
+    },
+    {
+      "actionId": "act:9ecfbeb7",
+      "issueId": "logic-outlier-salario",
+      "ruleId": "rule:extreme-outliers",
+      "columnId": "col:3ccf050c2a6ae5c6",
+      "actionType": "requires_human_review",
+      "parameters": {
+        "reasonCode": "review_only_rule"
+      },
+      "actionability": "review_only",
+      "evidenceRefs": [
+        "ev-0004",
+        "ev-0005"
+      ],
+      "approvalStatus": "rejected"
+    },
+    {
+      "actionId": "act:3a76d9ab",
+      "issueId": "integrity-null-email",
+      "ruleId": "rule:null-values",
+      "columnId": "col:534000c8bf517b29",
+      "actionType": "requires_human_review",
+      "parameters": {
+        "reasonCode": "review_only_rule"
+      },
+      "actionability": "review_only",
+      "evidenceRefs": [],
+      "approvalStatus": "rejected"
+    },
+    {
+      "actionId": "act:28efbacf",
+      "issueId": "hygiene-toxic-email",
+      "ruleId": "rule:toxic-placeholders",
+      "columnId": "col:534000c8bf517b29",
+      "actionType": "normalize_placeholders",
+      "parameters": {
+        "strategy": "controlled_vocabulary",
+        "replacement": null
+      },
+      "actionability": "review_only",
+      "evidenceRefs": [
+        "ev-0006"
+      ],
+      "approvalStatus": "approved"
+    },
+    {
+      "actionId": "act:790f4011",
+      "issueId": "logic-email-email",
+      "ruleId": "rule:invalid-email",
+      "columnId": "col:534000c8bf517b29",
+      "actionType": "requires_human_review",
+      "parameters": {
+        "reasonCode": "review_only_rule"
+      },
+      "actionability": "review_only",
+      "evidenceRefs": [
+        "ev-0007"
+      ],
+      "approvalStatus": "rejected"
+    },
+    {
+      "actionId": "act:3f0fccd8",
+      "issueId": "logic-mixed-date-fecha_ingreso",
+      "ruleId": "rule:mixed-date-formats",
+      "columnId": "col:623e34a359a89dd3",
+      "actionType": "requires_human_review",
+      "parameters": {
+        "reasonCode": "review_only_rule"
+      },
+      "actionability": "review_only",
+      "evidenceRefs": [
+        "ev-0008",
+        "ev-0009",
+        "ev-0010",
+        "ev-0011"
+      ],
+      "approvalStatus": "rejected"
+    },
+    {
+      "actionId": "act:72fb6fb4",
+      "issueId": "integrity-null-estado",
+      "ruleId": "rule:null-values",
+      "columnId": "col:f9b45ca6934a8296",
+      "actionType": "requires_human_review",
+      "parameters": {
+        "reasonCode": "review_only_rule"
+      },
+      "actionability": "review_only",
+      "evidenceRefs": [],
+      "approvalStatus": "rejected"
+    },
+    {
+      "actionId": "act:14b547ad",
+      "issueId": "hygiene-toxic-estado",
+      "ruleId": "rule:toxic-placeholders",
+      "columnId": "col:f9b45ca6934a8296",
+      "actionType": "normalize_placeholders",
+      "parameters": {
+        "strategy": "controlled_vocabulary",
+        "replacement": null
+      },
+      "actionability": "review_only",
+      "evidenceRefs": [
+        "ev-0012"
+      ],
+      "approvalStatus": "approved"
+    },
+    {
+      "actionId": "act:19719ffa",
+      "issueId": "sec-pii-ip_acceso",
+      "ruleId": "rule:pii-detected",
+      "columnId": "col:e7b2c5a4df357066",
+      "actionType": "requires_human_review",
+      "parameters": {
+        "reasonCode": "review_only_rule"
+      },
+      "actionability": "review_only",
+      "evidenceRefs": [
+        "ev-0013",
+        "ev-0014",
+        "ev-0015"
+      ],
+      "approvalStatus": "rejected"
+    }
+  ],
+  "actionabilityMap": {
+    "integrity-dupes": "review_only",
+    "integrity-null-nombre": "review_only",
+    "hygiene-moji-nombre": "review_only",
+    "integrity-null-edad": "review_only",
+    "hygiene-toxic-edad": "review_only",
+    "logic-outlier-edad": "review_only",
+    "logic-neg-salario": "review_only",
+    "logic-outlier-salario": "review_only",
+    "integrity-null-email": "review_only",
+    "hygiene-toxic-email": "review_only",
+    "logic-email-email": "review_only",
+    "logic-mixed-date-fecha_ingreso": "review_only",
+    "integrity-null-estado": "review_only",
+    "hygiene-toxic-estado": "review_only",
+    "sec-pii-ip_acceso": "review_only"
+  },
+  "exclusions": [],
+  "generatedAt": "2026-07-14T03:12:04.262Z"
+}

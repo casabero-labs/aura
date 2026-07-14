@@ -1,0 +1,16 @@
+id,nombre,edad,salario,email,departamento,fecha_ingreso,estado,ip_acceso
+1,Juan Pérez,35,50000.00,juan.perez@empresa.com,IT,2023-01-15,Activo,192.168.1.10
+2,María López,28,45000.50,maria.lopez@empresa.com,Ventas,2023-02-01,Activo,10.0.0.5
+3,Carlos Díaz,42,-1500,carlos.d@empresa.com,Finanzas,2022-11-20,Inactivo,172.16.0.100
+4,Ana Torres,31,52000.00,ana.torres@empresa,IT,2023-03-10,Activo,192.168.1.11
+1,Juan Pérez,35,50000.00,juan.perez@empresa.com,IT,2023-01-15,Activo,192.168.1.10
+6,Luis GarcÃ­a,25,38000.00,luis.g@empresa.com,Ventas,2023-05-12,Activo,10.0.0.6
+7,,45,60000.00,director@empresa.com,Dirección,2021-01-01,Activo,192.168.1.1
+8,Sofía Ruiz,150,42000.00,sofia.r@empresa.com,RRHH,2023-06-01,Activo,10.0.0.7
+9,Pedro Gómez,33,9999999.99,pedro.g@empresa.com,Ventas,2022-08-15,Activo,10.0.0.8
+10,Elena Soto,29,48000.00,elena.soto@empresa.com,IT,01/15/2023,Activo,192.168.1.12
+11,Roberto Paz,N/A,41000.00,roberto.paz@empresa.com,IT,2023-07-20,Activo,192.168.1.13
+12,Lucía Silva,27,46000.00,NULL,Marketing,2023-04-05,Activo,10.0.1.5
+13,Marcos Vega,39,55000.00,marcos.vega@empresa.com,Ventas,2022-12-01,N/A,10.0.0.9
+14,Laura Ríos,34,51000.00,laura.rios@empresa.com,IT,2023-02-28,Activo,192.168.1.14
+15,Diego Mora,41,58000.00,diego.mora@empresa.com,Finanzas,2022-10-10,Activo,8.8.8.8

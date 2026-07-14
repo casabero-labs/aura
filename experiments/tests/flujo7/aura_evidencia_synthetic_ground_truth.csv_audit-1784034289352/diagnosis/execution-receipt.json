@@ -1,0 +1,35 @@
+{
+  "contractId": "aura.execution-receipt.v1",
+  "contractVersion": "1.0.0",
+  "requestedInputMode": "smart_sample",
+  "effectiveInputMode": "smart_sample",
+  "includedSections": [
+    "dataset_summary",
+    "dataset_schema",
+    "issue_registry_minimal",
+    "column_statistics",
+    "rule_activations",
+    "evidence_samples"
+  ],
+  "evidenceEnvelopeRef": "env:84f35ac4e828fafaaea2af5469a405700881c1082ed31d221164bfcf54d480b0",
+  "promptVersion": "1.6.0",
+  "promptHash": "3eb2547b9e931a05ac15d3fe4f1905f530cf3fcf87f01270d0711c096e844e9c",
+  "inputHash": "a1619bb68e3d51f9a7b468e4b87f736b34cc10f4ff74236ba64954555afccb85",
+  "responseSchemaHash": "c5f50a2dbd83cf4eb15a6186f9e6bb27fc1a6b32ffc4fbdc3188c84d3d3d9c8a",
+  "provider": "Ollama",
+  "requestedModel": "hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL",
+  "observedModel": "hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL",
+  "modelDigest": null,
+  "inferenceHash": "b50262ae665aec1fbd0a687cec00e786a59897f00d73511dfa6a45862c074ac4",
+  "startedAt": "2026-07-14T13:09:20.318Z",
+  "completedAt": "2026-07-14T13:12:32.615Z",
+  "rawResponseHash": "b2e73de5917d41dd2b4472b89fb67beb7e59e3fdcc639da1d16ccbe945b1fe41",
+  "validationStatus": "valid",
+  "validationErrorCodes": [],
+  "normalizationApplied": true,
+  "rawValidationStatus": "invalid",
+  "rawValidationErrorCodes": [
+    "DIAGNOSIS_REVIEW_DOWNGRADE"
+  ],
+  "receiptHash": "0592744ddc56845d5cb35adaf628114cd019ccdc50b00bddaed40b8cbb457f9c"
+}

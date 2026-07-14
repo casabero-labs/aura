@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="502" viewBox="0 0 1200 502">
+  <style>
+    .bg { fill: #ffffff; }
+    .ink { fill: #20242b; font-family: Inter, Arial, sans-serif; }
+    .eyebrow { fill: #5b626d; font-family: "JetBrains Mono", monospace; font-size: 16px; letter-spacing: 3px; }
+    .title { fill: #20242b; font-family: Inter, Arial, sans-serif; font-size: 42px; font-weight: 700; }
+    .label { fill: #7b8490; font-family: "JetBrains Mono", monospace; font-size: 14px; letter-spacing: 1px; }
+    .value { fill: #20242b; font-family: Inter, Arial, sans-serif; font-size: 18px; }
+    .rule { stroke: #d8dce1; stroke-width: 1; }
+  </style>
+  <rect class="bg" width="1200" height="502" />
+  <text x="72" y="62" class="eyebrow">DIAGNÓSTICO V2</text>
+  <text x="72" y="122" class="title">Evidencia de inferencia</text>
+  <line x1="72" y1="148" x2="1128" y2="148" class="rule" />
+  <text x="72" y="190" class="label">ESTADO</text><text x="330" y="190" class="value">valid</text><line x1="72" y1="208" x2="1128" y2="208" class="rule" /><text x="72" y="242" class="label">PROVEEDOR / MODELO</text><text x="330" y="242" class="value">Ollama / hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL</text><line x1="72" y1="260" x2="1128" y2="260" class="rule" /><text x="72" y="294" class="label">MÉTODO</text><text x="330" y="294" class="value">smart_sample</text><line x1="72" y1="312" x2="1128" y2="312" class="rule" /><text x="72" y="346" class="label">HALLAZGOS</text><text x="330" y="346" class="value">15</text><line x1="72" y1="364" x2="1128" y2="364" class="rule" /><text x="72" y="398" class="label">PROMPT HASH</text><text x="330" y="398" class="value">3eb2547b9e931a05ac15d3fe4f1905f530cf3fcf87f01270d0711c096e844e9c</text><line x1="72" y1="416" x2="1128" y2="416" class="rule" /><text x="72" y="450" class="label">RECEIPT HASH</text><text x="330" y="450" class="value">0592744ddc56845d5cb35adaf628114cd019ccdc50b00bddaed40b8cbb457f9c</text><line x1="72" y1="468" x2="1128" y2="468" class="rule" />
+</svg>

@@ -1,0 +1,354 @@
+{
+  "contractId": "aura.diagnosis.v2",
+  "contractVersion": "2.0.0",
+  "diagnosisBlocks": [
+    {
+      "columnId": null,
+      "issueId": "integrity-dupes",
+      "observation": "1 fila idéntica detectada en el conjunto de datos completo.",
+      "recommendation": "Considerar eliminación de filas duplicadas exactas para mantener integridad estructural.",
+      "ruleId": "rule:exact-duplicates",
+      "scope": "dataset"
+    },
+    {
+      "columnId": "col:c48ed5501a3f61e9",
+      "issueId": "integrity-null-nombre",
+      "observation": "Falta un valor en la columna nombre.",
+      "recommendation": "Revisar si el nulo es intencional o requiere imputación según dominio.",
+      "ruleId": "rule:null-values",
+      "scope": "column"
+    },
+    {
+      "columnId": "col:c48ed5501a3f61e9",
+      "issueId": "hygiene-moji-nombre",
+      "observation": "Valor corrupto 'Luis GarcÃ­a' sugiere codificación rota.",
+      "recommendation": "Verificar configuración de codificación del archivo y reconstruir datos.",
+      "ruleId": "rule:mojibake",
+      "scope": "column"
+    },
+    {
+      "columnId": "col:14a06a875d2805a1",
+      "issueId": "integrity-null-edad",
+      "observation": "Falta un valor en la columna edad.",
+      "recommendation": "Revisar si el nulo es intencional o requiere imputación según dominio.",
+      "ruleId": "rule:null-values",
+      "scope": "column"
+    },
+    {
+      "columnId": "col:14a06a875d2805a1",
+      "issueId": "hygiene-toxic-edad",
+      "observation": "Valor 'N/A' detectado como placeholder tóxico.",
+      "recommendation": "Revisar si el placeholder debe ser reemplazado por nulo o valor estimado.",
+      "ruleId": "rule:toxic-placeholders",
+      "scope": "column"
+    },
+    {
+      "columnId": "col:14a06a875d2805a1",
+      "issueId": "logic-outlier-edad",
+      "observation": "Valor 150 detectado como outlier extremo.",
+      "recommendation": "Revisar si el valor es error de entrada o caso válido (edad en años).",
+      "ruleId": "rule:extreme-outliers",
+      "scope": "column"
+    },
+    {
+      "columnId": "col:3ccf050c2a6ae5c6",
+      "issueId": "logic-neg-salario",
+      "observation": "Valor -1500 detectado como negativo imposible.",
+      "recommendation": "Revisar si el valor es error de entrada o lógica de negocio invertida.",
+      "ruleId": "rule:impossible-negatives",
+      "scope": "column"
+    },
+    {
+      "columnId": "col:3ccf050c2a6ae5c6",
+      "issueId": "logic-outlier-salario",
+      "observation": "Valores -1500 y '9***9' detectados como outliers extremos.",
+      "recommendation": "Revisar si los valores son errores de entrada o datos anonimizados.",
+      "ruleId": "rule:extreme-outliers",
+      "scope": "column"
+    },
+    {
+      "columnId": "col:534000c8bf517b29",
+      "issueId": "integrity-null-email",
+      "observation": "Falta un valor en la columna email.",
+      "recommendation": "Revisar si el nulo es intencional o requiere imputación según dominio.",
+      "ruleId": "rule:null-values",
+      "scope": "column"
+    },
+    {
+      "columnId": "col:534000c8bf517b29",
+      "issueId": "hygiene-toxic-email",
+      "observation": "Valor 'sha256:...' detectado como placeholder tóxico.",
+      "recommendation": "Revisar si el hash es intencional o debe ser reemplazado por email real.",
+      "ruleId": "rule:toxic-placeholders",
+      "scope": "column"
+    },
+    {
+      "columnId": "col:534000c8bf517b29",
+      "issueId": "logic-email-email",
+      "observation": "Valor 'sha256:...' detectado como email inválido.",
+      "recommendation": "Revisar si el hash es intencional o debe ser reemplazado por email real.",
+      "ruleId": "rule:invalid-email",
+      "scope": "column"
+    },
+    {
+      "columnId": "col:623e34a359a89dd3",
+      "issueId": "logic-mixed-date-fecha_ingreso",
+      "observation": "Valores mixtos detectados en formato de fecha (texto y barras).",
+      "recommendation": "Confirmar orden día/mes antes de convertir a formato estándar.",
+      "ruleId": "rule:mixed-date-formats",
+      "scope": "column"
+    },
+    {
+      "columnId": "col:f9b45ca6934a8296",
+      "issueId": "integrity-null-estado",
+      "observation": "Falta un valor en la columna estado.",
+      "recommendation": "Revisar si el nulo es intencional o requiere imputación según dominio.",
+      "ruleId": "rule:null-values",
+      "scope": "column"
+    },
+    {
+      "columnId": "col:f9b45ca6934a8296",
+      "issueId": "hygiene-toxic-estado",
+      "observation": "Valor 'N/A' detectado como placeholder tóxico.",
+      "recommendation": "Revisar si el placeholder debe ser reemplazado por nulo o valor estimado.",
+      "ruleId": "rule:toxic-placeholders",
+      "scope": "column"
+    },
+    {
+      "columnId": "col:e7b2c5a4df357066",
+      "issueId": "sec-pii-ip_acceso",
+      "observation": "15 valores detectados como PII (patrones de tarjeta/IP).",
+      "recommendation": "Revisar políticas de seguridad y anonimizar datos sensibles.",
+      "ruleId": "rule:pii-detected",
+      "scope": "column"
+    }
+  ],
+  "evidenceEnvelopeRef": "env:84f35ac4e828fafaaea2af5469a405700881c1082ed31d221164bfcf54d480b0",
+  "generatedAt": "2023-10-27T10:00:00Z",
+  "issues": [
+    {
+      "confidence": 0.95,
+      "evidenceRefs": [],
+      "hypothesis": "Existen filas idénticas que comprometen la integridad del conjunto de datos.",
+      "issueId": "integrity-dupes",
+      "limits": ["No hay evidencia visible de las filas duplicadas específicas"],
+      "requiresHumanReview": true
+    },
+    {
+      "confidence": 0.9,
+      "evidenceRefs": [],
+      "hypothesis": "Falta un valor en la columna nombre.",
+      "issueId": "integrity-null-nombre",
+      "limits": ["No hay evidencia visible del valor nulo específico"],
+      "requiresHumanReview": true
+    },
+    {
+      "confidence": 0.9,
+      "evidenceRefs": [
+        "ev-0000"
+      ],
+      "hypothesis": "El valor 'Luis GarcÃ­a' indica codificación rota en la columna nombre.",
+      "issueId": "hygiene-moji-nombre",
+      "limits": ["La evidencia muestra solo el valor corrupto, no el contexto completo"],
+      "requiresHumanReview": true
+    },
+    {
+      "confidence": 0.9,
+      "evidenceRefs": [],
+      "hypothesis": "Falta un valor en la columna edad.",
+      "issueId": "integrity-null-edad",
+      "limits": ["No hay evidencia visible del valor nulo específico"],
+      "requiresHumanReview": true
+    },
+    {
+      "confidence": 0.9,
+      "evidenceRefs": [
+        "ev-0001"
+      ],
+      "hypothesis": "El valor 'N/A' en la columna edad es un placeholder tóxico.",
+      "issueId": "hygiene-toxic-edad",
+      "limits": ["La evidencia muestra solo el valor del placeholder"],
+      "requiresHumanReview": true
+    },
+    {
+      "confidence": 0.9,
+      "evidenceRefs": [
+        "ev-0002"
+      ],
+      "hypothesis": "El valor 150 en la columna edad es un outlier extremo.",
+      "issueId": "logic-outlier-edad",
+      "limits": ["La evidencia muestra solo el valor del outlier"],
+      "requiresHumanReview": true
+    },
+    {
+      "confidence": 0.9,
+      "evidenceRefs": [
+        "ev-0003"
+      ],
+      "hypothesis": "El valor -1500 en la columna salario es un negativo imposible.",
+      "issueId": "logic-neg-salario",
+      "limits": ["La evidencia muestra solo el valor del negativo"],
+      "requiresHumanReview": true
+    },
+    {
+      "confidence": 0.9,
+      "evidenceRefs": [
+        "ev-0004",
+        "ev-0005"
+      ],
+      "hypothesis": "Los valores -1500 y '9***9' en la columna salario son outliers extremos.",
+      "issueId": "logic-outlier-salario",
+      "limits": ["La evidencia muestra solo los valores de los outliers"],
+      "requiresHumanReview": true
+    },
+    {
+      "confidence": 0.9,
+      "evidenceRefs": [],
+      "hypothesis": "Falta un valor en la columna email.",
+      "issueId": "integrity-null-email",
+      "limits": ["No hay evidencia visible del valor nulo específico"],
+      "requiresHumanReview": true
+    },
+    {
+      "confidence": 0.9,
+      "evidenceRefs": [
+        "ev-0006"
+      ],
+      "hypothesis": "El valor 'sha256:...' en la columna email es un placeholder tóxico.",
+      "issueId": "hygiene-toxic-email",
+      "limits": ["La evidencia muestra solo el valor del placeholder"],
+      "requiresHumanReview": true
+    },
+    {
+      "confidence": 0.9,
+      "evidenceRefs": [
+        "ev-0007"
+      ],
+      "hypothesis": "El valor 'sha256:...' en la columna email es un formato de email inválido.",
+      "issueId": "logic-email-email",
+      "limits": ["La evidencia muestra solo el valor del hash"],
+      "requiresHumanReview": true
+    },
+    {
+      "confidence": 0.9,
+      "evidenceRefs": [
+        "ev-0008",
+        "ev-0009",
+        "ev-0010",
+        "ev-0011"
+      ],
+      "hypothesis": "La columna fecha_ingreso contiene formatos mixtos de texto y barras.",
+      "issueId": "logic-mixed-date-fecha_ingreso",
+      "limits": ["La evidencia muestra solo ejemplos de los formatos mixtos"],
+      "requiresHumanReview": true
+    },
+    {
+      "confidence": 0.9,
+      "evidenceRefs": [],
+      "hypothesis": "Falta un valor en la columna estado.",
+      "issueId": "integrity-null-estado",
+      "limits": ["No hay evidencia visible del valor nulo específico"],
+      "requiresHumanReview": true
+    },
+    {
+      "confidence": 0.9,
+      "evidenceRefs": [
+        "ev-0012"
+      ],
+      "hypothesis": "El valor 'N/A' en la columna estado es un placeholder tóxico.",
+      "issueId": "hygiene-toxic-estado",
+      "limits": ["La evidencia muestra solo el valor del placeholder"],
+      "requiresHumanReview": true
+    },
+    {
+      "confidence": 0.95,
+      "evidenceRefs": [
+        "ev-0013",
+        "ev-0014",
+        "ev-0015"
+      ],
+      "hypothesis": "Los valores en la columna ip_acceso contienen patrones de tarjeta o IP.",
+      "issueId": "sec-pii-ip_acceso",
+      "limits": ["La evidencia muestra solo ejemplos de los patrones PII"],
+      "requiresHumanReview": true
+    }
+  ],
+  "limitations": [
+    "No hay evidencia visible de las filas duplicadas específicas.",
+    "No hay evidencia visible de los valores nulos específicos en nombre, edad, email y estado.",
+    "La evidencia muestra solo ejemplos de valores corruptos o outliers, no el contexto completo del dataset.",
+    "Se asume que los placeholders tóxicos requieren decisión de dominio para su manejo.",
+    "Los patrones PII detectados deben ser revisados según políticas de seguridad específicas."
+  ],
+  "responseId": "resp-84f35ac4e828fafaaea2af5469a405700881c1082ed31d221164bfcf54d480b0",
+  "visualizations": [
+    {
+      "dataSource": "severity_counts",
+      "includeInPdf": true,
+      "issueIds": [
+        "integrity-dupes",
+        "logic-neg-salario",
+        "logic-email-email",
+        "sec-pii-ip_acceso"
+      ],
+      "kind": "bar",
+      "rationale": "Visualizar los problemas críticos para priorizar el remedio.",
+      "title": "Problemas Críticos por Severidad",
+      "visualizationId": "viz-severity-critical"
+    },
+    {
+      "dataSource": "category_counts",
+      "includeInPdf": true,
+      "issueIds": [
+        "integrity-dupes",
+        "hygiene-moji-nombre",
+        "logic-outlier-edad",
+        "sec-pii-ip_acceso"
+      ],
+      "kind": "pie",
+      "rationale": "Distribución de problemas por categoría para entender el impacto.",
+      "title": "Distribución de Problemas por Categoría",
+      "visualizationId": "viz-category-distribution"
+    },
+    {
+      "dataSource": "top_null_columns",
+      "includeInPdf": true,
+      "issueIds": [
+        "integrity-null-nombre",
+        "integrity-null-edad",
+        "integrity-null-email",
+        "integrity-null-estado"
+      ],
+      "kind": "table",
+      "rationale": "Identificar columnas con más nulos para limpieza.",
+      "title": "Columnas con Nulos",
+      "visualizationId": "viz-top-null-columns"
+    },
+    {
+      "dataSource": "top_affected_issues",
+      "includeInPdf": true,
+      "issueIds": [
+        "sec-pii-ip_acceso",
+        "logic-outlier-salario",
+        "integrity-dupes"
+      ],
+      "kind": "horizontal_bar",
+      "rationale": "Identificar los problemas que afectan más filas.",
+      "title": "Problemas con Mayor Impacto en Filas",
+      "visualizationId": "viz-top-affected-issues"
+    },
+    {
+      "dataSource": "column_type_counts",
+      "includeInPdf": false,
+      "issueIds": [
+        "hygiene-moji-nombre",
+        "logic-outlier-edad",
+        "sec-pii-ip_acceso"
+      ],
+      "kind": "bar",
+      "rationale": "Verificar tipos de datos inferidos vs problemas detectados.",
+      "title": "Tipos de Datos Inferidos",
+      "visualizationId": "viz-column-type-counts"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "beforeScore": 0,
+  "afterScore": 0,
+  "scoreDelta": 0,
+  "beforeCriticalIssues": 4,
+  "afterCriticalIssues": 3,
+  "criticalDelta": -1,
+  "beforeIssueCount": 15,
+  "afterIssueCount": 11,
+  "issueDelta": -4,
+  "correctedRules": [
+    "Filas Duplicadas",
+    "Placeholders Tóxicos"
+  ],
+  "unchangedRules": [
+    "Valores Nulos / Vacíos",
+    "Mojibake / Encoding Roto",
+    "Outliers Extremos (IQR 3×)",
+    "Negativos Imposibles",
+    "Formato Email Inválido",
+    "Formatos de Fecha Mixtos",
+    "Datos Sensibles (PII)"
+  ],
+  "requiresHumanReview": []
+}

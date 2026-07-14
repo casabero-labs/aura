@@ -1,0 +1,52 @@
+{
+  "applied": true,
+  "field": "requiresHumanReview",
+  "reason": "AURA_GOVERNANCE_ENFORCED",
+  "policy": "aura.human-review-policy.v2",
+  "policyVersion": "1.0.0",
+  "normalizedIssueIds": [
+    "hygiene-moji-nombre",
+    "hygiene-toxic-edad",
+    "logic-outlier-edad",
+    "logic-neg-salario",
+    "logic-outlier-salario",
+    "hygiene-toxic-email",
+    "logic-email-email",
+    "logic-mixed-date-fecha_ingreso",
+    "hygiene-toxic-estado"
+  ],
+  "originalValuesByIssueId": {
+    "integrity-dupes": true,
+    "integrity-null-nombre": true,
+    "hygiene-moji-nombre": false,
+    "integrity-null-edad": true,
+    "hygiene-toxic-edad": false,
+    "logic-outlier-edad": false,
+    "logic-neg-salario": false,
+    "logic-outlier-salario": false,
+    "integrity-null-email": true,
+    "hygiene-toxic-email": false,
+    "logic-email-email": false,
+    "logic-mixed-date-fecha_ingreso": false,
+    "integrity-null-estado": true,
+    "hygiene-toxic-estado": false,
+    "sec-pii-ip_acceso": true
+  },
+  "effectiveValuesByIssueId": {
+    "integrity-dupes": true,
+    "integrity-null-nombre": true,
+    "hygiene-moji-nombre": true,
+    "integrity-null-edad": true,
+    "hygiene-toxic-edad": true,
+    "logic-outlier-edad": true,
+    "logic-neg-salario": true,
+    "logic-outlier-salario": true,
+    "integrity-null-email": true,
+    "hygiene-toxic-email": true,
+    "logic-email-email": true,
+    "logic-mixed-date-fecha_ingreso": true,
+    "integrity-null-estado": true,
+    "hygiene-toxic-estado": true,
+    "sec-pii-ip_acceso": true
+  }
+}

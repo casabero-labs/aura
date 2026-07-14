@@ -1,0 +1,295 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "contractId": {
+      "enum": [
+        "aura.diagnosis.v2"
+      ],
+      "type": "string"
+    },
+    "contractVersion": {
+      "enum": [
+        "2.0.0"
+      ],
+      "type": "string"
+    },
+    "diagnosisBlocks": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "columnId": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              null,
+              "col:66c132b9f764eca1",
+              "col:c48ed5501a3f61e9",
+              "col:14a06a875d2805a1",
+              "col:3ccf050c2a6ae5c6",
+              "col:534000c8bf517b29",
+              "col:715d2723c97715b7",
+              "col:623e34a359a89dd3",
+              "col:f9b45ca6934a8296",
+              "col:e7b2c5a4df357066"
+            ]
+          },
+          "issueId": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string",
+            "enum": [
+              "integrity-dupes",
+              "integrity-null-nombre",
+              "hygiene-moji-nombre",
+              "integrity-null-edad",
+              "hygiene-toxic-edad",
+              "logic-outlier-edad",
+              "logic-neg-salario",
+              "logic-outlier-salario",
+              "integrity-null-email",
+              "hygiene-toxic-email",
+              "logic-email-email",
+              "logic-mixed-date-fecha_ingreso",
+              "integrity-null-estado",
+              "hygiene-toxic-estado",
+              "sec-pii-ip_acceso"
+            ]
+          },
+          "observation": {
+            "maxLength": 1000,
+            "type": "string"
+          },
+          "recommendation": {
+            "maxLength": 1000,
+            "type": "string"
+          },
+          "ruleId": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string",
+            "enum": [
+              "rule:exact-duplicates",
+              "rule:null-values",
+              "rule:mojibake",
+              "rule:toxic-placeholders",
+              "rule:extreme-outliers",
+              "rule:impossible-negatives",
+              "rule:invalid-email",
+              "rule:mixed-date-formats",
+              "rule:pii-detected"
+            ]
+          },
+          "scope": {
+            "enum": [
+              "dataset",
+              "column"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "issueId",
+          "ruleId",
+          "columnId",
+          "scope",
+          "observation",
+          "recommendation"
+        ],
+        "type": "object"
+      },
+      "maxItems": 15,
+      "type": "array",
+      "minItems": 15
+    },
+    "evidenceEnvelopeRef": {
+      "type": "string",
+      "enum": [
+        "env:84f35ac4e828fafaaea2af5469a405700881c1082ed31d221164bfcf54d480b0"
+      ]
+    },
+    "generatedAt": {
+      "type": "string"
+    },
+    "issues": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "confidence": {
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          },
+          "evidenceRefs": {
+            "items": {
+              "maxLength": 128,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "hypothesis": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "issueId": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string",
+            "enum": [
+              "integrity-dupes",
+              "integrity-null-nombre",
+              "hygiene-moji-nombre",
+              "integrity-null-edad",
+              "hygiene-toxic-edad",
+              "logic-outlier-edad",
+              "logic-neg-salario",
+              "logic-outlier-salario",
+              "integrity-null-email",
+              "hygiene-toxic-email",
+              "logic-email-email",
+              "logic-mixed-date-fecha_ingreso",
+              "integrity-null-estado",
+              "hygiene-toxic-estado",
+              "sec-pii-ip_acceso"
+            ]
+          },
+          "limits": {
+            "items": {
+              "maxLength": 200,
+              "type": "string"
+            },
+            "maxItems": 10,
+            "type": "array"
+          },
+          "requiresHumanReview": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "issueId",
+          "evidenceRefs",
+          "hypothesis",
+          "confidence",
+          "requiresHumanReview",
+          "limits"
+        ],
+        "type": "object"
+      },
+      "maxItems": 15,
+      "type": "array",
+      "minItems": 15
+    },
+    "limitations": {
+      "items": {
+        "maxLength": 300,
+        "type": "string"
+      },
+      "maxItems": 20,
+      "type": "array"
+    },
+    "responseId": {
+      "maxLength": 128,
+      "minLength": 1,
+      "type": "string"
+    },
+    "visualizations": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "dataSource": {
+            "enum": [
+              "severity_counts",
+              "category_counts",
+              "column_type_counts",
+              "top_null_columns",
+              "top_affected_issues",
+              "top_cardinality_columns"
+            ],
+            "type": "string"
+          },
+          "includeInPdf": {
+            "type": "boolean"
+          },
+          "issueIds": {
+            "items": {
+              "maxLength": 128,
+              "minLength": 1,
+              "type": "string",
+              "enum": [
+                "integrity-dupes",
+                "integrity-null-nombre",
+                "hygiene-moji-nombre",
+                "integrity-null-edad",
+                "hygiene-toxic-edad",
+                "logic-outlier-edad",
+                "logic-neg-salario",
+                "logic-outlier-salario",
+                "integrity-null-email",
+                "hygiene-toxic-email",
+                "logic-email-email",
+                "logic-mixed-date-fecha_ingreso",
+                "integrity-null-estado",
+                "hygiene-toxic-estado",
+                "sec-pii-ip_acceso"
+              ]
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "kind": {
+            "enum": [
+              "bar",
+              "horizontal_bar",
+              "pie",
+              "table"
+            ],
+            "type": "string"
+          },
+          "rationale": {
+            "maxLength": 400,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          },
+          "visualizationId": {
+            "maxLength": 96,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "visualizationId",
+          "includeInPdf",
+          "dataSource",
+          "kind",
+          "title",
+          "rationale",
+          "issueIds"
+        ],
+        "type": "object"
+      },
+      "maxItems": 6,
+      "type": "array"
+    }
+  },
+  "required": [
+    "contractId",
+    "contractVersion",
+    "evidenceEnvelopeRef",
+    "responseId",
+    "issues",
+    "diagnosisBlocks",
+    "limitations",
+    "generatedAt"
+  ],
+  "type": "object"
+}

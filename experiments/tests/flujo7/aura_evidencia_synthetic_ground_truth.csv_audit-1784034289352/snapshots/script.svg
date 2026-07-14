@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="502" viewBox="0 0 1200 502">
+  <style>
+    .bg { fill: #ffffff; }
+    .ink { fill: #20242b; font-family: Inter, Arial, sans-serif; }
+    .eyebrow { fill: #5b626d; font-family: "JetBrains Mono", monospace; font-size: 16px; letter-spacing: 3px; }
+    .title { fill: #20242b; font-family: Inter, Arial, sans-serif; font-size: 42px; font-weight: 700; }
+    .label { fill: #7b8490; font-family: "JetBrains Mono", monospace; font-size: 14px; letter-spacing: 1px; }
+    .value { fill: #20242b; font-family: Inter, Arial, sans-serif; font-size: 18px; }
+    .rule { stroke: #d8dce1; stroke-width: 1; }
+  </style>
+  <rect class="bg" width="1200" height="502" />
+  <text x="72" y="62" class="eyebrow">GOBERNANZA HITL</text>
+  <text x="72" y="122" class="title">Contrato de script</text>
+  <line x1="72" y1="148" x2="1128" y2="148" class="rule" />
+  <text x="72" y="190" class="label">ESTADO</text><text x="330" y="190" class="value">not_requested</text><line x1="72" y1="208" x2="1128" y2="208" class="rule" /><text x="72" y="242" class="label">ACCIONES ACEPTADAS</text><text x="330" y="242" class="value">0</text><line x1="72" y1="260" x2="1128" y2="260" class="rule" /><text x="72" y="294" class="label">ACCIONES RECHAZADAS</text><text x="330" y="294" class="value">0</text><line x1="72" y1="312" x2="1128" y2="312" class="rule" /><text x="72" y="346" class="label">ACCIONES EXCLUIDAS</text><text x="330" y="346" class="value">0</text><line x1="72" y1="364" x2="1128" y2="364" class="rule" /><text x="72" y="398" class="label">SINTAXIS PYTHON</text><text x="330" y="398" class="value">n/d</text><line x1="72" y1="416" x2="1128" y2="416" class="rule" /><text x="72" y="450" class="label">SCRIPT HASH</text><text x="330" y="450" class="value">n/d</text><line x1="72" y1="468" x2="1128" y2="468" class="rule" />
+</svg>

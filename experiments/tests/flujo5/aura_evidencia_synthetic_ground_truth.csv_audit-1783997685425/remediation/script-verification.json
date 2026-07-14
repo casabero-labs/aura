@@ -1,0 +1,14 @@
+{
+  "valid": true,
+  "errors": [],
+  "warnings": [
+    {
+      "code": "SCRIPT_SYNTAX_NOT_RUN",
+      "path": "$.syntax",
+      "message": "no syntax checker provided"
+    }
+  ],
+  "pythonSyntax": {
+    "state": "not_run"
+  }
+}

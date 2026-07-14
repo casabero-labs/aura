@@ -1,0 +1,308 @@
+{
+  "contractId": "aura.diagnosis.v2",
+  "contractVersion": "2.0.0",
+  "diagnosisBlocks": [
+    {
+      "columnId": null,
+      "issueId": "integrity-dupes",
+      "observation": "Se encontraron 1 filas idénticas que afectan la integridad estructural.",
+      "recommendation": "Considerar eliminar las filas duplicadas para asegurar la unicidad de los registros.",
+      "ruleId": "rule:exact-duplicates",
+      "scope": "dataset"
+    },
+    {
+      "columnId": "col:c48ed5501a3f61e9",
+      "issueId": "integrity-null-nombre",
+      "observation": "Advertencia: Faltan datos en la columna 'nombre'.",
+      "recommendation": "Investigar y rellenar los valores nulos o faltantes para asegurar la integridad del dato.",
+      "ruleId": "rule:null-values",
+      "scope": "column"
+    },
+    {
+      "columnId": "col:c48ed5501a3f61e9",
+      "issueId": "hygiene-moji-nombre",
+      "observation": "Se detectaron caracteres corruptos (mojibake) en la columna 'nombre'.",
+      "recommendation": "Considerar normalizar o corregir los caracteres para asegurar una representación textual correcta.",
+      "ruleId": "rule:mojibake",
+      "scope": "column"
+    },
+    {
+      "columnId": "col:14a06a875d2805a1",
+      "issueId": "integrity-null-edad",
+      "observation": "Advertencia: Faltan datos en la columna 'edad'.",
+      "recommendation": "Investigar y rellenar los valores nulos o faltantes para asegurar la integridad del dato.",
+      "ruleId": "rule:null-values",
+      "scope": "column"
+    },
+    {
+      "columnId": "col:14a06a875d2805a1",
+      "issueId": "hygiene-toxic-edad",
+      "observation": "Se detectaron valores como \"N/A\" en la columna 'edad'.",
+      "recommendation": "Considerar estandarizar los placeholders tóxicos a un valor nulo o manejar explícitamente estos casos.",
+      "ruleId": "rule:toxic-placeholders",
+      "scope": "column"
+    },
+    {
+      "columnId": "col:14a06a875d2805a1",
+      "issueId": "logic-outlier-edad",
+      "observation": "Se detectaron valores extremos en la columna 'edad' (ej. 150).",
+      "recommendation": "Revisar los datos atípicos para determinar si son errores de entrada o representan casos válidos.",
+      "ruleId": "rule:extreme-outliers",
+      "scope": "column"
+    },
+    {
+      "columnId": "col:3ccf050c2a6ae5c6",
+      "issueId": "logic-neg-salario",
+      "observation": "Se encontraron valores negativos en la columna 'salario'.",
+      "recommendation": "Investigar los registros con salario negativo, ya que es un valor lógicamente imposible.",
+      "ruleId": "rule:impossible-negatives",
+      "scope": "column"
+    },
+    {
+      "columnId": "col:3ccf050c2a6ae5c6",
+      "issueId": "logic-outlier-salario",
+      "observation": "Se detectaron valores extremos en la columna 'salario' (ej. -1500, 9***9).",
+      "recommendation": "Revisar los datos atípicos para determinar si son errores de entrada o representan casos válidos.",
+      "ruleId": "rule:extreme-outliers",
+      "scope": "column"
+    },
+    {
+      "columnId": "col:534000c8bf517b29",
+      "issueId": "integrity-null-email",
+      "observation": "Advertencia: Faltan datos en la columna 'email'.",
+      "recommendation": "Investigar y rellenar los valores nulos o faltantes para asegurar la integridad del dato.",
+      "ruleId": "rule:null-values",
+      "scope": "column"
+    },
+    {
+      "columnId": "col:534000c8bf517b29",
+      "issueId": "hygiene-toxic-email",
+      "observation": "Se detectaron valores como \"sha256:...\" en la columna 'email'.",
+      "recommendation": "Considerar estandarizar los placeholders tóxicos a un valor nulo o manejar explícitamente estos casos.",
+      "ruleId": "rule:toxic-placeholders",
+      "scope": "column"
+    },
+    {
+      "columnId": "col:534000c8bf517b29",
+      "issueId": "logic-email-email",
+      "observation": "Se detectaron cadenas en la columna 'email' que no cumplen con el formato de correo válido.",
+      "recommendation": "Validar y corregir los formatos de email para asegurar su conformidad con estándares.",
+      "ruleId": "rule:invalid-email",
+      "scope": "column"
+    },
+    {
+      "columnId": "col:623e34a359a89dd3",
+      "issueId": "logic-mixed-date-fecha_ingreso",
+      "observation": "La columna 'fecha_ingreso' mezcla formatos de fecha (ej. 2***5, 01/15/2023).",
+      "recommendation": "Definir un formato único para la columna y estandarizar todas las entradas antes de cualquier análisis temporal.",
+      "ruleId": "rule:mixed-date-formats",
+      "scope": "column"
+    },
+    {
+      "columnId": "col:f9b45ca6934a8296",
+      "issueId": "integrity-null-estado",
+      "observation": "Advertencia: Faltan datos en la columna 'estado'.",
+      "recommendation": "Investigar y rellenar los valores nulos o faltantes para asegurar la integridad del dato.",
+      "ruleId": "rule:null-values",
+      "scope": "column"
+    },
+    {
+      "columnId": "col:f9b45ca6934a8296",
+      "issueId": "hygiene-toxic-estado",
+      "observation": "Se detectaron valores como \"N/A\" en la columna 'estado'.",
+      "recommendation": "Considerar estandarizar los placeholders tóxicos a un valor nulo o manejar explícitamente estos casos.",
+      "ruleId": "rule:toxic-placeholders",
+      "scope": "column"
+    },
+    {
+      "columnId": "col:e7b2c5a4df357066",
+      "issueId": "sec-pii-ip_acceso",
+      "observation": "Se detectaron patrones de PII (IP) en la columna 'ip_acceso'.",
+      "recommendation": "Implementar medidas de anonimización o enmascaramiento para proteger los datos sensibles.",
+      "ruleId": "rule:pii-detected",
+      "scope": "column"
+    }
+  ],
+  "evidenceEnvelopeRef": "env:84f35ac4e828fafaaea2af5469a405700881c1082ed31d221164bfcf54d480b0",
+  "generatedAt": "2024-01-01T00:00:00Z",
+  "issues": [
+    {
+      "confidence": 1.0,
+      "evidenceRefs": [],
+      "hypothesis": "Se encontraron filas duplicadas en el conjunto de datos.",
+      "issueId": "integrity-dupes",
+      "limits": [],
+      "requiresHumanReview": true
+    },
+    {
+      "confidence": 1.0,
+      "evidenceRefs": [],
+      "hypothesis": "La columna 'nombre' contiene valores nulos.",
+      "issueId": "integrity-null-nombre",
+      "limits": [],
+      "requiresHumanReview": true
+    },
+    {
+      "confidence": 1.0,
+      "evidenceRefs": [
+        "ev-0000"
+      ],
+      "hypothesis": "La columna 'nombre' contiene caracteres corruptos (mojibake).",
+      "issueId": "hygiene-moji-nombre",
+      "limits": [],
+      "requiresHumanReview": false
+    },
+    {
+      "confidence": 1.0,
+      "evidenceRefs": [],
+      "hypothesis": "La columna 'edad' contiene valores nulos.",
+      "issueId": "integrity-null-edad",
+      "limits": [],
+      "requiresHumanReview": true
+    },
+    {
+      "confidence": 1.0,
+      "evidenceRefs": [
+        "ev-0001"
+      ],
+      "hypothesis": "La columna 'edad' contiene placeholders tóxicos como \"N/A\".",
+      "issueId": "hygiene-toxic-edad",
+      "limits": [],
+      "requiresHumanReview": false
+    },
+    {
+      "confidence": 1.0,
+      "evidenceRefs": [
+        "ev-0002"
+      ],
+      "hypothesis": "La columna 'edad' presenta valores atípicos extremos.",
+      "issueId": "logic-outlier-edad",
+      "limits": [],
+      "requiresHumanReview": false
+    },
+    {
+      "confidence": 1.0,
+      "evidenceRefs": [
+        "ev-0003"
+      ],
+      "hypothesis": "La columna 'salario' contiene valores negativos.",
+      "issueId": "logic-neg-salario",
+      "limits": [],
+      "requiresHumanReview": false
+    },
+    {
+      "confidence": 1.0,
+      "evidenceRefs": [
+        "ev-0004",
+        "ev-0005"
+      ],
+      "hypothesis": "La columna 'salario' presenta valores atípicos extremos.",
+      "issueId": "logic-outlier-salario",
+      "limits": [],
+      "requiresHumanReview": false
+    },
+    {
+      "confidence": 1.0,
+      "evidenceRefs": [],
+      "hypothesis": "La columna 'email' contiene valores nulos.",
+      "issueId": "integrity-null-email",
+      "limits": [],
+      "requiresHumanReview": true
+    },
+    {
+      "confidence": 1.0,
+      "evidenceRefs": [
+        "ev-0006"
+      ],
+      "hypothesis": "La columna 'email' contiene placeholders tóxicos como \"sha256:...\" (privacidad).",
+      "issueId": "hygiene-toxic-email",
+      "limits": [],
+      "requiresHumanReview": false
+    },
+    {
+      "confidence": 1.0,
+      "evidenceRefs": [
+        "ev-0007"
+      ],
+      "hypothesis": "La columna 'email' contiene formatos inválidos.",
+      "issueId": "logic-email-email",
+      "limits": [],
+      "requiresHumanReview": false
+    },
+    {
+      "confidence": 1.0,
+      "evidenceRefs": [
+        "ev-0008",
+        "ev-0009",
+        "ev-0010",
+        "ev-0011"
+      ],
+      "hypothesis": "La columna 'fecha_ingreso' presenta formatos de fecha mixtos.",
+      "issueId": "logic-mixed-date-fecha_ingreso",
+      "limits": [],
+      "requiresHumanReview": false
+    },
+    {
+      "confidence": 1.0,
+      "evidenceRefs": [],
+      "hypothesis": "La columna 'estado' contiene valores nulos.",
+      "issueId": "integrity-null-estado",
+      "limits": [],
+      "requiresHumanReview": true
+    },
+    {
+      "confidence": 1.0,
+      "evidenceRefs": [
+        "ev-0012"
+      ],
+      "hypothesis": "La columna 'estado' contiene placeholders tóxicos como \"N/A\".",
+      "issueId": "hygiene-toxic-estado",
+      "limits": [],
+      "requiresHumanReview": false
+    },
+    {
+      "confidence": 1.0,
+      "evidenceRefs": [
+        "ev-0013",
+        "ev-0014",
+        "ev-0015"
+      ],
+      "hypothesis": "La columna 'ip_acceso' contiene información sensible (PII).",
+      "issueId": "sec-pii-ip_acceso",
+      "limits": [],
+      "requiresHumanReview": true
+    }
+  ],
+  "limitations": [
+    "The diagnosis relies on sample data, and the findings may not be representative of the entire dataset.",
+    "Specific remediation steps are descriptive; actual implementation requires domain knowledge."
+  ],
+  "responseId": "resp-84f35ac4e828fafaaea2af5469a405700881c1082ed31d221164bfcf54d480b0",
+  "visualizations": [
+    {
+      "dataSource": "top_affected_issues",
+      "includeInPdf": true,
+      "issueIds": [
+        "integrity-dupes",
+        "integrity-null-nombre",
+        "hygiene-moji-nombre",
+        "integrity-null-edad",
+        "hygiene-toxic-edad",
+        "logic-outlier-edad",
+        "logic-neg-salario",
+        "logic-outlier-salario",
+        "integrity-null-email",
+        "hygiene-toxic-email",
+        "logic-email-email",
+        "logic-mixed-date-fecha_ingreso",
+        "integrity-null-estado",
+        "hygiene-toxic-estado",
+        "sec-pii-ip_acceso"
+      ],
+      "kind": "bar",
+      "rationale": "A bar chart is suitable to visualize the frequency and impact of each identified data quality issue across the dataset.",
+      "title": "Frequency of Data Quality Issues by Issue ID",
+      "visualizationId": "viz-issue-frequency-001"
+    }
+  ]
+}

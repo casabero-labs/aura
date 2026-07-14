@@ -1,0 +1,211 @@
+{
+  "contractId": "aura.evidence-package.v1",
+  "contractVersion": "1.0.0",
+  "generatedAt": "2026-07-14T03:30:11.908Z",
+  "runId": "audit-1783997685425",
+  "reportId": "diag-report-a278ff8f",
+  "datasetSha256": "4e7d358f2141c6463146417a66f1c2312c7c3cdf6a39005780c92b061ff7ac49",
+  "diagnosisReceiptHash": "9fd45fe7ad8acfe542f2fa6dc341345b85b3182556faa6e3b5567870a2988928",
+  "privacy": {
+    "rawDatasetIncluded": false,
+    "correctedDatasetIncluded": true,
+    "correctedDatasetMayContainPersonalData": true,
+    "note": "El CSV original permanece fuera del ZIP; su identidad se verifica mediante datasetSha256. Se incluye corrected.csv de una ejecución verificada, que puede conservar datos personales (PII). El expediente puede conservar muestras visibles de la evidencia."
+  },
+  "snapshots": {
+    "kind": "reproducible_svg_evidence",
+    "browserScreenshots": false,
+    "note": "Las vistas SVG se generan desde datos contractuales y evitan depender del estado visual del navegador."
+  },
+  "files": [
+    {
+      "path": "README.md",
+      "mediaType": "text/markdown",
+      "bytes": 1135,
+      "sha256": "bbff435ac7bbc50ed7c843669fea5c5a85fd7a755cc3751efaeaaeb273ea6fb7",
+      "description": "Guía humana y alcance de privacidad del expediente."
+    },
+    {
+      "path": "activity/pipeline.log",
+      "mediaType": "text/plain",
+      "bytes": 1062,
+      "sha256": "3c6177db02b5b59f024ffd6f67995c6c0062449b35144488070d92002c39040a",
+      "description": "Secuencia local de eventos del flujo."
+    },
+    {
+      "path": "diagnosis/01-system-instruction.en.txt",
+      "mediaType": "text/plain",
+      "bytes": 2684,
+      "sha256": "aee2ce18f4fc794def38a1fc0f16e6f4690af66577d6b8044edf9fb69809a2f3",
+      "description": "Instrucción técnica estable del contrato V2."
+    },
+    {
+      "path": "diagnosis/02-evidence-payload.json",
+      "mediaType": "application/json",
+      "bytes": 22867,
+      "sha256": "fd883e32e5bf038611ec8d2f2536baf735838bb4aefae971cb1566992d66a102",
+      "description": "Evidencia exacta entregada al modelo."
+    },
+    {
+      "path": "diagnosis/03-request-sent-once.txt",
+      "mediaType": "text/plain",
+      "bytes": 29791,
+      "sha256": "d456c25581cddc11011a13b3ea46a42092ae6b750c95141bd306d3f8e98dfec0",
+      "description": "Solicitud exacta certificada por promptHash."
+    },
+    {
+      "path": "diagnosis/execution-receipt.json",
+      "mediaType": "application/json",
+      "bytes": 1460,
+      "sha256": "b17b2f460b50fe5df6a12f599c5e1339c231c07594fc4ae6cf613dde9fca19da",
+      "description": "Recibo de modelo, método, tiempos y hashes."
+    },
+    {
+      "path": "diagnosis/provider-response.raw.json",
+      "mediaType": "application/json",
+      "bytes": 12727,
+      "sha256": "59080556d51780eddf453ee535abc28bdc44121dfe7d4defc91a14c0a8351fe5",
+      "description": "Respuesta exacta recibida del proveedor."
+    },
+    {
+      "path": "diagnosis/response-schema.json",
+      "mediaType": "application/json",
+      "bytes": 7484,
+      "sha256": "e6cbb385ba322371cc09a729eb7a23ad19898d0e48874f432c34a94414fda25b",
+      "description": "JSON Schema exigido a la respuesta."
+    },
+    {
+      "path": "execution/before-after-summary.json",
+      "mediaType": "application/json",
+      "bytes": 564,
+      "sha256": "ccc547012231439e31c682a86d6dd3b6f9a2e759ea41c00bfab0a72d053c14a6",
+      "description": "Comparación score/hallazgos antes y después de la remediación."
+    },
+    {
+      "path": "execution/corrected.csv",
+      "mediaType": "text/csv",
+      "bytes": 1223,
+      "sha256": "bd79c548a25b721585808890c20777f94bab972f12480c9d61771b12071a24c6",
+      "description": "Dataset corregido resultante de la ejecución verificada; puede contener PII."
+    },
+    {
+      "path": "execution/execution-bundle.json",
+      "mediaType": "application/json",
+      "bytes": 5977,
+      "sha256": "dd9bc04b1fbd8aaa69b3c0a0b3f7b195fd486c533d2d76d88966228fe137de72",
+      "description": "Bundle determinista aprobado y ejecutado en Python."
+    },
+    {
+      "path": "execution/reaudit-result.json",
+      "mediaType": "application/json",
+      "bytes": 45073,
+      "sha256": "259c14d0c9f6351ed4a9a360b1ad16e4d246adb4a0dbc8e52f5b21599437d559",
+      "description": "Reauditoría determinista: summary, output y reportes before/after sin datos crudos."
+    },
+    {
+      "path": "execution/receipt.json",
+      "mediaType": "application/json",
+      "bytes": 1425,
+      "sha256": "0c30c1ed342dc7b66c3e64366bd330a60da1dc75b41ecac291ba8f238abc6a7d",
+      "description": "Recibo criptográfico de la ejecución Python verificada."
+    },
+    {
+      "path": "findings/issues.csv",
+      "mediaType": "text/csv",
+      "bytes": 6741,
+      "sha256": "846ca28ac6798110bf09e5d69a0dcc6bd5116d4b2b124610b12d7dc4895fc575",
+      "description": "Hallazgos deterministas en formato tabular."
+    },
+    {
+      "path": "profile/audit-evidence.json",
+      "mediaType": "application/json",
+      "bytes": 1458,
+      "sha256": "f7268e7b54c30311d4be6fc65dc75b5439e19c6d2cac302c44423e0c5616212e",
+      "description": "Trazas de carga, SHA-256 y ejecución del motor."
+    },
+    {
+      "path": "profile/audit-report.json",
+      "mediaType": "application/json",
+      "bytes": 22204,
+      "sha256": "7accde6b1c9ff8af3510c319881c5300c75bee2fd0338e5de21fe1f83d92f4fd",
+      "description": "Reporte determinista original."
+    },
+    {
+      "path": "profile/deterministic-validation.json",
+      "mediaType": "application/json",
+      "bytes": 4230,
+      "sha256": "14c260c7630aa959b67c5fe678ae48d0a6ab58791175160e060c30a7ceb99004",
+      "description": "Comparación contra ground truth cuando existe."
+    },
+    {
+      "path": "remediation/approved-script.py",
+      "mediaType": "text/x-python",
+      "bytes": 1556,
+      "sha256": "7f3f8c52a0fe019eeae83d0114cc6ab25de78a93641e1f1f9d4a687ce8fbd08d",
+      "description": "Script exacto aprobado y enlazado al contrato aura.script.v2."
+    },
+    {
+      "path": "remediation/remediation-plan.json",
+      "mediaType": "application/json",
+      "bytes": 7742,
+      "sha256": "239432dd3e54db3e85e5a99b71852aa1bed6453310165586bb19e95e58d99d72",
+      "description": "Plan con decisiones humanas por acción."
+    },
+    {
+      "path": "remediation/script-contract.json",
+      "mediaType": "application/json",
+      "bytes": 4095,
+      "sha256": "81f0520d72ef767e0b49ace7f1706320269fc00e93bf6f320fe50b498f51101d",
+      "description": "Contrato canónico del script, partición e identidad."
+    },
+    {
+      "path": "remediation/script-verification.json",
+      "mediaType": "application/json",
+      "bytes": 228,
+      "sha256": "e03908238afe3cb04bdfb23dd9afdfaeb3da067d01c5a6ca4d5698900c0ed855",
+      "description": "Resultado de la verificación fresca del contrato."
+    },
+    {
+      "path": "report/diagnostic-report.json",
+      "mediaType": "application/json",
+      "bytes": 85029,
+      "sha256": "05937af7d1cb09707b18d796e276db3a04626366d95160d1de1278eec06ede74",
+      "description": "Modelo canónico usado para PDF y lectura humana."
+    },
+    {
+      "path": "report/diagnostic-report.pdf",
+      "mediaType": "application/pdf",
+      "bytes": 66877,
+      "sha256": "5fdea071323dc5c036ba698e2094f5fa8818e462b631ba7c33e3d8fe3efbc8fe",
+      "description": "Informe diagnóstico Showcase Ink."
+    },
+    {
+      "path": "snapshots/diagnosis.svg",
+      "mediaType": "image/svg+xml",
+      "bytes": 2061,
+      "sha256": "6593650a7eee7814c0d40f8f7543601a83bf828ef06c04c9ed5ae4e06ec03004",
+      "description": "Captura vectorial reproducible del diagnóstico."
+    },
+    {
+      "path": "snapshots/report.svg",
+      "mediaType": "image/svg+xml",
+      "bytes": 1977,
+      "sha256": "f8326787859c432db00821546d843da2bacfb7faf2d846587e9538038a10ae43",
+      "description": "Captura vectorial reproducible del informe."
+    },
+    {
+      "path": "snapshots/script.svg",
+      "mediaType": "image/svg+xml",
+      "bytes": 1968,
+      "sha256": "eb7f2deb21d044a0e30dbccac7b85c07bad395793e2d0a37bc62a00e001a554b",
+      "description": "Captura vectorial reproducible de revisión y partición del script."
+    },
+    {
+      "path": "technical/aura-technical-export.json",
+      "mediaType": "application/json",
+      "bytes": 278646,
+      "sha256": "67fa13ee5cf40f9b563180e26b658286ac119e6179f5eab91f73a409397f1e54",
+      "description": "Fuente técnica consolidada de la sesión."
+    }
+  ]
+}

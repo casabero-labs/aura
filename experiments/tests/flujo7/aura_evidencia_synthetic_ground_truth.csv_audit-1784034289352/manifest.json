@@ -1,0 +1,155 @@
+{
+  "contractId": "aura.evidence-package.v1",
+  "contractVersion": "1.0.0",
+  "generatedAt": "2026-07-14T13:17:08.714Z",
+  "runId": "audit-1784034289352",
+  "reportId": "diag-report-d76dbe5e",
+  "datasetSha256": "4e7d358f2141c6463146417a66f1c2312c7c3cdf6a39005780c92b061ff7ac49",
+  "diagnosisReceiptHash": "0592744ddc56845d5cb35adaf628114cd019ccdc50b00bddaed40b8cbb457f9c",
+  "privacy": {
+    "rawDatasetIncluded": false,
+    "correctedDatasetIncluded": false,
+    "correctedDatasetMayContainPersonalData": false,
+    "note": "El CSV original permanece fuera del ZIP; su identidad se verifica mediante datasetSha256. El expediente puede conservar muestras visibles de la evidencia."
+  },
+  "snapshots": {
+    "kind": "reproducible_svg_evidence",
+    "browserScreenshots": false,
+    "note": "Las vistas SVG se generan desde datos contractuales y evitan depender del estado visual del navegador."
+  },
+  "files": [
+    {
+      "path": "README.md",
+      "mediaType": "text/markdown",
+      "bytes": 1125,
+      "sha256": "c78902314ac8e368832b403b1114d15e1859610e50ab2f1019ae24d86dc04cdf",
+      "description": "Guía humana y alcance de privacidad del expediente."
+    },
+    {
+      "path": "activity/pipeline.log",
+      "mediaType": "text/plain",
+      "bytes": 545,
+      "sha256": "26260876290cff36314414cb6bd32bf72c1181773db9c01abecd98937fe2c742",
+      "description": "Secuencia local de eventos del flujo."
+    },
+    {
+      "path": "diagnosis/01-system-instruction.en.txt",
+      "mediaType": "text/plain",
+      "bytes": 4344,
+      "sha256": "2a8273f74f41f9c384d22dfafe3d11ed987b12c30ccad59b2de73424d8c09735",
+      "description": "Instrucción técnica estable del contrato V2."
+    },
+    {
+      "path": "diagnosis/02-evidence-payload.json",
+      "mediaType": "application/json",
+      "bytes": 14805,
+      "sha256": "d6e9cdd3c10096cec91204feb03726a9fb4b15d3ad8645606cc7994abacaf249",
+      "description": "Evidencia exacta entregada al modelo."
+    },
+    {
+      "path": "diagnosis/03-request-sent-once.txt",
+      "mediaType": "text/plain",
+      "bytes": 23389,
+      "sha256": "3eb2547b9e931a05ac15d3fe4f1905f530cf3fcf87f01270d0711c096e844e9c",
+      "description": "Solicitud exacta certificada por promptHash."
+    },
+    {
+      "path": "diagnosis/execution-receipt.json",
+      "mediaType": "application/json",
+      "bytes": 1455,
+      "sha256": "45f2d883228f4df75854ef966d81ea7bf9e42159314b4696136133bd91431340",
+      "description": "Recibo de modelo, método, tiempos y hashes."
+    },
+    {
+      "path": "diagnosis/governance-normalization.json",
+      "mediaType": "application/json",
+      "bytes": 1532,
+      "sha256": "862e279a027c7e2acb710112459587f1bc27e10d0b2d5e1357caff76d58c76da",
+      "description": "AURA aplicó requiresHumanReview=true a los issueId indicados. La respuesta cruda del modelo y su hash se conservan sin cambios."
+    },
+    {
+      "path": "diagnosis/provider-response.raw.json",
+      "mediaType": "application/json",
+      "bytes": 10918,
+      "sha256": "b2e73de5917d41dd2b4472b89fb67beb7e59e3fdcc639da1d16ccbe945b1fe41",
+      "description": "Respuesta exacta recibida del proveedor."
+    },
+    {
+      "path": "diagnosis/response-schema.json",
+      "mediaType": "application/json",
+      "bytes": 7484,
+      "sha256": "e6cbb385ba322371cc09a729eb7a23ad19898d0e48874f432c34a94414fda25b",
+      "description": "JSON Schema exigido a la respuesta."
+    },
+    {
+      "path": "findings/issues.csv",
+      "mediaType": "text/csv",
+      "bytes": 6741,
+      "sha256": "0ef9317c296dfb697cea5ff2bd70425528095c110af4fdc3b2b75e5c69b79a3b",
+      "description": "Hallazgos deterministas en formato tabular."
+    },
+    {
+      "path": "profile/audit-evidence.json",
+      "mediaType": "application/json",
+      "bytes": 1458,
+      "sha256": "54edb8d33dffe11f469be60996973939e2fc38295ef1c4393686cd2645217ca0",
+      "description": "Trazas de carga, SHA-256 y ejecución del motor."
+    },
+    {
+      "path": "profile/audit-report.json",
+      "mediaType": "application/json",
+      "bytes": 22204,
+      "sha256": "b2691b7d48d05a4e3a7daf710863d2b62aad9ac5e7e7c562a1791a0bccfdd229",
+      "description": "Reporte determinista original."
+    },
+    {
+      "path": "profile/deterministic-validation.json",
+      "mediaType": "application/json",
+      "bytes": 4230,
+      "sha256": "14c260c7630aa959b67c5fe678ae48d0a6ab58791175160e060c30a7ceb99004",
+      "description": "Comparación contra ground truth cuando existe."
+    },
+    {
+      "path": "report/diagnostic-report.json",
+      "mediaType": "application/json",
+      "bytes": 76430,
+      "sha256": "18e5932cc288812de6c37f4c623c396a3f0edf3c308e4b66ff2c4451741cc8ac",
+      "description": "Modelo canónico usado para PDF y lectura humana."
+    },
+    {
+      "path": "report/diagnostic-report.pdf",
+      "mediaType": "application/pdf",
+      "bytes": 48459,
+      "sha256": "a2fde7c9e5a4f4dacf63ebae4ceb25be7fd6d2ed0a72f451aef6d1e12372529e",
+      "description": "Informe diagnóstico Showcase Ink."
+    },
+    {
+      "path": "snapshots/diagnosis.svg",
+      "mediaType": "image/svg+xml",
+      "bytes": 2070,
+      "sha256": "8cbde5f0125783f0b944df067375fe610ac4b31a674240d926cdd6633826c599",
+      "description": "Captura vectorial reproducible del diagnóstico."
+    },
+    {
+      "path": "snapshots/report.svg",
+      "mediaType": "image/svg+xml",
+      "bytes": 1977,
+      "sha256": "29a22d90548a45dbce39846caccb9d805d0fef70caa8f9b3bd5c867cc22b298a",
+      "description": "Captura vectorial reproducible del informe."
+    },
+    {
+      "path": "snapshots/script.svg",
+      "mediaType": "image/svg+xml",
+      "bytes": 1907,
+      "sha256": "83f1114485f1878b099662ee1026f96b492c58cebb4e0f9dfb41fb7f8ae9aa3a",
+      "description": "Captura vectorial reproducible de revisión y partición del script."
+    },
+    {
+      "path": "technical/aura-technical-export.json",
+      "mediaType": "application/json",
+      "bytes": 246333,
+      "sha256": "b62262b28badb5f8e578a1a9cfc0448164d86d94764ec40a3db9326e4993ebb7",
+      "description": "Fuente técnica consolidada de la sesión."
+    }
+  ]
+}

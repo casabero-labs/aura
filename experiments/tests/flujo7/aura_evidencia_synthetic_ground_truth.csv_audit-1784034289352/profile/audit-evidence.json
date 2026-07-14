@@ -1,0 +1,61 @@
+{
+  "id": "audit-1784034289352",
+  "fileName": "synthetic_ground_truth.csv",
+  "fileSize": 1300,
+  "datasetFingerprint": "40dc4aac",
+  "datasetSha256": "4e7d358f2141c6463146417a66f1c2312c7c3cdf6a39005780c92b061ff7ac49",
+  "startedAt": "2026-07-14T13:04:49.335Z",
+  "completedAt": "2026-07-14T13:04:49.352Z",
+  "parseDurationMs": 10,
+  "auditDurationMs": 5,
+  "totalDurationMs": 15,
+  "rowsProcessed": 15,
+  "columnsProcessed": 9,
+  "delimiter": ",",
+  "truncated": false,
+  "ingestionStatus": "success",
+  "issueCount": 15,
+  "score": 0,
+  "trace": [
+    {
+      "stage": "csv.parse.start",
+      "timestamp": "2026-07-14T13:04:49.336Z",
+      "elapsedMs": 1,
+      "details": {
+        "fileName": "synthetic_ground_truth.csv",
+        "fileSize": 1300
+      }
+    },
+    {
+      "stage": "csv.parse.end",
+      "timestamp": "2026-07-14T13:04:49.346Z",
+      "elapsedMs": 11,
+      "details": {
+        "rows": 15,
+        "columns": 9,
+        "delimiter": ",",
+        "truncated": false,
+        "durationMs": 10
+      }
+    },
+    {
+      "stage": "audit.run.start",
+      "timestamp": "2026-07-14T13:04:49.347Z",
+      "elapsedMs": 12,
+      "details": {
+        "datasetFingerprint": "40dc4aac"
+      }
+    },
+    {
+      "stage": "audit.run.end",
+      "timestamp": "2026-07-14T13:04:49.352Z",
+      "elapsedMs": 17,
+      "details": {
+        "durationMs": 5,
+        "score": 0,
+        "issues": 15,
+        "duplicateRows": 1
+      }
+    }
+  ]
+}

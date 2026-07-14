@@ -1,0 +1,1658 @@
+{
+  "summary": {
+    "beforeEvidenceEnvelopeRef": "env:84f35ac4e828fafaaea2af5469a405700881c1082ed31d221164bfcf54d480b0",
+    "afterEvidenceEnvelopeRef": "env:f6697642f9268160",
+    "beforeIssueCount": 15,
+    "afterIssueCount": 11,
+    "rulesCompared": [
+      "rule:exact-duplicates",
+      "rule:extreme-outliers",
+      "rule:impossible-negatives",
+      "rule:invalid-email",
+      "rule:mixed-date-formats",
+      "rule:mojibake",
+      "rule:null-values",
+      "rule:pii-detected",
+      "rule:toxic-placeholders"
+    ]
+  },
+  "output": {
+    "rowCountBefore": 15,
+    "rowCountAfter": 14,
+    "columnCountBefore": 9,
+    "columnCountAfter": 9,
+    "outputFingerprint": "22a496a5d391033f9fef572e28e88c24497c6b8da5e8ebb95f944ee0b8e31c5f",
+    "changedCellsEstimate": 81,
+    "exportedCsvRef": "output:env:f6697642f9268160"
+  },
+  "beforeReport": {
+    "score": 0,
+    "rowCount": 15,
+    "colCount": 9,
+    "duplicateRows": 1,
+    "issues": [
+      {
+        "id": "integrity-dupes",
+        "ruleName": "Filas Duplicadas",
+        "category": "Integridad y Estructura",
+        "description": "Se encontraron 1 filas idénticas que afectan la integridad estructural.",
+        "severity": "critical",
+        "count": 1,
+        "affectedPercentage": 6.666666666666667,
+        "sampleValues": [],
+        "ruleId": "rule:exact-duplicates",
+        "automaticAuthorization": {
+          "actionType": "drop_exact_duplicates",
+          "authorized": true,
+          "conditionsMet": [
+            "full-row-equality-confirmed",
+            "duplicate-count-positive"
+          ],
+          "reason": "Deterministic exact-row duplicate authorization"
+        }
+      },
+      {
+        "id": "integrity-null-nombre",
+        "column": "nombre",
+        "ruleName": "Valores Nulos / Vacíos",
+        "category": "Integridad y Estructura",
+        "description": "Advertencia: Faltan datos.",
+        "severity": "warning",
+        "count": 1,
+        "affectedPercentage": 6.666666666666667,
+        "sampleValues": [],
+        "ruleId": "rule:null-values",
+        "automaticAuthorization": {
+          "actionType": "handle_nulls",
+          "authorized": false,
+          "conditionsMet": [],
+          "reason": "Requires domain decision on null meaning"
+        }
+      },
+      {
+        "id": "hygiene-moji-nombre",
+        "column": "nombre",
+        "category": "Higiene de Texto",
+        "ruleName": "Mojibake / Encoding Roto",
+        "description": "Caracteres corruptos (Ã±, etc).",
+        "severity": "warning",
+        "count": 1,
+        "affectedPercentage": 6.666666666666667,
+        "sampleValues": [
+          "Luis GarcÃ­a"
+        ],
+        "ruleId": "rule:mojibake",
+        "automaticAuthorization": {
+          "actionType": "encoding_fix",
+          "authorized": false,
+          "conditionsMet": [],
+          "reason": "Requires encoding detection"
+        }
+      },
+      {
+        "id": "integrity-null-edad",
+        "column": "edad",
+        "ruleName": "Valores Nulos / Vacíos",
+        "category": "Integridad y Estructura",
+        "description": "Advertencia: Faltan datos.",
+        "severity": "warning",
+        "count": 1,
+        "affectedPercentage": 6.666666666666667,
+        "sampleValues": [],
+        "ruleId": "rule:null-values",
+        "automaticAuthorization": {
+          "actionType": "handle_nulls",
+          "authorized": false,
+          "conditionsMet": [],
+          "reason": "Requires domain decision on null meaning"
+        }
+      },
+      {
+        "id": "hygiene-toxic-edad",
+        "column": "edad",
+        "category": "Higiene de Texto",
+        "ruleName": "Placeholders Tóxicos",
+        "description": "Valores como \"n/a\", \"null\" o \"999\" detectados.",
+        "severity": "warning",
+        "count": 1,
+        "affectedPercentage": 6.666666666666667,
+        "sampleValues": [
+          "N/A"
+        ],
+        "ruleId": "rule:toxic-placeholders",
+        "automaticAuthorization": {
+          "actionType": "replace_placeholders",
+          "authorized": false,
+          "conditionsMet": [],
+          "reason": "Requires domain decision on replacement"
+        }
+      },
+      {
+        "id": "logic-outlier-edad",
+        "column": "edad",
+        "category": "Validez y Lógica de Negocio",
+        "ruleName": "Outliers Extremos (IQR 3×)",
+        "description": "Valores desviados > 3× del rango intercuartílico.",
+        "severity": "warning",
+        "count": 1,
+        "affectedPercentage": 6.666666666666667,
+        "sampleValues": [
+          150
+        ],
+        "ruleId": "rule:extreme-outliers",
+        "automaticAuthorization": {
+          "actionType": "cap_outliers",
+          "authorized": false,
+          "conditionsMet": [],
+          "reason": "Statistical outlier handling"
+        }
+      },
+      {
+        "id": "logic-neg-salario",
+        "column": "salario",
+        "category": "Validez y Lógica de Negocio",
+        "ruleName": "Negativos Imposibles",
+        "description": "Valores negativos en campo lógico (Edad, Precio).",
+        "severity": "critical",
+        "count": 1,
+        "affectedPercentage": 6.666666666666667,
+        "sampleValues": [
+          -1500
+        ],
+        "ruleId": "rule:impossible-negatives",
+        "automaticAuthorization": {
+          "actionType": "filter_negatives",
+          "authorized": false,
+          "conditionsMet": [],
+          "reason": "Logical constraint violation"
+        }
+      },
+      {
+        "id": "logic-outlier-salario",
+        "column": "salario",
+        "category": "Validez y Lógica de Negocio",
+        "ruleName": "Outliers Extremos (IQR 3×)",
+        "description": "Valores desviados > 3× del rango intercuartílico.",
+        "severity": "warning",
+        "count": 2,
+        "affectedPercentage": 13.333333333333334,
+        "sampleValues": [
+          -1500,
+          9999999.99
+        ],
+        "ruleId": "rule:extreme-outliers",
+        "automaticAuthorization": {
+          "actionType": "cap_outliers",
+          "authorized": false,
+          "conditionsMet": [],
+          "reason": "Statistical outlier handling"
+        }
+      },
+      {
+        "id": "integrity-null-email",
+        "column": "email",
+        "ruleName": "Valores Nulos / Vacíos",
+        "category": "Integridad y Estructura",
+        "description": "Advertencia: Faltan datos.",
+        "severity": "warning",
+        "count": 1,
+        "affectedPercentage": 6.666666666666667,
+        "sampleValues": [],
+        "ruleId": "rule:null-values",
+        "automaticAuthorization": {
+          "actionType": "handle_nulls",
+          "authorized": false,
+          "conditionsMet": [],
+          "reason": "Requires domain decision on null meaning"
+        }
+      },
+      {
+        "id": "hygiene-toxic-email",
+        "column": "email",
+        "category": "Higiene de Texto",
+        "ruleName": "Placeholders Tóxicos",
+        "description": "Valores como \"n/a\", \"null\" o \"999\" detectados.",
+        "severity": "warning",
+        "count": 1,
+        "affectedPercentage": 6.666666666666667,
+        "sampleValues": [
+          "NULL"
+        ],
+        "ruleId": "rule:toxic-placeholders",
+        "automaticAuthorization": {
+          "actionType": "replace_placeholders",
+          "authorized": false,
+          "conditionsMet": [],
+          "reason": "Requires domain decision on replacement"
+        }
+      },
+      {
+        "id": "logic-email-email",
+        "column": "email",
+        "category": "Validez y Lógica de Negocio",
+        "ruleName": "Formato Email Inválido",
+        "description": "Cadenas sin estructura de correo.",
+        "severity": "critical",
+        "count": 1,
+        "affectedPercentage": 6.666666666666667,
+        "sampleValues": [
+          "ana.torres@empresa"
+        ],
+        "ruleId": "rule:invalid-email",
+        "automaticAuthorization": {
+          "actionType": "validate_emails",
+          "authorized": false,
+          "conditionsMet": [],
+          "reason": "Format validation required"
+        }
+      },
+      {
+        "id": "logic-mixed-date-fecha_ingreso",
+        "column": "fecha_ingreso",
+        "category": "Validez y Lógica de Negocio",
+        "ruleName": "Formatos de Fecha Mixtos",
+        "description": "La columna mezcla fechas ISO con fechas escritas mediante barras; el orden día/mes debe confirmarse antes de convertir.",
+        "severity": "warning",
+        "count": 1,
+        "affectedPercentage": 6.666666666666667,
+        "sampleValues": [
+          "2023-01-15",
+          "2023-02-01",
+          "2022-11-20",
+          "01/15/2023"
+        ],
+        "ruleId": "rule:mixed-date-formats",
+        "automaticAuthorization": {
+          "actionType": "standardize_date_format",
+          "authorized": false,
+          "conditionsMet": [],
+          "reason": "Requires locale-aware conversion"
+        }
+      },
+      {
+        "id": "integrity-null-estado",
+        "column": "estado",
+        "ruleName": "Valores Nulos / Vacíos",
+        "category": "Integridad y Estructura",
+        "description": "Advertencia: Faltan datos.",
+        "severity": "warning",
+        "count": 1,
+        "affectedPercentage": 6.666666666666667,
+        "sampleValues": [],
+        "ruleId": "rule:null-values",
+        "automaticAuthorization": {
+          "actionType": "handle_nulls",
+          "authorized": false,
+          "conditionsMet": [],
+          "reason": "Requires domain decision on null meaning"
+        }
+      },
+      {
+        "id": "hygiene-toxic-estado",
+        "column": "estado",
+        "category": "Higiene de Texto",
+        "ruleName": "Placeholders Tóxicos",
+        "description": "Valores como \"n/a\", \"null\" o \"999\" detectados.",
+        "severity": "warning",
+        "count": 1,
+        "affectedPercentage": 6.666666666666667,
+        "sampleValues": [
+          "N/A"
+        ],
+        "ruleId": "rule:toxic-placeholders",
+        "automaticAuthorization": {
+          "actionType": "replace_placeholders",
+          "authorized": false,
+          "conditionsMet": [],
+          "reason": "Requires domain decision on replacement"
+        }
+      },
+      {
+        "id": "sec-pii-ip_acceso",
+        "column": "ip_acceso",
+        "category": "Semántica y Seguridad",
+        "ruleName": "Datos Sensibles (PII)",
+        "description": "Patrones de Tarjeta de Crédito o IP detectados.",
+        "severity": "critical",
+        "count": 15,
+        "affectedPercentage": 100,
+        "sampleValues": [
+          "192.168.1.10",
+          "10.0.0.5",
+          "172.16.0.100"
+        ],
+        "ruleId": "rule:pii-detected",
+        "automaticAuthorization": {
+          "actionType": "pii_handling",
+          "authorized": false,
+          "conditionsMet": [],
+          "reason": "Security-sensitive data"
+        }
+      }
+    ],
+    "columnStats": {
+      "id": {
+        "name": "id",
+        "inferredType": "number",
+        "nullCount": 0,
+        "uniqueCount": 14,
+        "topFreq": [
+          {
+            "value": "1",
+            "count": 2
+          },
+          {
+            "value": "2",
+            "count": 1
+          },
+          {
+            "value": "3",
+            "count": 1
+          },
+          {
+            "value": "4",
+            "count": 1
+          },
+          {
+            "value": "6",
+            "count": 1
+          }
+        ],
+        "zeros": 0,
+        "sampleValues": [
+          1,
+          8,
+          15
+        ],
+        "min": 1,
+        "max": 15,
+        "mean": 7.733333333333333,
+        "median": 8,
+        "std": 4.611097724210823,
+        "cv": 0.5962626367513995,
+        "skewness": -0.041185597266074105,
+        "q1": 3,
+        "q3": 12,
+        "iqr": 9,
+        "lowerFence": -24,
+        "upperFence": 39,
+        "outlierCount": 0,
+        "lowerFenceTukey": -10.5,
+        "upperFenceTukey": 25.5,
+        "outlierCountTukey": 0
+      },
+      "nombre": {
+        "name": "nombre",
+        "inferredType": "string",
+        "nullCount": 1,
+        "uniqueCount": 13,
+        "topFreq": [
+          {
+            "value": "Juan Pérez",
+            "count": 2
+          },
+          {
+            "value": "María López",
+            "count": 1
+          },
+          {
+            "value": "Carlos Díaz",
+            "count": 1
+          },
+          {
+            "value": "Ana Torres",
+            "count": 1
+          },
+          {
+            "value": "Luis GarcÃ­a",
+            "count": 1
+          }
+        ],
+        "zeros": 0,
+        "sampleValues": [
+          "Juan Pérez",
+          "Sofía Ruiz",
+          "Diego Mora"
+        ]
+      },
+      "edad": {
+        "name": "edad",
+        "inferredType": "number",
+        "nullCount": 1,
+        "uniqueCount": 13,
+        "topFreq": [
+          {
+            "value": "35",
+            "count": 2
+          },
+          {
+            "value": "28",
+            "count": 1
+          },
+          {
+            "value": "42",
+            "count": 1
+          },
+          {
+            "value": "31",
+            "count": 1
+          },
+          {
+            "value": "25",
+            "count": 1
+          }
+        ],
+        "zeros": 0,
+        "sampleValues": [
+          35,
+          150,
+          41
+        ],
+        "min": 25,
+        "max": 150,
+        "mean": 42.42857142857143,
+        "median": 34.5,
+        "std": 30.382594372705018,
+        "cv": 0.7160880828583674,
+        "skewness": 3.1239412524094035,
+        "q1": 29,
+        "q3": 41,
+        "iqr": 12,
+        "lowerFence": -7,
+        "upperFence": 77,
+        "outlierCount": 1,
+        "outlierSeverity": "WARNING",
+        "lowerFenceTukey": 11,
+        "upperFenceTukey": 59,
+        "outlierCountTukey": 1
+      },
+      "salario": {
+        "name": "salario",
+        "inferredType": "number",
+        "nullCount": 0,
+        "uniqueCount": 14,
+        "topFreq": [
+          {
+            "value": "50000",
+            "count": 2
+          },
+          {
+            "value": "45000.5",
+            "count": 1
+          },
+          {
+            "value": "-1500",
+            "count": 1
+          },
+          {
+            "value": "52000",
+            "count": 1
+          },
+          {
+            "value": "38000",
+            "count": 1
+          }
+        ],
+        "zeros": 0,
+        "sampleValues": [
+          50000,
+          42000,
+          58000
+        ],
+        "min": -1500,
+        "max": 9999999.99,
+        "mean": 708966.6993333333,
+        "median": 50000,
+        "std": 2483171.6732644727,
+        "cv": 3.5025222984372717,
+        "skewness": 3.474208886637832,
+        "q1": 42000,
+        "q3": 55000,
+        "iqr": 13000,
+        "lowerFence": 3000,
+        "upperFence": 94000,
+        "outlierCount": 2,
+        "outlierSeverity": "WARNING",
+        "lowerFenceTukey": 22500,
+        "upperFenceTukey": 74500,
+        "outlierCountTukey": 2
+      },
+      "email": {
+        "name": "email",
+        "inferredType": "string",
+        "semanticType": "email",
+        "nullCount": 1,
+        "uniqueCount": 13,
+        "topFreq": [
+          {
+            "value": "juan.perez@empresa.com",
+            "count": 2
+          },
+          {
+            "value": "maria.lopez@empresa.com",
+            "count": 1
+          },
+          {
+            "value": "carlos.d@empresa.com",
+            "count": 1
+          },
+          {
+            "value": "ana.torres@empresa",
+            "count": 1
+          },
+          {
+            "value": "luis.g@empresa.com",
+            "count": 1
+          }
+        ],
+        "zeros": 0,
+        "sampleValues": [
+          "juan.perez@empresa.com",
+          "sofia.r@empresa.com",
+          "diego.mora@empresa.com"
+        ]
+      },
+      "departamento": {
+        "name": "departamento",
+        "inferredType": "string",
+        "nullCount": 0,
+        "uniqueCount": 6,
+        "topFreq": [
+          {
+            "value": "IT",
+            "count": 6
+          },
+          {
+            "value": "Ventas",
+            "count": 4
+          },
+          {
+            "value": "Finanzas",
+            "count": 2
+          },
+          {
+            "value": "Dirección",
+            "count": 1
+          },
+          {
+            "value": "RRHH",
+            "count": 1
+          }
+        ],
+        "zeros": 0,
+        "sampleValues": [
+          "IT",
+          "RRHH",
+          "Finanzas"
+        ]
+      },
+      "fecha_ingreso": {
+        "name": "fecha_ingreso",
+        "inferredType": "date",
+        "semanticType": "date",
+        "nullCount": 0,
+        "uniqueCount": 14,
+        "topFreq": [
+          {
+            "value": "2023-01-15",
+            "count": 2
+          },
+          {
+            "value": "2023-02-01",
+            "count": 1
+          },
+          {
+            "value": "2022-11-20",
+            "count": 1
+          },
+          {
+            "value": "2023-03-10",
+            "count": 1
+          },
+          {
+            "value": "2023-05-12",
+            "count": 1
+          }
+        ],
+        "zeros": 0,
+        "sampleValues": [
+          "2023-01-15",
+          "2023-06-01",
+          "2022-10-10"
+        ]
+      },
+      "estado": {
+        "name": "estado",
+        "inferredType": "string",
+        "nullCount": 1,
+        "uniqueCount": 2,
+        "topFreq": [
+          {
+            "value": "Activo",
+            "count": 13
+          },
+          {
+            "value": "Inactivo",
+            "count": 1
+          }
+        ],
+        "zeros": 0,
+        "sampleValues": [
+          "Activo",
+          "Activo",
+          "Activo"
+        ]
+      },
+      "ip_acceso": {
+        "name": "ip_acceso",
+        "inferredType": "string",
+        "semanticType": "ip",
+        "nullCount": 0,
+        "uniqueCount": 14,
+        "topFreq": [
+          {
+            "value": "192.168.1.10",
+            "count": 2
+          },
+          {
+            "value": "10.0.0.5",
+            "count": 1
+          },
+          {
+            "value": "172.16.0.100",
+            "count": 1
+          },
+          {
+            "value": "192.168.1.11",
+            "count": 1
+          },
+          {
+            "value": "10.0.0.6",
+            "count": 1
+          }
+        ],
+        "zeros": 0,
+        "sampleValues": [
+          "192.168.1.10",
+          "10.0.0.7",
+          "8.8.8.8"
+        ]
+      }
+    },
+    "scoreBreakdown": [
+      {
+        "reason": "Filas Duplicadas (1)",
+        "points": 8.4,
+        "weight": 1.2,
+        "category": "Integridad y Estructura",
+        "severity": "warning",
+        "ruleId": "rule:exact-duplicates"
+      },
+      {
+        "reason": "Valores Nulos en [nombre]",
+        "points": 2.4,
+        "weight": 1.2,
+        "category": "Integridad y Estructura",
+        "severity": "warning",
+        "ruleId": "rule:null-values"
+      },
+      {
+        "reason": "Encoding Corrupto en [nombre]",
+        "points": 6.4,
+        "weight": 0.8,
+        "category": "Higiene de Texto",
+        "severity": "warning",
+        "ruleId": "rule:mojibake"
+      },
+      {
+        "reason": "Valores Nulos en [edad]",
+        "points": 2.4,
+        "weight": 1.2,
+        "category": "Integridad y Estructura",
+        "severity": "warning",
+        "ruleId": "rule:null-values"
+      },
+      {
+        "reason": "Placeholders Tóxicos en [edad]",
+        "points": 4,
+        "weight": 0.8,
+        "category": "Higiene de Texto",
+        "severity": "warning",
+        "ruleId": "rule:toxic-placeholders"
+      },
+      {
+        "reason": "Outliers en [edad]",
+        "points": 6,
+        "weight": 1.2,
+        "category": "Validez y Lógica de Negocio",
+        "severity": "warning",
+        "ruleId": "rule:extreme-outliers"
+      },
+      {
+        "reason": "Negativos en Campo Positivo [salario]",
+        "points": 12,
+        "weight": 1.2,
+        "category": "Validez y Lógica de Negocio",
+        "severity": "warning",
+        "ruleId": "rule:impossible-negatives"
+      },
+      {
+        "reason": "Outliers en [salario]",
+        "points": 6,
+        "weight": 1.2,
+        "category": "Validez y Lógica de Negocio",
+        "severity": "warning",
+        "ruleId": "rule:extreme-outliers"
+      },
+      {
+        "reason": "Valores Nulos en [email]",
+        "points": 2.4,
+        "weight": 1.2,
+        "category": "Integridad y Estructura",
+        "severity": "warning",
+        "ruleId": "rule:null-values"
+      },
+      {
+        "reason": "Placeholders Tóxicos en [email]",
+        "points": 4,
+        "weight": 0.8,
+        "category": "Higiene de Texto",
+        "severity": "warning",
+        "ruleId": "rule:toxic-placeholders"
+      },
+      {
+        "reason": "Correos Inválidos en [email]",
+        "points": 12,
+        "weight": 1.2,
+        "category": "Validez y Lógica de Negocio",
+        "severity": "warning",
+        "ruleId": "rule:invalid-email"
+      },
+      {
+        "reason": "Formatos de Fecha Mixtos en [fecha_ingreso]",
+        "points": 6,
+        "weight": 1.2,
+        "category": "Validez y Lógica de Negocio",
+        "severity": "warning",
+        "ruleId": "rule:mixed-date-formats"
+      },
+      {
+        "reason": "Valores Nulos en [estado]",
+        "points": 2.4,
+        "weight": 1.2,
+        "category": "Integridad y Estructura",
+        "severity": "warning",
+        "ruleId": "rule:null-values"
+      },
+      {
+        "reason": "Placeholders Tóxicos en [estado]",
+        "points": 4,
+        "weight": 0.8,
+        "category": "Higiene de Texto",
+        "severity": "warning",
+        "ruleId": "rule:toxic-placeholders"
+      },
+      {
+        "reason": "Hallazgo PII en [ip_acceso]",
+        "points": 14,
+        "weight": 0.7,
+        "category": "Semántica y Seguridad",
+        "severity": "warning",
+        "ruleId": "rule:pii-detected"
+      }
+    ],
+    "delimiterDetected": ",",
+    "datasetProfile": {
+      "totalRows": 15,
+      "totalColumns": 9,
+      "columns": [
+        {
+          "name": "id",
+          "cardinality": "high",
+          "uniqueRatio": 0.9333333333333333,
+          "sparsity": 0,
+          "inferredType": "number",
+          "isCandidateForCoalescence": false,
+          "pruneRecommendation": "keep"
+        },
+        {
+          "name": "nombre",
+          "cardinality": "high",
+          "uniqueRatio": 0.8666666666666667,
+          "sparsity": 0.06666666666666667,
+          "inferredType": "string",
+          "isCandidateForCoalescence": false,
+          "pruneRecommendation": "keep"
+        },
+        {
+          "name": "edad",
+          "cardinality": "high",
+          "uniqueRatio": 0.8666666666666667,
+          "sparsity": 0.06666666666666667,
+          "inferredType": "number",
+          "isCandidateForCoalescence": false,
+          "pruneRecommendation": "keep"
+        },
+        {
+          "name": "salario",
+          "cardinality": "high",
+          "uniqueRatio": 0.9333333333333333,
+          "sparsity": 0,
+          "inferredType": "number",
+          "isCandidateForCoalescence": false,
+          "pruneRecommendation": "keep"
+        },
+        {
+          "name": "email",
+          "cardinality": "high",
+          "uniqueRatio": 0.8666666666666667,
+          "sparsity": 0.06666666666666667,
+          "inferredType": "string",
+          "semanticType": "email",
+          "isCandidateForCoalescence": false,
+          "pruneRecommendation": "keep"
+        },
+        {
+          "name": "departamento",
+          "cardinality": "medium",
+          "uniqueRatio": 0.4,
+          "sparsity": 0,
+          "inferredType": "string",
+          "isCandidateForCoalescence": false,
+          "pruneRecommendation": "keep"
+        },
+        {
+          "name": "fecha_ingreso",
+          "cardinality": "high",
+          "uniqueRatio": 0.9333333333333333,
+          "sparsity": 0,
+          "inferredType": "date",
+          "semanticType": "date",
+          "isCandidateForCoalescence": false,
+          "pruneRecommendation": "keep"
+        },
+        {
+          "name": "estado",
+          "cardinality": "medium",
+          "uniqueRatio": 0.13333333333333333,
+          "sparsity": 0.06666666666666667,
+          "inferredType": "string",
+          "isCandidateForCoalescence": false,
+          "pruneRecommendation": "keep"
+        },
+        {
+          "name": "ip_acceso",
+          "cardinality": "high",
+          "uniqueRatio": 0.9333333333333333,
+          "sparsity": 0,
+          "inferredType": "string",
+          "semanticType": "ip",
+          "isCandidateForCoalescence": false,
+          "pruneRecommendation": "keep"
+        }
+      ],
+      "coalescencePairs": [],
+      "pruningCandidates": [],
+      "generatedAt": "2026-07-14T03:26:47.821Z"
+    }
+  },
+  "afterReport": {
+    "score": 0,
+    "rowCount": 14,
+    "colCount": 9,
+    "duplicateRows": 0,
+    "issues": [
+      {
+        "id": "integrity-null-nombre",
+        "column": "nombre",
+        "ruleName": "Valores Nulos / Vacíos",
+        "category": "Integridad y Estructura",
+        "description": "Advertencia: Faltan datos.",
+        "severity": "warning",
+        "count": 1,
+        "affectedPercentage": 7.142857142857142,
+        "sampleValues": [],
+        "ruleId": "rule:null-values",
+        "automaticAuthorization": {
+          "actionType": "handle_nulls",
+          "authorized": false,
+          "conditionsMet": [],
+          "reason": "Requires domain decision on null meaning"
+        }
+      },
+      {
+        "id": "hygiene-moji-nombre",
+        "column": "nombre",
+        "category": "Higiene de Texto",
+        "ruleName": "Mojibake / Encoding Roto",
+        "description": "Caracteres corruptos (Ã±, etc).",
+        "severity": "warning",
+        "count": 1,
+        "affectedPercentage": 7.142857142857142,
+        "sampleValues": [
+          "Luis GarcÃ­a"
+        ],
+        "ruleId": "rule:mojibake",
+        "automaticAuthorization": {
+          "actionType": "encoding_fix",
+          "authorized": false,
+          "conditionsMet": [],
+          "reason": "Requires encoding detection"
+        }
+      },
+      {
+        "id": "integrity-null-edad",
+        "column": "edad",
+        "ruleName": "Valores Nulos / Vacíos",
+        "category": "Integridad y Estructura",
+        "description": "Advertencia: Faltan datos.",
+        "severity": "warning",
+        "count": 1,
+        "affectedPercentage": 7.142857142857142,
+        "sampleValues": [],
+        "ruleId": "rule:null-values",
+        "automaticAuthorization": {
+          "actionType": "handle_nulls",
+          "authorized": false,
+          "conditionsMet": [],
+          "reason": "Requires domain decision on null meaning"
+        }
+      },
+      {
+        "id": "logic-outlier-edad",
+        "column": "edad",
+        "category": "Validez y Lógica de Negocio",
+        "ruleName": "Outliers Extremos (IQR 3×)",
+        "description": "Valores desviados > 3× del rango intercuartílico.",
+        "severity": "warning",
+        "count": 1,
+        "affectedPercentage": 7.142857142857142,
+        "sampleValues": [
+          150
+        ],
+        "ruleId": "rule:extreme-outliers",
+        "automaticAuthorization": {
+          "actionType": "cap_outliers",
+          "authorized": false,
+          "conditionsMet": [],
+          "reason": "Statistical outlier handling"
+        }
+      },
+      {
+        "id": "logic-neg-salario",
+        "column": "salario",
+        "category": "Validez y Lógica de Negocio",
+        "ruleName": "Negativos Imposibles",
+        "description": "Valores negativos en campo lógico (Edad, Precio).",
+        "severity": "critical",
+        "count": 1,
+        "affectedPercentage": 7.142857142857142,
+        "sampleValues": [
+          -1500
+        ],
+        "ruleId": "rule:impossible-negatives",
+        "automaticAuthorization": {
+          "actionType": "filter_negatives",
+          "authorized": false,
+          "conditionsMet": [],
+          "reason": "Logical constraint violation"
+        }
+      },
+      {
+        "id": "logic-outlier-salario",
+        "column": "salario",
+        "category": "Validez y Lógica de Negocio",
+        "ruleName": "Outliers Extremos (IQR 3×)",
+        "description": "Valores desviados > 3× del rango intercuartílico.",
+        "severity": "warning",
+        "count": 2,
+        "affectedPercentage": 14.285714285714285,
+        "sampleValues": [
+          -1500,
+          9999999.99
+        ],
+        "ruleId": "rule:extreme-outliers",
+        "automaticAuthorization": {
+          "actionType": "cap_outliers",
+          "authorized": false,
+          "conditionsMet": [],
+          "reason": "Statistical outlier handling"
+        }
+      },
+      {
+        "id": "integrity-null-email",
+        "column": "email",
+        "ruleName": "Valores Nulos / Vacíos",
+        "category": "Integridad y Estructura",
+        "description": "Advertencia: Faltan datos.",
+        "severity": "warning",
+        "count": 1,
+        "affectedPercentage": 7.142857142857142,
+        "sampleValues": [],
+        "ruleId": "rule:null-values",
+        "automaticAuthorization": {
+          "actionType": "handle_nulls",
+          "authorized": false,
+          "conditionsMet": [],
+          "reason": "Requires domain decision on null meaning"
+        }
+      },
+      {
+        "id": "logic-email-email",
+        "column": "email",
+        "category": "Validez y Lógica de Negocio",
+        "ruleName": "Formato Email Inválido",
+        "description": "Cadenas sin estructura de correo.",
+        "severity": "critical",
+        "count": 1,
+        "affectedPercentage": 7.142857142857142,
+        "sampleValues": [
+          "ana.torres@empresa"
+        ],
+        "ruleId": "rule:invalid-email",
+        "automaticAuthorization": {
+          "actionType": "validate_emails",
+          "authorized": false,
+          "conditionsMet": [],
+          "reason": "Format validation required"
+        }
+      },
+      {
+        "id": "logic-mixed-date-fecha_ingreso",
+        "column": "fecha_ingreso",
+        "category": "Validez y Lógica de Negocio",
+        "ruleName": "Formatos de Fecha Mixtos",
+        "description": "La columna mezcla fechas ISO con fechas escritas mediante barras; el orden día/mes debe confirmarse antes de convertir.",
+        "severity": "warning",
+        "count": 1,
+        "affectedPercentage": 7.142857142857142,
+        "sampleValues": [
+          "2023-01-15",
+          "2023-02-01",
+          "2022-11-20",
+          "01/15/2023"
+        ],
+        "ruleId": "rule:mixed-date-formats",
+        "automaticAuthorization": {
+          "actionType": "standardize_date_format",
+          "authorized": false,
+          "conditionsMet": [],
+          "reason": "Requires locale-aware conversion"
+        }
+      },
+      {
+        "id": "integrity-null-estado",
+        "column": "estado",
+        "ruleName": "Valores Nulos / Vacíos",
+        "category": "Integridad y Estructura",
+        "description": "Advertencia: Faltan datos.",
+        "severity": "warning",
+        "count": 1,
+        "affectedPercentage": 7.142857142857142,
+        "sampleValues": [],
+        "ruleId": "rule:null-values",
+        "automaticAuthorization": {
+          "actionType": "handle_nulls",
+          "authorized": false,
+          "conditionsMet": [],
+          "reason": "Requires domain decision on null meaning"
+        }
+      },
+      {
+        "id": "sec-pii-ip_acceso",
+        "column": "ip_acceso",
+        "category": "Semántica y Seguridad",
+        "ruleName": "Datos Sensibles (PII)",
+        "description": "Patrones de Tarjeta de Crédito o IP detectados.",
+        "severity": "critical",
+        "count": 14,
+        "affectedPercentage": 100,
+        "sampleValues": [
+          "192.168.1.10",
+          "10.0.0.5",
+          "172.16.0.100"
+        ],
+        "ruleId": "rule:pii-detected",
+        "automaticAuthorization": {
+          "actionType": "pii_handling",
+          "authorized": false,
+          "conditionsMet": [],
+          "reason": "Security-sensitive data"
+        }
+      }
+    ],
+    "columnStats": {
+      "id": {
+        "name": "id",
+        "inferredType": "number",
+        "nullCount": 0,
+        "uniqueCount": 14,
+        "topFreq": [
+          {
+            "value": "1",
+            "count": 1
+          },
+          {
+            "value": "2",
+            "count": 1
+          },
+          {
+            "value": "3",
+            "count": 1
+          },
+          {
+            "value": "4",
+            "count": 1
+          },
+          {
+            "value": "6",
+            "count": 1
+          }
+        ],
+        "zeros": 0,
+        "sampleValues": [
+          1,
+          9,
+          15
+        ],
+        "min": 1,
+        "max": 15,
+        "mean": 8.214285714285714,
+        "median": 8.5,
+        "std": 4.394453832934864,
+        "cv": 0.5349769883572878,
+        "skewness": -0.1236783441164249,
+        "q1": 4,
+        "q3": 12,
+        "iqr": 8,
+        "lowerFence": -20,
+        "upperFence": 36,
+        "outlierCount": 0,
+        "lowerFenceTukey": -8,
+        "upperFenceTukey": 24,
+        "outlierCountTukey": 0
+      },
+      "nombre": {
+        "name": "nombre",
+        "inferredType": "string",
+        "nullCount": 1,
+        "uniqueCount": 13,
+        "topFreq": [
+          {
+            "value": "Juan Pérez",
+            "count": 1
+          },
+          {
+            "value": "María López",
+            "count": 1
+          },
+          {
+            "value": "Carlos Díaz",
+            "count": 1
+          },
+          {
+            "value": "Ana Torres",
+            "count": 1
+          },
+          {
+            "value": "Luis GarcÃ­a",
+            "count": 1
+          }
+        ],
+        "zeros": 0,
+        "sampleValues": [
+          "Juan Pérez",
+          "Pedro Gómez",
+          "Diego Mora"
+        ]
+      },
+      "edad": {
+        "name": "edad",
+        "inferredType": "number",
+        "nullCount": 1,
+        "uniqueCount": 13,
+        "topFreq": [
+          {
+            "value": "35",
+            "count": 1
+          },
+          {
+            "value": "28",
+            "count": 1
+          },
+          {
+            "value": "42",
+            "count": 1
+          },
+          {
+            "value": "31",
+            "count": 1
+          },
+          {
+            "value": "25",
+            "count": 1
+          }
+        ],
+        "zeros": 0,
+        "sampleValues": [
+          35,
+          33,
+          41
+        ],
+        "min": 25,
+        "max": 150,
+        "mean": 43,
+        "median": 34,
+        "std": 31.45693026247891,
+        "cv": 0.7315565177320676,
+        "skewness": 2.977700268904468,
+        "q1": 29,
+        "q3": 41,
+        "iqr": 12,
+        "lowerFence": -7,
+        "upperFence": 77,
+        "outlierCount": 1,
+        "outlierSeverity": "WARNING",
+        "lowerFenceTukey": 11,
+        "upperFenceTukey": 59,
+        "outlierCountTukey": 1
+      },
+      "salario": {
+        "name": "salario",
+        "inferredType": "number",
+        "nullCount": 0,
+        "uniqueCount": 14,
+        "topFreq": [
+          {
+            "value": "50000",
+            "count": 1
+          },
+          {
+            "value": "45000.5",
+            "count": 1
+          },
+          {
+            "value": "-1500",
+            "count": 1
+          },
+          {
+            "value": "52000",
+            "count": 1
+          },
+          {
+            "value": "38000",
+            "count": 1
+          }
+        ],
+        "zeros": 0,
+        "sampleValues": [
+          50000,
+          9999999.99,
+          58000
+        ],
+        "min": -1500,
+        "max": 9999999.99,
+        "mean": 756035.7492857144,
+        "median": 49000,
+        "std": 2563854.0929098474,
+        "cv": 3.391181032553182,
+        "skewness": 3.328020393008748,
+        "q1": 42000,
+        "q3": 55000,
+        "iqr": 13000,
+        "lowerFence": 3000,
+        "upperFence": 94000,
+        "outlierCount": 2,
+        "outlierSeverity": "WARNING",
+        "lowerFenceTukey": 22500,
+        "upperFenceTukey": 74500,
+        "outlierCountTukey": 2
+      },
+      "email": {
+        "name": "email",
+        "inferredType": "string",
+        "semanticType": "email",
+        "nullCount": 1,
+        "uniqueCount": 13,
+        "topFreq": [
+          {
+            "value": "juan.perez@empresa.com",
+            "count": 1
+          },
+          {
+            "value": "maria.lopez@empresa.com",
+            "count": 1
+          },
+          {
+            "value": "carlos.d@empresa.com",
+            "count": 1
+          },
+          {
+            "value": "ana.torres@empresa",
+            "count": 1
+          },
+          {
+            "value": "luis.g@empresa.com",
+            "count": 1
+          }
+        ],
+        "zeros": 0,
+        "sampleValues": [
+          "juan.perez@empresa.com",
+          "pedro.g@empresa.com",
+          "diego.mora@empresa.com"
+        ]
+      },
+      "departamento": {
+        "name": "departamento",
+        "inferredType": "string",
+        "nullCount": 0,
+        "uniqueCount": 6,
+        "topFreq": [
+          {
+            "value": "IT",
+            "count": 5
+          },
+          {
+            "value": "Ventas",
+            "count": 4
+          },
+          {
+            "value": "Finanzas",
+            "count": 2
+          },
+          {
+            "value": "Dirección",
+            "count": 1
+          },
+          {
+            "value": "RRHH",
+            "count": 1
+          }
+        ],
+        "zeros": 0,
+        "sampleValues": [
+          "IT",
+          "Ventas",
+          "Finanzas"
+        ]
+      },
+      "fecha_ingreso": {
+        "name": "fecha_ingreso",
+        "inferredType": "date",
+        "semanticType": "date",
+        "nullCount": 0,
+        "uniqueCount": 14,
+        "topFreq": [
+          {
+            "value": "2023-01-15",
+            "count": 1
+          },
+          {
+            "value": "2023-02-01",
+            "count": 1
+          },
+          {
+            "value": "2022-11-20",
+            "count": 1
+          },
+          {
+            "value": "2023-03-10",
+            "count": 1
+          },
+          {
+            "value": "2023-05-12",
+            "count": 1
+          }
+        ],
+        "zeros": 0,
+        "sampleValues": [
+          "2023-01-15",
+          "2022-08-15",
+          "2022-10-10"
+        ]
+      },
+      "estado": {
+        "name": "estado",
+        "inferredType": "string",
+        "nullCount": 1,
+        "uniqueCount": 2,
+        "topFreq": [
+          {
+            "value": "Activo",
+            "count": 12
+          },
+          {
+            "value": "Inactivo",
+            "count": 1
+          }
+        ],
+        "zeros": 0,
+        "sampleValues": [
+          "Activo",
+          "Activo",
+          "Activo"
+        ]
+      },
+      "ip_acceso": {
+        "name": "ip_acceso",
+        "inferredType": "string",
+        "semanticType": "ip",
+        "nullCount": 0,
+        "uniqueCount": 14,
+        "topFreq": [
+          {
+            "value": "192.168.1.10",
+            "count": 1
+          },
+          {
+            "value": "10.0.0.5",
+            "count": 1
+          },
+          {
+            "value": "172.16.0.100",
+            "count": 1
+          },
+          {
+            "value": "192.168.1.11",
+            "count": 1
+          },
+          {
+            "value": "10.0.0.6",
+            "count": 1
+          }
+        ],
+        "zeros": 0,
+        "sampleValues": [
+          "192.168.1.10",
+          "10.0.0.8",
+          "8.8.8.8"
+        ]
+      }
+    },
+    "scoreBreakdown": [
+      {
+        "reason": "Valores Nulos en [nombre]",
+        "points": 2.4,
+        "weight": 1.2,
+        "category": "Integridad y Estructura",
+        "severity": "warning",
+        "ruleId": "rule:null-values"
+      },
+      {
+        "reason": "Encoding Corrupto en [nombre]",
+        "points": 6.4,
+        "weight": 0.8,
+        "category": "Higiene de Texto",
+        "severity": "warning",
+        "ruleId": "rule:mojibake"
+      },
+      {
+        "reason": "Valores Nulos en [edad]",
+        "points": 2.4,
+        "weight": 1.2,
+        "category": "Integridad y Estructura",
+        "severity": "warning",
+        "ruleId": "rule:null-values"
+      },
+      {
+        "reason": "Outliers en [edad]",
+        "points": 6,
+        "weight": 1.2,
+        "category": "Validez y Lógica de Negocio",
+        "severity": "warning",
+        "ruleId": "rule:extreme-outliers"
+      },
+      {
+        "reason": "Negativos en Campo Positivo [salario]",
+        "points": 12,
+        "weight": 1.2,
+        "category": "Validez y Lógica de Negocio",
+        "severity": "warning",
+        "ruleId": "rule:impossible-negatives"
+      },
+      {
+        "reason": "Outliers en [salario]",
+        "points": 6,
+        "weight": 1.2,
+        "category": "Validez y Lógica de Negocio",
+        "severity": "warning",
+        "ruleId": "rule:extreme-outliers"
+      },
+      {
+        "reason": "Valores Nulos en [email]",
+        "points": 2.4,
+        "weight": 1.2,
+        "category": "Integridad y Estructura",
+        "severity": "warning",
+        "ruleId": "rule:null-values"
+      },
+      {
+        "reason": "Correos Inválidos en [email]",
+        "points": 12,
+        "weight": 1.2,
+        "category": "Validez y Lógica de Negocio",
+        "severity": "warning",
+        "ruleId": "rule:invalid-email"
+      },
+      {
+        "reason": "Formatos de Fecha Mixtos en [fecha_ingreso]",
+        "points": 6,
+        "weight": 1.2,
+        "category": "Validez y Lógica de Negocio",
+        "severity": "warning",
+        "ruleId": "rule:mixed-date-formats"
+      },
+      {
+        "reason": "Valores Nulos en [estado]",
+        "points": 2.4,
+        "weight": 1.2,
+        "category": "Integridad y Estructura",
+        "severity": "warning",
+        "ruleId": "rule:null-values"
+      },
+      {
+        "reason": "Hallazgo PII en [ip_acceso]",
+        "points": 14,
+        "weight": 0.7,
+        "category": "Semántica y Seguridad",
+        "severity": "warning",
+        "ruleId": "rule:pii-detected"
+      }
+    ],
+    "delimiterDetected": ",",
+    "datasetProfile": {
+      "totalRows": 14,
+      "totalColumns": 9,
+      "columns": [
+        {
+          "name": "id",
+          "cardinality": "unique",
+          "uniqueRatio": 1,
+          "sparsity": 0,
+          "inferredType": "number",
+          "isCandidateForCoalescence": false,
+          "pruneRecommendation": "keep"
+        },
+        {
+          "name": "nombre",
+          "cardinality": "high",
+          "uniqueRatio": 0.9285714285714286,
+          "sparsity": 0.07142857142857142,
+          "inferredType": "string",
+          "isCandidateForCoalescence": false,
+          "pruneRecommendation": "keep"
+        },
+        {
+          "name": "edad",
+          "cardinality": "high",
+          "uniqueRatio": 0.9285714285714286,
+          "sparsity": 0.07142857142857142,
+          "inferredType": "number",
+          "isCandidateForCoalescence": false,
+          "pruneRecommendation": "keep"
+        },
+        {
+          "name": "salario",
+          "cardinality": "unique",
+          "uniqueRatio": 1,
+          "sparsity": 0,
+          "inferredType": "number",
+          "isCandidateForCoalescence": false,
+          "pruneRecommendation": "keep"
+        },
+        {
+          "name": "email",
+          "cardinality": "high",
+          "uniqueRatio": 0.9285714285714286,
+          "sparsity": 0.07142857142857142,
+          "inferredType": "string",
+          "semanticType": "email",
+          "isCandidateForCoalescence": false,
+          "pruneRecommendation": "keep"
+        },
+        {
+          "name": "departamento",
+          "cardinality": "medium",
+          "uniqueRatio": 0.42857142857142855,
+          "sparsity": 0,
+          "inferredType": "string",
+          "isCandidateForCoalescence": false,
+          "pruneRecommendation": "keep"
+        },
+        {
+          "name": "fecha_ingreso",
+          "cardinality": "unique",
+          "uniqueRatio": 1,
+          "sparsity": 0,
+          "inferredType": "date",
+          "semanticType": "date",
+          "isCandidateForCoalescence": false,
+          "pruneRecommendation": "keep"
+        },
+        {
+          "name": "estado",
+          "cardinality": "medium",
+          "uniqueRatio": 0.14285714285714285,
+          "sparsity": 0.07142857142857142,
+          "inferredType": "string",
+          "isCandidateForCoalescence": false,
+          "pruneRecommendation": "keep"
+        },
+        {
+          "name": "ip_acceso",
+          "cardinality": "unique",
+          "uniqueRatio": 1,
+          "sparsity": 0,
+          "inferredType": "string",
+          "semanticType": "ip",
+          "isCandidateForCoalescence": false,
+          "pruneRecommendation": "keep"
+        }
+      ],
+      "coalescencePairs": [],
+      "pruningCandidates": [],
+      "generatedAt": "2026-07-14T03:26:47.822Z"
+    }
+  }
+}
