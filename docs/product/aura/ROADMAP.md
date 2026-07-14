@@ -1,7 +1,8 @@
 # Roadmap de AURA
 
-La hoja de ruta definitiva está consolidada en:
+Este archivo se conserva solo como ruta de compatibilidad.
 
-- [`docs/plans/2026-07-09-cierre-definitivo-aura.md`](../../plans/2026-07-09-cierre-definitivo-aura.md)
+- Hoja operativa vigente: [`NEXT_STEPS.md`](./NEXT_STEPS.md)
+- Entorno de la memoria final: [`../../tfm/memoria_final/README.md`](../../tfm/memoria_final/README.md)
 
-No iniciar fases o roadmaps paralelos.
+No iniciar fases, roadmaps ni documentos paralelos. El trabajo previo se consulta como trazabilidad, no como instrucciones activas.
