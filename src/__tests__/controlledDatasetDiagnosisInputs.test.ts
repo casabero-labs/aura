@@ -8,6 +8,9 @@ import type { AuditReportInput } from '../contracts/llm/evidenceEnvelopeV2';
 import { buildDiagnosisInputPackageV2 } from '../contracts/llm/diagnosisInputPackageV2';
 import { defaultBudget } from '../contracts/llm/tokenBudget';
 import { runAudit } from '../services/auditEngine';
+import { validateDiagnosisResponseV2 } from '../contracts/llm/diagnosisValidatorV2';
+import { computeIssueIdsRequiringHumanReview } from '../contracts/llm/humanReviewPolicyV2';
+import { buildEnvelopeRef } from '../contracts/llm/diagnosisPromptV2';
 
 const datasetPath = join(
   __dirname,
@@ -87,5 +90,86 @@ describe('controlled Phase 8 diagnosis inputs', () => {
     const modes = ['prompt_libre', 'smart_sample', 'recommended'] as const;
     const packages = modes.map((mode) => buildDiagnosisInputPackageV2(report, envelope, mode));
     expect(new Set(packages.map((input) => input.inputHash))).toHaveLength(3);
+  });
+
+  it('AURA-CIERRE-SMART-SAMPLE-HITL-01 R1: integrity-dupes (auto_safe + authorized + zero evidence) still demands human review in smart_sample', () => {
+    const { report, envelope } = buildControlledInput(tfmDatasetPath);
+
+    const integrityDupes = envelope.issues.find((issue) => issue.issueId === 'integrity-dupes');
+    expect(integrityDupes).toBeDefined();
+    if (!integrityDupes) return;
+
+    expect(integrityDupes.actionability).toBe('auto_safe');
+    expect(integrityDupes.automaticAuthorization.authorized).toBe(true);
+    expect(integrityDupes.evidenceRefs).toEqual([]);
+
+    const requiredList = computeIssueIdsRequiringHumanReview(envelope);
+    expect(requiredList).toContain('integrity-dupes');
+    expect(requiredList).toHaveLength(15);
+
+    const envRef = buildEnvelopeRef(envelope);
+
+    const downgradeResponse = {
+      contractId: 'aura.diagnosis.v2',
+      contractVersion: '2.0.0',
+      evidenceEnvelopeRef: envRef,
+      responseId: 'diag-r1-downgrade',
+      issues: envelope.issues.map((issue) => ({
+        issueId: issue.issueId,
+        evidenceRefs: issue.evidenceRefs,
+        hypothesis: 'h',
+        confidence: 0.5,
+        requiresHumanReview: false,
+        limits: [],
+      })),
+      diagnosisBlocks: envelope.issues.map((issue) => ({
+        issueId: issue.issueId,
+        ruleId: issue.ruleId,
+        columnId: issue.columnId,
+        scope: issue.scope,
+        observation: 'o',
+        recommendation: 'r',
+      })),
+      limitations: [],
+      generatedAt: new Date().toISOString(),
+    };
+    const downgradeResult = validateDiagnosisResponseV2(downgradeResponse as any, envelope);
+    expect(downgradeResult.valid).toBe(false);
+    const downgradeErrors = downgradeResult.errors.filter((e) => e.code === 'DIAGNOSIS_REVIEW_DOWNGRADE');
+    const integrityDupesIndex = envelope.issues.findIndex((issue) => issue.issueId === 'integrity-dupes');
+    expect(integrityDupesIndex).toBeGreaterThanOrEqual(0);
+    const integrityDupesPath = `issues[${integrityDupesIndex}].requiresHumanReview`;
+    const integrityDupesError = downgradeErrors.find((e) => e.path === integrityDupesPath);
+    expect(integrityDupesError).toBeDefined();
+    expect(integrityDupesError?.message).toMatch(/no evidenceRefs|human review/i);
+
+    const requiredSet = new Set(requiredList);
+    const correctResponse = {
+      contractId: 'aura.diagnosis.v2',
+      contractVersion: '2.0.0',
+      evidenceEnvelopeRef: envRef,
+      responseId: 'diag-r1-correct',
+      issues: envelope.issues.map((issue) => ({
+        issueId: issue.issueId,
+        evidenceRefs: issue.evidenceRefs,
+        hypothesis: 'h',
+        confidence: 0.5,
+        requiresHumanReview: requiredSet.has(issue.issueId),
+        limits: [],
+      })),
+      diagnosisBlocks: envelope.issues.map((issue) => ({
+        issueId: issue.issueId,
+        ruleId: issue.ruleId,
+        columnId: issue.columnId,
+        scope: issue.scope,
+        observation: 'o',
+        recommendation: 'r',
+      })),
+      limitations: [],
+      generatedAt: new Date().toISOString(),
+    };
+    const correctResult = validateDiagnosisResponseV2(correctResponse as any, envelope);
+    expect(correctResult.valid).toBe(true);
+    expect(correctResult.errors).toHaveLength(0);
   });
 });

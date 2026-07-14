@@ -1,6 +1,6 @@
 # Hoja de ruta definitiva de AURA
 
-Última actualización: 14 de julio de 2026, 05:10 (America/Bogota).
+Última actualización: 14 de julio de 2026, 06:06 (America/Bogota).
 
 Este documento es la única referencia operativa para cerrar el TFM. La entrega
 académica vence el **miércoles 15 de julio de 2026 a las 15:00**. Hasta entregar,
@@ -259,10 +259,93 @@ los modelos, los métodos y las condiciones realmente evaluadas.
 
 ## Próxima acción exacta
 
-Corregir la contradicción de `smart_sample` sin alterar sus muestras ni convertirlo
-en Evidencia completa: incluir en la tarea la lista determinista de `issueId`
-que exigen revisión humana, probar que coincide con el envelope y ejecutar una
-sola corrida de humo con Qwen3.5 4B. Solo si pasa se congela el protocolo formal.
+Desplegar el contrato corregido y ejecutar una sola corrida de humo con
+Qwen3.5 4B, `synthetic_ground_truth.csv` y **Evidencia equilibrada**
+(`smart_sample`). Solo si el diagnóstico supera el contrato sin relajar el
+validador se congela el protocolo formal.
+
+### Cierre del contrato de `smart_sample` (AURA-CIERRE-SMART-SAMPLE-HITL-01)
+
+**Causa raíz.** La composición visible de `smart_sample` solo exponía
+`dataset_summary`, `dataset_schema`, `issue_registry_minimal`,
+`column_statistics`, `rule_activations` y `evidence_samples`. La gobernanza que
+exige el validador (`actionability`, `automaticAuthorization.authorized` y
+`isAmbiguous`/`isDuplicate` por columna) quedaba oculta, de modo que el modelo
+no podía derivar qué `issueId`s necesitaban `requiresHumanReview: true` salvo
+que adivinara. Por eso Qwen redujo revisión en 10 de 15 casos y Gemma la
+redujo en los 15. Las dos corridas anteriores se conservan como evidencia de
+la contradicción del contrato, **no** como resultados comparables de modelos.
+
+**Solución aplicada.** Se extrajo la política a una única función pura en
+`src/contracts/llm/humanReviewPolicyV2.ts`
+(`requiresReviewFromEnvelopeV2` + `computeIssueIdsRequiringHumanReview`) que
+comparte constructor y validador. El constructor embebe el resultado en el
+`task` del prompt como `issueIdsRequiringHumanReview` (misma lista para los
+tres modos, en orden canónico del envelope, solo IDs, sin governance). El
+validador importa los mismos predicados compartidos; ya no existe la copia
+local duplicada.
+La instrucción del sistema y el `task.humanReviewInstruction` dejan claro que
+todo ID en la lista exige `requiresHumanReview: true`, pero el modelo sigue
+libre de marcar más cuando dude. `DIAGNOSIS_PROMPT_VERSION_V2` sube de
+`1.4.0` a `1.5.0` porque cambia el prompt efectivo. Las tres secciones
+visibles de cada modo no cambian: Contexto mínimo 3, Evidencia equilibrada 6,
+Evidencia completa 12. `smart_sample` sigue sin contener `actionabilityPolicy`,
+`authorizationEvidence`, `columnRegistry` ni `badSampleAnchors`.
+
+**Pruebas realizadas.**
+
+- `src/__tests__/humanReviewPolicyV2.test.ts` (14 casos, TDD): los tres modos
+  reciben la misma lista determinista; `smart_sample` no expone la gobernanza
+  prohibida; las secciones no cambian; todos los issues sin `evidenceRefs`
+  aparecen; `review_only`, no autorizados y con columnas ambiguas aparecen;
+  un issue realmente seguro y autorizado puede quedar fuera; el validador
+  rechaza `false` para cualquier ID obligatorio; una respuesta correcta pasa;
+  dos construcciones idénticas producen los mismos `userPayload`, `promptHash`,
+  `inputHash` y `responseSchemaHash`; el orden canónico del envelope se
+  preserva; la política compartida exige revisión cuando `evidenceRefs` está
+  vacío aunque la gobernanza diga `auto_safe` + `authorized`.
+- `src/__tests__/controlledDatasetDiagnosisInputs.test.ts` añade la regresión
+  con `experiments/datasets/synthetic_ground_truth.csv`: comprueba que
+  `integrity-dupes` tiene `evidenceRefs: []`, es `auto_safe` y está
+  autorizado, aun así aparece en `issueIdsRequiringHumanReview`; la lista
+  contiene los 15 `issueId` obligatorios; una respuesta con
+  `integrity-dupes.requiresHumanReview=false` produce `DIAGNOSIS_REVIEW_DOWNGRADE`;
+  una respuesta correcta para los 15 pasa.
+- `src/__tests__/diagnosisSystemInstructionV2.test.ts` (6 casos): el builder
+  canónico (`buildDiagnosisInputPackageV2`) sí incluye la lista; los builders
+  histórico (`buildDiagnosisPromptV2`) y compacto (`buildCompactDiagnosisPromptV2`)
+  no la incluyen y la instrucción global no afirma su presencia de forma
+  incondicional; la protección contra prompt injection (regla 1, contenido
+  no confiable) sigue intacta.
+- 1892 unitarias superadas y 6 omitidas, 0 regresiones; 172/172 pruebas
+  focalizadas superadas; typecheck y build limpios.
+- 4/4 E2E (`oe4-final-evaluation.spec.ts` × 1, `apply-verify-e2e.spec.ts` × 3):
+  recibo alterado rechazado; `execution/corrected.csv` incluido en la corrida
+  verificada; `source.csv` excluido del ZIP; ZIP estable.
+- `git diff --check` sin observaciones.
+- `graphify update .` regenerado sin perder el contrato.
+- Hashes y recibos siguen deterministas; las dos pruebas humanas previas
+  (Contexto mínimo y Evidencia completa) y el laboratorio siguen validándose.
+
+**Corrección R1.** La política compartida ahora contempla la regla completa
+de revisión humana: gobernanza (columna ambigua/duplicada, `review_only`,
+`auto_safe` no autorizado, actionability desconocida) **o** ausencia de
+`evidenceRefs` en el envelope. La lista que el constructor envía al modelo
+incluye `integrity-dupes` (`auto_safe` + `authorized` + `evidenceRefs: []`)
+y los otros 14 `issueId`s del dataset de cierre. La instrucción global del
+sistema se reformuló para afirmar la presencia de la lista solo cuando el
+payload proviene del constructor canónico; los builders histórico y compacto
+siguen produciendo payloads sin esa metadata y la regla no les aplica.
+
+**Campaña todavía bloqueada hasta un único smoke humano con Qwen3.5 4B.**
+El contrato ya está corregido y validado por los gates, pero el piloto formal
+de 27 diagnósticos no se ejecutará hasta que una sola corrida humana real con
+`synthetic_ground_truth.csv`, Qwen3.5 4B y `smart_sample` produzca una
+respuesta con `requiresHumanReview: true` para los IDs obligatorios y sea
+aceptada por el validador sin necesidad de tocar la regla. Esa única corrida
+se comparará contra la nueva lista determinista; las dos corridas anteriores
+con Qwen y Gemma **no deben presentarse** como comparación válida de modelos,
+solo como evidencia de la contradicción original.
 
 ## Documentos vigentes relacionados
 

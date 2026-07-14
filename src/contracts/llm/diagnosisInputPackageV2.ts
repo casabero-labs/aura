@@ -7,6 +7,7 @@ import {
   composeExactDiagnosisPromptV2,
   DIAGNOSIS_PROMPT_VERSION_V2,
 } from './diagnosisPromptV2';
+import { computeIssueIdsRequiringHumanReview } from './humanReviewPolicyV2';
 import type {
   DiagnosisInputModeV2,
   DiagnosisInputPackageV2,
@@ -142,6 +143,7 @@ export const buildDiagnosisInputPackageV2 = (
   const issueIdsWithoutEvidenceRefs = envelope.issues
     .filter((issue) => issue.evidenceRefs.length === 0)
     .map((issue) => issue.issueId);
+  const issueIdsRequiringHumanReview = computeIssueIdsRequiringHumanReview(envelope);
   const includedSections = [...DIAGNOSIS_INCLUDED_SECTIONS_BY_MODE[inputMode]];
   const systemInstruction = buildDiagnosisSystemInstructionV2();
   const userPayload = canonicalJson({
@@ -155,6 +157,8 @@ export const buildDiagnosisInputPackageV2 = (
       expectedDiagnosisBlockCount: requiredIssueIds.length,
       requiredIssueIds,
       issueIdsWithoutEvidenceRefs,
+      issueIdsRequiringHumanReview,
+      humanReviewInstruction: 'For every issueId in issueIdsRequiringHumanReview you MUST set requiresHumanReview=true. For issueIds outside that list you may still set requiresHumanReview=true when in doubt, but you MUST NOT return requiresHumanReview=false for any ID in that list.',
       exactCoverageInstruction: 'Produce exactly one issues item and exactly one diagnosisBlocks item for every required issueId. Do not omit or duplicate any required issueId.',
       visualizationInstruction: 'visualizations.issueIds may use only requiredIssueIds. Use [] when no chart is justified.',
       evidenceRefsRequiredOnlyWhenVisible: true,

@@ -25,6 +25,11 @@ import {
   findUnsafeRecommendationsWithoutReview,
   findUnsupportedDiagnosisClaims,
 } from './diagnosisEvidenceReview';
+import {
+  buildColumnAmbiguityRegistry,
+  governanceDemandsReview,
+  noEvidenceDemandsReview,
+} from './humanReviewPolicyV2';
 
 function err(code: string, path: string, message: string, value: unknown): ValidationErrorV2 {
   return { code, path, message, value };
@@ -91,27 +96,11 @@ function containsExecutable(text: string): boolean {
 }
 
 // ── HITL Requirement Mapping ──
-
-function requiresReviewFromEnvelope(
-  envelopeIssue: {
-    actionability: string;
-    automaticAuthorization: { authorized: boolean };
-    columnId: string | null;
-  },
-  columnRegistry: Map<string, { isAmbiguous: boolean; isDuplicate: boolean }>,
-): boolean {
-  // Ambiguous or duplicate column ALWAYS requires review — checked FIRST before any other rule
-  if (envelopeIssue.columnId) {
-    const col = columnRegistry.get(envelopeIssue.columnId);
-    if (col?.isAmbiguous || col?.isDuplicate) return true;
-  }
-  if (envelopeIssue.actionability === 'review_only') return true;
-  if (envelopeIssue.actionability === 'auto_safe' && !envelopeIssue.automaticAuthorization.authorized) return true;
-  if (envelopeIssue.actionability === 'not_actionable') return false;
-  if (envelopeIssue.actionability === 'auto_safe' && envelopeIssue.automaticAuthorization.authorized) return false;
-  // Unknown actionability → requires review
-  return true;
-}
+// `governanceDemandsReview` and `noEvidenceDemandsReview` are imported from
+// `./humanReviewPolicyV2` (AURA-CIERRE-SMART-SAMPLE-HITL-01). The validator
+// emits two `DIAGNOSIS_REVIEW_DOWNGRADE` errors with distinct messages so the
+// cause is explicit; the constructor (which embeds the list in the prompt)
+// uses the OR of both predicates via `requiresReviewFromEnvelopeV2`.
 
 // ── Schema Validation (additionalProperties: false) ──
 
@@ -487,11 +476,8 @@ export function validateDiagnosisResponseV2(
     issueEvidenceRefs.set(iss.issueId, new Set(iss.evidenceRefs));
   }
 
-  // Column registry for ambiguity check
-  const columnRegistry = new Map<string, { isAmbiguous: boolean; isDuplicate: boolean }>();
-  for (const col of envelope.columns) {
-    columnRegistry.set(col.columnId, { isAmbiguous: col.isAmbiguous, isDuplicate: col.isDuplicate });
-  }
+  // Column registry for ambiguity check (single source of truth in humanReviewPolicyV2)
+  const columnRegistry = buildColumnAmbiguityRegistry(envelope);
 
   // 8. Validate each DiagnosisIssueV2
   const seenIssueIds = new Set<string>();
@@ -543,21 +529,36 @@ export function validateDiagnosisResponseV2(
       errors.push(err('DIAGNOSIS_SCHEMA_INVALID', `${base}.confidence`, 'Must be between 0 and 1', diagIssue.confidence));
     }
 
-    // HITL: requiresHumanReview
+    // HITL: requiresHumanReview — single source of truth from humanReviewPolicyV2.
     const envelopeIssue = envelopeIssueMap.get(diagIssue.issueId);
     if (envelopeIssue) {
-      const required = requiresReviewFromEnvelope(envelopeIssue, columnRegistry);
-      if (required && !diagIssue.requiresHumanReview) {
+      const governanceRequired = governanceDemandsReview(envelopeIssue, columnRegistry);
+      const envelopeHasNoEvidence = noEvidenceDemandsReview(envelopeIssue);
+      if (governanceRequired && !diagIssue.requiresHumanReview) {
         errors.push(err(
           'DIAGNOSIS_REVIEW_DOWNGRADE',
           `${base}.requiresHumanReview`,
           'Must be true — envelope requires human review (actionability, authorization, or ambiguous column)',
-          { required, actual: diagIssue.requiresHumanReview },
+          { required: true, actual: diagIssue.requiresHumanReview },
         ));
       }
-      // Empty evidenceRefs → requires review
-      if (diagIssue.evidenceRefs.length === 0 && !diagIssue.requiresHumanReview) {
-        errors.push(err('DIAGNOSIS_REVIEW_DOWNGRADE', `${base}.requiresHumanReview`, 'Must be true — no evidenceRefs provided', diagIssue.requiresHumanReview));
+      if (envelopeHasNoEvidence && !diagIssue.requiresHumanReview) {
+        errors.push(err(
+          'DIAGNOSIS_REVIEW_DOWNGRADE',
+          `${base}.requiresHumanReview`,
+          'Must be true — no evidenceRefs provided',
+          diagIssue.requiresHumanReview,
+        ));
+      }
+      // Response-level honesty: the model may decline to cite refs even when
+      // the envelope has some; that still demands review.
+      if (!envelopeHasNoEvidence && diagIssue.evidenceRefs.length === 0 && !diagIssue.requiresHumanReview) {
+        errors.push(err(
+          'DIAGNOSIS_REVIEW_DOWNGRADE',
+          `${base}.requiresHumanReview`,
+          'Must be true — no evidenceRefs provided',
+          diagIssue.requiresHumanReview,
+        ));
       }
     } else {
       // Unknown issue → must require review
