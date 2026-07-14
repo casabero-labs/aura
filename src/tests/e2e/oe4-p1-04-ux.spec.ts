@@ -27,7 +27,7 @@ const reviewRun = async (page: import('@playwright/test').Page, runId: string, n
 
 const completeExperimentAndReviewBoth = async (page: import('@playwright/test').Page): Promise<void> => {
   await page.getByRole('button', { name: 'Crear experimento' }).click();
-  await expect(page.getByText('43 / 45')).toBeVisible({ timeout: 30000 });
+  await expect(page.getByText('25 / 27')).toBeVisible({ timeout: 30000 });
 
   await page.getByRole('button', { name: 'Reanudar experimento' }).click();
   await expect.poll(() => page.evaluate(() => window.__OE4_E2E_WAITING__ === true)).toBe(true);
@@ -170,7 +170,7 @@ test.describe('P1-04R1 adversarial closure', () => {
     expect(countBefore).toBe(0);
 
     await page.getByRole('button', { name: 'Crear experimento' }).click();
-    await expect(page.getByText('43 / 45')).toBeVisible({ timeout: 30000 });
+    await expect(page.getByText('25 / 27')).toBeVisible({ timeout: 30000 });
 
     const countBeforeReanudar = await page.evaluate(() => window.__OE4_E2E_GENERATE_CALL_COUNT__ ?? 0);
     expect(countBeforeReanudar).toBe(0);

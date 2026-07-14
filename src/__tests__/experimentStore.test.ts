@@ -118,8 +118,8 @@ const makeCampaignFixture = (): {
       datasetSha256: FINAL_EVALUATION_PROTOCOL.dataset.sha256,
       modelIds: [...FINAL_EVALUATION_PROTOCOL.models],
       inputModes: [...FINAL_EVALUATION_PROTOCOL.inputModes],
-      repetitions: 5,
-      plannedRuns: 45,
+      repetitions: 3,
+      plannedRuns: 27,
       configurationHash: HASH_A,
       runIds: runs.map((run) => run.runId),
     },
@@ -185,7 +185,7 @@ const runStoreContract = (name: string, makeHarness: HarnessFactory): void => {
       store = harness.open();
     });
 
-    it('creates, lists and loads one complete campaign with its 45 runs', async () => {
+    it('creates, lists and loads one complete campaign with its 27 runs', async () => {
       const fixture = makeCampaignFixture();
 
       await store.createCampaign(fixture.campaign, fixture.runs);
@@ -193,9 +193,9 @@ const runStoreContract = (name: string, makeHarness: HarnessFactory): void => {
       expect(await store.listCampaigns()).toEqual([fixture.campaign]);
       expect(await store.loadCampaign(fixture.campaign.campaignId)).toEqual(fixture.campaign);
       const loadedRuns = await store.listRuns(fixture.campaign.campaignId);
-      expect(loadedRuns).toHaveLength(45);
+      expect(loadedRuns).toHaveLength(27);
       expect(loadedRuns.map((run) => run.sequence)).toEqual(
-        Array.from({ length: 45 }, (_, index) => index + 1),
+        Array.from({ length: 27 }, (_, index) => index + 1),
       );
     });
 

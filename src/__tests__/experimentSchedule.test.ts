@@ -8,17 +8,17 @@ import {
 } from '../services/benchmark/finalEvaluationProtocol';
 
 describe('OE4 deterministic experiment schedule — Task 5', () => {
-  it('builds exactly 45 uniquely identified formal units', () => {
+  it('builds exactly 27 uniquely identified formal units', () => {
     const schedule = buildExperimentSchedule();
 
-    expect(schedule.units).toHaveLength(45);
-    expect(new Set(schedule.units.map((unit) => unit.runId))).toHaveLength(45);
+    expect(schedule.units).toHaveLength(27);
+    expect(new Set(schedule.units.map((unit) => unit.runId))).toHaveLength(27);
     expect(schedule.units.map((unit) => unit.sequence)).toEqual(
-      Array.from({ length: 45 }, (_, index) => index + 1),
+      Array.from({ length: 27 }, (_, index) => index + 1),
     );
   });
 
-  it('runs every model and input-mode pair exactly five times', () => {
+  it('runs every model and input-mode pair exactly three times', () => {
     const schedule = buildExperimentSchedule();
 
     for (const modelId of FINAL_EVALUATION_PROTOCOL.models) {
@@ -26,8 +26,8 @@ describe('OE4 deterministic experiment schedule — Task 5', () => {
         const matching = schedule.units.filter(
           (unit) => unit.modelId === modelId && unit.inputMode === inputMode,
         );
-        expect(matching).toHaveLength(5);
-        expect(matching.map((unit) => unit.repetition).sort()).toEqual([1, 2, 3, 4, 5]);
+        expect(matching).toHaveLength(3);
+        expect(matching.map((unit) => unit.repetition).sort()).toEqual([1, 2, 3]);
       }
     }
   });
@@ -35,10 +35,10 @@ describe('OE4 deterministic experiment schedule — Task 5', () => {
   it('follows the frozen model rotation and excludes one warm-up per model block', () => {
     const schedule = buildExperimentSchedule();
 
-    expect(schedule.blocks).toHaveLength(15);
-    expect(schedule.warmups).toHaveLength(15);
+    expect(schedule.blocks).toHaveLength(9);
+    expect(schedule.warmups).toHaveLength(9);
 
-    for (let repetitionIndex = 0; repetitionIndex < 5; repetitionIndex += 1) {
+    for (let repetitionIndex = 0; repetitionIndex < 3; repetitionIndex += 1) {
       const repetition = repetitionIndex + 1;
       const blockModels = schedule.blocks
         .filter((block) => block.repetition === repetition)

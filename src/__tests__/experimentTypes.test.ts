@@ -64,7 +64,7 @@ const makeEnvironment = (modelId: OE4ModelId): EnvironmentSnapshotV1 => ({
 
 const makeInput = (mode: OE4InputMode): DiagnosisInputPackageV2 => {
   const systemInstruction = 'Responde bajo aura.diagnosis.v2.';
-  const userPayload = '{"dataset":"controlled_customers_phase8"}';
+  const userPayload = '{"dataset":"synthetic_ground_truth"}';
   const responseSchema = { type: 'object', required: ['contractId'] };
   const promptHash = sha256hex(exactDiagnosisPromptV2({ systemInstruction, userPayload, responseSchema }));
   return {
@@ -257,10 +257,10 @@ const makeValidCampaign = (overrides: Partial<ExperimentCampaignV1> = {}): Exper
   datasetSha256: FINAL_EVALUATION_PROTOCOL.dataset.sha256,
   modelIds: [...FINAL_EVALUATION_PROTOCOL.models],
   inputModes: [...FINAL_EVALUATION_PROTOCOL.inputModes],
-  repetitions: 5,
-  plannedRuns: 45,
+  repetitions: 3,
+  plannedRuns: 27,
   configurationHash: HASH_A,
-  runIds: Array.from({ length: 45 }, (_, index) => `run:${index + 1}`),
+  runIds: Array.from({ length: 27 }, (_, index) => `run:${index + 1}`),
   ...overrides,
 });
 
@@ -274,14 +274,14 @@ describe('OE4 experiment contracts — Task 2', () => {
   it('rejects campaign drift and duplicate run identities', () => {
     const campaign = makeValidCampaign({
       protocolVersion: '1.0.1',
-      plannedRuns: 44 as unknown as 45,
-      runIds: Array.from({ length: 45 }, () => 'run:duplicated'),
+      plannedRuns: 26,
+      runIds: Array.from({ length: 27 }, () => 'run:duplicated'),
     });
     const result = validateExperimentCampaignV1(campaign);
     expect(result.valid).toBe(false);
     expect(result.errors).toEqual(expect.arrayContaining([
       'protocolVersion must match the frozen protocol',
-      'plannedRuns must equal 45',
+      'plannedRuns must equal 27',
       'runIds must be unique',
     ]));
   });
@@ -304,7 +304,7 @@ describe('OE4 experiment contracts — Task 2', () => {
     expect(result.errors).toEqual(expect.arrayContaining([
       'modelId is not part of the frozen protocol',
       'inputMode is not part of the frozen protocol',
-      'repetition must be an integer from 1 to 5',
+      'repetition must be an integer from 1 to 3',
       'input.promptHash must be a SHA-256 hex string',
     ]));
   });

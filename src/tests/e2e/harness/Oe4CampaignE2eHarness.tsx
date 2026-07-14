@@ -37,8 +37,8 @@ const planned = (run: ExperimentRunV1): ExperimentRunV1 => ({
 
 const sourceFixture = createExperimentEvidenceFixture();
 const sourceByRunId = new Map(sourceFixture.runs.map((run) => [run.runId, run]));
-const targetRepresentative = sourceFixture.runs.find((run) => run.sequence === 3)!;
-const recoveryRun = sourceFixture.runs.find((run) => run.sequence === 6)!;
+const targetRepresentative = sourceFixture.runs.find((run) => run.sequence === 2)!;
+const recoveryRun = sourceFixture.runs.find((run) => run.sequence === 4)!;
 
 const createControlledBundle = async (): Promise<ExperimentCampaignBundle> => ({
   campaign: {

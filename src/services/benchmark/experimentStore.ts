@@ -97,7 +97,7 @@ export const assertCampaignBundle = (
   ) {
     throw new ExperimentStoreError(
       'CAMPAIGN_BUNDLE_INVALID',
-      'Campaign runIds and run sequences must describe the exact 45-unit schedule.',
+      `Campaign runIds and run sequences must describe the exact ${campaign.plannedRuns}-unit schedule.`,
     );
   }
 };

@@ -37,8 +37,8 @@ export interface ExperimentCampaignV1 {
   datasetSha256: string;
   modelIds: OE4ModelId[];
   inputModes: OE4InputMode[];
-  repetitions: 5;
-  plannedRuns: 45;
+  repetitions: number;
+  plannedRuns: number;
   configurationHash: string;
   runIds: string[];
 }

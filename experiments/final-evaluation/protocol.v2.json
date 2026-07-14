@@ -1,15 +1,15 @@
 {
   "id": "aura.oe4.final-evaluation.v2",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "frozenAt": "2026-07-14",
   "supersedes": "aura.oe4.final-evaluation.v1",
   "dataset": {
-    "id": "controlled_customers_phase8",
-    "sha256": "7438bbdc96499d04bd7e485d6450f740304a7c878dce7d1a720dc4d9f2025faf",
-    "schemaSha256": "b1eba3a767a6e9a84398aa10220c73efa2b3db8b31151235f9b63141727a2a98",
-    "rows": 50,
-    "columns": 15,
-    "groundTruthSha256": "38c846856860519d248b42e53afe3cacacff714f115af6cec4b3d050fe79040d"
+    "id": "synthetic_ground_truth",
+    "sha256": "4e7d358f2141c6463146417a66f1c2312c7c3cdf6a39005780c92b061ff7ac49",
+    "schemaSha256": "5baab1a6f8c62e10e757386b808d7e52fd36b81402d4842f15e859c201b2d63b",
+    "rows": 15,
+    "columns": 9,
+    "groundTruthSha256": "c80563cf62c0e0f83039d3161d9e8799876b31a32c015ed940b2ecceaca78f0b"
   },
   "models": [
     "hf.co/unsloth/Qwen3.5-4B-GGUF:UD-Q4_K_XL",
@@ -17,17 +17,17 @@
     "hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL"
   ],
   "inputModes": ["prompt_libre", "smart_sample", "recommended"],
-  "repetitions": 5,
+  "repetitions": 3,
   "matrix": {
     "models": 3,
     "inputModes": 3,
-    "repetitions": 5,
-    "units": 45,
+    "repetitions": 3,
+    "units": 27,
     "stagesPerUnit": 1,
-    "evaluatedLlmCalls": 45,
-    "warmupCalls": 15,
-    "totalRealCalls": 60,
-    "maxLlmCalls": 45
+    "evaluatedLlmCalls": 27,
+    "warmupCalls": 9,
+    "totalRealCalls": 36,
+    "maxLlmCalls": 27
   },
   "inference": {
     "temperature": 0.2,
@@ -45,20 +45,18 @@
     "balancedModelOrders": [
       ["hf.co/unsloth/Qwen3.5-4B-GGUF:UD-Q4_K_XL", "hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL", "hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL"],
       ["hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL", "hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL", "hf.co/unsloth/Qwen3.5-4B-GGUF:UD-Q4_K_XL"],
-      ["hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL", "hf.co/unsloth/Qwen3.5-4B-GGUF:UD-Q4_K_XL", "hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL"],
-      ["hf.co/unsloth/Qwen3.5-4B-GGUF:UD-Q4_K_XL", "hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL", "hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL"],
-      ["hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL", "hf.co/unsloth/Qwen3.5-4B-GGUF:UD-Q4_K_XL", "hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL"]
+      ["hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL", "hf.co/unsloth/Qwen3.5-4B-GGUF:UD-Q4_K_XL", "hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL"]
     ],
     "modeOrderSeed": 4242,
     "warmupExcluded": true,
     "warmupPerModelBlock": 1,
-    "expectedModelBlocks": 15,
-    "expectedWarmupCalls": 15
+    "expectedModelBlocks": 9,
+    "expectedWarmupCalls": 9
   },
   "evaluationScopes": ["engineCoverage", "primaryDiagnosticF1", "evidenceFidelity", "extendedDiscovery"],
   "primaryF1Denominator": "engine_exposed canonical keys only",
-  "primaryF1DenominatorByMode": { "prompt_libre": 16, "smart_sample": 16, "recommended": 16 },
-  "evidenceFidelityDenominatorByMode": { "prompt_libre": 0, "smart_sample": 16, "recommended": 16 },
+  "primaryF1DenominatorByMode": { "prompt_libre": 15, "smart_sample": 15, "recommended": 15 },
+  "evidenceFidelityDenominatorByMode": { "prompt_libre": 0, "smart_sample": 10, "recommended": 10 },
   "rules": {
     "noChangeAfterFirstRun": "Any change to contracts v2, prompts, models or inference after the first formal run invalidates the campaign and requires a new protocol version.",
     "failuresPreserved": "Failed runs are persisted and count toward stability metrics; retries are linked, never overwrite.",

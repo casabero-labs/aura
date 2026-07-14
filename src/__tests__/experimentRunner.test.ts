@@ -268,7 +268,7 @@ describe('OE4 diagnosis-only and resumable runner — protocol V2', () => {
     expect(failed.diagnosis?.validationErrors[0].code).toBe('DIAGNOSIS_COVERAGE_MISMATCH');
   });
 
-  it('executes exactly 15 excluded warm-ups plus 45 measured diagnoses', async () => {
+  it('executes exactly 9 excluded warm-ups plus 27 measured diagnoses', async () => {
     const calls: string[] = [];
     const runs = buildExperimentSchedule().units.map((unit) => ({
       ...makeRun(unit.inputMode, unit.sequence),
@@ -295,11 +295,11 @@ describe('OE4 diagnosis-only and resumable runner — protocol V2', () => {
     const outcome = await runner.runUnits(runs);
 
     expect(outcome.runs.every((run) => run.status === 'completed')).toBe(true);
-    expect(calls.filter((prompt) => prompt.startsWith('Warm-up OE4'))).toHaveLength(15);
-    expect(calls.filter((prompt) => prompt.includes('aura.diagnosis.v2'))).toHaveLength(45);
-    expect(calls).toHaveLength(60);
+    expect(calls.filter((prompt) => prompt.startsWith('Warm-up OE4'))).toHaveLength(9);
+    expect(calls.filter((prompt) => prompt.includes('aura.diagnosis.v2'))).toHaveLength(27);
+    expect(calls).toHaveLength(36);
     expect(outcome.runs.every((run) => validateExperimentRunV1(run).valid)).toBe(true);
-    expect(new Set(outcome.runs.map((run) => run.warmupReceipt?.blockId))).toHaveLength(15);
+    expect(new Set(outcome.runs.map((run) => run.warmupReceipt?.blockId))).toHaveLength(9);
     expect(outcome.runs.every((run) => run.warmupReceipt?.excludedFromEvaluation === true)).toBe(true);
   });
 

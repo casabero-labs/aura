@@ -69,7 +69,7 @@ export const buildExperimentCampaignEvidence = (
 
   if (campaign.status !== 'completed') reasons.push('campaign status is not completed');
   if (sortedRuns.length !== FINAL_EVALUATION_PROTOCOL.matrix.units) {
-    reasons.push('campaign does not contain exactly 45 runs');
+    reasons.push(`campaign does not contain exactly ${FINAL_EVALUATION_PROTOCOL.matrix.units} runs`);
   }
   const observedIds = sortedRuns.map((run) => run.runId);
   if (JSON.stringify(observedIds) !== JSON.stringify(campaign.runIds)) {

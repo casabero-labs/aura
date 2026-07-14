@@ -7,8 +7,8 @@ import { createExperimentEvidenceFixture } from '../../__tests__/fixtures/experi
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const AFTER_CSV = path.resolve(__dirname, './fixtures/oe4-after-approved.csv');
 const source = createExperimentEvidenceFixture();
-const TARGET_RUN_ID = source.runs.find((run) => run.sequence === 3)!.runId;
-const RECOVERY_RUN_ID = source.runs.find((run) => run.sequence === 6)!.runId;
+const TARGET_RUN_ID = source.runs.find((run) => run.sequence === 2)!.runId;
+const RECOVERY_RUN_ID = source.runs.find((run) => run.sequence === 4)!.runId;
 
 const openLab = async (page: import('@playwright/test').Page): Promise<void> => {
   await page.getByRole('button', { name: 'Laboratorio', exact: true }).first().click();
@@ -54,18 +54,18 @@ test.describe.serial('Task 11 — recorrido humano OE4 y recuperación', () => {
     await expect(page.getByRole('note')).toContainText('no constituye evidencia de modelos');
 
     await page.getByRole('button', { name: 'Crear experimento' }).click();
-    await expect(page.getByText('43 / 45')).toBeVisible();
+    await expect(page.getByText('25 / 27')).toBeVisible();
 
     await page.getByRole('button', { name: 'Reanudar experimento' }).click();
     await expect.poll(() => page.evaluate(() => window.__OE4_E2E_WAITING__ === true)).toBe(true);
     await page.getByRole('button', { name: 'Pausar de forma segura' }).click();
     await page.evaluate(() => window.__OE4_E2E_RELEASE__?.());
     await expect(page.getByRole('status')).toContainText('Experimento pausado');
-    await expect(page.getByText('44 / 45')).toBeVisible();
+    await expect(page.getByText('26 / 27')).toBeVisible();
 
     await page.reload();
     await openLab(page);
-    await expect(page.getByText('44 / 45')).toBeVisible();
+    await expect(page.getByText('26 / 27')).toBeVisible();
     await page.getByRole('button', { name: 'Reanudar experimento' }).click();
     await expect(page.getByRole('status')).toContainText('Ejecución terminada');
     await expect(page.getByText('2 pendientes de revisión')).toBeVisible();

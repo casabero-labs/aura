@@ -6,9 +6,9 @@ import { createFormalCampaignBundle } from '../services/benchmark/formalCampaign
 import { FINAL_EVALUATION_PROTOCOL } from '../services/benchmark/finalEvaluationProtocol';
 import { validateExperimentCampaignV1, validateExperimentRunV1 } from '../services/benchmark/experimentGuards';
 
-const columnNames = ['customer_id', 'full_name', 'email', 'birth_date', 'registration_date', 'country', 'city', 'plan_type', 'monthly_spend', 'total_spend', 'credits_used', 'total_credits', 'status', 'phone', 'notes'];
+const columnNames = ['id', 'nombre', 'edad', 'salario', 'email', 'departamento', 'fecha_ingreso', 'estado', 'ip_acceso'];
 const report = {
-  score: 100, rowCount: 50, colCount: 15, duplicateRows: 0, delimiterDetected: ',',
+  score: 100, rowCount: 15, colCount: 9, duplicateRows: 0, delimiterDetected: ',',
   issues: [],
   columnStats: Object.fromEntries(columnNames.map((name) => [name, { inferredType: 'string', distinctCount: 50, nullCount: 0, nullPercentage: 0 }])),
   datasetProfile: { columns: columnNames.map((name) => ({ name, inferredType: 'string', cardinality: 'high' })) },
@@ -17,16 +17,16 @@ const report = {
 const evidence = {
   datasetFingerprint: FINAL_EVALUATION_PROTOCOL.dataset.sha256,
   datasetSha256: FINAL_EVALUATION_PROTOCOL.dataset.sha256,
-  rowsProcessed: 50,
-  columnsProcessed: 15,
+  rowsProcessed: 15,
+  columnsProcessed: 9,
 } as AuditExecutionEvidence;
 
-const controlledCsv = readFileSync(join(__dirname, '..', '..', 'experiments/final-evaluation/datasets/controlled_customers_phase8.csv'));
+const controlledCsv = readFileSync(join(__dirname, '..', '..', 'experiments/datasets/synthetic_ground_truth.csv'));
 const datasetFile = { arrayBuffer: async () => controlledCsv.buffer.slice(controlledCsv.byteOffset, controlledCsv.byteOffset + controlledCsv.byteLength) } as Pick<File, 'arrayBuffer'>;
 afterEach(() => vi.unstubAllGlobals());
 
 describe('formal OE4 campaign factory', () => {
-  it('creates 45 diagnosis-only units only after verifying all Ollama models', async () => {
+  it('creates 27 diagnosis-only units only after verifying all Ollama models', async () => {
     const models = FINAL_EVALUATION_PROTOCOL.models.map((model, index) => ({
       name: model,
       digest: `${String(index + 1).repeat(64)}`,
@@ -45,7 +45,7 @@ describe('formal OE4 campaign factory', () => {
       now: () => '2026-07-11T22:00:00.000Z',
     });
 
-    expect(bundle.runs).toHaveLength(45);
+    expect(bundle.runs).toHaveLength(27);
     expect(new Set(bundle.runs.map((run) => run.input.inputHash)).size).toBe(3);
     expect(bundle.runs.every((run) => run.script === null)).toBe(true);
     expect(bundle.runs.every((run) => (
@@ -63,7 +63,7 @@ describe('formal OE4 campaign factory', () => {
       datasetFile: { arrayBuffer: async () => new TextEncoder().encode('wrong dataset').buffer },
       ollamaBaseUrl: 'http://127.0.0.1:11434',
       appCommit: 'abcdef1234567',
-    })).rejects.toThrow('controlled_customers_phase8.csv');
+    })).rejects.toThrow('synthetic_ground_truth.csv');
   });
 
   it('rejects an Ollama server older than the formal minimum', async () => {

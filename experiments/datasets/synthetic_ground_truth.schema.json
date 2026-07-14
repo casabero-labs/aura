@@ -1,0 +1,17 @@
+{
+  "datasetId": "synthetic_ground_truth",
+  "version": "1.0.0",
+  "rows": 15,
+  "columns": [
+    { "name": "id", "type": "number" },
+    { "name": "nombre", "type": "string" },
+    { "name": "edad", "type": "number" },
+    { "name": "salario", "type": "number" },
+    { "name": "email", "type": "string" },
+    { "name": "departamento", "type": "string" },
+    { "name": "fecha_ingreso", "type": "date" },
+    { "name": "estado", "type": "string" },
+    { "name": "ip_acceso", "type": "string" }
+  ],
+  "source": "AURA synthetic controlled dataset for the final OE4 evaluation"
+}

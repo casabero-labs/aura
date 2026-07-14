@@ -1,0 +1,37 @@
+{
+  "oracleId": "aura.diagnostic-oracle.synthetic.v1",
+  "version": "1.0.0",
+  "frozenAt": "2026-07-14",
+  "dataset": {
+    "id": "synthetic_ground_truth",
+    "fingerprintSha256": "4e7d358f2141c6463146417a66f1c2312c7c3cdf6a39005780c92b061ff7ac49",
+    "rows": 15,
+    "columns": 9
+  },
+  "source": {
+    "groundTruthFile": "experiments/datasets/synthetic_ground_truth.json",
+    "groundTruthSha256": "c80563cf62c0e0f83039d3161d9e8799876b31a32c015ed940b2ecceaca78f0b"
+  },
+  "coverage": {
+    "totalSourceIssues": 15,
+    "canonicalKeys": 15,
+    "primaryF1Denominator": 15
+  },
+  "findings": [
+    { "key": "rule:exact-duplicates||dataset", "canonicalRuleId": "rule:exact-duplicates", "columnId": null, "scope": "dataset", "reachability": "engine_exposed", "primaryEligible": true, "visibleEvidenceModes": [], "sourceIssueIds": ["integrity-dupes"] },
+    { "key": "rule:null-values|nombre|column", "canonicalRuleId": "rule:null-values", "columnId": "nombre", "scope": "column", "reachability": "engine_exposed", "primaryEligible": true, "visibleEvidenceModes": [], "sourceIssueIds": ["integrity-null-nombre"] },
+    { "key": "rule:mojibake|nombre|column", "canonicalRuleId": "rule:mojibake", "columnId": "nombre", "scope": "column", "reachability": "engine_exposed", "primaryEligible": true, "visibleEvidenceModes": ["smart_sample", "recommended"], "sourceIssueIds": ["hygiene-moji-nombre"] },
+    { "key": "rule:null-values|edad|column", "canonicalRuleId": "rule:null-values", "columnId": "edad", "scope": "column", "reachability": "engine_exposed", "primaryEligible": true, "visibleEvidenceModes": [], "sourceIssueIds": ["integrity-null-edad"] },
+    { "key": "rule:toxic-placeholders|edad|column", "canonicalRuleId": "rule:toxic-placeholders", "columnId": "edad", "scope": "column", "reachability": "engine_exposed", "primaryEligible": true, "visibleEvidenceModes": ["smart_sample", "recommended"], "sourceIssueIds": ["hygiene-toxic-edad"] },
+    { "key": "rule:extreme-outliers|edad|column", "canonicalRuleId": "rule:extreme-outliers", "columnId": "edad", "scope": "column", "reachability": "engine_exposed", "primaryEligible": true, "visibleEvidenceModes": ["smart_sample", "recommended"], "sourceIssueIds": ["logic-outlier-edad"] },
+    { "key": "rule:impossible-negatives|salario|column", "canonicalRuleId": "rule:impossible-negatives", "columnId": "salario", "scope": "column", "reachability": "engine_exposed", "primaryEligible": true, "visibleEvidenceModes": ["smart_sample", "recommended"], "sourceIssueIds": ["logic-neg-salario"] },
+    { "key": "rule:extreme-outliers|salario|column", "canonicalRuleId": "rule:extreme-outliers", "columnId": "salario", "scope": "column", "reachability": "engine_exposed", "primaryEligible": true, "visibleEvidenceModes": ["smart_sample", "recommended"], "sourceIssueIds": ["logic-outlier-salario"] },
+    { "key": "rule:null-values|email|column", "canonicalRuleId": "rule:null-values", "columnId": "email", "scope": "column", "reachability": "engine_exposed", "primaryEligible": true, "visibleEvidenceModes": [], "sourceIssueIds": ["integrity-null-email"] },
+    { "key": "rule:toxic-placeholders|email|column", "canonicalRuleId": "rule:toxic-placeholders", "columnId": "email", "scope": "column", "reachability": "engine_exposed", "primaryEligible": true, "visibleEvidenceModes": ["smart_sample", "recommended"], "sourceIssueIds": ["hygiene-toxic-email"] },
+    { "key": "rule:invalid-email|email|column", "canonicalRuleId": "rule:invalid-email", "columnId": "email", "scope": "column", "reachability": "engine_exposed", "primaryEligible": true, "visibleEvidenceModes": ["smart_sample", "recommended"], "sourceIssueIds": ["logic-email-email"] },
+    { "key": "rule:mixed-date-formats|fecha_ingreso|column", "canonicalRuleId": "rule:mixed-date-formats", "columnId": "fecha_ingreso", "scope": "column", "reachability": "engine_exposed", "primaryEligible": true, "visibleEvidenceModes": ["smart_sample", "recommended"], "sourceIssueIds": ["logic-mixed-date-fecha_ingreso"] },
+    { "key": "rule:null-values|estado|column", "canonicalRuleId": "rule:null-values", "columnId": "estado", "scope": "column", "reachability": "engine_exposed", "primaryEligible": true, "visibleEvidenceModes": [], "sourceIssueIds": ["integrity-null-estado"] },
+    { "key": "rule:toxic-placeholders|estado|column", "canonicalRuleId": "rule:toxic-placeholders", "columnId": "estado", "scope": "column", "reachability": "engine_exposed", "primaryEligible": true, "visibleEvidenceModes": ["smart_sample", "recommended"], "sourceIssueIds": ["hygiene-toxic-estado"] },
+    { "key": "rule:pii-detected|ip_acceso|column", "canonicalRuleId": "rule:pii-detected", "columnId": "ip_acceso", "scope": "column", "reachability": "engine_exposed", "primaryEligible": true, "visibleEvidenceModes": ["smart_sample", "recommended"], "sourceIssueIds": ["sec-pii-ip_acceso"] }
+  ]
+}

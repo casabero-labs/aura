@@ -1,6 +1,6 @@
 # Hoja de ruta definitiva de AURA
 
-Última actualización: 14 de julio de 2026, 06:27 (America/Bogota).
+Última actualización: 14 de julio de 2026, 10:30 (America/Bogota).
 
 Este documento es la única referencia operativa para cerrar el TFM. La entrega
 académica vence el **miércoles 15 de julio de 2026 a las 15:00**. Hasta entregar,
@@ -26,20 +26,20 @@ esta fase; en el documento se verificará su grado de cumplimiento con evidencia
 | Área | Estado para el TFM |
 |---|---|
 | Motor determinista | Cerrado y utilizable. |
-| Diagnóstico normal V2 | **Contexto mínimo** (`prompt_libre`) y **Evidencia completa** (`recommended`) produjeron diagnósticos válidos. El piloto de **Evidencia equilibrada** (`smart_sample`) descubrió una contradicción del contrato: la entrada oculta `actionability` y `authorized`, pero el validador exige responder conforme a esos datos. Las corridas de Qwen y Gemma se conservan como evidencia del defecto y no como resultados comparables de los modelos. |
+| Diagnóstico normal V2 | Los tres métodos completaron el piloto Gemma. La gobernanza RAW/EFFECTIVE conserva cualquier incumplimiento del modelo y solo fuerza la revisión humana definida por AURA. |
 | Informe PDF y exportación | El ZIP completo quedó validado en una corrida humana. **Los tres defectos visuales del PDF quedaron corregidos** (porcentajes `0.00%` en gráficos de distribución/impacto, etiquetas humanas ausentes y fondo incompleto en las páginas 4 y 6). El informe se regeneró desde el `report JSON` real del ZIP, se renderizaron sus siete páginas y se verificó fondo blanco completo, porcentajes correctos, etiquetas visibles y ausencia de regresiones. |
 | Plan y script | Implementados de forma determinista con revisión humana. El LLM no escribe código ejecutable. |
 | Aplicar y verificar | Cerrado y validado por una corrida humana real: runner Python, recibo, CSV corregido, reauditoría antes/después y ZIP completo. |
-| Laboratorio | Preparado para piloto y campaña real. |
-| Evaluación formal | Pendiente de ejecutar. Es la prioridad inmediata. |
+| Laboratorio | Protocolo V2.3 congelado para `synthetic_ground_truth.csv`: 27 diagnósticos y 9 calentamientos excluidos. |
+| Evaluación formal | Lista para iniciar. Es la prioridad inmediata. |
 | Documento final | Pendiente de resultados y consolidación. |
 
-## Decisiones vigentes para la prueba piloto
+## Configuración definitiva de la campaña formal
 
-Estas decisiones se validarán con las tres corridas de Qwen. El protocolo
-formal V2.1 todavía referencia Phase 8 y **no debe ejecutarse**. Si el piloto
-termina correctamente, se creará una única versión nueva del protocolo con el
-dataset, hashes, oracle, 27 diagnósticos y 9 calentamientos definitivos.
+El piloto exploratorio de Gemma con los tres métodos quedó cerrado y documentado
+en [2026-07-14-piloto-gemma4-tres-metodos.md](evidence/2026-07-14-piloto-gemma4-tres-metodos.md).
+No forma parte de los resultados formales. El protocolo V2.3 ya contiene el
+dataset, hashes, oráculo, 27 diagnósticos y 9 calentamientos definitivos.
 
 - Dataset de cierre: `synthetic_ground_truth.csv` (15 filas, 9 columnas y ground truth explícito).
 - `controlled_customers_phase8.csv` se conserva como prueba de estrés posterior;
@@ -53,8 +53,8 @@ dataset, hashes, oracle, 27 diagnósticos y 9 calentamientos definitivos.
   - **Contexto mínimo** (`prompt_libre`);
   - **Evidencia equilibrada** (`smart_sample`);
   - **Evidencia completa** (`recommended`).
-- Prueba previa: Qwen x 3 métodos x 1 ejecución = **3 diagnósticos exploratorios**.
-- Campaña formal prevista: 3 modelos x 3 métodos x 3 repeticiones = **27 diagnósticos**.
+- Prueba previa cerrada: Gemma 4 x 3 métodos x 1 ejecución = **3 diagnósticos exploratorios**.
+- Campaña formal: 3 modelos x 3 métodos x 3 repeticiones = **27 diagnósticos**.
 - La reducción de 45 a 27 conserva tres observaciones por combinación y reduce
   el tiempo de ejecución. Se declarará como evaluación descriptiva de muestra pequeña.
 - El score y los hallazgos pertenecen al motor determinista; el LLM no los modifica.
@@ -62,6 +62,18 @@ dataset, hashes, oracle, 27 diagnósticos y 9 calentamientos definitivos.
 - `done_reason=length` se conserva como `DIAGNOSIS_RESPONSE_TRUNCATED`; no se
   intenta reparar ni certificar un JSON incompleto.
 - No se cambia dataset, modelo, método o parámetros después de iniciar la campaña formal.
+
+## Próxima acción inmediata
+
+1. Abrir AURA y cargar `experiments/datasets/synthetic_ground_truth.csv`.
+2. Completar la auditoría determinista y entrar en **Laboratorio**.
+3. Confirmar que la pantalla muestre protocolo `2.3.0`, dataset
+   `synthetic_ground_truth`, 27 corridas y los tres modelos instalados.
+4. Crear la campaña una sola vez y pulsar **Iniciar experimento**.
+5. No cambiar dataset, modelos, métodos, parámetros, prompts ni contratos una
+   vez creada la campaña.
+6. Conservar fallos y pausas; no repetir silenciosamente una corrida.
+7. Al terminar, exportar el expediente completo antes de modificar código.
 
 ## Plan urgente hasta el depósito
 
@@ -357,17 +369,10 @@ sistema se reformuló para afirmar la presencia de la lista solo cuando el
 payload proviene del constructor canónico; los builders histórico y compacto
 siguen produciendo payloads sin esa metadata y la regla no les aplica.
 
-**Campaña todavía bloqueada hasta un único smoke humano con Qwen3.5 4B.**
-El contrato ya está corregido y validado por los gates, pero el piloto formal
-de 27 diagnósticos no se ejecutará hasta que una sola corrida humana real con
-`synthetic_ground_truth.csv`, Qwen3.5 4B y `smart_sample` complete el flujo
-normal. La corrida puede terminar sin normalización si el modelo cumple, o con
-normalización explícita si el único incumplimiento crudo es
-`DIAGNOSIS_REVIEW_DOWNGRADE`. En ese segundo caso deben quedar visibles y
-exportados el diagnóstico crudo inválido, el diagnóstico efectivo válido, el
-recibo de ambos planos y `governance-normalization.json`. Cualquier otro error
-sigue bloqueando. Las corridas anteriores con Qwen y Gemma se conservan como
-evidencia de la contradicción original, no como comparación formal de modelos.
+**Bloqueo levantado.** El piloto Gemma con los tres métodos verificó el flujo
+normal, la separación RAW/EFFECTIVE y los ZIP. Las corridas exploratorias se
+conservan separadas. La campaña formal V2.3 puede iniciarse; cualquier error
+distinto de `DIAGNOSIS_REVIEW_DOWNGRADE` seguirá registrándose como fallo real.
 
 ## Cierre AURA-CIERRE-DETERMINISTIC-HITL-02 — separación RAW vs EFFECTIVE
 
@@ -560,16 +565,16 @@ Correcciones aplicadas:
 - modelo recomendado y formal: `hf.co/unsloth/Qwen3.5-4B-GGUF:UD-Q4_K_XL`;
 - etiqueta visible: `Qwen 3.5 4B · OE4 (UD-Q4_K_XL)`;
 - migración automática de configuraciones guardadas con el antiguo Qwen 3 8B;
-- protocolo formal actualizado a `2.2.0`, congelado el 14 de julio de 2026,
+- protocolo formal actualizado finalmente a `2.3.0`, congelado el 14 de julio de 2026,
   antes de iniciar la campaña;
 - catálogo operativo único consultado desde `/api/tags` para Configuración,
   Diagnóstico y Laboratorio;
 - la campaña congela los IDs y digests realmente instalados al crearla, sin
   compararlos contra digests específicos escritos en el código.
 
-La campaña formal aún no se ha ejecutado. El siguiente paso sigue siendo una
-corrida humana de verificación con Qwen3.5 4B y los tres métodos de entrada,
-antes de producir la matriz definitiva del TFM.
+La campaña formal aún no se ha ejecutado. El piloto Gemma con los tres métodos
+ya cerró la verificación previa; el siguiente paso es crear y ejecutar la matriz
+definitiva de 27 diagnósticos desde el Laboratorio.
 
 Validación de este cierre: 64/64 pruebas focalizadas, 1928 unitarias
 superadas y 6 omitidas, `typecheck` limpio, `build` correcto y 1/1 recorrido

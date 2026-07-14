@@ -48,7 +48,7 @@ export const selectCellRepresentative = (
   runs: readonly ExperimentRunV1[],
 ): CellRepresentative => {
   if (runs.length !== FINAL_EVALUATION_PROTOCOL.repetitions) {
-    throw new RepresentativeSelectionError('each cell must contain exactly five repetitions');
+    throw new RepresentativeSelectionError(`each cell must contain exactly ${FINAL_EVALUATION_PROTOCOL.repetitions} repetitions`);
   }
   const [first] = runs;
   if (first === undefined) throw new RepresentativeSelectionError('cell is empty');
@@ -56,8 +56,8 @@ export const selectCellRepresentative = (
     throw new RepresentativeSelectionError('all runs in a cell must share modelId and inputMode');
   }
   const repetitions = runs.map((run) => run.repetition).sort((left, right) => left - right);
-  if (new Set(repetitions).size !== 5 || repetitions.some((value, index) => value !== index + 1)) {
-    throw new RepresentativeSelectionError('cell repetitions must be unique and equal 1–5');
+  if (new Set(repetitions).size !== FINAL_EVALUATION_PROTOCOL.repetitions || repetitions.some((value, index) => value !== index + 1)) {
+    throw new RepresentativeSelectionError(`cell repetitions must be unique and equal 1–${FINAL_EVALUATION_PROTOCOL.repetitions}`);
   }
 
   const scored = runs.map((run) => ({ run, f1: f1For(run) }));
@@ -87,7 +87,7 @@ export const selectCampaignRepresentatives = (
   runs: readonly ExperimentRunV1[],
 ): CellRepresentative[] => {
   if (runs.length !== FINAL_EVALUATION_PROTOCOL.matrix.units) {
-    throw new RepresentativeSelectionError('complete campaign must contain exactly 45 runs');
+    throw new RepresentativeSelectionError(`complete campaign must contain exactly ${FINAL_EVALUATION_PROTOCOL.matrix.units} runs`);
   }
   const representatives: CellRepresentative[] = [];
   for (const modelId of FINAL_EVALUATION_PROTOCOL.models) {

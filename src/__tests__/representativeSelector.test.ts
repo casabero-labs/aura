@@ -38,12 +38,12 @@ const makeRun = (
   humanReview: { mean: 3 },
 } as unknown as ExperimentRunV1);
 
-const fiveRunsWithF1 = (scores: readonly number[]): ExperimentRunV1[] =>
+const threeRunsWithF1 = (scores: readonly number[]): ExperimentRunV1[] =>
   scores.map((score, index) => makeRun((index + 1) as 1 | 2 | 3 | 4 | 5, score));
 
 describe('OE4 representative selection', () => {
   it('selects the median F1 and uses the lower repetition for a tie', () => {
-    const selected = selectCellRepresentative(fiveRunsWithF1([0.2, 0.8, 0.5, 0.5, 0.9]));
+    const selected = selectCellRepresentative(threeRunsWithF1([0.2, 0.8, 0.5]));
 
     expect(selected.repetition).toBe(3);
     expect(selected.f1).toBe(0.5);
@@ -53,7 +53,7 @@ describe('OE4 representative selection', () => {
   it('selects exactly one representative for each of the nine complete cells', () => {
     const runs = FINAL_EVALUATION_PROTOCOL.models.flatMap((modelId) =>
       FINAL_EVALUATION_PROTOCOL.inputModes.flatMap((inputMode) =>
-        ([1, 2, 3, 4, 5] as const).map((repetition) =>
+        ([1, 2, 3] as const).map((repetition) =>
           makeRun(repetition, repetition / 10, modelId, inputMode)),
       ));
 
@@ -61,11 +61,11 @@ describe('OE4 representative selection', () => {
 
     expect(representatives).toHaveLength(9);
     expect(new Set(representatives.map((representative) => representative.cellId)).size).toBe(9);
-    expect(representatives.every((representative) => representative.repetition === 3)).toBe(true);
+    expect(representatives.every((representative) => representative.repetition === 2)).toBe(true);
   });
 
   it('selects by median diagnosis before the deterministic script is prepared', () => {
-    const runs = fiveRunsWithF1([0.1, 0.2, 0.3, 0.4, 0.5]).map((run) => ({
+    const runs = threeRunsWithF1([0.1, 0.2, 0.3]).map((run) => ({
       ...run,
       automaticEvaluation: {
         ...run.automaticEvaluation!,
@@ -79,15 +79,15 @@ describe('OE4 representative selection', () => {
 
     const selected = selectCellRepresentative(runs);
 
-    expect(selected.repetition).toBe(3);
+    expect(selected.repetition).toBe(2);
     expect(selected.selectionStatus).toBe('selected');
     expect(selected.executionEligible).toBe(true);
     expect(selected.blockReasons).toEqual([]);
   });
 
   it('rejects incomplete cells instead of silently changing the experiment', () => {
-    expect(() => selectCellRepresentative(fiveRunsWithF1([0.1, 0.2, 0.3, 0.4]))).toThrow(
-      'exactly five repetitions',
+    expect(() => selectCellRepresentative(threeRunsWithF1([0.1, 0.2]))).toThrow(
+      'exactly 3 repetitions',
     );
   });
 });

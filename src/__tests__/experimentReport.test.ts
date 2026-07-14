@@ -22,7 +22,7 @@ describe('OE4 TFM report — Task 9', () => {
       expect(markdown).toContain(`## ${heading}`);
     }
     expect(markdown).toContain(fixture.campaign.campaignId);
-    expect(markdown).toContain('Corridas observadas: 45');
+    expect(markdown).toContain('Corridas observadas: 27');
     expect(markdown).toContain('No existe un campo ni una conclusión de ganador universal');
   });
 

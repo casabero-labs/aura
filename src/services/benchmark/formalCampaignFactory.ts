@@ -41,7 +41,7 @@ export const buildFormalEvidenceEnvelope = (
     || auditEvidence.rowsProcessed !== FINAL_EVALUATION_PROTOCOL.dataset.rows
     || auditEvidence.columnsProcessed !== FINAL_EVALUATION_PROTOCOL.dataset.columns
   ) {
-    throw new Error('El reporte activo no corresponde a la forma congelada de controlled_customers_phase8.csv.');
+    throw new Error('El reporte activo no corresponde a la forma congelada de synthetic_ground_truth.csv.');
   }
   if (auditEvidence.datasetSha256 !== FINAL_EVALUATION_PROTOCOL.dataset.sha256) {
     throw new Error('El reporte no conserva el SHA-256 exacto del dataset controlado. Vuelve a cargar el CSV original.');
@@ -115,7 +115,7 @@ export const createFormalCampaignBundle = async (input: {
   }
   const observedDatasetSha256 = await sha256File(input.datasetFile);
   if (observedDatasetSha256 !== FINAL_EVALUATION_PROTOCOL.dataset.sha256) {
-    throw new Error('El Laboratorio formal solo acepta controlled_customers_phase8.csv con el SHA-256 congelado.');
+    throw new Error('El Laboratorio formal solo acepta synthetic_ground_truth.csv con el SHA-256 congelado.');
   }
   const evidenceEnvelope = buildFormalEvidenceEnvelope(input.report, input.auditEvidence);
   const preflight = await fetchOllamaPreflight(input.ollamaBaseUrl);
@@ -176,7 +176,10 @@ export const createFormalCampaignBundle = async (input: {
     datasetId: FINAL_EVALUATION_PROTOCOL.dataset.id,
     datasetSha256: FINAL_EVALUATION_PROTOCOL.dataset.sha256,
     modelIds: [...FINAL_EVALUATION_PROTOCOL.models], inputModes: [...FINAL_EVALUATION_PROTOCOL.inputModes],
-    repetitions: 5, plannedRuns: 45, configurationHash, runIds: runs.map(({ runId }) => runId),
+    repetitions: FINAL_EVALUATION_PROTOCOL.repetitions,
+    plannedRuns: FINAL_EVALUATION_PROTOCOL.matrix.units,
+    configurationHash,
+    runIds: runs.map(({ runId }) => runId),
   };
   return { campaign, runs, evidenceEnvelope };
 };

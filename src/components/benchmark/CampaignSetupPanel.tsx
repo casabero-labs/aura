@@ -27,8 +27,8 @@ const CampaignSetupPanel: React.FC<CampaignSetupPanelProps> = ({
       <p className="oe4-eyebrow">Protocolo congelado</p>
       <h2 id="oe4-setup-title">Preparar experimento</h2>
       <p>
-        AURA conservará una matriz de 45 unidades: tres modelos, tres entradas y
-        cinco repeticiones. Los fallos también forman parte del resultado.
+        AURA conservará una matriz de {FINAL_EVALUATION_PROTOCOL.matrix.units} unidades: tres modelos,
+        tres entradas y {FINAL_EVALUATION_PROTOCOL.repetitions} repeticiones. Los fallos también forman parte del resultado.
       </p>
     </div>
     <dl className="oe4-protocol-grid">

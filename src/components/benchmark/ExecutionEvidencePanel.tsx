@@ -59,7 +59,7 @@ const ExecutionEvidencePanel: React.FC<ExecutionEvidencePanelProps> = ({
           <button type="button" className="btn-s" disabled={busy} onClick={onDownloadBundle}>
             Descargar bundle Python
           </button>
-          <code>npm run oe4:python:run -- --bundle bundle.json --input controlled_customers_phase8.csv --output result.csv --receipt receipt.json</code>
+          <code>npm run oe4:python:run -- --bundle bundle.json --input synthetic_ground_truth.csv --output result.csv --receipt receipt.json</code>
           <label>
             <span>CSV resultante</span>
             <input aria-label="CSV resultante" type="file" accept=".csv,text/csv" onChange={(event) => setFile(event.target.files?.[0] ?? null)} />

@@ -557,10 +557,10 @@ export const validateExperimentCampaignV1 = (value: unknown): ExperimentGuardRes
   if (value.datasetSha256 !== FINAL_EVALUATION_PROTOCOL.dataset.sha256) errors.push('datasetSha256 must match the frozen protocol');
   if (!sameJson(value.modelIds, FINAL_EVALUATION_PROTOCOL.models)) errors.push('modelIds must match the frozen protocol in order');
   if (!sameJson(value.inputModes, FINAL_EVALUATION_PROTOCOL.inputModes)) errors.push('inputModes must match the frozen protocol in order');
-  if (value.repetitions !== 5) errors.push('repetitions must equal 5');
-  if (value.plannedRuns !== 45) errors.push('plannedRuns must equal 45');
+  if (value.repetitions !== FINAL_EVALUATION_PROTOCOL.repetitions) errors.push(`repetitions must equal ${FINAL_EVALUATION_PROTOCOL.repetitions}`);
+  if (value.plannedRuns !== FINAL_EVALUATION_PROTOCOL.matrix.units) errors.push(`plannedRuns must equal ${FINAL_EVALUATION_PROTOCOL.matrix.units}`);
   if (!isSha256(value.configurationHash)) errors.push('configurationHash must be SHA-256');
-  if (!isStringArray(value.runIds) || value.runIds.length !== 45) errors.push('runIds must contain exactly 45 identities');
+  if (!isStringArray(value.runIds) || value.runIds.length !== FINAL_EVALUATION_PROTOCOL.matrix.units) errors.push(`runIds must contain exactly ${FINAL_EVALUATION_PROTOCOL.matrix.units} identities`);
   if (Array.isArray(value.runIds) && new Set(value.runIds).size !== value.runIds.length) errors.push('runIds must be unique');
   return result(errors);
 };
@@ -580,8 +580,8 @@ export const validateExperimentRunV1 = (value: unknown): ExperimentGuardResult =
   if (value.protocolVersion !== FINAL_EVALUATION_PROTOCOL.version) errors.push('protocolVersion must match the frozen protocol');
   if (!OE4_MODELS.includes(value.modelId as (typeof OE4_MODELS)[number])) errors.push('modelId is not part of the frozen protocol');
   if (!OE4_INPUT_MODES.includes(value.inputMode as (typeof OE4_INPUT_MODES)[number])) errors.push('inputMode is not part of the frozen protocol');
-  if (!Number.isInteger(value.repetition) || !isFiniteNumber(value.repetition) || value.repetition < 1 || value.repetition > 5) {
-    errors.push('repetition must be an integer from 1 to 5');
+  if (!Number.isInteger(value.repetition) || !isFiniteNumber(value.repetition) || value.repetition < 1 || value.repetition > FINAL_EVALUATION_PROTOCOL.repetitions) {
+    errors.push(`repetition must be an integer from 1 to ${FINAL_EVALUATION_PROTOCOL.repetitions}`);
   }
   if (!Number.isInteger(value.sequence) || !isFiniteNumber(value.sequence) || value.sequence < 1) errors.push('sequence must be a positive integer');
   if (!RUN_STATUSES.has(value.status as ExperimentRunStatus)) errors.push('run status is invalid');

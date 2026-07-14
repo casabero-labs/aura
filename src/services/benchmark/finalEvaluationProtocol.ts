@@ -9,15 +9,15 @@
 import { FINAL_EVALUATION_OLLAMA_MODEL_IDS } from '../modelRegistry';
 
 export const OE4_FINAL_EVALUATION_PROTOCOL_ID = 'aura.oe4.final-evaluation.v2';
-export const OE4_FINAL_EVALUATION_PROTOCOL_VERSION = '2.2.0';
-export const OE4_FINAL_EVALUATION_DATASET_ID = 'controlled_customers_phase8';
+export const OE4_FINAL_EVALUATION_PROTOCOL_VERSION = '2.3.0';
+export const OE4_FINAL_EVALUATION_DATASET_ID = 'synthetic_ground_truth';
 
 export const OE4_DATASET_FINGERPRINT_SHA256 =
-  '7438bbdc96499d04bd7e485d6450f740304a7c878dce7d1a720dc4d9f2025faf';
+  '4e7d358f2141c6463146417a66f1c2312c7c3cdf6a39005780c92b061ff7ac49';
 export const OE4_DATASET_SCHEMA_SHA256 =
-  'b1eba3a767a6e9a84398aa10220c73efa2b3db8b31151235f9b63141727a2a98';
+  '5baab1a6f8c62e10e757386b808d7e52fd36b81402d4842f15e859c201b2d63b';
 export const OE4_GROUND_TRUTH_SOURCE_SHA256 =
-  '38c846856860519d248b42e53afe3cacacff714f115af6cec4b3d050fe79040d';
+  'c80563cf62c0e0f83039d3161d9e8799876b31a32c015ed940b2ecceaca78f0b';
 
 export const OE4_MODELS = FINAL_EVALUATION_OLLAMA_MODEL_IDS;
 
@@ -34,7 +34,7 @@ export const OE4_INPUT_MODES = [
 export type OE4InputMode = (typeof OE4_INPUT_MODES)[number];
 export type OE4ModelId = (typeof OE4_MODELS)[number];
 
-export const OE4_REPETITIONS = 5 as const;
+export const OE4_REPETITIONS = 3 as const;
 
 export const OE4_INFERENCE = {
   temperature: 0.2,
@@ -57,14 +57,12 @@ export const OE4_SCHEDULE = {
     [OE4_MODELS[0], OE4_MODELS[1], OE4_MODELS[2]],
     [OE4_MODELS[1], OE4_MODELS[2], OE4_MODELS[0]],
     [OE4_MODELS[2], OE4_MODELS[0], OE4_MODELS[1]],
-    [OE4_MODELS[0], OE4_MODELS[2], OE4_MODELS[1]],
-    [OE4_MODELS[1], OE4_MODELS[0], OE4_MODELS[2]],
   ],
   modeOrderSeed: 4242,
   warmupExcluded: true,
   warmupPerModelBlock: 1,
-  expectedModelBlocks: 15,
-  expectedWarmupCalls: 15,
+  expectedModelBlocks: 9,
+  expectedWarmupCalls: 9,
 } as const;
 
 export const OE4_EVALUATION_SCOPES = [
@@ -107,8 +105,8 @@ export const FINAL_EVALUATION_PROTOCOL = {
     id: OE4_FINAL_EVALUATION_DATASET_ID,
     sha256: OE4_DATASET_FINGERPRINT_SHA256,
     schemaSha256: OE4_DATASET_SCHEMA_SHA256,
-    rows: 50,
-    columns: 15,
+    rows: 15,
+    columns: 9,
     groundTruthSha256: OE4_GROUND_TRUTH_SOURCE_SHA256,
   },
   models: OE4_MODELS,
@@ -132,14 +130,14 @@ export const FINAL_EVALUATION_PROTOCOL = {
   evaluationScopes: OE4_EVALUATION_SCOPES,
   primaryF1Denominator: OE4_PRIMARY_F1_DENOMINATOR_NOTE,
   primaryF1DenominatorByMode: {
-    prompt_libre: 16,
-    smart_sample: 16,
-    recommended: 16,
+    prompt_libre: 15,
+    smart_sample: 15,
+    recommended: 15,
   },
   evidenceFidelityDenominatorByMode: {
     prompt_libre: 0,
-    smart_sample: 16,
-    recommended: 16,
+    smart_sample: 10,
+    recommended: 10,
   },
   rules: OE4_PROTOCOL_RULES,
 } as const;

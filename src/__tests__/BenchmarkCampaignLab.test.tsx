@@ -100,7 +100,7 @@ describe('BenchmarkCampaignLab - Task 10 human flow', () => {
     } as Response)));
   });
 
-  it('creates 45 units, pauses safely, resumes, exposes raw evidence and records the rubric', async () => {
+  it('creates 27 units, pauses safely, resumes, exposes raw evidence and records the rubric', async () => {
     const user = userEvent.setup();
     const store = createInMemoryExperimentStore();
     const bundle = plannedFixture();
@@ -136,7 +136,7 @@ describe('BenchmarkCampaignLab - Task 10 human flow', () => {
     );
 
     await user.click(await screen.findByRole('button', { name: 'Crear experimento' }));
-    expect(await screen.findByText('0 / 45')).toBeTruthy();
+    expect(await screen.findByText('0 / 27')).toBeTruthy();
     expect(screen.getAllByTestId('oe4-matrix-cell')).toHaveLength(9);
 
     await user.click(screen.getByRole('button', { name: 'Iniciar experimento' }));
@@ -150,7 +150,7 @@ describe('BenchmarkCampaignLab - Task 10 human flow', () => {
     expect(screen.getByText('1 pendiente de revisión')).toBeTruthy();
 
     await user.click(screen.getByRole('button', { name: 'Reanudar experimento' }));
-    await waitFor(() => expect(screen.getByText('45 pendientes de revisión')).toBeTruthy());
+    await waitFor(() => expect(screen.getByText('27 pendientes de revisión')).toBeTruthy());
 
     expect(screen.getByText(/aura\.diagnosis\.v2/)).toBeTruthy();
     expect(screen.queryByText(/aura\.script\.v2/)).toBeNull();
@@ -163,13 +163,13 @@ describe('BenchmarkCampaignLab - Task 10 human flow', () => {
     await user.click(screen.getByRole('button', { name: 'Guardar evaluación humana' }));
 
     expect(await screen.findByText('Revisión humana guardada')).toBeTruthy();
-    expect(screen.getByText('44 pendientes de revisión')).toBeTruthy();
+    expect(screen.getByText('26 pendientes de revisión')).toBeTruthy();
   });
 
   it('records an explicit representative decision and imports an external after-CSV', async () => {
     const user = userEvent.setup();
     const fixture = createExperimentEvidenceFixture();
-    const representativeId = fixture.runs.find((run) => run.repetition === 3)!.runId;
+    const representativeId = fixture.runs.find((run) => run.repetition === 2)!.runId;
     const runs = fixture.runs.map((run) => run.runId === representativeId
       ? { ...run, status: 'reviewed' as const, hitl: null }
       : run);

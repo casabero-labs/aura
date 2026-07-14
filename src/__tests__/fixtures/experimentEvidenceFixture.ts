@@ -187,7 +187,7 @@ const makeRun = (
     sequence,
     status: missingHumanReview && sequence === 1
       ? 'awaiting_human'
-      : repetition === 3 ? 'rejected' : 'reviewed',
+      : repetition === 2 ? 'rejected' : 'reviewed',
     createdAt: NOW,
     updatedAt: LATER,
     environment: makeEnvironment(modelId),
@@ -218,7 +218,7 @@ const makeRun = (
     script: makeStage('script', sequence, repetition),
     automaticEvaluation: makeAutomaticEvaluation(inputMode, repetition),
     humanReview: missingHumanReview && sequence === 1 ? null : makeHumanReview(),
-    hitl: repetition === 3 ? {
+    hitl: repetition === 2 ? {
       contractId: 'aura.hitl-decision.v1',
       status: 'rejected',
       reviewerId: 'reviewer:oe4',
@@ -281,7 +281,7 @@ export const createExperimentEvidenceFixture = (
   let sequence = 0;
   const runs = FINAL_EVALUATION_PROTOCOL.models.flatMap((modelId) =>
     FINAL_EVALUATION_PROTOCOL.inputModes.flatMap((inputMode) =>
-      ([1, 2, 3, 4, 5] as const).map((repetition) => {
+      ([1, 2, 3] as const).map((repetition) => {
         sequence += 1;
         return makeRun(sequence, modelId, inputMode, repetition, options.missingHumanReview ?? false);
       })));
@@ -298,8 +298,8 @@ export const createExperimentEvidenceFixture = (
     datasetSha256: FINAL_EVALUATION_PROTOCOL.dataset.sha256,
     modelIds: [...FINAL_EVALUATION_PROTOCOL.models],
     inputModes: [...FINAL_EVALUATION_PROTOCOL.inputModes],
-    repetitions: 5,
-    plannedRuns: 45,
+    repetitions: 3,
+    plannedRuns: 27,
     configurationHash: HASH_A,
     runIds: runs.map((run) => run.runId),
   };

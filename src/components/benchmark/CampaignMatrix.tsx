@@ -55,7 +55,7 @@ const CampaignMatrix: React.FC<CampaignMatrixProps> = ({
                   <strong>{modelName(modelId)}</strong>
                   <span>{inputMode}</span>
                 </div>
-                <small>{cellRuns.filter((run) => run.status !== 'planned').length}/5</small>
+                <small>{cellRuns.filter((run) => run.status !== 'planned').length}/{FINAL_EVALUATION_PROTOCOL.repetitions}</small>
               </div>
               <div className="oe4-run-dots">
                 {cellRuns.map((run) => (

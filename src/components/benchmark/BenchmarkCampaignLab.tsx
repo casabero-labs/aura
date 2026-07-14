@@ -143,7 +143,7 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
     ));
   const campaignForEvidence = useMemo(() => {
     if (!campaign) return null;
-    const campaignComplete = runs.length === 45
+    const campaignComplete = runs.length === campaign.plannedRuns
       && runs.every((run) => !['planned', 'running', 'completed', 'awaiting_human'].includes(run.status))
       && allRepresentativesResolved;
     return campaignComplete && campaign.status !== 'completed'
@@ -172,7 +172,7 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
       const bundle = await createCampaignBundle();
       await store.createCampaign(bundle.campaign, bundle.runs);
       await refresh(bundle.campaign.campaignId, bundle.runs[0]?.runId);
-      setMessage('Experimento creado con 45 corridas planeadas.');
+      setMessage(`Experimento creado con ${bundle.campaign.plannedRuns} corridas planeadas.`);
     } catch (cause: unknown) {
       setError(cause instanceof Error ? cause.message : String(cause));
     } finally {
@@ -297,7 +297,7 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
         <div>
           <p className="oe4-eyebrow">Objetivo específico 4</p>
           <h1>Laboratorio de evaluación LLM</h1>
-          <p>Compara modelos y métodos de entrada mediante experimentos reproducibles de 45 corridas, sin declarar un ganador universal.</p>
+          <p>Compara modelos y métodos de entrada mediante {FINAL_EVALUATION_PROTOCOL.matrix.units} diagnósticos reproducibles, sin declarar un ganador universal.</p>
         </div>
         {campaign && (
           <div className="oe4-controls">
@@ -308,7 +308,7 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
               }}>
                 Pausar de forma segura
               </button>
-            ) : attempted < 45 ? (
+            ) : attempted < campaign.plannedRuns ? (
               <button type="button" className="btn-p" disabled={!runner} onClick={() => void runCampaign()}>
                 {phase === 'paused' || attempted > 0 ? 'Reanudar experimento' : 'Iniciar experimento'}
               </button>
@@ -337,7 +337,7 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
       ) : (
         <>
           <section className="oe4-progress" aria-label="Progreso del experimento">
-            <div><span>Intentadas</span><strong>{attempted} / 45</strong></div>
+            <div><span>Intentadas</span><strong>{attempted} / {campaign.plannedRuns}</strong></div>
             <div><span>Completadas</span><strong>{completed}</strong></div>
             <div><span>Fallidas</span><strong>{failed}</strong></div>
             <div><span>Revisión</span><strong>{pendingReview}</strong><small>{pendingReview} {pendingReview === 1 ? 'pendiente' : 'pendientes'} de revisión</small></div>
