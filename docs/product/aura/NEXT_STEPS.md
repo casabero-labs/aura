@@ -1,6 +1,6 @@
 # Hoja de ruta definitiva de AURA
 
-Última actualización: 13 de julio de 2026, 21:45 (America/Bogota).
+Última actualización: 13 de julio de 2026, 23:45 (America/Bogota).
 
 Este documento es la única referencia operativa para cerrar el TFM. La entrega
 académica vence el **miércoles 15 de julio de 2026 a las 15:00**. Hasta entregar,
@@ -26,10 +26,10 @@ esta fase; en el documento se verificará su grado de cumplimiento con evidencia
 | Área | Estado para el TFM |
 |---|---|
 | Motor determinista | Cerrado y utilizable. |
-| Diagnóstico normal V2 | Conserva el contrato completo y ahora identifica explícitamente el truncamiento informado por Ollama. Pendiente repetir smoke con el dataset controlado simple. |
-| Informe PDF y exportación | Funcionales; el ZIP incluye diagnóstico, script, ejecución, CSV corregido y reauditoría cuando la corrida se completa. |
+| Diagnóstico normal V2 | Validado con el dataset controlado simple y `recommended`. El intento `smart_sample` fue rechazado correctamente por reducir la revisión humana. |
+| Informe PDF y exportación | El ZIP completo quedó validado en una corrida humana. **Los tres defectos visuales del PDF quedaron corregidos** (porcentajes `0.00%` en gráficos de distribución/impacto, etiquetas humanas ausentes y fondo incompleto en las páginas 4 y 6). El informe se regeneró desde el `report JSON` real del ZIP, se renderizaron sus siete páginas y se verificó fondo blanco completo, porcentajes correctos, etiquetas visibles y ausencia de regresiones. |
 | Plan y script | Implementados de forma determinista con revisión humana. El LLM no escribe código ejecutable. |
-| Aplicar y verificar | Cerrado técnicamente: runner Python real, recibo, CSV corregido, reauditoría antes/después y ZIP completo. Pendiente una corrida humana final. |
+| Aplicar y verificar | Cerrado y validado por una corrida humana real: runner Python, recibo, CSV corregido, reauditoría antes/después y ZIP completo. |
 | Laboratorio | Preparado para piloto y campaña real. |
 | Evaluación formal | Pendiente de ejecutar. Es la prioridad inmediata. |
 | Documento final | Pendiente de resultados y consolidación. |
@@ -46,7 +46,7 @@ dataset, hashes, oracle, 27 diagnósticos y 9 calentamientos definitivos.
   no será el dataset de la campaña del TFM porque su salida estructurada excedió
   la capacidad práctica del modelo local probado.
 - Modelos:
-  - `hf.co/unsloth/Qwen3-8B-GGUF:UD-Q4_K_XL`;
+  - `hf.co/unsloth/Qwen3.5-4B-GGUF:UD-Q4_K_XL`;
   - `hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL`;
   - `hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL`.
 - Métodos: `prompt_libre`, `smart_sample` y `recommended`.
@@ -133,6 +133,45 @@ Gates repetidos por el orquestador sobre `48f302d`:
 - recibo alterado rechazado;
 - ausencia de `source.csv`, tamper y `force:true`.
 
+### Recorrido humano final validado
+
+El 13 de julio, entre las 22:08 y las 22:30, se completó el flujo publicado en
+`https://aura.casabero.com` con `synthetic_ground_truth.csv`, Qwen3.5 4B y el
+método `recommended`:
+
+- diagnóstico válido sobre 15 hallazgos;
+- 4 acciones aprobadas y 11 rechazadas;
+- script determinista aprobado por revisión humana;
+- sintaxis Python validada por el runner (`passed`);
+- ejecución sobre una copia: 15 a 14 filas, 9 columnas conservadas;
+- reauditoría: 15 a 11 hallazgos, 4 hallazgos corregidos, 0 reglas nuevas;
+- ZIP con 28 archivos; sus 27 entradas declaradas coinciden en SHA-256 y tamaño;
+- `corrected.csv` coincide con el hash del recibo y el CSV original no está en el ZIP;
+- no se encontraron API keys en el expediente.
+
+El primer intento de esta misma sesión con `smart_sample` fue rechazado con
+`DIAGNOSIS_REVIEW_DOWNGRADE`: el modelo redujo indebidamente la revisión humana.
+Se conserva como resultado negativo del método, no como una corrida válida.
+
+Defectos observados que requieren seguimiento:
+
+- ~~el PDF muestra `0.00%` en gráficos cuyos valores no son cero~~ **corregido**: la
+  causa raíz fue que la selección de visualización del diagnóstico sobrescribe el
+  `kind` del gráfico pero conserva los `xKey`/`yKey` deterministas; los renderers
+  asumían una convención de ejes fija, por lo que leían el valor de la columna de
+  texto (`0`) y la etiqueta de la columna numérica. El render ahora resuelve el eje
+  de valor por tipo de dato, sin tocar el motor ni el contenido estadístico;
+- ~~las páginas 4 y 6 del PDF dejan parte del fondo en negro~~ **corregido**: solo
+  la portada pintaba blanco; ahora todo camino que crea una página (incluido
+  `jspdf-autotable`) pinta un rectángulo A4 blanco completo;
+- `script-verification.json` conserva correctamente el estado del navegador
+  (`not_run`), mientras `execution/receipt.json` acredita después la sintaxis
+  real (`passed`); la diferencia es correcta pero debe explicarse mejor en la UI;
+- la interfaz dice `0 evidencias` cuando realmente significa `0 muestras
+  adjuntas`;
+- la pantalla de ejecución necesita presentar con más claridad los pasos
+  descargar, ejecutar y subir.
+
 ## Trabajo diferido después del depósito
 
 No bloquea el documento del miércoles:
@@ -160,11 +199,11 @@ los modelos, los métodos y las condiciones realmente evaluadas.
 
 ## Próxima acción exacta
 
-**Publicar los commits aprobados y realizar una única corrida humana completa
-con `synthetic_ground_truth.csv`: diagnóstico → plan → aprobación → script →
-runner local → importación → reauditoría → ZIP.** Después de verificar ese ZIP,
-continuar `flujo5` con Qwen en `prompt_libre`, `smart_sample` y `recommended`.
-No iniciar todavía la campaña formal.
+**El PDF quedó corregido y verificado (porcentajes, etiquetas y fondo blanco
+completo en las siete páginas), sin alterar el motor ni los resultados. Continuar
+`flujo5` con los dos diagnósticos exploratorios que faltan para Qwen:
+`prompt_libre` y `smart_sample`.** El método `recommended` ya quedó validado de
+extremo a extremo. No iniciar todavía la campaña formal.
 
 ## Documentos vigentes relacionados
 

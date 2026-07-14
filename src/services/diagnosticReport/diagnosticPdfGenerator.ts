@@ -21,6 +21,7 @@ import {
   getContentWidth,
   getPageHeight,
   getPageWidth,
+  installPageBackground,
   truncateText,
 } from './pdfLayout';
 import {
@@ -384,6 +385,7 @@ export const generateDiagnosticPdfReport = ({
     creator: 'AURA',
   });
   const theme = createPdfTheme();
+  installPageBackground(doc, theme);
   const ctx: PdfLayoutContext = {
     doc,
     theme,

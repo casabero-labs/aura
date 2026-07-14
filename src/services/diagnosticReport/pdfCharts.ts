@@ -19,6 +19,42 @@ const asNumber = (value: unknown) => {
   return 0;
 };
 
+const isNumericValue = (value: unknown) => {
+  if (typeof value === 'number') return Number.isFinite(value);
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed !== '' && Number.isFinite(Number(trimmed));
+  }
+  return false;
+};
+
+const numericFraction = (chart: DiagnosticChartSpec, key: string) => {
+  if (chart.data.length === 0) return 0;
+  const numeric = chart.data.filter((row) => isNumericValue(row[key])).length;
+  return numeric / chart.data.length;
+};
+
+interface ResolvedChartKeys {
+  valueKey: string;
+  labelKey: string;
+}
+
+const resolveChartKeys = (chart: DiagnosticChartSpec): ResolvedChartKeys => {
+  const { xKey, yKey, kind } = chart;
+  const kindPrefersXValue = kind === 'horizontal_bar';
+  const fallback: ResolvedChartKeys = kindPrefersXValue
+    ? { valueKey: xKey, labelKey: yKey }
+    : { valueKey: yKey, labelKey: xKey };
+
+  if (xKey === yKey) return fallback;
+
+  const xNumeric = numericFraction(chart, xKey);
+  const yNumeric = numericFraction(chart, yKey);
+  if (yNumeric > xNumeric) return { valueKey: yKey, labelKey: xKey };
+  if (xNumeric > yNumeric) return { valueKey: xKey, labelKey: yKey };
+  return fallback;
+};
+
 const formatValue = (value: number, suffix?: string) => {
   if (suffix === '%') return `${value.toFixed(value >= 10 ? 1 : 2)}%`;
   return `${formatNumber(value)}${suffix ?? ''}`;
@@ -88,25 +124,26 @@ export const drawHorizontalBarChart = (ctx: PdfLayoutContext, chart: DiagnosticC
   }
 
   const { doc, theme } = ctx;
+  const { valueKey, labelKey } = resolveChartKeys(chart);
   const labelWidth = 44;
   const valueWidth = 22;
   const barWidth = getContentWidth(ctx) - labelWidth - valueWidth - 8;
   const maxValue = chart.valueSuffix === '%'
     ? 100
-    : Math.max(...rows.map((row) => valueFor(row, chart.xKey)), 1);
+    : Math.max(...rows.map((row) => valueFor(row, valueKey)), 1);
   const xScale = d3.scaleLinear().domain([0, maxValue]).range([0, barWidth]);
   const color = buildColorScale(rows.map((row, index) => rowKey(chart, row, index)));
 
   rows.forEach((row, index) => {
     ensureSpace(ctx, 8);
-    const value = valueFor(row, chart.xKey);
+    const value = valueFor(row, valueKey);
     const key = rowKey(chart, row, index);
     const bar = value > 0 ? Math.max(1.2, xScale(Math.min(value, maxValue))) : 0;
     const y = ctx.cursorY;
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7.5);
     doc.setTextColor(theme.colors.muted);
-    doc.text(labelFor(row, chart.yKey), theme.margin.left, y + 4);
+    doc.text(labelFor(row, labelKey), theme.margin.left, y + 4);
     doc.setFillColor(theme.colors.panel);
     doc.rect(theme.margin.left + labelWidth, y, barWidth, 4.5, 'F');
     doc.setFillColor(color(key));
@@ -127,10 +164,11 @@ export const drawVerticalBarChart = (ctx: PdfLayoutContext, chart: DiagnosticCha
   }
 
   const { doc, theme } = ctx;
+  const { valueKey, labelKey } = resolveChartKeys(chart);
   const width = getContentWidth(ctx);
   const chartHeight = 34;
   const baseY = ctx.cursorY + chartHeight;
-  const maxValue = Math.max(...rows.map((row) => valueFor(row, chart.yKey)), 1);
+  const maxValue = Math.max(...rows.map((row) => valueFor(row, valueKey)), 1);
   const keys = rows.map((row, index) => rowKey(chart, row, index));
   const xScale = d3.scaleBand<string>().domain(keys).range([0, width]).padding(0.22);
   const yScale = d3.scaleLinear().domain([0, maxValue]).nice().range([chartHeight, 0]);
@@ -140,7 +178,7 @@ export const drawVerticalBarChart = (ctx: PdfLayoutContext, chart: DiagnosticCha
   doc.line(theme.margin.left, baseY, theme.margin.left + width, baseY);
 
   rows.forEach((row, index) => {
-    const value = valueFor(row, chart.yKey);
+    const value = valueFor(row, valueKey);
     const key = keys[index];
     const barWidth = Math.max(6, xScale.bandwidth());
     const barHeight = Math.max(2, chartHeight - yScale(value));
@@ -155,7 +193,7 @@ export const drawVerticalBarChart = (ctx: PdfLayoutContext, chart: DiagnosticCha
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(6.6);
     doc.setTextColor(theme.colors.faint);
-    doc.text(labelFor(row, chart.xKey), x + barWidth / 2, baseY + 5, { align: 'center', maxWidth: barWidth });
+    doc.text(labelFor(row, labelKey), x + barWidth / 2, baseY + 5, { align: 'center', maxWidth: barWidth });
   });
 
   ctx.cursorY = baseY + 13;
@@ -170,11 +208,12 @@ export const drawDistributionList = (ctx: PdfLayoutContext, chart: DiagnosticCha
   }
 
   const { doc, theme } = ctx;
+  const { valueKey, labelKey } = resolveChartKeys(chart);
   const width = getContentWidth(ctx);
   const points = rows.map((row, index) => ({
     row,
     key: rowKey(chart, row, index),
-    value: valueFor(row, chart.yKey),
+    value: valueFor(row, valueKey),
   }));
   const total = d3.sum(points, (point) => point.value) || 1;
   const segments = d3.pie<(typeof points)[number]>()
@@ -197,14 +236,14 @@ export const drawDistributionList = (ctx: PdfLayoutContext, chart: DiagnosticCha
   points.forEach((point) => {
     const row = point.row;
     ensureSpace(ctx, 8);
-    const value = valueFor(row, chart.yKey);
+    const value = point.value;
     const share = (value / total) * 100;
     doc.setFillColor(color(point.key));
     doc.circle(theme.margin.left + 2.5, ctx.cursorY + 2.5, 2.2, 'F');
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7.8);
     doc.setTextColor(theme.colors.muted);
-    doc.text(labelFor(row, chart.xKey), theme.margin.left + 8, ctx.cursorY + 4);
+    doc.text(labelFor(row, labelKey), theme.margin.left + 8, ctx.cursorY + 4);
     doc.setTextColor(theme.colors.ink);
     doc.text(`${formatValue(value, chart.valueSuffix)} · ${share.toFixed(1)}%`, theme.margin.left + width, ctx.cursorY + 4, { align: 'right' });
     ctx.cursorY += 8;
@@ -221,6 +260,7 @@ export const drawChartTable = (ctx: PdfLayoutContext, chart: DiagnosticChartSpec
   }
 
   const { doc, theme } = ctx;
+  const { valueKey, labelKey } = resolveChartKeys(chart);
   const width = getContentWidth(ctx);
   const labelWidth = width * 0.56;
   rows.forEach((row, index) => {
@@ -233,11 +273,11 @@ export const drawChartTable = (ctx: PdfLayoutContext, chart: DiagnosticChartSpec
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7.5);
     doc.setTextColor(theme.colors.muted);
-    doc.text(labelFor(row, chart.xKey), theme.margin.left + 2, y + 3, { maxWidth: labelWidth });
+    doc.text(labelFor(row, labelKey), theme.margin.left + 2, y + 3, { maxWidth: labelWidth });
     doc.setTextColor(theme.colors.ink);
-    doc.text(formatValue(valueFor(row, chart.yKey), chart.valueSuffix), theme.margin.left + width - 4, y + 3, { align: 'right' });
+    doc.text(formatValue(valueFor(row, valueKey), chart.valueSuffix), theme.margin.left + width - 4, y + 3, { align: 'right' });
     const column = row.column === null || row.column === undefined ? '' : String(row.column);
-    if (column) {
+    if (column && labelKey !== 'column' && valueKey !== 'column') {
       doc.setTextColor(theme.colors.faint);
       doc.text(truncateText(column, 26), theme.margin.left + labelWidth + 4, y + 3);
     }

@@ -386,4 +386,37 @@ describe('generateDiagnosticPdfReport', () => {
     expect(result.pageCount).toBeGreaterThanOrEqual(2);
     expect(capturedDoc?.getNumberOfPages()).toBe(result.pageCount);
   });
+
+  it('pinta fondo blanco completo en todas las páginas, incluidas las creadas por anexos y tablas', () => {
+    const pythonScript = 'import pandas as pd\n\n'
+      + Array.from({ length: 60 }, (_, i) => `# linea larga ${i} de anexo para forzar salto de pagina`).join('\n');
+
+    const { capturedDoc } = renderPdf(buildDiagnosticReportFixture(), {
+      pythonScript,
+      pythonScriptApproved: true,
+    });
+
+    expect(capturedDoc).not.toBeNull();
+    const doc = capturedDoc as unknown as jsPDF;
+    const pageCount = doc.getNumberOfPages();
+    expect(pageCount).toBeGreaterThanOrEqual(3);
+
+    const scale = doc.internal.scaleFactor;
+    const pageWidthPt = doc.internal.pageSize.getWidth() * scale;
+    const pageHeightPt = doc.internal.pageSize.getHeight() * scale;
+    const internal = doc.internal as unknown as { pages: string[][] };
+
+    for (let page = 1; page <= pageCount; page += 1) {
+      const stream = internal.pages[page].join('\n');
+      const rectMatches = [...stream.matchAll(/(-?\d+(?:\.\d*)?) (-?\d+(?:\.\d*)?) (-?\d+(?:\.\d*)?) (-?\d+(?:\.\d*)?) re\s*\n\s*f/g)];
+      const paintsFullWhitePage = rectMatches.some((match) => {
+        const width = Math.abs(Number(match[3]));
+        const height = Math.abs(Number(match[4]));
+        return Math.abs(width - pageWidthPt) < 1 && Math.abs(height - pageHeightPt) < 1;
+      });
+      const declaresWhiteFill = /\b1\.?0*\s+g\b/.test(stream) || /\b1\.?0*\s+1\.?0*\s+1\.?0*\s+rg\b/.test(stream);
+      expect(paintsFullWhitePage, `página ${page} pinta un rectángulo A4 completo`).toBe(true);
+      expect(declaresWhiteFill, `página ${page} declara relleno blanco`).toBe(true);
+    }
+  });
 });

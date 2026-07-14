@@ -62,6 +62,22 @@ export const getPageWidth = (doc: jsPDF) => doc.internal.pageSize.getWidth();
 
 export const getPageHeight = (doc: jsPDF) => doc.internal.pageSize.getHeight();
 
+export const paintPageBackground = (doc: jsPDF, theme: PdfTheme) => {
+  doc.setFillColor(theme.colors.white);
+  doc.rect(0, 0, getPageWidth(doc), getPageHeight(doc), 'F');
+};
+
+export const installPageBackground = (doc: jsPDF, theme: PdfTheme) => {
+  paintPageBackground(doc, theme);
+  const originalAddPage = doc.addPage.bind(doc);
+  doc.addPage = ((...args: Parameters<jsPDF['addPage']>) => {
+    const result = originalAddPage(...args);
+    paintPageBackground(doc, theme);
+    return result;
+  }) as typeof doc.addPage;
+  return doc;
+};
+
 export const getContentWidth = (ctx: PdfLayoutContext) =>
   getPageWidth(ctx.doc) - ctx.theme.margin.left - ctx.theme.margin.right;
 
