@@ -10,6 +10,12 @@ const source = createExperimentEvidenceFixture();
 const TARGET_RUN_ID = source.runs.find((run) => run.sequence === 2)!.runId;
 const RECOVERY_RUN_ID = source.runs.find((run) => run.sequence === 4)!.runId;
 
+const expectNoHorizontalOverflow = async (page: import('@playwright/test').Page): Promise<void> => {
+  await expect.poll(() => page.evaluate(() =>
+    document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  )).toBeLessThanOrEqual(1);
+};
+
 const openLab = async (page: import('@playwright/test').Page): Promise<void> => {
   await page.getByRole('button', { name: 'Laboratorio', exact: true }).first().click();
   await expect(page.getByTestId('oe4-campaign-lab')).toBeVisible();
@@ -53,6 +59,7 @@ test.describe.serial('Task 11 — recorrido humano OE4 y recuperación', () => {
     await expect(page.getByText('Ejecución automática')).toHaveCount(0);
     await openLab(page);
     await expect(page.getByRole('note')).toContainText('no constituye evidencia de modelos');
+    await expectNoHorizontalOverflow(page);
 
     await page.getByRole('button', { name: 'Crear experimento' }).click();
     await expect(page.getByText('25 / 27')).toBeVisible();
@@ -70,6 +77,7 @@ test.describe.serial('Task 11 — recorrido humano OE4 y recuperación', () => {
     await page.getByRole('button', { name: 'Reanudar experimento' }).click();
     await expect(page.getByRole('status')).toContainText('Ejecución terminada');
     await expect(page.getByText('2 pendientes de revisión')).toBeVisible();
+    await expectNoHorizontalOverflow(page);
 
     await reviewRun(page, TARGET_RUN_ID, 'Representante claro, trazable y accionable.');
     await reviewRun(page, RECOVERY_RUN_ID, 'Corrida recuperada después de recargar.');
@@ -94,6 +102,7 @@ test.describe.serial('Task 11 — recorrido humano OE4 y recuperación', () => {
     for (const filename of artifactNames) {
       await expect(artifactList.getByText(filename, { exact: true })).toBeVisible();
     }
+    await expectNoHorizontalOverflow(page);
 
     const downloaded: string[] = [];
     page.on('download', (download) => downloaded.push(download.suggestedFilename()));

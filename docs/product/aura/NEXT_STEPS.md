@@ -612,6 +612,24 @@ La nueva campaña V2.4 debe superar primero una sola corrida. Si esa puerta de
 control falla, se pausa inmediatamente; no se consumen automáticamente las 26
 unidades restantes.
 
+## Cierre AURA-CIERRE-LAB-UI-01 — lectura humana y capturas
+
+El piloto inválido mostraba identificadores completos, hashes y errores internos
+en la columna principal del reporte. Las cadenas largas desbordaban visualmente
+la tarjeta y hacían que una captura del Laboratorio pareciera caótica.
+
+La interfaz ahora aplica la jerarquía `showcase-ink`:
+
+- nombres públicos de modelo, método y estado en español;
+- errores frecuentes explicados en lenguaje humano;
+- causas del bloqueo agrupadas sin repetir una razón por cada `runId`;
+- hashes, IDs y mensajes originales conservados en paneles técnicos plegables;
+- tarjetas con `min-width: 0`, ajuste de palabras y rejilla responsive;
+- verificación E2E explícita de ausencia de desbordamiento horizontal.
+
+La captura renderizada a 1440 px conserva matriz, detalle y preparación del
+reporte dentro del viewport, con cero píxeles de desbordamiento horizontal.
+
 ## Documentos vigentes relacionados
 
 - [Plan de cierre del diagnóstico normal y PDF](../../plans/2026-07-12-cierre-diagnostico-normal-y-reporte-pdf.md)

@@ -27,4 +27,28 @@ describe('CampaignReportPanel', () => {
     expect(list.textContent).not.toContain('TFM');
     expect(list.textContent).toContain('Hashes de todos los archivos');
   });
+
+  it('groups verbose technical blockers into concise human-readable causes', () => {
+    render(
+      <CampaignReportPanel
+        formalValidity={{
+          valid: false,
+          reasons: [
+            'run:very:long:identifier: protocolVersion must match the frozen protocol',
+            'run:another:long:identifier: protocolVersion must match the frozen protocol',
+            'run:very:long:identifier: environment.inference must match the frozen protocol',
+            'campaign status is not completed',
+          ],
+        }}
+        evidencePackage={null}
+      />,
+    );
+
+    const pending = screen.getByRole('list', { name: 'Condiciones pendientes del reporte' });
+    expect(pending.textContent).toContain('Protocolo anterior');
+    expect(pending.textContent).toContain('Configuración no vigente');
+    expect(pending.textContent).toContain('Campaña incompleta');
+    expect(screen.getAllByText('Protocolo anterior')).toHaveLength(1);
+    expect(screen.getByText('Ver detalle técnico')).toBeTruthy();
+  });
 });

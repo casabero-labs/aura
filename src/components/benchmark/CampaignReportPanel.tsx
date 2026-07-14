@@ -8,6 +8,48 @@ interface CampaignReportPanelProps {
   onExport?: (evidencePackage: ExperimentEvidencePackage) => void;
 }
 
+interface ReportBlockerSummary {
+  key: string;
+  title: string;
+  description: string;
+}
+
+const summarizeBlocker = (reason: string): ReportBlockerSummary => {
+  if (reason.includes('protocolVersion must match')) {
+    return {
+      key: 'protocol',
+      title: 'Protocolo anterior',
+      description: 'Esta campaña pertenece a una versión anterior y se conserva únicamente como evidencia histórica.',
+    };
+  }
+  if (reason.includes('environment.inference must match')) {
+    return {
+      key: 'inference',
+      title: 'Configuración no vigente',
+      description: 'Los parámetros usados no coinciden con el protocolo actual. No se mezclarán con la nueva campaña.',
+    };
+  }
+  if (reason.includes('campaign status is not completed') || reason.includes('not every experimental unit was attempted')) {
+    return {
+      key: 'incomplete',
+      title: 'Campaña incompleta',
+      description: 'El reporte se habilitará cuando todas las unidades planeadas hayan sido intentadas.',
+    };
+  }
+  if (reason.includes('REPRESENTATIVE_SELECTION_INVALID') || reason.includes('representatives') || reason.includes('nine representatives')) {
+    return {
+      key: 'representatives',
+      title: 'Selección pendiente',
+      description: 'Todavía faltan corridas válidas para seleccionar los representantes de cada combinación.',
+    };
+  }
+  return {
+    key: `other:${reason}`,
+    title: 'Validación pendiente',
+    description: 'La evidencia aún no reúne todas las condiciones necesarias para preparar el reporte.',
+  };
+};
+
 const ARTIFACT_DESCRIPTIONS: Record<string, string> = {
   'campaign.json': 'Fuente canónica del experimento: configuración, corridas, evaluaciones, recibos y reauditorías.',
   'runs.csv': 'Una fila por corrida para comparar modelos, métodos, métricas, errores, hashes y estados.',
@@ -29,6 +71,12 @@ const downloadArtifact = (filename: string, mediaType: string, content: string |
 };
 
 const CampaignReportPanel: React.FC<CampaignReportPanelProps> = ({ formalValidity, evidencePackage, onExport }) => {
+  const blockerSummaries = Array.from(
+    new Map(formalValidity.reasons.map((reason) => {
+      const summary = summarizeBlocker(reason);
+      return [summary.key, summary] as const;
+    })).values(),
+  );
   const exportAll = () => {
     if (!formalValidity.valid || evidencePackage === null) return;
     if (onExport) {
@@ -40,9 +88,12 @@ const CampaignReportPanel: React.FC<CampaignReportPanelProps> = ({ formalValidit
   };
 
   return (
-    <section className="oe4-panel" aria-labelledby="oe4-report-title">
+    <section className="oe4-panel oe4-report-panel" aria-labelledby="oe4-report-title">
       <div className="oe4-panel-heading">
-        <div><p className="oe4-eyebrow">Resultados reproducibles</p><h2 id="oe4-report-title">Preparación del reporte</h2></div>
+        <div>
+          <p className="oe4-eyebrow">Resultados reproducibles</p>
+          <h2 id="oe4-report-title">{formalValidity.valid ? 'Reporte listo' : 'Reporte no disponible'}</h2>
+        </div>
         <span className={`oe4-status ${formalValidity.valid ? 'oe4-status--reaudited' : 'oe4-status--blocked'}`}>
           {formalValidity.valid ? 'listo' : 'bloqueado'}
         </span>
@@ -60,9 +111,23 @@ const CampaignReportPanel: React.FC<CampaignReportPanelProps> = ({ formalValidit
           </ul>
         </>
       ) : (
-        <ul className="oe4-blocker-list">
-          {formalValidity.reasons.slice(0, 6).map((reason) => <li key={reason}>{reason}</li>)}
-        </ul>
+        <>
+          <p className="oe4-report-intro">AURA conserva esta evidencia, pero no la presentará como resultado formal.</p>
+          <ul className="oe4-report-blockers" aria-label="Condiciones pendientes del reporte">
+            {blockerSummaries.map((summary) => (
+              <li key={summary.key}>
+                <strong>{summary.title}</strong>
+                <span>{summary.description}</span>
+              </li>
+            ))}
+          </ul>
+          <details className="oe4-report-technical">
+            <summary>Ver detalle técnico</summary>
+            <ul>
+              {formalValidity.reasons.map((reason, index) => <li key={`${index}:${reason}`}>{reason}</li>)}
+            </ul>
+          </details>
+        </>
       )}
       <button type="button" className="btn-p" disabled={!formalValidity.valid || evidencePackage === null} onClick={exportAll}>
         Exportar resultados
