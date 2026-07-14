@@ -26,7 +26,7 @@ esta fase; en el documento se verificará su grado de cumplimiento con evidencia
 | Área | Estado para el TFM |
 |---|---|
 | Motor determinista | Cerrado y utilizable. |
-| Diagnóstico normal V2 | Validado con el dataset controlado simple y `recommended`. El intento `smart_sample` fue rechazado correctamente por reducir la revisión humana. |
+| Diagnóstico normal V2 | Validado con el dataset controlado simple y **Evidencia completa** (`recommended`). El intento con **Evidencia equilibrada** (`smart_sample`) fue rechazado correctamente por reducir la revisión humana. |
 | Informe PDF y exportación | El ZIP completo quedó validado en una corrida humana. **Los tres defectos visuales del PDF quedaron corregidos** (porcentajes `0.00%` en gráficos de distribución/impacto, etiquetas humanas ausentes y fondo incompleto en las páginas 4 y 6). El informe se regeneró desde el `report JSON` real del ZIP, se renderizaron sus siete páginas y se verificó fondo blanco completo, porcentajes correctos, etiquetas visibles y ausencia de regresiones. |
 | Plan y script | Implementados de forma determinista con revisión humana. El LLM no escribe código ejecutable. |
 | Aplicar y verificar | Cerrado y validado por una corrida humana real: runner Python, recibo, CSV corregido, reauditoría antes/después y ZIP completo. |
@@ -49,7 +49,10 @@ dataset, hashes, oracle, 27 diagnósticos y 9 calentamientos definitivos.
   - `hf.co/unsloth/Qwen3.5-4B-GGUF:UD-Q4_K_XL`;
   - `hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL`;
   - `hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL`.
-- Métodos: `prompt_libre`, `smart_sample` y `recommended`.
+- Métodos definitivos:
+  - **Contexto mínimo** (`prompt_libre`);
+  - **Evidencia equilibrada** (`smart_sample`);
+  - **Evidencia completa** (`recommended`).
 - Prueba previa: Qwen x 3 métodos x 1 ejecución = **3 diagnósticos exploratorios**.
 - Campaña formal prevista: 3 modelos x 3 métodos x 3 repeticiones = **27 diagnósticos**.
 - La reducción de 45 a 27 conserva tres observaciones por combinación y reduce
@@ -75,8 +78,9 @@ dataset, hashes, oracle, 27 diagnósticos y 9 calentamientos definitivos.
 Condición de salida: las tres entradas de Qwen terminan y sus ZIP permiten
 compararlas sin evidencia faltante.
 
-El primer intento `smart_sample` de `flujo5` con Phase 8 alcanzó el límite de
-salida de 4096 tokens y produjo un JSON incompleto. No fue un fallo del motor
+El primer intento con **Evidencia equilibrada** (`smart_sample`) de `flujo5`
+con Phase 8 alcanzó el límite de salida de 4096 tokens y produjo un JSON
+incompleto. No fue un fallo del motor
 determinista. No se recortará la evidencia para forzar la prueba: el smoke se
 repetirá con `synthetic_ground_truth.csv`, cuyo perfil completo genera 15
 hallazgos, y Phase 8 quedará documentado como prueba de estrés y limitación.
@@ -137,7 +141,7 @@ Gates repetidos por el orquestador sobre `48f302d`:
 
 El 13 de julio, entre las 22:08 y las 22:30, se completó el flujo publicado en
 `https://aura.casabero.com` con `synthetic_ground_truth.csv`, Qwen3.5 4B y el
-método `recommended`:
+método **Evidencia completa** (`recommended`):
 
 - diagnóstico válido sobre 15 hallazgos;
 - 4 acciones aprobadas y 11 rechazadas;
@@ -149,7 +153,7 @@ método `recommended`:
 - `corrected.csv` coincide con el hash del recibo y el CSV original no está en el ZIP;
 - no se encontraron API keys en el expediente.
 
-El primer intento de esta misma sesión con `smart_sample` fue rechazado con
+El primer intento de esta misma sesión con **Evidencia equilibrada** (`smart_sample`) fue rechazado con
 `DIAGNOSIS_REVIEW_DOWNGRADE`: el modelo redujo indebidamente la revisión humana.
 Se conserva como resultado negativo del método, no como una corrida válida.
 
@@ -199,11 +203,15 @@ los modelos, los métodos y las condiciones realmente evaluadas.
 
 ## Próxima acción exacta
 
-**El PDF quedó corregido y verificado (porcentajes, etiquetas y fondo blanco
+El PDF quedó corregido y verificado (porcentajes, etiquetas y fondo blanco
 completo en las siete páginas), sin alterar el motor ni los resultados. Continuar
 `flujo5` con los dos diagnósticos exploratorios que faltan para Qwen:
-`prompt_libre` y `smart_sample`.** El método `recommended` ya quedó validado de
-extremo a extremo. No iniciar todavía la campaña formal.
+
+1. **Contexto mínimo** (`prompt_libre`);
+2. **Evidencia equilibrada** (`smart_sample`).
+
+El método **Evidencia completa** (`recommended`) ya quedó validado de extremo a
+extremo. No iniciar todavía la campaña formal.
 
 ## Documentos vigentes relacionados
 
