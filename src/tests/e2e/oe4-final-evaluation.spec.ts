@@ -77,6 +77,17 @@ test.describe.serial('Laboratorio — evaluación automática y recuperación', 
     await expect(page.locator('.oe4-matrix-cell--success')).toHaveCount(9);
     await expect(page.locator('.oe4-run-dot--success')).toHaveCount(27);
 
+    await page.getByRole('button', { name: 'Visualizar resultados', exact: true }).click();
+    const resultsExplorer = page.getByTestId('oe4-results-explorer');
+    await expect(resultsExplorer.getByText('Oráculo congelado', { exact: true })).toBeVisible();
+    await expect(page.getByTestId('oe4-results-chart-overview')).toBeVisible();
+    await page.getByRole('tab', { name: 'Dimensiones' }).click();
+    await expect(page.getByTestId('oe4-results-chart-dimensions')).toBeVisible();
+    await page.getByRole('tab', { name: 'Calidad y velocidad' }).click();
+    await expect(page.getByTestId('oe4-results-chart-quality_speed')).toBeVisible();
+    await expect(page.getByText(/No demuestra superioridad universal/)).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+
     const artifactNames = ['campaign.json', 'runs.csv', 'report.md', 'report.pdf', 'manifest.json'];
     const artifactList = page.getByRole('list', { name: 'Artefactos disponibles' });
     for (const filename of artifactNames) {

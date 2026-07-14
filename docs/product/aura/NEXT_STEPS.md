@@ -732,3 +732,24 @@ solicitado/observado y recibo. Script, rúbrica humana, HITL, Python y
 reauditoría ya no forman parte de la ecuación ni del CSV del Laboratorio. El
 JSON canónico conserva los datos históricos originales de las corridas para
 auditoría, incluso si fueron creadas por una versión anterior de la interfaz.
+
+## Cierre AURA-CIERRE-LAB-D3-RESULTS-01 — exploración visual trazable
+
+El reporte automático ya no termina únicamente en una tabla y cinco archivos.
+Cuando la campaña satisface sus gates formales aparece el módulo
+**Visualizar resultados**, construido con D3.js y el estilo `showcase-ink`.
+
+El explorador ofrece tres vistas sincronizadas:
+
+- panorama 3 × 3 del índice equilibrado por modelo y método de entrada;
+- perfil de las seis dimensiones de la combinación seleccionada;
+- relación entre F1, latencia mediana y fiabilidad, diferenciando modelos por
+  forma además de color.
+
+La visualización no recalcula ni normaliza resultados. Consume directamente el
+mismo `ExperimentCampaignEvidenceDocumentV1` que alimenta la tabla y la
+exportación, conserva una tabla textual equivalente y permite inspeccionar los
+valores exactos representados. La interfaz declara sus límites: un dataset
+controlado de 15 filas y 9 columnas, tres repeticiones, ponderaciones explícitas
+y latencia dependiente del hardware. Por tanto, es evidencia reproducible de
+esta campaña y una ayuda de decisión, no una prueba de superioridad universal.

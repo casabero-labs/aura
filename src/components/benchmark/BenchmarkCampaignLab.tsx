@@ -24,6 +24,7 @@ import CampaignSetupPanel from './CampaignSetupPanel';
 import CampaignMatrix from './CampaignMatrix';
 import ExperimentRunDetail from './ExperimentRunDetail';
 import CampaignReportPanel from './CampaignReportPanel';
+import CampaignResultsExplorer from './CampaignResultsExplorer';
 import { useOllamaModelCatalog } from '../../services/useOllamaModelCatalog';
 import { ollamaModelId } from '../../services/ollamaModelCatalog';
 import {
@@ -395,6 +396,10 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
             activeRunId={activeExecution?.runId ?? null}
             onSelectRun={(runId) => void refresh(campaign.campaignId, runId)}
           />
+
+          {evidenceDocument?.formalValidity.valid && (
+            <CampaignResultsExplorer evidenceDocument={evidenceDocument} />
+          )}
 
           {selectedRun && (
             <div className="oe4-detail-layout">
