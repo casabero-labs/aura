@@ -1,6 +1,6 @@
 # Hoja de ruta definitiva de AURA
 
-Última actualización: 14 de julio de 2026, 05:02 (America/Bogota).
+Última actualización: 14 de julio de 2026, 05:10 (America/Bogota).
 
 Este documento es la única referencia operativa para cerrar el TFM. La entrega
 académica vence el **miércoles 15 de julio de 2026 a las 15:00**. Hasta entregar,
@@ -26,7 +26,7 @@ esta fase; en el documento se verificará su grado de cumplimiento con evidencia
 | Área | Estado para el TFM |
 |---|---|
 | Motor determinista | Cerrado y utilizable. |
-| Diagnóstico normal V2 | Piloto de tres métodos cerrado con el dataset controlado simple: **Contexto mínimo** (`prompt_libre`) y **Evidencia completa** (`recommended`) produjeron diagnósticos válidos; **Evidencia equilibrada** (`smart_sample`) produjo un JSON completo, pero fue rechazado correctamente porque el modelo redujo la revisión humana en 10 de 15 hallazgos. El fallo se conserva como resultado y no se repite. |
+| Diagnóstico normal V2 | **Contexto mínimo** (`prompt_libre`) y **Evidencia completa** (`recommended`) produjeron diagnósticos válidos. El piloto de **Evidencia equilibrada** (`smart_sample`) descubrió una contradicción del contrato: la entrada oculta `actionability` y `authorized`, pero el validador exige responder conforme a esos datos. Las corridas de Qwen y Gemma se conservan como evidencia del defecto y no como resultados comparables de los modelos. |
 | Informe PDF y exportación | El ZIP completo quedó validado en una corrida humana. **Los tres defectos visuales del PDF quedaron corregidos** (porcentajes `0.00%` en gráficos de distribución/impacto, etiquetas humanas ausentes y fondo incompleto en las páginas 4 y 6). El informe se regeneró desde el `report JSON` real del ZIP, se renderizaron sus siete páginas y se verificó fondo blanco completo, porcentajes correctos, etiquetas visibles y ausencia de regresiones. |
 | Plan y script | Implementados de forma determinista con revisión humana. El LLM no escribe código ejecutable. |
 | Aplicar y verificar | Cerrado y validado por una corrida humana real: runner Python, recibo, CSV corregido, reauditoría antes/después y ZIP completo. |
@@ -154,9 +154,11 @@ método **Evidencia completa** (`recommended`):
 - `corrected.csv` coincide con el hash del recibo y el CSV original no está en el ZIP;
 - no se encontraron API keys en el expediente.
 
-El primer intento de esta misma sesión con **Evidencia equilibrada** (`smart_sample`) fue rechazado con
-`DIAGNOSIS_REVIEW_DOWNGRADE`: el modelo redujo indebidamente la revisión humana.
-Se conserva como resultado negativo del método, no como una corrida válida.
+El primer intento de esta misma sesión con **Evidencia equilibrada**
+(`smart_sample`) fue rechazado con `DIAGNOSIS_REVIEW_DOWNGRADE`. La revisión
+posterior con dos modelos mostró que esta corrida está afectada por una
+contradicción del contrato de entrada y no debe presentarse como resultado
+negativo atribuible únicamente al modelo.
 
 ### Prueba exploratoria de Contexto mínimo validada
 
@@ -186,24 +188,30 @@ JSON regenerado con `main` actual produce etiquetas y porcentajes correctos.
 Antes de la siguiente prueba se debe abrir una pestaña nueva o hacer recarga
 forzada para cargar el bundle publicado más reciente.
 
-### Prueba exploratoria de Evidencia equilibrada cerrada con fallo
+### Bloqueo descubierto en Evidencia equilibrada
 
-El 14 de julio se ejecutó Qwen3.5 4B con **Evidencia equilibrada**
-(`smart_sample`) y `synthetic_ground_truth.csv`:
+El 14 de julio se ejecutó **Evidencia equilibrada** (`smart_sample`) con
+`synthetic_ground_truth.csv` en Qwen3.5 4B y Gemma 4 E4B:
 
-- la respuesta fue un JSON completo con 15 bloques y 15 issues;
-- el modelo marcó `requiresHumanReview: false` en 10 hallazgos para los que el
-  envelope exigía revisión humana;
-- AURA rechazó correctamente la respuesta con
-  `DIAGNOSIS_REVIEW_DOWNGRADE`;
-- duración observada: 229 segundos, desde 04:53:31 hasta 04:57:20;
-- el fallo corresponde al cumplimiento del contrato por el modelo, no al motor
-  determinista ni al transporte de Ollama;
-- no se repetirá para sustituir el resultado negativo.
+- ambas respuestas fueron JSON completos con 15 bloques y 15 issues;
+- Qwen marcó correctamente revisión humana en los 5 issues sin muestras, pero
+  la redujo en los otros 10;
+- Gemma marcó `requiresHumanReview: false` en los 15 issues, incluidos los 5
+  que no tenían `evidenceRefs`;
+- Qwen tardó 229 segundos y Gemma 206,6 segundos;
+- AURA rechazó correctamente ambas respuestas con
+  `DIAGNOSIS_REVIEW_DOWNGRADE`.
 
-Con esta corrida quedan observados los tres métodos del piloto. La respuesta
-cruda, el error, el recibo y la captura deben conservarse juntos en
-`experiments/tests/flujo7/` antes de iniciar la campaña formal.
+La causa común no puede atribuirse solo a los modelos. La composición actual de
+`smart_sample` expone estadísticas, activaciones y muestras, pero no expone
+`actionabilityPolicy` ni `authorizationEvidence`. Sin embargo, la instrucción y
+el validador exigen que `requiresHumanReview` respete exactamente esa gobernanza
+oculta. Esto hace que la entrada esté subespecificada y sesga la comparación.
+
+Las dos corridas deben conservarse como evidencia de ingeniería, pero quedan
+excluidas de las conclusiones sobre rendimiento de los modelos. La campaña
+formal queda bloqueada hasta hacer visible, como mínimo, la lista determinista
+de issues que requieren revisión humana y validar una sola corrida de humo.
 
 Defectos observados que requieren seguimiento:
 
@@ -251,12 +259,10 @@ los modelos, los métodos y las condiciones realmente evaluadas.
 
 ## Próxima acción exacta
 
-Conservar esta corrida fallida de **Evidencia equilibrada** en
-`experiments/tests/flujo7/`: respuesta cruda completa, captura del error y
-recibo técnico. Si AURA permite continuar sin diagnóstico y exportar el ZIP,
-guardarlo también; si no, esos tres artefactos son la evidencia mínima del
-fallo. No repetir la corrida. Después, congelar el protocolo formal de 27
-diagnósticos y 9 calentamientos.
+Corregir la contradicción de `smart_sample` sin alterar sus muestras ni convertirlo
+en Evidencia completa: incluir en la tarea la lista determinista de `issueId`
+que exigen revisión humana, probar que coincide con el envelope y ejecutar una
+sola corrida de humo con Qwen3.5 4B. Solo si pasa se congela el protocolo formal.
 
 ## Documentos vigentes relacionados
 
