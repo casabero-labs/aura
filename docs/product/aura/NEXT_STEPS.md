@@ -690,3 +690,45 @@ cuando el repositorio está disponible. En Coolify debe permanecer habilitada la
 opción **Include Source Commit in Build**; sin ella Coolify excluye
 `SOURCE_COMMIT` deliberadamente y AURA mantiene bloqueada la creación formal en
 vez de inventar una identidad de despliegue.
+
+## Cierre AURA-CIERRE-LAB-AUTOMATIC-SCORING-01 — diagnóstico automático
+
+La primera campaña completa terminó con 27/27 unidades intentadas: 19
+diagnósticos válidos y 8 fallidos. Se conserva íntegra como evidencia del TFM;
+no se borra, no se transforma y no se obliga a repetirla para aplicar esta
+corrección de lectura y reporte.
+
+Se confirmó un error de alcance: el Laboratorio ya calculaba la evaluación
+automática, pero el reporte permanecía bloqueado por rúbrica humana,
+representantes, script, HITL y reauditoría. Esas fases pertenecen al pipeline
+normal de Auditoría, donde una persona decide si desea remediar una copia del
+dataset. No pertenecen a la comparación experimental de diagnósticos LLM.
+
+El Laboratorio queda definido así:
+
+- una unidad experimental es exclusivamente un diagnóstico LLM;
+- cada respuesta válida se compara automáticamente con el oráculo congelado
+  usando la clave exacta `ruleId + columnId + scope`;
+- precisión, recall y F1 miden corrección y cobertura del diagnóstico;
+- fiabilidad mide diagnósticos válidos / corridas intentadas, por lo que los
+  fallos reducen el score sin inventarles F1 cero;
+- cumplimiento de contrato, fidelidad/anclaje de evidencia, columnas o claims
+  sin soporte, latencia y tokens se calculan desde la respuesta RAW, el snapshot,
+  el recibo y las métricas observadas;
+- no se usa otro LLM como juez y no se requiere calificar manualmente 27 veces;
+- la matriz identifica individualmente válidas y fallidas y resume cada celda;
+- el reporte recomienda modelo + método para cinco objetivos: equilibrio,
+  calidad diagnóstica, fiabilidad, trazabilidad y velocidad;
+- no declara un ganador universal.
+
+El índice equilibrado, expresado en escala 0–100, usa ponderaciones explícitas:
+exactitud 35 %, fiabilidad 20 %, contrato 15 %, evidencia 15 %, ausencia de
+alucinaciones 10 % y eficiencia 5 %. Si una dimensión no es medible, se excluye
+y las ponderaciones restantes se normalizan; nunca se sustituye por un cero
+inventado. La eficiencia usa únicamente latencias de diagnósticos válidos.
+
+`runs.csv` queda limitado a diagnóstico, métricas, errores, hashes, modelo
+solicitado/observado y recibo. Script, rúbrica humana, HITL, Python y
+reauditoría ya no forman parte de la ecuación ni del CSV del Laboratorio. El
+JSON canónico conserva los datos históricos originales de las corridas para
+auditoría, incluso si fueron creadas por una versión anterior de la interfaz.

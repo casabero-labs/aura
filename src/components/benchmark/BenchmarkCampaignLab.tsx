@@ -14,11 +14,7 @@ import type {
   AutomaticEvaluationV1,
   ExperimentCampaignV1,
   ExperimentRunV1,
-  HitlDecisionV1,
-  HumanReviewV1,
 } from '../../services/benchmark/experimentTypes';
-import { createExperimentExecutionBridge } from '../../services/benchmark/experimentExecutionBridge';
-import { selectCampaignRepresentatives, type CellRepresentative } from '../../services/benchmark/representativeSelector';
 import { buildExperimentCampaignEvidence } from '../../services/benchmark/experimentReport';
 import {
   exportExperimentEvidencePackage,
@@ -27,8 +23,6 @@ import {
 import CampaignSetupPanel from './CampaignSetupPanel';
 import CampaignMatrix from './CampaignMatrix';
 import ExperimentRunDetail from './ExperimentRunDetail';
-import HumanRubricPanel from './HumanRubricPanel';
-import ExecutionEvidencePanel from './ExecutionEvidencePanel';
 import CampaignReportPanel from './CampaignReportPanel';
 import { useOllamaModelCatalog } from '../../services/useOllamaModelCatalog';
 import { ollamaModelId } from '../../services/ollamaModelCatalog';
@@ -55,9 +49,6 @@ interface BenchmarkCampaignLabProps {
   initialInference?: InferenceSnapshotV1;
   createCampaignBundle?: (inference: InferenceSnapshotV1) => Promise<ExperimentCampaignBundle>;
   evaluateRun?: (run: ExperimentRunV1) => Promise<AutomaticEvaluationV1>;
-  prepareApprovedRepresentative?: (run: ExperimentRunV1) => Promise<ExperimentRunV1>;
-  downloadExecutionBundle?: (run: ExperimentRunV1) => void;
-  importAfterCsv?: (run: ExperimentRunV1, csvFile: File, receiptFile: File) => Promise<ExperimentRunV1>;
   onExport?: (evidencePackage: ExperimentEvidencePackage) => void;
   now?: () => string;
   ollamaBaseUrl?: string;
@@ -88,9 +79,6 @@ const phaseLabel: Record<ActiveExecution['phase'], string> = {
   saving: 'Guardando evidencia',
 };
 
-const resolvedRepresentative = (run: ExperimentRunV1): boolean =>
-  ['rejected', 'blocked', 'reaudited'].includes(run.status);
-
 const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
   store: suppliedStore,
   runner: suppliedRunner,
@@ -101,9 +89,6 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
   initialInference = FINAL_EVALUATION_PROTOCOL.inference,
   createCampaignBundle,
   evaluateRun,
-  prepareApprovedRepresentative,
-  downloadExecutionBundle,
-  importAfterCsv,
   onExport,
   now = () => new Date().toISOString(),
   ollamaBaseUrl = 'http://127.0.0.1:11434',
@@ -125,7 +110,6 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const [phase, setPhase] = useState<CampaignPhase>('idle');
   const [creating, setCreating] = useState(false);
-  const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [activeExecution, setActiveExecution] = useState<ActiveExecution | null>(null);
@@ -178,36 +162,20 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
     };
   }, [refresh, store, suppliedStore]);
 
-  const representatives = useMemo<CellRepresentative[]>(() => {
-    try {
-      return selectCampaignRepresentatives(runs);
-    } catch {
-      return [];
-    }
-  }, [runs]);
-  const representativeIds = useMemo(
-    () => new Set(representatives.map((representative) => representative.runId)),
-    [representatives],
-  );
   const selectedRun = runs.find((run) => run.runId === selectedRunId) ?? null;
   const attempted = runs.filter((run) => run.status !== 'planned').length;
   const completed = runs.filter((run) => run.diagnosis?.status === 'completed').length;
   const failed = runs.filter((run) => run.status === 'failed').length;
-  const pendingReview = runs.filter((run) => run.status === 'awaiting_human').length;
+  const automaticallyEvaluated = runs.filter((run) => run.automaticEvaluation !== null).length;
   const campaignUsesCurrentProtocol = campaign?.protocolVersion === FINAL_EVALUATION_PROTOCOL.version;
-  const allRepresentativesResolved = representatives.length === 9
-    && representatives.every((representative) => resolvedRepresentative(
-      runs.find((run) => run.runId === representative.runId) ?? representative.run,
-    ));
   const campaignForEvidence = useMemo(() => {
     if (!campaign) return null;
     const campaignComplete = runs.length === campaign.plannedRuns
-      && runs.every((run) => !['planned', 'running', 'completed', 'awaiting_human'].includes(run.status))
-      && allRepresentativesResolved;
+      && runs.every((run) => !['planned', 'running'].includes(run.status));
     return campaignComplete && campaign.status !== 'completed'
       ? { ...campaign, status: 'completed' as const, updatedAt: now() }
       : campaign;
-  }, [allRepresentativesResolved, campaign, now, runs]);
+  }, [campaign, now, runs]);
   const evidenceDocument = useMemo(() => campaignForEvidence
     ? buildExperimentCampaignEvidence(campaignForEvidence, runs, now())
     : null, [campaignForEvidence, now, runs]);
@@ -283,7 +251,7 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
           const evaluation = await evaluateRun(executed);
           executed = {
             ...executed,
-            status: 'awaiting_human',
+            status: 'completed',
             updatedAt: now(),
             automaticEvaluation: evaluation,
           };
@@ -301,86 +269,13 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
         setMessage(automaticPauseReason ?? 'Experimento pausado');
       } else {
         setPhase('finished');
-        setMessage('Ejecución terminada; continúa con la revisión humana.');
+        setMessage('Ejecución terminada. El reporte automático incluye las corridas válidas y los fallos observados.');
       }
     } catch (cause: unknown) {
       setPhase('paused');
       setError(cause instanceof Error ? cause.message : String(cause));
     } finally {
       setActiveExecution(null);
-    }
-  };
-
-  const saveHumanReview = async (review: HumanReviewV1) => {
-    if (!campaign || !selectedRun || selectedRun.status !== 'awaiting_human') return;
-    const next: ExperimentRunV1 = {
-      ...selectedRun,
-      status: 'reviewed',
-      updatedAt: review.reviewedAt,
-      humanReview: review,
-    };
-    await store.saveRun(next);
-    await refresh(campaign.campaignId, next.runId);
-    setMessage('Revisión humana guardada');
-  };
-
-  const recordDecision = async (status: 'approved' | 'rejected') => {
-    if (!campaign || !selectedRun) return;
-    setBusy(true);
-    setError(null);
-    try {
-      const bridge = createExperimentExecutionBridge({ store, now });
-      await bridge.queueForHitl(selectedRun.runId);
-      const decision: HitlDecisionV1 = {
-        contractId: 'aura.hitl-decision.v1',
-        status,
-        reviewerId: 'reviewer:oe4',
-        decidedAt: now(),
-        reason: status === 'approved'
-          ? 'Aprobado para ejecución externa controlada.'
-          : 'Rechazado durante la revisión HITL.',
-      };
-      await bridge.recordHitlDecision(selectedRun.runId, decision);
-      await refresh(campaign.campaignId, selectedRun.runId);
-      setMessage(status === 'approved' ? 'Representante aprobado' : 'Representante rechazado');
-    } catch (cause: unknown) {
-      setError(cause instanceof Error ? cause.message : String(cause));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const importCsv = async (file: File, receiptFile: File) => {
-    if (!campaign || !selectedRun || !importAfterCsv) return;
-    setBusy(true);
-    setError(null);
-    try {
-      const next = await importAfterCsv(selectedRun, file, receiptFile);
-      await store.saveRun(next);
-      await refresh(campaign.campaignId, next.runId);
-      setMessage('Recibo Python verificado; CSV importado y reauditoría registrada');
-    } catch (cause: unknown) {
-      setError(cause instanceof Error ? cause.message : String(cause));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const prepareExternalExecution = async () => {
-    if (!campaign || !selectedRun || !prepareApprovedRepresentative) return;
-    setBusy(true);
-    setError(null);
-    try {
-      const next = await prepareApprovedRepresentative(selectedRun);
-      await store.saveRun(next);
-      await refresh(campaign.campaignId, next.runId);
-      setMessage(next.status === 'awaiting_external_output'
-        ? 'Ejecución externa preparada; importa el CSV resultante.'
-        : 'La preparación externa quedó bloqueada.');
-    } catch (cause: unknown) {
-      setError(cause instanceof Error ? cause.message : String(cause));
-    } finally {
-      setBusy(false);
     }
   };
 
@@ -448,9 +343,9 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
         <>
           <section className="oe4-progress" aria-label="Progreso del experimento">
             <div><span>Intentadas</span><strong>{attempted} / {campaign.plannedRuns}</strong></div>
-            <div><span>Completadas</span><strong>{completed}</strong></div>
+            <div><span>Válidas</span><strong>{completed}</strong></div>
             <div><span>Fallidas</span><strong>{failed}</strong></div>
-            <div><span>Revisión</span><strong>{pendingReview}</strong><small>{pendingReview} {pendingReview === 1 ? 'pendiente' : 'pendientes'} de revisión</small></div>
+            <div><span>Con score automático</span><strong>{automaticallyEvaluated}</strong><small>sin revisión humana obligatoria</small></div>
           </section>
 
           {phase === 'running' && activeExecution && (
@@ -498,7 +393,6 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
             runs={runs}
             selectedRunId={selectedRunId}
             activeRunId={activeExecution?.runId ?? null}
-            representativeIds={representativeIds}
             onSelectRun={(runId) => void refresh(campaign.campaignId, runId)}
           />
 
@@ -507,29 +401,15 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
               <div>
                 <ExperimentRunDetail
                   run={selectedRun}
-                  representative={representativeIds.has(selectedRun.runId)}
                   onDownloadFailurePackage={selectedRun.status === 'failed'
                     ? () => downloadFailurePackage(selectedRun)
                     : undefined}
                 />
-                {selectedRun.status === 'awaiting_human' && (
-                  <HumanRubricPanel reviewerId="reviewer:oe4" now={now} onSave={saveHumanReview} />
-                )}
               </div>
               <div>
-                <ExecutionEvidencePanel
-                  run={selectedRun}
-                  representative={representativeIds.has(selectedRun.runId)}
-                  busy={busy}
-                  onDecision={recordDecision}
-                  onPrepare={prepareExternalExecution}
-                  onDownloadBundle={() => selectedRun && downloadExecutionBundle?.(selectedRun)}
-                  onImport={importCsv}
-                  canPrepare={Boolean(prepareApprovedRepresentative)}
-                  canImport={Boolean(importAfterCsv && downloadExecutionBundle)}
-                />
                 {evidenceDocument && (
                   <CampaignReportPanel
+                    evidenceDocument={evidenceDocument}
                     formalValidity={evidenceDocument.formalValidity}
                     evidencePackage={evidencePackage}
                     onExport={onExport}

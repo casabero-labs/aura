@@ -1,9 +1,15 @@
 import React from 'react';
 import type { ExperimentEvidencePackage } from '../../services/benchmark/experimentArtifactExporter';
-import type { FormalValidityResult } from '../../services/benchmark/experimentReport';
+import type {
+  ExperimentCampaignEvidenceDocumentV1,
+  FormalValidityResult,
+} from '../../services/benchmark/experimentReport';
+import { OE4_INPUT_MODE_LABELS } from '../../services/benchmark/finalEvaluationProtocol';
+import type { DecisionUseCase } from '../../services/benchmark/experimentDecisionSupport';
 
 interface CampaignReportPanelProps {
   formalValidity: FormalValidityResult;
+  evidenceDocument: ExperimentCampaignEvidenceDocumentV1;
   evidencePackage: ExperimentEvidencePackage | null;
   onExport?: (evidencePackage: ExperimentEvidencePackage) => void;
 }
@@ -36,13 +42,6 @@ const summarizeBlocker = (reason: string): ReportBlockerSummary => {
       description: 'El reporte se habilitará cuando todas las unidades planeadas hayan sido intentadas.',
     };
   }
-  if (reason.includes('REPRESENTATIVE_SELECTION_INVALID') || reason.includes('representatives') || reason.includes('nine representatives')) {
-    return {
-      key: 'representatives',
-      title: 'Selección pendiente',
-      description: 'Todavía faltan corridas válidas para seleccionar los representantes de cada combinación.',
-    };
-  }
   return {
     key: `other:${reason}`,
     title: 'Validación pendiente',
@@ -51,12 +50,29 @@ const summarizeBlocker = (reason: string): ReportBlockerSummary => {
 };
 
 const ARTIFACT_DESCRIPTIONS: Record<string, string> = {
-  'campaign.json': 'Fuente canónica del experimento: configuración, corridas, evaluaciones, recibos y reauditorías.',
+  'campaign.json': 'Fuente canónica del experimento: configuración, corridas, evaluaciones automáticas y recibos.',
   'runs.csv': 'Una fila por corrida para comparar modelos, métodos, métricas, errores, hashes y estados.',
   'report.md': 'Informe legible en Markdown con método, resultados, fallos, métricas y conclusiones.',
   'report.pdf': 'Versión PDF del informe para revisión humana, archivo o publicación.',
   'manifest.json': 'Hashes de todos los archivos exportados para comprobar que el expediente no fue alterado.',
 };
+
+const modelName = (modelId: string): string => {
+  if (modelId.includes('Qwen3.5-4B-GGUF')) return 'Qwen3.5 4B';
+  if (modelId.includes('gemma-4-E4B')) return 'Gemma 4 E4B';
+  if (modelId.includes('SmolLM3-3B')) return 'SmolLM3 3B';
+  return modelId;
+};
+
+const useCaseLabel: Record<DecisionUseCase, string> = {
+  balanced: 'Mejor equilibrio para AURA',
+  diagnostic_quality: 'Mayor calidad diagnóstica',
+  reliability: 'Mayor estabilidad',
+  traceability: 'Mayor soporte de evidencia',
+  speed: 'Menor latencia',
+};
+
+const score = (value: number | null): string => value === null ? 'n/d' : value.toFixed(1);
 
 const downloadArtifact = (filename: string, mediaType: string, content: string | Uint8Array): void => {
   const blob = new Blob([content], { type: mediaType });
@@ -70,7 +86,12 @@ const downloadArtifact = (filename: string, mediaType: string, content: string |
   URL.revokeObjectURL(url);
 };
 
-const CampaignReportPanel: React.FC<CampaignReportPanelProps> = ({ formalValidity, evidencePackage, onExport }) => {
+const CampaignReportPanel: React.FC<CampaignReportPanelProps> = ({
+  formalValidity,
+  evidenceDocument,
+  evidencePackage,
+  onExport,
+}) => {
   const blockerSummaries = Array.from(
     new Map(formalValidity.reasons.map((reason) => {
       const summary = summarizeBlocker(reason);
@@ -100,7 +121,53 @@ const CampaignReportPanel: React.FC<CampaignReportPanelProps> = ({ formalValidit
       </div>
       {formalValidity.valid ? (
         <>
-          <p className="oe4-info">Los cinco artefactos se derivarán de este experimento sin copiar métricas manualmente.</p>
+          <p className="oe4-info">AURA calculó el resultado con el oráculo controlado y las 27 corridas. Los fallos reducen la estabilidad; no se borran ni reciben un cero inventado.</p>
+          <div className="oe4-recommendations" aria-label="Recomendaciones automáticas por objetivo">
+            {evidenceDocument.decisionSupport.recommendations.map((recommendation) => (
+              <article key={recommendation.useCase} className={recommendation.useCase === 'balanced' ? 'is-primary' : ''}>
+                <span>{useCaseLabel[recommendation.useCase]}</span>
+                <strong>{modelName(recommendation.modelId)}</strong>
+                <small>{OE4_INPUT_MODE_LABELS[recommendation.inputMode]} · {score(recommendation.score)}/100</small>
+                <p>{recommendation.rationale}</p>
+              </article>
+            ))}
+          </div>
+          <details className="oe4-score-method" open>
+            <summary>Cómo califica AURA</summary>
+            <div>
+              <p><strong>No es un juicio de otro LLM.</strong> La evaluación compara regla, columna y alcance con un oráculo congelado del dataset controlado.</p>
+              <dl>
+                <div><dt>Exactitud</dt><dd>F1 medio: combina precisión y recall de los hallazgos.</dd></div>
+                <div><dt>Fiabilidad</dt><dd>Diagnósticos válidos divididos entre corridas intentadas.</dd></div>
+                <div><dt>Contrato</dt><dd>Respuestas válidas que cumplen esquema, referencias y recibo.</dd></div>
+                <div><dt>Evidencia</dt><dd>Fidelidad y anclaje a la evidencia visible para ese método.</dd></div>
+                <div><dt>Sin alucinaciones</dt><dd>Corridas válidas sin columnas inventadas ni claims sin soporte.</dd></div>
+                <div><dt>Eficiencia</dt><dd>Latencia mediana de diagnósticos válidos, relativa a la combinación más rápida de esta campaña.</dd></div>
+              </dl>
+              <p>Índice equilibrado: exactitud 35 %, fiabilidad 20 %, contrato 15 %, evidencia 15 %, ausencia de alucinaciones 10 % y eficiencia 5 %. Es una ayuda para elegir según el objetivo, no un ganador universal.</p>
+            </div>
+          </details>
+          <div className="oe4-score-table-wrap">
+            <table className="oe4-score-table">
+              <thead><tr><th>Modelo + entrada</th><th>F1</th><th>Fiabilidad</th><th>Contrato</th><th>Evidencia</th><th>Sin alucinaciones</th><th>Velocidad</th><th>Equilibrado</th></tr></thead>
+              <tbody>
+                {evidenceDocument.decisionSupport.scores.map((entry) => (
+                  <tr key={entry.cellId}>
+                    <th>{modelName(entry.modelId)}<small>{OE4_INPUT_MODE_LABELS[entry.inputMode]}</small></th>
+                    <td>{score(entry.accuracy)}</td>
+                    <td>{score(entry.reliability)}</td>
+                    <td>{score(entry.contractCompliance)}</td>
+                    <td>{score(entry.evidenceSupport)}</td>
+                    <td>{score(entry.hallucinationSafety)}</td>
+                    <td>{score(entry.efficiency)}</td>
+                    <td><strong>{score(entry.balanced)}</strong></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="oe4-report-scope"><strong>Alcance:</strong> este Laboratorio evalúa diagnósticos LLM. La revisión humana, el script, HITL y la remediación pertenecen al pipeline normal de Auditoría.</p>
+          <p className="oe4-info">Los cinco artefactos se derivan de este experimento sin copiar métricas manualmente.</p>
           <ul aria-label="Artefactos disponibles" className="oe4-artifact-list">
             {evidencePackage?.artifacts.map((artifact) => (
               <li key={artifact.filename}>

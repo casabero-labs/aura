@@ -25,8 +25,9 @@ describe('OE4 experiment aggregation — Task 9', () => {
     expect(result.overall.diagnosticF1).toMatchObject({ count: 27, median: 0.4, min: 0.2, max: 0.6 });
     expect(result.overall.totalLatencyMs.count).toBe(27);
     expect(result.bestByDimension.map((entry) => entry.dimension)).toEqual([
-      'diagnosticF1', 'evidenceFidelity', 'anchoring', 'latencyMs', 'humanMean',
+      'diagnosticF1', 'evidenceFidelity', 'anchoring', 'latencyMs',
     ]);
+    expect(JSON.stringify(result)).not.toMatch(/human|script|hitl|representative/i);
     expect(result).not.toHaveProperty('winner');
   });
 });

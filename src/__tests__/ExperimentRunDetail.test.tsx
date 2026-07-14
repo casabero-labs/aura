@@ -30,7 +30,7 @@ describe('ExperimentRunDetail', () => {
       },
     };
 
-    render(<ExperimentRunDetail run={run} representative={false} />);
+    render(<ExperimentRunDetail run={run} />);
 
     expect(screen.getByText('fallida')).toBeTruthy();
     expect(screen.getByText('Qwen3.5 4B')).toBeTruthy();
@@ -65,7 +65,6 @@ describe('ExperimentRunDetail', () => {
     render(
       <ExperimentRunDetail
         run={run}
-        representative={false}
         onDownloadFailurePackage={onDownloadFailurePackage}
       />,
     );

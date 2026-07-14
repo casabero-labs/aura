@@ -14,7 +14,6 @@ import type {
   ExperimentRunV1,
 } from '../services/benchmark/experimentTypes';
 import { createExperimentEvidenceFixture } from './fixtures/experimentEvidenceFixture';
-import { createPythonReceiptFixture } from './fixtures/pythonReceiptFixture';
 import { FINAL_EVALUATION_PROTOCOL } from '../services/benchmark/finalEvaluationProtocol';
 
 const NOW = '2026-07-11T15:00:00.000Z';
@@ -82,7 +81,7 @@ const automaticEvaluation = (): AutomaticEvaluationV1 => ({
   },
 });
 
-describe('BenchmarkCampaignLab - Task 10 human flow', () => {
+describe('BenchmarkCampaignLab - automatic diagnosis campaign', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     vi.stubGlobal('URL', {
@@ -101,7 +100,7 @@ describe('BenchmarkCampaignLab - Task 10 human flow', () => {
     } as Response)));
   });
 
-  it('creates 27 units, pauses safely, resumes, exposes raw evidence and records the rubric', async () => {
+  it('creates 27 units, pauses safely, resumes and produces an automatic report', async () => {
     const user = userEvent.setup();
     const store = createInMemoryExperimentStore();
     const bundle = plannedFixture();
@@ -159,23 +158,19 @@ describe('BenchmarkCampaignLab - Task 10 human flow', () => {
       resolveFirst?.(providerResult('aura.diagnosis.v2'));
     });
     await waitFor(() => expect(screen.getByText('Experimento pausado')).toBeTruthy());
-    expect(screen.getByText('1 pendiente de revisión')).toBeTruthy();
+    expect(screen.getByText('Con score automático')).toBeTruthy();
+    expect(screen.getByText('sin revisión humana obligatoria')).toBeTruthy();
 
     await user.click(screen.getByRole('button', { name: 'Reanudar experimento' }));
-    await waitFor(() => expect(screen.getByText('27 pendientes de revisión')).toBeTruthy());
+    await waitFor(() => expect(screen.getByText(/Ejecución terminada.*reporte automático/)).toBeTruthy());
 
     expect(screen.getByText(/aura\.diagnosis\.v2/)).toBeTruthy();
     expect(screen.queryByText(/aura\.script\.v2/)).toBeNull();
     expect(screen.getAllByText('10 ms')).toHaveLength(1);
 
-    await user.selectOptions(screen.getByLabelText('Claridad'), '4');
-    await user.selectOptions(screen.getByLabelText('Trazabilidad'), '3');
-    await user.selectOptions(screen.getByLabelText('Accionabilidad'), '3');
-    await user.type(screen.getByLabelText('Notas de revisión'), 'Evidencia clara y verificable.');
-    await user.click(screen.getByRole('button', { name: 'Guardar evaluación humana' }));
-
-    expect(await screen.findByText('Revisión humana guardada')).toBeTruthy();
-    expect(screen.getByText('26 pendientes de revisión')).toBeTruthy();
+    expect(screen.queryByLabelText('Claridad')).toBeNull();
+    expect(screen.queryByText('Script')).toBeNull();
+    expect((screen.getByRole('button', { name: 'Exportar resultados' }) as HTMLButtonElement).disabled).toBe(false);
   });
 
   it('blocks resuming an obsolete protocol and offers a new preserved campaign', async () => {
@@ -291,91 +286,27 @@ describe('BenchmarkCampaignLab - Task 10 human flow', () => {
     });
   });
 
-  it('records an explicit representative decision and imports an external after-CSV', async () => {
+  it('keeps script, HITL and remediation outside the Laboratory', async () => {
     const user = userEvent.setup();
     const fixture = createExperimentEvidenceFixture();
-    const representativeId = fixture.runs.find((run) => run.repetition === 2)!.runId;
-    const runs = fixture.runs.map((run) => run.runId === representativeId
-      ? { ...run, status: 'reviewed' as const, hitl: null }
-      : run);
+    const selectedRunId = fixture.runs.find((run) => run.repetition === 2)!.runId;
     const store = createInMemoryExperimentStore();
-    await store.createCampaign(fixture.campaign, runs);
-    const prepareApprovedRepresentative = vi.fn(async (run: ExperimentRunV1) => ({
-      ...run,
-      status: 'awaiting_external_output' as const,
-      execution: {
-        contractId: 'aura.dynamic-execution-evidence.v1' as const,
-        status: 'awaiting_external_output' as const,
-        approvedScriptHash: 'a'.repeat(64),
-        beforeDatasetSha256: run.environment.dataset.sha256,
-        afterDatasetSha256: null,
-        executionEnvironment: 'colab_notebook:1.0.0',
-        executedAt: null,
-        pythonReceipt: null,
-        reaudit: null,
-      },
-    }));
-    const importAfterCsv = vi.fn(async (run: ExperimentRunV1) => ({
-      ...run,
-      status: 'reaudited' as const,
-      updatedAt: LATER,
-      execution: {
-        contractId: 'aura.dynamic-execution-evidence.v1' as const,
-        status: 'reaudited' as const,
-        approvedScriptHash: 'a'.repeat(64),
-        beforeDatasetSha256: run.environment.dataset.sha256,
-        afterDatasetSha256: 'b'.repeat(64),
-        executionEnvironment: 'Google Colab controlado',
-        executedAt: LATER,
-        pythonReceipt: createPythonReceiptFixture({
-          runId: run.runId, approvedScriptHash: 'a'.repeat(64),
-          scriptText: run.script?.rawOutput ?? '',
-          beforeDatasetSha256: run.environment.dataset.sha256,
-          afterDatasetSha256: 'b'.repeat(64), completedAt: LATER,
-        }),
-        reaudit: {
-          beforeScore: 40,
-          afterScore: 75,
-          beforeIssueCount: 20,
-          afterIssueCount: 8,
-          beforeRows: 50,
-          afterRows: 50,
-          beforeColumns: 15,
-          afterColumns: 15,
-          estimatedCellsModified: 12,
-          resolvedRuleIds: ['rule:trim-whitespace'],
-          persistentRuleIds: [],
-          newRuleIds: [],
-          outcome: 'improved' as const,
-        },
-      },
-    }));
+    await store.createCampaign(fixture.campaign, fixture.runs);
 
     render(
       <BenchmarkCampaignLab
         store={store}
-        prepareApprovedRepresentative={prepareApprovedRepresentative}
-        downloadExecutionBundle={vi.fn()}
-        importAfterCsv={importAfterCsv}
         now={() => LATER}
       />,
     );
 
-    await user.click(await screen.findByRole('button', { name: `Abrir ${representativeId}` }));
-    await user.click(screen.getByRole('button', { name: 'Aprobar representante' }));
-    expect(await screen.findByText('Representante aprobado')).toBeTruthy();
-    await user.click(screen.getByRole('button', { name: 'Preparar ejecución externa' }));
-    expect(prepareApprovedRepresentative).toHaveBeenCalledOnce();
-    expect(await screen.findByText('Ejecución externa preparada; importa el CSV resultante.')).toBeTruthy();
-
-    const file = new File(['customer_id\n1\n'], 'after.csv', { type: 'text/csv' });
-    const receipt = new File(['{}'], 'receipt.json', { type: 'application/json' });
-    await user.upload(await screen.findByLabelText('CSV resultante'), file);
-    await user.upload(screen.getByLabelText('Recibo de ejecución JSON'), receipt);
-    await user.click(screen.getByRole('button', { name: 'Verificar, importar y reauditar' }));
-
-    expect(importAfterCsv).toHaveBeenCalledOnce();
-    expect(await screen.findByText('40 → 75')).toBeTruthy();
+    await user.click(await screen.findByRole('button', { name: `Abrir ${selectedRunId}` }));
+    expect(screen.getByRole('heading', { name: 'Diagnóstico LLM' })).toBeTruthy();
+    expect(screen.queryByText('Revisión humana')).toBeNull();
+    expect(screen.queryByText('Script')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Aprobar representante' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Preparar ejecución externa' })).toBeNull();
+    expect((screen.getByRole('button', { name: 'Exportar resultados' }) as HTMLButtonElement).disabled).toBe(false);
   });
 
   it('exports the five-file report only when every formal gate is satisfied', async () => {

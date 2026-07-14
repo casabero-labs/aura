@@ -4,11 +4,9 @@ import BenchmarkCampaignLab, {
 } from '../../../components/benchmark/BenchmarkCampaignLab';
 import type { AutomaticEvaluationV1, ExperimentRunV1 } from '../../../services/benchmark/experimentTypes';
 import { createExperimentEvidenceFixture } from '../../../__tests__/fixtures/experimentEvidenceFixture';
-import { createPythonReceiptFixture } from '../../../__tests__/fixtures/pythonReceiptFixture';
 import type { ProviderProgressEvent } from '../../../types';
 
 const NOW = '2026-07-11T18:00:00.000Z';
-const HASH = 'c'.repeat(64);
 const RELEASE_KEY = 'aura_oe4_e2e_first_call_released';
 
 declare global {
@@ -96,63 +94,6 @@ const controlledGenerateText = async (prompt: string, model: string) => {
     };
 };
 
-const prepareApprovedRepresentative = async (run: ExperimentRunV1): Promise<ExperimentRunV1> => ({
-  ...run,
-  status: 'awaiting_external_output',
-  updatedAt: NOW,
-  execution: {
-    contractId: 'aura.dynamic-execution-evidence.v1',
-    status: 'awaiting_external_output',
-    approvedScriptHash: HASH,
-    beforeDatasetSha256: run.environment.dataset.sha256,
-    afterDatasetSha256: null,
-    executionEnvironment: 'controlled-e2e-notebook',
-    executedAt: null,
-    pythonReceipt: null,
-    reaudit: null,
-  },
-});
-
-const importAfterCsv = async (run: ExperimentRunV1, file: File, _receiptFile: File): Promise<ExperimentRunV1> => {
-  if (file.size === 0) throw new Error('The controlled after-CSV is empty.');
-  return {
-    ...run,
-    status: 'reaudited',
-    updatedAt: NOW,
-    execution: {
-      contractId: 'aura.dynamic-execution-evidence.v1',
-      status: 'reaudited',
-      approvedScriptHash: run.execution?.approvedScriptHash ?? HASH,
-      beforeDatasetSha256: run.environment.dataset.sha256,
-      afterDatasetSha256: HASH,
-      executionEnvironment: 'controlled-e2e-notebook',
-      executedAt: NOW,
-      pythonReceipt: createPythonReceiptFixture({
-        runId: run.runId,
-        approvedScriptHash: run.execution?.approvedScriptHash ?? HASH,
-        beforeDatasetSha256: run.environment.dataset.sha256,
-        afterDatasetSha256: HASH,
-        completedAt: NOW,
-      }),
-      reaudit: {
-        beforeScore: 40,
-        afterScore: 75,
-        beforeIssueCount: 20,
-        afterIssueCount: 8,
-        beforeRows: 50,
-        afterRows: 50,
-        beforeColumns: 15,
-        afterColumns: 15,
-        estimatedCellsModified: 12,
-        resolvedRuleIds: ['rule:trim-whitespace'],
-        persistentRuleIds: [],
-        newRuleIds: [],
-        outcome: 'improved',
-      },
-    },
-  };
-};
-
 const Oe4CampaignE2eHarness: React.FC = () => {
   const dependencies = useMemo(() => ({
     providerForRun: (run: ExperimentRunV1) => ({
@@ -180,9 +121,6 @@ const Oe4CampaignE2eHarness: React.FC = () => {
     validateDiagnosis: () => [],
     createCampaignBundle: createControlledBundle,
     evaluateRun: controlledEvaluation,
-    prepareApprovedRepresentative,
-    downloadExecutionBundle: () => undefined,
-    importAfterCsv,
   }), []);
 
   return (

@@ -10,11 +10,12 @@ import {
   aggregateExperimentRuns,
   type ExperimentAggregation,
 } from './experimentAggregation';
-import {
-  selectCampaignRepresentatives,
-  type CellRepresentative,
-} from './representativeSelector';
+import type { CellRepresentative } from './representativeSelector';
 import { FINAL_EVALUATION_PROTOCOL } from './finalEvaluationProtocol';
+import {
+  buildExperimentDecisionSupport,
+  type ExperimentDecisionSupport,
+} from './experimentDecisionSupport';
 
 export interface FormalValidityResult {
   valid: boolean;
@@ -28,28 +29,12 @@ export interface ExperimentCampaignEvidenceDocumentV1 {
   campaign: ExperimentCampaignV1;
   runs: ExperimentRunV1[];
   aggregation: ExperimentAggregation;
+  decisionSupport: ExperimentDecisionSupport;
   representatives: CellRepresentative[];
   formalValidity: FormalValidityResult;
 }
 
 const unique = (values: readonly string[]): string[] => [...new Set(values)];
-
-const resolvedRepresentativeStatus = (run: ExperimentRunV1): boolean =>
-  ['rejected', 'blocked', 'reaudited'].includes(run.status);
-
-const selectRepresentativesSafely = (runs: readonly ExperimentRunV1[]): {
-  representatives: CellRepresentative[];
-  error: string | null;
-} => {
-  try {
-    return { representatives: selectCampaignRepresentatives(runs), error: null };
-  } catch (error) {
-    return {
-      representatives: [],
-      error: error instanceof Error ? error.message : String(error),
-    };
-  }
-};
 
 export const buildExperimentCampaignEvidence = (
   campaign: ExperimentCampaignV1,
@@ -79,32 +64,22 @@ export const buildExperimentCampaignEvidence = (
     reasons.push('not every experimental unit was attempted');
   }
   const completedWithoutEvaluation = sortedRuns.filter((run) =>
-    run.diagnosis?.status === 'completed'
-    && (run.automaticEvaluation === null || run.humanReview === null));
+    run.diagnosis?.status === 'completed' && run.automaticEvaluation === null);
   if (completedWithoutEvaluation.length > 0) {
-    reasons.push(`${completedWithoutEvaluation.length} completed runs lack automatic or human evaluation`);
+    reasons.push(`${completedWithoutEvaluation.length} completed runs lack automatic evaluation`);
   }
 
-  const selection = selectRepresentativesSafely(sortedRuns);
-  if (selection.error !== null) reasons.push(`representatives: ${selection.error}`);
-  if (selection.representatives.length !== 9) reasons.push('exactly nine representatives are required');
-  const unresolved = selection.representatives.filter((representative) =>
-    !resolvedRepresentativeStatus(representative.run));
-  if (unresolved.length > 0) reasons.push(`${unresolved.length} representatives lack final resolution`);
-  const incompleteReaudits = selection.representatives.filter((representative) =>
-    representative.run.status === 'reaudited'
-    && representative.run.execution?.reaudit === null);
-  if (incompleteReaudits.length > 0) reasons.push(`${incompleteReaudits.length} approved representatives lack reaudit evidence`);
-
   const uniqueReasons = unique(reasons);
+  const aggregation = aggregateExperimentRuns(sortedRuns);
   return {
     contractId: 'aura.oe4-campaign-evidence.v1',
     contractVersion: '1.0.0',
     generatedAt,
     campaign: structuredClone(campaign),
     runs: sortedRuns,
-    aggregation: aggregateExperimentRuns(sortedRuns),
-    representatives: selection.representatives,
+    aggregation,
+    decisionSupport: buildExperimentDecisionSupport(aggregation),
+    representatives: [],
     formalValidity: { valid: uniqueReasons.length === 0, reasons: uniqueReasons },
   };
 };
@@ -125,24 +100,15 @@ const statusCounts = (document: ExperimentCampaignEvidenceDocumentV1): string =>
 export const renderExperimentReportMarkdown = (
   document: ExperimentCampaignEvidenceDocumentV1,
 ): string => {
-  const evaluatedRuns = document.runs.filter((run) => run.automaticEvaluation !== null);
-  const syntaxMeasuredRuns = evaluatedRuns.filter(
-    (run) => run.automaticEvaluation?.script.syntaxValid !== null,
-  );
-  const syntaxNotMeasuredRuns = evaluatedRuns.length - syntaxMeasuredRuns.length;
-  const verifiedPythonRuns = document.runs.filter(
-    (run) => run.execution?.pythonReceipt?.syntax.status === 'passed'
-      && run.execution.pythonReceipt.execution.status === 'passed',
-  );
   const { aggregation } = document;
   const visibleValidityReasons = document.formalValidity.reasons.slice(0, 12);
   const hiddenValidityReasonCount = document.formalValidity.reasons.length - visibleValidityReasons.length;
   const cellRows = aggregation.matrix.cells.map((cell) =>
-    `| ${cell.modelId} | ${cell.inputMode} | ${cell.runCount} | ${cell.completedRuns} | ${cell.failedRuns} | ${formatNumber(cell.diagnosticF1.mean)} | ${formatNumber(cell.totalLatencyMs.median, 0)} | ${formatNumber(cell.humanMean.mean)} |`);
-  const bestRows = aggregation.bestByDimension.map((entry) =>
-    `| ${entry.dimension} | ${entry.direction} | ${entry.modelId} | ${entry.inputMode} | ${entry.repetition} | ${formatNumber(entry.value)} |`);
-  const representativeRows = document.representatives.map((representative) =>
-    `| ${representative.modelId} | ${representative.inputMode} | ${representative.repetition} | ${formatNumber(representative.f1)} | ${representative.run.status} | ${representative.run.execution?.reaudit?.outcome ?? 'n/d'} |`);
+    `| ${cell.modelId} | ${cell.inputMode} | ${cell.runCount} | ${cell.completedRuns} | ${cell.failedRuns} | ${formatNumber(cell.diagnosticF1.mean)} | ${formatNumber(cell.totalLatencyMs.median, 0)} |`);
+  const scoreRows = document.decisionSupport.scores.map((score) =>
+    `| ${score.modelId} | ${score.inputMode} | ${formatNumber(score.accuracy, 1)} | ${formatNumber(score.reliability, 1)} | ${formatNumber(score.contractCompliance, 1)} | ${formatNumber(score.evidenceSupport, 1)} | ${formatNumber(score.hallucinationSafety, 1)} | ${formatNumber(score.efficiency, 1)} | ${formatNumber(score.balanced, 1)} |`);
+  const recommendationRows = document.decisionSupport.recommendations.map((recommendation) =>
+    `| ${recommendation.useCase} | ${recommendation.modelId} | ${recommendation.inputMode} | ${formatNumber(recommendation.score, 1)} | ${recommendation.rationale} |`);
 
   return [
     `# Informe de evaluación LLM - ${document.campaign.campaignId}`,
@@ -170,8 +136,8 @@ export const renderExperimentReportMarkdown = (
     '',
     `Corridas observadas: ${aggregation.matrix.observedRuns}. Intentadas: ${aggregation.totals.attemptedRuns}. Completadas: ${aggregation.totals.completedRuns}. Fallidas: ${aggregation.totals.failedRuns}. Estados: ${statusCounts(document)}.`,
     '',
-    '| Modelo | Entrada | Corridas | Completadas | Fallidas | F1 medio | Latencia mediana ms | Rúbrica media |',
-    '|---|---|---:|---:|---:|---:|---:|---:|',
+    '| Modelo | Entrada | Corridas | Completadas | Fallidas | F1 medio | Latencia mediana ms |',
+    '|---|---|---:|---:|---:|---:|---:|',
     ...cellRows,
     '',
     '## Calidad diagnóstica',
@@ -182,42 +148,39 @@ export const renderExperimentReportMarkdown = (
     '',
     `Fidelidad de evidencia media: ${formatPercent(aggregation.overall.evidenceFidelity.mean)}. Anclaje medio: ${formatPercent(aggregation.overall.anchoring.mean)}. Las columnas y claims sin soporte se conservan por corrida en campaign.json y se resumen por celda.`,
     '',
-    '## Validez y seguridad del script',
+    '## Método de calificación automática',
     '',
-    `Scripts seguros por celda: ${aggregation.matrix.cells.map((cell) => `${cell.cellId}=${cell.safeScriptRuns}/${cell.runCount}`).join('; ')}. Contrato, sintaxis, acciones faltantes y acciones no soportadas permanecen como dimensiones independientes.`,
+    document.decisionSupport.methodology.oracle,
     '',
-    `Sintaxis verificada: ${syntaxMeasuredRuns.length}/${evaluatedRuns.length} corridas evaluadas. El resto (${syntaxNotMeasuredRuns}) quedan como not_measured — Python aún no ha sido ejecutado.`,
-    `Ejecuciones Python verificadas por recibo: ${verifiedPythonRuns.length}. Cada recibo conserva hashes del script, CSV de entrada, CSV de salida y entorno Python.`,
+    'Precisión mide cuántos hallazgos declarados son correctos; recall mide cuántos hallazgos esperados fueron encontrados; F1 es su media armónica. Fiabilidad es la proporción de corridas válidas. Contrato, evidencia, alucinaciones y eficiencia se calculan de forma determinista a partir de la respuesta, el snapshot, el recibo y las métricas de Ollama.',
     '',
     '## Latencia, tokens y estabilidad',
     '',
     `Latencia total mediana: ${formatNumber(aggregation.overall.totalLatencyMs.median, 0)} ms. Tokens de salida medianos: ${formatNumber(aggregation.overall.outputTokens.median, 0)}. Los fallos y reintentos permanecen visibles; no se reemplazan por ceros ni se eliminan.`,
     '',
-    '## Rúbrica humana',
+    '## Scores de apoyo a la decisión',
     '',
-    `Corridas calificadas: ${aggregation.totals.runsWithHumanReview}/${aggregation.matrix.observedRuns}. Media conjunta: ${formatNumber(aggregation.overall.humanMean.mean)} sobre 4. Claridad, trazabilidad y accionabilidad se conservan individualmente en campaign.json.`,
+    '| Modelo | Entrada | Exactitud | Fiabilidad | Contrato | Evidencia | Sin alucinaciones | Eficiencia | Equilibrado |',
+    '|---|---|---:|---:|---:|---:|---:|---:|---:|',
+    ...scoreRows,
     '',
-    '## Ejecución representativa y antes/después',
+    `Índice equilibrado: exactitud 35 %, fiabilidad 20 %, contrato 15 %, evidencia 15 %, ausencia de alucinaciones 10 % y eficiencia 5 %. ${document.decisionSupport.methodology.note}`,
     '',
-    '| Modelo | Entrada | Repetición | F1 | Resolución | Resultado antes/después |',
-    '|---|---|---:|---:|---|---|',
-    ...(representativeRows.length > 0 ? representativeRows : ['| n/d | n/d | n/d | n/d | pendiente | n/d |']),
+    '## Recomendaciones por objetivo',
     '',
-    '## Mejores resultados por dimensión',
-    '',
-    '| Dimensión | Dirección | Modelo | Entrada | Repetición | Valor |',
-    '|---|---|---|---|---:|---:|',
-    ...(bestRows.length > 0 ? bestRows : ['| n/d | n/d | n/d | n/d | n/d | n/d |']),
+    '| Objetivo | Modelo | Entrada | Score | Justificación |',
+    '|---|---|---|---:|---|',
+    ...recommendationRows,
     '',
     'No existe un campo ni una conclusión de ganador universal. Cada resultado se interpreta dentro de su dimensión.',
     '',
     '## Amenazas a la validez',
     '',
     '- Un único dataset controlado limita la generalización externa.',
-    '- Cinco repeticiones permiten estadística descriptiva, no afirmaciones causales fuertes.',
+    '- Tres repeticiones permiten estadística descriptiva, no afirmaciones causales fuertes.',
     '- El hardware y el runtime local condicionan latencia y throughput.',
-    '- La rúbrica humana conserva identidad, fecha y notas, pero sigue expuesta a juicio del revisor.',
-    '- Los scripts solo se ejecutan externamente después de HITL y sobre una copia controlada.',
+    '- El índice equilibrado depende de ponderaciones explícitas y debe interpretarse junto con sus dimensiones.',
+    '- La evaluación del Laboratorio cubre diagnóstico LLM; script, HITL y remediación pertenecen al pipeline normal.',
     '',
     '## Conclusiones acotadas',
     '',

@@ -1,14 +1,5 @@
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
 import { AURA_EXPERIMENT_DATABASE_NAME } from '../../services/benchmark/indexedDbExperimentStore';
-import { createExperimentEvidenceFixture } from '../../__tests__/fixtures/experimentEvidenceFixture';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const AFTER_CSV = path.resolve(__dirname, './fixtures/oe4-after-approved.csv');
-const source = createExperimentEvidenceFixture();
-const TARGET_RUN_ID = source.runs.find((run) => run.sequence === 2)!.runId;
-const RECOVERY_RUN_ID = source.runs.find((run) => run.sequence === 4)!.runId;
 
 const expectNoHorizontalOverflow = async (page: import('@playwright/test').Page): Promise<void> => {
   await expect.poll(() => page.evaluate(() =>
@@ -24,21 +15,7 @@ const openLab = async (page: import('@playwright/test').Page): Promise<void> => 
   await expect(page.getByText('Objetivo específico 4')).toHaveCount(0);
 };
 
-const reviewRun = async (
-  page: import('@playwright/test').Page,
-  runId: string,
-  notes: string,
-): Promise<void> => {
-  await page.getByRole('button', { name: `Abrir ${runId}` }).click();
-  await page.getByLabel('Claridad').selectOption('4');
-  await page.getByLabel('Trazabilidad').selectOption('3');
-  await page.getByLabel('Accionabilidad').selectOption('3');
-  await page.getByLabel('Notas de revisión').fill(notes);
-  await page.getByRole('button', { name: 'Guardar evaluación humana' }).click();
-  await expect(page.getByRole('status')).toContainText('Revisión humana guardada');
-};
-
-test.describe.serial('Task 11 — recorrido humano OE4 y recuperación', () => {
+test.describe.serial('Laboratorio — evaluación automática y recuperación', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await page.evaluate(async (databaseName) => {
@@ -53,7 +30,7 @@ test.describe.serial('Task 11 — recorrido humano OE4 y recuperación', () => {
     await page.reload();
   });
 
-  test('crea, pausa, recarga, reanuda y exporta el expediente válido', async ({ page }) => {
+  test('crea, pausa, recarga, reanuda, califica y exporta sin revisión humana', async ({ page }) => {
     await page.getByRole('button', { name: 'Configuración', exact: true }).first().click();
     await expect(page.getByText('Contrato técnico del diagnóstico (avanzado)')).toHaveCount(0);
     await expect(page.getByText('Ejecución automática')).toHaveCount(0);
@@ -80,26 +57,25 @@ test.describe.serial('Task 11 — recorrido humano OE4 y recuperación', () => {
     await expect(page.getByText('26 / 27')).toBeVisible();
     await page.getByRole('button', { name: 'Reanudar experimento' }).click();
     await expect(page.getByRole('status')).toContainText('Ejecución terminada');
-    await expect(page.getByText('2 pendientes de revisión')).toBeVisible();
+    await expect(page.getByText('27 / 27')).toBeVisible();
+    await expect(page.getByText('Con score automático')).toBeVisible();
+    await expect(page.getByText('sin revisión humana obligatoria')).toBeVisible();
     await expectNoHorizontalOverflow(page);
 
-    await reviewRun(page, TARGET_RUN_ID, 'Representante claro, trazable y accionable.');
-    await reviewRun(page, RECOVERY_RUN_ID, 'Corrida recuperada después de recargar.');
-    await expect(page.getByText('0 pendientes de revisión')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Reporte listo' })).toBeVisible();
+    await expect(page.getByText('Mejor equilibrio para AURA')).toBeVisible();
+    await expect(page.getByText('Cómo califica AURA')).toBeVisible();
+    await expect(page.getByText(/No es un juicio de otro LLM/)).toBeVisible();
+    await expect(page.getByText(/La revisión humana, el script, HITL y la remediación pertenecen al pipeline normal/)).toBeVisible();
+    await expect(page.getByText('Guardar evaluación humana')).toHaveCount(0);
+    await expect(page.getByText('Aprobar representante')).toHaveCount(0);
+    await expect(page.getByText('Preparar ejecución externa')).toHaveCount(0);
+    await expect(page.getByText('Script', { exact: true })).toHaveCount(0);
 
-    await page.getByRole('button', { name: `Abrir ${TARGET_RUN_ID}` }).click();
-    await page.getByRole('button', { name: 'Aprobar representante' }).click();
-    await expect(page.getByRole('status')).toContainText('Representante aprobado');
-    await page.getByRole('button', { name: 'Preparar ejecución externa' }).click();
-    await expect(page.getByRole('status')).toContainText('Ejecución externa preparada');
-
-    await page.getByLabel('CSV resultante').setInputFiles(AFTER_CSV);
-    await page.getByLabel('Recibo de ejecución JSON').setInputFiles({
-      name: 'receipt.json', mimeType: 'application/json', buffer: Buffer.from('{}'),
-    });
-    await page.getByRole('button', { name: 'Verificar, importar y reauditar' }).click();
-    await expect(page.getByText('40 → 75')).toBeVisible();
-    await expect(page.getByRole('status')).toContainText('CSV importado y reauditoría registrada');
+    const matrixCells = page.getByTestId('oe4-matrix-cell');
+    await expect(matrixCells).toHaveCount(9);
+    await expect(page.locator('.oe4-matrix-cell--success')).toHaveCount(9);
+    await expect(page.locator('.oe4-run-dot--success')).toHaveCount(27);
 
     const artifactNames = ['campaign.json', 'runs.csv', 'report.md', 'report.pdf', 'manifest.json'];
     const artifactList = page.getByRole('list', { name: 'Artefactos disponibles' });

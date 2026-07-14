@@ -37,7 +37,6 @@ import type { InferenceSnapshotV1 } from './contracts/llm/types';
 import { resolveOllamaInferenceConfig } from './services/ollamaInferenceConfig';
 import type { ExperimentRunV1 } from './services/benchmark/experimentTypes';
 import { evaluateFormalDiagnosisRun } from './services/benchmark/formalDiagnosisEvaluator';
-import { buildFormalRepresentativeExecutionBundle, importFormalRepresentativeOutput, prepareFormalRepresentative } from './services/benchmark/formalRepresentativePreparation';
 
 const BenchmarkCampaignLab = lazy(() => import('./components/benchmark/BenchmarkCampaignLab'));
 const Oe4CampaignE2eHarness = import.meta.env.DEV
@@ -271,26 +270,6 @@ const App: React.FC = () => {
     if (!formalEvidenceEnvelope) throw new Error('No está disponible el sobre formal para evaluar la corrida.');
     return evaluateFormalDiagnosisRun(run, formalEvidenceEnvelope);
   }, [formalEvidenceEnvelope]);
-
-  const prepareRepresentative = useCallback(async (run: ExperimentRunV1) => {
-    if (!formalEvidenceEnvelope) throw new Error('No está disponible el sobre formal del representante.');
-    return prepareFormalRepresentative(run, formalEvidenceEnvelope);
-  }, [formalEvidenceEnvelope]);
-
-  const downloadRepresentativeBundle = useCallback((run: ExperimentRunV1) => {
-    const bundle = buildFormalRepresentativeExecutionBundle(run, run.updatedAt);
-    downloadTextFile(
-      `aura-python-${run.runId}.json`,
-      `${JSON.stringify(bundle, null, 2)}\n`,
-      'application/json',
-    );
-  }, []);
-
-  const importRepresentativeCsv = useCallback(async (run: ExperimentRunV1, afterFile: File, receiptFile: File) => {
-    if (!pipelineData.file) throw new Error('Vuelve a cargar el CSV controlado original antes de reauditar.');
-    const approvedBundle = buildFormalRepresentativeExecutionBundle(run, run.updatedAt);
-    return importFormalRepresentativeOutput(run, pipelineData.file, afterFile, receiptFile, approvedBundle);
-  }, [pipelineData.file]);
 
   // Liberar memoria VRAM del WebLLM anterior al cambiar de proveedor o desmontar
   useEffect(() => {
@@ -820,9 +799,6 @@ const App: React.FC = () => {
                 initialInference={formalInitialInference}
                 createCampaignBundle={formalEvidenceEnvelope && pipelineData.file ? createFormalBundle : undefined}
                 evaluateRun={evaluateFormalRun}
-                prepareApprovedRepresentative={prepareRepresentative}
-                downloadExecutionBundle={downloadRepresentativeBundle}
-                importAfterCsv={importRepresentativeCsv}
               />}
         </Suspense>
       )}

@@ -5,7 +5,6 @@ import SyntaxDisplay from '../SyntaxDisplay';
 
 interface ExperimentRunDetailProps {
   run: ExperimentRunV1;
-  representative: boolean;
   onDownloadFailurePackage?: () => void;
 }
 
@@ -21,9 +20,15 @@ const modelName = (modelId: string): string => {
 
 const statusLabel: Record<ExperimentRunV1['status'], string> = {
   planned: 'planeada', running: 'en curso', completed: 'completada', failed: 'fallida',
-  awaiting_human: 'en revisión', reviewed: 'revisada', awaiting_hitl: 'decisión pendiente',
+  awaiting_human: 'válida', reviewed: 'válida', awaiting_hitl: 'válida',
   approved: 'aprobada', rejected: 'rechazada', blocked: 'bloqueada',
   awaiting_external_output: 'esperando resultado', reaudited: 'reauditada',
+};
+
+const effectiveStatusLabel = (run: ExperimentRunV1): string => {
+  if (run.status === 'failed' || run.status === 'blocked') return 'fallida';
+  if (run.diagnosis?.status === 'completed' && run.automaticEvaluation !== null) return 'válida';
+  return statusLabel[run.status];
 };
 
 const stageStatusLabel = (status: string | undefined): string => ({
@@ -46,7 +51,6 @@ const failurePresentation = (run: ExperimentRunV1): { title: string; message: st
 
 const ExperimentRunDetail: React.FC<ExperimentRunDetailProps> = ({
   run,
-  representative,
   onDownloadFailurePackage,
 }) => (
   <section className="oe4-panel oe4-run-detail" aria-labelledby="oe4-run-detail-title">
@@ -55,13 +59,17 @@ const ExperimentRunDetail: React.FC<ExperimentRunDetailProps> = ({
         <p className="oe4-eyebrow">Corrida {run.sequence}</p>
         <h2 id="oe4-run-detail-title">Detalle y evidencia</h2>
       </div>
-      <span className={`oe4-status oe4-status--${run.status}`}>{statusLabel[run.status]}</span>
+      <span className={`oe4-status ${run.status === 'failed' || run.status === 'blocked'
+        ? 'oe4-status--failed'
+        : run.diagnosis?.status === 'completed' && run.automaticEvaluation !== null
+          ? 'oe4-status--completed'
+          : `oe4-status--${run.status}`}`}>{effectiveStatusLabel(run)}</span>
     </div>
     <div className="oe4-run-meta">
       <div><span>Modelo</span><strong>{modelName(run.modelId)}</strong></div>
       <div><span>Entrada</span><strong>{OE4_INPUT_MODE_LABELS[run.inputMode]}</strong></div>
       <div><span>Repetición</span><strong>{run.repetition}</strong></div>
-      <div><span>Representante</span><strong>{representative ? 'Sí' : 'No'}</strong></div>
+      <div><span>Resultado</span><strong>{run.automaticEvaluation ? 'Score automático' : run.status === 'failed' ? 'Fallo conservado' : 'Pendiente'}</strong></div>
     </div>
     {run.diagnosis?.status === 'failed' && (
       <div className="oe4-run-error" role="alert">
@@ -101,13 +109,13 @@ const ExperimentRunDetail: React.FC<ExperimentRunDetailProps> = ({
         </ul>
       )}
     </details>
-    <div className="oe4-stage-grid">
-      {(['diagnosis', 'script'] as const).map((stage) => {
-        const result = run[stage];
+    <div className="oe4-stage-grid oe4-stage-grid--diagnosis-only">
+      {(() => {
+        const result = run.diagnosis;
         return (
-          <article key={stage}>
+          <article>
             <div className="oe4-stage-head">
-              <h3>{stage === 'diagnosis' ? 'Diagnóstico' : 'Script'}</h3>
+              <h3>Diagnóstico LLM</h3>
               <span>{stageStatusLabel(result?.status)}</span>
             </div>
             <dl>
@@ -115,19 +123,22 @@ const ExperimentRunDetail: React.FC<ExperimentRunDetailProps> = ({
               <div><dt>Tokens salida</dt><dd>{metric(result?.metrics?.outputTokens)}</dd></div>
             </dl>
             <SyntaxDisplay
-              filename={stage === 'diagnosis' ? 'diagnosis-output.json' : 'script-output.py'}
+              filename="diagnosis-output.json"
               content={result?.rawOutput || 'Sin salida registrada.'}
               maxHeight={230}
             />
           </article>
         );
-      })}
+      })()}
     </div>
     {run.automaticEvaluation && (
       <div className="oe4-evaluation-strip">
+        <div><span>Precisión</span><strong>{run.automaticEvaluation.diagnosis.primary.precision.toFixed(3)}</strong></div>
+        <div><span>Recall</span><strong>{run.automaticEvaluation.diagnosis.primary.recall.toFixed(3)}</strong></div>
         <div><span>F1</span><strong>{run.automaticEvaluation.diagnosis.primary.f1.toFixed(3)}</strong></div>
         <div><span>Contrato</span><strong>{run.automaticEvaluation.diagnosis.contractCompliant ? 'cumple' : 'no cumple'}</strong></div>
-        <div><span>Script seguro</span><strong>{run.script ? (run.automaticEvaluation.script.safe ? 'sí' : 'no') : 'pendiente'}</strong></div>
+        <div><span>Evidencia</span><strong>{run.automaticEvaluation.diagnosis.evidenceFidelity === null ? 'n/a' : run.automaticEvaluation.diagnosis.evidenceFidelity.toFixed(3)}</strong></div>
+        <div><span>Anclaje</span><strong>{run.automaticEvaluation.diagnosis.anchoringScore.toFixed(3)}</strong></div>
         <div><span>Alucinaciones</span><strong>{run.automaticEvaluation.diagnosis.inventedColumns.length + run.automaticEvaluation.diagnosis.unsupportedClaims.length}</strong></div>
       </div>
     )}

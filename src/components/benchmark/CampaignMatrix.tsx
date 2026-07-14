@@ -9,7 +9,6 @@ interface CampaignMatrixProps {
   runs: readonly ExperimentRunV1[];
   selectedRunId: string | null;
   activeRunId?: string | null;
-  representativeIds: ReadonlySet<string>;
   onSelectRun: (runId: string) => void;
 }
 
@@ -19,28 +18,19 @@ const modelName = (modelId: string): string => {
   return 'SmolLM3 3B';
 };
 
-const statusLabel: Record<ExperimentRunV1['status'], string> = {
-  planned: 'planeada',
-  running: 'ejecutando',
-  completed: 'sin evaluar',
-  failed: 'falló',
-  awaiting_human: 'revisión',
-  reviewed: 'revisada',
-  awaiting_hitl: 'decisión HITL',
-  approved: 'aprobada',
-  rejected: 'rechazada',
-  blocked: 'bloqueada',
-  awaiting_external_output: 'esperando CSV',
-  reaudited: 'reauditada',
-};
-
 const CampaignMatrix: React.FC<CampaignMatrixProps> = ({
   runs,
   selectedRunId,
   activeRunId = null,
-  representativeIds,
   onSelectRun,
-}) => (
+}) => {
+  const visualState = (run: ExperimentRunV1): 'planned' | 'running' | 'success' | 'failed' => {
+    if (activeRunId === run.runId || run.status === 'running') return 'running';
+    if (run.status === 'failed' || run.status === 'blocked') return 'failed';
+    if (run.diagnosis?.status === 'completed' && run.automaticEvaluation !== null) return 'success';
+    return 'planned';
+  };
+  return (
   <section className="oe4-panel" aria-labelledby="oe4-matrix-title">
     <div className="oe4-panel-heading">
       <div>
@@ -49,31 +39,46 @@ const CampaignMatrix: React.FC<CampaignMatrixProps> = ({
       </div>
       <span>{runs.length} unidades conservadas</span>
     </div>
+    <div className="oe4-matrix-legend" aria-label="Leyenda de estados">
+      <span><i className="is-success" />Válida</span>
+      <span><i className="is-failed" />Fallida</span>
+      <span><i className="is-planned" />Pendiente</span>
+      <span><i className="is-selected" />Seleccionada</span>
+    </div>
     <div className="oe4-matrix">
       {FINAL_EVALUATION_PROTOCOL.models.flatMap((modelId) =>
         FINAL_EVALUATION_PROTOCOL.inputModes.map((inputMode) => {
           const cellRuns = runs.filter((run) => run.modelId === modelId && run.inputMode === inputMode);
+          const attemptedRuns = cellRuns.filter((run) => run.status !== 'planned').length;
+          const validRuns = cellRuns.filter((run) => visualState(run) === 'success').length;
+          const failedRuns = cellRuns.filter((run) => visualState(run) === 'failed').length;
+          const cellState = attemptedRuns === FINAL_EVALUATION_PROTOCOL.repetitions
+            ? failedRuns === 0 ? 'success' : validRuns === 0 ? 'failed' : 'mixed'
+            : 'pending';
           return (
-            <article className="oe4-matrix-cell" data-testid="oe4-matrix-cell" key={`${modelId}:${inputMode}`}>
+            <article className={`oe4-matrix-cell oe4-matrix-cell--${cellState}`} data-testid="oe4-matrix-cell" key={`${modelId}:${inputMode}`}>
               <div className="oe4-matrix-cell-head">
                 <div>
                   <strong>{modelName(modelId)}</strong>
                   <span>{OE4_INPUT_MODE_LABELS[inputMode]}</span>
                 </div>
-                <small>{cellRuns.filter((run) => run.status !== 'planned').length}/{FINAL_EVALUATION_PROTOCOL.repetitions}</small>
+                <small>{attemptedRuns}/{FINAL_EVALUATION_PROTOCOL.repetitions} intentadas · {validRuns} válidas{failedRuns > 0 ? ` · ${failedRuns} fallidas` : ''}</small>
               </div>
               <div className="oe4-run-dots">
                 {cellRuns.map((run) => (
                   <button
                     type="button"
                     key={run.runId}
-                    className={`oe4-run-dot oe4-run-dot--${run.status} ${selectedRunId === run.runId ? 'is-selected' : ''} ${activeRunId === run.runId ? 'is-running' : ''}`}
+                    className={`oe4-run-dot oe4-run-dot--${visualState(run)} ${selectedRunId === run.runId ? 'is-selected' : ''} ${activeRunId === run.runId ? 'is-running' : ''}`}
                     onClick={() => onSelectRun(run.runId)}
                     aria-label={`Abrir ${run.runId}`}
-                    title={`Repetición ${run.repetition}: ${activeRunId === run.runId ? 'ejecutándose' : statusLabel[run.status]}`}
+                    title={`Repetición ${run.repetition}: ${activeRunId === run.runId
+                      ? 'ejecutándose'
+                      : visualState(run) === 'success'
+                        ? 'válida y evaluada automáticamente'
+                        : visualState(run) === 'failed' ? 'fallida' : 'pendiente'}`}
                   >
                     {run.repetition}
-                    {representativeIds.has(run.runId) && <span aria-hidden="true">R</span>}
                   </button>
                 ))}
               </div>
@@ -83,6 +88,7 @@ const CampaignMatrix: React.FC<CampaignMatrixProps> = ({
       )}
     </div>
   </section>
-);
+  );
+};
 
 export default CampaignMatrix;

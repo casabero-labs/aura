@@ -21,12 +21,15 @@ describe('OE4 artifact exporter — Task 9', () => {
     expect(canonical.runs).toHaveLength(27);
     expect(canonical.runs[0].diagnosis.rawOutput).toContain('raw diagnosis');
     expect(result.runsCsv.trim().split('\n')).toHaveLength(28);
-    expect(result.runsCsv.split('\n')[0]).toContain('python_receipt_hash');
-    expect(result.runsCsv.split('\n')[0]).toContain('python_execution_status');
+    expect(result.runsCsv.split('\n')[0]).toContain('diagnosis_status');
+    expect(result.runsCsv.split('\n')[0]).toContain('f1');
+    expect(result.runsCsv.split('\n')[0]).not.toMatch(/script|human|hitl|python|representative/);
     expect(result.reportMarkdown).toContain(fixture.campaign.campaignId);
     expect(result.reportPdf.textContent).toContain(fixture.campaign.campaignId);
     expect(new TextDecoder().decode(result.reportPdf.bytes.slice(0, 4))).toBe('%PDF');
-    expect(result.source.formalValidity.valid).toBe(false);
+    expect(result.source.formalValidity.valid).toBe(true);
+    expect(result.source.representatives).toEqual([]);
+    expect(result.reportMarkdown).toContain('Método de calificación automática');
   });
 
   it('hashes every non-self artifact and declares the manifest self-hash scope', () => {

@@ -15,8 +15,8 @@ describe('OE4 TFM report — Task 9', () => {
     for (const heading of [
       'Método', 'Entorno y modelos', 'Matriz de corridas y fallos',
       'Calidad diagnóstica', 'Contrato y alucinaciones',
-      'Validez y seguridad del script', 'Latencia, tokens y estabilidad',
-      'Rúbrica humana', 'Ejecución representativa y antes/después',
+      'Método de calificación automática', 'Latencia, tokens y estabilidad',
+      'Scores de apoyo a la decisión', 'Recomendaciones por objetivo',
       'Amenazas a la validez', 'Conclusiones acotadas',
     ]) {
       expect(markdown).toContain(`## ${heading}`);
@@ -26,11 +26,13 @@ describe('OE4 TFM report — Task 9', () => {
     expect(markdown).toContain('No existe un campo ni una conclusión de ganador universal');
   });
 
-  it('keeps formal validity false when ratings or representative resolutions are missing', () => {
+  it('keeps the diagnosis-only report valid when human ratings are absent', () => {
     const fixture = createExperimentEvidenceFixture({ missingHumanReview: true });
     const document = buildExperimentCampaignEvidence(fixture.campaign, fixture.runs, fixture.generatedAt);
 
-    expect(document.formalValidity.valid).toBe(false);
-    expect(document.formalValidity.reasons.join(' ')).toMatch(/human evaluation/i);
+    expect(document.formalValidity).toEqual({ valid: true, reasons: [] });
+    expect(document.representatives).toEqual([]);
+    expect(document.decisionSupport.recommendations).toHaveLength(5);
+    expect(renderExperimentReportMarkdown(document)).toContain('script, HITL y remediación pertenecen al pipeline normal');
   });
 });

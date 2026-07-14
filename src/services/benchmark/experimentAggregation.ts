@@ -22,22 +22,19 @@ export interface ExperimentCellSummary {
   attemptedRuns: number;
   completedRuns: number;
   failedRuns: number;
-  pendingHumanRatings: number;
   attemptEventCount: number;
   diagnosticF1: DescriptiveStats;
   evidenceFidelity: DescriptiveStats;
   anchoring: DescriptiveStats;
   totalLatencyMs: DescriptiveStats;
   outputTokens: DescriptiveStats;
-  humanMean: DescriptiveStats;
   contractCompliantRuns: number;
   hallucinationCount: number;
-  safeScriptRuns: number;
-  resolvedRepresentatives: number;
+  hallucinationFreeRuns: number;
 }
 
 export interface DimensionBestResult {
-  dimension: 'diagnosticF1' | 'evidenceFidelity' | 'anchoring' | 'latencyMs' | 'humanMean';
+  dimension: 'diagnosticF1' | 'evidenceFidelity' | 'anchoring' | 'latencyMs';
   direction: 'higher' | 'lower';
   runId: string;
   modelId: OE4ModelId;
@@ -60,8 +57,6 @@ export interface ExperimentAggregation {
     completedRuns: number;
     failedRuns: number;
     runsWithAutomaticEvaluation: number;
-    runsWithHumanReview: number;
-    representativesResolved: number;
   };
   overall: {
     diagnosticF1: DescriptiveStats;
@@ -69,7 +64,6 @@ export interface ExperimentAggregation {
     anchoring: DescriptiveStats;
     totalLatencyMs: DescriptiveStats;
     outputTokens: DescriptiveStats;
-    humanMean: DescriptiveStats;
   };
   bestByDimension: DimensionBestResult[];
 }
@@ -97,17 +91,11 @@ export const descriptiveStats = (values: readonly number[]): DescriptiveStats =>
   };
 };
 
-const totalLatencyMs = (run: ExperimentRunV1): number | null => {
-  const values = [run.diagnosis?.metrics?.totalDurationMs, run.script?.metrics?.totalDurationMs]
-    .filter((value): value is number => value !== null && value !== undefined);
-  return values.length === 0 ? null : values.reduce((sum, value) => sum + value, 0);
-};
+const totalLatencyMs = (run: ExperimentRunV1): number | null =>
+  run.diagnosis?.status === 'completed' ? run.diagnosis.metrics?.totalDurationMs ?? null : null;
 
-const outputTokens = (run: ExperimentRunV1): number | null => {
-  const values = [run.diagnosis?.metrics?.outputTokens, run.script?.metrics?.outputTokens]
-    .filter((value): value is number => value !== null && value !== undefined);
-  return values.length === 0 ? null : values.reduce((sum, value) => sum + value, 0);
-};
+const outputTokens = (run: ExperimentRunV1): number | null =>
+  run.diagnosis?.status === 'completed' ? run.diagnosis.metrics?.outputTokens ?? null : null;
 
 const numbers = (
   runs: readonly ExperimentRunV1[],
@@ -121,9 +109,6 @@ const isAttempted = (run: ExperimentRunV1): boolean =>
 const isCompletedOutput = (run: ExperimentRunV1): boolean =>
   run.diagnosis?.status === 'completed';
 
-const isResolvedRepresentative = (run: ExperimentRunV1): boolean =>
-  ['rejected', 'blocked', 'reaudited'].includes(run.status);
-
 const summarizeCell = (
   modelId: OE4ModelId,
   inputMode: OE4InputMode,
@@ -136,20 +121,22 @@ const summarizeCell = (
   attemptedRuns: runs.filter(isAttempted).length,
   completedRuns: runs.filter(isCompletedOutput).length,
   failedRuns: runs.filter((run) => run.status === 'failed').length,
-  pendingHumanRatings: runs.filter((run) => isCompletedOutput(run) && run.humanReview === null).length,
   attemptEventCount: runs.reduce((sum, run) => sum + run.attempts.length, 0),
   diagnosticF1: descriptiveStats(numbers(runs, (run) => run.automaticEvaluation?.diagnosis.primary.f1)),
   evidenceFidelity: descriptiveStats(numbers(runs, (run) => run.automaticEvaluation?.diagnosis.evidenceFidelity)),
   anchoring: descriptiveStats(numbers(runs, (run) => run.automaticEvaluation?.diagnosis.anchoringScore)),
   totalLatencyMs: descriptiveStats(numbers(runs, totalLatencyMs)),
   outputTokens: descriptiveStats(numbers(runs, outputTokens)),
-  humanMean: descriptiveStats(numbers(runs, (run) => run.humanReview?.mean)),
   contractCompliantRuns: runs.filter((run) => run.automaticEvaluation?.diagnosis.contractCompliant).length,
   hallucinationCount: runs.reduce((sum, run) => sum
     + (run.automaticEvaluation?.diagnosis.inventedColumns.length ?? 0)
     + (run.automaticEvaluation?.diagnosis.unsupportedClaims.length ?? 0), 0),
-  safeScriptRuns: runs.filter((run) => run.automaticEvaluation?.script.safe).length,
-  resolvedRepresentatives: runs.filter(isResolvedRepresentative).length,
+  hallucinationFreeRuns: runs.filter((run) => {
+    const diagnosis = run.automaticEvaluation?.diagnosis;
+    return diagnosis !== undefined
+      && diagnosis.inventedColumns.length === 0
+      && diagnosis.unsupportedClaims.length === 0;
+  }).length,
 });
 
 const best = (
@@ -195,7 +182,6 @@ export const aggregateExperimentRuns = (
     best(sortedRuns, 'evidenceFidelity', 'higher', (run) => run.automaticEvaluation?.diagnosis.evidenceFidelity),
     best(sortedRuns, 'anchoring', 'higher', (run) => run.automaticEvaluation?.diagnosis.anchoringScore),
     best(sortedRuns, 'latencyMs', 'lower', totalLatencyMs),
-    best(sortedRuns, 'humanMean', 'higher', (run) => run.humanReview?.mean),
   ].filter((entry): entry is DimensionBestResult => entry !== null);
 
   return {
@@ -212,8 +198,6 @@ export const aggregateExperimentRuns = (
       completedRuns: sortedRuns.filter(isCompletedOutput).length,
       failedRuns: sortedRuns.filter((run) => run.status === 'failed').length,
       runsWithAutomaticEvaluation: sortedRuns.filter((run) => run.automaticEvaluation !== null).length,
-      runsWithHumanReview: sortedRuns.filter((run) => run.humanReview !== null).length,
-      representativesResolved: cells.reduce((sum, cell) => sum + cell.resolvedRepresentatives, 0),
     },
     overall: {
       diagnosticF1: descriptiveStats(numbers(sortedRuns, (run) => run.automaticEvaluation?.diagnosis.primary.f1)),
@@ -221,7 +205,6 @@ export const aggregateExperimentRuns = (
       anchoring: descriptiveStats(numbers(sortedRuns, (run) => run.automaticEvaluation?.diagnosis.anchoringScore)),
       totalLatencyMs: descriptiveStats(numbers(sortedRuns, totalLatencyMs)),
       outputTokens: descriptiveStats(numbers(sortedRuns, outputTokens)),
-      humanMean: descriptiveStats(numbers(sortedRuns, (run) => run.humanReview?.mean)),
     },
     bestByDimension,
   };
