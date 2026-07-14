@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import BenchmarkCampaignLab from '../components/benchmark/BenchmarkCampaignLab';
 import { createExperimentRunner } from '../services/benchmark/experimentRunner';
 import { createInMemoryExperimentStore } from '../services/benchmark/inMemoryExperimentStore';
+import type { ExperimentStore } from '../services/benchmark/experimentStore';
 import type {
   AutomaticEvaluationV1,
   ExperimentCampaignV1,
@@ -141,10 +142,17 @@ describe('BenchmarkCampaignLab - Task 10 human flow', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Crear experimento' }));
     expect(await screen.findByText('0 / 27')).toBeTruthy();
-    expect(screen.getAllByTestId('oe4-matrix-cell')).toHaveLength(9);
+    const matrixCells = screen.getAllByTestId('oe4-matrix-cell');
+    expect(matrixCells).toHaveLength(9);
+    for (const label of ['Contexto mínimo', 'Evidencia equilibrada', 'Evidencia completa']) {
+      expect(matrixCells.filter((cell) => cell.textContent?.includes(label))).toHaveLength(3);
+    }
 
     await user.click(screen.getByRole('button', { name: 'Iniciar experimento' }));
     await waitFor(() => expect(generateText).toHaveBeenCalledTimes(1));
+    expect(screen.getByRole('region', { name: 'Ejecución actual' })).toBeTruthy();
+    expect(screen.getByText('Calentamiento excluido')).toBeTruthy();
+    expect(screen.getByText(/Corrida actual \d+ de 27/)).toBeTruthy();
     await user.click(screen.getByRole('button', { name: 'Pausar de forma segura' }));
 
     await act(async () => {
@@ -168,6 +176,64 @@ describe('BenchmarkCampaignLab - Task 10 human flow', () => {
 
     expect(await screen.findByText('Revisión humana guardada')).toBeTruthy();
     expect(screen.getByText('26 pendientes de revisión')).toBeTruthy();
+  });
+
+  it('blocks resuming an obsolete protocol and offers a new preserved campaign', async () => {
+    const bundle = plannedFixture();
+    const oldCampaign = { ...bundle.campaign, protocolVersion: '2.3.0' };
+    const oldRuns = bundle.runs.map((run) => ({ ...run, protocolVersion: '2.3.0' }));
+    const store: ExperimentStore = {
+      createCampaign: vi.fn(),
+      listCampaigns: async () => [oldCampaign],
+      loadCampaign: async () => oldCampaign,
+      listRuns: async () => oldRuns,
+      loadRun: async () => null,
+      listAttemptEvents: async () => [],
+      getNextPlannedRun: async () => oldRuns[0] ?? null,
+      saveRun: vi.fn(),
+      appendAttemptEvent: vi.fn(),
+      close: vi.fn(),
+    };
+
+    render(
+      <BenchmarkCampaignLab
+        store={store}
+        runner={{ runUnit: vi.fn(), runUnits: vi.fn() }}
+        createCampaignBundle={async () => bundle}
+        now={() => LATER}
+      />,
+    );
+
+    expect(await screen.findByRole('button', {
+      name: `Crear nueva campaña v${FINAL_EVALUATION_PROTOCOL.version}`,
+    })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Reanudar experimento' })).toBeNull();
+    expect(screen.getByText(/Campaña anterior conservada como piloto inválido/)).toBeTruthy();
+  });
+
+  it('pauses automatically after the first failed run and does not consume the remaining units', async () => {
+    const user = userEvent.setup();
+    const store = createInMemoryExperimentStore();
+    const bundle = plannedFixture();
+    const runUnit = vi.fn(async (run: ExperimentRunV1) => ({
+      ...run,
+      status: 'failed' as const,
+    }));
+
+    render(
+      <BenchmarkCampaignLab
+        store={store}
+        runner={{ runUnit, runUnits: vi.fn() }}
+        createCampaignBundle={async () => bundle}
+        now={() => LATER}
+      />,
+    );
+
+    await user.click(await screen.findByRole('button', { name: 'Crear experimento' }));
+    await user.click(screen.getByRole('button', { name: 'Iniciar experimento' }));
+
+    expect(await screen.findByText(/Primera corrida fallida/)).toBeTruthy();
+    expect(runUnit).toHaveBeenCalledTimes(1);
   });
 
   it('records an explicit representative decision and imports an external after-CSV', async () => {

@@ -71,7 +71,7 @@ export interface StructuredDiagnosisFailure {
 export type StructuredDiagnosisOutcome = StructuredDiagnosisResult | StructuredDiagnosisFailure | DiagnosisFailureEvidenceV2;
 
 const defaultInference = (): InferenceSnapshotV1 => ({
-  temperature: 0.1, topP: 0.9, numCtx: 16384, numPredict: 1600,
+  temperature: 0.1, topP: 0.9, numCtx: 16384, numPredict: 4096,
   think: false, seed: null, keepAlive: '10m', timeoutSeconds: 600,
 });
 

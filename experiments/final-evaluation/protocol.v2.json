@@ -1,6 +1,6 @@
 {
   "id": "aura.oe4.final-evaluation.v2",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "frozenAt": "2026-07-14",
   "supersedes": "aura.oe4.final-evaluation.v1",
   "dataset": {
@@ -34,7 +34,7 @@
     "topP": 0.9,
     "think": false,
     "numCtx": 16384,
-    "numPredict": 1600,
+    "numPredict": 4096,
     "seed": null,
     "keepAlive": "10m",
     "timeoutSeconds": 600

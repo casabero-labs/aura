@@ -1,6 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { AIProvider } from '../../types';
-import { createExperimentRunner, type ExperimentRunner } from '../../services/benchmark/experimentRunner';
+import {
+  createExperimentRunner,
+  type ExperimentRunner,
+  type ExperimentRunProgressPhase,
+} from '../../services/benchmark/experimentRunner';
 import type { ExperimentValidationErrorV1 } from '../../services/benchmark/experimentTypes';
 import { createIndexedDbExperimentStore } from '../../services/benchmark/indexedDbExperimentStore';
 import type { ExperimentStore } from '../../services/benchmark/experimentStore';
@@ -26,7 +30,10 @@ import ExecutionEvidencePanel from './ExecutionEvidencePanel';
 import CampaignReportPanel from './CampaignReportPanel';
 import { useOllamaModelCatalog } from '../../services/useOllamaModelCatalog';
 import { ollamaModelId } from '../../services/ollamaModelCatalog';
-import { FINAL_EVALUATION_PROTOCOL } from '../../services/benchmark/finalEvaluationProtocol';
+import {
+  FINAL_EVALUATION_PROTOCOL,
+  OE4_INPUT_MODE_LABELS,
+} from '../../services/benchmark/finalEvaluationProtocol';
 
 export interface ExperimentCampaignBundle {
   campaign: ExperimentCampaignV1;
@@ -50,6 +57,29 @@ interface BenchmarkCampaignLabProps {
 }
 
 type CampaignPhase = 'idle' | 'running' | 'paused' | 'finished';
+
+interface ActiveExecution {
+  runId: string;
+  sequence: number;
+  modelId: string;
+  inputMode: ExperimentRunV1['inputMode'];
+  repetition: number;
+  phase: ExperimentRunProgressPhase | 'evaluation' | 'saving';
+  startedAtMs: number;
+}
+
+const shortModelName = (modelId: string): string => {
+  if (modelId.includes('Qwen3.5-4B-GGUF')) return 'Qwen3.5 4B';
+  if (modelId.includes('gemma-4-E4B')) return 'Gemma 4 E4B';
+  return 'SmolLM3 3B';
+};
+
+const phaseLabel: Record<ActiveExecution['phase'], string> = {
+  warmup: 'Calentamiento excluido',
+  diagnosis: 'Diagnóstico LLM',
+  evaluation: 'Evaluación automática',
+  saving: 'Guardando evidencia',
+};
 
 const resolvedRepresentative = (run: ExperimentRunV1): boolean =>
   ['rejected', 'blocked', 'reaudited'].includes(run.status);
@@ -89,6 +119,22 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [activeExecution, setActiveExecution] = useState<ActiveExecution | null>(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+  useEffect(() => {
+    if (!activeExecution) {
+      setElapsedSeconds(0);
+      return undefined;
+    }
+    const updateElapsed = () => setElapsedSeconds(Math.max(
+      0,
+      Math.floor((Date.now() - activeExecution.startedAtMs) / 1000),
+    ));
+    updateElapsed();
+    const timer = window.setInterval(updateElapsed, 1_000);
+    return () => window.clearInterval(timer);
+  }, [activeExecution]);
 
   const refresh = useCallback(async (campaignId: string, preferredRunId?: string | null) => {
     const [storedCampaign, storedRuns] = await Promise.all([
@@ -137,6 +183,7 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
   const completed = runs.filter((run) => run.diagnosis?.status === 'completed').length;
   const failed = runs.filter((run) => run.status === 'failed').length;
   const pendingReview = runs.filter((run) => run.status === 'awaiting_human').length;
+  const campaignUsesCurrentProtocol = campaign?.protocolVersion === FINAL_EVALUATION_PROTOCOL.version;
   const allRepresentativesResolved = representatives.length === 9
     && representatives.every((representative) => resolvedRepresentative(
       runs.find((run) => run.runId === representative.runId) ?? representative.run,
@@ -182,18 +229,42 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
 
   const runCampaign = async () => {
     if (!campaign || !runner) return;
+    if (!campaignUsesCurrentProtocol) {
+      setError(`Esta campaña usa el protocolo ${campaign.protocolVersion}. Crea una nueva campaña con ${FINAL_EVALUATION_PROTOCOL.version}.`);
+      return;
+    }
     setPhase('running');
     setMessage('Experimento en ejecución');
     setError(null);
     pauseRequested.current = false;
     const candidates = (await store.listRuns(campaign.campaignId))
-      .filter((run) => run.status === 'planned' || run.status === 'failed');
+      .filter((run) => run.status === 'planned');
+    let automaticPauseReason: string | null = null;
 
     try {
       for (const candidate of candidates) {
         if (pauseRequested.current) break;
-        let executed = await runner.runUnit(candidate);
+        setSelectedRunId(candidate.runId);
+        setActiveExecution({
+          runId: candidate.runId,
+          sequence: candidate.sequence,
+          modelId: candidate.modelId,
+          inputMode: candidate.inputMode,
+          repetition: candidate.repetition,
+          phase: 'warmup',
+          startedAtMs: Date.now(),
+        });
+        let executed = await runner.runUnit(candidate, {
+          onProgress: (progress) => {
+            if (progress.state === 'started') {
+              setActiveExecution((current) => current && current.runId === progress.runId
+                ? { ...current, phase: progress.phase }
+                : current);
+            }
+          },
+        });
         if (executed.status === 'completed' && evaluateRun) {
+          setActiveExecution((current) => current ? { ...current, phase: 'evaluation' } : current);
           const evaluation = await evaluateRun(executed);
           executed = {
             ...executed,
@@ -203,11 +274,16 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
           };
           await store.saveRun(executed);
         }
-        await refresh(campaign.campaignId, selectedRunId ?? candidate.runId);
+        setActiveExecution((current) => current ? { ...current, phase: 'saving' } : current);
+        await refresh(campaign.campaignId, candidate.runId);
+        if (candidate.sequence === 1 && executed.status === 'failed') {
+          automaticPauseReason = 'Primera corrida fallida. AURA pausó la campaña para evitar consumir las 26 restantes.';
+          pauseRequested.current = true;
+        }
       }
       if (pauseRequested.current) {
         setPhase('paused');
-        setMessage('Experimento pausado');
+        setMessage(automaticPauseReason ?? 'Experimento pausado');
       } else {
         setPhase('finished');
         setMessage('Ejecución terminada; continúa con la revisión humana.');
@@ -215,6 +291,8 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
     } catch (cause: unknown) {
       setPhase('paused');
       setError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setActiveExecution(null);
     }
   };
 
@@ -300,7 +378,11 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
         </div>
         {campaign && (
           <div className="oe4-controls">
-            {phase === 'running' ? (
+            {!campaignUsesCurrentProtocol ? (
+              <button type="button" className="btn-p" disabled={creating || !createCampaignBundle} onClick={() => void createCampaign()}>
+                Crear nueva campaña v{FINAL_EVALUATION_PROTOCOL.version}
+              </button>
+            ) : phase === 'running' ? (
               <button type="button" className="btn-s" onClick={() => {
                 pauseRequested.current = true;
                 setMessage('Pausa solicitada; terminará la corrida actual.');
@@ -318,6 +400,12 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
 
       {error && <p className="oe4-blocker" role="alert">{error}</p>}
       {message && <p className="oe4-live-message" role="status">{message}</p>}
+
+      {campaign && !campaignUsesCurrentProtocol && (
+        <p className="oe4-blocker" role="alert">
+          Campaña anterior conservada como piloto inválido: protocolo {campaign.protocolVersion}. No la reanudes; crea una nueva campaña con {FINAL_EVALUATION_PROTOCOL.version}.
+        </p>
+      )}
 
       {!campaign ? (
         <CampaignSetupPanel
@@ -342,9 +430,31 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
             <div><span>Revisión</span><strong>{pendingReview}</strong><small>{pendingReview} {pendingReview === 1 ? 'pendiente' : 'pendientes'} de revisión</small></div>
           </section>
 
+          {phase === 'running' && activeExecution && (
+            <section className="oe4-live-execution" aria-live="polite" aria-label="Ejecución actual">
+              <div className="oe4-live-execution-head">
+                <div>
+                  <p className="oe4-eyebrow">Corrida actual {activeExecution.sequence} de {campaign.plannedRuns}</p>
+                  <h2>{shortModelName(activeExecution.modelId)} · {OE4_INPUT_MODE_LABELS[activeExecution.inputMode]}</h2>
+                </div>
+                <span className="oe4-live-pulse">EN CURSO</span>
+              </div>
+              <div className="oe4-live-execution-grid">
+                <div><span>Fase</span><strong>{phaseLabel[activeExecution.phase]}</strong></div>
+                <div><span>Repetición</span><strong>{activeExecution.repetition}</strong></div>
+                <div><span>Tiempo transcurrido</span><strong>{Math.floor(elapsedSeconds / 60)}m {elapsedSeconds % 60}s</strong></div>
+                <div><span>Progreso</span><strong>{attempted} terminadas · {campaign.plannedRuns - attempted} restantes</strong></div>
+              </div>
+              <div className="oe4-live-progress-track" aria-hidden="true">
+                <span style={{ width: `${Math.max(2, (attempted / campaign.plannedRuns) * 100)}%` }} />
+              </div>
+            </section>
+          )}
+
           <CampaignMatrix
             runs={runs}
             selectedRunId={selectedRunId}
+            activeRunId={activeExecution?.runId ?? null}
             representativeIds={representativeIds}
             onSelectRun={(runId) => void refresh(campaign.campaignId, runId)}
           />

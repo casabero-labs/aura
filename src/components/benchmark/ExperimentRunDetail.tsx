@@ -1,5 +1,6 @@
 import React from 'react';
 import type { ExperimentRunV1 } from '../../services/benchmark/experimentTypes';
+import { OE4_INPUT_MODE_LABELS } from '../../services/benchmark/finalEvaluationProtocol';
 import SyntaxDisplay from '../SyntaxDisplay';
 
 interface ExperimentRunDetailProps {
@@ -21,7 +22,7 @@ const ExperimentRunDetail: React.FC<ExperimentRunDetailProps> = ({ run, represen
     </div>
     <div className="oe4-run-meta">
       <div><span>Modelo</span><strong>{run.modelId}</strong></div>
-      <div><span>Entrada</span><strong>{run.inputMode}</strong></div>
+      <div><span>Entrada</span><strong>{OE4_INPUT_MODE_LABELS[run.inputMode]}</strong></div>
       <div><span>Repetición</span><strong>{run.repetition}</strong></div>
       <div><span>Representante</span><strong>{representative ? 'Sí' : 'No'}</strong></div>
     </div>
@@ -32,6 +33,19 @@ const ExperimentRunDetail: React.FC<ExperimentRunDetailProps> = ({ run, represen
         {' · '}entrada {run.executionReceipt.inputHash}
         {' · '}modelo observado {run.executionReceipt.observedModel}
       </p>
+    )}
+    {run.diagnosis?.status === 'failed' && (
+      <div className="oe4-run-error" role="alert">
+        <strong>{run.diagnosis.error?.code ?? 'DIAGNOSIS_FAILED'}</strong>
+        <span>{run.diagnosis.error?.message ?? 'El diagnóstico no pudo validarse.'}</span>
+        {run.diagnosis.validationErrors.length > 0 && (
+          <ul>
+            {run.diagnosis.validationErrors.map((entry, index) => (
+              <li key={`${entry.code}:${entry.path}:${index}`}>{entry.code}: {entry.message}</li>
+            ))}
+          </ul>
+        )}
+      </div>
     )}
     <div className="oe4-stage-grid">
       {(['diagnosis', 'script'] as const).map((stage) => {

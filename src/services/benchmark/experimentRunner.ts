@@ -47,8 +47,20 @@ export interface RunUnitsOutcome {
   paused: boolean;
 }
 
+export type ExperimentRunProgressPhase = 'warmup' | 'diagnosis';
+export type ExperimentRunProgressState = 'started' | 'completed' | 'failed';
+export interface ExperimentRunProgress {
+  runId: string;
+  phase: ExperimentRunProgressPhase;
+  state: ExperimentRunProgressState;
+}
+
+export interface RunUnitOptions {
+  onProgress?: (progress: ExperimentRunProgress) => void;
+}
+
 export interface ExperimentRunner {
-  runUnit(run: ExperimentRunV1): Promise<ExperimentRunV1>;
+  runUnit(run: ExperimentRunV1, options?: RunUnitOptions): Promise<ExperimentRunV1>;
   runUnits(runs: readonly ExperimentRunV1[], options?: RunUnitsOptions): Promise<RunUnitsOutcome>;
 }
 
@@ -197,7 +209,10 @@ export const createExperimentRunner = ({
   const warmedReceipts = new Map<string, import('./experimentTypes').WarmupReceiptV1>();
   const providerFor = (run: ExperimentRunV1) => providerForRun?.(run) ?? provider;
 
-  const ensureWarmup = async (run: ExperimentRunV1): Promise<ExperimentRunV1> => {
+  const ensureWarmup = async (
+    run: ExperimentRunV1,
+    onProgress?: RunUnitOptions['onProgress'],
+  ): Promise<ExperimentRunV1> => {
     const blockKey = `${run.modelId}::${run.repetition}`;
 
     if (run.warmupReceipt) {
@@ -220,6 +235,7 @@ export const createExperimentRunner = ({
       return { ...run, warmupReceipt: persisted.warmupReceipt };
     }
 
+    onProgress?.({ runId: run.runId, phase: 'warmup', state: 'started' });
     const effectiveProvider = providerFor(run);
     if (!effectiveProvider) throw new Error('No formal provider was configured for warm-up.');
     const prompt = 'Warm-up OE4 excluded from evaluation. Reply with exactly: READY';
@@ -259,6 +275,7 @@ export const createExperimentRunner = ({
     } catch (error) {
       throw new Error(`WARMUP_SAVE_FAILED for ${run.runId} (${run.modelId}::${run.repetition}): ${(error as Error).message}`);
     }
+    onProgress?.({ runId: run.runId, phase: 'warmup', state: 'completed' });
     return nextRun;
   };
   const appendEvent = async (
@@ -280,6 +297,7 @@ export const createExperimentRunner = ({
     initialRun: ExperimentRunV1,
     stage: Stage,
     prompt: string,
+    onProgress?: RunUnitOptions['onProgress'],
   ): Promise<ExperimentRunV1> => {
     const attemptId = nextAttemptId(initialRun, stage);
     const retryOfAttemptId = lastFailedAttemptId(initialRun, stage);
@@ -296,6 +314,9 @@ export const createExperimentRunner = ({
       error: null,
     };
     let run = await appendEvent(initialRun, startedEvent, { status: 'running' });
+    if (stage === 'diagnosis') {
+      onProgress?.({ runId: initialRun.runId, phase: 'diagnosis', state: 'started' });
+    }
 
     const snapshot = cloneInputSnapshot(initialRun.input);
   let observedModel: string | null = null;
@@ -445,6 +466,9 @@ export const createExperimentRunner = ({
         executionReceipt,
         status: stage === 'diagnosis' ? 'completed' : 'running',
       });
+      if (stage === 'diagnosis') {
+        onProgress?.({ runId: initialRun.runId, phase: 'diagnosis', state: 'completed' });
+      }
       return run;
     } catch (error: unknown) {
       const failure = classifyFailure(error, stage);
@@ -508,15 +532,22 @@ export const createExperimentRunner = ({
             validationErrorCodes: receiptErrorCodes,
           })
         : null;
-      return appendEvent(run, failedEvent, {
+      const failedRun = await appendEvent(run, failedEvent, {
         [stage]: result,
         executionReceipt: invalidReceipt,
         status: 'failed',
       });
+      if (stage === 'diagnosis') {
+        onProgress?.({ runId: initialRun.runId, phase: 'diagnosis', state: 'failed' });
+      }
+      return failedRun;
     }
   };
 
-  const runUnit = async (initialRun: ExperimentRunV1): Promise<ExperimentRunV1> => {
+  const runUnit = async (
+    initialRun: ExperimentRunV1,
+    options: RunUnitOptions = {},
+  ): Promise<ExperimentRunV1> => {
     const validation = validateExperimentRunV1(initialRun);
     if (!validation.valid) {
       throw new Error(`Invalid formal experiment run: ${validation.errors.join('; ')}`);
@@ -532,8 +563,8 @@ export const createExperimentRunner = ({
     let run = initialRun;
 
     if (run.diagnosis?.status !== 'completed') {
-      run = await ensureWarmup(run);
-      run = await runStage(run, 'diagnosis', buildFormalDiagnosisPrompt(run));
+      run = await ensureWarmup(run, options.onProgress);
+      run = await runStage(run, 'diagnosis', buildFormalDiagnosisPrompt(run), options.onProgress);
       if (run.diagnosis?.status !== 'completed') return run;
     }
 

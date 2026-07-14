@@ -9,7 +9,7 @@
 import { FINAL_EVALUATION_OLLAMA_MODEL_IDS } from '../modelRegistry';
 
 export const OE4_FINAL_EVALUATION_PROTOCOL_ID = 'aura.oe4.final-evaluation.v2';
-export const OE4_FINAL_EVALUATION_PROTOCOL_VERSION = '2.3.0';
+export const OE4_FINAL_EVALUATION_PROTOCOL_VERSION = '2.4.0';
 export const OE4_FINAL_EVALUATION_DATASET_ID = 'synthetic_ground_truth';
 
 export const OE4_DATASET_FINGERPRINT_SHA256 =
@@ -31,6 +31,12 @@ export const OE4_INPUT_MODES = [
   'recommended',
 ] as const;
 
+export const OE4_INPUT_MODE_LABELS: Record<(typeof OE4_INPUT_MODES)[number], string> = {
+  prompt_libre: 'Contexto mínimo',
+  smart_sample: 'Evidencia equilibrada',
+  recommended: 'Evidencia completa',
+};
+
 export type OE4InputMode = (typeof OE4_INPUT_MODES)[number];
 export type OE4ModelId = (typeof OE4_MODELS)[number];
 
@@ -41,7 +47,10 @@ export const OE4_INFERENCE = {
   topP: 0.9,
   think: false,
   numCtx: 16384,
-  numPredict: 1600,
+  // The 15-issue controlled diagnosis needs room for both diagnosisBlocks and
+  // issues. The first v2.3.0 pilot proved that 1,600 tokens truncates Qwen and
+  // Gemma responses before the JSON object closes.
+  numPredict: 4096,
   seed: null as number | null,
   keepAlive: '10m',
   timeoutSeconds: 600,

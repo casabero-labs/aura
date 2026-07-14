@@ -1,6 +1,6 @@
 # Hoja de ruta definitiva de AURA
 
-Última actualización: 14 de julio de 2026, 10:30 (America/Bogota).
+Última actualización: 14 de julio de 2026, 18:45 (America/Bogota).
 
 Este documento es la única referencia operativa para cerrar el TFM. La entrega
 académica vence el **miércoles 15 de julio de 2026 a las 15:00**. Hasta entregar,
@@ -30,15 +30,15 @@ esta fase; en el documento se verificará su grado de cumplimiento con evidencia
 | Informe PDF y exportación | El ZIP completo quedó validado en una corrida humana. **Los tres defectos visuales del PDF quedaron corregidos** (porcentajes `0.00%` en gráficos de distribución/impacto, etiquetas humanas ausentes y fondo incompleto en las páginas 4 y 6). El informe se regeneró desde el `report JSON` real del ZIP, se renderizaron sus siete páginas y se verificó fondo blanco completo, porcentajes correctos, etiquetas visibles y ausencia de regresiones. |
 | Plan y script | Implementados de forma determinista con revisión humana. El LLM no escribe código ejecutable. |
 | Aplicar y verificar | Cerrado y validado por una corrida humana real: runner Python, recibo, CSV corregido, reauditoría antes/después y ZIP completo. |
-| Laboratorio | Protocolo V2.3 congelado para `synthetic_ground_truth.csv`: 27 diagnósticos y 9 calentamientos excluidos. |
-| Evaluación formal | Lista para iniciar. Es la prioridad inmediata. |
+| Laboratorio | Protocolo V2.4 corregido para `synthetic_ground_truth.csv`: 27 diagnósticos y 9 calentamientos excluidos. El piloto V2.3 queda preservado e invalidado por truncamiento sistemático. |
+| Evaluación formal | Pendiente de una nueva campaña V2.4. La primera corrida funciona como puerta de control antes de continuar las 26 restantes. |
 | Documento final | Pendiente de resultados y consolidación. |
 
 ## Configuración definitiva de la campaña formal
 
 El piloto exploratorio de Gemma con los tres métodos quedó cerrado y documentado
 en [2026-07-14-piloto-gemma4-tres-metodos.md](evidence/2026-07-14-piloto-gemma4-tres-metodos.md).
-No forma parte de los resultados formales. El protocolo V2.3 ya contiene el
+No forma parte de los resultados formales. El protocolo V2.4 contiene el
 dataset, hashes, oráculo, 27 diagnósticos y 9 calentamientos definitivos.
 
 - Dataset de cierre: `synthetic_ground_truth.csv` (15 filas, 9 columnas y ground truth explícito).
@@ -59,21 +59,27 @@ dataset, hashes, oráculo, 27 diagnósticos y 9 calentamientos definitivos.
   el tiempo de ejecución. Se declarará como evaluación descriptiva de muestra pequeña.
 - El score y los hallazgos pertenecen al motor determinista; el LLM no los modifica.
 - Un fallo se conserva como resultado. No se repite silenciosamente para ocultarlo.
+- El límite de salida formal es `numPredict=4096`. El piloto V2.3 demostró que
+  `1600` tokens no alcanzaban para el contrato estructurado de 15 hallazgos.
 - `done_reason=length` se conserva como `DIAGNOSIS_RESPONSE_TRUNCATED`; no se
   intenta reparar ni certificar un JSON incompleto.
 - No se cambia dataset, modelo, método o parámetros después de iniciar la campaña formal.
 
 ## Próxima acción inmediata
 
-1. Abrir AURA y cargar `experiments/datasets/synthetic_ground_truth.csv`.
-2. Completar la auditoría determinista y entrar en **Laboratorio**.
-3. Confirmar que la pantalla muestre protocolo `2.3.0`, dataset
-   `synthetic_ground_truth`, 27 corridas y los tres modelos instalados.
-4. Crear la campaña una sola vez y pulsar **Iniciar experimento**.
-5. No cambiar dataset, modelos, métodos, parámetros, prompts ni contratos una
+1. Esperar el despliegue que contiene el protocolo `2.4.0`.
+2. Abrir el **Laboratorio**. La campaña V2.3 debe aparecer preservada como
+   piloto inválido y no debe poder reanudarse.
+3. Pulsar **Crear nueva campaña v2.4.0** y después **Iniciar experimento**.
+4. Vigilar la primera corrida en el panel de ejecución: modelo, método, fase,
+   tiempo y progreso deben actualizarse en pantalla.
+5. Si la primera corrida completa el diagnóstico, continuar la campaña. Si
+   falla, pulsar **Pausar de forma segura** y revisar el código visible antes
+   de consumir las 26 corridas restantes.
+6. No cambiar dataset, modelos, métodos, parámetros, prompts ni contratos una
    vez creada la campaña.
-6. Conservar fallos y pausas; no repetir silenciosamente una corrida.
-7. Al terminar, exportar el expediente completo antes de modificar código.
+7. Conservar fallos y pausas; no repetir silenciosamente una corrida.
+8. Al terminar, exportar el expediente completo antes de modificar código.
 
 ## Plan urgente hasta el depósito
 
@@ -572,14 +578,39 @@ Correcciones aplicadas:
 - la campaña congela los IDs y digests realmente instalados al crearla, sin
   compararlos contra digests específicos escritos en el código.
 
-La campaña formal aún no se ha ejecutado. El piloto Gemma con los tres métodos
-ya cerró la verificación previa; el siguiente paso es crear y ejecutar la matriz
-definitiva de 27 diagnósticos desde el Laboratorio.
+La primera campaña creada con este catálogo se conserva como piloto técnico
+inválido por el defecto de límite de salida descrito en el cierre siguiente.
 
 Validación de este cierre: 64/64 pruebas focalizadas, 1928 unitarias
 superadas y 6 omitidas, `typecheck` limpio, `build` correcto y 1/1 recorrido
 Playwright del estilo `showcase-ink`. La consulta real a Ollama devolvió los
 tres modelos instalados esperados; no se ejecutaron diagnósticos formales.
+
+## Cierre AURA-CIERRE-LAB-TRUNCATION-01 — piloto V2.3 invalidado
+
+La primera ejecución del Laboratorio intentó siete de las 27 unidades antes de
+ser pausada de forma segura. Las siete quedaron fallidas y las veinte restantes
+no se ejecutaron. Este resultado **no compara la calidad de los modelos**: tanto
+Qwen3.5 4B como Gemma 4 E4B llegaron exactamente a `1600` tokens y sus respuestas
+JSON quedaron cortadas antes de cerrar el contrato.
+
+Decisión de cierre:
+
+- la campaña V2.3 se conserva como evidencia de un fallo de configuración del
+  protocolo, no como resultado experimental del TFM;
+- no se reanuda ni se mezclan sus corridas con una campaña posterior;
+- el protocolo V2.4 eleva `numPredict` de `1600` a `4096` y mantiene sin cambios
+  dataset, modelos, métodos, repeticiones y validación estricta;
+- AURA impide reanudar una campaña de protocolo obsoleto y permite crear una
+  nueva sin borrar la evidencia anterior;
+- la interfaz muestra la corrida activa, modelo, método con nombre público,
+  repetición, fase, tiempo transcurrido y progreso total;
+- el detalle de una corrida fallida presenta el código y el mensaje verificable,
+  no solamente el JSON parcial.
+
+La nueva campaña V2.4 debe superar primero una sola corrida. Si esa puerta de
+control falla, se pausa inmediatamente; no se consumen automáticamente las 26
+unidades restantes.
 
 ## Documentos vigentes relacionados
 

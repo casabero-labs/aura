@@ -196,6 +196,23 @@ describe('OE4 diagnosis-only and resumable runner — protocol V2', () => {
     }
   });
 
+  it('reports warm-up and diagnosis progress without changing the persisted evidence', async () => {
+    const { runner } = makeRunner([result(diagnosisOutput)]);
+    const progress: string[] = [];
+
+    const completed = await runner.runUnit(makeRun('smart_sample'), {
+      onProgress: (event) => progress.push(`${event.phase}:${event.state}`),
+    });
+
+    expect(progress).toEqual([
+      'warmup:started',
+      'warmup:completed',
+      'diagnosis:started',
+      'diagnosis:completed',
+    ]);
+    expect(completed.status).toBe('completed');
+  });
+
   it('stops after a diagnosis failure and persists the failed attempt', async () => {
     const { runner, store, generateText } = makeRunner([new Error('Ollama unavailable')]);
 
