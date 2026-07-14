@@ -302,6 +302,13 @@ export async function runStructuredDiagnosis(
     completedAt: new Date().toISOString(),
     rawResponse,
     validationStatus: 'valid',
+    ...(outcome.normalizationEvidence.applied
+      ? {
+          normalizationApplied: true,
+          rawValidationStatus: 'invalid' as const,
+          rawValidationErrorCodes: [...new Set(outcome.rawValidation.errorCodes)],
+        }
+      : {}),
   });
 
   const result: DiagnosisExecutionResult = {
@@ -324,6 +331,9 @@ export async function runStructuredDiagnosis(
     inputHash: inputPackage.inputHash,
     inputSnapshot: inputPackage,
     executionReceipt,
+    rawDiagnosis: outcome.rawResponse,
+    rawValidation: outcome.rawValidation,
+    normalizationEvidence: outcome.normalizationEvidence,
     remediationContext: (() => {
       const ctx = buildRemediationContext(envelope);
       ctx.evidenceEnvelopeRef = promptPackage.evidenceEnvelopeRef;

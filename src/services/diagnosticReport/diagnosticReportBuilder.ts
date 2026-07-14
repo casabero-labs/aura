@@ -30,12 +30,21 @@ import {
   truncatePresentationText,
 } from './presentation';
 import type { DiagnosisVisualizationV2 } from '../../contracts/llm';
+import type { DiagnosisNormalizationEvidenceV2 } from '../../contracts/llm/types';
 
 const REPORT_VERSION = '0.1.0-l13b';
 const TOP_ISSUES_LIMIT = 10;
 const TOP_COLUMNS_LIMIT = 8;
 const TOP_CHART_ROWS_LIMIT = 8;
 const TOP_CHART_SPECS_LIMIT = 6;
+
+export const buildGovernanceNormalizationMessage = (
+  evidence: DiagnosisNormalizationEvidenceV2,
+): string => {
+  const count = evidence.normalizedIssueIds.length;
+  const noun = count === 1 ? 'hallazgo' : 'hallazgos';
+  return `AURA aplicó revisión humana obligatoria a ${count} ${noun} según su política determinista de gobernanza. La respuesta original del modelo se conserva en la evidencia técnica (${evidence.policy}@${evidence.policyVersion}).`;
+};
 
 const SEVERITY_ORDER: Record<IssueSeverity, number> = {
   [IssueSeverity.CRITICAL]: 0,
@@ -250,6 +259,9 @@ const buildDiagnosisSummary = ({
         ...structuredDiagnosis.diagnosis.limitations.map((limitation) => truncateText(limitation, 280)),
         'El diagnóstico asistido contextualiza evidencia; no modifica el score ni convierte interpretación en validación formal.',
         ...(deterministicValidation?.groundTruthMatched ? [] : ['Sin validacion determinista formal asociada a ground truth en este reporte.']),
+        ...(structuredDiagnosis.normalizationEvidence?.applied
+          ? [buildGovernanceNormalizationMessage(structuredDiagnosis.normalizationEvidence)]
+          : []),
       ],
     };
   }

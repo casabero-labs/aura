@@ -30,6 +30,15 @@ export interface BuildExecutionReceiptInput {
   rawResponse: string;
   validationStatus: ExecutionReceiptV1['validationStatus'];
   validationErrorCodes?: string[];
+  /**
+   * AURA-CIERRE-DETERMINISTIC-HITL-02-R2 — raw validation result before
+   * governance normalization. When absent, defaults to the same values as
+   * the effective validationStatus/validationErrorCodes. When present,
+   * must be 'invalid' iff normalizationApplied is true.
+   */
+  rawValidationStatus?: ExecutionReceiptV1['rawValidationStatus'];
+  rawValidationErrorCodes?: string[];
+  normalizationApplied?: boolean;
 }
 
 export const buildExecutionReceiptV1 = (source: BuildExecutionReceiptInput): ExecutionReceiptV1 => {
@@ -42,6 +51,31 @@ export const buildExecutionReceiptV1 = (source: BuildExecutionReceiptInput): Exe
   if (sha256hex(source.exactPrompt) !== source.input.promptHash) {
     throw new Error('TRACE_PROMPT_HASH_MISMATCH: prompt hash does not match exact prompt.');
   }
+  const rawValidStatus = source.rawValidationStatus;
+  const rawErrorCodes = source.rawValidationErrorCodes;
+
+  if (source.normalizationApplied) {
+    if (rawValidStatus !== 'invalid') {
+      throw new Error('NORMALIZED_RECEIPT_REQUIRES_RAW_INVALID: rawValidationStatus must be "invalid" when normalizationApplied is true.');
+    }
+    if (!rawErrorCodes || rawErrorCodes.length === 0) {
+      throw new Error('NORMALIZED_RECEIPT_REQUIRES_RAW_ERROR_CODES: rawValidationErrorCodes must be non-empty when normalizationApplied is true.');
+    }
+    if (!rawErrorCodes.includes('DIAGNOSIS_REVIEW_DOWNGRADE')) {
+      throw new Error('NORMALIZED_RECEIPT_REQUIRES_REVIEW_DOWNGRADE: rawValidationErrorCodes must include DIAGNOSIS_REVIEW_DOWNGRADE.');
+    }
+  }
+
+  if (rawErrorCodes !== undefined && rawValidStatus === undefined) {
+    throw new Error('RAW_ERROR_CODES_REQUIRE_STATUS: rawValidationErrorCodes require rawValidationStatus.');
+  }
+  if (rawValidStatus === 'valid' && (rawErrorCodes ?? []).length > 0) {
+    throw new Error('VALID_RAW_REQUIRES_EMPTY_ERROR_CODES: rawValidationErrorCodes must be empty when rawValidationStatus is "valid".');
+  }
+  if (rawValidStatus === 'invalid' && source.normalizationApplied !== true) {
+    throw new Error('INVALID_RAW_WITHOUT_NORMALIZATION: rawValidationStatus cannot be "invalid" unless normalizationApplied is true.');
+  }
+
   const stable: Omit<ExecutionReceiptV1, 'receiptHash'> = {
     contractId: 'aura.execution-receipt.v1',
     contractVersion: '1.0.0',
@@ -63,6 +97,9 @@ export const buildExecutionReceiptV1 = (source: BuildExecutionReceiptInput): Exe
     rawResponseHash: sha256hex(source.rawResponse),
     validationStatus: source.validationStatus,
     validationErrorCodes: [...(source.validationErrorCodes ?? [])],
+    ...(source.normalizationApplied ? { normalizationApplied: true } : {}),
+    ...(rawValidStatus !== undefined ? { rawValidationStatus: rawValidStatus } : {}),
+    ...(rawErrorCodes !== undefined ? { rawValidationErrorCodes: [...rawErrorCodes] } : {}),
   };
   if (source.validationStatus === 'valid') {
     if (!source.observedModel || (typeof source.observedModel === 'string' && source.observedModel.trim() === '')) {
@@ -108,6 +145,22 @@ export const validateExecutionReceiptIntegrityV1 = (
     if (receipt.validationErrorCodes.length === 0) errors.push('invalid receipt must have at least one validationErrorCode');
   } else {
     errors.push('unknown validation status');
+  }
+
+  if (receipt.rawValidationStatus === 'valid') {
+    if (receipt.normalizationApplied === true) errors.push('rawValidationStatus cannot be "valid" when normalizationApplied is true');
+    if ((receipt.rawValidationErrorCodes ?? []).length > 0) errors.push('rawValidationStatus "valid" requires empty rawValidationErrorCodes');
+  }
+  if (receipt.rawValidationStatus === 'invalid') {
+    if (receipt.normalizationApplied !== true) errors.push('rawValidationStatus "invalid" requires normalizationApplied === true');
+    if (!receipt.rawValidationErrorCodes || receipt.rawValidationErrorCodes.length === 0) errors.push('rawValidationStatus "invalid" requires non-empty rawValidationErrorCodes');
+  }
+  if (receipt.normalizationApplied === true) {
+    if (receipt.rawValidationStatus !== 'invalid') errors.push('normalizationApplied === true requires rawValidationStatus === "invalid"');
+    if (!receipt.rawValidationErrorCodes || !receipt.rawValidationErrorCodes.includes('DIAGNOSIS_REVIEW_DOWNGRADE')) errors.push('normalizationApplied === true requires DIAGNOSIS_REVIEW_DOWNGRADE in rawValidationErrorCodes');
+  }
+  if (receipt.rawValidationStatus === undefined && receipt.rawValidationErrorCodes !== undefined) {
+    errors.push('rawValidationErrorCodes require rawValidationStatus');
   }
 
   return { valid: errors.length === 0, errors };

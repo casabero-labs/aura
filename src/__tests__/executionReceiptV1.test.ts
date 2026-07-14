@@ -78,4 +78,80 @@ describe('ExecutionReceiptV1', () => {
     expect(() => buildExecutionReceiptV1({ ...base, observedModel: 'model-b', validationStatus: 'valid' })).toThrow(/VALID_RECEIPT_REQUIRES_MODEL_MATCH/);
     expect(() => buildExecutionReceiptV1({ ...base, validationStatus: 'invalid', validationErrorCodes: [] })).toThrow(/INVALID_RECEIPT_REQUIRES_ERROR_CODES/);
   });
+
+  it('certifies effective validation separately from an invalid raw response', () => {
+    const input = buildDiagnosisInputPackageV2(report, envelope, 'smart_sample');
+    const exactPrompt = exactDiagnosisPromptV2(input);
+    const receipt = buildExecutionReceiptV1({
+      input,
+      requestedInputMode: 'smart_sample',
+      exactPrompt,
+      provider: 'Ollama',
+      requestedModel: 'model-a',
+      observedModel: 'model-a',
+      inference,
+      startedAt: '2026-07-11T00:00:00.000Z',
+      completedAt: '2026-07-11T00:00:01.000Z',
+      rawResponse: '{"contractId":"aura.diagnosis.v2"}',
+      validationStatus: 'valid',
+      validationErrorCodes: [],
+      normalizationApplied: true,
+      rawValidationStatus: 'invalid',
+      rawValidationErrorCodes: ['DIAGNOSIS_REVIEW_DOWNGRADE'],
+    });
+
+    expect(receipt.validationStatus).toBe('valid');
+    expect(receipt.validationErrorCodes).toEqual([]);
+    expect(receipt.rawValidationStatus).toBe('invalid');
+    expect(receipt.rawValidationErrorCodes).toEqual(['DIAGNOSIS_REVIEW_DOWNGRADE']);
+    expect(receipt.normalizationApplied).toBe(true);
+    expect(validateExecutionReceiptV1(receipt, input, exactPrompt, inference)).toEqual({ valid: true, errors: [] });
+
+    const tampered = {
+      ...receipt,
+      rawValidationErrorCodes: ['DIAGNOSIS_REFERENCE_INVALID'],
+    };
+    expect(validateExecutionReceiptV1(tampered, input, exactPrompt, inference).valid).toBe(false);
+  });
+
+  it('rejects incoherent raw validation metadata', () => {
+    const input = buildDiagnosisInputPackageV2(report, envelope, 'smart_sample');
+    const base = {
+      input,
+      requestedInputMode: 'smart_sample' as const,
+      exactPrompt: exactDiagnosisPromptV2(input),
+      provider: 'Ollama',
+      requestedModel: 'model-a',
+      observedModel: 'model-a',
+      inference,
+      startedAt: '2026-07-11T00:00:00.000Z',
+      completedAt: '2026-07-11T00:00:01.000Z',
+      rawResponse: '{}',
+      validationStatus: 'valid' as const,
+    };
+
+    expect(() => buildExecutionReceiptV1({
+      ...base,
+      normalizationApplied: true,
+      rawValidationStatus: 'invalid',
+      rawValidationErrorCodes: ['DIAGNOSIS_REFERENCE_INVALID'],
+    })).toThrow(/NORMALIZED_RECEIPT_REQUIRES_REVIEW_DOWNGRADE/);
+
+    expect(() => buildExecutionReceiptV1({
+      ...base,
+      rawValidationErrorCodes: ['DIAGNOSIS_REVIEW_DOWNGRADE'],
+    })).toThrow(/RAW_ERROR_CODES_REQUIRE_STATUS/);
+
+    expect(() => buildExecutionReceiptV1({
+      ...base,
+      rawValidationStatus: 'valid',
+      rawValidationErrorCodes: ['DIAGNOSIS_REVIEW_DOWNGRADE'],
+    })).toThrow(/VALID_RAW_REQUIRES_EMPTY_ERROR_CODES/);
+
+    expect(() => buildExecutionReceiptV1({
+      ...base,
+      rawValidationStatus: 'invalid',
+      rawValidationErrorCodes: ['DIAGNOSIS_REVIEW_DOWNGRADE'],
+    })).toThrow(/INVALID_RAW_WITHOUT_NORMALIZATION/);
+  });
 });

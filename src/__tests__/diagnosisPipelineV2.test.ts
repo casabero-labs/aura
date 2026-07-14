@@ -245,7 +245,7 @@ describe('HITL — ambiguous column forces review before auto_safe check', () =>
   beforeEach(() => { vi.mocked(isContractsV2Enabled).mockReturnValue(true); });
   afterEach(() => { vi.mocked(isContractsV2Enabled).mockReset(); });
 
-  it('rejects requiresHumanReview=false for ambiguous column even with auto_safe authorized=true', async () => {
+  it('rejects requiresHumanReview=false for ambiguous column even with auto_safe authorized=true — raw still fails but pipeline normalizes', async () => {
     // 'name' matches AMBIGUOUS_PATTERNS regex (case-insensitive)
     const ambiguousReport: AuditReportInput = {
       score: 80, rowCount: 50, colCount: 2, duplicateRows: 0, delimiterDetected: ',',
@@ -288,7 +288,52 @@ describe('HITL — ambiguous column forces review before auto_safe check', () =>
     };
 
     const result = await runDiagnosisPipeline(ambEnvelope, ambPrompt, mockAdapter(resp));
+    // AURA-CIERRE-DETERMINISTIC-HITL-02: pipeline normalizes the downgrade
+    // and continues. The raw response still records DIAGNOSIS_REVIEW_DOWNGRADE
+    // for the Laboratory.
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.rawValidation.valid).toBe(false);
+      expect(result.rawValidation.errorCodes).toContain('DIAGNOSIS_REVIEW_DOWNGRADE');
+      expect(result.normalizationEvidence.applied).toBe(true);
+      expect(result.normalizationEvidence.normalizedIssueIds).toContain(ambIssue.issueId);
+      expect(result.response.issues[0]?.requiresHumanReview).toBe(true);
+      expect(result.rawResponse.issues[0]?.requiresHumanReview).toBe(false);
+    }
+  });
+});
+
+describe('normalization entry guard — empty errors safety', () => {
+  let runDiagnosisPipelineGuarded: typeof import('../contracts/llm/diagnosisPipelineV2').runDiagnosisPipeline;
+
+  beforeEach(async () => {
+    vi.resetModules();
+    // Mock the validator to simulate a hypothetical bug: valid=false with
+    // zero errors. A correct entry guard must not enter normalization
+    // on this nonsense result.
+    vi.doMock('../contracts/llm/diagnosisValidatorV2', () => ({
+      validateDiagnosisResponseV2: vi.fn().mockReturnValue({ valid: false, errors: [] }),
+    }));
+    vi.mocked(isContractsV2Enabled).mockReturnValue(true);
+    const mod = await import('../contracts/llm/diagnosisPipelineV2');
+    runDiagnosisPipelineGuarded = mod.runDiagnosisPipeline;
+  });
+
+  afterEach(() => {
+    vi.resetModules();
+    vi.mocked(isContractsV2Enabled).mockReset();
+  });
+
+  it('does NOT enter normalization when validation returns zero errors with valid=false', async () => {
+    const result = await runDiagnosisPipelineGuarded(
+      envelope,
+      promptPackage,
+      mockAdapter(validResponseForEnvelope()),
+    );
+    // The validator returned { valid: false, errors: [] }.
+    // The guard (errors.length > 0 && errors.every(...)) correctly blocks
+    // normalization. The pipeline surfaces a fatal internal inconsistency.
     expect(result.success).toBe(false);
-    expect((result as any).code).toBe('DIAGNOSIS_REVIEW_DOWNGRADE');
+    expect((result as unknown as { code: string; message: string }).code).toBeTruthy();
   });
 });

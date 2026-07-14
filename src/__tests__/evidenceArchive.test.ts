@@ -302,4 +302,167 @@ describe('buildEvidenceArchive', () => {
       expect(manifest.privacy.correctedDatasetMayContainPersonalData).toBe(false);
     });
   });
+
+  describe('governance normalization artifact', () => {
+    it('includes diagnosis/governance-normalization.json when normalization applied', async () => {
+      const technicalExport = buildTechnicalExport() as any;
+      technicalExport.diagnosis.status = 'valid';
+      technicalExport.diagnosis.rawResponse = '{"contractId":"aura.diagnosis.v2","raw":true}';
+      technicalExport.diagnosis.executionReceipt = {
+        receiptHash: 'receipt-test',
+        rawResponseHash: 'raw-hash',
+      };
+      technicalExport.diagnosis.structuredDiagnosis = {
+        normalizationEvidence: {
+          applied: true,
+          field: 'requiresHumanReview',
+          reason: 'AURA_GOVERNANCE_ENFORCED',
+          policy: 'aura.human-review-policy.v2',
+          policyVersion: '1.0.0',
+          normalizedIssueIds: ['integrity-dupes', 'hygiene-ghost-Name'],
+          originalValuesByIssueId: { 'integrity-dupes': false, 'hygiene-ghost-Name': false },
+          effectiveValuesByIssueId: { 'integrity-dupes': true, 'hygiene-ghost-Name': true },
+        },
+      };
+
+      const result = await buildEvidenceArchive({
+        technicalExport,
+        issuesCsv: 'id\n',
+      });
+      const files = unzipSync(result.bytes);
+
+      expect(files).toHaveProperty('diagnosis/governance-normalization.json');
+      const parsed = JSON.parse(strFromU8(files['diagnosis/governance-normalization.json']));
+      expect(parsed.applied).toBe(true);
+      expect(parsed.field).toBe('requiresHumanReview');
+      expect(parsed.reason).toBe('AURA_GOVERNANCE_ENFORCED');
+      expect(parsed.policy).toBe('aura.human-review-policy.v2');
+      expect(parsed.policyVersion).toBe('1.0.0');
+      expect(parsed.normalizedIssueIds).toEqual(['integrity-dupes', 'hygiene-ghost-Name']);
+      expect(parsed.originalValuesByIssueId).toEqual({ 'integrity-dupes': false, 'hygiene-ghost-Name': false });
+      expect(parsed.effectiveValuesByIssueId).toEqual({ 'integrity-dupes': true, 'hygiene-ghost-Name': true });
+    });
+
+    it('provider-response.raw.json remains unchanged when normalization is applied', async () => {
+      const rawBody = '{"contractId":"aura.diagnosis.v2","raw":true}';
+      const technicalExport = buildTechnicalExport() as any;
+      technicalExport.diagnosis.status = 'valid';
+      technicalExport.diagnosis.rawResponse = rawBody;
+      technicalExport.diagnosis.executionReceipt = {
+        receiptHash: 'receipt-test',
+        rawResponseHash: 'r'.repeat(64),
+      };
+      technicalExport.diagnosis.structuredDiagnosis = {
+        diagnosis: { contractId: 'aura.diagnosis.v2' },
+        normalizationEvidence: {
+          applied: true,
+          field: 'requiresHumanReview',
+          reason: 'AURA_GOVERNANCE_ENFORCED',
+          policy: 'aura.human-review-policy.v2',
+          policyVersion: '1.0.0',
+          normalizedIssueIds: ['is-1'],
+          originalValuesByIssueId: { 'is-1': false },
+          effectiveValuesByIssueId: { 'is-1': true },
+        },
+      };
+
+      const result = await buildEvidenceArchive({
+        technicalExport,
+        issuesCsv: 'id\n',
+      });
+      const files = unzipSync(result.bytes);
+
+      expect(files).toHaveProperty('diagnosis/provider-response.raw.json');
+      expect(strFromU8(files['diagnosis/provider-response.raw.json'])).toBe(rawBody);
+    });
+
+    it('rawResponseHash in receipt matches the raw provider response', async () => {
+      const rawBody = '{"contractId":"aura.diagnosis.v2","raw":true}';
+      const technicalExport = buildTechnicalExport() as any;
+      technicalExport.diagnosis.status = 'valid';
+      technicalExport.diagnosis.rawResponse = rawBody;
+      technicalExport.diagnosis.executionReceipt = {
+        receiptHash: 'receipt-test',
+        rawResponseHash: sha256hex(rawBody),
+      };
+      technicalExport.diagnosis.structuredDiagnosis = {
+        normalizationEvidence: {
+          applied: true,
+          field: 'requiresHumanReview',
+          reason: 'AURA_GOVERNANCE_ENFORCED',
+          policy: 'aura.human-review-policy.v2',
+          policyVersion: '1.0.0',
+          normalizedIssueIds: ['is-1'],
+          originalValuesByIssueId: { 'is-1': false },
+          effectiveValuesByIssueId: { 'is-1': true },
+        },
+      };
+
+      const result = await buildEvidenceArchive({
+        technicalExport,
+        issuesCsv: 'id\n',
+      });
+      const files = unzipSync(result.bytes);
+      const manifest = JSON.parse(strFromU8(files['manifest.json'])) as EvidenceArchiveManifest;
+
+      const rawFile = manifest.files.find(f => f.path === 'diagnosis/provider-response.raw.json');
+      expect(rawFile).toBeDefined();
+      expect(rawFile!.sha256).toBe(sha256hex(rawBody));
+    });
+
+    it('no source CSV is added to the ZIP when normalization is applied', async () => {
+      const technicalExport = buildTechnicalExport() as any;
+      technicalExport.diagnosis.status = 'valid';
+      technicalExport.diagnosis.rawResponse = '{}';
+      technicalExport.diagnosis.executionReceipt = { receiptHash: 'receipt-test' };
+      technicalExport.diagnosis.structuredDiagnosis = {
+        normalizationEvidence: {
+          applied: true,
+          field: 'requiresHumanReview',
+          reason: 'AURA_GOVERNANCE_ENFORCED',
+          policy: 'aura.human-review-policy.v2',
+          policyVersion: '1.0.0',
+          normalizedIssueIds: ['is-1'],
+          originalValuesByIssueId: { 'is-1': false },
+          effectiveValuesByIssueId: { 'is-1': true },
+        },
+      };
+
+      const result = await buildEvidenceArchive({
+        technicalExport,
+        issuesCsv: 'id\n',
+      });
+      const files = unzipSync(result.bytes);
+      const paths = Object.keys(files);
+
+      expect(paths.some(path => /source\.csv|raw.*\.csv|dataset.*\.csv/i.test(path))).toBe(false);
+    });
+
+    it('an execution without normalization does not invent governance-normalization.json', async () => {
+      const technicalExport = buildTechnicalExport() as any;
+      technicalExport.diagnosis.status = 'valid';
+      technicalExport.diagnosis.rawResponse = '{}';
+      technicalExport.diagnosis.executionReceipt = { receiptHash: 'receipt-test' };
+      technicalExport.diagnosis.structuredDiagnosis = {
+        normalizationEvidence: {
+          applied: false,
+          field: 'requiresHumanReview',
+          reason: 'AURA_GOVERNANCE_ENFORCED',
+          policy: 'aura.human-review-policy.v2',
+          policyVersion: '1.0.0',
+          normalizedIssueIds: [],
+          originalValuesByIssueId: {},
+          effectiveValuesByIssueId: {},
+        },
+      };
+
+      const result = await buildEvidenceArchive({
+        technicalExport,
+        issuesCsv: 'id\n',
+      });
+      const files = unzipSync(result.bytes);
+
+      expect(files).not.toHaveProperty('diagnosis/governance-normalization.json');
+    });
+  });
 });

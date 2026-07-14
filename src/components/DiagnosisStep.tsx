@@ -906,6 +906,29 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
             {isV2 ? (
               <div className="diagnosis-result-v2">
                 <h3 className="stage-result-title">Diagnóstico Estructurado v2</h3>
+                {structuredDiagnosis.normalizationEvidence?.applied === true && (
+                  <div
+                    className="diagnosis-normalization-notice"
+                    data-testid="diagnosis-normalization-notice"
+                    style={{
+                      marginBottom: 'var(--space-md)',
+                      padding: '10px 12px',
+                      background: 'var(--surface1)',
+                      borderRadius: '6px',
+                      borderLeft: '3px solid var(--accent)',
+                    }}
+                  >
+                    <p style={{ fontSize: '12px', color: 'var(--ink2)', margin: 0 }}>
+                      AURA aplicó revisión humana obligatoria a{' '}
+                      {structuredDiagnosis.normalizationEvidence.normalizedIssueIds.length}{' '}
+                      {structuredDiagnosis.normalizationEvidence.normalizedIssueIds.length === 1
+                        ? 'hallazgo'
+                        : 'hallazgos'}{' '}
+                      según su política determinista de gobernanza. La respuesta
+                      original del modelo se conserva en la evidencia técnica.
+                    </p>
+                  </div>
+                )}
                 {structuredDiagnosis.diagnosis.diagnosisBlocks.length > 0 && (
                   <div style={{ marginBottom: 'var(--space-md)' }}>
                     <h4 style={{ fontSize: '13px', fontWeight: 600, marginBottom: '8px', color: 'var(--ink2)' }}>Observaciones y Recomendaciones</h4>

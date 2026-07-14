@@ -217,6 +217,20 @@ export const buildEvidenceArchive = async ({
   } else if (isRecord(diagnosis.structuredDiagnosis) && isRecord(diagnosis.structuredDiagnosis.diagnosis)) {
     addFile(files, 'diagnosis/provider-response.normalized.json', json(diagnosis.structuredDiagnosis.diagnosis), 'application/json', 'Respuesta estructurada normalizada; la sesión no conservó el cuerpo crudo.');
   }
+  // AURA-CIERRE-DETERMINISTIC-HITL-02 — surface governance normalization
+  // evidence so the technical export makes the intervention auditable.
+  const normalizationEvidence = isRecord(diagnosis.structuredDiagnosis)
+    ? diagnosis.structuredDiagnosis.normalizationEvidence
+    : null;
+  if (normalizationEvidence && normalizationEvidence.applied === true) {
+    addFile(
+      files,
+      'diagnosis/governance-normalization.json',
+      json(normalizationEvidence),
+      'application/json',
+      'AURA aplicó requiresHumanReview=true a los issueId indicados. La respuesta cruda del modelo y su hash se conservan sin cambios.',
+    );
+  }
 
   addFile(files, 'remediation/remediation-plan.json', script.remediationPlan ? json(script.remediationPlan) : null, 'application/json', 'Plan con decisiones humanas por acción.');
   addFile(files, 'remediation/script-contract.json', script.contract ? json(script.contract) : null, 'application/json', 'Contrato canónico del script, partición e identidad.');

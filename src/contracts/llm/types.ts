@@ -392,9 +392,28 @@ export interface ExecutionReceiptV1 {
   startedAt: string;
   completedAt: string;
   rawResponseHash: string;
+  /**
+   * Validation result of the EFFECTIVE product diagnosis (governance-
+   * normalized when normalization was required).
+   */
   validationStatus: 'valid' | 'invalid';
   validationErrorCodes: string[];
+  /**
+   * AURA-CIERRE-DETERMINISTIC-HITL-02-R2 — validation result of the EXACT
+   * raw provider response, before any governance normalization. Absent
+   * (= undefined) for receipts issued before this contract change; in that
+   * case the raw and effective validations are identical.
+   */
+  rawValidationStatus?: 'valid' | 'invalid';
+  rawValidationErrorCodes?: string[];
   receiptHash: string;
+  /**
+   * AURA-CIERRE-DETERMINISTIC-HITL-02-R2 — true when the receipt certifies
+   * a governance-normalized effective response whose raw counterpart was
+   * invalid (DIAGNOSIS_REVIEW_DOWNGRADE). Absent or false when no
+   * normalization ran.
+   */
+  normalizationApplied?: boolean;
 }
 
 // ── Diagnosis Error Codes ──
@@ -548,6 +567,25 @@ export interface RemediationActionV2 {
 }
 
 // ── DiagnosisExecutionResult (with optional remediation context) ──
+/**
+ * AURA-CIERRE-DETERMINISTIC-HITL-02 — explicit normalization evidence.
+ * The `applied: false` default means no governance normalization happened
+ * (the model already complied); `normalizedIssueIds` lists the issue IDs
+ * whose `requiresHumanReview` was forced from `false` to `true`. The
+ * Laboratory and the technical export use this evidence to disclose the
+ * intervention without hiding it.
+ */
+export interface DiagnosisNormalizationEvidenceV2 {
+  applied: boolean;
+  field: 'requiresHumanReview';
+  reason: 'AURA_GOVERNANCE_ENFORCED';
+  policy: 'aura.human-review-policy.v2';
+  policyVersion: string;
+  normalizedIssueIds: string[];
+  originalValuesByIssueId: Record<string, boolean>;
+  effectiveValuesByIssueId: Record<string, boolean>;
+}
+
 export interface DiagnosisExecutionResult {
   version: 2;
   diagnosis: DiagnosisResponseV2;
@@ -570,6 +608,29 @@ export interface DiagnosisExecutionResult {
   inputSnapshot?: DiagnosisInputPackageV2;
   executionReceipt?: ExecutionReceiptV1;
   remediationContext?: RemediationContextV2;
+  /**
+   * Original `DiagnosisResponseV2` returned by the model, before AURA
+   * normalization. Always present when governance normalization runs.
+   * The Laboratory runner uses this view to compute raw contract
+   * compliance; the normal product flow uses `diagnosis`.
+   */
+  rawDiagnosis?: DiagnosisResponseV2;
+  /**
+   * Non-blocking summary of the strict validator against the raw response.
+   * The Laboratory uses `downgradeCount` to keep counting
+   * `DIAGNOSIS_REVIEW_DOWNGRADE` exactly as before normalization.
+   */
+  rawValidation?: {
+    valid: boolean;
+    errorCodes: string[];
+    downgradeCount: number;
+  };
+  /**
+   * AURA-side intervention: which `requiresHumanReview` values were
+   * forced to `true` to enforce the deterministic governance policy.
+   * Surfaced in receipts, exports and the diagnostic report UI.
+   */
+  normalizationEvidence?: DiagnosisNormalizationEvidenceV2;
 }
 
 /**

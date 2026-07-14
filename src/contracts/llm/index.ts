@@ -195,6 +195,24 @@ export type {
 } from './diagnosisPipelineV2';
 
 export {
+  normalizeHumanReview,
+  normalizeHumanReviewWithRawValidation,
+  captureRawResponse,
+  evaluateRawContractCompliance,
+  computeMandatoryReviewIssueIds,
+  HUMAN_REVIEW_NORMALIZATION_FIELD,
+  HUMAN_REVIEW_NORMALIZATION_POLICY,
+  HUMAN_REVIEW_NORMALIZATION_POLICY_VERSION,
+  HUMAN_REVIEW_NORMALIZATION_REASON,
+} from './humanReviewNormalizerV2';
+export type {
+  HumanReviewNormalizationEvidence,
+  HumanReviewNormalizationResult,
+  NormalizeHumanReviewResult,
+  RawValidationResult,
+} from './humanReviewNormalizerV2';
+
+export {
   runStructuredDiagnosis,
 } from './diagnosisSelector';
 export type {

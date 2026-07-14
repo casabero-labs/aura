@@ -202,6 +202,26 @@ El 14 de julio se ejecutó **Evidencia equilibrada** (`smart_sample`) con
 - AURA rechazó correctamente ambas respuestas con
   `DIAGNOSIS_REVIEW_DOWNGRADE`.
 
+### Secuencia real de corridas Gemma
+
+La secuencia exacta de corridas con Gemma 4 E4B, `smart_sample` y
+`synthetic_ground_truth.csv`:
+
+1. **Pre-contrato-fix (14 jul)**: 15/15 `requiresHumanReview: false` — todos
+   los valores de revisión obligatoria fueron falsos. El contrato aún no
+   exponía `issueIdsRequiringHumanReview` en el prompt.
+2. **Post-contrato-fix (14 jul)**: 15/15 `requiresHumanReview: true` — el
+   contrato corregido indujo el comportamiento correcto, pero la corrida falló
+   por el falso rechazo de referencias `sha256:...` (AURA-CIERRE-PRIVACY-REFERENCE-01).
+3. **Post-privacy-fix (14 jul)**: 5/15 `true`, 10/15 `false` — el validador
+   ya aceptaba referencias de privacidad, pero el modelo presentó drift
+   estocástico y volvió a marcar 10 issues como revisión no requerida. Esta
+   corrida produjo `DIAGNOSIS_REVIEW_DOWNGRADE` y es la fixture que prueba
+   la separación RAW vs EFFECTIVE.
+
+Esta secuencia demuestra que el cumplimiento del prompt es estocástico y que
+la gobernanza no puede delegarse al modelo.
+
 La causa común no puede atribuirse solo a los modelos. La composición actual de
 `smart_sample` expone estadísticas, activaciones y muestras, pero no expone
 `actionabilityPolicy` ni `authorizationEvidence`. Sin embargo, la instrucción y
@@ -292,7 +312,7 @@ visibles de cada modo no cambian: Contexto mínimo 3, Evidencia equilibrada 6,
 Evidencia completa 12. `smart_sample` sigue sin contener `actionabilityPolicy`,
 `authorizationEvidence`, `columnRegistry` ni `badSampleAnchors`.
 
-**Pruebas realizadas.**
+**Pruebas realizadas (1925 unitarias + 4 E2E + typecheck + build).**
 
 - `src/__tests__/humanReviewPolicyV2.test.ts` (14 casos, TDD): los tres modos
   reciben la misma lista determinista; `smart_sample` no expone la gobernanza
@@ -340,12 +360,173 @@ siguen produciendo payloads sin esa metadata y la regla no les aplica.
 **Campaña todavía bloqueada hasta un único smoke humano con Qwen3.5 4B.**
 El contrato ya está corregido y validado por los gates, pero el piloto formal
 de 27 diagnósticos no se ejecutará hasta que una sola corrida humana real con
-`synthetic_ground_truth.csv`, Qwen3.5 4B y `smart_sample` produzca una
-respuesta con `requiresHumanReview: true` para los IDs obligatorios y sea
-aceptada por el validador sin necesidad de tocar la regla. Esa única corrida
-se comparará contra la nueva lista determinista; las dos corridas anteriores
-con Qwen y Gemma **no deben presentarse** como comparación válida de modelos,
-solo como evidencia de la contradicción original.
+`synthetic_ground_truth.csv`, Qwen3.5 4B y `smart_sample` complete el flujo
+normal. La corrida puede terminar sin normalización si el modelo cumple, o con
+normalización explícita si el único incumplimiento crudo es
+`DIAGNOSIS_REVIEW_DOWNGRADE`. En ese segundo caso deben quedar visibles y
+exportados el diagnóstico crudo inválido, el diagnóstico efectivo válido, el
+recibo de ambos planos y `governance-normalization.json`. Cualquier otro error
+sigue bloqueando. Las corridas anteriores con Qwen y Gemma se conservan como
+evidencia de la contradicción original, no como comparación formal de modelos.
+
+## Cierre AURA-CIERRE-DETERMINISTIC-HITL-02 — separación RAW vs EFFECTIVE
+
+**Causa raíz.** El contrato de `smart_sample` ya obliga al modelo a marcar
+los IDs de la lista determinista con `requiresHumanReview: true`, pero
+la decisión de revisión humana es un acto de gobernanza de AURA, no de
+estocasticidad del modelo. Aunque el prompt sea perfecto, el LLM puede
+omitir el flag (como ocurrió con Gemma en el piloto: 15/15 falsos) y el
+sistema caía completo. Un solo paso de prompt no es solución suficiente;
+la gobernanza debe ser computada por AURA y no delegada al modelo.
+
+**Solución aplicada.** El diagnóstico normal de AURA ahora separa dos
+vistas claramente diferenciadas:
+
+1. **RAW model result** — la respuesta exacta del modelo con sus
+   `requiresHumanReview` originales. El `ExecutionReceiptV1` certifica
+   tanto la validación efectiva como la cruda (campos
+   `rawValidationStatus`, `rawValidationErrorCodes`).
+   `rawResponseHash` es inmutable y apunta a la respuesta exacta del
+   proveedor. El Laboratorio evalúa la respuesta cruda sin pasar por
+   el pipeline de normalización; el `DiagnosisExecutionResult` expone
+   la respuesta cruda en `rawDiagnosis`.
+
+2. **EFFECTIVE product diagnosis** — copia inmutable con `requiresHumanReview`
+   forzado a `true` para cada `issueId` de la lista determinista
+   (`computeIssueIdsRequiringHumanReview`). Solo se modifica ese campo;
+   ningún otro campo del LLM se repara (refs, IDs, ruleIds, columnIds,
+   unsupported claims, coverage, JSON malformado). La respuesta efectiva
+   se re-valida con el validador estricto antes de continuar.
+
+**Evidencia de normalización.** Cada corrida que requiera normalización
+lleva `DiagnosisNormalizationEvidenceV2` con: `applied`, `field: "requiresHumanReview"`,
+`reason: "AURA_GOVERNANCE_ENFORCED"`, `policy: "aura.human-review-policy.v2"`,
+`policyVersion`, `normalizedIssueIds[]`, `originalValuesByIssueId`,
+`effectiveValuesByIssueId`. Se exporta como `diagnosis/governance-normalization.json`
+dentro del ZIP técnico y se renderiza en el diagnostic report con el
+mensaje:
+
+> "AURA aplicó revisión humana obligatoria a N hallazgos según su política
+> determinista de gobernanza. La respuesta original del modelo se conserva en
+> la evidencia técnica."
+
+**Resultados reales Gemma (piloto 14 de julio).** Las dos corridas de
+Gemma 4 E4B y Qwen 3.5 4B con `smart_sample` y `synthetic_ground_truth.csv`
+mostraron dos perfiles de fallo opuestos: Qwen acertó en 5/15 y se equivocó
+en 10/15; Gemma falló los 15. Ninguno de los dos pudo ser atribuido a un
+defecto del modelo sin más contexto: ambos modelos devolvieron JSON válido,
+cobertura exacta, IDs y referencias correctas — el único campo que
+incumplió sistemáticamente el contrato fue `requiresHumanReview`. La
+decisión de revisión humana no puede depender del LLM.
+
+**Pruebas realizadas (1925 unitarias + 4 E2E + typecheck + build).**
+
+- `src/__tests__/humanReviewNormalizerV2.test.ts` (14 tests, R1–R12 +
+  dos integraciones): la fixture Gemma balanced reproduce el fallo real
+  con 15 issues, 10 con `requiresHumanReview: false` y 5 con `true`. Las
+  pruebas demuestran:
+  1. raw validation reporta `DIAGNOSIS_REVIEW_DOWNGRADE`;
+  2. raw compliance queda fallido y `downgradeCount > 0` para el
+     Laboratorio;
+  3. la normalización solo toca `requiresHumanReview`;
+  4. los 10 IDs obligatorios quedan en `true` en la respuesta efectiva;
+  5. el diagnóstico efectivo pasa validación estricta;
+  6. la evidencia lista exactamente los 10 IDs modificados;
+  7. raw response y `rawResponseHash` quedan inalterados;
+  8. un `evidenceRef` inventado sigue bloqueando el producto
+     (`DIAGNOSIS_REFERENCE_INVALID`);
+  9. un valor entre comillas sin soporte sigue bloqueando
+     (`DIAGNOSIS_REFERENCE_INVALID`);
+  10. JSON inválido nunca se normaliza (`DIAGNOSIS_JSON_INVALID`);
+  11. cobertura faltante nunca se normaliza (`DIAGNOSIS_REFERENCE_INVALID`);
+  12. dos inputs idénticos producen evidencia idéntica.
+
+- `src/contracts/llm/humanReviewNormalizerV2.ts` (nuevo): normalizer puro,
+  `computeMandatoryReviewIssueIds`, `captureRawResponse`,
+  `normalizeHumanReview`, `onlyRequiresHumanReviewDiffers`.
+
+- `src/contracts/llm/diagnosisPipelineV2.ts`: el pipeline ahora aplica
+  normalización exclusivamente cuando el fallo es `DIAGNOSIS_REVIEW_DOWNGRADE`
+  puro. Cualquier otro error (schema, referencia, ejecutable, claim sin
+  soporte, cobertura faltante) sigue siendo bloqueante sin reparación.
+
+- `src/contracts/llm/diagnosisSelector.ts` +
+  `src/contracts/llm/executionReceiptV1.ts` +
+  `src/contracts/llm/types.ts`: el recibo y el `DiagnosisExecutionResult`
+  propagan `rawDiagnosis`, `rawValidation`, `normalizationEvidence`. El
+  recibo añade `normalizationApplied?: boolean` opcional.
+
+- `src/services/evidenceArchive.ts`: el ZIP técnico incluye
+  `diagnosis/governance-normalization.json` cuando la normalización
+  efectivamente se aplicó.
+
+- `src/services/diagnosticReport/diagnosticReportBuilder.ts`: el
+  diagnostic report muestra el mensaje AURA_GOVERNANCE_ENFORCED en
+  `limitations` cuando la evidencia indica normalización.
+
+- Gates finales documentados al cierre de R2: `1925 passed`, 6 skipped;
+  `typecheck` limpio; `build` correcto; E2E 4/4
+  (`oe4-final-evaluation.spec.ts` × 1,
+  `apply-verify-e2e.spec.ts` × 3).
+
+**Por qué AURA es dueña de la gobernanza.** `requiresHumanReview` no es
+una afirmación del modelo: es una decisión contractual sobre qué hallazgos
+pueden automatizarse y cuáles requieren revisión humana. Esa decisión la
+toma AURA leyendo el envelope (actionability, autorización, ambigüedad
+de columna, ausencia de evidencia). Un LLM puede equivocarse; la
+gobernanza debe ser determinista y reproducible. Esto NO se logra con
+otro prompt: se logra con una capa de normalización explícita y auditable
+que el Laboratorio sigue viendo en su forma cruda.
+
+**Laboratorio vs producto.** El Laboratorio evalúa la respuesta cruda
+(`run.diagnosis.parsedOutput`); el producto usa la respuesta efectiva
+(`runStructuredDiagnosis().diagnosis`). Un único `ExecutionReceiptV1`
+contiene tanto `validationStatus`/`validationErrorCodes` (efectivos) como
+`rawValidationStatus`/`rawValidationErrorCodes` (crudos). El Laboratorio
+lee `run.diagnosis.validationErrors` para mantener el conteo de
+`DIAGNOSIS_REVIEW_DOWNGRADE` exactamente igual que antes. Los modelos NO
+reciben crédito artificial por cumplimiento que AURA tuvo que imponer; el
+cumplimiento del modelo se reporta por separado.
+
+## Cierre AURA-CIERRE-DETERMINISTIC-HITL-02-R2 — auditoría honesta
+
+### Correcciones aplicadas
+
+1. **Eliminado `RawExecutionReceiptV1`**: el contrato `aura.raw-execution-receipt.v1`
+   no existía en runtime (solo como tipo). Se removió de `types.ts`. Un único
+   `ExecutionReceiptV1` ahora documenta ambos planos de validación.
+
+2. **Semántica honesta del recibo**: `validationStatus`/`validationErrorCodes`
+   reflejan la validación del diagnóstico EFECTIVO (producto). Los nuevos campos
+   opcionales `rawValidationStatus`/`rawValidationErrorCodes` reflejan la
+   validación de la respuesta CRUDA del proveedor. Cuando hay normalización:
+   `validationStatus = "valid"`, `rawValidationStatus = "invalid"`,
+   `normalizationApplied = true`.
+
+3. **Entrada al normalizador asegurada**: el guard ahora exige
+   `errors.length > 0 && errors.every(...)`. `Array.every()` devuelve `true`
+   para arrays vacíos; sin el guard adicional, un validador roto que
+   reportara `{valid: false, errors: []}` dispararía normalización.
+
+4. **Aviso visible en la UI**: el diagnóstico normal muestra un texto en español:
+   "AURA aplicó revisión humana obligatoria a N hallazgos según su política
+   determinista de gobernanza. La respuesta original del modelo se conserva en
+   la evidencia técnica."
+
+5. **Prueba directa del ZIP**: `evidenceArchive.test.ts` verifica que
+   `diagnosis/governance-normalization.json` existe con todos los campos
+   requeridos, que `provider-response.raw.json` no se modifica, y que una
+   ejecución sin normalización no inventa el archivo.
+
+6. **Prueba de que el Laboratorio puntúa RAW**: `formalDiagnosisEvaluator.test.ts`
+   demuestra que una respuesta con 10 valores falsos de revisión obligatoria
+   produce `contractCompliant: false` con `DIAGNOSIS_REVIEW_DOWNGRADE`, sin
+   normalización ni crédito artificial.
+
+7. **Alcance estricto del normalizador confirmado**: 12 pruebas en
+   `humanReviewNormalizerV2.test.ts` demuestran que solo se modifica
+   `requiresHumanReview` (false → true), nunca se reparan IDs, ruleIds,
+   columnIds, evidenceRefs, claims sin soporte, JSON malformado ni cobertura.
 
 ### Cierre de referencias de privacidad (AURA-CIERRE-PRIVACY-REFERENCE-01)
 
@@ -364,8 +545,8 @@ explica que hashes y valores enmascarados no son valores originales y prohíbe
 interpretarlos como el defecto de calidad. La corrida fallida se conserva como
 evidencia de regresión, no como resultado formal de modelo.
 
-Validación del cierre: 110/110 pruebas focalizadas, 1895 unitarias superadas
-y 6 omitidas, typecheck y build limpios, y 4/4 recorridos E2E superados.
+Validación del cierre: 64/64 pruebas focalizadas, 1925 unitarias superadas y
+6 omitidas, typecheck y build limpios, y 4/4 recorridos E2E superados.
 
 ## Documentos vigentes relacionados
 
