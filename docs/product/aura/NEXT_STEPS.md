@@ -1,6 +1,6 @@
 # Hoja de ruta definitiva de AURA
 
-Última actualización: 14 de julio de 2026, 04:46 (America/Bogota).
+Última actualización: 14 de julio de 2026, 05:02 (America/Bogota).
 
 Este documento es la única referencia operativa para cerrar el TFM. La entrega
 académica vence el **miércoles 15 de julio de 2026 a las 15:00**. Hasta entregar,
@@ -26,7 +26,7 @@ esta fase; en el documento se verificará su grado de cumplimiento con evidencia
 | Área | Estado para el TFM |
 |---|---|
 | Motor determinista | Cerrado y utilizable. |
-| Diagnóstico normal V2 | Validado con el dataset controlado simple en **Contexto mínimo** (`prompt_libre`) y **Evidencia completa** (`recommended`). El intento con **Evidencia equilibrada** (`smart_sample`) fue rechazado correctamente por reducir la revisión humana y debe repetirse una sola vez con la configuración congelada. |
+| Diagnóstico normal V2 | Piloto de tres métodos cerrado con el dataset controlado simple: **Contexto mínimo** (`prompt_libre`) y **Evidencia completa** (`recommended`) produjeron diagnósticos válidos; **Evidencia equilibrada** (`smart_sample`) produjo un JSON completo, pero fue rechazado correctamente porque el modelo redujo la revisión humana en 10 de 15 hallazgos. El fallo se conserva como resultado y no se repite. |
 | Informe PDF y exportación | El ZIP completo quedó validado en una corrida humana. **Los tres defectos visuales del PDF quedaron corregidos** (porcentajes `0.00%` en gráficos de distribución/impacto, etiquetas humanas ausentes y fondo incompleto en las páginas 4 y 6). El informe se regeneró desde el `report JSON` real del ZIP, se renderizaron sus siete páginas y se verificó fondo blanco completo, porcentajes correctos, etiquetas visibles y ausencia de regresiones. |
 | Plan y script | Implementados de forma determinista con revisión humana. El LLM no escribe código ejecutable. |
 | Aplicar y verificar | Cerrado y validado por una corrida humana real: runner Python, recibo, CSV corregido, reauditoría antes/después y ZIP completo. |
@@ -177,7 +177,7 @@ El 14 de julio se validó el ZIP de `experiments/tests/flujo6/` con Qwen3.5 4B y
 
 Comparado con **Evidencia completa**, esta observación exploratoria tardó un
 42,1 % menos y generó un 20,5 % menos de tokens. No se interpreta todavía como
-resultado general: falta Evidencia equilibrada y las repeticiones formales.
+resultado general: faltan las repeticiones formales.
 
 El PDF incluido en ese ZIP fue generado desde una pestaña que mantenía el bundle
 anterior y conserva el defecto visual `0.0%` en un gráfico. El diagnóstico, el
@@ -185,6 +185,25 @@ prompt, la respuesta y el recibo son válidos y no se repetirán. El mismo repor
 JSON regenerado con `main` actual produce etiquetas y porcentajes correctos.
 Antes de la siguiente prueba se debe abrir una pestaña nueva o hacer recarga
 forzada para cargar el bundle publicado más reciente.
+
+### Prueba exploratoria de Evidencia equilibrada cerrada con fallo
+
+El 14 de julio se ejecutó Qwen3.5 4B con **Evidencia equilibrada**
+(`smart_sample`) y `synthetic_ground_truth.csv`:
+
+- la respuesta fue un JSON completo con 15 bloques y 15 issues;
+- el modelo marcó `requiresHumanReview: false` en 10 hallazgos para los que el
+  envelope exigía revisión humana;
+- AURA rechazó correctamente la respuesta con
+  `DIAGNOSIS_REVIEW_DOWNGRADE`;
+- duración observada: 229 segundos, desde 04:53:31 hasta 04:57:20;
+- el fallo corresponde al cumplimiento del contrato por el modelo, no al motor
+  determinista ni al transporte de Ollama;
+- no se repetirá para sustituir el resultado negativo.
+
+Con esta corrida quedan observados los tres métodos del piloto. La respuesta
+cruda, el error, el recibo y la captura deben conservarse juntos en
+`experiments/tests/flujo7/` antes de iniciar la campaña formal.
 
 Defectos observados que requieren seguimiento:
 
@@ -232,10 +251,12 @@ los modelos, los métodos y las condiciones realmente evaluadas.
 
 ## Próxima acción exacta
 
-Hacer una recarga forzada de AURA y ejecutar la única prueba exploratoria que
-falta para Qwen3.5 4B: **Evidencia equilibrada** (`smart_sample`) con
-`synthetic_ground_truth.csv`. Exportar el ZIP diagnóstico sin remediación y
-guardarlo en `experiments/tests/flujo7/`. No iniciar todavía la campaña formal.
+Conservar esta corrida fallida de **Evidencia equilibrada** en
+`experiments/tests/flujo7/`: respuesta cruda completa, captura del error y
+recibo técnico. Si AURA permite continuar sin diagnóstico y exportar el ZIP,
+guardarlo también; si no, esos tres artefactos son la evidencia mínima del
+fallo. No repetir la corrida. Después, congelar el protocolo formal de 27
+diagnósticos y 9 calentamientos.
 
 ## Documentos vigentes relacionados
 
