@@ -22,8 +22,8 @@ type Stage = LlmStageResultV1['stage'];
 type StageTerminalType = 'completed' | 'failed' | 'timeout';
 
 export interface ExperimentRunnerDependencies {
-  provider?: Pick<AIProvider, 'generateText'>;
-  providerForRun?: (run: ExperimentRunV1) => Pick<AIProvider, 'generateText'>;
+  provider?: Pick<AIProvider, 'generateText' | 'generateTextWithProgress'>;
+  providerForRun?: (run: ExperimentRunV1) => Pick<AIProvider, 'generateText' | 'generateTextWithProgress'>;
   validateDiagnosis: (
     parsed: unknown,
     run: ExperimentRunV1,
@@ -57,6 +57,12 @@ export interface ExperimentRunProgress {
 
 export interface RunUnitOptions {
   onProgress?: (progress: ExperimentRunProgress) => void;
+  /** Exact diagnosis fragments emitted by the provider, in arrival order. */
+  onResponseChunk?: (event: {
+    runId: string;
+    chunk: string;
+    accumulatedText: string;
+  }) => void;
 }
 
 export interface ExperimentRunner {
@@ -298,6 +304,7 @@ export const createExperimentRunner = ({
     stage: Stage,
     prompt: string,
     onProgress?: RunUnitOptions['onProgress'],
+    onResponseChunk?: RunUnitOptions['onResponseChunk'],
   ): Promise<ExperimentRunV1> => {
     const attemptId = nextAttemptId(initialRun, stage);
     const retryOfAttemptId = lastFailedAttemptId(initialRun, stage);
@@ -331,10 +338,21 @@ export const createExperimentRunner = ({
     try {
       const effectiveProvider = providerFor(initialRun);
       if (!effectiveProvider) throw new Error('No formal provider was configured for this run.');
-      const providerResult = await effectiveProvider.generateText(
-        prompt,
-        stage === 'diagnosis' ? { responseSchema: snapshot.responseSchema } : undefined,
-      );
+      const requestOptions = stage === 'diagnosis'
+        ? { responseSchema: snapshot.responseSchema }
+        : undefined;
+      let streamedText = '';
+      const providerResult = stage === 'diagnosis' && effectiveProvider.generateTextWithProgress
+        ? await effectiveProvider.generateTextWithProgress(prompt, (event) => {
+            if (!event.chunk) return;
+            streamedText += event.chunk;
+            onResponseChunk?.({
+              runId: initialRun.runId,
+              chunk: event.chunk,
+              accumulatedText: streamedText,
+            });
+          }, requestOptions)
+        : await effectiveProvider.generateText(prompt, requestOptions);
       providerName = providerResult.metrics.provider;
       providerMetrics = providerResult.metrics;
       rawResponse = providerResult.text;
@@ -564,7 +582,13 @@ export const createExperimentRunner = ({
 
     if (run.diagnosis?.status !== 'completed') {
       run = await ensureWarmup(run, options.onProgress);
-      run = await runStage(run, 'diagnosis', buildFormalDiagnosisPrompt(run), options.onProgress);
+      run = await runStage(
+        run,
+        'diagnosis',
+        buildFormalDiagnosisPrompt(run),
+        options.onProgress,
+        options.onResponseChunk,
+      );
       if (run.diagnosis?.status !== 'completed') return run;
     }
 

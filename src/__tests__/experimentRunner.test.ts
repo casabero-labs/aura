@@ -213,6 +213,39 @@ describe('OE4 diagnosis-only and resumable runner — protocol V2', () => {
     expect(completed.status).toBe('completed');
   });
 
+  it('streams the exact diagnosis response while preserving the same final raw output', async () => {
+    const generateText = vi.fn<AIProvider['generateText']>().mockResolvedValue(result('READY'));
+    const chunks = [diagnosisOutput.slice(0, 24), diagnosisOutput.slice(24)];
+    const generateTextWithProgress = vi.fn<NonNullable<AIProvider['generateTextWithProgress']>>(async (
+      _prompt,
+      onProgress,
+    ) => {
+      chunks.forEach((chunk) => onProgress({
+        stage: 'generating',
+        message: 'Recibiendo respuesta del modelo',
+        chunk,
+      }));
+      return result(chunks.join(''));
+    });
+    const streamed: string[] = [];
+    const runner = createExperimentRunner({
+      provider: { generateText, generateTextWithProgress },
+      validateDiagnosis: () => [],
+      store: makeStore(),
+      now: () => NOW,
+    });
+
+    const completed = await runner.runUnit(makeRun('smart_sample'), {
+      onResponseChunk: (event) => streamed.push(event.accumulatedText),
+    });
+
+    expect(generateText).toHaveBeenCalledTimes(1);
+    expect(generateTextWithProgress).toHaveBeenCalledTimes(1);
+    expect(streamed).toEqual([chunks[0], diagnosisOutput]);
+    expect(completed.diagnosis?.rawOutput).toBe(diagnosisOutput);
+    expect(completed.executionReceipt?.rawResponseHash).toBe(sha256hex(diagnosisOutput));
+  });
+
   it('stops after a diagnosis failure and persists the failed attempt', async () => {
     const { runner, store, generateText } = makeRunner([new Error('Ollama unavailable')]);
 

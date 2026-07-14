@@ -236,6 +236,50 @@ describe('BenchmarkCampaignLab - Task 10 human flow', () => {
     expect(runUnit).toHaveBeenCalledTimes(1);
   });
 
+  it('shows the current provider response in diagnosis.response.stream.json', async () => {
+    const user = userEvent.setup();
+    const store = createInMemoryExperimentStore();
+    const bundle = plannedFixture();
+    let finishRun: ((run: ExperimentRunV1) => void) | null = null;
+    const runUnit = vi.fn(async (run: ExperimentRunV1, options) => {
+      options?.onProgress?.({ runId: run.runId, phase: 'diagnosis', state: 'started' });
+      options?.onResponseChunk?.({
+        runId: run.runId,
+        chunk: '{"contractId":',
+        accumulatedText: '{"contractId":',
+      });
+      options?.onResponseChunk?.({
+        runId: run.runId,
+        chunk: '"aura.diagnosis.v2"}',
+        accumulatedText: '{"contractId":"aura.diagnosis.v2"}',
+      });
+      return new Promise<ExperimentRunV1>((resolve) => {
+        finishRun = resolve;
+      });
+    });
+
+    render(
+      <BenchmarkCampaignLab
+        store={store}
+        runner={{ runUnit, runUnits: vi.fn() }}
+        createCampaignBundle={async () => bundle}
+        now={() => LATER}
+      />,
+    );
+
+    await user.click(await screen.findByRole('button', { name: 'Crear experimento' }));
+    await user.click(screen.getByRole('button', { name: 'Iniciar experimento' }));
+
+    expect(await screen.findByText('diagnosis.response.stream.json')).toBeTruthy();
+    expect(screen.getByTestId('oe4-diagnosis-response-stream-content').textContent)
+      .toBe('{"contractId":"aura.diagnosis.v2"}');
+    expect(screen.getByText('34 caracteres recibidos')).toBeTruthy();
+
+    await act(async () => {
+      finishRun?.({ ...bundle.runs[0], status: 'failed' });
+    });
+  });
+
   it('records an explicit representative decision and imports an external after-CSV', async () => {
     const user = userEvent.setup();
     const fixture = createExperimentEvidenceFixture();

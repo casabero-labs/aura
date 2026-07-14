@@ -34,6 +34,7 @@ import {
   FINAL_EVALUATION_PROTOCOL,
   OE4_INPUT_MODE_LABELS,
 } from '../../services/benchmark/finalEvaluationProtocol';
+import SyntaxDisplay from '../SyntaxDisplay';
 
 export interface ExperimentCampaignBundle {
   campaign: ExperimentCampaignV1;
@@ -43,8 +44,8 @@ export interface ExperimentCampaignBundle {
 interface BenchmarkCampaignLabProps {
   store?: ExperimentStore;
   runner?: ExperimentRunner;
-  provider?: Pick<AIProvider, 'generateText'>;
-  providerForRun?: (run: ExperimentRunV1) => Pick<AIProvider, 'generateText'>;
+  provider?: Pick<AIProvider, 'generateText' | 'generateTextWithProgress'>;
+  providerForRun?: (run: ExperimentRunV1) => Pick<AIProvider, 'generateText' | 'generateTextWithProgress'>;
   validateDiagnosis?: (parsed: unknown, run: ExperimentRunV1) => ExperimentValidationErrorV1[];
   createCampaignBundle?: () => Promise<ExperimentCampaignBundle>;
   evaluateRun?: (run: ExperimentRunV1) => Promise<AutomaticEvaluationV1>;
@@ -121,6 +122,7 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [activeExecution, setActiveExecution] = useState<ActiveExecution | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [liveDiagnosisResponse, setLiveDiagnosisResponse] = useState('');
 
   useEffect(() => {
     if (!activeExecution) {
@@ -254,6 +256,7 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
           phase: 'warmup',
           startedAtMs: Date.now(),
         });
+        setLiveDiagnosisResponse('');
         let executed = await runner.runUnit(candidate, {
           onProgress: (progress) => {
             if (progress.state === 'started') {
@@ -261,6 +264,9 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
                 ? { ...current, phase: progress.phase }
                 : current);
             }
+          },
+          onResponseChunk: ({ runId, accumulatedText }) => {
+            if (runId === candidate.runId) setLiveDiagnosisResponse(accumulatedText);
           },
         });
         if (executed.status === 'completed' && evaluateRun) {
@@ -447,6 +453,26 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
               </div>
               <div className="oe4-live-progress-track" aria-hidden="true">
                 <span style={{ width: `${Math.max(2, (attempted / campaign.plannedRuns) * 100)}%` }} />
+              </div>
+              <div className="oe4-live-stream">
+                <div className="oe4-live-stream-meta">
+                  <span>Respuesta real del modelo</span>
+                  <span>{liveDiagnosisResponse.length.toLocaleString('es-CO')} caracteres recibidos</span>
+                </div>
+                <SyntaxDisplay
+                  filename="diagnosis.response.stream.json"
+                  content={liveDiagnosisResponse || (activeExecution.phase === 'warmup'
+                    ? 'Esperando que termine el calentamiento excluido…'
+                    : 'Esperando el primer fragmento del modelo…')}
+                  copyText={liveDiagnosisResponse || undefined}
+                  maxHeight={320}
+                  wrap
+                  autoScroll
+                  role="log"
+                  ariaLive="polite"
+                  testId="oe4-diagnosis-response-stream"
+                  contentTestId="oe4-diagnosis-response-stream-content"
+                />
               </div>
             </section>
           )}

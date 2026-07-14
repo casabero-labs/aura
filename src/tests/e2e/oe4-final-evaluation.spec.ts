@@ -66,6 +66,10 @@ test.describe.serial('Task 11 — recorrido humano OE4 y recuperación', () => {
 
     await page.getByRole('button', { name: 'Reanudar experimento' }).click();
     await expect.poll(() => page.evaluate(() => window.__OE4_E2E_WAITING__ === true)).toBe(true);
+    await expect(page.getByText('diagnosis.response.stream.json')).toBeVisible();
+    await expect(page.getByTestId('oe4-diagnosis-response-stream-content'))
+      .toContainText('{"contractId":');
+    await expectNoHorizontalOverflow(page);
     await page.getByRole('button', { name: 'Pausar de forma segura' }).click();
     await page.evaluate(() => window.__OE4_E2E_RELEASE__?.());
     await expect(page.getByRole('status')).toContainText('Experimento pausado');

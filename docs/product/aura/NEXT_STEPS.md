@@ -630,6 +630,20 @@ La interfaz ahora aplica la jerarquía `showcase-ink`:
 La captura renderizada a 1440 px conserva matriz, detalle y preparación del
 reporte dentro del viewport, con cero píxeles de desbordamiento horizontal.
 
+## Cierre AURA-CIERRE-LAB-STREAM-01 — respuesta visible en tiempo real
+
+Antes de reiniciar la campaña V2.4, el Laboratorio conecta el streaming real de
+Ollama con una consola `diagnosis.response.stream.json`. Durante el calentamiento
+indica que todavía no ha comenzado el diagnóstico; después muestra, en orden de
+llegada, los fragmentos exactos escritos por el modelo, con desplazamiento
+automático y contador de caracteres.
+
+La consola es únicamente una vista en vivo: no modifica ni repara el contenido.
+El runner concatena los mismos fragmentos que Ollama devuelve como respuesta
+final, y esa respuesta cerrada sigue siendo la que se valida, hashea y persiste
+en el recibo formal. Los proveedores sin streaming conservan el camino anterior
+sin alterar la campaña.
+
 ## Documentos vigentes relacionados
 
 - [Plan de cierre del diagnóstico normal y PDF](../../plans/2026-07-12-cierre-diagnostico-normal-y-reporte-pdf.md)

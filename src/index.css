@@ -15317,6 +15317,10 @@ textarea:focus {
 .oe4-live-execution-grid strong { display: block; margin-top: 4px; overflow-wrap: anywhere; color: var(--ink); font-size: 12px; }
 .oe4-live-progress-track { height: 4px; margin-top: var(--space-md); overflow: hidden; border-radius: 999px; background: var(--surface-raised); }
 .oe4-live-progress-track span { display: block; height: 100%; background: var(--success); transition: width var(--transition-base); }
+.oe4-live-stream { min-width: 0; margin-top: var(--space-md); }
+.oe4-live-stream-meta { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); margin-bottom: 8px; color: var(--ink3); font: 10px/1.4 var(--font-mono); letter-spacing: .04em; text-transform: uppercase; }
+.oe4-live-stream .syntax-display { border-color: var(--border-strong); }
+.oe4-live-stream .syntax-display__body { min-height: 150px; font-size: 11px; line-height: 1.6; }
 @keyframes oe4-live-pulse { 0%, 100% { opacity: .35; transform: scale(.85); } 50% { opacity: 1; transform: scale(1); } }
 
 .oe4-panel-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-md); margin-bottom: var(--space-md); }
@@ -15506,4 +15510,5 @@ textarea:focus {
   .oe4-installed-models ul { grid-template-columns: 1fr; }
   .oe4-run-technical dl { grid-template-columns: 1fr; }
   .oe4-run-technical dl > div { display: grid; grid-template-columns: 1fr; }
+  .oe4-live-stream-meta { align-items: flex-start; flex-direction: column; gap: 2px; }
 }

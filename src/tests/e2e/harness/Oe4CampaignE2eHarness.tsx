@@ -5,6 +5,7 @@ import BenchmarkCampaignLab, {
 import type { AutomaticEvaluationV1, ExperimentRunV1 } from '../../../services/benchmark/experimentTypes';
 import { createExperimentEvidenceFixture } from '../../../__tests__/fixtures/experimentEvidenceFixture';
 import { createPythonReceiptFixture } from '../../../__tests__/fixtures/pythonReceiptFixture';
+import type { ProviderProgressEvent } from '../../../types';
 
 const NOW = '2026-07-11T18:00:00.000Z';
 const HASH = 'c'.repeat(64);
@@ -156,6 +157,25 @@ const Oe4CampaignE2eHarness: React.FC = () => {
   const dependencies = useMemo(() => ({
     providerForRun: (run: ExperimentRunV1) => ({
       generateText: (prompt: string) => controlledGenerateText(prompt, run.modelId),
+      generateTextWithProgress: async (
+        prompt: string,
+        onProgress: (event: ProviderProgressEvent) => void,
+      ) => {
+        const resultPromise = controlledGenerateText(prompt, run.modelId);
+        const firstChunk = '{"contractId":';
+        onProgress({
+          stage: 'generating',
+          message: 'Recibiendo respuesta del modelo',
+          chunk: firstChunk,
+        });
+        const result = await resultPromise;
+        onProgress({
+          stage: 'generating',
+          message: 'Recibiendo respuesta del modelo',
+          chunk: result.text.slice(firstChunk.length),
+        });
+        return result;
+      },
     }),
     validateDiagnosis: () => [],
     createCampaignBundle: createControlledBundle,
