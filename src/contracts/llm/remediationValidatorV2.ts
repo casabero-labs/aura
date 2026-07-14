@@ -239,14 +239,21 @@ export function validateRemediationPlanV2(
     ctxIssueIdList.push(ci.issueId);
   }
 
-  // evidenceRefs must match exactly between context and diagnosis
+  // The diagnosis may cite a subset of the evidence available in the trusted
+  // remediation context. Empty refs are valid only because the diagnosis
+  // contract already forces requiresHumanReview=true in that case. Never let
+  // the diagnosis introduce a reference that is absent from the context.
   for (const di of diagIssues) {
     const ci = ctx.issues.find(c => c.issueId === di.issueId);
     if (ci) {
-      const ctxRefs = [...ci.evidenceRefs].sort().join(',');
-      const diagRefs = [...di.evidenceRefs].sort().join(',');
-      if (ctxRefs !== diagRefs) {
-        errors.push(verr('REMEDIATION_REFERENCE_INVALID', `diagnosis.issues[?].evidenceRefs`, `Mismatch for issueId ${di.issueId}: context has [${ctxRefs}], diagnosis has [${diagRefs}]`));
+      const ctxRefs = new Set(ci.evidenceRefs);
+      const unsupportedRefs = di.evidenceRefs.filter(ref => !ctxRefs.has(ref));
+      if (unsupportedRefs.length > 0) {
+        errors.push(verr(
+          'REMEDIATION_REFERENCE_INVALID',
+          `diagnosis.issues[?].evidenceRefs`,
+          `Unsupported evidenceRefs for issueId ${di.issueId}: [${unsupportedRefs.sort().join(',')}]`,
+        ));
       }
     }
   }

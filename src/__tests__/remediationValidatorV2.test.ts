@@ -46,6 +46,50 @@ describe('validateRemediationPlanV2 — valid plan', () => {
     expect(result.valid).toBe(true);
     expect(result.errors).toHaveLength(0);
   });
+
+  it('accepts empty diagnosis evidenceRefs when the trusted context retains the evidence', () => {
+    const diagnosisWithReviewOnlyEvidence: DiagnosisExecutionResult = {
+      ...diagExec,
+      diagnosis: {
+        ...diagExec.diagnosis,
+        issues: diagExec.diagnosis.issues.map(issue => ({
+          ...issue,
+          evidenceRefs: [],
+          requiresHumanReview: true,
+        })),
+      },
+    };
+    const plan = buildRemediationPlanV2(diagnosisWithReviewOnlyEvidence);
+    const result = validateRemediationPlanV2(plan, diagnosisWithReviewOnlyEvidence);
+
+    expect(result.valid).toBe(true);
+    expect(result.errors).toHaveLength(0);
+    expect(plan.plan[0]?.evidenceRefs).toEqual(ctx.issues[0].evidenceRefs);
+  });
+
+  it('rejects evidenceRefs introduced by the diagnosis but absent from the trusted context', () => {
+    const diagnosisWithUnsupportedEvidence: DiagnosisExecutionResult = {
+      ...diagExec,
+      diagnosis: {
+        ...diagExec.diagnosis,
+        issues: diagExec.diagnosis.issues.map(issue => ({
+          ...issue,
+          evidenceRefs: ['ev:invented'],
+          requiresHumanReview: true,
+        })),
+      },
+    };
+    const plan = buildRemediationPlanV2(diagnosisWithUnsupportedEvidence);
+    const result = validateRemediationPlanV2(plan, diagnosisWithUnsupportedEvidence);
+
+    expect(result.valid).toBe(false);
+    expect(result.errors).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        code: 'REMEDIATION_REFERENCE_INVALID',
+        message: expect.stringContaining('ev:invented'),
+      }),
+    ]));
+  });
 });
 
 describe('validateRemediationPlanV2 — malformed input', () => {
