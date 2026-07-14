@@ -2,11 +2,13 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { ArrowLeft, ArrowRight, CheckCircle2, ClipboardCheck, Download, FileJson, FileText, Loader2, ShieldAlert, ShieldCheck, Terminal, Upload } from 'lucide-react';
 import { buildPythonExecutionBundle, parsePythonExecutionBundle, parsePythonExecutionReceipt, validatePythonExecutionChain } from '../services/remediationExecution/pythonExecutionContract';
 import type { PythonExecutionBundleV1, PythonExecutionReceiptV1 } from '../services/remediationExecution/pythonExecutionContract';
+import { compareReauditRules } from '../services/remediationExecution/verifiedRemediationEvidence';
+import type { VerifiedRemediationEvidence } from '../services/remediationExecution/verifiedRemediationEvidence';
 import { buildScriptHashPayloadV2 } from '../contracts/llm';
 import { sha256BytesHex } from '../contracts/llm/hash';
 import type { AuditReport, AuditExecutionEvidence } from '../types';
 import type { DiagnosisExecutionResult, ScriptContractV2, ScriptValidationResultV2 } from '../contracts/llm';
-import type { ApplyVerifyState } from './MainPipeline';
+import type { ApplyVerifyState, ReauditState } from './MainPipeline';
 
 const SHA256_HEX = /^[a-f0-9]{64}$/;
 const ENVELOPE_REF = /^env:[a-f0-9]{64}$/;
@@ -24,13 +26,16 @@ interface ApplyVerifyStepProps {
   executionValidationError?: string;
   executionBundleJson?: string;
   executionReceipt?: PythonExecutionReceiptV1;
+  reauditState?: ReauditState;
+  reauditError?: string;
+  verifiedEvidence?: VerifiedRemediationEvidence | null;
   onStateChange: (state: ApplyVerifyState) => void;
   onReceiptChange: (receipt?: PythonExecutionReceiptV1) => void;
   onErrorChange: (error: string) => void;
   onBundleJsonChange: (json: string) => void;
   onAfterFileChange: (afterFile: File | null) => void;
   onSourceFileChange: (file: File | null) => void;
-  onVerifiedExecution: (result: VerifiedRemediationExecution) => void;
+  onVerifiedExecution: (result: VerifiedRemediationExecution) => void | Promise<void>;
   onLog: (stage: string, msg: string) => void;
   onContinue: () => void;
   onBack: () => void;
@@ -60,6 +65,9 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
   executionValidationError,
   executionBundleJson,
   executionReceipt,
+  reauditState,
+  reauditError,
+  verifiedEvidence,
   onStateChange,
   onReceiptChange,
   onErrorChange,
@@ -86,6 +94,14 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
       setCopyLabel('Error al copiar');
     }
   };
+
+  const reauditSummary = useMemo(() => {
+    if (!verifiedEvidence) return null;
+    return {
+      beforeAfterSummary: verifiedEvidence.beforeAfterSummary,
+      rules: compareReauditRules(verifiedEvidence),
+    };
+  }, [verifiedEvidence]);
 
   const preconditions = useMemo(() => {
     const errors: string[] = [];
@@ -219,9 +235,9 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
       }
       onReceiptChange(receipt);
       onAfterFileChange(afterFile);
-      onVerifiedExecution({ bundle, receipt, afterFile });
       onStateChange('verified');
       onLog('execution.verified', `receipt=${receipt.receiptHash.slice(0, 12)} rows=${receipt.output?.rowCount} cols=${receipt.output?.columnCount}`);
+      await onVerifiedExecution({ bundle, receipt, afterFile });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       onErrorChange(msg);
@@ -384,7 +400,7 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
           <div className="evidence-options" style={{ marginBottom: 'var(--space-md)' }}>
             <CheckCircle2 size={16} />
             <div>
-              <strong>Ejecución verificada.</strong>
+              <strong>Ejecución Python verificada.</strong>
             </div>
           </div>
           <div className="apply-verify-info-grid">
@@ -421,11 +437,98 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
               <span className="info-value mono">{formatHashShort(executionReceipt.receiptHash)}</span>
             </div>
           </div>
-          <div className="btn-row" style={{ marginTop: 'var(--space-md)' }}>
-            <button className="btn-p" onClick={onContinue} data-testid="apply-verify-continue">
-              <ArrowRight size={16} /> Ir a Exportación
-            </button>
-          </div>
+
+          {reauditState === 'running' && (
+            <div className="evidence-options" style={{ marginTop: 'var(--space-md)' }} data-testid="apply-verify-reaudit-running">
+              <Loader2 size={16} className="spin" />
+              <div>
+                <strong>Reauditando resultado…</strong>
+                <p style={{ fontSize: '14px', marginTop: 'var(--space-xxs)' }}>
+                  AURA está ejecutando el mismo motor determinista sobre el CSV corregido.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {reauditState === 'failed' && (
+            <div className="evidence-options" style={{ marginTop: 'var(--space-md)' }} data-testid="apply-verify-reaudit-failed">
+              <ShieldAlert size={16} />
+              <div>
+                <strong>La reauditoría falló.</strong>
+                <p style={{ fontSize: '14px', marginTop: 'var(--space-xxs)' }}>
+                  El recibo Python sigue siendo válido, pero la remediación no puede declararse verificada.
+                </p>
+                {reauditError && <p style={{ fontSize: '13px', color: 'var(--ink-muted)' }}>{reauditError}</p>}
+              </div>
+            </div>
+          )}
+
+          {reauditState === 'completed' && verifiedEvidence && reauditSummary && (
+            <div style={{ marginTop: 'var(--space-md)' }} data-testid="apply-verify-reaudit-summary">
+              <div className="evidence-options" style={{ marginBottom: 'var(--space-md)' }}>
+                <ShieldCheck size={16} />
+                <div>
+                  <strong>Remediación reauditada.</strong>
+                  <p style={{ fontSize: '13px', color: 'var(--ink-muted)', marginTop: 'var(--space-xxs)' }}>
+                    Comparación reproducible con el mismo motor determinista (runAudit).
+                  </p>
+                </div>
+              </div>
+              <div className="apply-verify-info-grid">
+                <div className="apply-verify-info-item">
+                  <span className="apply-verify-info-label">Score antes</span>
+                  <span className="apply-verify-info-value" data-testid="reaudit-before-score">{reauditSummary.beforeAfterSummary.beforeScore}</span>
+                </div>
+                <div className="apply-verify-info-item">
+                  <span className="apply-verify-info-label">Score después</span>
+                  <span className="apply-verify-info-value" data-testid="reaudit-after-score">{reauditSummary.beforeAfterSummary.afterScore}</span>
+                </div>
+                <div className="apply-verify-info-item">
+                  <span className="apply-verify-info-label">Hallazgos antes</span>
+                  <span className="apply-verify-info-value" data-testid="reaudit-before-issues">{reauditSummary.beforeAfterSummary.beforeIssueCount}</span>
+                </div>
+                <div className="apply-verify-info-item">
+                  <span className="apply-verify-info-label">Hallazgos después</span>
+                  <span className="apply-verify-info-value" data-testid="reaudit-after-issues">{reauditSummary.beforeAfterSummary.afterIssueCount}</span>
+                </div>
+                <div className="apply-verify-info-item">
+                  <span className="apply-verify-info-label">Reglas corregidas</span>
+                  <span className="apply-verify-info-value" data-testid="reaudit-corrected-rules">{reauditSummary.rules.correctedRuleIds.length}</span>
+                </div>
+                <div className="apply-verify-info-item">
+                  <span className="apply-verify-info-label">Reglas persistentes</span>
+                  <span className="apply-verify-info-value" data-testid="reaudit-persistent-rules">{reauditSummary.rules.persistentRuleIds.length}</span>
+                </div>
+                <div className="apply-verify-info-item">
+                  <span className="apply-verify-info-label">Reglas nuevas</span>
+                  <span className="apply-verify-info-value" data-testid="reaudit-new-rules">{reauditSummary.rules.newRuleIds.length}</span>
+                </div>
+              </div>
+              {reauditSummary.rules.correctedRuleIds.length > 0 && (
+                <p style={{ fontSize: '13px', color: 'var(--ink-muted)', marginTop: 'var(--space-xs)' }} data-testid="reaudit-corrected-rules-list">
+                  Corregidas: {reauditSummary.rules.correctedRuleIds.join(', ')}
+                </p>
+              )}
+              {reauditSummary.rules.persistentRuleIds.length > 0 && (
+                <p style={{ fontSize: '13px', color: 'var(--ink-muted)' }} data-testid="reaudit-persistent-rules-list">
+                  Persistentes: {reauditSummary.rules.persistentRuleIds.join(', ')}
+                </p>
+              )}
+              {reauditSummary.rules.newRuleIds.length > 0 && (
+                <p style={{ fontSize: '13px', color: 'var(--ink-muted)' }} data-testid="reaudit-new-rules-list">
+                  Nuevas: {reauditSummary.rules.newRuleIds.join(', ')}
+                </p>
+              )}
+            </div>
+          )}
+
+          {reauditState === 'completed' && (
+            <div className="btn-row" style={{ marginTop: 'var(--space-md)' }}>
+              <button className="btn-p" onClick={onContinue} data-testid="apply-verify-continue">
+                <ArrowRight size={16} /> Ir a Exportación
+              </button>
+            </div>
+          )}
         </div>
       )}
 

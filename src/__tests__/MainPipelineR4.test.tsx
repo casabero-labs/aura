@@ -5,7 +5,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { savePipelineSession } from '../services/pipelineSession';
 import { buildPythonExecutionBundle, buildPythonExecutionReceipt } from '../services/remediationExecution/pythonExecutionContract';
 import type { PythonExecutionBundleV1, PythonExecutionReceiptV1 } from '../services/remediationExecution/pythonExecutionContract';
-import { sha256hex } from '../contracts/llm/hash';
+import { buildVerifiedRemediationEvidence } from '../services/remediationExecution/verifiedRemediationEvidence';
+import { sha256hex, sha256BytesHex } from '../contracts/llm/hash';
 
 const SCRIPT_TEXT = 'import pandas as pd\n\ndef clean_dataset(df):\n    df["Name"] = df["Name"].str.strip()\n    return df\n';
 const BEFORE_CSV = 'Name\n Alice \n';
@@ -71,5 +72,46 @@ describe('MainPipeline R4', () => {
     const stored = localStorage.getItem('aura_pipeline_session_v1') ?? '';
     expect(stored).not.toContain('verifiedExecution');
     expect(stored).not.toContain('afterFile');
+  });
+
+  it('savePipelineSession excludes verifiedEvidence (corrected CSV bytes) from JSON', () => {
+    const sourceFile = new File([BEFORE_CSV], 'source.csv', { type: 'text/csv' });
+    const bundle = buildBundle();
+    const receipt = makeReceipt(bundle);
+    const afterFile = new File([AFTER_CSV], 'corrected.csv', { type: 'text/csv' });
+    const verifiedEvidence = buildVerifiedRemediationEvidence({
+      bundle,
+      receipt,
+      sourceCsv: new TextEncoder().encode(BEFORE_CSV),
+      correctedCsv: new TextEncoder().encode(AFTER_CSV),
+      evidenceEnvelopeRef: bundle.evidenceEnvelopeRef!,
+    });
+    savePipelineSession({
+      state: 'execution',
+      file: sourceFile,
+      report: null, auditEvidence: null,
+      rawData: [], csvFields: [], csvDelimiter: ',',
+      cleaningScript: '', approvedScript: '', healthDelta: null,
+      aiAnalysis: '',
+      structuredDiagnosis: null, diagnosisFailureEvidence: null,
+      diagnosticReport: null, remediationPlan: null,
+      scriptContractV2: null, scriptContractVerificationV2: null,
+      benchmarkResults: [], improvementRun: null,
+      scriptValidation: null, deterministicValidation: null, logs: [],
+      executionState: 'verified',
+      executionBundleJson: JSON.stringify(bundle),
+      executionReceipt: receipt,
+      executionValidationError: '',
+      verifiedExecution: { bundle, receipt, afterFile },
+      reauditState: 'completed',
+      reauditError: '',
+      verifiedEvidence,
+    });
+    const stored = localStorage.getItem('aura_pipeline_session_v1') ?? '';
+    expect(stored).not.toContain('verifiedEvidence');
+    expect(stored).not.toContain('correctedCsv');
+    expect(stored).not.toContain('beforeReport');
+    expect(stored).not.toContain('afterReport');
+    expect(stored).not.toContain(AFTER_CSV.trim());
   });
 });

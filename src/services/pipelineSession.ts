@@ -9,7 +9,11 @@ export type PipelineSessionSnapshot = Omit<PipelineData, 'file'> & {
 };
 
 export const toPipelineSessionSnapshot = (data: PipelineData): PipelineSessionSnapshot => {
-  const { verifiedExecution: _verifiedExecution, ...rest } = data;
+  const {
+    verifiedExecution: _verifiedExecution,
+    verifiedEvidence: _verifiedEvidence,
+    ...rest
+  } = data;
   return {
     ...rest,
     file: null,
@@ -75,6 +79,10 @@ export const loadPipelineSession = (): PipelineSessionSnapshot | null => {
       result.executionState = 'awaiting_external_output';
       result.executionValidationError = 'Sesión restaurada. Los archivos CSV y recibo viven solo en memoria; volvé a seleccionarlos para revalidar.';
     }
+    // Reaudit evidence (corrected CSV bytes + reports) lives only in memory.
+    result.reauditState = 'not_run';
+    result.reauditError = '';
+    result.verifiedEvidence = null;
     return result;
   } catch {
     try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }

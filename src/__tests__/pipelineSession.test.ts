@@ -159,6 +159,72 @@ describe('pipelineSession', () => {
     expect(restored?.executionValidationError).toContain('memoria');
   });
 
+  it('resets reaudit state and drops verifiedEvidence on restore', () => {
+    mockLs.setItem('aura_pipeline_session_v1', JSON.stringify({
+      state: 'execution',
+      file: null,
+      fileMeta: { name: 'demo.csv', size: 10, type: 'text/csv', lastModified: 0 },
+      report: null,
+      auditEvidence: null,
+      rawData: [], csvFields: [], csvDelimiter: ',',
+      cleaningScript: '', approvedScript: '', healthDelta: null,
+      aiAnalysis: '',
+      structuredDiagnosis: null,
+      diagnosisFailureEvidence: null,
+      diagnosticReport: null,
+      remediationPlan: null,
+      scriptContractV2: null,
+      scriptContractVerificationV2: null,
+      benchmarkResults: [], improvementRun: null,
+      scriptValidation: null, deterministicValidation: null, logs: [],
+      executionState: 'verified',
+      executionBundleJson: '{"contractId":"test"}',
+      executionReceipt: { contractId: 'aura.python-execution-receipt.v1', contractVersion: '1.0.0' },
+      executionValidationError: '',
+      reauditState: 'completed',
+      reauditError: '',
+    }));
+
+    const restored = loadPipelineSession();
+    expect(restored?.reauditState).toBe('not_run');
+    expect(restored?.reauditError).toBe('');
+    expect(restored?.verifiedEvidence).toBeNull();
+  });
+
+  it('never persists verifiedEvidence (corrected CSV bytes) in localStorage', () => {
+    savePipelineSession({
+      state: 'execution',
+      file: null,
+      report: null,
+      auditEvidence: null,
+      rawData: [], csvFields: [], csvDelimiter: ',',
+      cleaningScript: '', approvedScript: '', healthDelta: null,
+      aiAnalysis: '',
+      structuredDiagnosis: null,
+      diagnosisFailureEvidence: null,
+      diagnosticReport: null,
+      remediationPlan: null,
+      scriptContractV2: null,
+      scriptContractVerificationV2: null,
+      benchmarkResults: [], improvementRun: null,
+      scriptValidation: null, deterministicValidation: null, logs: [],
+      executionState: 'verified',
+      executionBundleJson: '{}',
+      executionValidationError: '',
+      reauditState: 'completed',
+      reauditError: '',
+      verifiedEvidence: {
+        correctedCsv: new TextEncoder().encode('id,secret\n1,PII_VALUE\n'),
+        beforeAfterSummary: { beforeScore: 10, afterScore: 90 },
+      } as any,
+    });
+
+    const stored = mockLs.setItem.mock.calls.at(-1)?.[1] ?? '';
+    expect(stored).not.toContain('verifiedEvidence');
+    expect(stored).not.toContain('correctedCsv');
+    expect(stored).not.toContain('PII_VALUE');
+  });
+
   it('persists all cryptographic fields of executionReceipt', () => {
     savePipelineSession({
       state: 'execution',

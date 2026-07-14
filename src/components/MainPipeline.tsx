@@ -23,11 +23,15 @@ import type { DiagnosisExecutionResult, DiagnosisFailureEvidenceV2, RemediationP
 import { buildScriptHashPayloadV2, validateRemediationPlanV2, isContractsV2Enabled, verifyScriptContractV2 } from '../contracts/llm';
 import { canonicalJson } from '../contracts/llm/diagnosisPromptV2';
 import type { PythonExecutionReceiptV1 } from '../services/remediationExecution/pythonExecutionContract';
+import { buildVerifiedRemediationEvidence } from '../services/remediationExecution/verifiedRemediationEvidence';
+import type { VerifiedRemediationEvidence } from '../services/remediationExecution/verifiedRemediationEvidence';
 import ApplyVerifyStep, { type VerifiedRemediationExecution } from './ApplyVerifyStep';
 
 export type PipelineState = 'upload' | 'profile' | 'diagnosis' | 'diagnostic_report' | 'script' | 'review' | 'execution' | 'export';
 
 export type ApplyVerifyState = 'not_prepared' | 'ready' | 'awaiting_external_output' | 'validating' | 'verified' | 'invalid';
+
+export type ReauditState = 'not_run' | 'running' | 'completed' | 'failed';
 
 export interface PipelineData {
   state: PipelineState;
@@ -57,6 +61,9 @@ export interface PipelineData {
   executionReceipt?: PythonExecutionReceiptV1;
   executionValidationError?: string;
   verifiedExecution?: VerifiedRemediationExecution;
+  reauditState?: ReauditState;
+  reauditError?: string;
+  verifiedEvidence?: VerifiedRemediationEvidence | null;
 }
 
 interface MainPipelineProps {
@@ -129,6 +136,9 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
   const [executionValidationError, setExecutionValidationError] = useState(() => initialData?.executionValidationError ?? '');
   const [executionAfterFile, setExecutionAfterFile] = useState<File | null>(null);
   const [verifiedExecution, setVerifiedExecution] = useState<VerifiedRemediationExecution | null>(null);
+  const [reauditState, setReauditState] = useState<ReauditState>(() => initialData?.reauditState ?? 'not_run');
+  const [reauditError, setReauditError] = useState(() => initialData?.reauditError ?? '');
+  const [verifiedEvidence, setVerifiedEvidence] = useState<VerifiedRemediationEvidence | null>(null);
 
   const invalidateDescendants = (level: 'plan' | 'script' | 'approval') => {
     if (level === 'plan') {
@@ -147,6 +157,9 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
     setExecutionValidationError('');
     setExecutionAfterFile(null);
     setVerifiedExecution(null);
+    setReauditState('not_run');
+    setReauditError('');
+    setVerifiedEvidence(null);
   };
 
   // Sync pipeline data upward to parent (deferred to avoid overwriting App's session restore)
@@ -167,6 +180,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
       scriptContractVerificationV2,
       benchmarkResults, improvementRun, scriptValidation, deterministicValidation, logs,
       executionState, executionBundleJson, executionReceipt, executionValidationError, verifiedExecution,
+      reauditState, reauditError, verifiedEvidence,
     };
     onPipelineChange?.(pipelineData);
   }, [state, file, report, auditEvidence, rawData, csvFields, csvDelimiter,
@@ -178,7 +192,8 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
       scriptContractV2,
       scriptContractVerificationV2,
       benchmarkResults, improvementRun, scriptValidation, deterministicValidation, logs,
-      executionState, executionBundleJson, executionReceipt, executionValidationError, verifiedExecution]);
+      executionState, executionBundleJson, executionReceipt, executionValidationError, verifiedExecution,
+      reauditState, reauditError, verifiedEvidence]);
 
   // ── Phase 3 E2E Harness: expose injection callbacks on window ──
   useEffect(() => {
@@ -544,6 +559,49 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
     const entry = { time, msg };
     setLogs((prev) => [...prev, entry].slice(-18));
     onLog?.('pipeline', msg);
+  };
+
+  // ── Verified execution → real reaudit ──
+  // Runs immediately after AURA validates corrected.csv + receipt.json.
+  // The verified Python execution and the reaudit keep separate states: if
+  // the reaudit fails the Python receipt is preserved, but remediation is not
+  // declared verified. Never persists File/CSV/bytes in localStorage.
+  const handleVerifiedExecution = async (result: VerifiedRemediationExecution) => {
+    setVerifiedExecution(result);
+    setReauditState('running');
+    setReauditError('');
+    setVerifiedEvidence(null);
+    addLog('reaudit.started :: reauditando resultado verificado');
+    try {
+      if (!file) throw new Error('El CSV fuente no está disponible en memoria; volvé a seleccionarlo.');
+      const evidenceEnvelopeRef =
+        result.bundle.evidenceEnvelopeRef
+        ?? structuredDiagnosis?.evidenceEnvelopeRef
+        ?? null;
+      if (!evidenceEnvelopeRef) throw new Error('Falta el evidenceEnvelopeRef para reauditar.');
+      const [sourceBuf, correctedBuf] = await Promise.all([
+        file.arrayBuffer().then((b) => new Uint8Array(b)),
+        result.afterFile.arrayBuffer().then((b) => new Uint8Array(b)),
+      ]);
+      const evidence = buildVerifiedRemediationEvidence({
+        bundle: result.bundle,
+        receipt: result.receipt,
+        sourceCsv: sourceBuf,
+        correctedCsv: correctedBuf,
+        evidenceEnvelopeRef,
+        delimiter: csvDelimiter,
+      });
+      setVerifiedEvidence(evidence);
+      setReauditState('completed');
+      addLog(`reaudit.completed :: score ${evidence.beforeAfterSummary.beforeScore} → ${evidence.beforeAfterSummary.afterScore} · issues ${evidence.beforeAfterSummary.beforeIssueCount} → ${evidence.beforeAfterSummary.afterIssueCount}`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      // Preserve the valid Python receipt; do not claim verified remediation.
+      setVerifiedEvidence(null);
+      setReauditState('failed');
+      setReauditError(msg);
+      addLog(`reaudit.failed :: ${msg}`);
+    }
   };
 
   const processFile = async (uploadedFile: File) => {
@@ -957,7 +1015,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
               addLog('remediation.branch.export_main :: user exported without remediation');
               setState('export');
             }}
-            showExportMain={executionState !== 'verified'}
+            showExportMain={!(executionState === 'verified' && reauditState === 'completed')}
           />
           <ApplyVerifyStep
             state={executionState}
@@ -970,13 +1028,16 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
             sourceFile={file}
             sourceDatasetFingerprint={getScriptDatasetSha256(auditEvidence)}
             executionValidationError={executionValidationError}
+            reauditState={reauditState}
+            reauditError={reauditError}
+            verifiedEvidence={verifiedEvidence}
             onStateChange={setExecutionState}
             onReceiptChange={setExecutionReceipt}
             onErrorChange={setExecutionValidationError}
             onBundleJsonChange={setExecutionBundleJson}
             onAfterFileChange={setExecutionAfterFile}
             onSourceFileChange={setFile}
-            onVerifiedExecution={setVerifiedExecution}
+            onVerifiedExecution={handleVerifiedExecution}
             executionReceipt={executionReceipt}
             executionBundleJson={executionBundleJson}
             onLog={(stage, msg) => addLog(`${stage} :: ${msg}`)}

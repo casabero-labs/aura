@@ -9,6 +9,8 @@ import type { PythonExecutionReceiptV1, PythonExecutionBundleV1 } from '../servi
 import { buildPythonExecutionBundle, buildPythonExecutionReceipt } from '../services/remediationExecution/pythonExecutionContract';
 import { sha256hex } from '../contracts/llm/hash';
 import { computeScriptHashV2 } from '../contracts/llm/scriptBuilderV2';
+import { buildVerifiedRemediationEvidence } from '../services/remediationExecution/verifiedRemediationEvidence';
+import type { VerifiedRemediationEvidence } from '../services/remediationExecution/verifiedRemediationEvidence';
 import type { ScriptContractV2 } from '../contracts/llm';
 import type { AuditReport } from '../types';
 
@@ -537,6 +539,87 @@ describe('ApplyVerifyStep R3', () => {
         fireEvent.click(screen.getByTestId('apply-verify-copy-command'));
       });
       expect(writeText).toHaveBeenCalledWith('node experiments/runners/run-aura-remediation.mjs --bundle ./execution-bundle.json --input ./source.csv --output ./corrected.csv --receipt ./receipt.json');
+    });
+  });
+
+  describe('reaudit results after verification', () => {
+    const REAUDIT_BEFORE = 'id,name,email\n1,John,not_an_email\n2,Jane,jane@example.com\n';
+    const REAUDIT_AFTER = 'id,name,email\n1,John,john@example.com\n2,Jane,jane@example.com\n';
+    const encode = (text: string) => new TextEncoder().encode(text);
+
+    const buildEvidence = (): VerifiedRemediationEvidence => {
+      const bundle = buildCanonicalBundle();
+      const receipt = makeReceipt(bundle);
+      return buildVerifiedRemediationEvidence({
+        bundle,
+        receipt,
+        sourceCsv: encode(REAUDIT_BEFORE),
+        correctedCsv: encode(REAUDIT_AFTER),
+        evidenceEnvelopeRef: ENVELOPE_REF,
+      });
+    };
+
+    it('shows a running indicator while reaudit is in progress', () => {
+      render(<ApplyVerifyStep
+        {...defaultProps}
+        state="verified"
+        executionReceipt={makeReceipt(buildCanonicalBundle())}
+        reauditState="running"
+      />);
+      expect(screen.getByTestId('apply-verify-reaudit-running')).toBeTruthy();
+      expect(screen.queryByTestId('apply-verify-continue')).toBeFalsy();
+    });
+
+    it('renders before/after score, findings and rule sets when completed', () => {
+      const evidence = buildEvidence();
+      render(<ApplyVerifyStep
+        {...defaultProps}
+        state="verified"
+        executionReceipt={evidence.receipt}
+        reauditState="completed"
+        verifiedEvidence={evidence}
+      />);
+      expect(screen.getByTestId('reaudit-before-score').textContent).toBe(String(evidence.beforeAfterSummary.beforeScore));
+      expect(screen.getByTestId('reaudit-after-score').textContent).toBe(String(evidence.beforeAfterSummary.afterScore));
+      expect(screen.getByTestId('reaudit-before-issues').textContent).toBe(String(evidence.beforeAfterSummary.beforeIssueCount));
+      expect(screen.getByTestId('reaudit-after-issues').textContent).toBe(String(evidence.beforeAfterSummary.afterIssueCount));
+      expect(screen.getByTestId('reaudit-corrected-rules')).toBeTruthy();
+      expect(screen.getByTestId('reaudit-persistent-rules')).toBeTruthy();
+      expect(screen.getByTestId('reaudit-new-rules')).toBeTruthy();
+    });
+
+    it('enables "Ir a Exportación" only when reaudit is completed', () => {
+      const evidence = buildEvidence();
+      const { rerender } = render(<ApplyVerifyStep
+        {...defaultProps}
+        state="verified"
+        executionReceipt={evidence.receipt}
+        reauditState="running"
+      />);
+      expect(screen.queryByTestId('apply-verify-continue')).toBeFalsy();
+
+      rerender(<ApplyVerifyStep
+        {...defaultProps}
+        state="verified"
+        executionReceipt={evidence.receipt}
+        reauditState="completed"
+        verifiedEvidence={evidence}
+      />);
+      expect(screen.getByTestId('apply-verify-continue')).toBeTruthy();
+    });
+
+    it('keeps the Python receipt but blocks export when reaudit fails', () => {
+      const receipt = makeReceipt(buildCanonicalBundle());
+      render(<ApplyVerifyStep
+        {...defaultProps}
+        state="verified"
+        executionReceipt={receipt}
+        reauditState="failed"
+        reauditError="El CSV corregido está vacío o no es válido."
+      />);
+      expect(screen.getByTestId('apply-verify-reaudit-failed')).toBeTruthy();
+      expect(screen.getByTestId('apply-verify-verified')).toBeTruthy();
+      expect(screen.queryByTestId('apply-verify-continue')).toBeFalsy();
     });
   });
 });
