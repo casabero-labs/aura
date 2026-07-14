@@ -1,6 +1,6 @@
 # Hoja de ruta definitiva de AURA
 
-Última actualización: 13 de julio de 2026, 19:27 (America/Bogota).
+Última actualización: 13 de julio de 2026, 21:45 (America/Bogota).
 
 Este documento es la única referencia operativa para cerrar el TFM. La entrega
 académica vence el **miércoles 15 de julio de 2026 a las 15:00**. Hasta entregar,
@@ -27,9 +27,9 @@ esta fase; en el documento se verificará su grado de cumplimiento con evidencia
 |---|---|
 | Motor determinista | Cerrado y utilizable. |
 | Diagnóstico normal V2 | Conserva el contrato completo y ahora identifica explícitamente el truncamiento informado por Ollama. Pendiente repetir smoke con el dataset controlado simple. |
-| Informe PDF y exportación | Funcionales; existe ZIP de evidencia. |
-| Plan y script | Implementados con revisión humana. |
-| Aplicar y verificar | Integrado mediante PR #36; suficiente para esta entrega. |
+| Informe PDF y exportación | Funcionales; el ZIP incluye diagnóstico, script, ejecución, CSV corregido y reauditoría cuando la corrida se completa. |
+| Plan y script | Implementados de forma determinista con revisión humana. El LLM no escribe código ejecutable. |
+| Aplicar y verificar | Cerrado técnicamente: runner Python real, recibo, CSV corregido, reauditoría antes/después y ZIP completo. Pendiente una corrida humana final. |
 | Laboratorio | Preparado para piloto y campaña real. |
 | Evaluación formal | Pendiente de ejecutar. Es la prioridad inmediata. |
 | Documento final | Pendiente de resultados y consolidación. |
@@ -113,12 +113,30 @@ el piloto como evaluación exploratoria y se declarará la limitación.
 4. Preparar carpeta de entrega y copia de respaldo.
 5. Congelar cambios a las 12:00 para conservar tres horas de margen.
 
+## Cierre técnico alcanzado el 13 de julio
+
+La rama opcional de remediación quedó conectada de extremo a extremo:
+
+1. el diagnóstico LLM queda limitado a evidencia observada;
+2. AURA construye el plan y el script Python de forma determinista;
+3. la persona aprueba las acciones y el script;
+4. el runner local valida sintaxis y ejecuta Python/Pandas sobre una copia;
+5. AURA valida `corrected.csv` y `receipt.json`;
+6. AURA reaudita el resultado con el mismo motor determinista;
+7. el ZIP incorpora script, bundle, recibo, CSV corregido, reauditoría y resumen antes/después.
+
+Gates repetidos por el orquestador sobre `48f302d`:
+
+- 195/195 pruebas focalizadas;
+- typecheck y build correctos;
+- 3/3 E2E con runner y ZIP reales;
+- recibo alterado rechazado;
+- ausencia de `source.csv`, tamper y `force:true`.
+
 ## Trabajo diferido después del depósito
 
 No bloquea el documento del miércoles:
 
-- #32: reauditoría completa del CSV corregido;
-- #33: ampliar JSON y ZIP de remediación;
 - #34: QA integral y pulido final;
 - mejoras adicionales de hashes, contratos y recibos que no bloqueen corridas;
 - pulido visual menor de la rama opcional;
@@ -142,10 +160,11 @@ los modelos, los métodos y las condiciones realmente evaluadas.
 
 ## Próxima acción exacta
 
-**Completar primero `flujo5` con `synthetic_ground_truth.csv`: Qwen con
-`prompt_libre`, `smart_sample` y `recommended`. No iniciar todavía la campaña formal.** El orquestador revisará
-los tres ZIP y autorizará el cambio definitivo del protocolo a 27 corridas solo
-si la prueba no revela un bloqueo que obligue a repetirlas.
+**Publicar los commits aprobados y realizar una única corrida humana completa
+con `synthetic_ground_truth.csv`: diagnóstico → plan → aprobación → script →
+runner local → importación → reauditoría → ZIP.** Después de verificar ese ZIP,
+continuar `flujo5` con Qwen en `prompt_libre`, `smart_sample` y `recommended`.
+No iniciar todavía la campaña formal.
 
 ## Documentos vigentes relacionados
 

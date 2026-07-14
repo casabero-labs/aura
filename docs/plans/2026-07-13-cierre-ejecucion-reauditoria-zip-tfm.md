@@ -34,6 +34,8 @@ No incluye persistencia del CSV corregido tras recargar, ejecución de Python de
 
 ### Task 1: Cerrar el bloqueo de referencias del plan
 
+**Estado:** completada y validada.
+
 **Files:**
 - Modify: `src/contracts/llm/remediationValidatorV2.ts`
 - Test: `src/__tests__/remediationValidatorV2.test.ts`
@@ -83,9 +85,11 @@ El builder seguirá copiando `contextIssue.evidenceRefs` al plan.
 
 Expected: test PASS y una referencia inventada continúa fallando.
 
-**Estado:** implementado localmente; 19 pruebas específicas, typecheck y build aprobados.
+**Evidencia:** referencias vacías/subconjunto aceptadas; referencias inventadas bloqueadas.
 
 ### Task 2: Crear evidencia verificada de reauditoría
+
+**Estado:** completada y validada en `520bad2`.
 
 **Files:**
 - Create: `src/services/remediationExecution/verifiedRemediationEvidence.ts`
@@ -197,6 +201,8 @@ npm test -- --run __tests__/verifiedRemediationEvidence.test.ts __tests__/ApplyV
 
 ### Task 3: Añadir ejecución y reauditoría al ZIP
 
+**Estado:** completada y validada en `7a4a740`.
+
 **Files:**
 - Modify: `src/services/evidenceArchive.ts`
 - Modify: `src/App.tsx`
@@ -267,6 +273,8 @@ npm test -- --run __tests__/evidenceArchive.test.ts __tests__/exportJsonPrefligh
 
 ### Task 4: Certificar recorrido real de navegador
 
+**Estado:** completada y validada en `48f302d`; 3/3 E2E aprobados con runner Python y ZIP reales, sin tamper ni `force:true`.
+
 **Files:**
 - Modify: `src/components/ApplyVerifyStep.tsx`
 - Test: `src/__tests__/ApplyVerifyStep.test.tsx`
@@ -312,6 +320,8 @@ npx playwright test tests/e2e/apply-verify-e2e.spec.ts
 Expected: PASS con runner Python real.
 
 ### Task 5: Gates técnicos y recorrido humano único
+
+**Estado:** gates técnicos completados: 195/195 pruebas focalizadas, typecheck, build y 3/3 E2E. Pendiente únicamente el recorrido humano final.
 
 **Step 1: Focused regression**
 
