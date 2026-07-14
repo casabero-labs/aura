@@ -4,6 +4,7 @@ import {
   type DiagnosisInputPackageV2,
 } from '../contracts/llm';
 import type { buildAuraExportPackage } from './exportPackage';
+import type { VerifiedRemediationEvidence } from './remediationExecution/verifiedRemediationEvidence';
 
 export const AURA_EVIDENCE_PACKAGE_CONTRACT = 'aura.evidence-package.v1' as const;
 
@@ -14,6 +15,7 @@ export interface EvidenceArchiveInput {
   issuesCsv: string;
   diagnosticPdf?: Uint8Array | null;
   activityLog?: Array<{ time: string; msg: string }>;
+  verifiedExecution?: VerifiedRemediationEvidence | null;
 }
 
 export interface EvidenceArchiveManifestFile {
@@ -34,6 +36,8 @@ export interface EvidenceArchiveManifest {
   diagnosisReceiptHash: string | null;
   privacy: {
     rawDatasetIncluded: false;
+    correctedDatasetIncluded: boolean;
+    correctedDatasetMayContainPersonalData: boolean;
     note: string;
   };
   snapshots: {
@@ -143,6 +147,7 @@ export const buildEvidenceArchive = async ({
   issuesCsv,
   diagnosticPdf = null,
   activityLog = [],
+  verifiedExecution = null,
 }: EvidenceArchiveInput): Promise<EvidenceArchiveResult> => {
   const files: Record<string, PendingFile> = {};
   const identity = technicalExport.artifactIdentity;
@@ -151,6 +156,21 @@ export const buildEvidenceArchive = async ({
   const snapshot = isRecord(diagnosis.inputSnapshot)
     ? diagnosis.inputSnapshot as unknown as DiagnosisInputPackageV2
     : null;
+
+  // ── Verified execution + reaudit gate ──
+  // corrected.csv may only enter the ZIP after a verified execution AND a
+  // completed reaudit. The original source.csv is never included.
+  const hasVerifiedExecution = Boolean(
+    verifiedExecution
+    && verifiedExecution.bundle
+    && verifiedExecution.receipt
+    && verifiedExecution.correctedCsv
+    && verifiedExecution.correctedCsv.byteLength > 0
+    && verifiedExecution.reaudit
+    && verifiedExecution.reaudit.beforeReport
+    && verifiedExecution.reaudit.afterReport
+    && verifiedExecution.beforeAfterSummary,
+  );
 
   const readme = [
     '# AURA - Paquete completo de evidencia',
@@ -165,6 +185,14 @@ export const buildEvidenceArchive = async ({
     'Puede incluir muestras visibles de los hallazgos y del payload; revísalo antes de compartirlo fuera del entorno autorizado.',
     'Las capturas SVG son vistas reproducibles generadas desde los contratos; no son screenshots del navegador.',
     'manifest.json contiene el SHA-256 y tamaño de cada archivo incluido.',
+    '',
+    '## Datasets',
+    '',
+    '- El CSV original (source.csv) NO está incluido en este ZIP; solo se conserva su SHA-256.',
+    hasVerifiedExecution
+      ? '- corrected.csv SÍ está incluido en execution/ porque esta corrida tiene ejecución Python y reauditoría verificadas.'
+      : '- corrected.csv NO está incluido: esta corrida no completó una ejecución Python + reauditoría verificadas.',
+    '- corrected.csv es el resultado de la remediación y puede conservar datos personales (PII); trátalo con el mismo cuidado que el original antes de compartirlo.',
     '',
   ].join('\n');
 
@@ -201,6 +229,21 @@ export const buildEvidenceArchive = async ({
     : 'Script revisado sin contrato aura.script.v2; no acredita ejecución ni procedencia contractual.';
   addFile(files, scriptPath, script.approvedScript, 'text/x-python', scriptDescription);
   addFile(files, 'activity/pipeline.log', activityLog.map((entry) => `${entry.time}\t${entry.msg}`).join('\n') + (activityLog.length ? '\n' : ''), 'text/plain', 'Secuencia local de eventos del flujo.');
+
+  // ── Execution + reaudit artifacts (verified runs only) ──
+  if (hasVerifiedExecution && verifiedExecution) {
+    const reauditResult = {
+      summary: verifiedExecution.reaudit.summary,
+      output: verifiedExecution.reaudit.output,
+      beforeReport: verifiedExecution.reaudit.beforeReport,
+      afterReport: verifiedExecution.reaudit.afterReport,
+    };
+    addFile(files, 'execution/execution-bundle.json', json(verifiedExecution.bundle), 'application/json', 'Bundle determinista aprobado y ejecutado en Python.');
+    addFile(files, 'execution/receipt.json', json(verifiedExecution.receipt), 'application/json', 'Recibo criptográfico de la ejecución Python verificada.');
+    addFile(files, 'execution/corrected.csv', verifiedExecution.correctedCsv, 'text/csv', 'Dataset corregido resultante de la ejecución verificada; puede contener PII.');
+    addFile(files, 'execution/reaudit-result.json', json(reauditResult), 'application/json', 'Reauditoría determinista: summary, output y reportes before/after sin datos crudos.');
+    addFile(files, 'execution/before-after-summary.json', json(verifiedExecution.beforeAfterSummary), 'application/json', 'Comparación score/hallazgos antes y después de la remediación.');
+  }
 
   const report = isRecord(technicalExport.diagnosticReport) ? technicalExport.diagnosticReport : null;
   const reportMetadata: Record<string, any> = report && isRecord(report.metadata) ? report.metadata : {};
@@ -256,7 +299,11 @@ export const buildEvidenceArchive = async ({
     diagnosisReceiptHash: identity.diagnosisReceiptHash,
     privacy: {
       rawDatasetIncluded: false,
-      note: 'El CSV original permanece fuera del ZIP; su identidad se verifica mediante datasetSha256. El expediente puede conservar muestras visibles de la evidencia.',
+      correctedDatasetIncluded: hasVerifiedExecution,
+      correctedDatasetMayContainPersonalData: hasVerifiedExecution,
+      note: hasVerifiedExecution
+        ? 'El CSV original permanece fuera del ZIP; su identidad se verifica mediante datasetSha256. Se incluye corrected.csv de una ejecución verificada, que puede conservar datos personales (PII). El expediente puede conservar muestras visibles de la evidencia.'
+        : 'El CSV original permanece fuera del ZIP; su identidad se verifica mediante datasetSha256. El expediente puede conservar muestras visibles de la evidencia.',
     },
     snapshots: {
       kind: 'reproducible_svg_evidence',

@@ -147,6 +147,9 @@ const App: React.FC = () => {
         executionBundleJson: (snap as any).executionBundleJson ?? '',
         executionReceipt: (snap as any).executionReceipt ?? undefined,
         executionValidationError: (snap as any).executionValidationError ?? '',
+        reauditState: (snap as any).reauditState ?? 'not_run',
+        reauditError: (snap as any).reauditError ?? '',
+        verifiedEvidence: (snap as any).verifiedEvidence ?? null,
       };
     }
     return INITIAL_PIPELINE_DATA;
@@ -528,6 +531,19 @@ const App: React.FC = () => {
       return;
     }
 
+    // If the UI claims a verified execution + completed reaudit but the
+    // in-memory evidence (corrected.csv bytes + reaudit reports) is missing,
+    // stop the full ZIP and ask to reimport the output files.
+    const claimsVerifiedRemediation =
+      pipelineData.executionState === 'verified'
+      && pipelineData.reauditState === 'completed';
+    if (claimsVerifiedRemediation && !pipelineData.verifiedEvidence) {
+      setEvidencePackageError(
+        'La ejecución figura como verificada, pero corrected.csv y receipt.json ya no están en memoria. Volvé al paso "Aplicar y verificar" y reimportá ambos archivos antes de descargar el ZIP.',
+      );
+      return;
+    }
+
     setIsEvidencePackageGenerating(true);
     setEvidencePackageError(null);
     try {
@@ -548,6 +564,7 @@ const App: React.FC = () => {
         issuesCsv,
         diagnosticPdf,
         activityLog: logs,
+        verifiedExecution: pipelineData.verifiedEvidence ?? null,
       });
       downloadBlob(
         archive.filename,

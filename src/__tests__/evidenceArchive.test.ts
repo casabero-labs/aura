@@ -7,6 +7,13 @@ import {
   buildEvidenceArchive,
   type EvidenceArchiveManifest,
 } from '../services/evidenceArchive';
+import {
+  buildPythonExecutionBundle,
+  buildPythonExecutionReceipt,
+} from '../services/remediationExecution/pythonExecutionContract';
+import { buildVerifiedRemediationEvidence } from '../services/remediationExecution/verifiedRemediationEvidence';
+import type { VerifiedRemediationEvidence } from '../services/remediationExecution/verifiedRemediationEvidence';
+import { sha256hex, sha256BytesHex } from '../contracts/llm/hash';
 import type { AuditReport } from '../types';
 
 const report: AuditReport = {
@@ -47,6 +54,72 @@ const buildTechnicalExport = () => buildAuraExportPackage({
   improvementRun: null,
 });
 
+const APPROVED_SCRIPT = 'import pandas as pd\n\ndef clean_dataset(df):\n    return df\n';
+const SCRIPT_HASH = sha256hex(JSON.stringify({ scriptText: APPROVED_SCRIPT }));
+const BEFORE_CSV = 'id,name,email\n1,John,not_an_email\n2,Jane,jane@example.com\n';
+const AFTER_CSV = 'id,name,email\n1,John,john@example.com\n2,Jane,jane@example.com\n';
+const ENVELOPE_REF = 'env:' + 'c'.repeat(64);
+const encode = (text: string) => new TextEncoder().encode(text);
+const BEFORE_BYTES = encode(BEFORE_CSV);
+const AFTER_BYTES = encode(AFTER_CSV);
+const FINGERPRINT = sha256BytesHex(BEFORE_BYTES);
+
+const buildApprovedTechnicalExport = () => {
+  const technicalExport = buildTechnicalExport() as any;
+  technicalExport.script = {
+    generatedScript: APPROVED_SCRIPT,
+    scriptValidation: null,
+    approvedScript: APPROVED_SCRIPT,
+    remediationPlan: { planId: 'plan-1', plan: [] },
+    contract: {
+      acceptedActionIds: [], rejectedActionIds: [], excludedActionIds: [],
+      scriptHash: SCRIPT_HASH,
+    },
+    verification: { valid: true, errors: [] },
+    approvalStatus: 'approved',
+  };
+  return technicalExport;
+};
+
+const buildVerifiedEvidence = (): VerifiedRemediationEvidence => {
+  const bundle = buildPythonExecutionBundle({
+    generatedAt: '2026-07-13T12:00:00.000Z',
+    executionId: 'run:verified',
+    approvedScriptHash: SCRIPT_HASH,
+    beforeDatasetSha256: FINGERPRINT,
+    scriptText: APPROVED_SCRIPT,
+    scriptHashPayload: { scriptText: APPROVED_SCRIPT },
+    inputReceiptRef: 'b'.repeat(64),
+    evidenceEnvelopeRef: ENVELOPE_REF,
+  });
+  const receipt = buildPythonExecutionReceipt({
+    contractId: 'aura.python-execution-receipt.v1',
+    contractVersion: '1.0.0',
+    runId: bundle.runId,
+    approvedScriptHash: bundle.approvedScriptHash,
+    scriptTextSha256: bundle.scriptTextSha256,
+    beforeDatasetSha256: bundle.beforeDatasetSha256,
+    afterDatasetSha256: sha256BytesHex(AFTER_BYTES),
+    pythonVersion: '3.12.1', pandasVersion: '2.2.0', platform: 'darwin',
+    bundleHash: bundle.bundleHash,
+    inputReceiptRef: bundle.inputReceiptRef,
+    evidenceEnvelopeRef: bundle.evidenceEnvelopeRef,
+    syntax: { status: 'passed', error: null },
+    execution: {
+      status: 'passed', startedAt: '2026-07-13T12:01:00.000Z', completedAt: '2026-07-13T12:01:01.000Z',
+      durationMs: 1000, stdoutSha256: sha256hex(''), stderrSha256: sha256hex(''), error: null,
+    },
+    output: { rowCount: 2, columnCount: 3 },
+  });
+  return buildVerifiedRemediationEvidence({
+    bundle,
+    receipt,
+    sourceCsv: BEFORE_BYTES,
+    correctedCsv: AFTER_BYTES,
+    evidenceEnvelopeRef: ENVELOPE_REF,
+  });
+};
+
 describe('buildEvidenceArchive', () => {
   it('consolida el expediente sin incluir el dataset original', async () => {
     const result = await buildEvidenceArchive({
@@ -81,6 +154,25 @@ describe('buildEvidenceArchive', () => {
     expect(strFromU8(files['README.md'])).toContain('No incluye el CSV original');
   });
 
+  it('un paquete diagnóstico sin remediación no incluye execution/* y declara que no hubo ejecución', async () => {
+    const result = await buildEvidenceArchive({
+      technicalExport: buildTechnicalExport(),
+      issuesCsv: 'id,ruleId\nissue-1,rule:test\n',
+    });
+    const files = unzipSync(result.bytes);
+    const paths = Object.keys(files);
+    const manifest = JSON.parse(strFromU8(files['manifest.json'])) as EvidenceArchiveManifest;
+
+    expect(paths.some(path => path.startsWith('execution/'))).toBe(false);
+    expect(paths).not.toContain('execution/corrected.csv');
+    expect(manifest.privacy.correctedDatasetIncluded).toBe(false);
+    expect(manifest.privacy.correctedDatasetMayContainPersonalData).toBe(false);
+    expect(strFromU8(files['README.md'])).toContain('corrected.csv NO está incluido');
+    // Diagnostic-only package is still a valid expediente.
+    expect(manifest.contractId).toBe(AURA_EVIDENCE_PACKAGE_CONTRACT);
+    expect(manifest.files.some(file => file.path === 'findings/issues.csv')).toBe(true);
+  });
+
   it('incluye respuesta exacta y gobierno de remediación cuando están disponibles', async () => {
     const technicalExport = buildTechnicalExport() as any;
     technicalExport.diagnosis.status = 'valid';
@@ -110,5 +202,104 @@ describe('buildEvidenceArchive', () => {
     expect(files).toHaveProperty('remediation/script-contract.json');
     expect(files).toHaveProperty('remediation/script-verification.json');
     expect(strFromU8(files['remediation/approved-script.py'])).toBe('print("ok")\n');
+  });
+
+  describe('verified execution + reaudit artifacts', () => {
+    it('incluye los seis artefactos obligatorios de una corrida verificada', async () => {
+      const result = await buildEvidenceArchive({
+        technicalExport: buildApprovedTechnicalExport(),
+        issuesCsv: 'id\n',
+        verifiedExecution: buildVerifiedEvidence(),
+      });
+      const files = unzipSync(result.bytes);
+
+      expect(files).toHaveProperty('remediation/approved-script.py');
+      expect(files).toHaveProperty('execution/execution-bundle.json');
+      expect(files).toHaveProperty('execution/receipt.json');
+      expect(files).toHaveProperty('execution/corrected.csv');
+      expect(files).toHaveProperty('execution/reaudit-result.json');
+      expect(files).toHaveProperty('execution/before-after-summary.json');
+    });
+
+    it('corrected.csv conserva los bytes exactos', async () => {
+      const result = await buildEvidenceArchive({
+        technicalExport: buildApprovedTechnicalExport(),
+        issuesCsv: 'id\n',
+        verifiedExecution: buildVerifiedEvidence(),
+      });
+      const files = unzipSync(result.bytes);
+      expect(files['execution/corrected.csv']).toEqual(AFTER_BYTES);
+      expect(strFromU8(files['execution/corrected.csv'])).toBe(AFTER_CSV);
+    });
+
+    it('manifest registra tamaño y SHA-256 correctos de corrected.csv', async () => {
+      const result = await buildEvidenceArchive({
+        technicalExport: buildApprovedTechnicalExport(),
+        issuesCsv: 'id\n',
+        verifiedExecution: buildVerifiedEvidence(),
+      });
+      const files = unzipSync(result.bytes);
+      const manifest = JSON.parse(strFromU8(files['manifest.json'])) as EvidenceArchiveManifest;
+      const entry = manifest.files.find(file => file.path === 'execution/corrected.csv');
+
+      expect(entry).toBeDefined();
+      expect(entry!.bytes).toBe(AFTER_BYTES.byteLength);
+      expect(entry!.sha256).toBe(sha256BytesHex(AFTER_BYTES));
+      expect(manifest.privacy.correctedDatasetIncluded).toBe(true);
+      expect(manifest.privacy.correctedDatasetMayContainPersonalData).toBe(true);
+    });
+
+    it('nunca incluye source.csv ni el dataset original en una corrida verificada', async () => {
+      const result = await buildEvidenceArchive({
+        technicalExport: buildApprovedTechnicalExport(),
+        issuesCsv: 'id\n',
+        verifiedExecution: buildVerifiedEvidence(),
+      });
+      const files = unzipSync(result.bytes);
+      const paths = Object.keys(files);
+
+      expect(paths).not.toContain('source.csv');
+      expect(paths).not.toContain('execution/source.csv');
+      expect(paths.some(path => /source\.csv|raw.*\.csv|dataset.*\.csv/i.test(path))).toBe(false);
+      // corrected.csv must not carry the original before-remediation bytes.
+      expect(strFromU8(files['execution/corrected.csv'])).not.toBe(BEFORE_CSV);
+    });
+
+    it('reaudit-result.json solo contiene summary/output/beforeReport/afterReport sin datos crudos', async () => {
+      const result = await buildEvidenceArchive({
+        technicalExport: buildApprovedTechnicalExport(),
+        issuesCsv: 'id\n',
+        verifiedExecution: buildVerifiedEvidence(),
+      });
+      const files = unzipSync(result.bytes);
+      const raw = strFromU8(files['execution/reaudit-result.json']);
+      const parsed = JSON.parse(raw);
+
+      expect(Object.keys(parsed).sort()).toEqual(['afterReport', 'beforeReport', 'output', 'summary']);
+      expect(parsed).not.toHaveProperty('beforeOutput');
+      expect(parsed).not.toHaveProperty('afterOutput');
+      expect(raw).not.toContain('rawCsv');
+      expect(raw).not.toContain('beforeOutput');
+      expect(raw).not.toContain('afterOutput');
+    });
+
+    it('una ejecución incompleta no finge artefactos execution/*', async () => {
+      const incomplete = buildVerifiedEvidence();
+      // Drop the corrected CSV bytes → run is no longer verifiable.
+      const tampered = { ...incomplete, correctedCsv: new Uint8Array(0) } as VerifiedRemediationEvidence;
+
+      const result = await buildEvidenceArchive({
+        technicalExport: buildApprovedTechnicalExport(),
+        issuesCsv: 'id\n',
+        verifiedExecution: tampered,
+      });
+      const files = unzipSync(result.bytes);
+      const paths = Object.keys(files);
+      const manifest = JSON.parse(strFromU8(files['manifest.json'])) as EvidenceArchiveManifest;
+
+      expect(paths.some(path => path.startsWith('execution/'))).toBe(false);
+      expect(manifest.privacy.correctedDatasetIncluded).toBe(false);
+      expect(manifest.privacy.correctedDatasetMayContainPersonalData).toBe(false);
+    });
   });
 });

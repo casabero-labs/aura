@@ -187,11 +187,60 @@ describe('JSON technical export preflight integration', () => {
         issuesCsv: expect.stringContaining('runId'),
         diagnosticPdf: null,
         activityLog: [],
+        verifiedExecution: null,
       }));
       expect(downloadBlob).toHaveBeenCalledWith(
         'aura_evidencia_test.zip',
         expect.any(Blob),
       );
     });
+  });
+
+  it('blocks the complete ZIP when a verified execution is claimed but its evidence is missing', async () => {
+    const user = userEvent.setup();
+    vi.mocked(validateAuraExportPackage).mockReturnValue({
+      valid: true,
+      errors: [],
+      warnings: [],
+    });
+    vi.mocked(loadPipelineSession).mockReturnValue({
+      state: 'export',
+      file: null,
+      report,
+      auditEvidence: null,
+      rawData: [],
+      csvFields: [],
+      csvDelimiter: ',',
+      cleaningScript: '',
+      approvedScript: '',
+      healthDelta: null,
+      aiAnalysis: 'Diagnóstico de prueba.',
+      structuredDiagnosis: null,
+      diagnosisFailureEvidence: null,
+      diagnosticReport: null,
+      remediationPlan: null,
+      scriptContractV2: null,
+      scriptContractVerificationV2: null,
+      benchmarkResults: [],
+      improvementRun: null,
+      scriptValidation: null,
+      deterministicValidation: null,
+      logs: [],
+      executionState: 'verified',
+      reauditState: 'completed',
+      verifiedEvidence: null,
+      savedAt: '2026-07-04T12:00:00.000Z',
+    } as any);
+
+    render(<App />);
+    await user.click(screen.getByRole('button', { name: 'Empezar auditoría' }));
+    await user.click(screen.getByTestId('export-download-evidence-package'));
+
+    await waitFor(() => {
+      const warning = screen.getByTestId('export-evidence-package-warning');
+      expect(warning.textContent).toContain('reimportá');
+    });
+    expect(buildEvidenceArchive).not.toHaveBeenCalled();
+    expect(downloadBlob).not.toHaveBeenCalled();
   });
 });
