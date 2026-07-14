@@ -24,6 +24,9 @@ import ExperimentRunDetail from './ExperimentRunDetail';
 import HumanRubricPanel from './HumanRubricPanel';
 import ExecutionEvidencePanel from './ExecutionEvidencePanel';
 import CampaignReportPanel from './CampaignReportPanel';
+import { useOllamaModelCatalog } from '../../services/useOllamaModelCatalog';
+import { ollamaModelId } from '../../services/ollamaModelCatalog';
+import { FINAL_EVALUATION_PROTOCOL } from '../../services/benchmark/finalEvaluationProtocol';
 
 export interface ExperimentCampaignBundle {
   campaign: ExperimentCampaignV1;
@@ -43,6 +46,7 @@ interface BenchmarkCampaignLabProps {
   importAfterCsv?: (run: ExperimentRunV1, csvFile: File, receiptFile: File) => Promise<ExperimentRunV1>;
   onExport?: (evidencePackage: ExperimentEvidencePackage) => void;
   now?: () => string;
+  ollamaBaseUrl?: string;
 }
 
 type CampaignPhase = 'idle' | 'running' | 'paused' | 'finished';
@@ -63,7 +67,9 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
   importAfterCsv,
   onExport,
   now = () => new Date().toISOString(),
+  ollamaBaseUrl = 'http://127.0.0.1:11434',
 }) => {
+  const ollamaCatalog = useOllamaModelCatalog(ollamaBaseUrl);
   const store = useMemo(
     () => suppliedStore ?? createIndexedDbExperimentStore(),
     [suppliedStore],
@@ -152,6 +158,11 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
       ? exportExperimentEvidencePackage({ campaign: campaignForEvidence, runs, generatedAt: evidenceDocument.generatedAt })
       : null
   ), [campaignForEvidence, evidenceDocument, runs]);
+  const installedModelIds = useMemo(
+    () => new Set(ollamaCatalog.models.map(ollamaModelId)),
+    [ollamaCatalog.models],
+  );
+  const formalModelsInstalled = FINAL_EVALUATION_PROTOCOL.models.every((modelId) => installedModelIds.has(modelId));
 
   const createCampaign = async () => {
     if (!createCampaignBundle) return;
@@ -312,8 +323,15 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
       {!campaign ? (
         <CampaignSetupPanel
           creating={creating}
-          canCreate={Boolean(createCampaignBundle)}
-          blocker={createCampaignBundle ? undefined : 'Carga y audita el dataset controlado; AURA ejecutará el preflight antes de crear el experimento.'}
+          canCreate={Boolean(createCampaignBundle) && formalModelsInstalled}
+          blocker={!createCampaignBundle
+            ? 'Carga y audita el dataset controlado; AURA ejecutará el preflight antes de crear el experimento.'
+            : !formalModelsInstalled
+              ? 'Instala o refresca los tres modelos de la campaña antes de crear el experimento.'
+              : undefined}
+          installedModels={ollamaCatalog.models}
+          modelCatalogLoading={ollamaCatalog.loading}
+          onRefreshModels={ollamaCatalog.refresh}
           onCreate={createCampaign}
         />
       ) : (

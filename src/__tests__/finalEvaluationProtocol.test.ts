@@ -83,11 +83,10 @@ interface ModelEntry {
   id: string;
   quantization: string;
   referenceSizeGB: number;
-  expectedGgufSha256: string;
-  localOllamaDigest: string | null;
 }
 
 interface ModelManifest {
+  digestPolicy: string;
   models: ModelEntry[];
 }
 
@@ -380,24 +379,20 @@ describe('OE4 final evaluation protocol — Task 1', () => {
   });
 
   describe('model manifest', () => {
-    it('pins exactly the three Unsloth models with UD-Q4_K_XL and exact SHA-256', () => {
+    it('pins the three eligible Unsloth IDs while capturing installed digests dynamically', () => {
       const manifest = readJson<ModelManifest>(MANIFEST_JSON);
+      expect(manifest.digestPolicy).toBe('capture_from_ollama_api_tags_at_campaign_creation');
       expect(manifest.models.length).toBe(3);
       const ids = manifest.models.map((m) => m.id);
       expect(ids).toEqual([
-        'hf.co/unsloth/Qwen3-8B-GGUF:UD-Q4_K_XL',
+        'hf.co/unsloth/Qwen3.5-4B-GGUF:UD-Q4_K_XL',
         'hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL',
         'hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL',
       ]);
-      const expected = [
-        '34a514d08f7449cb4a694a707aaa2eedccb7bb68290121bf5e5a569b2abe71c3',
-        'b3052f962d6449b4eb2075733c068bdec1c51eadb7b237e6c3157bfbb7b1dae0',
-        '305234462409d659233b0ea75fd1e070cc28d5add7d0480f2db02387679e3d0c',
-      ];
       for (let i = 0; i < manifest.models.length; i++) {
         expect(manifest.models[i].quantization).toBe('UD-Q4_K_XL');
-        expect(manifest.models[i].expectedGgufSha256).toBe(expected[i]);
-        expect(manifest.models[i].localOllamaDigest).toBeNull();
+        expect(manifest.models[i]).not.toHaveProperty('expectedGgufSha256');
+        expect(manifest.models[i]).not.toHaveProperty('localOllamaDigest');
       }
     });
 

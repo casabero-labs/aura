@@ -25,20 +25,27 @@ describe('AI configuration storage', () => {
     expect(loaded.apiKey).toBe('session-secret');
   });
 
-  it('migrates the two superseded formal Ollama models before restoring or syncing', () => {
+  it('migrates superseded formal Ollama models before restoring or syncing', () => {
+    const legacyQwen = 'hf.co/unsloth/Qwen3-8B-GGUF:UD-Q4_K_XL';
     const legacyGemma = 'hf.co/unsloth/gemma-3-4b-it-qat-GGUF:UD-Q4_K_XL';
     const legacyDeepSeek = 'hf.co/unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF:UD-Q4_K_XL';
     const loaded = loadAIConfig(config, {
       getItem: () => JSON.stringify({
         ...config,
         providerType: 'ollama',
-        model: legacyGemma,
+        model: legacyQwen,
         ollamaModel: legacyDeepSeek,
       }),
     }, { getItem: () => null });
 
-    expect(loaded.model).toBe('hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL');
+    expect(loaded.model).toBe('hf.co/unsloth/Qwen3.5-4B-GGUF:UD-Q4_K_XL');
     expect(loaded.ollamaModel).toBe('hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL');
-    expect(JSON.stringify(sanitizeAIConfig(loaded))).not.toMatch(/gemma-3-4b|DeepSeek-R1-0528/);
+    expect(JSON.stringify(sanitizeAIConfig(loaded))).not.toMatch(/Qwen3-8B|gemma-3-4b|DeepSeek-R1-0528/);
+
+    expect(sanitizeAIConfig({
+      ...config,
+      providerType: 'ollama',
+      model: legacyGemma,
+    }).model).toBe('hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL');
   });
 });

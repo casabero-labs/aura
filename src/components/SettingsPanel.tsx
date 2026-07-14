@@ -17,12 +17,14 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { AIConfig, CloudProvider, InputMode, ProviderProgressEvent } from '../types';
-import { AVAILABLE_MODELS, OLLAMA_MODELS, getChromeAiDiagnostic } from '../services/aiProvider';
+import { AVAILABLE_MODELS, getChromeAiDiagnostic } from '../services/aiProvider';
 import type { ChromeAiDiagnostic } from '../services/aiProvider';
 import { OLLAMA_SUGGESTED_MODELS, OllamaProvider } from '../services/providers/ollamaProvider';
 import type { OllamaModel } from '../services/providers/ollamaProvider';
 import OllamaSetupWizard from './OllamaSetupWizard';
 import { DEFAULT_OLLAMA_MODEL_ID } from '../services/modelRegistry';
+import { migrateFormalModelId } from '../services/aiConfigStorage';
+import { ollamaModelDisplayName, ollamaModelId, refreshOllamaModelCatalog } from '../services/ollamaModelCatalog';
 
 interface SettingsPanelProps {
   config: AIConfig;
@@ -199,23 +201,19 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
     setOllamaConnected(null);
     try {
       const baseUrl = localConfig.ollamaBaseUrl || 'http://localhost:11434';
-      const response = await fetch(`${baseUrl}/api/tags`, { signal: AbortSignal.timeout(5000) });
-      if (!response.ok) {
-        setOllamaConnected(false);
-        return;
-      }
-      const data = await response.json();
+      const snapshot = await refreshOllamaModelCatalog(baseUrl);
       setOllamaConnected(true);
-      setOllamaModels(data.models || []);
+      setOllamaModels(snapshot.models);
     } catch {
       setOllamaConnected(false);
+      setOllamaModels([]);
     }
   };
 
   const setProviderType = (type: 'chrome' | 'ollama' | 'cloud') => {
     if (type === 'ollama') {
       const savedEndpoint = localStorage.getItem('aura_ollama_endpoint');
-      const savedModel = localStorage.getItem('aura_ollama_model');
+      const savedModel = migrateFormalModelId(localStorage.getItem('aura_ollama_model') ?? undefined);
       const updated = {
         ...localConfig,
         providerType: 'ollama' as const,
@@ -363,7 +361,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
   const chromeProgressValue = chromeProgress?.progress;
   const shouldShowChromeProgress = chromeDiagnostic?.status === 'downloading' || isPreparingChrome || !!chromeProgress;
   const currentModelInstalled = ollamaConnected === true && ollamaModels.length > 0
-    && ollamaModels.some(m => m.name === localConfig.model);
+    && ollamaModels.some(m => ollamaModelId(m) === localConfig.model);
 
   return (
     <main className="settings-workspace" data-testid="settings-workspace">
@@ -667,13 +665,16 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                   className="settings-select"
                   data-testid="ollama-model-select"
                 >
-                  {OLLAMA_MODELS.map(m => (
-                    <option key={m.id} value={m.id}>{m.name}{m.recommended ? ' ★' : ''}</option>
+                  {ollamaModels.map(m => (
+                    <option key={ollamaModelId(m)} value={ollamaModelId(m)}>
+                      {ollamaModelDisplayName(m)} · {(m.size / 1e9).toFixed(1)} GB
+                    </option>
                   ))}
-                  {!OLLAMA_MODELS.find(m => m.id === localConfig.model) && (
-                    <option value={localConfig.model}>{localConfig.model} (personalizado)</option>
+                  {!ollamaModels.some(m => ollamaModelId(m) === localConfig.model) && (
+                    <option value={localConfig.model}>{localConfig.model} (no detectado)</option>
                   )}
                 </select>
+                <small>Lista obtenida en tiempo real desde <code>/api/tags</code>.</small>
               </div>
 
               {ollamaConnected && ollamaModels.length > 0 && (
@@ -687,11 +688,11 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                   )}
                   <div className="settings-model-cards">
                     {ollamaModels.slice(0, 10).map(m => (
-                      <div key={m.name} className="settings-model-card settings-model-card--compact">
+                      <div key={ollamaModelId(m)} className="settings-model-card settings-model-card--compact">
                         <div>
-                          <strong>{m.name}</strong>
-                          {m.name === localConfig.model && (
-                            <span className="settings-model-card-active" data-testid={`ollama-model-active-${m.name.replace(/[^a-zA-Z0-9]/g, '_')}`}>
+                          <strong>{ollamaModelDisplayName(m)}</strong>
+                          {ollamaModelId(m) === localConfig.model && (
+                            <span className="settings-model-card-active" data-testid={`ollama-model-active-${ollamaModelId(m).replace(/[^a-zA-Z0-9]/g, '_')}`}>
                               <CheckCircle size={10} /> activo
                             </span>
                           )}
@@ -699,8 +700,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                         </div>
                         <button
                           className="btn-s btn-sm"
-                          onClick={() => handleUseOllamaModel(m.name)}
-                          data-testid={`ollama-use-model-${m.name.replace(/[^a-zA-Z0-9]/g, '_')}`}
+                          onClick={() => handleUseOllamaModel(ollamaModelId(m))}
+                          data-testid={`ollama-use-model-${ollamaModelId(m).replace(/[^a-zA-Z0-9]/g, '_')}`}
                         >
                           Usar este modelo
                         </button>
@@ -923,10 +924,12 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
           <div className="modal-container modal-container--lg">
             <OllamaSetupWizard
               endpoint={localConfig.ollamaBaseUrl}
-              onReady={(diagnostic) => {
+              onReady={async (diagnostic) => {
                 const model = diagnostic.details.selectedModel ?? localConfig.model;
                 setLocalConfig({ ...localConfig, model, ollamaModel: model });
                 setOllamaConnected(true);
+                const snapshot = await refreshOllamaModelCatalog(localConfig.ollamaBaseUrl);
+                setOllamaModels(snapshot.models);
                 setShowOllamaWizard(false);
               }}
               onCancel={() => setShowOllamaWizard(false)}

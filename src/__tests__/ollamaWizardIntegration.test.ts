@@ -37,7 +37,7 @@ describe('Ollama integrated assistant - navigation and persistence', () => {
 
     it('persists endpoint, exact model id and readiness timestamp', () => {
       const endpoint = 'http://127.0.0.1:11434';
-      const model = 'hf.co/unsloth/Qwen3-8B-GGUF:UD-Q4_K_XL';
+      const model = 'hf.co/unsloth/Qwen3.5-4B-GGUF:UD-Q4_K_XL';
       const timestamp = new Date().toISOString();
 
       localStorage.setItem('aura_ollama_endpoint', endpoint);

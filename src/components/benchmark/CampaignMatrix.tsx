@@ -10,7 +10,7 @@ interface CampaignMatrixProps {
 }
 
 const modelName = (modelId: string): string => {
-  if (modelId.includes('Qwen3-8B-GGUF')) return 'Qwen3 8B';
+  if (modelId.includes('Qwen3.5-4B-GGUF')) return 'Qwen3.5 4B';
   if (modelId.includes('gemma-4-E4B')) return 'Gemma 4 E4B';
   return 'SmolLM3 3B';
 };

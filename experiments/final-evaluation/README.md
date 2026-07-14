@@ -14,12 +14,12 @@ solo para los nueve representantes seleccionados.
 Modelos congelados antes de la primera corrida formal:
 
 ```bash
-ollama run hf.co/unsloth/Qwen3-8B-GGUF:UD-Q4_K_XL
+ollama run hf.co/unsloth/Qwen3.5-4B-GGUF:UD-Q4_K_XL
 ollama run hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL
 ollama run hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL
 ```
 
-Los GGUF de referencia pesan 5.14 GB, 4.22 GB y 1.94 GB respectivamente. Se
+Los GGUF de referencia pesan 2.91 GB, 4.22 GB y 1.94 GB respectivamente. Se
 carga un solo modelo por vez en el MacBook Air M4 de 16 GB. SmolLM3 reemplaza
 a DeepSeek. El protocolo fija `think: false` para los tres modelos y favorece
 así el contrato JSON estricto y una comparación común.
@@ -76,7 +76,10 @@ congelados. Los contratos
 su historial append-only. El registro distingue modelos formales de alternativas
 operativas, y el proveedor conserva tokens, duraciones y `thinking` nativos de
 Ollama. El preflight genera un recibo con versiones, espacio libre, digests y
-smokes cuando todos los gates pasan.
+smokes cuando todos los gates pasan. Los modelos operativos se consultan desde
+`/api/tags`; al crear una campaña AURA congela los identificadores y digests
+realmente instalados en su snapshot, sin compararlos con digests específicos
+escritos en el código.
 
 El calendario ejecutable materializa 45 IDs únicos en 15 bloques de modelo y
 ejecuta un warm-up excluido por bloque. El corredor formal realiza una sola

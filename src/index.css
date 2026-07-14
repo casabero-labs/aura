@@ -15252,6 +15252,36 @@ textarea:focus {
 .oe4-setup > button,
 .oe4-setup > .oe4-blocker { grid-column: 1 / -1; justify-self: start; }
 .oe4-setup p { margin: 10px 0 0; max-width: 650px; }
+.oe4-installed-models {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+}
+.oe4-installed-models > div { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.oe4-installed-models strong { color: var(--ink); font-size: 13px; }
+.oe4-installed-models small { color: var(--ink3); font-size: 11px; }
+.oe4-installed-models ul {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  margin: 0;
+  padding: 1px;
+  list-style: none;
+  background: var(--border);
+}
+.oe4-installed-models li {
+  min-width: 0;
+  padding: 10px 12px;
+  overflow-wrap: anywhere;
+  background: var(--surface);
+  color: var(--ink2);
+  font: 11px/1.45 var(--font-mono);
+}
+.oe4-installed-models > button { width: fit-content; }
 .oe4-protocol-grid,
 .oe4-run-meta,
 .oe4-stage-grid article dl { margin: 0; }
@@ -15431,4 +15461,5 @@ textarea:focus {
   .oe4-run-dots { flex-wrap: wrap; }
   .oe4-setup,
   .oe4-panel { padding: var(--space-md); }
+  .oe4-installed-models ul { grid-template-columns: 1fr; }
 }

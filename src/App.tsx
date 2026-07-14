@@ -805,6 +805,7 @@ const App: React.FC = () => {
           {oe4E2eHarnessEnabled && Oe4CampaignE2eHarness
             ? <Oe4CampaignE2eHarness />
             : <BenchmarkCampaignLab
+                ollamaBaseUrl={aiConfig.ollamaBaseUrl || 'http://127.0.0.1:11434'}
                 providerForRun={formalProviderForRun}
                 validateDiagnosis={validateFormalDiagnosis}
                 createCampaignBundle={formalEvidenceEnvelope && pipelineData.file ? createFormalBundle : undefined}

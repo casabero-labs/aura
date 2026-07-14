@@ -548,6 +548,34 @@ evidencia de regresión, no como resultado formal de modelo.
 Validación del cierre: 64/64 pruebas focalizadas, 1925 unitarias superadas y
 6 omitidas, typecheck y build limpios, y 4/4 recorridos E2E superados.
 
+## Cierre AURA-CIERRE-QWEN35-4B-01 — catálogo Ollama y protocolo formal
+
+La configuración rápida del diagnóstico seguía mostrando `Qwen 3 8B` porque
+`modelRegistry.ts` conservaba el identificador congelado anterior. Ollama ya
+tenía instalado el modelo correcto; el defecto estaba en el catálogo de AURA,
+no en el servidor local.
+
+Correcciones aplicadas:
+
+- modelo recomendado y formal: `hf.co/unsloth/Qwen3.5-4B-GGUF:UD-Q4_K_XL`;
+- etiqueta visible: `Qwen 3.5 4B · OE4 (UD-Q4_K_XL)`;
+- migración automática de configuraciones guardadas con el antiguo Qwen 3 8B;
+- protocolo formal actualizado a `2.2.0`, congelado el 14 de julio de 2026,
+  antes de iniciar la campaña;
+- catálogo operativo único consultado desde `/api/tags` para Configuración,
+  Diagnóstico y Laboratorio;
+- la campaña congela los IDs y digests realmente instalados al crearla, sin
+  compararlos contra digests específicos escritos en el código.
+
+La campaña formal aún no se ha ejecutado. El siguiente paso sigue siendo una
+corrida humana de verificación con Qwen3.5 4B y los tres métodos de entrada,
+antes de producir la matriz definitiva del TFM.
+
+Validación de este cierre: 64/64 pruebas focalizadas, 1928 unitarias
+superadas y 6 omitidas, `typecheck` limpio, `build` correcto y 1/1 recorrido
+Playwright del estilo `showcase-ink`. La consulta real a Ollama devolvió los
+tres modelos instalados esperados; no se ejecutaron diagnósticos formales.
+
 ## Documentos vigentes relacionados
 
 - [Plan de cierre del diagnóstico normal y PDF](../../plans/2026-07-12-cierre-diagnostico-normal-y-reporte-pdf.md)

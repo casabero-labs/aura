@@ -79,6 +79,18 @@ describe('SettingsPanel - Ollama model reconciliation', () => {
     expect(screen.queryByTestId('ollama-model-missing-warning')).toBeNull();
   });
 
+  it('fills the Ollama selector exclusively from the models installed in /api/tags', async () => {
+    render(<SettingsPanel config={baseConfig} onSave={onSave} onClose={onClose} />);
+
+    const select = await screen.findByTestId('ollama-model-select') as HTMLSelectElement;
+    await waitFor(() => expect(select.options).toHaveLength(2));
+    expect(Array.from(select.options).map((option) => option.value)).toEqual([
+      'qwen2.5:3b',
+      'gemma2:2b',
+    ]);
+    expect(Array.from(select.options).some((option) => option.value === 'mistral:7b')).toBe(false);
+  });
+
   it('"Usar este modelo" remains a draft until the user saves', async () => {
     const config: AIConfig = {
       ...baseConfig,

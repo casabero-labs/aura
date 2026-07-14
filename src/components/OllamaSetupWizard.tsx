@@ -46,7 +46,7 @@ const ORIGIN = typeof window !== 'undefined'
   : 'https://aura.casabero.com';
 
 const CAMPAIGN_MODEL_PURPOSES: Record<string, string> = {
-  Qwen3: 'Modelo general de 8B recomendado para diagnóstico local y comparación reproducible.',
+  'Qwen3.5': 'Modelo general de 4B recomendado para diagnóstico local y comparación reproducible.',
   'Gemma 4': 'Modelo E4B QAT de Google, compacto y adecuado para diagnóstico local.',
   SmolLM3: 'Modelo multilingüe de 3B, compatible con español y ligero para equipos con 16 GB.',
 };

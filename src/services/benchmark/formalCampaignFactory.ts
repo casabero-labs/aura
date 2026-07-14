@@ -12,12 +12,6 @@ import type {
   ExperimentRunV1,
 } from './experimentTypes';
 
-const EXPECTED_GGUF_SHA256: Record<OE4ModelId, string> = {
-  'hf.co/unsloth/Qwen3-8B-GGUF:UD-Q4_K_XL': '34a514d08f7449cb4a694a707aaa2eedccb7bb68290121bf5e5a569b2abe71c3',
-  'hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL': 'b3052f962d6449b4eb2075733c068bdec1c51eadb7b237e6c3157bfbb7b1dae0',
-  'hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL': '305234462409d659233b0ea75fd1e070cc28d5add7d0480f2db02387679e3d0c',
-};
-
 export interface FormalCampaignBundle {
   campaign: ExperimentCampaignV1;
   runs: ExperimentRunV1[];
@@ -152,7 +146,10 @@ export const createFormalCampaignBundle = async (input: {
       model: {
         id: unit.modelId,
         quantization: 'UD-Q4_K_XL',
-        expectedGgufSha256: EXPECTED_GGUF_SHA256[unit.modelId],
+        // The campaign freezes the digest reported by the installed Ollama
+        // model at creation time; AURA does not compare against a machine-
+        // specific digest hardcoded in the application.
+        expectedGgufSha256: preflight.digests[unit.modelId],
         localDigest: preflight.digests[unit.modelId],
       },
       inference: { ...FINAL_EVALUATION_PROTOCOL.inference },

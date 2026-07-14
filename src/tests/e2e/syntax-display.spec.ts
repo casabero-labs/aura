@@ -49,7 +49,7 @@ test.describe('Syntax display — estándar showcase-ink', () => {
     await page.getByRole('button', { name: 'Ya configuré y reinicié Ollama' }).click();
 
     const commands = [
-      'ollama run hf.co/unsloth/Qwen3-8B-GGUF:UD-Q4_K_XL',
+      'ollama run hf.co/unsloth/Qwen3.5-4B-GGUF:UD-Q4_K_XL',
       'ollama run hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL',
       'ollama run hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL',
     ];

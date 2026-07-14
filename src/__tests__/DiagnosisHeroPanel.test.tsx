@@ -26,7 +26,7 @@ const baseProps = {
 describe('DiagnosisHeroPanel quick configuration', () => {
   it('shows the active model and input method without opening settings', () => {
     render(<DiagnosisHeroPanel {...baseProps} />);
-    expect(screen.getByTestId('diagnosis-active-model').textContent).toContain('Qwen 3 8B');
+    expect(screen.getByTestId('diagnosis-active-model').textContent).toContain('Qwen 3.5 4B');
     expect(screen.getByTestId('diagnosis-active-input-mode').textContent).toContain('Contexto mínimo');
   });
 

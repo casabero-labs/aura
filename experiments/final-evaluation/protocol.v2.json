@@ -1,7 +1,7 @@
 {
   "id": "aura.oe4.final-evaluation.v2",
-  "version": "2.1.0",
-  "frozenAt": "2026-07-12",
+  "version": "2.2.0",
+  "frozenAt": "2026-07-14",
   "supersedes": "aura.oe4.final-evaluation.v1",
   "dataset": {
     "id": "controlled_customers_phase8",
@@ -12,7 +12,7 @@
     "groundTruthSha256": "38c846856860519d248b42e53afe3cacacff714f115af6cec4b3d050fe79040d"
   },
   "models": [
-    "hf.co/unsloth/Qwen3-8B-GGUF:UD-Q4_K_XL",
+    "hf.co/unsloth/Qwen3.5-4B-GGUF:UD-Q4_K_XL",
     "hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL",
     "hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL"
   ],
@@ -43,11 +43,11 @@
   "schedule": {
     "seed": 20260710,
     "balancedModelOrders": [
-      ["hf.co/unsloth/Qwen3-8B-GGUF:UD-Q4_K_XL", "hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL", "hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL"],
-      ["hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL", "hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL", "hf.co/unsloth/Qwen3-8B-GGUF:UD-Q4_K_XL"],
-      ["hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL", "hf.co/unsloth/Qwen3-8B-GGUF:UD-Q4_K_XL", "hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL"],
-      ["hf.co/unsloth/Qwen3-8B-GGUF:UD-Q4_K_XL", "hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL", "hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL"],
-      ["hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL", "hf.co/unsloth/Qwen3-8B-GGUF:UD-Q4_K_XL", "hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL"]
+      ["hf.co/unsloth/Qwen3.5-4B-GGUF:UD-Q4_K_XL", "hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL", "hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL"],
+      ["hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL", "hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL", "hf.co/unsloth/Qwen3.5-4B-GGUF:UD-Q4_K_XL"],
+      ["hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL", "hf.co/unsloth/Qwen3.5-4B-GGUF:UD-Q4_K_XL", "hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL"],
+      ["hf.co/unsloth/Qwen3.5-4B-GGUF:UD-Q4_K_XL", "hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL", "hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL"],
+      ["hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL", "hf.co/unsloth/Qwen3.5-4B-GGUF:UD-Q4_K_XL", "hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL"]
     ],
     "modeOrderSeed": 4242,
     "warmupExcluded": true,

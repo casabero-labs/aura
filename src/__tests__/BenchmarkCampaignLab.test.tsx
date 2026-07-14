@@ -14,6 +14,7 @@ import type {
 } from '../services/benchmark/experimentTypes';
 import { createExperimentEvidenceFixture } from './fixtures/experimentEvidenceFixture';
 import { createPythonReceiptFixture } from './fixtures/pythonReceiptFixture';
+import { FINAL_EVALUATION_PROTOCOL } from '../services/benchmark/finalEvaluationProtocol';
 
 const NOW = '2026-07-11T15:00:00.000Z';
 const LATER = '2026-07-11T15:01:00.000Z';
@@ -43,7 +44,7 @@ const providerResult = (contractId: 'aura.diagnosis.v2' | 'aura.script.v2') => (
   text: JSON.stringify({ contractId }),
   metrics: {
     provider: 'fake',
-    model: 'hf.co/unsloth/Qwen3-8B-GGUF:UD-Q4_K_XL',
+    model: 'hf.co/unsloth/Qwen3.5-4B-GGUF:UD-Q4_K_XL',
     latencyMs: 10,
     firstTokenMs: 1,
     totalDurationMs: 10,
@@ -87,6 +88,16 @@ describe('BenchmarkCampaignLab - Task 10 human flow', () => {
       createObjectURL: vi.fn(() => 'blob:aura-oe4'),
       revokeObjectURL: vi.fn(),
     });
+    vi.stubGlobal('fetch', vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        models: FINAL_EVALUATION_PROTOCOL.models.map((name) => ({
+          name,
+          size: 3_000_000_000,
+          modified_at: NOW,
+        })),
+      }),
+    } as Response)));
   });
 
   it('creates 45 units, pauses safely, resumes, exposes raw evidence and records the rubric', async () => {

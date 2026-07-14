@@ -56,7 +56,7 @@ describe('OllamaSetupWizard', () => {
     fireEvent.click(screen.getByTestId(downloadId));
 
     await waitFor(() => {
-      expect(screen.getByRole('progressbar', { name: /Descarga de Qwen 3 8B/i }).getAttribute('aria-valuenow')).toBe('100');
+      expect(screen.getByRole('progressbar', { name: /Descarga de Qwen 3\.5 4B/i }).getAttribute('aria-valuenow')).toBe('100');
     });
     expect(screen.getByTestId('ollama-setup-log').textContent).toContain('instalación terminada y modelo detectado');
     expect(screen.getByTestId('ollama-setup-log').classList.contains('syntax-display')).toBe(true);

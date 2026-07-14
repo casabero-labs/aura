@@ -94,7 +94,7 @@ export const CHROME_MODELS: ChromeModelDef[] = [
 ];
 
 export const FINAL_EVALUATION_OLLAMA_MODEL_IDS = [
-  'hf.co/unsloth/Qwen3-8B-GGUF:UD-Q4_K_XL',
+  'hf.co/unsloth/Qwen3.5-4B-GGUF:UD-Q4_K_XL',
   'hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL',
   'hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL',
 ] as const;
@@ -105,13 +105,13 @@ export const DEFAULT_OLLAMA_MODEL_ID = FINAL_EVALUATION_OLLAMA_MODEL_IDS[0];
 export const FINAL_EVALUATION_OLLAMA_MODELS: readonly OllamaModelDef[] = [
   {
     id: FINAL_EVALUATION_OLLAMA_MODEL_IDS[0],
-    name: 'Qwen 3 8B · OE4 (UD-Q4_K_XL)',
-    family: 'Qwen3',
-    referenceSizeGB: 5.14,
+    name: 'Qwen 3.5 4B · OE4 (UD-Q4_K_XL)',
+    family: 'Qwen3.5',
+    referenceSizeGB: 2.91,
     recommended: true,
     formalEvaluation: true,
     quantization: 'UD-Q4_K_XL',
-    repository: 'huggingface.co/unsloth/Qwen3-8B-GGUF',
+    repository: 'huggingface.co/unsloth/Qwen3.5-4B-GGUF',
   },
   {
     id: FINAL_EVALUATION_OLLAMA_MODEL_IDS[1],

@@ -5,6 +5,7 @@ import type { InputMode } from '../../types';
 export interface DiagnosisQuickConfigModel {
   id: string;
   name: string;
+  disabled?: boolean;
 }
 
 interface DiagnosisQuickConfigModalProps {
@@ -128,7 +129,9 @@ export const DiagnosisQuickConfigModal: React.FC<DiagnosisQuickConfigModalProps>
               onChange={(event) => setDraftModel(event.target.value)}
               data-testid="diagnosis-quick-model"
             >
-              {models.map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}
+              {models.map((entry) => (
+                <option key={entry.id} value={entry.id} disabled={entry.disabled}>{entry.name}</option>
+              ))}
             </select>
           </div>
 
@@ -157,7 +160,13 @@ export const DiagnosisQuickConfigModal: React.FC<DiagnosisQuickConfigModalProps>
 
         <div className="diagnosis-quick-config-footer">
           <button type="button" className="btn-s" onClick={onClose}>Cancelar</button>
-          <button type="submit" className="btn-p">Aplicar configuración</button>
+          <button
+            type="submit"
+            className="btn-p"
+            disabled={!models.some((entry) => entry.id === draftModel && !entry.disabled)}
+          >
+            Aplicar configuración
+          </button>
         </div>
       </form>
     </div>

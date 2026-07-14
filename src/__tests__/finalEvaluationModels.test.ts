@@ -15,7 +15,7 @@ import {
 } from '../scripts/validate-ollama.mjs';
 
 const EXPECTED_MODEL_IDS = [
-  'hf.co/unsloth/Qwen3-8B-GGUF:UD-Q4_K_XL',
+  'hf.co/unsloth/Qwen3.5-4B-GGUF:UD-Q4_K_XL',
   'hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL',
   'hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL',
 ] as const;

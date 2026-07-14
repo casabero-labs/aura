@@ -1,10 +1,15 @@
 import React from 'react';
 import { FINAL_EVALUATION_PROTOCOL } from '../../services/benchmark/finalEvaluationProtocol';
+import type { OllamaModelInfo } from '../../services/ollamaLocalBridge';
+import { ollamaModelDisplayName, ollamaModelId } from '../../services/ollamaModelCatalog';
 
 interface CampaignSetupPanelProps {
   creating: boolean;
   canCreate: boolean;
   blocker?: string;
+  installedModels: readonly OllamaModelInfo[];
+  modelCatalogLoading: boolean;
+  onRefreshModels: () => Promise<void>;
   onCreate: () => Promise<void>;
 }
 
@@ -12,6 +17,9 @@ const CampaignSetupPanel: React.FC<CampaignSetupPanelProps> = ({
   creating,
   canCreate,
   blocker,
+  installedModels,
+  modelCatalogLoading,
+  onRefreshModels,
   onCreate,
 }) => (
   <section className="oe4-setup" aria-labelledby="oe4-setup-title">
@@ -29,6 +37,24 @@ const CampaignSetupPanel: React.FC<CampaignSetupPanelProps> = ({
       <div><dt>Corridas</dt><dd>{FINAL_EVALUATION_PROTOCOL.matrix.units}</dd></div>
       <div><dt>Llamadas máximas</dt><dd>{FINAL_EVALUATION_PROTOCOL.matrix.maxLlmCalls}</dd></div>
     </dl>
+    <div className="oe4-installed-models" data-testid="oe4-installed-models">
+      <div>
+        <strong>Modelos disponibles en Ollama ({installedModels.length})</strong>
+        <small> Lista consultada en tiempo real desde <code>/api/tags</code>.</small>
+      </div>
+      {installedModels.length > 0 ? (
+        <ul>
+          {installedModels.map((model) => (
+            <li key={ollamaModelId(model)}>
+              {ollamaModelDisplayName(model)} · {(model.size / 1e9).toFixed(1)} GB
+            </li>
+          ))}
+        </ul>
+      ) : !modelCatalogLoading ? <p>No se detectaron modelos instalados.</p> : null}
+      <button type="button" className="btn-s" disabled={modelCatalogLoading} onClick={() => void onRefreshModels()}>
+        {modelCatalogLoading ? 'Consultando Ollama…' : 'Refrescar modelos'}
+      </button>
+    </div>
     {blocker && <p className="oe4-blocker" role="status">{blocker}</p>}
     <button
       type="button"

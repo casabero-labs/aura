@@ -34,6 +34,8 @@ import {
 import { resolveOllamaInferenceConfig } from '../services/ollamaInferenceConfig';
 import { diagnoseOllamaLocal, type OllamaLocalDiagnostic, type OllamaLocalStatus } from '../services/ollamaLocalBridge';
 import { DEFAULT_OLLAMA_MODEL_ID, FINAL_EVALUATION_OLLAMA_MODELS } from '../services/modelRegistry';
+import { ollamaModelDisplayName, ollamaModelId, refreshOllamaModelCatalog } from '../services/ollamaModelCatalog';
+import { useOllamaModelCatalog } from '../services/useOllamaModelCatalog';
 
 interface DiagnosisStepProps {
   report: AuditReport;
@@ -142,6 +144,10 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
   const [networkResult, setNetworkResult] = useState<NetworkGuardResult | null>(null);
   const [ollamaDiagnostic, setOllamaDiagnostic] = useState<OllamaLocalDiagnostic | null>(null);
   const [showOllamaWizard, setShowOllamaWizard] = useState(false);
+  const { models: installedOllamaModels } = useOllamaModelCatalog(
+    aiConfig.ollamaBaseUrl,
+    aiConfig.providerType === 'ollama',
+  );
 
   const pushEvent = useCallback((level: DiagnosisEvent['level'], message: string) => {
     const event: DiagnosisEvent = {
@@ -682,9 +688,16 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
     : aiConfig.providerType === 'webllm_experimental' ? 'WebLLM'
     : aiConfig.cloudProvider ? `${aiConfig.cloudProvider} Cloud` : 'Cloud';
   const activeModelDefinition = FINAL_EVALUATION_OLLAMA_MODELS.find((model) => model.id === aiConfig.model);
-  const quickConfigModels = activeModelDefinition
-    ? FINAL_EVALUATION_OLLAMA_MODELS
-    : [{ id: aiConfig.model, name: aiConfig.model }, ...FINAL_EVALUATION_OLLAMA_MODELS];
+  const installedQuickConfigModels = installedOllamaModels.map((model) => ({
+    id: ollamaModelId(model),
+    name: `${ollamaModelDisplayName(model)} · ${(model.size / 1e9).toFixed(1)} GB`,
+  }));
+  const activeInstalledModel = installedOllamaModels.find((model) => ollamaModelId(model) === aiConfig.model);
+  const quickConfigModels = installedQuickConfigModels.length === 0
+    ? [{ id: aiConfig.model, name: activeModelDefinition?.name ?? aiConfig.model }]
+    : activeInstalledModel
+      ? installedQuickConfigModels
+      : [{ id: aiConfig.model, name: `${aiConfig.model} (no instalado)`, disabled: true }, ...installedQuickConfigModels];
 
   return (
     <>
@@ -701,7 +714,9 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
           providerName={providerName}
           providerAvailable={providerAvailable}
           model={aiConfig.model}
-          modelName={activeModelDefinition?.name ?? aiConfig.model}
+          modelName={activeInstalledModel
+            ? ollamaModelDisplayName(activeInstalledModel)
+            : activeModelDefinition?.name ?? aiConfig.model}
           inputMode={aiConfig.inputMode ?? 'smart_sample'}
           models={quickConfigModels}
           onQuickConfigSave={({ model, inputMode }) => onAiConfigChange({ ...aiConfig, model, inputMode })}
@@ -1316,8 +1331,9 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
               </button>
               <OllamaSetupWizard
                 endpoint={aiConfig.ollamaBaseUrl}
-                onReady={(diag) => {
+                onReady={async (diag) => {
                   setOllamaDiagnostic(diag);
+                  await refreshOllamaModelCatalog(aiConfig.ollamaBaseUrl);
                   if (diag.details.selectedModel) {
                     onAiConfigChange({ ...aiConfig, model: diag.details.selectedModel });
                   }
