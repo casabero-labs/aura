@@ -1,13 +1,14 @@
-# Tercera entrega — archivo histórico
+# Tercera entrega — marcador histórico
 
-La tercera entrega ya fue presentada y evaluada.
+La tercera entrega ya fue presentada y evaluada. Su contenido fue archivado en:
 
-Esta carpeta no contiene documentación viva del producto.
+- `docs/archive/academic/entrega_03_historica/`
 
-La documentación viva de AURA está en:
+Esta ruta no contiene documentación viva del producto.
 
-- `docs/product/aura/CURRENT_STATE.md`
-- `docs/product/aura/NEXT_STEPS.md`
-- `docs/product/aura/ROADMAP.md`
+Para trabajo actual usar:
 
-No usar esta ruta para planificar nuevas fases, nuevas entregas intermedias ni trabajo técnico activo.
+- `docs/product/aura/NEXT_STEPS.md` — estado técnico y experimental vigente;
+- `docs/tfm/memoria_final/README.md` — fuentes canónicas y entorno de la memoria final.
+
+No usar esta carpeta para planificar nuevas fases, redactar el documento final ni registrar evidencia nueva.
