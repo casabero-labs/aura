@@ -34,8 +34,9 @@ const CampaignSetupPanel: React.FC<CampaignSetupPanelProps> = ({
     <dl className="oe4-protocol-grid">
       <div><dt>Protocolo</dt><dd>{FINAL_EVALUATION_PROTOCOL.id}</dd></div>
       <div><dt>Dataset</dt><dd>{FINAL_EVALUATION_PROTOCOL.dataset.id}</dd></div>
-      <div><dt>Corridas</dt><dd>{FINAL_EVALUATION_PROTOCOL.matrix.units}</dd></div>
-      <div><dt>Llamadas máximas</dt><dd>{FINAL_EVALUATION_PROTOCOL.matrix.maxLlmCalls}</dd></div>
+      <div><dt>Diagnósticos evaluados</dt><dd>{FINAL_EVALUATION_PROTOCOL.matrix.units}</dd></div>
+      <div><dt>Calentamientos excluidos</dt><dd>{FINAL_EVALUATION_PROTOCOL.matrix.warmupCalls}</dd></div>
+      <div><dt>Llamadas reales</dt><dd>{FINAL_EVALUATION_PROTOCOL.matrix.totalRealCalls}</dd></div>
     </dl>
     <div className="oe4-installed-models" data-testid="oe4-installed-models">
       <div>
