@@ -918,6 +918,33 @@ describe('Session restoration fresh verification', () => {
 // ── RemediationPlanStepV2 props ───────────────────────────────────────────────
 
 describe('RemediationPlanStepV2 props', () => {
+  it('shows real column names in the decision view and keeps internal IDs in technical details', async () => {
+    const { default: RemediationPlanStepV2 } = await import('../components/RemediationPlanStepV2');
+
+    render(
+      <RemediationPlanStepV2
+        report={{} as any}
+        structuredDiagnosis={makeStructuredDiagnosis()}
+        remediationPlan={null}
+        onContinue={() => {}}
+      />,
+    );
+
+    const firstTarget = await screen.findByTestId('remediation-action-target-0');
+    expect(firstTarget.textContent).toContain('id');
+    expect(firstTarget.textContent).not.toContain('col:');
+
+    const firstCard = screen.getByTestId('remediation-action-0');
+    const primaryHeading = firstCard.querySelector('.remediation-action__title');
+    expect(primaryHeading?.textContent).toContain('Revisar antes de corregir');
+    expect(primaryHeading?.textContent).not.toContain('rule:');
+    expect(primaryHeading?.textContent).not.toContain('col:');
+
+    const technicalDetails = firstCard.querySelector('.remediation-action__technical');
+    expect(technicalDetails?.textContent).toContain('ID de columna');
+    expect(technicalDetails?.textContent).toContain('col:');
+  });
+
   it('continueLabel prop changes button text', async () => {
     const { default: RemediationPlanStepV2 } = await import('../components/RemediationPlanStepV2');
     render(

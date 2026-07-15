@@ -20,7 +20,32 @@ import {
   rejectRemediationActionV2,
   resetRemediationActionV2,
 } from '../contracts/llm';
-import type { DiagnosisExecutionResult, RemediationPlanV2 } from '../contracts/llm';
+import type { DiagnosisExecutionResult, RemediationActionV2, RemediationPlanV2 } from '../contracts/llm';
+
+const ACTION_LABELS: Record<RemediationActionV2['actionType'], string> = {
+  trim_whitespace: 'Limpiar espacios del texto',
+  drop_exact_duplicates: 'Eliminar filas duplicadas exactas',
+  normalize_placeholders: 'Normalizar valores marcadores',
+  normalize_casing: 'Normalizar mayúsculas y minúsculas',
+  convert_disguised_numbers: 'Convertir números almacenados como texto',
+  requires_human_review: 'Revisar antes de corregir',
+};
+
+const RULE_LABELS: Record<string, string> = {
+  'rule:exact-duplicates': 'Filas duplicadas',
+  'rule:null-values': 'Valores nulos',
+  'rule:mojibake': 'Codificación de texto dañada',
+  'rule:toxic-placeholders': 'Valores marcadores',
+  'rule:extreme-outliers': 'Valores atípicos extremos',
+  'rule:impossible-negatives': 'Valores negativos imposibles',
+  'rule:invalid-email': 'Formato de correo inválido',
+  'rule:mixed-date-formats': 'Formatos de fecha mixtos',
+  'rule:pii-detected': 'Datos sensibles (PII)',
+};
+
+function getRuleLabel(ruleId: string): string {
+  return RULE_LABELS[ruleId] ?? ruleId.replace(/^rule:/, '').replaceAll('-', ' ');
+}
 
 interface RemediationPlanStepV2Props {
   report: AuditReport;
@@ -109,6 +134,10 @@ const RemediationPlanStepV2: React.FC<RemediationPlanStepV2Props> = ({
     }
   }, [v2Plan, onRemediationPlanChange]);
 
+  const columnById = new Map(
+    (structuredDiagnosis?.remediationContext?.columns ?? []).map(column => [column.columnId, column]),
+  );
+
   if (v2PlanError) {
     return (
       <section className="section" data-testid="remediation-stage">
@@ -171,20 +200,51 @@ const RemediationPlanStepV2: React.FC<RemediationPlanStepV2Props> = ({
         </div>
       </div>
 
-      {v2Plan.plan.map((action, i) => (
-        <div key={action.actionId} className="stage-result remediation-action" style={{ marginBottom: '12px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <h4 style={{ fontSize: '13px', fontWeight: 600, margin: 0 }}>
-                {i + 1}. [{action.actionType}] {action.ruleId}
-                {action.columnId ? ` → ${action.columnId}` : ' (dataset)'}
+      {v2Plan.plan.map((action, i) => {
+        const column = action.columnId ? columnById.get(action.columnId) : null;
+        const columnLabel = column
+          ? `${column.name}${column.isDuplicate ? ` (posición ${column.position + 1})` : ''}`
+          : action.columnId
+            ? 'Columna no identificada'
+            : 'Todo el dataset';
+        const evidenceLabel = action.evidenceRefs.length === 1 ? '1 evidencia' : `${action.evidenceRefs.length} evidencias`;
+        const ActionabilityIcon = action.actionability === 'auto_safe' ? ShieldCheck : action.actionability === 'review_only' ? AlertTriangle : Ban;
+        const actionabilityLabel = action.actionability === 'auto_safe'
+          ? 'Corrección automática disponible'
+          : action.actionability === 'review_only'
+            ? 'Revisión humana requerida'
+            : 'Acción no disponible';
+
+        return (
+        <div key={action.actionId} className="stage-result remediation-action" style={{ marginBottom: '12px' }} data-testid={`remediation-action-${i}`}>
+          <div className="remediation-action__layout">
+            <div className="remediation-action__content">
+              <p className="remediation-action__scope">
+                {action.columnId ? 'Columna' : 'Alcance'}
+              </p>
+              <h4 className="remediation-action__title">
+                {i + 1}. {ACTION_LABELS[action.actionType]}
               </h4>
-              <div style={{ fontSize: '11px', color: 'var(--ink3)', marginTop: '2px' }}>
-                {action.actionability === 'auto_safe' ? '✓ Automático' : action.actionability === 'review_only' ? '⚠️ Revisión requerida' : 'No accionable'} · {action.evidenceRefs.length} evidencias
+              <p className="remediation-action__target" data-testid={`remediation-action-target-${i}`}>
+                <strong>{columnLabel}</strong>
+                <span aria-hidden="true"> · </span>
+                <span>Problema: {getRuleLabel(action.ruleId)}</span>
+              </p>
+              <div className="remediation-action__status">
+                <ActionabilityIcon size={13} aria-hidden="true" />
+                <span>{actionabilityLabel}</span>
+                <span aria-hidden="true">·</span>
+                <span>{evidenceLabel}</span>
               </div>
-              <div style={{ fontSize: '10px', color: 'var(--ink3)', fontFamily: 'monospace', marginTop: '2px' }}>
-                {action.actionId}
-              </div>
+              <details className="remediation-action__technical">
+                <summary>Detalles técnicos</summary>
+                <dl>
+                  <div><dt>Acción</dt><dd>{action.actionType}</dd></div>
+                  <div><dt>Regla</dt><dd>{action.ruleId}</dd></div>
+                  {action.columnId && <div><dt>ID de columna</dt><dd>{action.columnId}</dd></div>}
+                  <div><dt>ID de acción</dt><dd>{action.actionId}</dd></div>
+                </dl>
+              </details>
             </div>
             <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
               {action.approvalStatus === 'pending' && (
@@ -210,7 +270,8 @@ const RemediationPlanStepV2: React.FC<RemediationPlanStepV2Props> = ({
             </div>
           </div>
         </div>
-      ))}
+        );
+      })}
 
       {v2Plan.exclusions.length > 0 && (
         <div style={{ marginTop: 'var(--space-md)', padding: '10px', background: 'var(--surface2)', borderRadius: '6px' }}>

@@ -27,7 +27,7 @@ Los seis objetivos permanecen alineados con el producto. El Laboratorio aporta l
 | Motor determinista | Cerrado y utilizable. |
 | Diagnóstico normal V2 | Funcional con Contexto mínimo, Evidencia equilibrada y Evidencia completa. |
 | PDF y paquete de evidencia | Funcionales y verificados. |
-| Plan, script y revisión humana | Disponibles únicamente en la rama opcional de Auditoría. |
+| Plan, script y revisión humana | Disponibles únicamente en la rama opcional de Auditoría; las decisiones muestran nombres reales de columna y reservan los IDs internos para el detalle técnico. |
 | Aplicar y verificar | Runner Python, recibo, CSV corregido y reauditoría implementados. |
 | Laboratorio | Diagnóstico automático, visualización D3, metodología visible, glosario y transferencia de configuración implementados. |
 | Campaña piloto | Conservada como evidencia de ajuste; no se presenta como resultado formal. |
