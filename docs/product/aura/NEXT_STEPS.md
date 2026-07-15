@@ -1,755 +1,144 @@
 # Hoja de ruta definitiva de AURA
 
-Última actualización: 14 de julio de 2026, 15:20 (America/Bogota).
+Última actualización: 14 de julio de 2026.
 
-Este documento es la única referencia operativa para cerrar el TFM. La entrega
-académica vence el **miércoles 15 de julio de 2026 a las 15:00**. Hasta entregar,
-la prioridad es producir evidencia diagnóstica real, consolidar resultados y
-terminar el documento. El desarrollo adicional de AURA continuará después.
+## Resultado que se entrega
 
-## Objetivo de cierre académico
+AURA queda organizado en dos recorridos complementarios:
 
-Entregar evidencia suficiente y honesta de que AURA:
+1. **Auditoría:** carga, perfil determinista, diagnóstico LLM, informe, exportación y rama opcional de remediación con revisión humana.
+2. **Laboratorio:** compara modelos y métodos de entrada sobre un dataset controlado con ground truth. Evalúa únicamente el diagnóstico; no genera scripts ni solicita revisar 27 respuestas manualmente.
 
-1. ingiere y perfila un CSV localmente;
-2. detecta problemas mediante reglas deterministas;
-3. restringe el diagnóstico LLM a la evidencia observada;
-4. permite comparar modelos y métodos de entrada;
-5. conserva resultados, métricas y trazabilidad para análisis;
-6. genera un informe defendible y exportable.
+## Objetivos definitivos
 
-Estos son los **seis objetivos específicos definitivos**. No se reformulan en
-esta fase; en el documento se verificará su grado de cumplimiento con evidencia.
+1. Ingerir y perfilar un CSV localmente.
+2. Detectar problemas mediante reglas deterministas.
+3. Restringir el diagnóstico LLM a la evidencia observada.
+4. Comparar modelos y métodos de entrada con un dataset controlado y referencias conocidas.
+5. Conservar métricas, recibos, hashes y evidencia reproducible.
+6. Generar informes y exportables comprensibles para revisión humana.
 
-## Estado congelado al inicio del cierre
+Los seis objetivos permanecen alineados con el producto. El Laboratorio aporta la evidencia del objetivo 4; la remediación pertenece a Auditoría.
 
-| Área | Estado para el TFM |
+## Estado funcional
+
+| Área | Estado |
 |---|---|
 | Motor determinista | Cerrado y utilizable. |
-| Diagnóstico normal V2 | Los tres métodos completaron el piloto Gemma. La gobernanza RAW/EFFECTIVE conserva cualquier incumplimiento del modelo y solo fuerza la revisión humana definida por AURA. |
-| Informe PDF y exportación | El ZIP completo quedó validado en una corrida humana. **Los tres defectos visuales del PDF quedaron corregidos** (porcentajes `0.00%` en gráficos de distribución/impacto, etiquetas humanas ausentes y fondo incompleto en las páginas 4 y 6). El informe se regeneró desde el `report JSON` real del ZIP, se renderizaron sus siete páginas y se verificó fondo blanco completo, porcentajes correctos, etiquetas visibles y ausencia de regresiones. |
-| Plan y script | Implementados de forma determinista con revisión humana. El LLM no escribe código ejecutable. |
-| Aplicar y verificar | Cerrado y validado por una corrida humana real: runner Python, recibo, CSV corregido, reauditoría antes/después y ZIP completo. |
-| Laboratorio | Protocolo V2.5: usa el mismo procesador canónico del pipeline principal. Conserva la respuesta RAW para medir al modelo y acepta como efectiva únicamente la normalización determinista de `requiresHumanReview`; cualquier otro error sigue bloqueando. |
-| Evaluación formal | Pendiente de una nueva campaña V2.5. La configuración de inferencia se elige antes de crearla y queda congelada en sus 27 diagnósticos. |
-| Documento final | Pendiente de resultados y consolidación. |
+| Diagnóstico normal V2 | Funcional con Contexto mínimo, Evidencia equilibrada y Evidencia completa. |
+| PDF y paquete de evidencia | Funcionales y verificados. |
+| Plan, script y revisión humana | Disponibles únicamente en la rama opcional de Auditoría. |
+| Aplicar y verificar | Runner Python, recibo, CSV corregido y reauditoría implementados. |
+| Laboratorio | Diagnóstico automático, visualización D3, metodología visible, glosario y transferencia de configuración implementados. |
+| Campaña piloto | Conservada como evidencia de ajuste; no se presenta como resultado formal. |
+| Segunda campaña | Siguiente acción humana después del despliegue del protocolo 2.6.0. |
 
-## Configuración definitiva de la campaña formal
+## Método del Laboratorio
 
-El piloto exploratorio de Gemma con los tres métodos quedó cerrado y documentado
-en [2026-07-14-piloto-gemma4-tres-metodos.md](evidence/2026-07-14-piloto-gemma4-tres-metodos.md).
-No forma parte de los resultados formales. El protocolo V2.5 contiene el
-dataset, hashes, oráculo, 27 diagnósticos y 9 calentamientos definitivos.
+### Insumo obligatorio
 
-- Dataset de cierre: `synthetic_ground_truth.csv` (15 filas, 9 columnas y ground truth explícito).
-- `controlled_customers_phase8.csv` se conserva como prueba de estrés posterior;
-  no será el dataset de la campaña del TFM porque su salida estructurada excedió
-  la capacidad práctica del modelo local probado.
-- Modelos:
-  - `hf.co/unsloth/Qwen3.5-4B-GGUF:UD-Q4_K_XL`;
-  - `hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL`;
-  - `hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL`.
-- Métodos definitivos:
-  - **Contexto mínimo** (`prompt_libre`);
-  - **Evidencia equilibrada** (`smart_sample`);
-  - **Evidencia completa** (`recommended`).
-- Prueba previa cerrada: Gemma 4 x 3 métodos x 1 ejecución = **3 diagnósticos exploratorios**.
-- Campaña formal: 3 modelos x 3 métodos x 3 repeticiones = **27 diagnósticos**.
-- La reducción de 45 a 27 conserva tres observaciones por combinación y reduce
-  el tiempo de ejecución. Se declarará como evaluación descriptiva de muestra pequeña.
-- El score y los hallazgos pertenecen al motor determinista; el LLM no los modifica.
-- Un fallo se conserva como resultado. No se repite silenciosamente para ocultarlo.
-- El perfil inicial del pipeline es `numCtx=16384`, `numPredict=4096` y
-  `temperature=0.1`. Para el equipo Windows de 64 GB puede elegirse antes de
-  crear la campaña el perfil `numCtx=32768`, `numPredict=8192` y
-  `temperature=0.1`. La selección queda congelada y registrada en cada recibo.
-- El piloto V2.3 demostró que
-  `1600` tokens no alcanzaban para el contrato estructurado de 15 hallazgos.
-- `done_reason=length` se conserva como `DIAGNOSIS_RESPONSE_TRUNCATED`; no se
-  intenta reparar ni certificar un JSON incompleto.
-- No se cambia dataset, modelo, método o parámetros después de iniciar la campaña formal.
+Una campaña necesita:
 
-## Próxima acción inmediata
+- un CSV controlado;
+- un ground truth que indique los hallazgos esperados;
+- hashes del CSV, esquema y ground truth;
+- modelos instalados en Ollama;
+- parámetros de inferencia elegidos antes de crear la campaña.
 
-1. Esperar el despliegue que contiene el protocolo `2.5.0`.
-2. Abrir el **Laboratorio**. Las campañas anteriores deben aparecer preservadas
-   como pilotos inválidos y no deben poder reanudarse.
-3. Seleccionar **Perfil 64 GB**, comprobar `32768 / 8192 / 0.1`, crear la nueva
-   campaña V2.5 y después pulsar **Iniciar experimento**.
-4. Vigilar la primera corrida en el panel de ejecución: modelo, método, fase,
-   tiempo y progreso deben actualizarse en pantalla.
-5. Si la primera corrida completa el diagnóstico, continuar la campaña. Si
-   falla, pulsar **Pausar de forma segura** y revisar el código visible antes
-   de consumir las 26 corridas restantes.
-6. No cambiar dataset, modelos, métodos, parámetros, prompts ni contratos una
-   vez creada la campaña.
-7. Conservar fallos y pausas; no repetir silenciosamente una corrida.
-8. Al terminar, exportar el expediente completo antes de modificar código.
+Sin ground truth no se ejecuta una campaña formal. A futuro se podrá añadir un orquestador para registrar nuevos datasets controlados, pero el insumo de referencia seguirá siendo obligatorio.
 
-## Plan urgente hasta el depósito
+### Matriz
 
-### Lunes 13, 18:00-21:00 — prueba previa y control de evidencia
+- 3 modelos;
+- 3 métodos de entrada;
+- 3 repeticiones;
+- 27 diagnósticos medidos;
+- 9 calentamientos excluidos.
 
-1. Confirmar que Ollama y los tres modelos estén disponibles.
-2. Ejecutar con Qwen un diagnóstico normal por cada método de entrada.
-3. Guardar los ZIP en `experiments/tests/flujo5/`, `flujo6/` y `flujo7/`, y
-   verificar que cada uno conserve prompt, respuesta, modelo observado, recibo,
-   latencia y errores.
-4. Corregir cualquier bloqueo común antes de congelar el protocolo formal.
-5. Corregir únicamente bloqueos que impidan una corrida real. No pulir UI ni
-   añadir contratos o métricas nuevas.
+Métodos visibles:
 
-Condición de salida: las tres entradas de Qwen terminan y sus ZIP permiten
-compararlas sin evidencia faltante.
+- **Contexto mínimo** (`prompt_libre`);
+- **Evidencia equilibrada** (`smart_sample`);
+- **Evidencia completa** (`recommended`).
 
-El primer intento con **Evidencia equilibrada** (`smart_sample`) de `flujo5`
-con Phase 8 alcanzó el límite de salida de 4096 tokens y produjo un JSON
-incompleto. No fue un fallo del motor
-determinista. No se recortará la evidencia para forzar la prueba: el smoke se
-repetirá con `synthetic_ground_truth.csv`, cuyo perfil completo genera 15
-hallazgos, y Phase 8 quedará documentado como prueba de estrés y limitación.
+### Qué califica AURA
 
-### Lunes noche / martes mañana — campaña formal
-
-Si la prueba previa confirma que la ejecución y exportación funcionan:
-
-1. congelar la configuración;
-2. ajustar y congelar el protocolo en 27 diagnósticos evaluados y 9 calentamientos;
-3. ejecutar los diagnósticos y calentamientos definidos por el protocolo;
-4. exportar la campaña completa;
-5. verificar denominadores, combinaciones y corridas fallidas;
-6. conservar una copia inmutable de los artefactos.
-
-Si la campaña completa queda bloqueada, no se inventarán resultados: se usará
-el piloto como evaluación exploratoria y se declarará la limitación.
-
-### Martes 14 — consolidación y redacción
-
-1. Generar la tabla modelo x método.
-2. Consolidar precisión, recall, F1, cumplimiento del contrato, claims sin
-   soporte, anclaje, latencia, errores y estabilidad.
-3. Redactar resultados del objetivo experimental.
-4. Contrastar los seis objetivos específicos con la evidencia disponible.
-5. Redactar discusión, limitaciones, amenazas a la validez y conclusiones.
-6. Incorporar figuras y tablas al documento final.
-
-### Miércoles 15, 08:00-12:00 — cierre del documento
-
-1. Revisión completa de coherencia entre objetivos, método, resultados y conclusiones.
-2. Revisar numeración, referencias, tablas, figuras y anexos.
-3. Exportar PDF final y verificarlo visualmente.
-4. Preparar carpeta de entrega y copia de respaldo.
-5. Congelar cambios a las 12:00 para conservar tres horas de margen.
-
-## Cierre técnico alcanzado el 13 de julio
-
-La rama opcional de remediación quedó conectada de extremo a extremo:
-
-1. el diagnóstico LLM queda limitado a evidencia observada;
-2. AURA construye el plan y el script Python de forma determinista;
-3. la persona aprueba las acciones y el script;
-4. el runner local valida sintaxis y ejecuta Python/Pandas sobre una copia;
-5. AURA valida `corrected.csv` y `receipt.json`;
-6. AURA reaudita el resultado con el mismo motor determinista;
-7. el ZIP incorpora script, bundle, recibo, CSV corregido, reauditoría y resumen antes/después.
-
-Gates repetidos por el orquestador sobre `48f302d`:
-
-- 195/195 pruebas focalizadas;
-- typecheck y build correctos;
-- 3/3 E2E con runner y ZIP reales;
-- recibo alterado rechazado;
-- ausencia de `source.csv`, tamper y `force:true`.
-
-### Recorrido humano final validado
-
-El 13 de julio, entre las 22:08 y las 22:30, se completó el flujo publicado en
-`https://aura.casabero.com` con `synthetic_ground_truth.csv`, Qwen3.5 4B y el
-método **Evidencia completa** (`recommended`):
-
-- diagnóstico válido sobre 15 hallazgos;
-- 4 acciones aprobadas y 11 rechazadas;
-- script determinista aprobado por revisión humana;
-- sintaxis Python validada por el runner (`passed`);
-- ejecución sobre una copia: 15 a 14 filas, 9 columnas conservadas;
-- reauditoría: 15 a 11 hallazgos, 4 hallazgos corregidos, 0 reglas nuevas;
-- ZIP con 28 archivos; sus 27 entradas declaradas coinciden en SHA-256 y tamaño;
-- `corrected.csv` coincide con el hash del recibo y el CSV original no está en el ZIP;
-- no se encontraron API keys en el expediente.
-
-El primer intento de esta misma sesión con **Evidencia equilibrada**
-(`smart_sample`) fue rechazado con `DIAGNOSIS_REVIEW_DOWNGRADE`. La revisión
-posterior con dos modelos mostró que esta corrida está afectada por una
-contradicción del contrato de entrada y no debe presentarse como resultado
-negativo atribuible únicamente al modelo.
-
-### Prueba exploratoria de Contexto mínimo validada
-
-El 14 de julio se validó el ZIP de `experiments/tests/flujo6/` con Qwen3.5 4B y
-**Contexto mínimo** (`prompt_libre`):
-
-- método solicitado, efectivo y snapshot: `prompt_libre`;
-- únicamente tres secciones visibles: resumen del dataset, esquema y registro
-  mínimo de hallazgos;
-- 15 bloques y 15 issues, con cobertura exacta;
-- 0 referencias de evidencia y revisión humana obligatoria en los 15 issues,
-  comportamiento esperado porque este método no expone muestras;
-- diagnóstico y recibo válidos, sin errores de contrato;
-- latencia: 166.199 ms; salida: 3.195 tokens;
-- ZIP diagnóstico con 20 archivos totales: 19 declarados en el manifiesto y el
-  propio `manifest.json`; hashes y tamaños verificados;
-- dataset original y API keys ausentes.
-
-Comparado con **Evidencia completa**, esta observación exploratoria tardó un
-42,1 % menos y generó un 20,5 % menos de tokens. No se interpreta todavía como
-resultado general: faltan las repeticiones formales.
-
-El PDF incluido en ese ZIP fue generado desde una pestaña que mantenía el bundle
-anterior y conserva el defecto visual `0.0%` en un gráfico. El diagnóstico, el
-prompt, la respuesta y el recibo son válidos y no se repetirán. El mismo report
-JSON regenerado con `main` actual produce etiquetas y porcentajes correctos.
-Antes de la siguiente prueba se debe abrir una pestaña nueva o hacer recarga
-forzada para cargar el bundle publicado más reciente.
-
-### Bloqueo descubierto en Evidencia equilibrada
-
-El 14 de julio se ejecutó **Evidencia equilibrada** (`smart_sample`) con
-`synthetic_ground_truth.csv` en Qwen3.5 4B y Gemma 4 E4B:
-
-- ambas respuestas fueron JSON completos con 15 bloques y 15 issues;
-- Qwen marcó correctamente revisión humana en los 5 issues sin muestras, pero
-  la redujo en los otros 10;
-- Gemma marcó `requiresHumanReview: false` en los 15 issues, incluidos los 5
-  que no tenían `evidenceRefs`;
-- Qwen tardó 229 segundos y Gemma 206,6 segundos;
-- AURA rechazó correctamente ambas respuestas con
-  `DIAGNOSIS_REVIEW_DOWNGRADE`.
-
-### Secuencia real de corridas Gemma
-
-La secuencia exacta de corridas con Gemma 4 E4B, `smart_sample` y
-`synthetic_ground_truth.csv`:
-
-1. **Pre-contrato-fix (14 jul)**: 15/15 `requiresHumanReview: false` — todos
-   los valores de revisión obligatoria fueron falsos. El contrato aún no
-   exponía `issueIdsRequiringHumanReview` en el prompt.
-2. **Post-contrato-fix (14 jul)**: 15/15 `requiresHumanReview: true` — el
-   contrato corregido indujo el comportamiento correcto, pero la corrida falló
-   por el falso rechazo de referencias `sha256:...` (AURA-CIERRE-PRIVACY-REFERENCE-01).
-3. **Post-privacy-fix (14 jul)**: 5/15 `true`, 10/15 `false` — el validador
-   ya aceptaba referencias de privacidad, pero el modelo presentó drift
-   estocástico y volvió a marcar 10 issues como revisión no requerida. Esta
-   corrida produjo `DIAGNOSIS_REVIEW_DOWNGRADE` y es la fixture que prueba
-   la separación RAW vs EFFECTIVE.
-
-Esta secuencia demuestra que el cumplimiento del prompt es estocástico y que
-la gobernanza no puede delegarse al modelo.
-
-La causa común no puede atribuirse solo a los modelos. La composición actual de
-`smart_sample` expone estadísticas, activaciones y muestras, pero no expone
-`actionabilityPolicy` ni `authorizationEvidence`. Sin embargo, la instrucción y
-el validador exigen que `requiresHumanReview` respete exactamente esa gobernanza
-oculta. Esto hace que la entrada esté subespecificada y sesga la comparación.
-
-Las dos corridas deben conservarse como evidencia de ingeniería, pero quedan
-excluidas de las conclusiones sobre rendimiento de los modelos. La campaña
-formal queda bloqueada hasta hacer visible, como mínimo, la lista determinista
-de issues que requieren revisión humana y validar una sola corrida de humo.
-
-Defectos observados que requieren seguimiento:
-
-- ~~el PDF muestra `0.00%` en gráficos cuyos valores no son cero~~ **corregido**: la
-  causa raíz fue que la selección de visualización del diagnóstico sobrescribe el
-  `kind` del gráfico pero conserva los `xKey`/`yKey` deterministas; los renderers
-  asumían una convención de ejes fija, por lo que leían el valor de la columna de
-  texto (`0`) y la etiqueta de la columna numérica. El render ahora resuelve el eje
-  de valor por tipo de dato, sin tocar el motor ni el contenido estadístico;
-- ~~las páginas 4 y 6 del PDF dejan parte del fondo en negro~~ **corregido**: solo
-  la portada pintaba blanco; ahora todo camino que crea una página (incluido
-  `jspdf-autotable`) pinta un rectángulo A4 blanco completo;
-- `script-verification.json` conserva correctamente el estado del navegador
-  (`not_run`), mientras `execution/receipt.json` acredita después la sintaxis
-  real (`passed`); la diferencia es correcta pero debe explicarse mejor en la UI;
-- la interfaz dice `0 evidencias` cuando realmente significa `0 muestras
-  adjuntas`;
-- la pantalla de ejecución necesita presentar con más claridad los pasos
-  descargar, ejecutar y subir.
-
-## Trabajo diferido después del depósito
-
-No bloquea el documento del miércoles:
-
-- #34: QA integral y pulido final;
-- mejoras adicionales de hashes, contratos y recibos que no bloqueen corridas;
-- pulido visual menor de la rama opcional;
-- nuevas reglas, datasets, proveedores o modelos;
-- recomendación de modelo y método después del perfil, basada en columnas,
-  hallazgos, tamaño estimado de entrada/salida y recursos locales disponibles;
-- mejoras productivas previstas para el mes de desarrollo restante.
-
-## Métricas que sí deben llegar al TFM
-
-- precisión, recall y F1 del diagnóstico;
-- cumplimiento del contrato;
+- precisión, recall y F1 como **alineación con el ground truth**;
+- fiabilidad: corridas válidas entre corridas intentadas;
+- cumplimiento del contrato como gate de validez;
+- soporte y anclaje a evidencia visible;
 - columnas inventadas y claims sin soporte;
-- anclaje a reglas y muestras problemáticas;
-- latencia, tokens, errores y estabilidad;
-- claridad, trazabilidad y accionabilidad humana cuando se mida;
-- score e issues antes/después únicamente si existe ejecución verificada.
-
-No se declarará un ganador universal. Las conclusiones se limitarán al dataset,
-los modelos, los métodos y las condiciones realmente evaluadas.
-
-## Próxima acción exacta
-
-Desplegar el contrato corregido y ejecutar una sola corrida de humo con
-Qwen3.5 4B, `synthetic_ground_truth.csv` y **Evidencia equilibrada**
-(`smart_sample`). Solo si el diagnóstico supera el contrato sin relajar el
-validador se congela el protocolo formal.
-
-### Cierre del contrato de `smart_sample` (AURA-CIERRE-SMART-SAMPLE-HITL-01)
-
-**Causa raíz.** La composición visible de `smart_sample` solo exponía
-`dataset_summary`, `dataset_schema`, `issue_registry_minimal`,
-`column_statistics`, `rule_activations` y `evidence_samples`. La gobernanza que
-exige el validador (`actionability`, `automaticAuthorization.authorized` y
-`isAmbiguous`/`isDuplicate` por columna) quedaba oculta, de modo que el modelo
-no podía derivar qué `issueId`s necesitaban `requiresHumanReview: true` salvo
-que adivinara. Por eso Qwen redujo revisión en 10 de 15 casos y Gemma la
-redujo en los 15. Las dos corridas anteriores se conservan como evidencia de
-la contradicción del contrato, **no** como resultados comparables de modelos.
-
-**Solución aplicada.** Se extrajo la política a una única función pura en
-`src/contracts/llm/humanReviewPolicyV2.ts`
-(`requiresReviewFromEnvelopeV2` + `computeIssueIdsRequiringHumanReview`) que
-comparte constructor y validador. El constructor embebe el resultado en el
-`task` del prompt como `issueIdsRequiringHumanReview` (misma lista para los
-tres modos, en orden canónico del envelope, solo IDs, sin governance). El
-validador importa los mismos predicados compartidos; ya no existe la copia
-local duplicada.
-La instrucción del sistema y el `task.humanReviewInstruction` dejan claro que
-todo ID en la lista exige `requiresHumanReview: true`, pero el modelo sigue
-libre de marcar más cuando dude. `DIAGNOSIS_PROMPT_VERSION_V2` sube de
-`1.4.0` a `1.5.0` porque cambia el prompt efectivo. Las tres secciones
-visibles de cada modo no cambian: Contexto mínimo 3, Evidencia equilibrada 6,
-Evidencia completa 12. `smart_sample` sigue sin contener `actionabilityPolicy`,
-`authorizationEvidence`, `columnRegistry` ni `badSampleAnchors`.
-
-**Pruebas realizadas (1925 unitarias + 4 E2E + typecheck + build).**
-
-- `src/__tests__/humanReviewPolicyV2.test.ts` (14 casos, TDD): los tres modos
-  reciben la misma lista determinista; `smart_sample` no expone la gobernanza
-  prohibida; las secciones no cambian; todos los issues sin `evidenceRefs`
-  aparecen; `review_only`, no autorizados y con columnas ambiguas aparecen;
-  un issue realmente seguro y autorizado puede quedar fuera; el validador
-  rechaza `false` para cualquier ID obligatorio; una respuesta correcta pasa;
-  dos construcciones idénticas producen los mismos `userPayload`, `promptHash`,
-  `inputHash` y `responseSchemaHash`; el orden canónico del envelope se
-  preserva; la política compartida exige revisión cuando `evidenceRefs` está
-  vacío aunque la gobernanza diga `auto_safe` + `authorized`.
-- `src/__tests__/controlledDatasetDiagnosisInputs.test.ts` añade la regresión
-  con `experiments/datasets/synthetic_ground_truth.csv`: comprueba que
-  `integrity-dupes` tiene `evidenceRefs: []`, es `auto_safe` y está
-  autorizado, aun así aparece en `issueIdsRequiringHumanReview`; la lista
-  contiene los 15 `issueId` obligatorios; una respuesta con
-  `integrity-dupes.requiresHumanReview=false` produce `DIAGNOSIS_REVIEW_DOWNGRADE`;
-  una respuesta correcta para los 15 pasa.
-- `src/__tests__/diagnosisSystemInstructionV2.test.ts` (6 casos): el builder
-  canónico (`buildDiagnosisInputPackageV2`) sí incluye la lista; los builders
-  histórico (`buildDiagnosisPromptV2`) y compacto (`buildCompactDiagnosisPromptV2`)
-  no la incluyen y la instrucción global no afirma su presencia de forma
-  incondicional; la protección contra prompt injection (regla 1, contenido
-  no confiable) sigue intacta.
-- 1892 unitarias superadas y 6 omitidas, 0 regresiones; 172/172 pruebas
-  focalizadas superadas; typecheck y build limpios.
-- 4/4 E2E (`oe4-final-evaluation.spec.ts` × 1, `apply-verify-e2e.spec.ts` × 3):
-  recibo alterado rechazado; `execution/corrected.csv` incluido en la corrida
-  verificada; `source.csv` excluido del ZIP; ZIP estable.
-- `git diff --check` sin observaciones.
-- `graphify update .` regenerado sin perder el contrato.
-- Hashes y recibos siguen deterministas; las dos pruebas humanas previas
-  (Contexto mínimo y Evidencia completa) y el laboratorio siguen validándose.
-
-**Corrección R1.** La política compartida ahora contempla la regla completa
-de revisión humana: gobernanza (columna ambigua/duplicada, `review_only`,
-`auto_safe` no autorizado, actionability desconocida) **o** ausencia de
-`evidenceRefs` en el envelope. La lista que el constructor envía al modelo
-incluye `integrity-dupes` (`auto_safe` + `authorized` + `evidenceRefs: []`)
-y los otros 14 `issueId`s del dataset de cierre. La instrucción global del
-sistema se reformuló para afirmar la presencia de la lista solo cuando el
-payload proviene del constructor canónico; los builders histórico y compacto
-siguen produciendo payloads sin esa metadata y la regla no les aplica.
-
-**Bloqueo levantado.** El piloto Gemma con los tres métodos verificó el flujo
-normal, la separación RAW/EFFECTIVE y los ZIP. Las corridas exploratorias se
-conservan separadas. La campaña formal V2.3 puede iniciarse; cualquier error
-distinto de `DIAGNOSIS_REVIEW_DOWNGRADE` seguirá registrándose como fallo real.
-
-## Cierre AURA-CIERRE-DETERMINISTIC-HITL-02 — separación RAW vs EFFECTIVE
-
-**Causa raíz.** El contrato de `smart_sample` ya obliga al modelo a marcar
-los IDs de la lista determinista con `requiresHumanReview: true`, pero
-la decisión de revisión humana es un acto de gobernanza de AURA, no de
-estocasticidad del modelo. Aunque el prompt sea perfecto, el LLM puede
-omitir el flag (como ocurrió con Gemma en el piloto: 15/15 falsos) y el
-sistema caía completo. Un solo paso de prompt no es solución suficiente;
-la gobernanza debe ser computada por AURA y no delegada al modelo.
-
-**Solución aplicada.** El diagnóstico normal de AURA ahora separa dos
-vistas claramente diferenciadas:
-
-1. **RAW model result** — la respuesta exacta del modelo con sus
-   `requiresHumanReview` originales. El `ExecutionReceiptV1` certifica
-   tanto la validación efectiva como la cruda (campos
-   `rawValidationStatus`, `rawValidationErrorCodes`).
-   `rawResponseHash` es inmutable y apunta a la respuesta exacta del
-   proveedor. El Laboratorio evalúa la respuesta cruda sin pasar por
-   el pipeline de normalización; el `DiagnosisExecutionResult` expone
-   la respuesta cruda en `rawDiagnosis`.
-
-2. **EFFECTIVE product diagnosis** — copia inmutable con `requiresHumanReview`
-   forzado a `true` para cada `issueId` de la lista determinista
-   (`computeIssueIdsRequiringHumanReview`). Solo se modifica ese campo;
-   ningún otro campo del LLM se repara (refs, IDs, ruleIds, columnIds,
-   unsupported claims, coverage, JSON malformado). La respuesta efectiva
-   se re-valida con el validador estricto antes de continuar.
-
-**Evidencia de normalización.** Cada corrida que requiera normalización
-lleva `DiagnosisNormalizationEvidenceV2` con: `applied`, `field: "requiresHumanReview"`,
-`reason: "AURA_GOVERNANCE_ENFORCED"`, `policy: "aura.human-review-policy.v2"`,
-`policyVersion`, `normalizedIssueIds[]`, `originalValuesByIssueId`,
-`effectiveValuesByIssueId`. Se exporta como `diagnosis/governance-normalization.json`
-dentro del ZIP técnico y se renderiza en el diagnostic report con el
-mensaje:
-
-> "AURA aplicó revisión humana obligatoria a N hallazgos según su política
-> determinista de gobernanza. La respuesta original del modelo se conserva en
-> la evidencia técnica."
-
-**Resultados reales Gemma (piloto 14 de julio).** Las dos corridas de
-Gemma 4 E4B y Qwen 3.5 4B con `smart_sample` y `synthetic_ground_truth.csv`
-mostraron dos perfiles de fallo opuestos: Qwen acertó en 5/15 y se equivocó
-en 10/15; Gemma falló los 15. Ninguno de los dos pudo ser atribuido a un
-defecto del modelo sin más contexto: ambos modelos devolvieron JSON válido,
-cobertura exacta, IDs y referencias correctas — el único campo que
-incumplió sistemáticamente el contrato fue `requiresHumanReview`. La
-decisión de revisión humana no puede depender del LLM.
-
-**Pruebas realizadas (1925 unitarias + 4 E2E + typecheck + build).**
-
-- `src/__tests__/humanReviewNormalizerV2.test.ts` (14 tests, R1–R12 +
-  dos integraciones): la fixture Gemma balanced reproduce el fallo real
-  con 15 issues, 10 con `requiresHumanReview: false` y 5 con `true`. Las
-  pruebas demuestran:
-  1. raw validation reporta `DIAGNOSIS_REVIEW_DOWNGRADE`;
-  2. raw compliance queda fallido y `downgradeCount > 0` para el
-     Laboratorio;
-  3. la normalización solo toca `requiresHumanReview`;
-  4. los 10 IDs obligatorios quedan en `true` en la respuesta efectiva;
-  5. el diagnóstico efectivo pasa validación estricta;
-  6. la evidencia lista exactamente los 10 IDs modificados;
-  7. raw response y `rawResponseHash` quedan inalterados;
-  8. un `evidenceRef` inventado sigue bloqueando el producto
-     (`DIAGNOSIS_REFERENCE_INVALID`);
-  9. un valor entre comillas sin soporte sigue bloqueando
-     (`DIAGNOSIS_REFERENCE_INVALID`);
-  10. JSON inválido nunca se normaliza (`DIAGNOSIS_JSON_INVALID`);
-  11. cobertura faltante nunca se normaliza (`DIAGNOSIS_REFERENCE_INVALID`);
-  12. dos inputs idénticos producen evidencia idéntica.
-
-- `src/contracts/llm/humanReviewNormalizerV2.ts` (nuevo): normalizer puro,
-  `computeMandatoryReviewIssueIds`, `captureRawResponse`,
-  `normalizeHumanReview`, `onlyRequiresHumanReviewDiffers`.
-
-- `src/contracts/llm/diagnosisPipelineV2.ts`: el pipeline ahora aplica
-  normalización exclusivamente cuando el fallo es `DIAGNOSIS_REVIEW_DOWNGRADE`
-  puro. Cualquier otro error (schema, referencia, ejecutable, claim sin
-  soporte, cobertura faltante) sigue siendo bloqueante sin reparación.
-
-- `src/contracts/llm/diagnosisSelector.ts` +
-  `src/contracts/llm/executionReceiptV1.ts` +
-  `src/contracts/llm/types.ts`: el recibo y el `DiagnosisExecutionResult`
-  propagan `rawDiagnosis`, `rawValidation`, `normalizationEvidence`. El
-  recibo añade `normalizationApplied?: boolean` opcional.
-
-- `src/services/evidenceArchive.ts`: el ZIP técnico incluye
-  `diagnosis/governance-normalization.json` cuando la normalización
-  efectivamente se aplicó.
-
-- `src/services/diagnosticReport/diagnosticReportBuilder.ts`: el
-  diagnostic report muestra el mensaje AURA_GOVERNANCE_ENFORCED en
-  `limitations` cuando la evidencia indica normalización.
-
-- Gates finales documentados al cierre de R2: `1925 passed`, 6 skipped;
-  `typecheck` limpio; `build` correcto; E2E 4/4
-  (`oe4-final-evaluation.spec.ts` × 1,
-  `apply-verify-e2e.spec.ts` × 3).
-
-**Por qué AURA es dueña de la gobernanza.** `requiresHumanReview` no es
-una afirmación del modelo: es una decisión contractual sobre qué hallazgos
-pueden automatizarse y cuáles requieren revisión humana. Esa decisión la
-toma AURA leyendo el envelope (actionability, autorización, ambigüedad
-de columna, ausencia de evidencia). Un LLM puede equivocarse; la
-gobernanza debe ser determinista y reproducible. Esto NO se logra con
-otro prompt: se logra con una capa de normalización explícita y auditable
-que el Laboratorio sigue viendo en su forma cruda.
-
-**Laboratorio vs producto.** El Laboratorio evalúa la respuesta cruda
-(`run.diagnosis.parsedOutput`); el producto usa la respuesta efectiva
-(`runStructuredDiagnosis().diagnosis`). Un único `ExecutionReceiptV1`
-contiene tanto `validationStatus`/`validationErrorCodes` (efectivos) como
-`rawValidationStatus`/`rawValidationErrorCodes` (crudos). El Laboratorio
-lee `run.diagnosis.validationErrors` para mantener el conteo de
-`DIAGNOSIS_REVIEW_DOWNGRADE` exactamente igual que antes. Los modelos NO
-reciben crédito artificial por cumplimiento que AURA tuvo que imponer; el
-cumplimiento del modelo se reporta por separado.
-
-## Cierre AURA-CIERRE-DETERMINISTIC-HITL-02-R2 — auditoría honesta
-
-### Correcciones aplicadas
-
-1. **Eliminado `RawExecutionReceiptV1`**: el contrato `aura.raw-execution-receipt.v1`
-   no existía en runtime (solo como tipo). Se removió de `types.ts`. Un único
-   `ExecutionReceiptV1` ahora documenta ambos planos de validación.
-
-2. **Semántica honesta del recibo**: `validationStatus`/`validationErrorCodes`
-   reflejan la validación del diagnóstico EFECTIVO (producto). Los nuevos campos
-   opcionales `rawValidationStatus`/`rawValidationErrorCodes` reflejan la
-   validación de la respuesta CRUDA del proveedor. Cuando hay normalización:
-   `validationStatus = "valid"`, `rawValidationStatus = "invalid"`,
-   `normalizationApplied = true`.
-
-3. **Entrada al normalizador asegurada**: el guard ahora exige
-   `errors.length > 0 && errors.every(...)`. `Array.every()` devuelve `true`
-   para arrays vacíos; sin el guard adicional, un validador roto que
-   reportara `{valid: false, errors: []}` dispararía normalización.
-
-4. **Aviso visible en la UI**: el diagnóstico normal muestra un texto en español:
-   "AURA aplicó revisión humana obligatoria a N hallazgos según su política
-   determinista de gobernanza. La respuesta original del modelo se conserva en
-   la evidencia técnica."
-
-5. **Prueba directa del ZIP**: `evidenceArchive.test.ts` verifica que
-   `diagnosis/governance-normalization.json` existe con todos los campos
-   requeridos, que `provider-response.raw.json` no se modifica, y que una
-   ejecución sin normalización no inventa el archivo.
-
-6. **Prueba de que el Laboratorio puntúa RAW**: `formalDiagnosisEvaluator.test.ts`
-   demuestra que una respuesta con 10 valores falsos de revisión obligatoria
-   produce `contractCompliant: false` con `DIAGNOSIS_REVIEW_DOWNGRADE`, sin
-   normalización ni crédito artificial.
-
-7. **Alcance estricto del normalizador confirmado**: 12 pruebas en
-   `humanReviewNormalizerV2.test.ts` demuestran que solo se modifica
-   `requiresHumanReview` (false → true), nunca se reparan IDs, ruleIds,
-   columnIds, evidenceRefs, claims sin soporte, JSON malformado ni cobertura.
-
-### Cierre de referencias de privacidad (AURA-CIERRE-PRIVACY-REFERENCE-01)
-
-La corrida posterior con Gemma superó la revisión humana obligatoria para los
-15 issues, pero fue rechazada porque el modelo resumió un valor anonimizado
-como `"sha256:..."`. El validador buscaba literalmente los tres puntos dentro
-del hash SHA-256 completo y produjo `DIAGNOSIS_REFERENCE_INVALID`. Era un falso
-rechazo: el texto describía una transformación de privacidad visible, no un
-valor inventado del CSV.
-
-La validación ahora acepta la abstracción `sha256:...` únicamente cuando la
-evidencia del mismo `issueId` contiene un SHA-256 concreto de 64 caracteres.
-Sigue rechazándola cuando el issue no contiene ese hash, por lo que no se
-relaja la protección frente a claims inventados. El prompt `1.6.0` también
-explica que hashes y valores enmascarados no son valores originales y prohíbe
-interpretarlos como el defecto de calidad. La corrida fallida se conserva como
-evidencia de regresión, no como resultado formal de modelo.
-
-Validación del cierre: 64/64 pruebas focalizadas, 1925 unitarias superadas y
-6 omitidas, typecheck y build limpios, y 4/4 recorridos E2E superados.
-
-## Cierre AURA-CIERRE-QWEN35-4B-01 — catálogo Ollama y protocolo formal
-
-La configuración rápida del diagnóstico seguía mostrando `Qwen 3 8B` porque
-`modelRegistry.ts` conservaba el identificador congelado anterior. Ollama ya
-tenía instalado el modelo correcto; el defecto estaba en el catálogo de AURA,
-no en el servidor local.
-
-Correcciones aplicadas:
-
-- modelo recomendado y formal: `hf.co/unsloth/Qwen3.5-4B-GGUF:UD-Q4_K_XL`;
-- etiqueta visible: `Qwen 3.5 4B · OE4 (UD-Q4_K_XL)`;
-- migración automática de configuraciones guardadas con el antiguo Qwen 3 8B;
-- protocolo formal actualizado finalmente a `2.3.0`, congelado el 14 de julio de 2026,
-  antes de iniciar la campaña;
-- catálogo operativo único consultado desde `/api/tags` para Configuración,
-  Diagnóstico y Laboratorio;
-- la campaña congela los IDs y digests realmente instalados al crearla, sin
-  compararlos contra digests específicos escritos en el código.
-
-La primera campaña creada con este catálogo se conserva como piloto técnico
-inválido por el defecto de límite de salida descrito en el cierre siguiente.
-
-Validación de este cierre: 64/64 pruebas focalizadas, 1928 unitarias
-superadas y 6 omitidas, `typecheck` limpio, `build` correcto y 1/1 recorrido
-Playwright del estilo `showcase-ink`. La consulta real a Ollama devolvió los
-tres modelos instalados esperados; no se ejecutaron diagnósticos formales.
-
-## Cierre AURA-CIERRE-LAB-TRUNCATION-01 — piloto V2.3 invalidado
-
-La primera ejecución del Laboratorio intentó siete de las 27 unidades antes de
-ser pausada de forma segura. Las siete quedaron fallidas y las veinte restantes
-no se ejecutaron. Este resultado **no compara la calidad de los modelos**: tanto
-Qwen3.5 4B como Gemma 4 E4B llegaron exactamente a `1600` tokens y sus respuestas
-JSON quedaron cortadas antes de cerrar el contrato.
-
-Decisión de cierre:
-
-- la campaña V2.3 se conserva como evidencia de un fallo de configuración del
-  protocolo, no como resultado experimental del TFM;
-- no se reanuda ni se mezclan sus corridas con una campaña posterior;
-- el protocolo V2.4 eleva `numPredict` de `1600` a `4096` y mantiene sin cambios
-  dataset, modelos, métodos, repeticiones y validación estricta;
-- AURA impide reanudar una campaña de protocolo obsoleto y permite crear una
-  nueva sin borrar la evidencia anterior;
-- la interfaz muestra la corrida activa, modelo, método con nombre público,
-  repetición, fase, tiempo transcurrido y progreso total;
-- el detalle de una corrida fallida presenta el código y el mensaje verificable,
-  no solamente el JSON parcial.
-
-La nueva campaña V2.4 debe superar primero una sola corrida. Si esa puerta de
-control falla, se pausa inmediatamente; no se consumen automáticamente las 26
-unidades restantes.
-
-## Cierre AURA-CIERRE-LAB-UI-01 — lectura humana y capturas
-
-El piloto inválido mostraba identificadores completos, hashes y errores internos
-en la columna principal del reporte. Las cadenas largas desbordaban visualmente
-la tarjeta y hacían que una captura del Laboratorio pareciera caótica.
-
-La interfaz ahora aplica la jerarquía `showcase-ink`:
-
-- nombres públicos de modelo, método y estado en español;
-- errores frecuentes explicados en lenguaje humano;
-- causas del bloqueo agrupadas sin repetir una razón por cada `runId`;
-- hashes, IDs y mensajes originales conservados en paneles técnicos plegables;
-- tarjetas con `min-width: 0`, ajuste de palabras y rejilla responsive;
-- verificación E2E explícita de ausencia de desbordamiento horizontal.
-
-La captura renderizada a 1440 px conserva matriz, detalle y preparación del
-reporte dentro del viewport, con cero píxeles de desbordamiento horizontal.
-
-## Cierre AURA-CIERRE-LAB-STREAM-01 — respuesta visible en tiempo real
-
-Antes de reiniciar la campaña V2.4, el Laboratorio conecta el streaming real de
-Ollama con una consola `diagnosis.response.stream.json`. Durante el calentamiento
-indica que todavía no ha comenzado el diagnóstico; después muestra, en orden de
-llegada, los fragmentos exactos escritos por el modelo, con desplazamiento
-automático y contador de caracteres.
-
-La consola es únicamente una vista en vivo: no modifica ni repara el contenido.
-El runner concatena los mismos fragmentos que Ollama devuelve como respuesta
-final, y esa respuesta cerrada sigue siendo la que se valida, hashea y persiste
-en el recibo formal. Los proveedores sin streaming conservan el camino anterior
-sin alterar la campaña.
-
-## Cierre AURA-CIERRE-LAB-FAILURE-ARCHIVE-01 — expediente descargable del fallo
-
-La primera corrida de control V2.4 produjo un JSON completo, pero Qwen3.5 4B
-marcó como `false` varias revisiones humanas que la gobernanza determinista de
-AURA exige como obligatorias. El Laboratorio conservó correctamente la
-respuesta RAW y la calificó como incumplimiento
-`DIAGNOSIS_REVIEW_DOWNGRADE`; la campaña quedó pausada tras 1/27 intentos. Este
-resultado no se atribuye al equipo Windows ni a su potencia.
-
-Cada corrida diagnóstica fallida ofrece ahora **Descargar expediente del fallo
-(.zip)**. El archivo reúne campaña, corrida, entrada exacta, prompt, esquema,
-respuesta cruda, errores de validación, recibo, entorno y eventos de intento,
-además de un manifiesto con SHA-256 y tamaño de cada artefacto. No incluye el
-CSV original y advierte que el payload puede contener muestras transformadas o
-sensibles.
-
-La campaña V2.4 actual no debe reanudarse hasta decidir cómo contabilizar las
-respuestas parseables que incumplen el contrato: deben seguir recibiendo
-`contractCompliant = false` sin que AURA repare ni otorgue crédito artificial al
-modelo.
-
-## Documentos vigentes relacionados
-
-- [Plan de cierre del diagnóstico normal y PDF](../../plans/2026-07-12-cierre-diagnostico-normal-y-reporte-pdf.md)
-- [Contrato del paquete completo de evidencia](contracts/aura-evidence-package-v1.md)
-- [Protocolo del Laboratorio](../../plans/2026-07-10-laboratorio-oe4-evaluacion-llm.md)
-- [Texto para limitaciones del LLM local en el TFM](documentation/TFM_LIMITACIONES_LLM_LOCAL.md)
-
-## Cierre de identidad pública y build del Laboratorio
-
-La interfaz pública ya no presenta el Laboratorio como un objetivo académico ni
-usa referencias a OE4 o TFM en títulos, botones, modelos, metadatos HTML o
-reportes exportados. Los identificadores internos del protocolo se conservan
-para no romper la trazabilidad histórica de la campaña.
-
-El build ahora resuelve el SHA verificable desde `VITE_AURA_BUILD_SHA`,
-`SOURCE_COMMIT` u otras variables estándar de CI, y usa `git rev-parse HEAD`
-cuando el repositorio está disponible. En Coolify debe permanecer habilitada la
-opción **Include Source Commit in Build**; sin ella Coolify excluye
-`SOURCE_COMMIT` deliberadamente y AURA mantiene bloqueada la creación formal en
-vez de inventar una identidad de despliegue.
-
-## Cierre AURA-CIERRE-LAB-AUTOMATIC-SCORING-01 — diagnóstico automático
-
-La primera campaña completa terminó con 27/27 unidades intentadas: 19
-diagnósticos válidos y 8 fallidos. Se conserva íntegra como evidencia del TFM;
-no se borra, no se transforma y no se obliga a repetirla para aplicar esta
-corrección de lectura y reporte.
-
-Se confirmó un error de alcance: el Laboratorio ya calculaba la evaluación
-automática, pero el reporte permanecía bloqueado por rúbrica humana,
-representantes, script, HITL y reauditoría. Esas fases pertenecen al pipeline
-normal de Auditoría, donde una persona decide si desea remediar una copia del
-dataset. No pertenecen a la comparación experimental de diagnósticos LLM.
-
-El Laboratorio queda definido así:
-
-- una unidad experimental es exclusivamente un diagnóstico LLM;
-- cada respuesta válida se compara automáticamente con el oráculo congelado
-  usando la clave exacta `ruleId + columnId + scope`;
-- precisión, recall y F1 miden corrección y cobertura del diagnóstico;
-- fiabilidad mide diagnósticos válidos / corridas intentadas, por lo que los
-  fallos reducen el score sin inventarles F1 cero;
-- cumplimiento de contrato, fidelidad/anclaje de evidencia, columnas o claims
-  sin soporte, latencia y tokens se calculan desde la respuesta RAW, el snapshot,
-  el recibo y las métricas observadas;
-- no se usa otro LLM como juez y no se requiere calificar manualmente 27 veces;
-- la matriz identifica individualmente válidas y fallidas y resume cada celda;
-- el reporte recomienda modelo + método para cinco objetivos: equilibrio,
-  calidad diagnóstica, fiabilidad, trazabilidad y velocidad;
-- no declara un ganador universal.
-
-El índice equilibrado, expresado en escala 0–100, usa ponderaciones explícitas:
-exactitud 35 %, fiabilidad 20 %, contrato 15 %, evidencia 15 %, ausencia de
-alucinaciones 10 % y eficiencia 5 %. Si una dimensión no es medible, se excluye
-y las ponderaciones restantes se normalizan; nunca se sustituye por un cero
-inventado. La eficiencia usa únicamente latencias de diagnósticos válidos.
-
-`runs.csv` queda limitado a diagnóstico, métricas, errores, hashes, modelo
-solicitado/observado y recibo. Script, rúbrica humana, HITL, Python y
-reauditoría ya no forman parte de la ecuación ni del CSV del Laboratorio. El
-JSON canónico conserva los datos históricos originales de las corridas para
-auditoría, incluso si fueron creadas por una versión anterior de la interfaz.
-
-## Cierre AURA-CIERRE-LAB-D3-RESULTS-01 — exploración visual trazable
-
-El reporte automático ya no termina únicamente en una tabla y cinco archivos.
-Cuando la campaña satisface sus gates formales aparece el módulo
-**Visualizar resultados**, construido con D3.js y el estilo `showcase-ink`.
-
-El explorador ofrece tres vistas sincronizadas:
-
-- panorama 3 × 3 del índice equilibrado por modelo y método de entrada;
-- perfil de las seis dimensiones de la combinación seleccionada;
-- relación entre F1, latencia mediana y fiabilidad, diferenciando modelos por
-  forma además de color.
-
-La visualización no recalcula ni normaliza resultados. Consume directamente el
-mismo `ExperimentCampaignEvidenceDocumentV1` que alimenta la tabla y la
-exportación, conserva una tabla textual equivalente y permite inspeccionar los
-valores exactos representados. La interfaz declara sus límites: un dataset
-controlado de 15 filas y 9 columnas, tres repeticiones, ponderaciones explícitas
-y latencia dependiente del hardware. Por tanto, es evidencia reproducible de
-esta campaña y una ayuda de decisión, no una prueba de superioridad universal.
+- latencia y tokens.
+
+El índice equilibrado usa:
+
+- fiabilidad: 35 %;
+- soporte de evidencia: 25 %;
+- ausencia de claims sin soporte: 20 %;
+- eficiencia: 20 %.
+
+F1 y contrato no reciben un premio adicional: el primero describe concordancia con una referencia conocida y el segundo decide si la corrida es válida.
+
+## Campaña piloto conservada
+
+La primera campaña produjo 27 intentos, 19 diagnósticos válidos y 8 fallos. Sirvió para descubrir y corregir:
+
+- truncamiento por límite de salida;
+- diferencias antiguas entre el pipeline normal y el Laboratorio;
+- gobernanza determinista de revisión humana;
+- falsos positivos al interpretar valores visibles como claims sin soporte;
+- falta de claridad visual durante y después de la ejecución.
+
+No se eliminará ni se reinterpretará como campaña formal. Su función es documentar la evolución del sistema.
+
+## Protocolo de la segunda campaña
+
+La segunda campaña usa `aura.oe4.final-evaluation.v2` versión `2.6.0` y congela:
+
+- dataset `synthetic_ground_truth.csv`;
+- los tres hashes de referencia;
+- Qwen3.5 4B, Gemma 4 E4B y SmolLM3 3B;
+- los tres métodos de entrada;
+- tres repeticiones;
+- `temperature=0.1`, `topP=0.9`, `think=false`;
+- `numCtx` y `numPredict` elegidos en el preflight;
+- seed, keep alive y timeout.
+
+Una vez creada, no se cambian dataset, modelos, prompts, contratos o parámetros. Si se cambia cualquiera, se crea otra versión de protocolo.
+
+## Exportación definitiva del Laboratorio
+
+La campaña válida exporta nueve archivos:
+
+1. `campaign.json`;
+2. `runs.csv`;
+3. `report.md`;
+4. `report.pdf`;
+5. `results-summary.json`;
+6. `methodology.md`;
+7. `glossary.md`;
+8. `selected-configuration.json`;
+9. `manifest.json`.
+
+La configuración seleccionada conserva modelo, método y parámetros exactos y puede aplicarse al siguiente diagnóstico normal sin iniciarlo automáticamente.
+
+## Siguiente acción humana
+
+1. Esperar el despliegue que contenga el protocolo `2.6.0`.
+2. Abrir Laboratorio y comprobar los tres modelos instalados.
+3. Crear una campaña nueva; la campaña anterior debe quedar visible solo como piloto histórico.
+4. Confirmar el perfil de inferencia antes de crearla.
+5. Ejecutar la segunda campaña completa.
+6. Al terminar, revisar las visualizaciones y seleccionar la combinación adecuada al objetivo.
+7. Exportar los nueve archivos antes de cambiar código o configuración.
+8. Aplicar, si se desea, la configuración elegida al siguiente diagnóstico de Auditoría.
+
+## Mejoras posteriores a la entrega
+
+- asistente para registrar nuevos datasets controlados y sus ground truths;
+- pruebas con más datasets y hardware;
+- intervalos de confianza y más repeticiones;
+- comparación con proveedores cloud;
+- mejoras visuales no bloqueantes del pipeline normal.
+
+Estas mejoras no bloquean la segunda campaña ni la consolidación del documento final.

@@ -37,6 +37,10 @@ import type { InferenceSnapshotV1 } from './contracts/llm/types';
 import { resolveOllamaInferenceConfig } from './services/ollamaInferenceConfig';
 import type { ExperimentRunV1 } from './services/benchmark/experimentTypes';
 import { evaluateFormalDiagnosisRun } from './services/benchmark/formalDiagnosisEvaluator';
+import {
+  applyCampaignConfigurationToAIConfig,
+  type CampaignPipelineConfigurationV1,
+} from './services/benchmark/campaignPipelineConfiguration';
 
 const BenchmarkCampaignLab = lazy(() => import('./components/benchmark/BenchmarkCampaignLab'));
 const Oe4CampaignE2eHarness = import.meta.env.DEV
@@ -612,6 +616,10 @@ const App: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const applyCampaignPipelineConfiguration = (configuration: CampaignPipelineConfigurationV1) => {
+    setAiConfig((current) => applyCampaignConfigurationToAIConfig(current, configuration));
+  };
+
   const goSettings = () => {
     setShowHome(false);
     setShowSettings(true);
@@ -799,6 +807,8 @@ const App: React.FC = () => {
                 initialInference={formalInitialInference}
                 createCampaignBundle={formalEvidenceEnvelope && pipelineData.file ? createFormalBundle : undefined}
                 evaluateRun={evaluateFormalRun}
+                onApplyPipelineConfiguration={applyCampaignPipelineConfiguration}
+                onGoToAudit={goAudit}
               />}
         </Suspense>
       )}

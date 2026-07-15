@@ -170,7 +170,7 @@ describe('BenchmarkCampaignLab - automatic diagnosis campaign', () => {
 
     expect(screen.queryByLabelText('Claridad')).toBeNull();
     expect(screen.queryByText('Script')).toBeNull();
-    expect((screen.getByRole('button', { name: 'Exportar resultados' }) as HTMLButtonElement).disabled).toBe(false);
+    expect((screen.getByRole('button', { name: 'Exportar 9 archivos' }) as HTMLButtonElement).disabled).toBe(false);
   });
 
   it('blocks resuming an obsolete protocol and offers a new preserved campaign', async () => {
@@ -306,10 +306,10 @@ describe('BenchmarkCampaignLab - automatic diagnosis campaign', () => {
     expect(screen.queryByText('Script')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Aprobar representante' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Preparar ejecución externa' })).toBeNull();
-    expect((screen.getByRole('button', { name: 'Exportar resultados' }) as HTMLButtonElement).disabled).toBe(false);
+    expect((screen.getByRole('button', { name: 'Exportar 9 archivos' }) as HTMLButtonElement).disabled).toBe(false);
   });
 
-  it('exports the five-file report only when every formal gate is satisfied', async () => {
+  it('exports the nine-file report only when every formal gate is satisfied', async () => {
     const user = userEvent.setup();
     const fixture = createExperimentEvidenceFixture();
     const store = createInMemoryExperimentStore();
@@ -318,11 +318,11 @@ describe('BenchmarkCampaignLab - automatic diagnosis campaign', () => {
 
     render(<BenchmarkCampaignLab store={store} onExport={onExport} now={() => fixture.generatedAt} />);
 
-    const exportButton = await screen.findByRole('button', { name: 'Exportar resultados' });
+    const exportButton = await screen.findByRole('button', { name: 'Exportar 9 archivos' });
     expect((exportButton as HTMLButtonElement).disabled).toBe(false);
     await user.click(exportButton);
 
     expect(onExport).toHaveBeenCalledOnce();
-    expect(onExport.mock.calls[0][0].artifacts).toHaveLength(5);
+    expect(onExport.mock.calls[0][0].artifacts).toHaveLength(9);
   });
 });

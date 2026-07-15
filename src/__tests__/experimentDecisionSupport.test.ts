@@ -19,13 +19,14 @@ describe('experimentDecisionSupport', () => {
     ]);
     expect(result.methodology.oracle).toContain('ruleId + columnId + scope');
     expect(result.methodology.balancedWeights).toEqual({
-      accuracy: 0.35,
-      reliability: 0.2,
-      contractCompliance: 0.15,
-      evidenceSupport: 0.15,
-      hallucinationSafety: 0.1,
-      efficiency: 0.05,
+      accuracy: 0,
+      reliability: 0.35,
+      contractCompliance: 0,
+      evidenceSupport: 0.25,
+      hallucinationSafety: 0.2,
+      efficiency: 0.2,
     });
+    expect(result.methodology.note).toContain('alineación');
     result.scores.forEach((score) => {
       Object.values(score).filter((value): value is number => typeof value === 'number')
         .forEach((value) => expect(value).toBeGreaterThanOrEqual(0));

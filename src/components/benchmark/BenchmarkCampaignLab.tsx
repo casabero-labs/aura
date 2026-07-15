@@ -25,6 +25,8 @@ import CampaignMatrix from './CampaignMatrix';
 import ExperimentRunDetail from './ExperimentRunDetail';
 import CampaignReportPanel from './CampaignReportPanel';
 import CampaignResultsExplorer from './CampaignResultsExplorer';
+import CampaignConfigurationPanel from './CampaignConfigurationPanel';
+import BenchmarkGlossary from './BenchmarkGlossary';
 import { useOllamaModelCatalog } from '../../services/useOllamaModelCatalog';
 import { ollamaModelId } from '../../services/ollamaModelCatalog';
 import {
@@ -34,6 +36,10 @@ import {
 import SyntaxDisplay from '../SyntaxDisplay';
 import { buildExperimentFailureArchive } from '../../services/benchmark/experimentFailureArchive';
 import { downloadBlob } from '../../utils/download';
+import {
+  buildCampaignPipelineConfiguration,
+  type CampaignPipelineConfigurationV1,
+} from '../../services/benchmark/campaignPipelineConfiguration';
 
 export interface ExperimentCampaignBundle {
   campaign: ExperimentCampaignV1;
@@ -51,6 +57,8 @@ interface BenchmarkCampaignLabProps {
   createCampaignBundle?: (inference: InferenceSnapshotV1) => Promise<ExperimentCampaignBundle>;
   evaluateRun?: (run: ExperimentRunV1) => Promise<AutomaticEvaluationV1>;
   onExport?: (evidencePackage: ExperimentEvidencePackage) => void;
+  onApplyPipelineConfiguration?: (configuration: CampaignPipelineConfigurationV1) => void;
+  onGoToAudit?: () => void;
   now?: () => string;
   ollamaBaseUrl?: string;
 }
@@ -91,6 +99,8 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
   createCampaignBundle,
   evaluateRun,
   onExport,
+  onApplyPipelineConfiguration,
+  onGoToAudit,
   now = () => new Date().toISOString(),
   ollamaBaseUrl = 'http://127.0.0.1:11434',
 }) => {
@@ -117,6 +127,7 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [liveDiagnosisResponse, setLiveDiagnosisResponse] = useState('');
   const [draftInference, setDraftInference] = useState<InferenceSnapshotV1>(() => ({ ...initialInference }));
+  const [selectedResultCellId, setSelectedResultCellId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!activeExecution) {
@@ -182,14 +193,48 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
     : null, [campaignForEvidence, now, runs]);
   const evidencePackage = useMemo(() => (
     campaignForEvidence && evidenceDocument?.formalValidity.valid
-      ? exportExperimentEvidencePackage({ campaign: campaignForEvidence, runs, generatedAt: evidenceDocument.generatedAt })
+      ? exportExperimentEvidencePackage({
+        campaign: campaignForEvidence,
+        runs,
+        generatedAt: evidenceDocument.generatedAt,
+        selectedCellId: selectedResultCellId ?? undefined,
+        ollamaBaseUrl,
+      })
       : null
-  ), [campaignForEvidence, evidenceDocument, runs]);
+  ), [campaignForEvidence, evidenceDocument, ollamaBaseUrl, runs, selectedResultCellId]);
   const installedModelIds = useMemo(
     () => new Set(ollamaCatalog.models.map(ollamaModelId)),
     [ollamaCatalog.models],
   );
   const formalModelsInstalled = FINAL_EVALUATION_PROTOCOL.models.every((modelId) => installedModelIds.has(modelId));
+  const selectedPipelineConfiguration = useMemo(() => {
+    if (!evidenceDocument?.formalValidity.valid) return null;
+    try {
+      return buildCampaignPipelineConfiguration(
+        evidenceDocument,
+        selectedResultCellId ?? undefined,
+        ollamaBaseUrl,
+      );
+    } catch {
+      return null;
+    }
+  }, [evidenceDocument, ollamaBaseUrl, selectedResultCellId]);
+
+  useEffect(() => {
+    if (!evidenceDocument?.formalValidity.valid) {
+      setSelectedResultCellId(null);
+      return;
+    }
+    if (selectedResultCellId && evidenceDocument.decisionSupport.scores.some((score) => score.cellId === selectedResultCellId)) return;
+    const balanced = evidenceDocument.decisionSupport.recommendations.find((entry) => entry.useCase === 'balanced');
+    const initial = (balanced
+      ? evidenceDocument.decisionSupport.scores.find((score) =>
+        score.modelId === balanced.modelId && score.inputMode === balanced.inputMode)?.cellId
+      : undefined)
+      ?? evidenceDocument.decisionSupport.scores[0]?.cellId
+      ?? null;
+    setSelectedResultCellId(initial);
+  }, [evidenceDocument, selectedResultCellId]);
 
   const createCampaign = async () => {
     if (!createCampaignBundle) return;
@@ -398,7 +443,22 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
           />
 
           {evidenceDocument?.formalValidity.valid && (
-            <CampaignResultsExplorer evidenceDocument={evidenceDocument} />
+            <>
+              <CampaignResultsExplorer
+                evidenceDocument={evidenceDocument}
+                selectedCellId={selectedResultCellId ?? undefined}
+                onSelectedCellIdChange={setSelectedResultCellId}
+              />
+              {selectedPipelineConfiguration && (
+                <CampaignConfigurationPanel
+                  configuration={selectedPipelineConfiguration}
+                  modelInstalled={installedModelIds.has(selectedPipelineConfiguration.modelId)}
+                  onApply={onApplyPipelineConfiguration}
+                  onGoToAudit={onGoToAudit}
+                />
+              )}
+              <BenchmarkGlossary />
+            </>
           )}
 
           {selectedRun && (

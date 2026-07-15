@@ -269,6 +269,30 @@ describe('extractAnchorEvidence', () => {
 });
 
 describe('extractUnsupportedClaims', () => {
+  const withVisibleEvidence = (
+    run: ExperimentRunV1,
+    issueId: string,
+    values: unknown,
+  ): ExperimentRunV1 => {
+    const payload = JSON.parse(run.input.userPayload) as {
+      visibleEvidence?: { evidenceSamples?: Array<Record<string, unknown>> };
+    };
+    payload.visibleEvidence ??= {};
+    payload.visibleEvidence.evidenceSamples = [{
+      evidenceRef: 'ev-visible-test',
+      issueId,
+      columnId: 'col:test',
+      values,
+    }];
+    return {
+      ...run,
+      input: {
+        ...run.input,
+        userPayload: JSON.stringify(payload),
+      },
+    };
+  };
+
   it('detects a false numeric claim in a hypothesis', () => {
     const run = makeRun('recommended');
     const diagnosis = JSON.parse(DIAGNOSIS_JSON) as DiagnosisResponseV2;
@@ -305,6 +329,53 @@ describe('extractUnsupportedClaims', () => {
     diagnosis.diagnosisBlocks[0].recommendation = 'Revisar 3 muestras en el paso 2.';
     const claims = extractUnsupportedClaims(diagnosis, run);
     expect(claims.some((claim) => claim.claimedValue === 3 || claim.claimedValue === 2)).toBe(false);
+  });
+
+  it('accepts negative, date and masked values visible for the same issue', () => {
+    const diagnosis = JSON.parse(DIAGNOSIS_JSON) as DiagnosisResponseV2;
+    const issueId = diagnosis.diagnosisBlocks[0].issueId;
+    const run = withVisibleEvidence(
+      makeRun('smart_sample'),
+      issueId,
+      [-1500, '01/15/2023', '9***9'],
+    );
+    diagnosis.issues[0].hypothesis = 'Se observaron -1500, 01/15/2023 y 9***9 en la muestra visible.';
+    diagnosis.diagnosisBlocks[0].observation = diagnosis.issues[0].hypothesis;
+
+    const claims = extractUnsupportedClaims(diagnosis, run);
+
+    expect(claims.filter((claim) => claim.location.includes(issueId))).toEqual([]);
+  });
+
+  it('accepts an abbreviated SHA-256 only when its visible issue sample has the same prefix', () => {
+    const diagnosis = JSON.parse(DIAGNOSIS_JSON) as DiagnosisResponseV2;
+    const issueId = diagnosis.diagnosisBlocks[0].issueId;
+    const run = withVisibleEvidence(
+      makeRun('recommended'),
+      issueId,
+      ['sha256:fb3290001234567890abcdef1234567890abcdef1234567890abcdef12345678'],
+    );
+    diagnosis.issues[0].hypothesis = 'El valor sha256:fb329000... aparece en la evidencia protegida.';
+    diagnosis.diagnosisBlocks[0].observation = diagnosis.issues[0].hypothesis;
+
+    const claims = extractUnsupportedClaims(diagnosis, run);
+
+    expect(claims.filter((claim) => claim.location.includes(issueId))).toEqual([]);
+  });
+
+  it('does not borrow a visible sample from another issue or from a mode without samples', () => {
+    const diagnosis = JSON.parse(DIAGNOSIS_JSON) as DiagnosisResponseV2;
+    const targetIssueId = diagnosis.diagnosisBlocks[0].issueId;
+    const otherIssueId = diagnosis.diagnosisBlocks[1].issueId;
+    const run = withVisibleEvidence(makeRun('smart_sample'), otherIssueId, [150]);
+    diagnosis.issues[0].hypothesis = 'Se observó el valor 150.';
+    diagnosis.diagnosisBlocks[0].observation = 'Se observó el valor 150.';
+
+    const wrongIssueClaims = extractUnsupportedClaims(diagnosis, run);
+    const minimalClaims = extractUnsupportedClaims(diagnosis, makeRun('prompt_libre'));
+
+    expect(wrongIssueClaims.some((claim) => claim.claimedValue === 150 && claim.location.includes(targetIssueId))).toBe(true);
+    expect(minimalClaims.some((claim) => claim.claimedValue === 30)).toBe(true);
   });
 });
 

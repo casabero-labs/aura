@@ -10,9 +10,24 @@ import {
   generateExperimentPdfReport,
   type ExperimentPdfReport,
 } from './experimentPdfReport';
+import { renderBenchmarkGlossaryMarkdown } from './benchmarkGlossary';
+import {
+  buildCampaignPipelineConfiguration,
+  type CampaignPipelineConfigurationV1,
+} from './campaignPipelineConfiguration';
+
+export type ExperimentArtifactFilename =
+  | 'campaign.json'
+  | 'runs.csv'
+  | 'report.md'
+  | 'report.pdf'
+  | 'results-summary.json'
+  | 'methodology.md'
+  | 'glossary.md'
+  | 'selected-configuration.json';
 
 export interface ExperimentArtifactManifestEntry {
-  filename: 'campaign.json' | 'runs.csv' | 'report.md' | 'report.pdf';
+  filename: ExperimentArtifactFilename;
   mediaType: string;
   sizeBytes: number;
   sha256: string;
@@ -37,10 +52,15 @@ export interface ExperimentEvidencePackage {
   runsCsv: string;
   reportMarkdown: string;
   reportPdf: ExperimentPdfReport;
+  resultsSummaryJson: string;
+  methodologyMarkdown: string;
+  glossaryMarkdown: string;
+  selectedConfiguration: CampaignPipelineConfigurationV1;
+  selectedConfigurationJson: string;
   manifest: ExperimentArtifactManifestV1;
   manifestJson: string;
   artifacts: Array<{
-    filename: 'campaign.json' | 'runs.csv' | 'report.md' | 'report.pdf' | 'manifest.json';
+    filename: ExperimentArtifactFilename | 'manifest.json';
     mediaType: string;
     content: string | Uint8Array;
   }>;
@@ -50,6 +70,8 @@ export interface ExportExperimentEvidenceInput {
   campaign: ExperimentCampaignV1;
   runs: readonly ExperimentRunV1[];
   generatedAt: string;
+  selectedCellId?: string;
+  ollamaBaseUrl?: string;
 }
 
 const utf8Bytes = (value: string): Uint8Array => new TextEncoder().encode(value);
@@ -142,6 +164,35 @@ const manifestEntry = (
   sha256: sha256BytesHex(bytes),
 });
 
+const renderMethodologyMarkdown = (source: ExperimentCampaignEvidenceDocumentV1): string => {
+  const weights = source.decisionSupport.methodology.balancedWeights;
+  return [
+    '# Metodología del Laboratorio AURA',
+    '',
+    '## Referencia controlada',
+    '',
+    source.decisionSupport.methodology.oracle,
+    '',
+    'Precisión, recall y F1 miden alineación con el ground truth conocido. Como el contrato exige cubrir el registro canónico, estas métricas se conservan como control descriptivo y no reciben peso en el índice equilibrado.',
+    '',
+    '## Índice equilibrado',
+    '',
+    `- Fiabilidad: ${(weights.reliability * 100).toFixed(0)} %`,
+    `- Soporte de evidencia: ${(weights.evidenceSupport * 100).toFixed(0)} %`,
+    `- Seguridad frente a claims sin soporte: ${(weights.hallucinationSafety * 100).toFixed(0)} %`,
+    `- Eficiencia: ${(weights.efficiency * 100).toFixed(0)} %`,
+    `- Alineación con GT: ${(weights.accuracy * 100).toFixed(0)} %`,
+    `- Contrato: ${(weights.contractCompliance * 100).toFixed(0)} %; actúa como gate de validez.`,
+    '',
+    source.decisionSupport.methodology.note,
+    '',
+    '## Alcance',
+    '',
+    'La recomendación aplica a este dataset, estos modelos, estos parámetros y el hardware capturado. No declara un ganador universal.',
+    '',
+  ].join('\n');
+};
+
 export const exportExperimentEvidencePackage = (
   input: ExportExperimentEvidenceInput,
 ): ExperimentEvidencePackage => {
@@ -150,6 +201,26 @@ export const exportExperimentEvidencePackage = (
   const runsCsv = renderExperimentRunsCsv(source);
   const reportMarkdown = renderExperimentReportMarkdown(source);
   const reportPdf = generateExperimentPdfReport(source, reportMarkdown);
+  const selectedConfiguration = buildCampaignPipelineConfiguration(
+    source,
+    input.selectedCellId,
+    input.ollamaBaseUrl,
+  );
+  const selectedConfigurationJson = canonicalPrettyJson(selectedConfiguration);
+  const resultsSummaryJson = canonicalPrettyJson({
+    contractId: 'aura.campaign-results-summary.v1',
+    contractVersion: '1.0.0',
+    generatedAt: source.generatedAt,
+    campaignId: source.campaign.campaignId,
+    formalValidity: source.formalValidity,
+    totals: source.aggregation.totals,
+    matrix: source.aggregation.matrix,
+    scores: source.decisionSupport.scores,
+    recommendations: source.decisionSupport.recommendations,
+    selectedConfiguration,
+  });
+  const methodologyMarkdown = renderMethodologyMarkdown(source);
+  const glossaryMarkdown = renderBenchmarkGlossaryMarkdown();
 
   const manifestPayload = {
     contractId: 'aura.oe4-artifact-manifest.v1' as const,
@@ -162,6 +233,10 @@ export const exportExperimentEvidencePackage = (
       manifestEntry('runs.csv', 'text/csv', utf8Bytes(runsCsv)),
       manifestEntry('report.md', 'text/markdown', utf8Bytes(reportMarkdown)),
       manifestEntry('report.pdf', 'application/pdf', reportPdf.bytes),
+      manifestEntry('results-summary.json', 'application/json', utf8Bytes(resultsSummaryJson)),
+      manifestEntry('methodology.md', 'text/markdown', utf8Bytes(methodologyMarkdown)),
+      manifestEntry('glossary.md', 'text/markdown', utf8Bytes(glossaryMarkdown)),
+      manifestEntry('selected-configuration.json', 'application/json', utf8Bytes(selectedConfigurationJson)),
     ],
   };
   const manifest: ExperimentArtifactManifestV1 = {
@@ -179,6 +254,11 @@ export const exportExperimentEvidencePackage = (
     runsCsv,
     reportMarkdown,
     reportPdf,
+    resultsSummaryJson,
+    methodologyMarkdown,
+    glossaryMarkdown,
+    selectedConfiguration,
+    selectedConfigurationJson,
     manifest,
     manifestJson,
     artifacts: [
@@ -186,6 +266,10 @@ export const exportExperimentEvidencePackage = (
       { filename: 'runs.csv', mediaType: 'text/csv', content: runsCsv },
       { filename: 'report.md', mediaType: 'text/markdown', content: reportMarkdown },
       { filename: 'report.pdf', mediaType: 'application/pdf', content: reportPdf.bytes },
+      { filename: 'results-summary.json', mediaType: 'application/json', content: resultsSummaryJson },
+      { filename: 'methodology.md', mediaType: 'text/markdown', content: methodologyMarkdown },
+      { filename: 'glossary.md', mediaType: 'text/markdown', content: glossaryMarkdown },
+      { filename: 'selected-configuration.json', mediaType: 'application/json', content: selectedConfigurationJson },
       { filename: 'manifest.json', mediaType: 'application/json', content: manifestJson },
     ],
   };

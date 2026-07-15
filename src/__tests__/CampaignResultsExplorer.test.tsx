@@ -36,7 +36,7 @@ describe('CampaignResultsExplorer', () => {
 
     await user.click(screen.getByRole('tab', { name: 'Dimensiones' }));
     expect(screen.getByTestId('oe4-results-chart-dimensions')).toBeTruthy();
-    expect(screen.getByText(/Exactitud F1 · peso 35 %/)).toBeTruthy();
+    expect(screen.getByText(/Alineación con GT · peso 0 %/)).toBeTruthy();
 
     await user.click(screen.getByRole('tab', { name: 'Calidad y velocidad' }));
     expect(screen.getByTestId('oe4-results-chart-quality_speed')).toBeTruthy();

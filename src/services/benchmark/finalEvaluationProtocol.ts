@@ -9,7 +9,7 @@
 import { FINAL_EVALUATION_OLLAMA_MODEL_IDS } from '../modelRegistry';
 
 export const OE4_FINAL_EVALUATION_PROTOCOL_ID = 'aura.oe4.final-evaluation.v2';
-export const OE4_FINAL_EVALUATION_PROTOCOL_VERSION = '2.5.0';
+export const OE4_FINAL_EVALUATION_PROTOCOL_VERSION = '2.6.0';
 export const OE4_FINAL_EVALUATION_DATASET_ID = 'synthetic_ground_truth';
 
 export const OE4_DATASET_FINGERPRINT_SHA256 =
@@ -82,7 +82,7 @@ export const OE4_EVALUATION_SCOPES = [
 ] as const;
 
 export const OE4_PRIMARY_F1_DENOMINATOR_NOTE =
-  'engine_exposed canonical keys only';
+  'ground-truth alignment over engine-exposed canonical keys only';
 
 export const OE4_PROTOCOL_RULES = {
   noChangeAfterFirstRun:
@@ -95,8 +95,8 @@ export const OE4_PROTOCOL_RULES = {
     'Context window, output limit and sampling parameters are selected before the campaign and frozen in every run receipt.',
   diagnosisOnly:
     'Each matrix unit performs one measured LLM call for diagnosis only.',
-  deterministicRepresentativeScripts:
-    'Remediation scripts are generated deterministically only for the nine selected representatives and do not count as LLM calls.',
+  productScopeSeparated:
+    'The Laboratory measures diagnosis only. Human review, scripts and remediation remain exclusively in the normal Audit pipeline.',
 } as const;
 
 export const FINAL_EVALUATION_PROTOCOL_V1 = {

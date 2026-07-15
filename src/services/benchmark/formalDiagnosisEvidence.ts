@@ -221,7 +221,24 @@ interface VisiblePayloadFacts {
   colCount: number | null;
   issues: Map<string, { count: number | null; affectedPercentage: number | null }>;
   columnStats: Map<string, { distinctCount: number | null; nullCount: number | null; nullPercentage: number | null }>;
+  evidenceLiteralsByIssueId: Map<string, string[]>;
 }
+
+const collectVisibleLiterals = (value: unknown, target: string[]): void => {
+  if (typeof value === 'string' || typeof value === 'number') {
+    const literal = String(value).trim();
+    if (literal) target.push(literal);
+    return;
+  }
+  if (Array.isArray(value)) {
+    value.forEach((entry) => collectVisibleLiterals(entry, target));
+    return;
+  }
+  if (value && typeof value === 'object') {
+    Object.values(value as Record<string, unknown>)
+      .forEach((entry) => collectVisibleLiterals(entry, target));
+  }
+};
 
 const buildVisiblePayloadFacts = (payload: ParsedUserPayload | null): VisiblePayloadFacts | null => {
   if (!payload) return null;
@@ -243,11 +260,21 @@ const buildVisiblePayloadFacts = (payload: ParsedUserPayload | null): VisiblePay
       nullPercentage: typeof stats.nullPercentage === 'number' ? stats.nullPercentage : null,
     });
   }
+  const evidenceLiteralsByIssueId = new Map<string, string[]>();
+  if (payload.inputMode !== 'prompt_libre') {
+    for (const sample of ve?.evidenceSamples ?? []) {
+      if (!sample.issueId) continue;
+      const literals = evidenceLiteralsByIssueId.get(sample.issueId) ?? [];
+      collectVisibleLiterals(sample.values, literals);
+      evidenceLiteralsByIssueId.set(sample.issueId, [...new Set(literals)]);
+    }
+  }
   return {
     rowCount: typeof ve?.datasetSummary?.rowCount === 'number' ? ve.datasetSummary.rowCount : null,
     colCount: typeof ve?.datasetSummary?.colCount === 'number' ? ve.datasetSummary.colCount : null,
     issues: issueMap,
     columnStats: colMap,
+    evidenceLiteralsByIssueId,
   };
 };
 
@@ -259,6 +286,39 @@ const approxMatch = (claimed: number, actual: number, tolerance = 0.01): boolean
 const NUMERIC_PATTERN = /(\d+(?:\.\d+)?)/g;
 
 const HIDDEN_STAT_HINT = /\b(revisar|revisa|check|ver|tomar|seleccionar|paso|step|versi[oó]n|version|nivel|level)\b/i;
+
+const visibleEvidenceCoversMatch = (
+  text: string,
+  matchIndex: number,
+  matchLength: number,
+  issueId: string,
+  facts: VisiblePayloadFacts,
+): boolean => {
+  const literals = facts.evidenceLiteralsByIssueId.get(issueId) ?? [];
+  if (literals.length === 0) return false;
+  const lowerText = text.toLowerCase();
+  const matchEnd = matchIndex + matchLength;
+
+  for (const literal of literals) {
+    const lowerLiteral = literal.toLowerCase();
+    let occurrence = lowerText.indexOf(lowerLiteral);
+    while (occurrence >= 0) {
+      if (matchIndex >= occurrence && matchEnd <= occurrence + lowerLiteral.length) return true;
+      occurrence = lowerText.indexOf(lowerLiteral, occurrence + 1);
+    }
+  }
+
+  const hashPattern = /sha256:([0-9a-f]{8,64})(?:\.\.\.)?/gi;
+  for (const hashMatch of lowerText.matchAll(hashPattern)) {
+    const start = hashMatch.index ?? -1;
+    const end = start + hashMatch[0].length;
+    if (start < 0 || matchIndex < start || matchEnd > end) continue;
+    const visiblePrefix = `sha256:${hashMatch[1]}`;
+    if (literals.some((literal) => literal.toLowerCase().startsWith(visiblePrefix))) return true;
+  }
+
+  return false;
+};
 
 const analyzeTextForUnsupportedClaims = (
   text: string,
@@ -284,6 +344,10 @@ const analyzeTextForUnsupportedClaims = (
         field,
         location: `${field}[${blockIndex}](${issueId})`,
       });
+      continue;
+    }
+
+    if (visibleEvidenceCoversMatch(text, match.index ?? 0, match[0].length, issueId, facts)) {
       continue;
     }
 

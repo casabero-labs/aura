@@ -55,7 +55,7 @@ describe('OE4 final evaluation protocol', () => {
   });
 
   it('freezes 3 models × 3 modes × 3 repetitions = 27 diagnoses plus 9 warm-ups', () => {
-    expect(FINAL_EVALUATION_PROTOCOL.version).toBe('2.5.0');
+    expect(FINAL_EVALUATION_PROTOCOL.version).toBe('2.6.0');
     expect(FINAL_EVALUATION_PROTOCOL.inference.numPredict).toBe(4096);
     expect(FINAL_EVALUATION_PROTOCOL.repetitions).toBe(3);
     expect(FINAL_EVALUATION_PROTOCOL.matrix).toMatchObject({

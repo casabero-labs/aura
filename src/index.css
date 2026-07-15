@@ -15661,6 +15661,41 @@ textarea:focus {
 .oe4-results-validity-note strong { color: var(--ink); font-size: 12px; }
 .oe4-results-validity-note p { margin: 4px 0 0; color: var(--ink2); font-size: 11px; line-height: 1.55; }
 
+/* Selected campaign result -> exact normal-pipeline configuration. */
+.oe4-configuration-panel,
+.oe4-glossary { overflow: hidden; }
+.oe4-configuration-panel .oe4-panel-heading h2,
+.oe4-glossary .oe4-panel-heading h2 { margin-bottom: 0; }
+.oe4-configuration-panel .oe4-panel-heading p:last-child,
+.oe4-glossary .oe4-panel-heading p:last-child { max-width: 720px; margin: 7px 0 0; color: var(--ink2); font-size: 12px; line-height: 1.55; }
+.oe4-configuration-summary { display: grid; grid-template-columns: minmax(260px, .8fr) minmax(0, 1.2fr); gap: 1px; margin-top: var(--space-md); padding: 1px; border: 1px solid var(--border); background: var(--border); }
+.oe4-configuration-identity { display: flex; min-width: 0; flex-direction: column; justify-content: center; padding: 20px; background: var(--ink); color: var(--bg); }
+.oe4-configuration-identity span { color: color-mix(in srgb, var(--bg) 62%, transparent); font: 700 9px var(--font-mono); letter-spacing: .09em; text-transform: uppercase; }
+.oe4-configuration-identity strong { margin-top: 10px; overflow-wrap: anywhere; font: 600 13px/1.55 var(--font-mono); }
+.oe4-configuration-identity small { margin-top: 12px; color: var(--accent); font-size: 12px; font-weight: 700; }
+.oe4-configuration-summary dl { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 0; background: var(--border); gap: 1px; }
+.oe4-configuration-summary dl > div { min-width: 0; padding: 13px; background: var(--bg); }
+.oe4-configuration-summary dt { color: var(--ink-muted); font-size: 9px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.oe4-configuration-summary dd { margin: 6px 0 0; overflow-wrap: anywhere; color: var(--ink); font: 700 11px var(--font-mono); }
+.oe4-configuration-evidence { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; margin-top: var(--space-sm); border: 1px solid var(--border); background: var(--border); }
+.oe4-configuration-evidence > div { min-width: 0; padding: 12px 14px; background: var(--surface); }
+.oe4-configuration-evidence span,
+.oe4-configuration-evidence strong { display: block; }
+.oe4-configuration-evidence span { color: var(--ink-muted); font-size: 9px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+.oe4-configuration-evidence strong { margin-top: 5px; color: var(--ink); font: 700 13px var(--font-mono); }
+.oe4-configuration-caveat { margin: var(--space-sm) 0 0; padding: 11px 13px; border-left: 3px solid var(--warning); background: color-mix(in srgb, var(--warning) 6%, var(--bg)); color: var(--ink2); font-size: 11px; line-height: 1.55; }
+.oe4-configuration-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: var(--space-md); }
+.oe4-glossary-groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-sm); margin-top: var(--space-md); }
+.oe4-glossary-groups details { min-width: 0; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg); }
+.oe4-glossary-groups summary { padding: 13px 15px; cursor: pointer; color: var(--ink); font-size: 12px; font-weight: 700; }
+.oe4-glossary-groups details[open] summary { border-bottom: 1px solid var(--border-faint); }
+.oe4-glossary-groups dl { margin: 0; }
+.oe4-glossary-groups dl > div { display: grid; grid-template-columns: minmax(130px, .35fr) minmax(0, 1fr); gap: 14px; padding: 12px 15px; border-bottom: 1px solid var(--border-faint); }
+.oe4-glossary-groups dl > div:last-child { border-bottom: 0; }
+.oe4-glossary-groups dt { color: var(--ink); font: 700 10px/1.45 var(--font-mono); }
+.oe4-glossary-groups dd { margin: 0; color: var(--ink2); font-size: 11px; line-height: 1.5; }
+.oe4-glossary-groups dd small { display: block; margin-top: 5px; color: var(--ink3); font-size: 10px; }
+
 @media (max-width: 900px) {
   .oe4-hero { align-items: flex-start; flex-direction: column; }
   .oe4-setup,
@@ -15671,6 +15706,9 @@ textarea:focus {
   .oe4-score-method dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .oe4-results-layout { grid-template-columns: 1fr; }
   .oe4-results-selection dl { margin-top: 0; }
+  .oe4-configuration-summary { grid-template-columns: 1fr; }
+  .oe4-configuration-summary dl { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .oe4-glossary-groups { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 640px) {
@@ -15702,4 +15740,8 @@ textarea:focus {
   .oe4-results-tabs button { flex: 1 0 auto; }
   .oe4-results-chart-heading small { max-width: none; text-align: left; }
   .oe4-results-chart { min-width: 720px; }
+  .oe4-configuration-summary dl,
+  .oe4-configuration-evidence { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .oe4-configuration-actions > button { width: 100%; }
+  .oe4-glossary-groups dl > div { grid-template-columns: 1fr; gap: 5px; }
 }

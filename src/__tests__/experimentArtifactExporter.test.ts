@@ -9,13 +9,21 @@ import { createExperimentEvidenceFixture } from './fixtures/experimentEvidenceFi
 const bytes = (value: string): Uint8Array => new TextEncoder().encode(value);
 
 describe('OE4 artifact exporter — Task 9', () => {
-  it('derives five consistent artifacts from campaign.json', () => {
+  it('derives nine consistent artifacts from campaign.json', () => {
     const fixture = createExperimentEvidenceFixture({ missingHumanReview: true });
     const result = exportExperimentEvidencePackage(fixture);
     const canonical = JSON.parse(result.campaignJson);
 
     expect(result.artifacts.map((artifact) => artifact.filename)).toEqual([
-      'campaign.json', 'runs.csv', 'report.md', 'report.pdf', 'manifest.json',
+      'campaign.json',
+      'runs.csv',
+      'report.md',
+      'report.pdf',
+      'results-summary.json',
+      'methodology.md',
+      'glossary.md',
+      'selected-configuration.json',
+      'manifest.json',
     ]);
     expect(canonical.campaign.campaignId).toBe(fixture.campaign.campaignId);
     expect(canonical.runs).toHaveLength(27);
@@ -30,6 +38,11 @@ describe('OE4 artifact exporter — Task 9', () => {
     expect(result.source.formalValidity.valid).toBe(true);
     expect(result.source.representatives).toEqual([]);
     expect(result.reportMarkdown).toContain('Método de calificación automática');
+    expect(result.methodologyMarkdown).toContain('Alineación con GT: 0 %');
+    expect(result.methodologyMarkdown).toContain('Fiabilidad: 35 %');
+    expect(result.glossaryMarkdown).toContain('Ground truth (GT)');
+    expect(result.selectedConfiguration.contractId).toBe('aura.campaign-pipeline-configuration.v1');
+    expect(JSON.parse(result.selectedConfigurationJson).modelId).toBe(result.selectedConfiguration.modelId);
   });
 
   it('hashes every non-self artifact and declares the manifest self-hash scope', () => {

@@ -44,7 +44,7 @@ test.describe('Laboratorio — alcance diagnóstico y decisión automática', ()
     await expect(page.getByText('Aprobar representante')).toHaveCount(0);
   });
 
-  test('muestra estados de matriz y explica los cinco artefactos del diagnóstico', async ({ page }) => {
+  test('muestra estados de matriz y explica los nueve artefactos del diagnóstico', async ({ page }) => {
     await openLab(page);
     await finishControlledCampaign(page);
 
@@ -53,7 +53,11 @@ test.describe('Laboratorio — alcance diagnóstico y decisión automática', ()
     await expect(page.locator('.oe4-run-dot--success')).toHaveCount(27);
 
     const artifacts = page.getByRole('list', { name: 'Artefactos disponibles' });
-    for (const filename of ['campaign.json', 'runs.csv', 'report.md', 'report.pdf', 'manifest.json']) {
+    for (const filename of [
+      'campaign.json', 'runs.csv', 'report.md', 'report.pdf',
+      'results-summary.json', 'methodology.md', 'glossary.md',
+      'selected-configuration.json', 'manifest.json',
+    ]) {
       await expect(artifacts.getByText(filename, { exact: true })).toBeVisible();
     }
   });

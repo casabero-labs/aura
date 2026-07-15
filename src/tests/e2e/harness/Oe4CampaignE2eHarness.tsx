@@ -128,7 +128,12 @@ const Oe4CampaignE2eHarness: React.FC = () => {
       <p role="note" className="oe4-live-message">
         Recorrido controlado E2E: valida interfaz y recuperación; no constituye evidencia de modelos.
       </p>
-      <BenchmarkCampaignLab {...dependencies} now={() => NOW} />
+      <BenchmarkCampaignLab
+        {...dependencies}
+        now={() => NOW}
+        onApplyPipelineConfiguration={() => undefined}
+        onGoToAudit={() => undefined}
+      />
     </>
   );
 };

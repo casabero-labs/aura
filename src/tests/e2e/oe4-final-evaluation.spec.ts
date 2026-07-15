@@ -1,5 +1,13 @@
 import { expect, test } from '@playwright/test';
+import { resolve } from 'node:path';
 import { AURA_EXPERIMENT_DATABASE_NAME } from '../../services/benchmark/indexedDbExperimentStore';
+
+const captureEvidence = process.env.AURA_CAPTURE_CAMPAIGN_EVIDENCE === '1';
+const evidenceScreenshot = (filename: string): string => resolve(
+  process.cwd(),
+  '../docs/tercera_entrega_aura/03_evidencia/laboratorio_campana_02/screenshots',
+  filename,
+);
 
 const expectNoHorizontalOverflow = async (page: import('@playwright/test').Page): Promise<void> => {
   await expect.poll(() => page.evaluate(() =>
@@ -81,23 +89,51 @@ test.describe.serial('Laboratorio — evaluación automática y recuperación', 
     const resultsExplorer = page.getByTestId('oe4-results-explorer');
     await expect(resultsExplorer.getByText('Oráculo congelado', { exact: true })).toBeVisible();
     await expect(page.getByTestId('oe4-results-chart-overview')).toBeVisible();
+    if (captureEvidence) await resultsExplorer.screenshot({ path: evidenceScreenshot('01_panorama_resultados.png') });
     await page.getByRole('tab', { name: 'Dimensiones' }).click();
     await expect(page.getByTestId('oe4-results-chart-dimensions')).toBeVisible();
+    if (captureEvidence) await resultsExplorer.screenshot({ path: evidenceScreenshot('02_dimensiones.png') });
     await page.getByRole('tab', { name: 'Calidad y velocidad' }).click();
     await expect(page.getByTestId('oe4-results-chart-quality_speed')).toBeVisible();
     await expect(page.getByText(/No demuestra superioridad universal/)).toBeVisible();
+    if (captureEvidence) await resultsExplorer.screenshot({ path: evidenceScreenshot('03_calidad_velocidad.png') });
     await expectNoHorizontalOverflow(page);
 
-    const artifactNames = ['campaign.json', 'runs.csv', 'report.md', 'report.pdf', 'manifest.json'];
+    const configurationPanel = page.getByTestId('oe4-configuration-panel');
+    await expect(configurationPanel).toBeVisible();
+    await expect(configurationPanel.getByRole('button', { name: 'Aplicar al próximo diagnóstico' })).toBeEnabled();
+    await expect(configurationPanel.getByRole('button', { name: 'Ir a Auditoría' })).toBeEnabled();
+    if (captureEvidence) await configurationPanel.screenshot({ path: evidenceScreenshot('04_configuracion_seleccionada.png') });
+
+    const artifactNames = [
+      'campaign.json',
+      'runs.csv',
+      'report.md',
+      'report.pdf',
+      'results-summary.json',
+      'methodology.md',
+      'glossary.md',
+      'selected-configuration.json',
+      'manifest.json',
+    ];
     const artifactList = page.getByRole('list', { name: 'Artefactos disponibles' });
     for (const filename of artifactNames) {
       await expect(artifactList.getByText(filename, { exact: true })).toBeVisible();
+    }
+    if (captureEvidence) {
+      await page.locator('.sys-nav').evaluate((element) => {
+        (element as HTMLElement).style.display = 'none';
+      });
+      await page.locator('.oe4-report-panel').screenshot({ path: evidenceScreenshot('05_reporte_exportables.png') });
+      await page.locator('.sys-nav').evaluate((element) => {
+        (element as HTMLElement).style.removeProperty('display');
+      });
     }
     await expectNoHorizontalOverflow(page);
 
     const downloaded: string[] = [];
     page.on('download', (download) => downloaded.push(download.suggestedFilename()));
-    const exportButton = page.getByRole('button', { name: 'Exportar resultados' });
+    const exportButton = page.getByRole('button', { name: 'Exportar 9 archivos' });
     await expect(exportButton).toBeEnabled();
     await exportButton.click();
     await expect.poll(() => downloaded.sort()).toEqual([...artifactNames].sort());

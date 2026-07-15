@@ -54,6 +54,10 @@ const ARTIFACT_DESCRIPTIONS: Record<string, string> = {
   'runs.csv': 'Una fila por corrida para comparar modelos, métodos, métricas, errores, hashes y estados.',
   'report.md': 'Informe legible en Markdown con método, resultados, fallos, métricas y conclusiones.',
   'report.pdf': 'Versión PDF del informe para revisión humana, archivo o publicación.',
+  'results-summary.json': 'Resumen estructurado de la matriz, scores, recomendaciones y configuración seleccionada.',
+  'methodology.md': 'Criterios, ponderaciones, alcance y límites usados para calcular los resultados.',
+  'glossary.md': 'Guía en lenguaje sencillo de métricas, modos de entrada y parámetros de inferencia.',
+  'selected-configuration.json': 'Modelo, método de entrada y parámetros exactos listos para el próximo diagnóstico normal.',
   'manifest.json': 'Hashes de todos los archivos exportados para comprobar que el expediente no fue alterado.',
 };
 
@@ -66,7 +70,7 @@ const modelName = (modelId: string): string => {
 
 const useCaseLabel: Record<DecisionUseCase, string> = {
   balanced: 'Mejor equilibrio para AURA',
-  diagnostic_quality: 'Mayor calidad diagnóstica',
+  diagnostic_quality: 'Mayor calidad operativa',
   reliability: 'Mayor estabilidad',
   traceability: 'Mayor soporte de evidencia',
   speed: 'Menor latencia',
@@ -137,19 +141,19 @@ const CampaignReportPanel: React.FC<CampaignReportPanelProps> = ({
             <div>
               <p><strong>No es un juicio de otro LLM.</strong> La evaluación compara regla, columna y alcance con un oráculo congelado del dataset controlado.</p>
               <dl>
-                <div><dt>Exactitud</dt><dd>F1 medio: combina precisión y recall de los hallazgos.</dd></div>
+                <div><dt>Alineación con GT</dt><dd>F1 medio frente al ground truth controlado. Describe concordancia; no premia dos veces una cobertura exigida por contrato.</dd></div>
                 <div><dt>Fiabilidad</dt><dd>Diagnósticos válidos divididos entre corridas intentadas.</dd></div>
-                <div><dt>Contrato</dt><dd>Respuestas válidas que cumplen esquema, referencias y recibo.</dd></div>
+                <div><dt>Contrato</dt><dd>Gate de validez: una respuesta que no lo cumple se conserva como fallo y no recibe score operativo.</dd></div>
                 <div><dt>Evidencia</dt><dd>Fidelidad y anclaje a la evidencia visible para ese método.</dd></div>
                 <div><dt>Sin alucinaciones</dt><dd>Corridas válidas sin columnas inventadas ni claims sin soporte.</dd></div>
                 <div><dt>Eficiencia</dt><dd>Latencia mediana de diagnósticos válidos, relativa a la combinación más rápida de esta campaña.</dd></div>
               </dl>
-              <p>Índice equilibrado: exactitud 35 %, fiabilidad 20 %, contrato 15 %, evidencia 15 %, ausencia de alucinaciones 10 % y eficiencia 5 %. Es una ayuda para elegir según el objetivo, no un ganador universal.</p>
+              <p>Índice equilibrado: fiabilidad 35 %, evidencia 25 %, ausencia de claims sin soporte 20 % y eficiencia 20 %. Alineación GT y contrato se muestran por separado como control descriptivo y gate. Es una ayuda contextual, no un ganador universal.</p>
             </div>
           </details>
           <div className="oe4-score-table-wrap">
             <table className="oe4-score-table">
-              <thead><tr><th>Modelo + entrada</th><th>F1</th><th>Fiabilidad</th><th>Contrato</th><th>Evidencia</th><th>Sin alucinaciones</th><th>Velocidad</th><th>Equilibrado</th></tr></thead>
+              <thead><tr><th>Modelo + entrada</th><th>Alineación GT</th><th>Fiabilidad</th><th>Contrato</th><th>Evidencia</th><th>Sin alucinaciones</th><th>Velocidad</th><th>Equilibrado</th></tr></thead>
               <tbody>
                 {evidenceDocument.decisionSupport.scores.map((entry) => (
                   <tr key={entry.cellId}>
@@ -167,7 +171,7 @@ const CampaignReportPanel: React.FC<CampaignReportPanelProps> = ({
             </table>
           </div>
           <p className="oe4-report-scope"><strong>Alcance:</strong> este Laboratorio evalúa diagnósticos LLM. La revisión humana, el script, HITL y la remediación pertenecen al pipeline normal de Auditoría.</p>
-          <p className="oe4-info">Los cinco artefactos se derivan de este experimento sin copiar métricas manualmente.</p>
+          <p className="oe4-info">Los nueve artefactos se derivan de este experimento sin copiar métricas manualmente.</p>
           <ul aria-label="Artefactos disponibles" className="oe4-artifact-list">
             {evidencePackage?.artifacts.map((artifact) => (
               <li key={artifact.filename}>
@@ -197,7 +201,7 @@ const CampaignReportPanel: React.FC<CampaignReportPanelProps> = ({
         </>
       )}
       <button type="button" className="btn-p" disabled={!formalValidity.valid || evidencePackage === null} onClick={exportAll}>
-        Exportar resultados
+        Exportar 9 archivos
       </button>
     </section>
   );

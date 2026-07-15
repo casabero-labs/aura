@@ -21,6 +21,19 @@ interface ChangelogEntry {
 
 const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    version: 'v1.0 · Laboratorio reproducible',
+    date: '14 de julio de 2026',
+    tag: 'laboratorio',
+    description: 'Campañas comparables de diagnóstico LLM con resultados visuales, método transparente y transferencia directa al flujo normal.',
+    details: [
+      'La campaña compara tres modelos y tres métodos de entrada mediante 27 diagnósticos; los fallos permanecen visibles y reducen la fiabilidad.',
+      'El explorador D3 permite revisar el índice equilibrado, sus dimensiones, la alineación con ground truth, la velocidad y la estabilidad.',
+      'Cada resultado puede convertirse en una configuración exacta de modelo, entrada y parámetros para el siguiente diagnóstico de Auditoría.',
+      'La exportación incorpora resultados, metodología, glosario, configuración elegida y hashes de integridad.',
+    ],
+    commits: [],
+  },
+  {
     version: 'v0.9 · Home y auditoría enfocada',
     date: '20 de junio de 2026',
     tag: 'ui/ux',

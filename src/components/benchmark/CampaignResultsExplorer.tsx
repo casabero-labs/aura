@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import type { ExperimentCellScores } from '../../services/benchmark/experimentDecisionSupport';
 import type { ExperimentCampaignEvidenceDocumentV1 } from '../../services/benchmark/experimentReport';
@@ -10,6 +10,8 @@ import {
 
 interface CampaignResultsExplorerProps {
   evidenceDocument: ExperimentCampaignEvidenceDocumentV1;
+  selectedCellId?: string;
+  onSelectedCellIdChange?: (cellId: string) => void;
 }
 
 type ExplorerView = 'overview' | 'dimensions' | 'quality_speed';
@@ -85,10 +87,14 @@ const chartDescription = (view: ExplorerView): string => {
   if (view === 'dimensions') {
     return 'Barras de cero a cien para las seis dimensiones de la combinación seleccionada. Los pesos pertenecen al índice equilibrado.';
   }
-  return 'Diagrama de dispersión. El eje horizontal muestra latencia mediana, el vertical F1 y el tamaño representa fiabilidad. Las formas distinguen modelos.';
+  return 'Diagrama de dispersión. El eje horizontal muestra latencia mediana, el vertical alineación con el ground truth y el tamaño representa fiabilidad. Las formas distinguen modelos.';
 };
 
-const CampaignResultsExplorer: React.FC<CampaignResultsExplorerProps> = ({ evidenceDocument }) => {
+const CampaignResultsExplorer: React.FC<CampaignResultsExplorerProps> = ({
+  evidenceDocument,
+  selectedCellId: selectedCellIdProp,
+  onSelectedCellIdChange,
+}) => {
   const chartId = useId().replaceAll(':', '');
   const svgRef = useRef<SVGSVGElement>(null);
   const [expanded, setExpanded] = useState(false);
@@ -102,12 +108,16 @@ const CampaignResultsExplorer: React.FC<CampaignResultsExplorerProps> = ({ evide
   const initialCellId = scores.find((entry) =>
     entry.modelId === balancedRecommendation?.modelId
       && entry.inputMode === balancedRecommendation.inputMode)?.cellId ?? scores[0]?.cellId ?? '';
-  const [selectedCellId, setSelectedCellId] = useState(initialCellId);
+  const [selectedCellId, setSelectedCellId] = useState(selectedCellIdProp ?? initialCellId);
+  const selectCell = useCallback((cellId: string) => {
+    setSelectedCellId(cellId);
+    onSelectedCellIdChange?.(cellId);
+  }, [onSelectedCellIdChange]);
   const selectedScore = scores.find((entry) => entry.cellId === selectedCellId) ?? scores[0];
   const selectedAggregation = selectedScore ? aggregationByCell.get(selectedScore.cellId) : undefined;
   const weights = evidenceDocument.decisionSupport.methodology.balancedWeights;
   const dimensions = useMemo<DimensionDatum[]>(() => selectedScore ? [
-    { key: 'accuracy', label: 'Exactitud F1', value: selectedScore.accuracy, weight: weights.accuracy },
+    { key: 'accuracy', label: 'Alineación con GT', value: selectedScore.accuracy, weight: weights.accuracy },
     { key: 'reliability', label: 'Fiabilidad', value: selectedScore.reliability, weight: weights.reliability },
     { key: 'contractCompliance', label: 'Contrato', value: selectedScore.contractCompliance, weight: weights.contractCompliance },
     { key: 'evidenceSupport', label: 'Soporte de evidencia', value: selectedScore.evidenceSupport, weight: weights.evidenceSupport },
@@ -116,9 +126,13 @@ const CampaignResultsExplorer: React.FC<CampaignResultsExplorerProps> = ({ evide
   ] : [], [selectedScore, weights]);
 
   useEffect(() => {
+    if (selectedCellIdProp && scores.some((entry) => entry.cellId === selectedCellIdProp)) {
+      setSelectedCellId(selectedCellIdProp);
+      return;
+    }
     if (scores.some((entry) => entry.cellId === selectedCellId)) return;
     setSelectedCellId(initialCellId);
-  }, [initialCellId, scores, selectedCellId]);
+  }, [initialCellId, scores, selectedCellId, selectedCellIdProp]);
 
   useEffect(() => {
     if (!expanded || !svgRef.current || !selectedScore) return;
@@ -171,11 +185,11 @@ const CampaignResultsExplorer: React.FC<CampaignResultsExplorerProps> = ({ evide
         .attr('tabindex', 0)
         .attr('aria-label', (entry) => `${modelName(entry.modelId)}, ${OE4_INPUT_MODE_LABELS[entry.inputMode]}, índice equilibrado ${formatScore(entry.balanced)} de 100`)
         .attr('transform', (entry) => `translate(${x(entry.inputMode) ?? 0},${y(entry.modelId) ?? 0})`)
-        .on('click', (_event, entry) => setSelectedCellId(entry.cellId))
+        .on('click', (_event, entry) => selectCell(entry.cellId))
         .on('keydown', (event: KeyboardEvent, entry) => {
           if (event.key !== 'Enter' && event.key !== ' ') return;
           event.preventDefault();
-          setSelectedCellId(entry.cellId);
+          selectCell(entry.cellId);
         });
 
       cells.append('rect')
@@ -288,7 +302,7 @@ const CampaignResultsExplorer: React.FC<CampaignResultsExplorerProps> = ({ evide
       .attr('class', 'oe4-chart-axis-title')
       .attr('transform', `translate(24 ${(margin.top + height - margin.bottom) / 2}) rotate(-90)`)
       .attr('text-anchor', 'middle')
-      .text('F1 medio · mayor es mejor');
+      .text('Alineación con GT · mayor es mejor');
 
     const inputOffset: Record<OE4InputMode, number> = { prompt_libre: -8, smart_sample: 0, recommended: 8 };
     const points = svg.append('g')
@@ -298,13 +312,13 @@ const CampaignResultsExplorer: React.FC<CampaignResultsExplorerProps> = ({ evide
       .attr('class', (entry) => `oe4-scatter-point ${modelClass(entry.score.modelId)}${entry.score.cellId === selectedScore.cellId ? ' is-selected' : ''}`)
       .attr('role', 'button')
       .attr('tabindex', 0)
-      .attr('aria-label', (entry) => `${modelName(entry.score.modelId)}, ${OE4_INPUT_MODE_LABELS[entry.score.inputMode]}, F1 ${formatScore(entry.score.accuracy)}, latencia ${((entry.cell.totalLatencyMs.median ?? 0) / 1_000).toFixed(1)} segundos, fiabilidad ${formatScore(entry.score.reliability)}`)
+      .attr('aria-label', (entry) => `${modelName(entry.score.modelId)}, ${OE4_INPUT_MODE_LABELS[entry.score.inputMode]}, alineación GT ${formatScore(entry.score.accuracy)}, latencia ${((entry.cell.totalLatencyMs.median ?? 0) / 1_000).toFixed(1)} segundos, fiabilidad ${formatScore(entry.score.reliability)}`)
       .attr('transform', (entry) => `translate(${x((entry.cell.totalLatencyMs.median ?? 0) / 1_000) + inputOffset[entry.score.inputMode]},${y(entry.score.accuracy ?? 0)})`)
-      .on('click', (_event, entry) => setSelectedCellId(entry.score.cellId))
+      .on('click', (_event, entry) => selectCell(entry.score.cellId))
       .on('keydown', (event: KeyboardEvent, entry) => {
         if (event.key !== 'Enter' && event.key !== ' ') return;
         event.preventDefault();
-        setSelectedCellId(entry.score.cellId);
+        selectCell(entry.score.cellId);
       });
 
     points.append('path')
@@ -326,7 +340,7 @@ const CampaignResultsExplorer: React.FC<CampaignResultsExplorerProps> = ({ evide
         .attr('class', `oe4-scatter-mark ${modelClass(modelId)}`);
       item.append('text').attr('class', 'oe4-chart-legend-label').attr('x', 14).attr('y', 4).text(modelName(modelId));
     });
-  }, [aggregationByCell, chartId, dimensions, expanded, scores, selectedScore, view]);
+  }, [aggregationByCell, chartId, dimensions, expanded, scores, selectCell, selectedScore, view]);
 
   if (!selectedScore) return null;
 
@@ -413,7 +427,7 @@ const CampaignResultsExplorer: React.FC<CampaignResultsExplorerProps> = ({ evide
                 <small>sobre 100</small>
               </div>
               <dl>
-                <div><dt>F1 medio</dt><dd>{formatScore(selectedScore.accuracy)}</dd></div>
+                <div><dt>Alineación con GT</dt><dd>{formatScore(selectedScore.accuracy)}</dd></div>
                 <div><dt>Fiabilidad</dt><dd>{formatScore(selectedScore.reliability)}</dd></div>
                 <div><dt>Corridas válidas</dt><dd>{selectedAggregation?.completedRuns ?? 0}/{selectedAggregation?.attemptedRuns ?? 0}</dd></div>
                 <div><dt>Latencia mediana</dt><dd>{selectedAggregation?.totalLatencyMs.median === null || selectedAggregation?.totalLatencyMs.median === undefined ? 'n/d' : `${(selectedAggregation.totalLatencyMs.median / 1_000).toFixed(1)} s`}</dd></div>
@@ -426,7 +440,7 @@ const CampaignResultsExplorer: React.FC<CampaignResultsExplorerProps> = ({ evide
             <div>
               <table>
                 <thead>
-                  <tr><th>Modelo</th><th>Entrada</th><th>F1</th><th>Fiabilidad</th><th>Latencia mediana</th><th>Equilibrado</th></tr>
+                  <tr><th>Modelo</th><th>Entrada</th><th>Alineación GT</th><th>Fiabilidad</th><th>Latencia mediana</th><th>Equilibrado</th></tr>
                 </thead>
                 <tbody>
                   {scores.map((entry) => {

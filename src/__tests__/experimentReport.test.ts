@@ -14,7 +14,7 @@ describe('OE4 TFM report — Task 9', () => {
     expect(document.formalValidity).toEqual({ valid: true, reasons: [] });
     for (const heading of [
       'Método', 'Entorno y modelos', 'Matriz de corridas y fallos',
-      'Calidad diagnóstica', 'Contrato y alucinaciones',
+      'Alineación con ground truth', 'Contrato y alucinaciones',
       'Método de calificación automática', 'Latencia, tokens y estabilidad',
       'Scores de apoyo a la decisión', 'Recomendaciones por objetivo',
       'Amenazas a la validez', 'Conclusiones acotadas',
