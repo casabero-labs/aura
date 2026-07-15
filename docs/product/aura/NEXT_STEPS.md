@@ -1,6 +1,6 @@
 # Hoja de ruta definitiva de AURA
 
-Última actualización: 14 de julio de 2026.
+Última actualización: 15 de julio de 2026.
 
 ## Resultado que se entrega
 
@@ -31,7 +31,7 @@ Los seis objetivos permanecen alineados con el producto. El Laboratorio aporta l
 | Aplicar y verificar | Runner Python, recibo, CSV corregido y reauditoría implementados. |
 | Laboratorio | Diagnóstico automático, visualización D3, metodología visible, glosario y transferencia de configuración implementados. |
 | Campaña piloto | Conservada como evidencia de ajuste; no se presenta como resultado formal. |
-| Segunda campaña | Siguiente acción humana después del despliegue del protocolo 2.6.0. |
+| Segunda campaña | Cerrada: 27/27 intentos, 20 válidos, 7 fallos y expediente formalmente válido. |
 
 ## Método del Laboratorio
 
@@ -122,16 +122,20 @@ La campaña válida exporta nueve archivos:
 
 La configuración seleccionada conserva modelo, método y parámetros exactos y puede aplicarse al siguiente diagnóstico normal sin iniciarlo automáticamente.
 
+## Segunda campaña cerrada
+
+La campaña `campaign:oe4:v2:20260715011720492` completó las 27 unidades del protocolo `2.6.0`: 20 diagnósticos válidos y siete fallos, todos de SmolLM3. Qwen3.5 y Gemma completaron 9/9 cada uno. Los nueve archivos exportados pasaron la comprobación de tamaño y SHA-256 del manifiesto.
+
+La configuración operativa seleccionada fue Qwen3.5 4B con Contexto mínimo e índice equilibrado 92.6. Gemma con Contexto mínimo obtuvo 92.0 y constituye una alternativa prácticamente equivalente. La recomendación aplica solo al dataset, parámetros y entorno de esta campaña.
+
+La evidencia definitiva y el texto para el TFM están en `docs/tercera_entrega_aura/03_evidencia/laboratorio_campana_02/`. No es necesario repetir la campaña para cerrar el TFM.
+
 ## Siguiente acción humana
 
-1. Esperar el despliegue que contenga el protocolo `2.6.0`.
-2. Abrir Laboratorio y comprobar los tres modelos instalados.
-3. Crear una campaña nueva; la campaña anterior debe quedar visible solo como piloto histórico.
-4. Confirmar el perfil de inferencia antes de crearla.
-5. Ejecutar la segunda campaña completa.
-6. Al terminar, revisar las visualizaciones y seleccionar la combinación adecuada al objetivo.
-7. Exportar los nueve archivos antes de cambiar código o configuración.
-8. Aplicar, si se desea, la configuración elegida al siguiente diagnóstico de Auditoría.
+1. Integrar el texto y las capturas reales de la segunda campaña en la memoria final.
+2. Conservar sin cambios los nueve exportables originales de la campaña.
+3. Usar la configuración seleccionada en Auditoría solo si se desea mostrar la transferencia Laboratorio → diagnóstico normal.
+4. Después de la entrega, abordar las mejoras metodológicas y visuales no bloqueantes.
 
 ## Mejoras posteriores a la entrega
 
@@ -141,4 +145,4 @@ La configuración seleccionada conserva modelo, método y parámetros exactos y 
 - comparación con proveedores cloud;
 - mejoras visuales no bloqueantes del pipeline normal.
 
-Estas mejoras no bloquean la segunda campaña ni la consolidación del documento final.
+Estas mejoras no bloquean la consolidación del documento final ni invalidan la segunda campaña cerrada.

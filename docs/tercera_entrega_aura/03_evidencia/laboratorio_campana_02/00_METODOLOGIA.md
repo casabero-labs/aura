@@ -23,9 +23,15 @@ La selección práctica se apoya en cuatro dimensiones:
 
 El contrato funciona como gate. Una corrida inválida se conserva, reduce fiabilidad y no recibe un score operativo inventado.
 
+El soporte de evidencia mide coherencia con la información que cada método hizo visible, no cantidad absoluta de contexto. Por ello, un resultado de 100 en Contexto mínimo significa que la respuesta se mantuvo dentro de su evidencia limitada; no significa que haya recibido muestras, políticas o anclajes equivalentes a Evidencia completa.
+
 ## Control de claims
 
 Un número, fecha, valor enmascarado o hash solo se considera respaldado cuando aparece en la evidencia visible del mismo `issueId`. Un valor visible para otro hallazgo no puede prestarse como soporte. Contexto mínimo no recibe muestras y, por tanto, no obtiene crédito por ellas.
+
+El extractor de claims es conservador. Puede marcar fragmentos numéricos presentes en descripciones técnicas, valores enmascarados o referencias `sha256` como posibles afirmaciones sin soporte. Estos casos deben interpretarse como alertas automáticas para inspección, no como demostración definitiva de una alucinación.
+
+El Laboratorio conserva dos planos cuando AURA aplica gobernanza determinista: la respuesta cruda del modelo se califica tal como fue producida, mientras el diagnóstico efectivo del producto puede elevar `requiresHumanReview` sin modificar identificadores, referencias ni contenido sustantivo. Esta separación evita otorgar crédito artificial al modelo.
 
 ## Alcance
 
