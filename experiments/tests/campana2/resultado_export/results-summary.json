@@ -1,0 +1,684 @@
+{
+  "campaignId": "campaign:oe4:v2:20260715011720492",
+  "contractId": "aura.campaign-results-summary.v1",
+  "contractVersion": "1.0.0",
+  "formalValidity": {
+    "reasons": [],
+    "valid": true
+  },
+  "generatedAt": "2026-07-15T01:54:15.873Z",
+  "matrix": {
+    "cells": [
+      {
+        "anchoring": {
+          "count": 3,
+          "max": 1,
+          "mean": 1,
+          "median": 1,
+          "min": 1,
+          "stdDev": 0
+        },
+        "attemptEventCount": 6,
+        "attemptedRuns": 3,
+        "cellId": "cell:hf.co/unsloth/Qwen3.5-4B-GGUF:UD-Q4_K_XL:prompt_libre",
+        "completedRuns": 3,
+        "contractCompliantRuns": 3,
+        "diagnosticF1": {
+          "count": 3,
+          "max": 1,
+          "mean": 1,
+          "median": 1,
+          "min": 1,
+          "stdDev": 0
+        },
+        "evidenceFidelity": {
+          "count": 0,
+          "max": null,
+          "mean": null,
+          "median": null,
+          "min": null,
+          "stdDev": null
+        },
+        "failedRuns": 0,
+        "hallucinationCount": 0,
+        "hallucinationFreeRuns": 3,
+        "inputMode": "prompt_libre",
+        "modelId": "hf.co/unsloth/Qwen3.5-4B-GGUF:UD-Q4_K_XL",
+        "outputTokens": {
+          "count": 3,
+          "max": 3399,
+          "mean": 3270,
+          "median": 3291,
+          "min": 3120,
+          "stdDev": 114.865138
+        },
+        "runCount": 3,
+        "totalLatencyMs": {
+          "count": 3,
+          "max": 48417,
+          "mean": 46187.333333,
+          "median": 46343,
+          "min": 43802,
+          "stdDev": 1887.278523
+        }
+      },
+      {
+        "anchoring": {
+          "count": 3,
+          "max": 0.9166666666666666,
+          "mean": 0.916667,
+          "median": 0.916667,
+          "min": 0.9166666666666666,
+          "stdDev": 0
+        },
+        "attemptEventCount": 6,
+        "attemptedRuns": 3,
+        "cellId": "cell:hf.co/unsloth/Qwen3.5-4B-GGUF:UD-Q4_K_XL:smart_sample",
+        "completedRuns": 3,
+        "contractCompliantRuns": 0,
+        "diagnosticF1": {
+          "count": 3,
+          "max": 1,
+          "mean": 1,
+          "median": 1,
+          "min": 1,
+          "stdDev": 0
+        },
+        "evidenceFidelity": {
+          "count": 3,
+          "max": 1,
+          "mean": 1,
+          "median": 1,
+          "min": 1,
+          "stdDev": 0
+        },
+        "failedRuns": 0,
+        "hallucinationCount": 9,
+        "hallucinationFreeRuns": 0,
+        "inputMode": "smart_sample",
+        "modelId": "hf.co/unsloth/Qwen3.5-4B-GGUF:UD-Q4_K_XL",
+        "outputTokens": {
+          "count": 3,
+          "max": 4113,
+          "mean": 3983.666667,
+          "median": 3971,
+          "min": 3867,
+          "stdDev": 100.827686
+        },
+        "runCount": 3,
+        "totalLatencyMs": {
+          "count": 3,
+          "max": 62031,
+          "mean": 58295.666667,
+          "median": 57103,
+          "min": 55753,
+          "stdDev": 2698.167444
+        }
+      },
+      {
+        "anchoring": {
+          "count": 3,
+          "max": 0.8666666666666667,
+          "mean": 0.866667,
+          "median": 0.866667,
+          "min": 0.8666666666666667,
+          "stdDev": 0
+        },
+        "attemptEventCount": 6,
+        "attemptedRuns": 3,
+        "cellId": "cell:hf.co/unsloth/Qwen3.5-4B-GGUF:UD-Q4_K_XL:recommended",
+        "completedRuns": 3,
+        "contractCompliantRuns": 3,
+        "diagnosticF1": {
+          "count": 3,
+          "max": 1,
+          "mean": 1,
+          "median": 1,
+          "min": 1,
+          "stdDev": 0
+        },
+        "evidenceFidelity": {
+          "count": 3,
+          "max": 1,
+          "mean": 1,
+          "median": 1,
+          "min": 1,
+          "stdDev": 0
+        },
+        "failedRuns": 0,
+        "hallucinationCount": 6,
+        "hallucinationFreeRuns": 0,
+        "inputMode": "recommended",
+        "modelId": "hf.co/unsloth/Qwen3.5-4B-GGUF:UD-Q4_K_XL",
+        "outputTokens": {
+          "count": 3,
+          "max": 3963,
+          "mean": 3860.333333,
+          "median": 3943,
+          "min": 3675,
+          "stdDev": 131.304565
+        },
+        "runCount": 3,
+        "totalLatencyMs": {
+          "count": 3,
+          "max": 58312,
+          "mean": 57294,
+          "median": 57883,
+          "min": 55687,
+          "stdDev": 1149.738231
+        }
+      },
+      {
+        "anchoring": {
+          "count": 3,
+          "max": 1,
+          "mean": 1,
+          "median": 1,
+          "min": 1,
+          "stdDev": 0
+        },
+        "attemptEventCount": 6,
+        "attemptedRuns": 3,
+        "cellId": "cell:hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL:prompt_libre",
+        "completedRuns": 3,
+        "contractCompliantRuns": 3,
+        "diagnosticF1": {
+          "count": 3,
+          "max": 1,
+          "mean": 1,
+          "median": 1,
+          "min": 1,
+          "stdDev": 0
+        },
+        "evidenceFidelity": {
+          "count": 0,
+          "max": null,
+          "mean": null,
+          "median": null,
+          "min": null,
+          "stdDev": null
+        },
+        "failedRuns": 0,
+        "hallucinationCount": 0,
+        "hallucinationFreeRuns": 3,
+        "inputMode": "prompt_libre",
+        "modelId": "hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL",
+        "outputTokens": {
+          "count": 3,
+          "max": 3581,
+          "mean": 3469.333333,
+          "median": 3535,
+          "min": 3292,
+          "stdDev": 126.792043
+        },
+        "runCount": 3,
+        "totalLatencyMs": {
+          "count": 3,
+          "max": 50299,
+          "mean": 48312,
+          "median": 48926,
+          "min": 45711,
+          "stdDev": 1922.703479
+        }
+      },
+      {
+        "anchoring": {
+          "count": 3,
+          "max": 0.9166666666666666,
+          "mean": 0.916667,
+          "median": 0.916667,
+          "min": 0.9166666666666666,
+          "stdDev": 0
+        },
+        "attemptEventCount": 6,
+        "attemptedRuns": 3,
+        "cellId": "cell:hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL:smart_sample",
+        "completedRuns": 3,
+        "contractCompliantRuns": 0,
+        "diagnosticF1": {
+          "count": 3,
+          "max": 1,
+          "mean": 1,
+          "median": 1,
+          "min": 1,
+          "stdDev": 0
+        },
+        "evidenceFidelity": {
+          "count": 3,
+          "max": 1,
+          "mean": 1,
+          "median": 1,
+          "min": 1,
+          "stdDev": 0
+        },
+        "failedRuns": 0,
+        "hallucinationCount": 5,
+        "hallucinationFreeRuns": 0,
+        "inputMode": "smart_sample",
+        "modelId": "hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL",
+        "outputTokens": {
+          "count": 3,
+          "max": 3803,
+          "mean": 3617,
+          "median": 3532,
+          "min": 3516,
+          "stdDev": 131.683965
+        },
+        "runCount": 3,
+        "totalLatencyMs": {
+          "count": 3,
+          "max": 54614,
+          "mean": 52002.333333,
+          "median": 50723,
+          "min": 50670,
+          "stdDev": 1846.853962
+        }
+      },
+      {
+        "anchoring": {
+          "count": 3,
+          "max": 0.8666666666666667,
+          "mean": 0.866667,
+          "median": 0.866667,
+          "min": 0.8666666666666667,
+          "stdDev": 0
+        },
+        "attemptEventCount": 6,
+        "attemptedRuns": 3,
+        "cellId": "cell:hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL:recommended",
+        "completedRuns": 3,
+        "contractCompliantRuns": 0,
+        "diagnosticF1": {
+          "count": 3,
+          "max": 1,
+          "mean": 1,
+          "median": 1,
+          "min": 1,
+          "stdDev": 0
+        },
+        "evidenceFidelity": {
+          "count": 3,
+          "max": 1,
+          "mean": 1,
+          "median": 1,
+          "min": 1,
+          "stdDev": 0
+        },
+        "failedRuns": 0,
+        "hallucinationCount": 6,
+        "hallucinationFreeRuns": 0,
+        "inputMode": "recommended",
+        "modelId": "hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL",
+        "outputTokens": {
+          "count": 3,
+          "max": 4088,
+          "mean": 3855.333333,
+          "median": 3941,
+          "min": 3537,
+          "stdDev": 232.95827
+        },
+        "runCount": 3,
+        "totalLatencyMs": {
+          "count": 3,
+          "max": 57732,
+          "mean": 55316.666667,
+          "median": 55725,
+          "min": 52493,
+          "stdDev": 2158.214128
+        }
+      },
+      {
+        "anchoring": {
+          "count": 2,
+          "max": 1,
+          "mean": 1,
+          "median": 1,
+          "min": 1,
+          "stdDev": 0
+        },
+        "attemptEventCount": 6,
+        "attemptedRuns": 3,
+        "cellId": "cell:hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL:prompt_libre",
+        "completedRuns": 2,
+        "contractCompliantRuns": 2,
+        "diagnosticF1": {
+          "count": 2,
+          "max": 1,
+          "mean": 1,
+          "median": 1,
+          "min": 1,
+          "stdDev": 0
+        },
+        "evidenceFidelity": {
+          "count": 0,
+          "max": null,
+          "mean": null,
+          "median": null,
+          "min": null,
+          "stdDev": null
+        },
+        "failedRuns": 1,
+        "hallucinationCount": 8,
+        "hallucinationFreeRuns": 1,
+        "inputMode": "prompt_libre",
+        "modelId": "hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL",
+        "outputTokens": {
+          "count": 2,
+          "max": 3190,
+          "mean": 2953,
+          "median": 2953,
+          "min": 2716,
+          "stdDev": 237
+        },
+        "runCount": 3,
+        "totalLatencyMs": {
+          "count": 2,
+          "max": 31313,
+          "mean": 29243,
+          "median": 29243,
+          "min": 27173,
+          "stdDev": 2070
+        }
+      },
+      {
+        "anchoring": {
+          "count": 0,
+          "max": null,
+          "mean": null,
+          "median": null,
+          "min": null,
+          "stdDev": null
+        },
+        "attemptEventCount": 6,
+        "attemptedRuns": 3,
+        "cellId": "cell:hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL:smart_sample",
+        "completedRuns": 0,
+        "contractCompliantRuns": 0,
+        "diagnosticF1": {
+          "count": 0,
+          "max": null,
+          "mean": null,
+          "median": null,
+          "min": null,
+          "stdDev": null
+        },
+        "evidenceFidelity": {
+          "count": 0,
+          "max": null,
+          "mean": null,
+          "median": null,
+          "min": null,
+          "stdDev": null
+        },
+        "failedRuns": 3,
+        "hallucinationCount": 0,
+        "hallucinationFreeRuns": 0,
+        "inputMode": "smart_sample",
+        "modelId": "hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL",
+        "outputTokens": {
+          "count": 0,
+          "max": null,
+          "mean": null,
+          "median": null,
+          "min": null,
+          "stdDev": null
+        },
+        "runCount": 3,
+        "totalLatencyMs": {
+          "count": 0,
+          "max": null,
+          "mean": null,
+          "median": null,
+          "min": null,
+          "stdDev": null
+        }
+      },
+      {
+        "anchoring": {
+          "count": 0,
+          "max": null,
+          "mean": null,
+          "median": null,
+          "min": null,
+          "stdDev": null
+        },
+        "attemptEventCount": 6,
+        "attemptedRuns": 3,
+        "cellId": "cell:hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL:recommended",
+        "completedRuns": 0,
+        "contractCompliantRuns": 0,
+        "diagnosticF1": {
+          "count": 0,
+          "max": null,
+          "mean": null,
+          "median": null,
+          "min": null,
+          "stdDev": null
+        },
+        "evidenceFidelity": {
+          "count": 0,
+          "max": null,
+          "mean": null,
+          "median": null,
+          "min": null,
+          "stdDev": null
+        },
+        "failedRuns": 3,
+        "hallucinationCount": 0,
+        "hallucinationFreeRuns": 0,
+        "inputMode": "recommended",
+        "modelId": "hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL",
+        "outputTokens": {
+          "count": 0,
+          "max": null,
+          "mean": null,
+          "median": null,
+          "min": null,
+          "stdDev": null
+        },
+        "runCount": 3,
+        "totalLatencyMs": {
+          "count": 0,
+          "max": null,
+          "mean": null,
+          "median": null,
+          "min": null,
+          "stdDev": null
+        }
+      }
+    ],
+    "expectedRuns": 27,
+    "inputModes": 3,
+    "models": 3,
+    "observedRuns": 27,
+    "repetitions": 3
+  },
+  "recommendations": [
+    {
+      "inputMode": "prompt_libre",
+      "modelId": "hf.co/unsloth/Qwen3.5-4B-GGUF:UD-Q4_K_XL",
+      "rationale": "Mejor equilibrio medido entre fiabilidad, evidencia visible, ausencia de claims sin soporte y velocidad.",
+      "score": 92.62024469714952,
+      "useCase": "balanced"
+    },
+    {
+      "inputMode": "prompt_libre",
+      "modelId": "hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL",
+      "rationale": "Mayor calidad operativa combinando soporte de evidencia, seguridad frente a claims sin soporte y fiabilidad.",
+      "score": 100,
+      "useCase": "diagnostic_quality"
+    },
+    {
+      "inputMode": "prompt_libre",
+      "modelId": "hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL",
+      "rationale": "Mayor proporción de diagnósticos válidos entre las corridas intentadas.",
+      "score": 100,
+      "useCase": "reliability"
+    },
+    {
+      "inputMode": "prompt_libre",
+      "modelId": "hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL",
+      "rationale": "Mayor soporte y anclaje a la evidencia visible del método de entrada.",
+      "score": 100,
+      "useCase": "traceability"
+    },
+    {
+      "inputMode": "prompt_libre",
+      "modelId": "hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL",
+      "rationale": "Menor latencia mediana relativa dentro de esta campaña y este hardware.",
+      "score": 100,
+      "useCase": "speed"
+    }
+  ],
+  "scores": [
+    {
+      "accuracy": 100,
+      "balanced": 92.62024469714952,
+      "cellId": "cell:hf.co/unsloth/Qwen3.5-4B-GGUF:UD-Q4_K_XL:prompt_libre",
+      "contractCompliance": 100,
+      "efficiency": 63.10122348574758,
+      "evidenceSupport": 100,
+      "hallucinationSafety": 100,
+      "inputMode": "prompt_libre",
+      "modelId": "hf.co/unsloth/Qwen3.5-4B-GGUF:UD-Q4_K_XL",
+      "reliability": 100
+    },
+    {
+      "accuracy": 100,
+      "balanced": 69.20053143026637,
+      "cellId": "cell:hf.co/unsloth/Qwen3.5-4B-GGUF:UD-Q4_K_XL:smart_sample",
+      "contractCompliance": 0,
+      "efficiency": 51.21096965133181,
+      "evidenceSupport": 95.83335,
+      "hallucinationSafety": 0,
+      "inputMode": "smart_sample",
+      "modelId": "hf.co/unsloth/Qwen3.5-4B-GGUF:UD-Q4_K_XL",
+      "reliability": 100
+    },
+    {
+      "accuracy": 100,
+      "balanced": 68.43751316470293,
+      "cellId": "cell:hf.co/unsloth/Qwen3.5-4B-GGUF:UD-Q4_K_XL:recommended",
+      "contractCompliance": 100,
+      "efficiency": 50.52087832351467,
+      "evidenceSupport": 93.33335,
+      "hallucinationSafety": 0,
+      "inputMode": "recommended",
+      "modelId": "hf.co/unsloth/Qwen3.5-4B-GGUF:UD-Q4_K_XL",
+      "reliability": 100
+    },
+    {
+      "accuracy": 100,
+      "balanced": 91.95397130360135,
+      "cellId": "cell:hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL:prompt_libre",
+      "contractCompliance": 100,
+      "efficiency": 59.76985651800678,
+      "evidenceSupport": 100,
+      "hallucinationSafety": 100,
+      "inputMode": "prompt_libre",
+      "modelId": "hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL",
+      "reliability": 100
+    },
+    {
+      "accuracy": 100,
+      "balanced": 70.48880691229817,
+      "cellId": "cell:hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL:smart_sample",
+      "contractCompliance": 0,
+      "efficiency": 57.652347061490836,
+      "evidenceSupport": 95.83335,
+      "hallucinationSafety": 0,
+      "inputMode": "smart_sample",
+      "modelId": "hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL",
+      "reliability": 100
+    },
+    {
+      "accuracy": 100,
+      "balanced": 68.82880632009869,
+      "cellId": "cell:hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL:recommended",
+      "contractCompliance": 0,
+      "efficiency": 52.4773441004935,
+      "evidenceSupport": 93.33335,
+      "hallucinationSafety": 0,
+      "inputMode": "recommended",
+      "modelId": "hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL",
+      "reliability": 100
+    },
+    {
+      "accuracy": 100,
+      "balanced": 78.33333333333333,
+      "cellId": "cell:hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL:prompt_libre",
+      "contractCompliance": 100,
+      "efficiency": 100,
+      "evidenceSupport": 100,
+      "hallucinationSafety": 50,
+      "inputMode": "prompt_libre",
+      "modelId": "hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL",
+      "reliability": 66.66666666666666
+    },
+    {
+      "accuracy": null,
+      "balanced": 0,
+      "cellId": "cell:hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL:smart_sample",
+      "contractCompliance": null,
+      "efficiency": null,
+      "evidenceSupport": null,
+      "hallucinationSafety": null,
+      "inputMode": "smart_sample",
+      "modelId": "hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL",
+      "reliability": 0
+    },
+    {
+      "accuracy": null,
+      "balanced": 0,
+      "cellId": "cell:hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL:recommended",
+      "contractCompliance": null,
+      "efficiency": null,
+      "evidenceSupport": null,
+      "hallucinationSafety": null,
+      "inputMode": "recommended",
+      "modelId": "hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL",
+      "reliability": 0
+    }
+  ],
+  "selectedConfiguration": {
+    "campaignId": "campaign:oe4:v2:20260715011720492",
+    "cellId": "cell:hf.co/unsloth/Qwen3.5-4B-GGUF:UD-Q4_K_XL:prompt_libre",
+    "contractId": "aura.campaign-pipeline-configuration.v1",
+    "contractVersion": "1.0.0",
+    "generatedAt": "2026-07-15T01:54:15.873Z",
+    "inference": {
+      "keepAlive": "10m",
+      "numCtx": 32768,
+      "numPredict": 8192,
+      "seed": null,
+      "temperature": 0.1,
+      "think": false,
+      "timeoutSeconds": 900,
+      "topP": 0.9
+    },
+    "inputMode": "prompt_libre",
+    "inputModeLabel": "Contexto mínimo",
+    "interpretation": "Configuración observada en esta campaña y este hardware. Aplicarla no garantiza el mismo resultado con otro dataset.",
+    "modelId": "hf.co/unsloth/Qwen3.5-4B-GGUF:UD-Q4_K_XL",
+    "ollamaBaseUrl": "http://127.0.0.1:11434",
+    "protocolVersion": "2.6.0",
+    "providerType": "ollama",
+    "selection": {
+      "attemptedRuns": 3,
+      "balancedScore": 92.62024469714952,
+      "efficiency": 63.10122348574758,
+      "evidenceSupport": 100,
+      "failedRuns": 0,
+      "groundTruthAlignment": 100,
+      "hallucinationSafety": 100,
+      "reliability": 100,
+      "validRuns": 3
+    }
+  },
+  "totals": {
+    "attemptedRuns": 27,
+    "completedRuns": 20,
+    "failedRuns": 7,
+    "runsWithAutomaticEvaluation": 20
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "campaignId": "campaign:oe4:v2:20260714203639584",
+  "contractId": "aura.oe4-artifact-manifest.v1",
+  "contractVersion": "1.0.0",
+  "files": [
+    {
+      "filename": "campaign.json",
+      "mediaType": "application/json",
+      "sha256": "200c039c99b26979e5285ccb45680055b677f3b9ab459d663174fe5e99de9906",
+      "sizeBytes": 1928169
+    },
+    {
+      "filename": "runs.csv",
+      "mediaType": "text/csv",
+      "sha256": "344112006a62e9b824415981d90563de9e1f5fc3f4394412070a5984b1fb7c7c",
+      "sizeBytes": 41366
+    },
+    {
+      "filename": "report.md",
+      "mediaType": "text/markdown",
+      "sha256": "76d0de4515e6a4a25c4f5d9963f023268980b9e98b71e4d29b73169fcde12d1f",
+      "sizeBytes": 6127
+    },
+    {
+      "filename": "report.pdf",
+      "mediaType": "application/pdf",
+      "sha256": "e3b4266a10d84557a3fc6f7483abc7655f9e75746295b91679bde90cbb0a8c99",
+      "sizeBytes": 8366
+    }
+  ],
+  "generatedAt": "2026-07-14T22:28:55.117Z",
+  "hashAlgorithm": "SHA-256",
+  "self": {
+    "scope": "canonical manifest payload excluding self",
+    "sha256": "b3c69baeb41123c9fd6a05dbceb2a552d44a94418eba4efa7933246c8074617e"
+  }
+}

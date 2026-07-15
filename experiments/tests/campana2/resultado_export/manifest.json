@@ -1,0 +1,61 @@
+{
+  "campaignId": "campaign:oe4:v2:20260715011720492",
+  "contractId": "aura.oe4-artifact-manifest.v1",
+  "contractVersion": "1.0.0",
+  "files": [
+    {
+      "filename": "campaign.json",
+      "mediaType": "application/json",
+      "sha256": "17521e2b4c52f9db5bc1a27f9ae5ad0696914f67b2c87e29481fb2dcad6cad53",
+      "sizeBytes": 1892366
+    },
+    {
+      "filename": "runs.csv",
+      "mediaType": "text/csv",
+      "sha256": "0f29013a902ad0d9359c066dab01a702eb91f86b54f23f7ce38a6fc146ea3607",
+      "sizeBytes": 39603
+    },
+    {
+      "filename": "report.md",
+      "mediaType": "text/markdown",
+      "sha256": "789565c790c452478666789806a17b06496242d475bfd9ed4cc84300e05e7d2d",
+      "sizeBytes": 6629
+    },
+    {
+      "filename": "report.pdf",
+      "mediaType": "application/pdf",
+      "sha256": "d91ecd6e44288c1b79f45cb5ac0786086aec2a950f9651ed184e105303a77fa7",
+      "sizeBytes": 8551
+    },
+    {
+      "filename": "results-summary.json",
+      "mediaType": "application/json",
+      "sha256": "7b8fd3abe2bc416ce55d451395b1d00901248123ce5aa6b0ad7905e90ba92276",
+      "sizeBytes": 19005
+    },
+    {
+      "filename": "methodology.md",
+      "mediaType": "text/markdown",
+      "sha256": "2428801e023f4ac4560fcaa685dfa1eaa61198b23df3ed20b8f349148af0408d",
+      "sizeBytes": 1184
+    },
+    {
+      "filename": "glossary.md",
+      "mediaType": "text/markdown",
+      "sha256": "bb374a6c6c8b4a21a0d682d339474ae3dbdae4f29869eacec6f73a2e3431429f",
+      "sizeBytes": 4803
+    },
+    {
+      "filename": "selected-configuration.json",
+      "mediaType": "application/json",
+      "sha256": "b97478f97861735ae490815e4c81aba521e0085fd4cd03a4a45d0f2153c160b8",
+      "sizeBytes": 1113
+    }
+  ],
+  "generatedAt": "2026-07-15T01:54:15.873Z",
+  "hashAlgorithm": "SHA-256",
+  "self": {
+    "scope": "canonical manifest payload excluding self",
+    "sha256": "f5c1b22e4a264790834a10f6323659c8c5219ca6c27632af65eb600a8b199695"
+  }
+}
