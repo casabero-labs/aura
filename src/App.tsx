@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import React, { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 declare const __AURA_BUILD_SHA__: string;
 declare const __AURA_BUILD_TIME__: string;
@@ -9,7 +9,7 @@ if (typeof __AURA_BUILD_SHA__ !== 'undefined') {
     'color: #888; font-size: 11px; font-family: monospace;',
   );
 }
-import { ArrowLeft, Download, FileJson, FileText, Sun, Moon, AlertTriangle, Trash2, X } from 'lucide-react';
+import { ArrowLeft, Download, FileJson, FileText, AlertTriangle, Trash2, X } from 'lucide-react';
 import ChangelogModal from './components/ChangelogModal';
 import ErrorBoundary from './components/ErrorBoundary';
 import AuditLogViewer from './components/AuditLogViewer';
@@ -174,6 +174,7 @@ const App: React.FC = () => {
   const [showAuditLog, setShowAuditLog] = useState(false);
   const [showChangelog, setShowChangelog] = useState(false);
   const [showMobileNav, setShowMobileNav] = useState(false);
+  const mobileNavToggleRef = useRef<HTMLButtonElement>(null);
   const [includeCorrectedInEvidenceArchive, setIncludeCorrectedInEvidenceArchive] = useState(false);
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     const saved = localStorage.getItem('aura_theme') || localStorage.getItem('casabero-theme');
@@ -191,6 +192,26 @@ const App: React.FC = () => {
       savePipelineSession(pipelineData);
     }
   }, [pipelineData]);
+
+  const closeMobileNavigation = useCallback((restoreFocus = false) => {
+    setShowMobileNav(false);
+    if (restoreFocus) {
+      requestAnimationFrame(() => mobileNavToggleRef.current?.focus());
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!showMobileNav) return;
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      closeMobileNavigation(true);
+    };
+
+    document.addEventListener('keydown', closeOnEscape);
+    return () => document.removeEventListener('keydown', closeOnEscape);
+  }, [closeMobileNavigation, showMobileNav]);
 
   // ── AI Config (para settings panel) ──
   const [aiConfig, setAiConfig] = useState<AIConfig>(() => {
@@ -674,7 +695,7 @@ const App: React.FC = () => {
     setShowAuditLog(false);
     setShowSettings(false);
     setShowHelp(false);
-    setShowMobileNav(false);
+    closeMobileNavigation(showMobileNav);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -684,7 +705,7 @@ const App: React.FC = () => {
     setShowAuditLog(false);
     setShowSettings(false);
     setShowHelp(false);
-    setShowMobileNav(false);
+    closeMobileNavigation(showMobileNav);
     requestAnimationFrame(() => scrollTo('sistema'));
   };
 
@@ -694,7 +715,7 @@ const App: React.FC = () => {
     setShowAuditLog(false);
     setShowSettings(false);
     setShowHelp(false);
-    setShowMobileNav(false);
+    closeMobileNavigation(showMobileNav);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -708,7 +729,7 @@ const App: React.FC = () => {
     setShowExperimentCampaign(false);
     setShowAuditLog(false);
     setShowHelp(false);
-    setShowMobileNav(false);
+    closeMobileNavigation(showMobileNav);
   };
 
   const handleDestroySession = () => {
@@ -762,14 +783,14 @@ const App: React.FC = () => {
       {showAuditLog && <AuditLogViewer onClose={() => setShowAuditLog(false)} />}
 
       {/* Navigation */}
-      <nav className="sys-nav">
+      <nav className="sys-nav" aria-label="Navegación principal">
         {/* Bloque Izquierdo: Branding */}
-        <div className="nav-brand" onClick={goHome} aria-label="Ir al inicio">
+        <button className="nav-brand" onClick={goHome} aria-label="Ir al inicio" type="button">
           <span className="nav-logo-mark nav-logo-mark--visible" aria-hidden="true">
             <AuraMark />
           </span>
           <span className="nav-logo">AURA</span>
-        </div>
+        </button>
 
         <div className="nav-right-cluster">
           {/* Bloque Derecho: Navegación de Capas (Escritorio) */}
@@ -777,6 +798,8 @@ const App: React.FC = () => {
             <button
               className={`nav-menu-item ${showHome ? 'active' : ''}`}
               onClick={goHome}
+              aria-current={showHome ? 'page' : undefined}
+              type="button"
             >
               Home
             </button>
@@ -784,6 +807,8 @@ const App: React.FC = () => {
             <button
               className={`nav-menu-item ${!showHome && !showExperimentCampaign && !showAuditLog && !showSettings ? 'active' : ''}`}
               onClick={goAudit}
+              aria-current={!showHome && !showExperimentCampaign && !showAuditLog && !showSettings ? 'page' : undefined}
+              type="button"
             >
               Auditoría
             </button>
@@ -791,6 +816,8 @@ const App: React.FC = () => {
             <button
               className={`nav-menu-item ${showExperimentCampaign ? 'active' : ''}`}
               onClick={goExperimentCampaign}
+              aria-current={showExperimentCampaign ? 'page' : undefined}
+              type="button"
             >
               Laboratorio
             </button>
@@ -798,6 +825,8 @@ const App: React.FC = () => {
             <button
               className={`nav-menu-item ${showSettings ? 'active' : ''}`}
               onClick={goSettings}
+              aria-current={showSettings ? 'page' : undefined}
+              type="button"
             >
               Configuración
             </button>
@@ -827,35 +856,46 @@ const App: React.FC = () => {
         </div>
 
         {/* Botón Hamburguesa Móvil */}
-        <button className="mobile-nav-toggle" onClick={() => setShowMobileNav(!showMobileNav)}>
-          <div className={`hamburger ${showMobileNav ? 'open' : ''}`}>
+        <button
+          ref={mobileNavToggleRef}
+          className="mobile-nav-toggle"
+          onClick={() => showMobileNav ? closeMobileNavigation(true) : setShowMobileNav(true)}
+          aria-label={`${showMobileNav ? 'Cerrar' : 'Abrir'} menú de navegación`}
+          aria-expanded={showMobileNav}
+          aria-controls="mobile-navigation"
+          type="button"
+        >
+          <div className={`hamburger ${showMobileNav ? 'open' : ''}`} aria-hidden="true">
             <span /><span /><span />
           </div>
         </button>
       </nav>
 
       {/* Mobile Navigation Menu */}
-      <div className={`nav-links ${showMobileNav ? 'nav-links-open' : ''}`}>
-        <button className="nav-link" onClick={goHome}>
+      <nav
+        id="mobile-navigation"
+        className={`nav-links ${showMobileNav ? 'nav-links-open' : ''}`}
+        aria-label="Navegación móvil"
+        hidden={!showMobileNav}
+      >
+        <button className="nav-link" onClick={goHome} aria-current={showHome ? 'page' : undefined} type="button">
           Home
         </button>
-        <button className="nav-link" onClick={goAudit}>
+        <button
+          className="nav-link"
+          onClick={goAudit}
+          aria-current={!showHome && !showExperimentCampaign && !showAuditLog && !showSettings ? 'page' : undefined}
+          type="button"
+        >
           Auditoría
         </button>
-        <button className="nav-link" onClick={goExperimentCampaign}>
+        <button className="nav-link" onClick={goExperimentCampaign} aria-current={showExperimentCampaign ? 'page' : undefined} type="button">
           Laboratorio
         </button>
-        <button className="nav-link" onClick={goSettings}>
+        <button className="nav-link" onClick={goSettings} aria-current={showSettings ? 'page' : undefined} type="button">
           Configuración
         </button>
-        <button className="nav-link" onClick={() => { setShowHome(false); setShowExperimentCampaign(false); setShowAuditLog(true); setShowMobileNav(false); }}>
-          Trazabilidad
-        </button>
-        <button className="nav-link" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
-          {theme === 'dark' ? <Sun size={13} /> : <Moon size={13} />}
-          {theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
-        </button>
-      </div>
+      </nav>
 
       {/* Settings and help stay inside the persistent app shell. */}
       {showSettings && (

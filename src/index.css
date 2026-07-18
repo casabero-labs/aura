@@ -15111,6 +15111,11 @@ textarea:focus {
   min-width: auto;
   height: 40px;
   gap: 10px;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  background: none;
+  border: 0;
 }
 
 .nav-logo-mark,
@@ -16183,4 +16188,90 @@ textarea:focus {
   .oe4-configuration-evidence { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .oe4-configuration-actions > button { width: 100%; }
   .oe4-glossary-groups dl > div { grid-template-columns: 1fr; gap: 5px; }
+}
+
+/* Accessible global navigation disclosure (AURA-UX-R4). */
+.nav-brand:focus-visible,
+.mobile-nav-toggle:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+.nav-links[hidden] {
+  display: none;
+}
+
+.nav-link[aria-current="page"] {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+@media (max-width: 920px) {
+  .mobile-nav-toggle {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    padding: 0;
+    cursor: pointer;
+  }
+
+  .hamburger {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 18px;
+  }
+
+  .hamburger span {
+    display: block;
+    height: 2px;
+    background: var(--ink);
+    transition: transform var(--transition-fast), opacity var(--transition-fast);
+  }
+
+  .hamburger.open span:nth-child(1) {
+    transform: translateY(6px) rotate(45deg);
+  }
+
+  .hamburger.open span:nth-child(2) {
+    opacity: 0;
+  }
+
+  .hamburger.open span:nth-child(3) {
+    transform: translateY(-6px) rotate(-45deg);
+  }
+
+  .nav-links {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 56px;
+    right: 0;
+    left: 0;
+    z-index: 99;
+    gap: 2px;
+    padding: var(--space-sm);
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav-link {
+    display: block;
+    width: 100%;
+    min-height: 44px;
+    padding: var(--space-sm) var(--space-md);
+    color: var(--ink2);
+    background: none;
+    border: 0;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .nav-link:hover,
+  .nav-link[aria-current="page"] {
+    color: var(--ink);
+    background: var(--surface-hover);
+  }
 }
