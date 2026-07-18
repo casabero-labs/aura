@@ -584,13 +584,27 @@ describe('ApplyVerifyStep R3', () => {
     const encode = (text: string) => new TextEncoder().encode(text);
 
     const buildEvidence = (): VerifiedRemediationEvidence => {
-      const bundle = buildCanonicalBundle();
-      const receipt = makeReceipt(bundle);
+      const sourceCsv = encode(REAUDIT_BEFORE);
+      const correctedCsv = encode(REAUDIT_AFTER);
+      const bundle = buildPythonExecutionBundle({
+        generatedAt: '2026-07-12T12:05:00.000Z',
+        executionId: 'run:reaudit-ui',
+        approvedScriptHash: SCRIPT_HASH,
+        beforeDatasetSha256: sha256hex(REAUDIT_BEFORE),
+        scriptText: SCRIPT_TEXT,
+        scriptHashPayload: { scriptText: SCRIPT_TEXT },
+        inputReceiptRef: DIAG_RECEIPT_HASH,
+        evidenceEnvelopeRef: ENVELOPE_REF,
+      });
+      const receipt = makeReceipt(bundle, {
+        afterDatasetSha256: sha256hex(REAUDIT_AFTER),
+        output: { rowCount: 2, columnCount: 3 },
+      });
       return buildVerifiedRemediationEvidence({
         bundle,
         receipt,
-        sourceCsv: encode(REAUDIT_BEFORE),
-        correctedCsv: encode(REAUDIT_AFTER),
+        sourceCsv,
+        correctedCsv,
         evidenceEnvelopeRef: ENVELOPE_REF,
       });
     };
@@ -606,7 +620,7 @@ describe('ApplyVerifyStep R3', () => {
       expect(screen.queryByTestId('apply-verify-continue')).toBeFalsy();
     });
 
-    it('renders before/after score, findings and rule sets when completed', () => {
+    it('renders the compact identity-aware comparison when completed', () => {
       const evidence = buildEvidence();
       render(<ApplyVerifyStep
         {...defaultProps}
@@ -615,13 +629,18 @@ describe('ApplyVerifyStep R3', () => {
         reauditState="completed"
         verifiedEvidence={evidence}
       />);
-      expect(screen.getByTestId('reaudit-before-score').textContent).toBe(String(evidence.beforeAfterSummary.beforeScore));
-      expect(screen.getByTestId('reaudit-after-score').textContent).toBe(String(evidence.beforeAfterSummary.afterScore));
-      expect(screen.getByTestId('reaudit-before-issues').textContent).toBe(String(evidence.beforeAfterSummary.beforeIssueCount));
-      expect(screen.getByTestId('reaudit-after-issues').textContent).toBe(String(evidence.beforeAfterSummary.afterIssueCount));
-      expect(screen.getByTestId('reaudit-corrected-rules')).toBeTruthy();
-      expect(screen.getByTestId('reaudit-persistent-rules')).toBeTruthy();
-      expect(screen.getByTestId('reaudit-new-rules')).toBeTruthy();
+      expect(screen.getByText('Ejecución verificada; resultado reauditable')).toBeTruthy();
+      expect(screen.getByTestId('reaudit-before-score').textContent).toBe(String(evidence.verification.before.score));
+      expect(screen.getByTestId('reaudit-after-score').textContent).toBe(String(evidence.verification.after.score));
+      expect(screen.getByTestId('reaudit-before-issues').textContent).toBe(String(evidence.verification.before.issueCount));
+      expect(screen.getByTestId('reaudit-after-issues').textContent).toBe(String(evidence.verification.after.issueCount));
+      expect(screen.getByTestId('reaudit-before-rows').textContent).toBe(String(evidence.verification.before.rowCount));
+      expect(screen.getByTestId('reaudit-after-columns').textContent).toBe(String(evidence.verification.after.columnCount));
+      expect(screen.getByTestId('reaudit-resolved-findings').textContent).toBe(String(evidence.verification.findings.resolved.length));
+      expect(screen.getByTestId('reaudit-persistent-findings').textContent).toBe(String(evidence.verification.findings.persistent.length));
+      expect(screen.getByTestId('reaudit-new-findings').textContent).toBe(String(evidence.verification.findings.new.length));
+      expect(screen.getByText('La reauditoría usa el mismo motor determinista de AURA y no sustituye validación de dominio')).toBeTruthy();
+      expect(screen.getByTestId('apply-verify-reaudit-summary').querySelector('section[aria-labelledby="reaudit-comparison-title"]')).toBeTruthy();
     });
 
     it('enables "Ir a Exportación" only when reaudit is completed', () => {

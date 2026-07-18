@@ -13,11 +13,14 @@
 import type { AuditReport, HealthDelta } from '../../types';
 import { calculateHealthDelta } from '../improvementService';
 import {
-  runReaudit,
   type OutputDatasetSummaryV1,
   type ReauditSummaryV1,
 } from '../reauditService';
 import type { PythonExecutionBundleV1, PythonExecutionReceiptV1 } from './pythonExecutionContract';
+import {
+  buildRemediationVerificationWithReaudit,
+  type RemediationVerificationResultV1,
+} from './remediationVerification';
 
 export interface VerifiedRemediationEvidence {
   bundle: PythonExecutionBundleV1;
@@ -30,6 +33,7 @@ export interface VerifiedRemediationEvidence {
     afterReport: AuditReport;
   };
   beforeAfterSummary: HealthDelta;
+  verification: RemediationVerificationResultV1;
 }
 
 export interface BuildVerifiedRemediationEvidenceInput {
@@ -57,9 +61,7 @@ export function buildVerifiedRemediationEvidence(
   if (!beforeCsv.trim()) throw new Error('El CSV fuente está vacío o no es válido.');
   if (!afterCsv.trim()) throw new Error('El CSV corregido está vacío o no es válido.');
 
-  const reaudit = runReaudit(beforeCsv, afterCsv, input.evidenceEnvelopeRef, {
-    delimiter: input.delimiter,
-  });
+  const { result: verification, reaudit } = buildRemediationVerificationWithReaudit(input);
   const beforeAfterSummary = calculateHealthDelta(reaudit.beforeReport, reaudit.afterReport);
 
   return {
@@ -73,6 +75,7 @@ export function buildVerifiedRemediationEvidence(
       afterReport: reaudit.afterReport,
     },
     beforeAfterSummary,
+    verification,
   };
 }
 
@@ -85,13 +88,14 @@ export interface RuleComparison {
 const uniqueSorted = (values: readonly string[]): string[] =>
   [...new Set(values)].sort((left, right) => left.localeCompare(right));
 
-/** Derives corrected / persistent / new rule sets by ruleId from the reports. */
+/**
+ * Historical rule-level adapter for Laboratorio consumers. The normal flow
+ * uses verification.findings, whose identity includes issue id and column.
+ */
 export function compareReauditRules(evidence: VerifiedRemediationEvidence): RuleComparison {
-  const beforeRules = new Set(evidence.reaudit.beforeReport.issues.map((issue) => issue.ruleId));
-  const afterRules = new Set(evidence.reaudit.afterReport.issues.map((issue) => issue.ruleId));
   return {
-    correctedRuleIds: uniqueSorted([...beforeRules].filter((ruleId) => !afterRules.has(ruleId))),
-    persistentRuleIds: uniqueSorted([...beforeRules].filter((ruleId) => afterRules.has(ruleId))),
-    newRuleIds: uniqueSorted([...afterRules].filter((ruleId) => !beforeRules.has(ruleId))),
+    correctedRuleIds: uniqueSorted(evidence.verification.findings.resolved.map((finding) => finding.ruleId)),
+    persistentRuleIds: uniqueSorted(evidence.verification.findings.persistent.map((finding) => finding.after.ruleId)),
+    newRuleIds: uniqueSorted(evidence.verification.findings.new.map((finding) => finding.ruleId)),
   };
 }

@@ -1,9 +1,9 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { ArrowLeft, ArrowRight, CheckCircle2, ClipboardCheck, Download, FileJson, FileText, Loader2, ShieldAlert, ShieldCheck, Terminal, Upload } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle2, ClipboardCheck, FileJson, FileText, Loader2, ShieldAlert, ShieldCheck, Terminal, Upload } from 'lucide-react';
 import { buildPythonExecutionBundle, parsePythonExecutionBundle, parsePythonExecutionReceipt, validatePythonExecutionChain } from '../services/remediationExecution/pythonExecutionContract';
 import type { PythonExecutionBundleV1, PythonExecutionReceiptV1 } from '../services/remediationExecution/pythonExecutionContract';
-import { compareReauditRules } from '../services/remediationExecution/verifiedRemediationEvidence';
 import type { VerifiedRemediationEvidence } from '../services/remediationExecution/verifiedRemediationEvidence';
+import type { FindingRef, PersistentFindingRef, RemediationVerificationOutcome } from '../services/remediationExecution/remediationVerification';
 import { buildScriptHashPayloadV2 } from '../contracts/llm';
 import { sha256BytesHex } from '../contracts/llm/hash';
 import type { AuditReport, AuditExecutionEvidence } from '../types';
@@ -52,6 +52,42 @@ const CLI_COMMAND = `${RUNNER} --bundle ./execution-bundle.json --input ./source
 
 const formatHashShort = (hash?: string | null) => hash ? `${hash.slice(0, 8)}…${hash.slice(-6)}` : '—';
 
+const OUTCOME_LABELS: Record<RemediationVerificationOutcome, string> = {
+  improved: 'Mejora observada',
+  unchanged: 'Sin cambio observado',
+  worsened: 'Deterioro observado',
+  inconclusive: 'Resultado inconcluso',
+};
+
+const findingLabel = (finding: FindingRef) =>
+  `${finding.ruleId}${finding.column ? ` · ${finding.column}` : ' · dataset'}`;
+
+const FindingList: React.FC<{ findings: FindingRef[] }> = ({ findings }) => (
+  findings.length > 0 ? (
+    <ul className="reaudit-finding-list">
+      {findings.map((finding) => (
+        <li key={finding.identityKey}>
+          <span>{findingLabel(finding)}</span>
+          <small>{finding.count} casos · {finding.affectedPercentage.toFixed(1)}%</small>
+        </li>
+      ))}
+    </ul>
+  ) : <p className="reaudit-empty">Ninguno</p>
+);
+
+const PersistentFindingList: React.FC<{ findings: PersistentFindingRef[] }> = ({ findings }) => (
+  findings.length > 0 ? (
+    <ul className="reaudit-finding-list">
+      {findings.map((finding) => (
+        <li key={finding.identityKey}>
+          <span>{findingLabel(finding.after)}</span>
+          <small>{finding.before.count} → {finding.after.count} casos</small>
+        </li>
+      ))}
+    </ul>
+  ) : <p className="reaudit-empty">Ninguno</p>
+);
+
 const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
   state,
   report,
@@ -94,14 +130,6 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
       setCopyLabel('Error al copiar');
     }
   };
-
-  const reauditSummary = useMemo(() => {
-    if (!verifiedEvidence) return null;
-    return {
-      beforeAfterSummary: verifiedEvidence.beforeAfterSummary,
-      rules: compareReauditRules(verifiedEvidence),
-    };
-  }, [verifiedEvidence]);
 
   const preconditions = useMemo(() => {
     const errors: string[] = [];
@@ -250,11 +278,11 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
   };
 
   return (
-    <div className="step-card" data-testid="apply-verify-step">
+    <div className="step-card apply-verify-step" data-testid="apply-verify-step">
       <div className="step-header">
         <h2 className="step-heading">Aplicar y verificar</h2>
         <p className="step-subtitle">
-          Descargá el bundle y el CSV fuente, ejecutá el script de remediación en tu entorno Python local y subí el resultado junto con el recibo.
+          Descargá el bundle y el CSV fuente, ejecutá el script en el runner local controlado y subí el resultado junto con el recibo.
         </p>
       </div>
 
@@ -340,7 +368,7 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
           <div className="evidence-options">
             <Upload size={16} />
             <div>
-              <strong>{state === 'validating' ? 'Validando…' : 'Importar archivos de salida'}</strong>
+              <strong>{state === 'validating' ? 'Validando…' : 'Importar salida Python externa'}</strong>
               <p style={{ fontSize: '14px', marginTop: 'var(--space-xxs)' }}>
                 Seleccioná corrected.csv y receipt.json juntos.
               </p>
@@ -397,10 +425,10 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
 
       {state === 'verified' && executionReceipt && (
         <div data-testid="apply-verify-verified">
-          <div className="evidence-options" style={{ marginBottom: 'var(--space-md)' }}>
+          <div className="evidence-options" style={{ marginBottom: 'var(--space-md)' }} role="status">
             <CheckCircle2 size={16} />
             <div>
-              <strong>Ejecución Python verificada.</strong>
+              <strong>Ejecución verificada; resultado reauditable</strong>
             </div>
           </div>
           <div className="apply-verify-info-grid">
@@ -439,7 +467,7 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
           </div>
 
           {reauditState === 'running' && (
-            <div className="evidence-options" style={{ marginTop: 'var(--space-md)' }} data-testid="apply-verify-reaudit-running">
+            <div className="evidence-options" style={{ marginTop: 'var(--space-md)' }} data-testid="apply-verify-reaudit-running" role="status" aria-live="polite">
               <Loader2 size={16} className="spin" />
               <div>
                 <strong>Reauditando resultado…</strong>
@@ -451,7 +479,7 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
           )}
 
           {reauditState === 'failed' && (
-            <div className="evidence-options" style={{ marginTop: 'var(--space-md)' }} data-testid="apply-verify-reaudit-failed">
+            <div className="evidence-options" style={{ marginTop: 'var(--space-md)' }} data-testid="apply-verify-reaudit-failed" role="alert">
               <ShieldAlert size={16} />
               <div>
                 <strong>La reauditoría falló.</strong>
@@ -463,62 +491,76 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
             </div>
           )}
 
-          {reauditState === 'completed' && verifiedEvidence && reauditSummary && (
-            <div style={{ marginTop: 'var(--space-md)' }} data-testid="apply-verify-reaudit-summary">
-              <div className="evidence-options" style={{ marginBottom: 'var(--space-md)' }}>
-                <ShieldCheck size={16} />
-                <div>
-                  <strong>Remediación reauditada.</strong>
-                  <p style={{ fontSize: '13px', color: 'var(--ink-muted)', marginTop: 'var(--space-xxs)' }}>
-                    Comparación reproducible con el mismo motor determinista (runAudit).
+          {reauditState === 'completed' && verifiedEvidence && (
+            <div className="reaudit-comparison" data-testid="apply-verify-reaudit-summary">
+              <section aria-labelledby="reaudit-comparison-title">
+                <header className="reaudit-comparison-header">
+                  <div>
+                    <p className="reaudit-eyebrow">Comparación determinista</p>
+                    <h3 id="reaudit-comparison-title">Antes y después</h3>
+                  </div>
+                  <strong className="reaudit-outcome" data-outcome={verifiedEvidence.verification.outcome}>
+                    {OUTCOME_LABELS[verifiedEvidence.verification.outcome]}
+                  </strong>
+                </header>
+
+                <div className="reaudit-period-grid">
+                  <article>
+                    <h4>Antes</h4>
+                    <dl>
+                      <div><dt>Score</dt><dd data-testid="reaudit-before-score">{verifiedEvidence.verification.before.score}</dd></div>
+                      <div><dt>Hallazgos</dt><dd data-testid="reaudit-before-issues">{verifiedEvidence.verification.before.issueCount}</dd></div>
+                      <div><dt>Filas</dt><dd data-testid="reaudit-before-rows">{verifiedEvidence.verification.before.rowCount}</dd></div>
+                      <div><dt>Columnas</dt><dd data-testid="reaudit-before-columns">{verifiedEvidence.verification.before.columnCount}</dd></div>
+                    </dl>
+                  </article>
+                  <article>
+                    <h4>Después</h4>
+                    <dl>
+                      <div><dt>Score</dt><dd data-testid="reaudit-after-score">{verifiedEvidence.verification.after.score}</dd></div>
+                      <div><dt>Hallazgos</dt><dd data-testid="reaudit-after-issues">{verifiedEvidence.verification.after.issueCount}</dd></div>
+                      <div><dt>Filas</dt><dd data-testid="reaudit-after-rows">{verifiedEvidence.verification.after.rowCount}</dd></div>
+                      <div><dt>Columnas</dt><dd data-testid="reaudit-after-columns">{verifiedEvidence.verification.after.columnCount}</dd></div>
+                    </dl>
+                  </article>
+                </div>
+
+                {verifiedEvidence.verification.estimatedCellsModified !== null && (
+                  <p className="reaudit-estimate" data-testid="reaudit-estimated-cells">
+                    Cambios estimados: <strong>{verifiedEvidence.verification.estimatedCellsModified} celdas</strong>
                   </p>
+                )}
+
+                <div className="reaudit-findings-grid">
+                  <article>
+                    <h4>Resueltos <span data-testid="reaudit-resolved-findings">{verifiedEvidence.verification.findings.resolved.length}</span></h4>
+                    <FindingList findings={verifiedEvidence.verification.findings.resolved} />
+                  </article>
+                  <article>
+                    <h4>Persistentes <span data-testid="reaudit-persistent-findings">{verifiedEvidence.verification.findings.persistent.length}</span></h4>
+                    <PersistentFindingList findings={verifiedEvidence.verification.findings.persistent} />
+                  </article>
+                  <article>
+                    <h4>Nuevos <span data-testid="reaudit-new-findings">{verifiedEvidence.verification.findings.new.length}</span></h4>
+                    <FindingList findings={verifiedEvidence.verification.findings.new} />
+                  </article>
                 </div>
-              </div>
-              <div className="apply-verify-info-grid">
-                <div className="apply-verify-info-item">
-                  <span className="apply-verify-info-label">Score antes</span>
-                  <span className="apply-verify-info-value" data-testid="reaudit-before-score">{reauditSummary.beforeAfterSummary.beforeScore}</span>
-                </div>
-                <div className="apply-verify-info-item">
-                  <span className="apply-verify-info-label">Score después</span>
-                  <span className="apply-verify-info-value" data-testid="reaudit-after-score">{reauditSummary.beforeAfterSummary.afterScore}</span>
-                </div>
-                <div className="apply-verify-info-item">
-                  <span className="apply-verify-info-label">Hallazgos antes</span>
-                  <span className="apply-verify-info-value" data-testid="reaudit-before-issues">{reauditSummary.beforeAfterSummary.beforeIssueCount}</span>
-                </div>
-                <div className="apply-verify-info-item">
-                  <span className="apply-verify-info-label">Hallazgos después</span>
-                  <span className="apply-verify-info-value" data-testid="reaudit-after-issues">{reauditSummary.beforeAfterSummary.afterIssueCount}</span>
-                </div>
-                <div className="apply-verify-info-item">
-                  <span className="apply-verify-info-label">Reglas corregidas</span>
-                  <span className="apply-verify-info-value" data-testid="reaudit-corrected-rules">{reauditSummary.rules.correctedRuleIds.length}</span>
-                </div>
-                <div className="apply-verify-info-item">
-                  <span className="apply-verify-info-label">Reglas persistentes</span>
-                  <span className="apply-verify-info-value" data-testid="reaudit-persistent-rules">{reauditSummary.rules.persistentRuleIds.length}</span>
-                </div>
-                <div className="apply-verify-info-item">
-                  <span className="apply-verify-info-label">Reglas nuevas</span>
-                  <span className="apply-verify-info-value" data-testid="reaudit-new-rules">{reauditSummary.rules.newRuleIds.length}</span>
-                </div>
-              </div>
-              {reauditSummary.rules.correctedRuleIds.length > 0 && (
-                <p style={{ fontSize: '13px', color: 'var(--ink-muted)', marginTop: 'var(--space-xs)' }} data-testid="reaudit-corrected-rules-list">
-                  Corregidas: {reauditSummary.rules.correctedRuleIds.join(', ')}
+
+                <p className="reaudit-limitation">
+                  La reauditoría usa el mismo motor determinista de AURA y no sustituye validación de dominio
                 </p>
-              )}
-              {reauditSummary.rules.persistentRuleIds.length > 0 && (
-                <p style={{ fontSize: '13px', color: 'var(--ink-muted)' }} data-testid="reaudit-persistent-rules-list">
-                  Persistentes: {reauditSummary.rules.persistentRuleIds.join(', ')}
-                </p>
-              )}
-              {reauditSummary.rules.newRuleIds.length > 0 && (
-                <p style={{ fontSize: '13px', color: 'var(--ink-muted)' }} data-testid="reaudit-new-rules-list">
-                  Nuevas: {reauditSummary.rules.newRuleIds.join(', ')}
-                </p>
-              )}
+
+                <details className="reaudit-trust-chain">
+                  <summary>Cadena de evidencia</summary>
+                  <dl>
+                    <div><dt>Diagnóstico</dt><dd>{formatHashShort(verifiedEvidence.verification.diagnosisReceiptHash)}</dd></div>
+                    <div><dt>Script</dt><dd>{formatHashShort(verifiedEvidence.verification.approvedScriptHash)}</dd></div>
+                    <div><dt>Bundle</dt><dd>{formatHashShort(verifiedEvidence.verification.executionBundleHash)}</dd></div>
+                    <div><dt>Recibo Python</dt><dd>{formatHashShort(verifiedEvidence.verification.pythonReceiptHash)}</dd></div>
+                    <div><dt>CSV corregido</dt><dd>{formatHashShort(verifiedEvidence.verification.correctedDatasetSha256)}</dd></div>
+                  </dl>
+                </details>
+              </section>
             </div>
           )}
 
