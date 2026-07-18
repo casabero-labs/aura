@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Brain, Database, Play, Lock, Globe, ChevronDown, ChevronRight, FileCode2, Trash2, HardDrive, X, AlertTriangle, ShieldAlert, ListChecks, FileJson, FileText, Settings, Activity, CheckCircle, Circle, Clock, AlertCircle, Server, Shield, Eye, EyeOff, Download, RefreshCw, Hash } from 'lucide-react';
+import { Brain, Database, Play, Lock, ChevronDown, ChevronRight, FileCode2, Trash2, X, AlertTriangle, ShieldAlert, ListChecks, FileJson, FileText, Settings, Activity, CheckCircle, Circle, Clock, AlertCircle, Server, Shield, Eye, EyeOff, Download, RefreshCw, Hash } from 'lucide-react';
 import GeminiAdvisor from './GeminiAdvisor';
 import ProgressDisclosure from './ProgressDisclosure';
 import ChromeAiStatusPanel from './ChromeAiStatusPanel';
@@ -18,7 +18,7 @@ export const diagnosisPromptTraceCopy = {
 import { DiagnosisHeroPanel } from './diagnosis';
 import { AIConfig, AIProvider, AuditReport, AuditExecutionEvidence, ProviderMetrics, LocalModelStatus, DiagnosisEvent, ProgressDisclosureStatus, InputMode } from '../types';
 import { buildSmartSample, buildAnalysisPrompt } from '../services/providers/prompts';
-import { AVAILABLE_MODELS, LOCAL_MODELS, getLocalModelStatus, clearPreloadVerification, deleteDownloadedModel, getChromeAiDiagnostic } from '../services/aiProvider';
+import { LOCAL_MODELS, getLocalModelStatus, clearPreloadVerification, deleteDownloadedModel, getChromeAiDiagnostic } from '../services/aiProvider';
 import { recordLlmCall, computePromptHash, computeInputHash } from '../services/llmAuditLog';
 import { normalizeAiProviderError, NormalizedProviderError } from '../services/providers/errors';
 import { detectChromeAiAvailability, NormalizedAvailability } from '../services/chromeAvailability';
@@ -33,7 +33,7 @@ import {
 } from '../contracts/llm';
 import { resolveOllamaInferenceConfig } from '../services/ollamaInferenceConfig';
 import { diagnoseOllamaLocal, type OllamaLocalDiagnostic, type OllamaLocalStatus } from '../services/ollamaLocalBridge';
-import { DEFAULT_OLLAMA_MODEL_ID, FINAL_EVALUATION_OLLAMA_MODELS } from '../services/modelRegistry';
+import { FINAL_EVALUATION_OLLAMA_MODELS } from '../services/modelRegistry';
 import { ollamaModelDisplayName, ollamaModelId, refreshOllamaModelCatalog } from '../services/ollamaModelCatalog';
 import { useOllamaModelCatalog } from '../services/useOllamaModelCatalog';
 
@@ -410,22 +410,6 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
     }
   }, [aiProvider, pushEvent]);
 
-  const handleProviderTypeChange = (type: 'chrome' | 'ollama' | 'cloud' | 'webllm_experimental') => {
-    const defaults: Record<string, string> = {
-      chrome: 'gemini-nano',
-      ollama: DEFAULT_OLLAMA_MODEL_ID,
-      cloud: aiConfig.cloudProvider === 'google'
-        ? 'gemini-2.5-flash'
-        : (AVAILABLE_MODELS.cloud[0]?.id || 'gemini-2.5-flash'),
-    };
-    onAiConfigChange({
-      ...aiConfig,
-      providerType: type,
-      model: defaults[type] || aiConfig.model,
-      cloudProvider: type === 'cloud' ? (aiConfig.cloudProvider || 'google') : undefined,
-    });
-  };
-
   const runDiagnosis = useCallback(async () => {
     if (isLoading) return;
     setIsLoading(true);
@@ -687,6 +671,27 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
     : aiConfig.providerType === 'ollama' ? 'Ollama Local'
     : aiConfig.providerType === 'webllm_experimental' ? 'WebLLM'
     : aiConfig.cloudProvider ? `${aiConfig.cloudProvider} Cloud` : 'Cloud';
+  const cloudProviderLabel = aiConfig.cloudProvider
+    ? ({
+        google: 'Google',
+        groq: 'Groq',
+        deepseek: 'DeepSeek',
+        openrouter: 'OpenRouter',
+        minimax: 'MiniMax',
+        nvidia: 'NVIDIA',
+      } as const)[aiConfig.cloudProvider] ?? aiConfig.cloudProvider
+    : 'El proveedor cloud';
+  const providerRecoveryCause = isCloud
+    ? (!aiConfig.apiKey
+        ? `${cloudProviderLabel} Cloud necesita una API key para autenticar cada solicitud y en este navegador no hay ninguna guardada.`
+        : `${cloudProviderLabel} Cloud no responde con la API key guardada. La clave puede ser inválida, estar vencida o carecer de permisos.`)
+    : isOllama
+      ? (ollamaDiagnostic?.message
+          ?? 'Ollama todavía no está conectado a AURA en este equipo. Abre la aplicación Ollama o usa el asistente de conexión.')
+      : isChrome
+        ? (chromeAvailability?.message
+            ?? 'Chrome AI (Gemini Nano) no está disponible en este navegador.')
+        : 'Este navegador no expone WebGPU o el modelo local no está descargado. WebLLM requiere Chrome o Edge con WebGPU activo.';
   const activeModelDefinition = FINAL_EVALUATION_OLLAMA_MODELS.find((model) => model.id === aiConfig.model);
   const installedQuickConfigModels = installedOllamaModels.map((model) => ({
     id: ollamaModelId(model),
@@ -771,103 +776,77 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
           </SyntaxDisplay>
         )}
 
-        {/* 5. Provider / error notices */}
-        {providerAvailable === false && aiConfig.providerType !== 'chrome' && (
-          <div className="provider-unavailable-notice">
-            <div className="provider-unavailable-header">
-              <ShieldAlert size={16} style={{ color: 'var(--orange)' }} />
+        {/* 5. Provider recovery — estado, causa, impacto y dos salidas reales
+            cuando el proveedor asistido no está disponible (issue #38).
+            Patrón Casabero: surface + border, borde izquierdo sobrio, icono + texto,
+            acciones outline/ghost; el avance nunca depende del stepper. */}
+        {providerAvailable === false && (
+          <div className="provider-recovery-alert" role="alert" data-testid="provider-recovery-alert">
+            <div className="provider-recovery-header">
+              <ShieldAlert size={16} strokeWidth={1.5} aria-hidden="true" />
               <strong>Proveedor no disponible</strong>
             </div>
-            <ul className="provider-unavailable-reasons">
-              {aiConfig.providerType === 'cloud' && !aiConfig.apiKey && (
-                <li>No hay API key configurada. Agrégala en Configuración.</li>
-              )}
-              {aiConfig.providerType === 'cloud' && aiConfig.apiKey && (
-                <li>El proveedor cloud no responde. Verifica la API key.</li>
-              )}
-              {aiConfig.providerType === 'ollama' && (
-                <li>{ollamaDiagnostic
-                  ? ollamaDiagnostic.message
-                  : 'Ollama todavía no está conectado a AURA. Usa el asistente de configuración guiada.'}</li>
-              )}
-              {aiConfig.providerType === 'webllm_experimental' && (
-                <li>WebGPU o modelo local no disponible. Requiere Chrome/Edge con soporte WebGPU.</li>
-              )}
-            </ul>
-            <div className="provider-unavailable-actions">
-              {aiConfig.providerType === 'ollama' && (
-                <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap', marginBottom: 'var(--space-sm)' }}>
-                  <button className="btn-s btn-sm" onClick={() => setShowOllamaWizard(true)} data-testid="ollama-open-wizard-unavail">
-                    <Server size={12} /> Conectar Ollama de este equipo
-                  </button>
-                  <button className="btn-s btn-sm" onClick={() => handleProviderTypeChange('cloud')}>
-                    <Globe size={12} /> Usar Cloud
-                  </button>
-                  <button className="btn-s btn-sm" onClick={() => handleProviderTypeChange('webllm_experimental')}>
-                    <HardDrive size={12} /> Usar WebGPU
-                  </button>
-                </div>
-              )}
-              {aiConfig.providerType === 'webllm_experimental' && (
-                <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap', marginBottom: 'var(--space-sm)' }}>
-                  <button className="btn-s btn-sm" onClick={() => handleProviderTypeChange('ollama')}>
-                    <Server size={12} /> Usar Ollama
-                  </button>
-                  <button className="btn-s btn-sm" onClick={() => handleProviderTypeChange('cloud')}>
-                    <Globe size={12} /> Usar Cloud
-                  </button>
-                </div>
-              )}
-              {aiConfig.providerType === 'cloud' && (
-                <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap', marginBottom: 'var(--space-sm)' }}>
-                  <button className="btn-s btn-sm" onClick={() => handleProviderTypeChange('ollama')}>
-                    <Server size={12} /> Usar Ollama
-                  </button>
-                  <button className="btn-s btn-sm" onClick={() => handleProviderTypeChange('webllm_experimental')}>
-                    <HardDrive size={12} /> Usar WebGPU
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {providerAvailable === false && aiConfig.providerType === 'chrome' && (
-          <div className="provider-unavailable-notice">
-            <div className="provider-unavailable-header">
-              <ShieldAlert size={16} style={{ color: 'var(--orange)' }} />
-              <strong>Chrome AI no disponible</strong>
-            </div>
-            <ul className="provider-unavailable-reasons">
-              <li><strong>Chrome AI (Gemini Nano)</strong> no está disponible en este navegador.</li>
-              <li style={{ marginTop: 'var(--space-sm)' }}>
-                <strong>Para activarlo:</strong>
-                <ol style={{ margin: '4px 0 0 16px', fontSize: '13px', lineHeight: 1.7 }}>
+            <p className="provider-recovery-cause" data-testid="provider-recovery-cause">
+              {providerRecoveryCause}
+            </p>
+            <p className="provider-recovery-impact">
+              El diagnóstico asistido no puede ejecutarse con {providerName} en este momento.
+              El perfil determinista sigue completo y el informe diagnóstico puede generarse sin el modelo.
+            </p>
+            {isChrome && (
+              <div className="provider-recovery-steps">
+                <strong>Para activar Chrome AI:</strong>
+                <ol>
                   <li>Verifica que uses Chrome 138 o superior.</li>
                   <li>Abre <code>chrome://flags</code> en una pestaña nueva.</li>
                   <li>Busca "Prompt API", "Gemini Nano" o "Built-in AI".</li>
-                  <li>Activa las opciones y reinicia Chrome.</li>
+                  <li>Activa las opciones y reinicia Chrome. Puedes revisar <code>chrome://on-device-internals</code>.</li>
                 </ol>
-              </li>
-              <li style={{ marginTop: 'var(--space-sm)', fontSize: '12px', color: 'var(--ink3)' }}>
-                También puedes revisar <code>chrome://on-device-internals</code> para ver modelos disponibles.
-              </li>
-            </ul>
-            <div className="provider-unavailable-actions">
-              <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap', marginBottom: 'var(--space-sm)' }}>
-                <button className="btn-s btn-sm" onClick={async () => {
-                  await getChromeAiDiagnostic();
-                  aiProvider.isAvailable().then((avail) => setProviderAvailable(avail)).catch(() => setProviderAvailable(false));
-                }}>
-                  <Activity size={12} /> Verificar Chrome AI
-                </button>
-                <button className="btn-s btn-sm" onClick={() => handleProviderTypeChange('ollama')}>
-                  <Server size={12} /> Usar Ollama
-                </button>
-                <button className="btn-s btn-sm" onClick={() => handleProviderTypeChange('cloud')}>
-                  <Globe size={12} /> Usar Cloud
-                </button>
               </div>
+            )}
+            <div className="provider-recovery-actions">
+              <button
+                type="button"
+                className="btn-s provider-recovery-continue"
+                data-testid="provider-recovery-continue"
+                onClick={onContinue}
+              >
+                <Play size={14} strokeWidth={1.5} aria-hidden="true" />
+                Continuar con informe determinista
+              </button>
+              <button
+                type="button"
+                className="provider-recovery-ghost"
+                data-testid="provider-recovery-settings"
+                onClick={() => onOpenSettings?.()}
+              >
+                <Settings size={14} strokeWidth={1.5} aria-hidden="true" />
+                Cambiar proveedor
+              </button>
+              {isOllama && (
+                <button
+                  type="button"
+                  className="provider-recovery-ghost"
+                  onClick={() => setShowOllamaWizard(true)}
+                  data-testid="ollama-open-wizard-unavail"
+                >
+                  <Server size={14} strokeWidth={1.5} aria-hidden="true" />
+                  Conectar Ollama de este equipo
+                </button>
+              )}
+              {isChrome && (
+                <button
+                  type="button"
+                  className="provider-recovery-ghost"
+                  onClick={async () => {
+                    await getChromeAiDiagnostic();
+                    aiProvider.isAvailable().then((avail) => setProviderAvailable(avail)).catch(() => setProviderAvailable(false));
+                  }}
+                >
+                  <Activity size={14} strokeWidth={1.5} aria-hidden="true" />
+                  Verificar Chrome AI
+                </button>
+              )}
             </div>
           </div>
         )}
