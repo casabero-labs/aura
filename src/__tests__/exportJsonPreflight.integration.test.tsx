@@ -164,6 +164,20 @@ describe('JSON technical export preflight integration', () => {
     expect(screen.queryByTestId('export-stage')).toBeNull();
   });
 
+  it('declara con sobriedad que no hubo remediación y conserva todas las descargas principales', async () => {
+    vi.mocked(validateAuraExportPackage).mockReturnValue({ valid: true, errors: [], warnings: [] });
+    render(<App />);
+    await userEvent.click(screen.getByRole('button', { name: 'Empezar auditoría' }));
+
+    expect(screen.getByTestId('export-remediation-not-run').textContent).toBe(
+      'El análisis fue completado, pero no se ejecutó una remediación sobre el dataset',
+    );
+    expect(screen.getByTestId('export-download-evidence-package')).toBeTruthy();
+    expect(screen.getByTestId('export-download-pdf')).toBeTruthy();
+    expect(screen.getByTestId('export-download-json')).toBeTruthy();
+    expect(screen.queryByTestId('export-download-corrected-csv')).toBeNull();
+  });
+
   it('downloads one complete evidence ZIP after the same technical preflight', async () => {
     const user = userEvent.setup();
     vi.mocked(validateAuraExportPackage).mockReturnValue({
@@ -188,6 +202,7 @@ describe('JSON technical export preflight integration', () => {
         diagnosticPdf: null,
         activityLog: [],
         verifiedExecution: null,
+        includeCorrectedDataset: false,
       }));
       expect(downloadBlob).toHaveBeenCalledWith(
         'aura_evidencia_test.zip',

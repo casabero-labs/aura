@@ -27,6 +27,11 @@ import { buildAuraExportPackage } from './services/exportPackage';
 import { buildEvidenceArchive } from './services/evidenceArchive';
 import { validateAuraExportPackage } from './services/exportContractValidation';
 import { deriveDiagnosisExportStatus } from './services/diagnosisExportState';
+import { parsePythonExecutionBundle } from './services/remediationExecution/pythonExecutionContract';
+import {
+  buildNotRunRemediationExecution,
+  type RemediationExecutionExportV1,
+} from './services/remediationExecution/remediationExport';
 import { buildExportArtifactIdentity } from './services/exportArtifactIdentity';
 import { savePipelineSession, loadPipelineSession, clearPipelineSession } from './services/pipelineSession';
 import { downloadBlob, downloadTextFile } from './utils/download';
@@ -168,6 +173,7 @@ const App: React.FC = () => {
   const [showAuditLog, setShowAuditLog] = useState(false);
   const [showChangelog, setShowChangelog] = useState(false);
   const [showMobileNav, setShowMobileNav] = useState(false);
+  const [includeCorrectedInEvidenceArchive, setIncludeCorrectedInEvidenceArchive] = useState(false);
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     const saved = localStorage.getItem('aura_theme') || localStorage.getItem('casabero-theme');
     return saved === 'dark' ? 'dark' : 'light';
@@ -347,7 +353,7 @@ const App: React.FC = () => {
     }
   };
 
-  const buildCurrentTechnicalExport = () => {
+  const buildCurrentTechnicalExport = (options: { includeCorrectedDataset?: boolean } = {}) => {
     if (!report) return null;
     const structDiag = pipelineData.structuredDiagnosis;
     const failureEv = pipelineData.diagnosisFailureEvidence;
@@ -400,6 +406,61 @@ const App: React.FC = () => {
       hitlDecision: improvementRun?.hitlDecision ?? null,
       healthDeltaPoints: improvementRun?.healthDelta?.scoreDelta,
     });
+    let executionBundle = null;
+    let bundleParseFailed = false;
+    try {
+      executionBundle = pipelineData.executionBundleJson
+        ? parsePythonExecutionBundle(pipelineData.executionBundleJson)
+        : null;
+    } catch {
+      executionBundle = null;
+      bundleParseFailed = true;
+    }
+    const verifiedEvidence = pipelineData.verifiedEvidence ?? null;
+    let remediationExecution: RemediationExecutionExportV1 = buildNotRunRemediationExecution();
+    if (verifiedEvidence) {
+      remediationExecution = {
+        status: 'reaudited',
+        executionBundle: verifiedEvidence.bundle,
+        pythonReceipt: verifiedEvidence.receipt,
+        verification: verifiedEvidence.verification,
+        correctedDataset: {
+          sha256: verifiedEvidence.verification.correctedDatasetSha256,
+          rowCount: verifiedEvidence.verification.after.rowCount,
+          columnCount: verifiedEvidence.verification.after.columnCount,
+          includedInEvidenceArchive: options.includeCorrectedDataset === true,
+        },
+        limitations: [...verifiedEvidence.verification.limitations],
+      };
+    } else if (pipelineData.executionState === 'verified' && executionBundle && pipelineData.executionReceipt?.output) {
+      remediationExecution = {
+        status: 'verified',
+        executionBundle,
+        pythonReceipt: pipelineData.executionReceipt,
+        verification: null,
+        correctedDataset: {
+          sha256: pipelineData.executionReceipt.afterDatasetSha256 ?? '',
+          rowCount: pipelineData.executionReceipt.output.rowCount,
+          columnCount: pipelineData.executionReceipt.output.columnCount,
+          includedInEvidenceArchive: false,
+        },
+        limitations: ['La ejecución Python fue verificada, pero la reauditoría no está disponible.'],
+      };
+    } else if (pipelineData.executionState === 'invalid' || bundleParseFailed) {
+      remediationExecution = {
+        status: 'invalid', executionBundle, pythonReceipt: pipelineData.executionReceipt ?? null,
+        verification: null, correctedDataset: null,
+        limitations: [pipelineData.executionValidationError || (bundleParseFailed
+          ? 'El bundle de ejecución no es JSON válido y no pudo certificarse.'
+          : 'La ejecución no pudo certificarse.')],
+      };
+    } else if (executionBundle) {
+      remediationExecution = {
+        status: 'prepared', executionBundle, pythonReceipt: null,
+        verification: null, correctedDataset: null,
+        limitations: ['La ejecución fue preparada, pero todavía no existe un resultado Python verificado.'],
+      };
+    }
     const exportPackage = buildAuraExportPackage({
       manifest,
       profile: {
@@ -431,6 +492,7 @@ const App: React.FC = () => {
       },
       benchmarkResults,
       improvementRun,
+      remediationExecution,
     });
     const preflight = validateAuraExportPackage(exportPackage);
     return { exportPackage, preflight, exportDiagnosticReport };
@@ -512,7 +574,9 @@ const App: React.FC = () => {
   };
 
   const handleExportEvidencePackage = async () => {
-    const current = buildCurrentTechnicalExport();
+    const current = buildCurrentTechnicalExport({
+      includeCorrectedDataset: includeCorrectedInEvidenceArchive,
+    });
     const issuesCsv = buildCurrentIssuesCsv();
     if (!current || !issuesCsv) return;
     if (!current.preflight.valid) {
@@ -557,6 +621,7 @@ const App: React.FC = () => {
         diagnosticPdf,
         activityLog: logs,
         verifiedExecution: pipelineData.verifiedEvidence ?? null,
+        includeCorrectedDataset: includeCorrectedInEvidenceArchive,
       });
       downloadBlob(
         archive.filename,
@@ -569,6 +634,22 @@ const App: React.FC = () => {
     } finally {
       setIsEvidencePackageGenerating(false);
     }
+  };
+
+  const handleDownloadExecutionBundle = () => {
+    if (!pipelineData.executionBundleJson) return;
+    downloadTextFile('execution-bundle.json', pipelineData.executionBundleJson, 'application/json;charset=utf-8');
+  };
+
+  const handleDownloadExecutionReceipt = () => {
+    if (!pipelineData.executionReceipt) return;
+    downloadTextFile('python-execution-receipt.json', JSON.stringify(pipelineData.executionReceipt, null, 2), 'application/json;charset=utf-8');
+  };
+
+  const handleDownloadCorrectedDataset = () => {
+    const corrected = pipelineData.verifiedEvidence?.correctedCsv;
+    if (!corrected) return;
+    downloadBlob('corrected.csv', new Blob([Uint8Array.from(corrected)], { type: 'text/csv;charset=utf-8' }));
   };
 
   const returnToDiagnosticReport = () => {
@@ -908,6 +989,47 @@ const App: React.FC = () => {
               El JSON técnico conserva el recibo que certifica el método solicitado y efectivo, las secciones enviadas, el modelo observado y los hashes de entrada, prompt y respuesta. Una ejecución sin esa evidencia no se exporta como válida.
             </p>
 
+            <div className="export-remediation-status" data-testid="export-remediation-status">
+              <div>
+                <p className="export-delivery-block-eyebrow">Remediación opcional</p>
+                <h3 className="export-delivery-block-title">
+                  {pipelineData.verifiedEvidence
+                    ? 'Reauditoría completada'
+                    : pipelineData.executionState === 'verified'
+                      ? 'Ejecución verificada'
+                      : pipelineData.executionState === 'invalid'
+                        ? 'Ejecución no certificada'
+                        : pipelineData.executionBundleJson
+                          ? 'Ejecución preparada'
+                          : 'No ejecutada'}
+                </h3>
+                {!pipelineData.executionBundleJson && !pipelineData.verifiedEvidence && (
+                  <p data-testid="export-remediation-not-run">
+                    El análisis fue completado, pero no se ejecutó una remediación sobre el dataset
+                  </p>
+                )}
+              </div>
+              {(pipelineData.executionBundleJson || pipelineData.executionReceipt || pipelineData.verifiedEvidence) && (
+                <div className="btn-row export-remediation-actions">
+                  {pipelineData.executionBundleJson && (
+                    <button className="btn-s btn-sm" onClick={handleDownloadExecutionBundle} data-testid="export-download-execution-bundle">
+                      Descargar bundle
+                    </button>
+                  )}
+                  {pipelineData.executionReceipt && (
+                    <button className="btn-s btn-sm" onClick={handleDownloadExecutionReceipt} data-testid="export-download-python-receipt">
+                      Descargar recibo
+                    </button>
+                  )}
+                  {pipelineData.verifiedEvidence && (
+                    <button className="btn-s btn-sm" onClick={handleDownloadCorrectedDataset} data-testid="export-download-corrected-csv">
+                      Descargar corrected.csv
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
             <div className="export-delivery-block" data-testid="export-main-block">
               <p className="export-delivery-block-eyebrow">Resultados</p>
               <h3 className="export-delivery-block-title">Archivos disponibles</h3>
@@ -924,8 +1046,20 @@ const App: React.FC = () => {
                     <p className="export-delivery-card-desc">
                       El CSV original no se incluye; queda identificado por su SHA-256. El expediente puede contener muestras de los hallazgos, por lo que debes revisarlo antes de compartirlo. Cada artefacto lleva hash y tamaño en manifest.json.
                     </p>
+                    {pipelineData.verifiedEvidence && (
+                      <label className="export-corrected-opt-in" data-testid="export-corrected-opt-in">
+                        <input
+                          type="checkbox"
+                          checked={includeCorrectedInEvidenceArchive}
+                          onChange={(event) => setIncludeCorrectedInEvidenceArchive(event.target.checked)}
+                        />
+                        <span>
+                          Incluir corrected.csv en el ZIP. Puede contener datos personales (PII); revisa el archivo antes de compartirlo.
+                        </span>
+                      </label>
+                    )}
                     <button
-                      className="btn-p btn-sm"
+                      className="btn-p btn-sm export-primary-outline"
                       onClick={handleExportEvidencePackage}
                       disabled={isEvidencePackageGenerating}
                       data-testid="export-download-evidence-package"
@@ -964,7 +1098,7 @@ const App: React.FC = () => {
                     ) : (
                       <>
                         <p className="export-delivery-card-desc" data-testid="export-pdf-desc">Informe diagnóstico profesional con hallazgos, gráficos y recomendaciones. Para revisión humana.</p>
-                        <button className="btn-p btn-sm" onClick={handleDownloadPdf} disabled={isPdfGenerating} data-testid="export-download-pdf">
+                        <button className="btn-s btn-sm" onClick={handleDownloadPdf} disabled={isPdfGenerating} data-testid="export-download-pdf">
                           Descargar PDF
                         </button>
                       </>

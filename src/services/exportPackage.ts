@@ -18,9 +18,14 @@ import type {
 } from '../contracts/llm';
 import type { DiagnosticReport } from './diagnosticReport';
 import { buildExportArtifactIdentity } from './exportArtifactIdentity';
+import {
+  buildNotRunRemediationExecution,
+  type RemediationExecutionExportV1,
+} from './remediationExecution/remediationExport';
 
 export const AURA_EXPORT_CONTRACT_NAME = 'aura-technical-export';
-export const AURA_EXPORT_CONTRACT_VERSION = '2.0';
+export const AURA_EXPORT_CONTRACT_VERSION = '2.1';
+export const AURA_EXPORT_LEGACY_VERSION = '2.0';
 
 const CANONICAL_BLOCKS = [
   'artifactIdentity',
@@ -28,6 +33,7 @@ const CANONICAL_BLOCKS = [
   'profile',
   'diagnosis',
   'script',
+  'remediationExecution',
   'calibrationEvidence',
 ] as const;
 
@@ -62,6 +68,7 @@ export interface BuildAuraExportPackageParams {
   };
   benchmarkResults: BenchmarkResult[];
   improvementRun?: ImprovementRun | null;
+  remediationExecution?: RemediationExecutionExportV1 | null;
 }
 
 export const buildAuraExportPackage = ({
@@ -74,6 +81,7 @@ export const buildAuraExportPackage = ({
   script,
   benchmarkResults,
   improvementRun,
+  remediationExecution,
 }: BuildAuraExportPackageParams) => {
   const receipt = diagnosis.executionReceipt as { receiptHash?: unknown } | null | undefined;
   const artifactIdentity = buildExportArtifactIdentity({
@@ -124,13 +132,13 @@ export const buildAuraExportPackage = ({
       {
         from: 'experiment',
         to: 'calibrationEvidence',
-        removedIn: AURA_EXPORT_CONTRACT_VERSION,
+        removedIn: AURA_EXPORT_LEGACY_VERSION,
         reason: 'calibrationEvidence separa clasificación, resumen, resultados y límites metodológicos.',
       },
     ],
     compatibility: {
       legacyAliasIncluded: false,
-      migration: 'Leer calibrationEvidence.results en lugar de experiment.benchmarkResults y usar calibrationEvidence.summary para interpretar el nivel de evidencia.',
+      migration: 'Leer calibrationEvidence.results en lugar de experiment.benchmarkResults. Los lectores 2.0 pueden ignorar remediationExecution; los lectores 2.1 deben validarlo cuando esté presente.',
     },
   },
   artifactIdentity,
@@ -145,6 +153,7 @@ export const buildAuraExportPackage = ({
   }),
   diagnosis: normalizedDiagnosis,
   script: normalizedScript,
+  remediationExecution: remediationExecution ?? buildNotRunRemediationExecution(),
   calibrationEvidence: {
     classification: 'experimental' as const,
     summary: manifest.calibrationSummary,

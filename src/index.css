@@ -6452,6 +6452,64 @@ tr:hover td {
   font-style: italic;
 }
 
+.export-remediation-status {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.export-remediation-status p:last-child {
+  margin: var(--space-xs) 0 0;
+  color: var(--ink2);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.export-remediation-status .export-delivery-block-title {
+  font-family: var(--font-serif);
+  letter-spacing: 0;
+}
+
+.export-remediation-actions {
+  justify-content: flex-end;
+}
+
+.export-corrected-opt-in {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
+  width: 100%;
+  color: var(--ink2);
+  font-size: 12px;
+  line-height: 1.45;
+  cursor: pointer;
+}
+
+.export-corrected-opt-in input {
+  margin-top: 2px;
+  accent-color: var(--ink);
+}
+
+.export-delivery-card .export-primary-outline {
+  min-height: 44px;
+  width: fit-content;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--ink);
+  box-shadow: none;
+}
+
+.export-delivery-card .export-primary-outline:hover:not(:disabled) {
+  background: var(--surface-raised);
+  color: var(--ink);
+  opacity: 1;
+}
+
 .export-delivery-score-delta {
   font-family: var(--font-serif);
   font-size: 15px;
@@ -10042,6 +10100,14 @@ tr:hover td {
 
   .export-delivery-card {
     padding: var(--space-sm);
+  }
+
+  .export-remediation-status {
+    flex-direction: column;
+  }
+
+  .export-remediation-actions {
+    justify-content: flex-start;
   }
 
   .export-delivery-card-head p {

@@ -71,11 +71,11 @@ const buildPackage = (benchmarkResults: BenchmarkResult[] = []) => {
 };
 
 describe('buildAuraExportPackage', () => {
-  it('declara contrato 2.0 y bloques canónicos estables', () => {
+  it('declara contrato 2.1 y bloques canónicos estables', () => {
     const exported = buildPackage();
 
     expect(exported.exportContract.name).toBe('aura-technical-export');
-    expect(exported.exportContract.version).toBe('2.0');
+    expect(exported.exportContract.version).toBe('2.1');
     expect(exported.exportContract.generatedAt).toBe(exported.manifest.generatedAt);
     expect(exported.exportContract.canonicalBlocks).toEqual([
       'artifactIdentity',
@@ -83,8 +83,10 @@ describe('buildAuraExportPackage', () => {
       'profile',
       'diagnosis',
       'script',
+      'remediationExecution',
       'calibrationEvidence',
     ]);
+    expect(exported.remediationExecution.status).toBe('not_run');
   });
 
   it('incluye calibrationEvidence aunque no se hayan ejecutado corridas', () => {

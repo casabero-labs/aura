@@ -11,8 +11,17 @@ import {
 } from '../contracts/llm';
 import {
   AURA_EXPORT_CONTRACT_NAME,
+  AURA_EXPORT_LEGACY_VERSION,
   AURA_EXPORT_CONTRACT_VERSION,
 } from './exportPackage';
+import {
+  computePythonBundleHash,
+  computePythonReceiptHash,
+  validatePythonExecutionBundle,
+  type PythonExecutionBundleV1,
+  type PythonExecutionReceiptV1,
+} from './remediationExecution/pythonExecutionContract';
+import { NOT_RUN_REMEDIATION_LIMITATION } from './remediationExecution/remediationExport';
 
 export interface ExportContractValidationResult {
   valid: boolean;
@@ -166,9 +175,10 @@ export const validateAuraExportPackage = (
       );
     }
 
-    if (exportContract.version !== AURA_EXPORT_CONTRACT_VERSION) {
+    const isLegacy20 = exportContract.version === AURA_EXPORT_LEGACY_VERSION;
+    if (exportContract.version !== AURA_EXPORT_CONTRACT_VERSION && !isLegacy20) {
       errors.push(
-        `exportContract.version debe ser ${AURA_EXPORT_CONTRACT_VERSION}.`,
+        `exportContract.version debe ser ${AURA_EXPORT_LEGACY_VERSION} o ${AURA_EXPORT_CONTRACT_VERSION}.`,
       );
     }
 
@@ -176,10 +186,15 @@ export const validateAuraExportPackage = (
       !Array.isArray(exportContract.canonicalBlocks) ||
       !exportContract.canonicalBlocks.includes('calibrationEvidence') ||
       !exportContract.canonicalBlocks.includes('artifactIdentity')
+      || (!isLegacy20 && !exportContract.canonicalBlocks.includes('remediationExecution'))
     ) {
       errors.push(
-        'exportContract.canonicalBlocks debe incluir artifactIdentity y calibrationEvidence.',
+        'exportContract.canonicalBlocks debe incluir artifactIdentity, calibrationEvidence y, desde 2.1, remediationExecution.',
       );
+    }
+    if (isLegacy20 && Array.isArray(exportContract.canonicalBlocks)
+      && exportContract.canonicalBlocks.includes('remediationExecution')) {
+      errors.push('El contrato histórico 2.0 no puede declarar remediationExecution en canonicalBlocks.');
     }
 
     const compatibility = exportContract.compatibility;
@@ -409,7 +424,141 @@ export const validateAuraExportPackage = (
     }
   }
 
+  const contractVersion = isRecord(exportContract) ? exportContract.version : null;
+  const remediation = packageLike.remediationExecution;
+  if (contractVersion === AURA_EXPORT_LEGACY_VERSION && remediation === undefined) {
+    // Historical 2.0 packages remain readable without inventing remediation.
+  } else if (contractVersion === AURA_EXPORT_LEGACY_VERSION) {
+    errors.push('El contrato histórico 2.0 no puede incluir el bloque remediationExecution.');
+  } else if (!isRecord(remediation)) {
+    errors.push('El contrato 2.1 debe incluir remediationExecution.');
+  } else {
+    const status = remediation.status;
+    const allowed = ['not_run', 'prepared', 'invalid', 'verified', 'reaudited'];
+    if (!allowed.includes(String(status))) errors.push('remediationExecution.status no es válido.');
+    const bundle = isRecord(remediation.executionBundle)
+      ? remediation.executionBundle as unknown as PythonExecutionBundleV1
+      : null;
+    const receipt = isRecord(remediation.pythonReceipt)
+      ? remediation.pythonReceipt as unknown as PythonExecutionReceiptV1
+      : null;
+    const verification = isRecord(remediation.verification) ? remediation.verification : null;
+    const corrected = isRecord(remediation.correctedDataset) ? remediation.correctedDataset : null;
+    const limitations = Array.isArray(remediation.limitations)
+      && remediation.limitations.every((item) => typeof item === 'string')
+      ? remediation.limitations as string[]
+      : null;
+    if (!limitations) errors.push('remediationExecution.limitations debe ser string[].');
+
+    if (status === 'not_run') {
+      if (bundle || receipt || verification || corrected) errors.push('remediationExecution not_run no admite artefactos de ejecución.');
+      if (!limitations?.includes(NOT_RUN_REMEDIATION_LIMITATION)) errors.push('remediationExecution not_run debe declarar la limitación canónica.');
+    }
+    if (status === 'prepared') {
+      if (!bundle || receipt || verification || corrected) errors.push('remediationExecution prepared exige solo executionBundle.');
+    }
+    if (status === 'invalid') {
+      if (verification || corrected) errors.push('remediationExecution invalid no puede certificar verificación ni dataset corregido.');
+      if (!limitations?.length) errors.push('remediationExecution invalid debe explicar la limitación.');
+    }
+    if (status === 'verified' || status === 'reaudited') {
+      if (!bundle || !receipt || !corrected) errors.push(`remediationExecution ${String(status)} exige bundle, recibo y correctedDataset.`);
+      if (status === 'verified' && verification) errors.push('remediationExecution verified no admite reauditoría todavía.');
+      if (status === 'reaudited' && !verification) errors.push('remediationExecution reaudited exige verification.');
+    }
+
+    if (bundle && status !== 'invalid') {
+      try {
+        validatePythonExecutionBundle(bundle).forEach((error) => errors.push(`remediationExecution.executionBundle: ${error}.`));
+        if (bundle.bundleHash !== computePythonBundleHash(bundle)) errors.push('remediationExecution.executionBundle.bundleHash no es íntegro.');
+      } catch {
+        errors.push('remediationExecution.executionBundle no puede verificarse de forma canónica.');
+      }
+      if (isRecord(artifactIdentity) && bundle.beforeDatasetSha256 !== artifactIdentity.datasetSha256) {
+        errors.push('remediationExecution.executionBundle.beforeDatasetSha256 no corresponde a artifactIdentity.');
+      }
+      if (isRecord(script) && isRecord(script.contract) && bundle.approvedScriptHash !== script.contract.scriptHash) {
+        errors.push('remediationExecution.executionBundle.approvedScriptHash no corresponde al contrato aprobado.');
+      }
+      if (isRecord(artifactIdentity) && bundle.inputReceiptRef !== artifactIdentity.diagnosisReceiptHash) {
+        errors.push('remediationExecution.executionBundle.inputReceiptRef no corresponde al recibo diagnóstico.');
+      }
+    }
+    if (receipt && status !== 'invalid') {
+      try {
+        if (receipt.receiptHash !== computePythonReceiptHash(receipt)) errors.push('remediationExecution.pythonReceipt.receiptHash no es íntegro.');
+      } catch {
+        errors.push('remediationExecution.pythonReceipt no puede verificarse de forma canónica.');
+      }
+      if (!bundle || receipt.runId !== bundle.runId || receipt.bundleHash !== bundle.bundleHash
+        || receipt.approvedScriptHash !== bundle.approvedScriptHash
+        || receipt.beforeDatasetSha256 !== bundle.beforeDatasetSha256
+        || receipt.inputReceiptRef !== bundle.inputReceiptRef
+        || receipt.evidenceEnvelopeRef !== bundle.evidenceEnvelopeRef) {
+        errors.push('remediationExecution.pythonReceipt no corresponde al bundle.');
+      }
+      const syntaxPassed = isRecord(receipt.syntax) && receipt.syntax.status === 'passed';
+      const executionPassed = isRecord(receipt.execution) && receipt.execution.status === 'passed';
+      if ((status === 'verified' || status === 'reaudited')
+        && (!syntaxPassed || !executionPassed)) {
+        errors.push(`remediationExecution ${String(status)} exige ejecución Python exitosa.`);
+      }
+    }
+    if (corrected) {
+      if (typeof corrected.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(corrected.sha256)
+        || typeof corrected.rowCount !== 'number' || !Number.isInteger(corrected.rowCount) || corrected.rowCount < 0
+        || typeof corrected.columnCount !== 'number' || !Number.isInteger(corrected.columnCount) || corrected.columnCount < 0
+        || typeof corrected.includedInEvidenceArchive !== 'boolean') {
+        errors.push('remediationExecution.correctedDataset es inválido.');
+      }
+      if (!receipt || corrected.sha256 !== receipt.afterDatasetSha256
+        || corrected.rowCount !== receipt.output?.rowCount
+        || corrected.columnCount !== receipt.output?.columnCount) {
+        errors.push('remediationExecution.correctedDataset no corresponde al recibo Python.');
+      }
+    }
+    if (verification) {
+      const validSummary = (summary: unknown): boolean => isRecord(summary)
+        && typeof summary.score === 'number' && Number.isFinite(summary.score) && summary.score >= 0 && summary.score <= 100
+        && typeof summary.issueCount === 'number' && Number.isInteger(summary.issueCount) && summary.issueCount >= 0
+        && typeof summary.rowCount === 'number' && Number.isInteger(summary.rowCount) && summary.rowCount >= 0
+        && typeof summary.columnCount === 'number' && Number.isInteger(summary.columnCount) && summary.columnCount >= 0;
+      const findings = isRecord(verification.findings) ? verification.findings : null;
+      const structuralVerificationValid = verification.contractVersion === '1.0.0'
+        && typeof verification.executionId === 'string' && verification.executionId.length > 0
+        && verification.executionId === bundle?.executionId
+        && verification.executionId === bundle?.runId
+        && verification.executionId === receipt?.runId
+        && typeof verification.executedAt === 'string' && verification.executedAt.length > 0
+        && validSummary(verification.before)
+        && validSummary(verification.after)
+        && findings !== null
+        && Array.isArray(findings.resolved)
+        && Array.isArray(findings.persistent)
+        && Array.isArray(findings.new)
+        && ['improved', 'unchanged', 'worsened', 'inconclusive'].includes(String(verification.outcome))
+        && Array.isArray(verification.limitations)
+        && verification.limitations.every((item) => typeof item === 'string');
+      if (!bundle || !receipt || !corrected
+        || verification.contractId !== 'aura.remediation-verification.v1'
+        || !structuralVerificationValid
+        || verification.sourceDatasetSha256 !== bundle.beforeDatasetSha256
+        || verification.correctedDatasetSha256 !== corrected.sha256
+        || verification.approvedScriptHash !== bundle.approvedScriptHash
+        || verification.executionBundleHash !== bundle.bundleHash
+        || verification.pythonReceiptHash !== receipt.receiptHash
+        || verification.diagnosisReceiptHash !== bundle.inputReceiptRef
+        || verification.evidenceEnvelopeRef !== bundle.evidenceEnvelopeRef) {
+        errors.push('remediationExecution.verification no corresponde a la cadena certificada.');
+      }
+    }
+    if (bundle && isRecord(script) && script.approvalStatus !== 'approved') {
+      errors.push('remediationExecution exige un script aprobado y enlazado al contrato V2.');
+    }
+  }
+
   const API_KEY_PATTERN = /^api[_-]?key$/i;
+  const RAW_SECRET_PATTERN = /^(stdout|stderr|rawCsv|sourceCsv|correctedCsv)$/i;
   const deepCheckApiKey = (obj: unknown, path: string): void => {
     if (Array.isArray(obj)) {
       obj.forEach((item, index) => deepCheckApiKey(item, `${path}[${index}]`));
@@ -419,6 +568,9 @@ export const validateAuraExportPackage = (
     for (const [key, value] of Object.entries(obj)) {
       if (API_KEY_PATTERN.test(key)) {
         errors.push(`Prohibido: ${key} encontrado en ${path}.${key}.`);
+      }
+      if (RAW_SECRET_PATTERN.test(key)) {
+        errors.push(`Prohibido: contenido crudo ${key} encontrado en ${path}.${key}.`);
       }
       if (isRecord(value) || Array.isArray(value)) {
         deepCheckApiKey(value, `${path}.${key}`);

@@ -1,8 +1,8 @@
 /**
- * Phase 10 L10B — E2E Playwright Full-Flow CSV → Export 2.0 (real file input)
+ * Phase 10 L10B — E2E Playwright Full-Flow CSV → Export 2.1 (real file input)
  *
  * Tests the complete visible flow from CSV upload via the real file input
- * through to technical export 2.0, using a synthetic fixture CSV.
+ * through to technical export 2.1, using a synthetic fixture CSV.
  *
  * What is REAL (not mocked, not harness):
  * - CSV file: loaded via page.setInputFiles on the real hidden <input> (data-testid="csv-file-input")
@@ -87,12 +87,12 @@ async function waitForReportState(page: any, timeout = 25_000) {
   return null;
 }
 
-test.describe('Phase 10 L10B — Full-Flow CSV → Export v2.0 (real file input)', () => {
+test.describe('Phase 10 L10B — Full-Flow CSV → Export v2.1 (real file input)', () => {
   test.beforeEach(async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
   });
 
-  test('L10B-01: real CSV file input → upload → parseCsv → runAudit → export 2.0', async ({ page }) => {
+  test('L10B-01: real CSV file input → upload → parseCsv → runAudit → export 2.1', async ({ page }) => {
     const errors: string[] = [];
     page.on('console', msg => {
       if (msg.type() === 'error') errors.push(msg.text());
@@ -148,7 +148,7 @@ test.describe('Phase 10 L10B — Full-Flow CSV → Export v2.0 (real file input)
 
     // 7. Validations
     const nameOk = exportJson.exportContract?.name === 'aura-technical-export';
-    const versionOk = exportJson.exportContract?.version === '2.0';
+    const versionOk = exportJson.exportContract?.version === '2.1';
     const calibrationOk = exportJson.calibrationEvidence != null;
     const experimentOk = exportJson.experiment == null;
     const canonicalBlocks = exportJson.exportContract?.canonicalBlocks ?? [];
@@ -168,7 +168,7 @@ test.describe('Phase 10 L10B — Full-Flow CSV → Export v2.0 (real file input)
     const reportColCountOk = profileReport?.colCount === FIXTURE_COLUMNS;
 
     expect(nameOk, `exportContract.name should be 'aura-technical-export', got '${exportJson.exportContract?.name}'`).toBe(true);
-    expect(versionOk, `exportContract.version should be '2.0', got '${exportJson.exportContract?.version}'`).toBe(true);
+    expect(versionOk, `exportContract.version should be '2.1', got '${exportJson.exportContract?.version}'`).toBe(true);
     expect(calibrationOk, 'calibrationEvidence should exist at root').toBe(true);
     expect(experimentOk, 'experiment block should NOT exist at root').toBe(true);
     expect(hasCalibrationCanonical, `calibrationEvidence should be in canonicalBlocks, got ${JSON.stringify(canonicalBlocks)}`).toBe(true);
@@ -211,7 +211,7 @@ test.describe('Phase 10 L10B — Full-Flow CSV → Export v2.0 (real file input)
         csv_loaded_via_file_input: { passed: true },
         real_profile_state_reached: { passed: profileReached },
         exportContract_name_correct: { passed: nameOk, expected: 'aura-technical-export', actual: exportJson.exportContract?.name },
-        exportContract_version_correct: { passed: versionOk, expected: '2.0', actual: exportJson.exportContract?.version },
+        exportContract_version_correct: { passed: versionOk, expected: '2.1', actual: exportJson.exportContract?.version },
         calibrationEvidence_exists: { passed: calibrationOk, actual: calibrationOk ? 'present' : 'absent' },
         experiment_block_absent: { passed: experimentOk, actual: experimentOk ? 'absent' : 'present' },
         calibrationEvidence_canonical: { passed: hasCalibrationCanonical, actual: canonicalBlocks },
