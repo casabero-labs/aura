@@ -13,7 +13,7 @@ estéticas en defectos.
 
 | Elemento | Patrón Casabero | Estado observado en AURA | Consecuencia | Hallazgo |
 |---|---|---|---|---|
-| Marca | Tres elipses horizontales; centro rojo y laterales oscuros | Símbolo cuadrado compuesto por nueve formas tipo tablero | La familia visual no se reconoce por la marca | `AURA-UI-002` |
+| Marca | Tres elipses iguales del mismo `currentColor`, sin glifo interno ni segundo color | Símbolo cuadrado compuesto por nueve formas tipo tablero | La familia visual no se reconoce por la marca | `AURA-UI-002` |
 | Acción primaria | Controles ligeros, outline y jerarquía sobria | `Empezar auditoría` usa fondo oscuro relleno | La prioridad se expresa con un lenguaje de control distinto al showcase | `AURA-UI-002` |
 | Declaración de identidad | La interfaz y su documentación deben describir el mismo estado | Historial afirma que la marca sigue el estándar Casabero | La afirmación y la evidencia visible se contradicen | `AURA-UI-002` |
 | Navegación global | Conjunto estable de destinos entre viewports | `Trazabilidad` aparece solo en móvil | La arquitectura de información depende del ancho | `AURA-IA-001` |

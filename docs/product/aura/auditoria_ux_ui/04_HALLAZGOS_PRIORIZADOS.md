@@ -106,7 +106,7 @@ pérdida de trabajo y los bloqueos detectados conservaron alguna vía de salida.
 
 ## `AURA-UI-002` — Identidad visible y estándar Casabero no coinciden
 
-- **Reproducción y evidencia:** observar la marca global y la CTA primaria de Home. La marca usa nueve formas dentro de un símbolo tipo tablero; el estándar Casabero define tres elipses horizontales, con centro rojo. La CTA usa fondo oscuro relleno frente al patrón de botón claro/outline del showcase. El Historial afirma que el logo sigue el estándar Casabero.
+- **Reproducción y evidencia:** observar la marca global y la CTA primaria de Home. La marca usa nueve formas dentro de un símbolo tipo tablero; el estándar Casabero define tres elipses iguales del mismo `currentColor`, sin glifo interno ni segundo color. La CTA usa fondo oscuro relleno frente al patrón de botón claro/outline del showcase. El Historial afirma que el logo sigue el estándar Casabero.
 - **Criterio:** consistencia externa, credibilidad de identidad y conformidad con la fuente visual canónica.
 - **Manifestación UI:** geometría de marca y jerarquía de control distintas al patrón normativo, junto con una afirmación interna de conformidad.
 - **Consecuencia UX:** la pertenencia de AURA al ecosistema Casabero depende del texto y no de una identidad visual reconocible; la contradicción reduce credibilidad del historial.

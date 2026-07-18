@@ -4,6 +4,7 @@
 
 - [`NEXT_STEPS.md`](./NEXT_STEPS.md): bitácora técnica y experimental actualizada durante el cierre.
 - [`auditoria_ux_ui/README.md`](./auditoria_ux_ui/README.md): línea base priorizada de hallazgos UX/UI, sin plan de mejora.
+- [`../../plans/2026-07-18-aura-ux-ui-remediation.md`](../../plans/2026-07-18-aura-ux-ui-remediation.md): plan TDD de remediación y orquestación mediante los issues #37–#44.
 
 ## Memoria final
 
