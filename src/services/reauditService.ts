@@ -1,5 +1,5 @@
 // ── Phase 5 Loop 4: Reaudit Service ──
-// Imports Colab notebook output (controlled fixture CSV) and runs
+// Imports external Python output (including historical controlled Colab fixtures) and runs
 // reaudit before/after to produce ReauditSummaryV1.
 //
 // Does NOT execute Python directly. Does NOT compute HealthDelta.
@@ -29,7 +29,7 @@ export interface OutputDatasetSummaryV1 {
   exportedCsvRef: string | null;
 }
 
-export interface ColabOutput {
+export interface ImportedCsvOutput {
   data: Record<string, any>[];
   fields: string[];
   fingerprint: string;
@@ -51,9 +51,12 @@ export interface ReauditResult {
   output: OutputDatasetSummaryV1;
   beforeReport: AuditReport;
   afterReport: AuditReport;
-  beforeOutput: ColabOutput;
-  afterOutput: ColabOutput;
+  beforeOutput: ImportedCsvOutput;
+  afterOutput: ImportedCsvOutput;
 }
+
+/** @deprecated Historical name retained for Laboratorio/Colab compatibility. */
+export type ColabOutput = ImportedCsvOutput;
 
 export function parseCsvString(csvString: string, forcedDelimiter?: string): {
   data: Record<string, any>[];
@@ -70,6 +73,11 @@ export function parseCsvString(csvString: string, forcedDelimiter?: string): {
     delimiter: forcedDelimiter || '',
     dynamicTyping: true,
   });
+
+  const fatalErrors = result.errors.filter((error) => error.type === 'Quotes');
+  if (fatalErrors.length > 0) {
+    throw new Error(`CSV_PARSE_FAILED: ${fatalErrors.map((error) => error.code).join(', ')}`);
+  }
 
   return {
     data: result.data as Record<string, any>[],
@@ -91,12 +99,12 @@ export function buildEnvelopeRef(fingerprint: string, prefix = 'env'): string {
   return `${prefix}:${sha256hex(fingerprint).slice(0, 16)}`;
 }
 
-export function importColabOutput(
+export function importExternalPythonOutput(
   csvString: string,
   options?: { delimiter?: string; datasetName?: string },
-): ColabOutput {
+): ImportedCsvOutput {
   if (!csvString || !csvString.trim()) {
-    throw new Error('importColabOutput: csvString is empty or null');
+    throw new Error('importExternalPythonOutput: csvString is empty or null');
   }
 
   const { data, fields, delimiter } = parseCsvString(csvString, options?.delimiter);
@@ -113,10 +121,16 @@ export function importColabOutput(
   };
 }
 
+/** @deprecated Historical name retained for real Laboratorio/Colab routes. */
+export const importColabOutput = importExternalPythonOutput;
+
 export function computeChangedCellsEstimate(
-  beforeOutput: ColabOutput,
-  afterOutput: ColabOutput,
+  beforeOutput: ImportedCsvOutput,
+  afterOutput: ImportedCsvOutput,
 ): number | null {
+  if (beforeOutput.data.length !== afterOutput.data.length) {
+    return null;
+  }
   if (beforeOutput.fields.length !== afterOutput.fields.length) {
     return null;
   }
@@ -150,19 +164,19 @@ export function runReaudit(
   logs.push(`[${startedAt}] reaudit started`);
   logs.push(`beforeEvidenceRef: ${beforeEvidenceRef}`);
 
-  // ── Import Colab outputs ──
-  let beforeOutput: ColabOutput;
-  let afterOutput: ColabOutput;
+  // ── Import external Python outputs ──
+  let beforeOutput: ImportedCsvOutput;
+  let afterOutput: ImportedCsvOutput;
 
   try {
-    beforeOutput = importColabOutput(beforeCsv, { delimiter: options?.delimiter });
+    beforeOutput = importExternalPythonOutput(beforeCsv, { delimiter: options?.delimiter });
     logs.push(`before: ${beforeOutput.rowCount} rows, ${beforeOutput.colCount} cols, fp: ${beforeOutput.fingerprint.slice(0, 16)}...`);
   } catch (err) {
     throw new Error(`beforeCsv import failed: ${err instanceof Error ? err.message : String(err)}`);
   }
 
   try {
-    afterOutput = importColabOutput(afterCsv, { delimiter: options?.delimiter });
+    afterOutput = importExternalPythonOutput(afterCsv, { delimiter: options?.delimiter });
     logs.push(`after: ${afterOutput.rowCount} rows, ${afterOutput.colCount} cols, fp: ${afterOutput.fingerprint.slice(0, 16)}...`);
   } catch (err) {
     throw new Error(`afterCsv import failed: ${err instanceof Error ? err.message : String(err)}`);

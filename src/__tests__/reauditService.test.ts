@@ -233,11 +233,10 @@ describe('reauditService', () => {
       expect(computeChangedCellsEstimate(before, after)).toBeNull();
     });
 
-    it('handles different row counts by only comparing min rows', () => {
+    it('returns null when row counts differ because the estimate would be incomplete', () => {
       const before = importColabOutput('a,b\n1,2\n3,4');
       const after = importColabOutput('a,b\n5,6');
-      // Row 0: "1"≠"5" → 1 change, "2"≠"6" → 1 change = 2 changes
-      expect(computeChangedCellsEstimate(before, after)).toBe(2);
+      expect(computeChangedCellsEstimate(before, after)).toBeNull();
     });
   });
 

@@ -6,6 +6,7 @@ import { computeScriptHashV2 } from '../contracts/llm/scriptBuilderV2';
 import { sha256hex } from '../contracts/llm/hash';
 import type { PythonExecutionReceiptV1 } from '../services/remediationExecution/pythonExecutionContract';
 import { buildPythonExecutionBundle, buildPythonExecutionReceipt } from '../services/remediationExecution/pythonExecutionContract';
+import { buildVerifiedRemediationEvidence } from '../services/remediationExecution/verifiedRemediationEvidence';
 
 const SCRIPT_TEXT = 'import pandas as pd\n\ndef clean_dataset(df):\n    df["Name"] = df["Name"].str.strip()\n    return df\n';
 const BEFORE_CSV = 'Name\n Alice \n';
@@ -82,6 +83,13 @@ const makeReceipt = (tampered: boolean): PythonExecutionReceiptV1 => buildPython
 
 const validReceipt = makeReceipt(false);
 const invalidReceipt = makeReceipt(true);
+const verifiedEvidence = buildVerifiedRemediationEvidence({
+  bundle,
+  receipt: validReceipt,
+  sourceCsv: new TextEncoder().encode(BEFORE_CSV),
+  correctedCsv: new TextEncoder().encode(AFTER_CSV),
+  evidenceEnvelopeRef: ENVELOPE_REF,
+});
 
 type AvState = 'not_prepared' | 'ready' | 'awaiting_external_output' | 'validating' | 'verified' | 'invalid';
 
@@ -110,6 +118,16 @@ const states: { name: string; state: AvState; extra: Record<string, any> }[] = [
   { name: 'ready', state: 'ready', extra: { executionBundleJson: bundleJson } },
   { name: 'awaiting_external_output', state: 'awaiting_external_output', extra: { executionBundleJson: bundleJson } },
   { name: 'verified', state: 'verified', extra: { executionBundleJson: bundleJson, executionReceipt: validReceipt } },
+  {
+    name: 'verified-reaudited',
+    state: 'verified',
+    extra: {
+      executionBundleJson: bundleJson,
+      executionReceipt: validReceipt,
+      reauditState: 'completed',
+      verifiedEvidence,
+    },
+  },
   { name: 'invalid', state: 'invalid', extra: { executionBundleJson: bundleJson, executionReceipt: invalidReceipt, executionValidationError: 'La cadena criptográfica no es válida: el approvedScriptHash no coincide.' } },
 ];
 
