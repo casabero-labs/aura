@@ -38,24 +38,63 @@ const subtitleByStatus: Record<DiagnosticReport['status']['diagnosticStatus'], s
   llm_diagnosis_unavailable: 'AURA conservó la evidencia determinista y registró que el diagnóstico asistido no estuvo disponible.',
 };
 
-const severityOrder: Record<DiagnosticFinding['severity'], number> = {
-  critical: 0,
-  warning: 1,
-  info: 2,
-  good: 3,
-};
-
 const numberFormatter = new Intl.NumberFormat('es-CO');
 
-const sortFindingsByRelevance = (findings: DiagnosticFinding[]) =>
-  [...findings].sort((a, b) => {
-    const severityDifference = severityOrder[a.severity] - severityOrder[b.severity];
-    if (severityDifference !== 0) return severityDifference;
-    if (a.requiresHumanReview !== b.requiresHumanReview) {
-      return a.requiresHumanReview ? -1 : 1;
-    }
-    return a.title.localeCompare(b.title, 'es');
+const findingGroupDefinitions = [
+  { key: 'confirmedRisks', label: 'Riesgo confirmado' },
+  { key: 'possibleFalsePositiveCandidates', label: 'Posible falso positivo' },
+  { key: 'humanReviewRequired', label: 'Decisión humana' },
+  { key: 'optionalRemediationCandidates', label: 'Remediación opcional' },
+] as const;
+
+interface PrimaryFindingsView {
+  findings: DiagnosticFinding[];
+  attributes: Record<string, string[]>;
+  falsePositiveFindingIds: string[];
+}
+
+const stableUnique = (values: string[]): string[] => [...new Set(values)];
+
+const buildPrimaryFindingsView = (report: DiagnosticReport): PrimaryFindingsView => {
+  const findingsById = new Map<string, DiagnosticFinding>();
+  const attributes: Record<string, string[]> = {};
+  const falsePositiveFindingIds: string[] = [];
+
+  findingGroupDefinitions.forEach(({ key, label }) => {
+    report.findingGroups[key].forEach((finding) => {
+      const existing = findingsById.get(finding.id);
+      const requiresHumanReview = key === 'humanReviewRequired'
+        || finding.requiresHumanReview
+        || existing?.requiresHumanReview === true;
+
+      findingsById.set(finding.id, existing
+        ? {
+            ...existing,
+            sourceIssueIds: stableUnique([...existing.sourceIssueIds, ...finding.sourceIssueIds]),
+            columns: stableUnique([...existing.columns, ...finding.columns]),
+            requiresHumanReview,
+            canGenerateScript: existing.canGenerateScript || finding.canGenerateScript,
+          }
+        : {
+            ...finding,
+            sourceIssueIds: [...finding.sourceIssueIds],
+            columns: [...finding.columns],
+            requiresHumanReview,
+          });
+
+      attributes[finding.id] = stableUnique([...(attributes[finding.id] ?? []), label]);
+      if (key === 'possibleFalsePositiveCandidates' && !falsePositiveFindingIds.includes(finding.id)) {
+        falsePositiveFindingIds.push(finding.id);
+      }
+    });
   });
+
+  return {
+    findings: [...findingsById.values()],
+    attributes,
+    falsePositiveFindingIds,
+  };
+};
 
 const formatTimestamp = (iso: string): string => {
   try {
@@ -77,8 +116,18 @@ const FindingsGroupWithOverflow: React.FC<{
   findings: DiagnosticFinding[];
   testId: string;
   falsePositiveContext?: boolean;
-}> = ({ title, description, findings, testId, falsePositiveContext }) => {
-  const ordered = useMemo(() => sortFindingsByRelevance(findings), [findings]);
+  findingAttributes?: Readonly<Record<string, readonly string[]>>;
+  falsePositiveFindingIds?: readonly string[];
+}> = ({
+  title,
+  description,
+  findings,
+  testId,
+  falsePositiveContext,
+  findingAttributes,
+  falsePositiveFindingIds,
+}) => {
+  const ordered = useMemo(() => [...findings], [findings]);
   const visible = ordered.slice(0, VISIBLE_FINDING_LIMIT);
   const overflow = ordered.slice(VISIBLE_FINDING_LIMIT);
   const [showAll, setShowAll] = useState(false);
@@ -90,6 +139,8 @@ const FindingsGroupWithOverflow: React.FC<{
       findings={showAll ? ordered : visible}
       testId={testId}
       falsePositiveContext={falsePositiveContext}
+      findingAttributes={findingAttributes}
+      falsePositiveFindingIds={falsePositiveFindingIds}
     >
       {overflow.length > 0 && (
         <button
@@ -107,7 +158,7 @@ const FindingsGroupWithOverflow: React.FC<{
   );
 };
 
-const DatasetSummaryStrip: React.FC<{ report: DiagnosticReport }> = ({ report }) => (
+const DatasetSummaryStrip: React.FC<{ report: DiagnosticReport; findingCount: number }> = ({ report, findingCount }) => (
   <div className="diagnostic-report-summary-strip" data-testid="diagnostic-report-summary-strip">
     <div className="diagnostic-report-summary-item">
       <span className="diagnostic-report-summary-value" style={{ fontSize: '15px', wordBreak: 'break-all' }}>
@@ -124,10 +175,13 @@ const DatasetSummaryStrip: React.FC<{ report: DiagnosticReport }> = ({ report })
       <span className="diagnostic-report-summary-label">columnas</span>
     </div>
     <div className="diagnostic-report-summary-item">
-      <span className="diagnostic-report-summary-value diagnostic-report-summary-value--critical">
-        {numberFormatter.format(report.evidenceBase.totalIssues)}
+      <span
+        className="diagnostic-report-summary-value diagnostic-report-summary-value--critical"
+        data-testid="diagnostic-report-findings-count"
+      >
+        {numberFormatter.format(findingCount)}
       </span>
-      <span className="diagnostic-report-summary-label">hallazgos</span>
+      <span className="diagnostic-report-summary-label">hallazgos únicos</span>
     </div>
     <div className="diagnostic-report-summary-item">
       <span className="diagnostic-report-summary-value">{report.metadata.scoreBase}/100</span>
@@ -341,9 +395,11 @@ const DiagnosticReportStep: React.FC<DiagnosticReportStepProps> = ({
     [diagnosticReport],
   );
   const observations = diagnosticReport.diagnosisSummary.observations.slice(0, 3);
-  const hasPrimaryFindings = diagnosticReport.findingGroups.confirmedRisks.length > 0
-    || diagnosticReport.findingGroups.humanReviewRequired.length > 0
-    || diagnosticReport.findingGroups.possibleFalsePositiveCandidates.length > 0;
+  const primaryFindings = useMemo(
+    () => buildPrimaryFindingsView(diagnosticReport),
+    [diagnosticReport],
+  );
+  const hasPrimaryFindings = primaryFindings.findings.length > 0;
 
   return (
     <>
@@ -367,7 +423,7 @@ const DiagnosticReportStep: React.FC<DiagnosticReportStepProps> = ({
           </div>
         </div>
 
-        <DatasetSummaryStrip report={diagnosticReport} />
+        <DatasetSummaryStrip report={diagnosticReport} findingCount={primaryFindings.findings.length} />
         <DiagnosticInvocationSummary report={diagnosticReport} evaluation={evaluationSummary} />
         <DiagnosticDecisionBrief presentation={presentation} />
 
@@ -416,30 +472,15 @@ const DiagnosticReportStep: React.FC<DiagnosticReportStepProps> = ({
             </div>
           </div>
           {hasPrimaryFindings ? (
-            <div className="diagnostic-report-findings-grid">
+            <div>
               <FindingsGroupWithOverflow
-                title="Riesgos confirmados"
-                description="Problemas detectados por reglas deterministas y respaldados por evidencia del dataset."
-                findings={diagnosticReport.findingGroups.confirmedRisks}
-                testId="diagnostic-report-confirmed-risks"
+                title="Hallazgos únicos"
+                description="Una entidad por identificador, con sus señales de riesgo, revisión humana y remediación como atributos."
+                findings={primaryFindings.findings}
+                testId="diagnostic-report-primary-findings"
+                findingAttributes={primaryFindings.attributes}
+                falsePositiveFindingIds={primaryFindings.falsePositiveFindingIds}
               />
-              {diagnosticReport.findingGroups.humanReviewRequired.length > 0 && (
-                <FindingsGroupWithOverflow
-                  title="Necesitan decisión humana"
-                  description="Casos que dependen del contexto y no deben corregirse automáticamente."
-                  findings={diagnosticReport.findingGroups.humanReviewRequired}
-                  testId="diagnostic-report-human-review"
-                />
-              )}
-              {diagnosticReport.findingGroups.possibleFalsePositiveCandidates.length > 0 && (
-                <FindingsGroupWithOverflow
-                  title="Revisar antes de corregir"
-                  description="Posibles falsos positivos que necesitan contexto adicional."
-                  findings={diagnosticReport.findingGroups.possibleFalsePositiveCandidates}
-                  testId="diagnostic-report-false-positive-candidates"
-                  falsePositiveContext
-                />
-              )}
             </div>
           ) : (
             <p className="diagnostic-report-empty">No hay hallazgos prioritarios para mostrar.</p>

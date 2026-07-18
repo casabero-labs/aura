@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import DiagnosticReportStep from '../components/DiagnosticReportStep';
 import type { DiagnosticFinding, DiagnosticReport } from '../services/diagnosticReport';
 import { IssueCategory, IssueSeverity } from '../types';
@@ -175,7 +175,121 @@ const renderStep = (callbacks = {
   return callbacks;
 };
 
+const reportWithGroups = (
+  findingGroups: DiagnosticReport['findingGroups'],
+): DiagnosticReport => ({
+  ...diagnosticReport,
+  findingGroups,
+});
+
+const emptyFindingGroups = (): DiagnosticReport['findingGroups'] => ({
+  confirmedRisks: [],
+  possibleFalsePositiveCandidates: [],
+  humanReviewRequired: [],
+  optionalRemediationCandidates: [],
+});
+
+const renderReport = (report: DiagnosticReport) => render(
+  <DiagnosticReportStep
+    diagnosticReport={report}
+    onExportMain={vi.fn()}
+    onGenerateScript={vi.fn()}
+    onBackToDiagnosis={vi.fn()}
+  />,
+);
+
 describe('DiagnosticReportStep', () => {
+  it('muestra cero entidades principales cuando el informe no tiene hallazgos', () => {
+    renderReport(reportWithGroups(emptyFindingGroups()));
+
+    expect(screen.getByTestId('diagnostic-report-findings-count').textContent).toBe('0');
+    expect(screen.queryAllByTestId('diagnostic-finding-card')).toHaveLength(0);
+    expect(screen.getByText('No hay hallazgos prioritarios para mostrar.')).toBeTruthy();
+  });
+
+  it('muestra una entidad principal para un único hallazgo', () => {
+    const groups = emptyFindingGroups();
+    groups.confirmedRisks = [finding({ id: 'only-finding', title: 'Único hallazgo' })];
+
+    renderReport(reportWithGroups(groups));
+
+    expect(screen.getByTestId('diagnostic-report-findings-count').textContent).toBe('1');
+    expect(screen.getAllByTestId('diagnostic-finding-card')).toHaveLength(1);
+    expect(screen.getByText('Único hallazgo')).toBeTruthy();
+  });
+
+  it('conserva dos IDs distintos aunque compartan el mismo título', () => {
+    const groups = emptyFindingGroups();
+    groups.confirmedRisks = [
+      finding({ id: 'same-title-a', title: 'Título compartido' }),
+      finding({ id: 'same-title-b', title: 'Título compartido' }),
+    ];
+
+    renderReport(reportWithGroups(groups));
+
+    expect(screen.getByTestId('diagnostic-report-findings-count').textContent).toBe('2');
+    expect(screen.getAllByTestId('diagnostic-finding-card').map((card) => card.getAttribute('data-finding-id'))).toEqual([
+      'same-title-a',
+      'same-title-b',
+    ]);
+    expect(screen.getAllByText('Título compartido')).toHaveLength(2);
+  });
+
+  it('une el mismo ID entre riesgo confirmado y revisión humana sin duplicar tarjeta', () => {
+    const groups = emptyFindingGroups();
+    groups.confirmedRisks = [finding({
+      id: 'duplicate-rows',
+      title: 'Filas Duplicadas',
+      requiresHumanReview: false,
+    })];
+    groups.humanReviewRequired = [finding({
+      id: 'duplicate-rows',
+      title: 'Filas Duplicadas',
+      requiresHumanReview: true,
+    })];
+
+    renderReport(reportWithGroups(groups));
+
+    expect(screen.getByTestId('diagnostic-report-findings-count').textContent).toBe('1');
+    const card = screen.getByTestId('diagnostic-finding-card');
+    expect(card.getAttribute('data-finding-id')).toBe('duplicate-rows');
+    expect(within(card).getByText('Riesgo confirmado')).toBeTruthy();
+    expect(within(card).getByText('Decisión humana')).toBeTruthy();
+    expect(within(card).getByText('Sí')).toBeTruthy();
+  });
+
+  it('incluye un hallazgo exclusivo de revisión humana en la colección principal', () => {
+    const groups = emptyFindingGroups();
+    groups.humanReviewRequired = [finding({
+      id: 'human-only',
+      title: 'Solo decisión humana',
+      requiresHumanReview: true,
+    })];
+
+    renderReport(reportWithGroups(groups));
+
+    expect(screen.getByTestId('diagnostic-report-findings-count').textContent).toBe('1');
+    const card = screen.getByTestId('diagnostic-finding-card');
+    expect(within(card).getByText('Solo decisión humana')).toBeTruthy();
+    expect(within(card).getByText('Decisión humana')).toBeTruthy();
+  });
+
+  it('mantiene inmutable el DiagnosticReport de entrada al unir hallazgos', () => {
+    const groups = emptyFindingGroups();
+    groups.confirmedRisks = [finding({ id: 'immutable-id', requiresHumanReview: false })];
+    groups.humanReviewRequired = [finding({ id: 'immutable-id', requiresHumanReview: true })];
+    const report = reportWithGroups(groups);
+    const before = JSON.stringify(report);
+    Object.freeze(report.findingGroups.confirmedRisks[0]);
+    Object.freeze(report.findingGroups.humanReviewRequired[0]);
+    Object.values(report.findingGroups).forEach(Object.freeze);
+    Object.freeze(report.findingGroups);
+    Object.freeze(report);
+
+    expect(() => renderReport(report)).not.toThrow();
+    expect(JSON.stringify(report)).toBe(before);
+  });
+
   it('shows real evaluation values and keeps unavailable values as not measured', () => {
     renderStep(undefined, {
       contractErrorsCount: 2,
@@ -263,16 +377,18 @@ describe('DiagnosticReportStep', () => {
   it('renderiza riesgo confirmado', () => {
     renderStep();
 
-    const confirmedRisks = screen.getByTestId('diagnostic-report-confirmed-risks');
-    expect(confirmedRisks.textContent).toContain('Age: ausencia con impacto analítico');
+    const primaryFindings = screen.getByTestId('diagnostic-report-primary-findings');
+    expect(primaryFindings.textContent).toContain('Age: ausencia con impacto analítico');
+    expect(primaryFindings.textContent).toContain('Riesgo confirmado');
   });
 
   it('renderiza posible falso positivo con texto conservador', () => {
     renderStep();
 
-    const candidates = screen.getByTestId('diagnostic-report-false-positive-candidates');
-    expect(candidates.textContent).toContain('Fare: posible falso positivo contextual');
-    expect(candidates.textContent).toContain('Posible, no definitivo. No modifica score.');
+    const primaryFindings = screen.getByTestId('diagnostic-report-primary-findings');
+    expect(primaryFindings.textContent).toContain('Fare: posible falso positivo contextual');
+    expect(primaryFindings.textContent).toContain('Posible falso positivo');
+    expect(primaryFindings.textContent).toContain('Posible, no definitivo. No modifica score.');
   });
 
   it('renderiza recomendación', () => {
