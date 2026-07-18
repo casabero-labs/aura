@@ -7,6 +7,8 @@ interface DiagnosticFindingGroupProps {
   findings: DiagnosticFinding[];
   testId: string;
   falsePositiveContext?: boolean;
+  findingAttributes?: Readonly<Record<string, readonly string[]>>;
+  falsePositiveFindingIds?: readonly string[];
   children?: React.ReactNode;
 }
 
@@ -31,6 +33,8 @@ const DiagnosticFindingGroup = ({
   findings,
   testId,
   falsePositiveContext = false,
+  findingAttributes = {},
+  falsePositiveFindingIds = [],
   children,
 }: DiagnosticFindingGroupProps) => (
   <section className="diagnostic-report-section" data-testid={testId}>
@@ -48,7 +52,12 @@ const DiagnosticFindingGroup = ({
     ) : (
       <div className="diagnostic-finding-list">
         {findings.map((finding) => (
-          <article className="diagnostic-finding-card" key={finding.id}>
+          <article
+            className="diagnostic-finding-card"
+            key={finding.id}
+            data-testid="diagnostic-finding-card"
+            data-finding-id={finding.id}
+          >
             <div className="diagnostic-finding-card-head">
               <div>
                 <h4>{finding.title}</h4>
@@ -56,9 +65,12 @@ const DiagnosticFindingGroup = ({
                   <code>{severityLabels[finding.severity]}</code>
                   <code>{finding.category}</code>
                   <code>Confianza {confidenceLabels[finding.confidence]}</code>
+                  {(findingAttributes[finding.id] ?? []).map((attribute) => (
+                    <code key={attribute}>{attribute}</code>
+                  ))}
                 </div>
               </div>
-              {falsePositiveContext && (
+              {(falsePositiveContext || falsePositiveFindingIds.includes(finding.id)) && (
                 <span className="diagnostic-report-badge diagnostic-report-badge--warn">
                   Posible, no definitivo. No modifica score.
                 </span>
