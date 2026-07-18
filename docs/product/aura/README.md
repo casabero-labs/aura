@@ -3,6 +3,7 @@
 ## Estado operativo vigente
 
 - [`NEXT_STEPS.md`](./NEXT_STEPS.md): bitácora técnica y experimental actualizada durante el cierre.
+- [`auditoria_ux_ui/README.md`](./auditoria_ux_ui/README.md): línea base priorizada de hallazgos UX/UI, sin plan de mejora.
 
 ## Memoria final
 
