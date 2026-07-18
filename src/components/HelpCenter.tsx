@@ -12,6 +12,7 @@ import {
   Brain,
   Download,
   FlaskConical,
+  ShieldAlert,
   ShieldCheck,
   Settings,
   FileCode2,
@@ -52,13 +53,13 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
       searchText: 'inicio rapido que es aura auditoria csv diagnostico local first navegador',
       content: (
         <div className="help-section-body">
-          <p>AURA es un entorno de auditoría de calidad de datos para archivos CSV. Su trabajo principal es convertir un dataset en evidencia: perfil técnico, hallazgos, diagnóstico asistido, propuesta de limpieza, revisión humana y exportables.</p>
+          <p>AURA es un entorno de auditoría de calidad de datos para archivos CSV. Su trabajo principal es convertir un dataset en evidencia: carga, perfil base, diagnóstico, reporte diagnóstico y exportación, con una rama opcional de remediación (script, revisión humana y ejecución local).</p>
           <div className="help-callout">
             <strong>Regla mental:</strong>
             <p>AURA no intenta adivinar tu negocio. Detecta señales reproducibles, separa lo formal de lo preliminar y te pide validar las decisiones que pueden cambiar datos.</p>
           </div>
           <ul className="help-checklist">
-            <li>Usa <strong>Auditoría</strong> para cargar, perfilar, diagnosticar, revisar y exportar.</li>
+            <li>Usa <strong>Auditoría</strong> para cargar, perfilar, diagnosticar, generar el reporte diagnóstico y exportar; la remediación con script es opcional.</li>
             <li>Usa <strong>Laboratorio</strong> cuando ya tienes un reporte y quieres comparar modelos o configuraciones.</li>
             <li>Usa <strong>Configuración</strong> para elegir Chrome AI, Ollama o Cloud, ajustar temperatura y revisar privacidad.</li>
             <li>Exporta evidencia antes de cerrar si necesitas defender el análisis después.</li>
@@ -70,41 +71,41 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
       id: 'flujo-completo',
       title: 'B. Flujo completo de auditoría',
       icon: <ClipboardList size={14} />,
-      searchText: 'flujo completo carga perfil diagnostico script revision exportar delta salud',
+      searchText: 'flujo completo cinco etapas carga perfil base diagnostico reporte diagnostico exportacion remediacion opcional script revision ejecucion',
       content: (
         <div className="help-section-body">
+          <p>El flujo principal tiene cinco etapas. La remediación con script no es una etapa obligatoria: es una rama opcional que se abre desde el reporte diagnóstico.</p>
           <ol className="help-flow-list">
             <li>
-              <strong>1. Cargar dataset</strong>
+              <strong>1. Carga</strong>
               <p>Selecciona un CSV. AURA detecta delimitador, columnas y volumen inicial en el navegador.</p>
               <p className="help-decision">Valida que el nombre del archivo, columnas y vista previa correspondan al dataset esperado.</p>
             </li>
             <li>
-              <strong>2. Perfil determinista</strong>
-              <p>El motor revisa tipos, nulos, duplicados, cardinalidad, outliers, formatos, columnas sospechosas y reglas semánticas disponibles.</p>
+              <strong>2. Perfil base</strong>
+              <p>El motor determinista revisa tipos, nulos, duplicados, cardinalidad, outliers, formatos, columnas sospechosas y reglas semánticas disponibles.</p>
               <p className="help-decision">No todo hallazgo implica borrar o corregir. Decide si el hallazgo es error, regla del dominio o limitación del archivo.</p>
             </li>
             <li>
-              <strong>3. Diagnóstico asistido</strong>
-              <p>El modelo recibe evidencia estructurada, no el CSV completo. Su respuesta ayuda a priorizar causas probables y criterios de limpieza.</p>
+              <strong>3. Diagnóstico</strong>
+              <p>El modelo recibe evidencia estructurada, no el CSV completo. Su respuesta ayuda a priorizar causas probables y criterios de limpieza. Si el proveedor asistido no está disponible, la etapa te muestra la causa y puedes usar «Continuar con informe determinista» sin ejecutar el modelo.</p>
               <p className="help-decision">Trata el diagnóstico LLM como preliminar. Si contradice el perfil o inventa columnas, manda el perfil.</p>
             </li>
             <li>
-              <strong>4. Propuesta de script</strong>
-              <p>AURA genera una propuesta Python/Pandas y valida columnas inexistentes, operaciones destructivas y cobertura de hallazgos.</p>
-              <p className="help-decision">Aprueba solo si entiendes qué transforma, qué elimina y qué deja igual.</p>
+              <strong>4. Reporte diagnóstico</strong>
+              <p>AURA consolida el perfil determinista y, si existió, la respuesta del modelo en un informe con estado declarado. Si el diagnóstico asistido no se ejecutó, el informe lo dice explícitamente en lugar de fabricar contenido.</p>
+              <p className="help-decision">Lee el estado del informe antes de exportar: distingue evidencia formal de interpretación preliminar.</p>
             </li>
             <li>
-              <strong>5. Revisión humana y simulación</strong>
-              <p>La limpieza se prueba sobre una copia en memoria. AURA compara score, filas, columnas y señales antes/después.</p>
-              <p className="help-decision">Un delta positivo ayuda, pero no reemplaza revisión de negocio. Un delta neutro o negativo exige ajustar el script.</p>
-            </li>
-            <li>
-              <strong>6. Exportación</strong>
-              <p>Descarga PDF, JSON técnico, CSV de hallazgos, script aprobado y notebook Colab cuando aplique.</p>
+              <strong>5. Exportación</strong>
+              <p>Descarga PDF, JSON técnico, CSV de hallazgos y, si recorriste la rama opcional, el script aprobado y el notebook Colab.</p>
               <p className="help-decision">Exporta el paquete que permita reproducir y explicar lo que hiciste, no solo una captura bonita.</p>
             </li>
           </ol>
+          <div className="help-callout">
+            <strong>Rama opcional de remediación:</strong>
+            <p>Desde el reporte diagnóstico puedes abrir la propuesta de script, la revisión humana con simulación y la ejecución local verificada. Esta rama no es obligatoria para llegar a la exportación: puedes exportar el informe sin ella.</p>
+          </div>
         </div>
       ),
     },
@@ -226,8 +227,33 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
       ),
     },
     {
+      id: 'proveedor-no-disponible',
+      title: 'I. Proveedor no disponible',
+      icon: <ShieldAlert size={14} />,
+      searchText: 'proveedor no disponible cloud sin api key ollama apagado cors chrome ai webgpu continuar con informe determinista cambiar proveedor configuracion global recuperacion',
+      content: (
+        <div className="help-section-body">
+          <p>Cuando AURA verifica el proveedor asistido y no puede usarlo, la etapa de diagnóstico muestra el estado <strong>«Proveedor no disponible»</strong> con la causa concreta, el impacto y dos salidas reales. No necesitas el stepper ni otra superficie para entender qué pasó ni para avanzar.</p>
+          <dl className="help-glossary">
+            <dt>Cloud sin API key</dt><dd>El proveedor cloud exige una clave para autenticar cada solicitud y no hay ninguna guardada en este navegador. Agrégala en Configuración. No es lo mismo que un servidor local apagado.</dd>
+            <dt>Cloud con clave que no responde</dt><dd>Existe una API key guardada pero el proveedor la rechaza o no contesta: puede ser inválida, estar vencida o carecer de permisos.</dd>
+            <dt>Ollama no disponible</dt><dd>El servidor local no responde en <code>localhost:11434</code>, el modelo no está instalado o el navegador bloquea CORS. La causa que ves proviene del diagnóstico local de Ollama; abre la aplicación Ollama o usa «Conectar Ollama de este equipo».</dd>
+            <dt>Chrome AI / WebGPU</dt><dd>Dependen del navegador: Chrome AI requiere Gemini Nano instalado y WebLLM requiere WebGPU activo. La etapa muestra los pasos de activación cuando aplican.</dd>
+          </dl>
+          <ul className="help-checklist">
+            <li><strong>Continuar con informe determinista:</strong> genera el reporte diagnóstico con la evidencia del motor. No fabrica una respuesta del modelo: el informe declara que el diagnóstico asistido no se ejecutó.</li>
+            <li><strong>Cambiar proveedor:</strong> abre la Configuración global, la única superficie donde realmente se cambia el proveedor. El diálogo rápido «Configurar» de la etapa de diagnóstico solo ajusta modelo y evidencia, no el proveedor.</li>
+          </ul>
+          <div className="help-callout">
+            <strong>Mientras el proveedor no esté disponible:</strong>
+            <p>La CTA «Generar diagnóstico asistido» permanece deshabilitada con su causa visible. Ninguna de las dos salidas ejecuta el modelo.</p>
+          </div>
+        </div>
+      ),
+    },
+    {
       id: 'errores',
-      title: 'I. Errores frecuentes',
+      title: 'J. Errores frecuentes',
       icon: <AlertTriangle size={14} />,
       searchText: 'errores frecuentes ollama chrome ai webgpu cache api key diagnostico vacio script simulacion',
       content: (
@@ -236,7 +262,7 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
             <dt>Ollama no responde</dt><dd>Abre Ollama, verifica <code>localhost:11434</code> y configura <code>OLLAMA_ORIGINS</code> si el navegador bloquea CORS.</dd>
             <dt>Chrome AI no disponible</dt><dd>Revisa versión de Chrome, flags de Built-in AI/Prompt API y disponibilidad del modelo en <code>chrome://on-device-internals</code>.</dd>
             <dt>API key inválida</dt><dd>Confirma proveedor, permisos, saldo y que la clave corresponda al servicio elegido.</dd>
-            <dt>Diagnóstico vacío</dt><dd>Puede ser timeout, proveedor caído o modelo no cargado. Puedes continuar con evidencia determinista.</dd>
+            <dt>Diagnóstico vacío</dt><dd>Puede ser timeout, proveedor caído o modelo no cargado. Usa «Continuar con informe determinista» para generar el reporte con la evidencia del motor.</dd>
             <dt>Script con baja cobertura</dt><dd>No todos los hallazgos deben limpiarse automáticamente; algunos requieren decisión de dominio.</dd>
             <dt>Delta sin mejora</dt><dd>Revisa si el script atacó los hallazgos principales o si el score penaliza señales que requieren corrección manual.</dd>
             <dt>Exportación incompleta</dt><dd>Vuelve a la etapa correspondiente y confirma que el reporte, script o decisión humana ya existen.</dd>
@@ -246,7 +272,7 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
     },
     {
       id: 'faq',
-      title: 'J. Preguntas frecuentes',
+      title: 'K. Preguntas frecuentes',
       icon: <HelpCircle size={14} />,
       searchText: 'preguntas frecuentes modifica archivo original confiar script que exportar proveedor conviene',
       content: (
@@ -263,7 +289,7 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
     },
     {
       id: 'glosario',
-      title: 'K. Glosario',
+      title: 'L. Glosario',
       icon: <FileText size={14} />,
       searchText: 'glosario dataset csv delimitador score hallazgo outlier iqr hitl manifest benchmark local first',
       content: (

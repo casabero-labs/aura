@@ -2780,6 +2780,118 @@ tr:hover td {
   border-radius: 3px;
 }
 
+/* ─── Provider Recovery (issue #38) ───
+   Patrón alert Casabero (showcase.html §ALERTS): surface + border,
+   borde izquierdo sobrio, icono Lucide currentColor 1.5, jerarquía
+   estado → causa → impacto → salidas outline/ghost. Nunca solo color. */
+
+.provider-recovery-alert {
+  margin-top: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--ink);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.provider-recovery-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xs);
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.provider-recovery-header svg {
+  flex-shrink: 0;
+}
+
+.provider-recovery-cause {
+  margin: 0 0 var(--space-xs) 0;
+  color: var(--ink2);
+}
+
+.provider-recovery-impact {
+  margin: 0 0 var(--space-sm) 0;
+  color: var(--ink3);
+}
+
+.provider-recovery-steps {
+  margin: 0 0 var(--space-sm) 0;
+  color: var(--ink2);
+}
+
+.provider-recovery-steps ol {
+  margin: 4px 0 0 0;
+  padding-left: var(--space-lg);
+  line-height: 1.7;
+}
+
+.provider-recovery-steps code {
+  font-size: 11px;
+  background: var(--code-bg);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.provider-recovery-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+  border-top: 1px solid var(--border);
+  padding-top: var(--space-sm);
+}
+
+.provider-recovery-actions .provider-recovery-continue {
+  width: fit-content;
+}
+
+.diagnosis-hero-actions .btn-p:disabled,
+.diagnosis-hero-actions .btn-s:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.provider-recovery-ghost {
+  width: fit-content;
+  min-height: 32px;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-xs);
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.provider-recovery-ghost:hover {
+  text-decoration: underline;
+}
+
+/* Excepción móvil documentada (DESIGN_SYSTEM.md §botones): en pantallas
+   angostas las salidas de recuperación ocupan el ancho disponible para
+   garantizar objetivos táctiles de al menos 44px. */
+@media (max-width: 640px) {
+  .provider-recovery-actions .provider-recovery-continue,
+  .provider-recovery-ghost {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+  }
+}
+
 /* ─── Chrome AI Guided UX ─── */
 
 .chrome-ai-guided-section {
