@@ -198,8 +198,8 @@ const withDiagnosis = (diagnosis: ReturnType<typeof buildTrace>) => {
     expect(result.errors).toEqual(
       expect.arrayContaining([
         'exportContract.name debe ser aura-technical-export.',
-        'exportContract.version debe ser 2.0.',
-        'exportContract.canonicalBlocks debe incluir artifactIdentity y calibrationEvidence.',
+        'exportContract.version debe ser 2.0 o 2.1.',
+        'exportContract.canonicalBlocks debe incluir artifactIdentity, calibrationEvidence y, desde 2.1, remediationExecution.',
         'exportContract.compatibility.legacyAliasIncluded debe ser false.',
       ]),
     );

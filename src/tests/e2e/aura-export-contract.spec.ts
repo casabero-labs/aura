@@ -2,9 +2,9 @@
  * Phase 10 L9 — E2E Playwright Export Contract Evidence
  *
  * Validates in a real Chromium browser that the technical export
- * (`aura-technical-export` v2.0) produces the correct contract structure:
+ * (`aura-technical-export` v2.1) produces the correct contract structure:
  * - exportContract.name === 'aura-technical-export'
- * - exportContract.version === '2.0'
+ * - exportContract.version === '2.1'
  * - calibrationEvidence block exists at root
  * - experiment block does NOT exist at root
  *
@@ -105,7 +105,7 @@ async function setFakeReport(page: any) {
   }, FAKE_REPORT);
 }
 
-test.describe('Phase 10 L9 — Export Contract v2.0 E2E', () => {
+test.describe('Phase 10 L9 — Export Contract v2.1 E2E', () => {
   test.beforeEach(async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
   });
@@ -136,7 +136,7 @@ test.describe('Phase 10 L9 — Export Contract v2.0 E2E', () => {
     if (errors.length > 0) console.warn('Console errors:', errors);
   });
 
-  test('L9-02: export contract version is 2.0', async ({ page }) => {
+  test('L9-02: export contract version is 2.1', async ({ page }) => {
     await bootToAudit(page);
     await waitForHarness(page);
     await injectMinimalDiagnosis(page, 'l9-e2e-002');
@@ -147,7 +147,7 @@ test.describe('Phase 10 L9 — Export Contract v2.0 E2E', () => {
       return (window as any).__L9_GET_EXPORT_JSON__();
     });
 
-    expect(exportJson.exportContract?.version).toBe('2.0');
+    expect(exportJson.exportContract?.version).toBe('2.1');
 
     await page.screenshot({
       path: path.join(SCREENSHOT_DIR, '02_l9_version_validated.png'),
@@ -210,7 +210,7 @@ test.describe('Phase 10 L9 — Export Contract v2.0 E2E', () => {
     }, FAKE_REPORT);
 
     const nameOk = exportJson.exportContract?.name === 'aura-technical-export';
-    const versionOk = exportJson.exportContract?.version === '2.0';
+    const versionOk = exportJson.exportContract?.version === '2.1';
     const calibrationOk = exportJson.calibrationEvidence != null;
     const experimentOk = exportJson.experiment == null;
     const canonicalBlocks = exportJson.exportContract?.canonicalBlocks;
@@ -244,7 +244,7 @@ test.describe('Phase 10 L9 — Export Contract v2.0 E2E', () => {
       },
       validations: {
         exportContract_name_correct: { passed: nameOk, expected: 'aura-technical-export', actual: exportJson.exportContract?.name },
-        exportContract_version_correct: { passed: versionOk, expected: '2.0', actual: exportJson.exportContract?.version },
+        exportContract_version_correct: { passed: versionOk, expected: '2.1', actual: exportJson.exportContract?.version },
         calibrationEvidence_exists: { passed: calibrationOk, actual: calibrationOk ? 'present' : 'missing' },
         experiment_block_absent: { passed: experimentOk, actual: experimentOk ? 'absent' : 'present' },
         calibrationEvidence_canonical: { passed: hasCalibrationCanonical, actual: canonicalBlocks },

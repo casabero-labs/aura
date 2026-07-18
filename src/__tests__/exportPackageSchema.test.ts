@@ -9,8 +9,16 @@ interface SchemaNode {
   type?: string | string[];
   const?: unknown;
   enum?: unknown[];
+  oneOf?: SchemaNode[];
+  anyOf?: SchemaNode[];
   required?: string[];
   properties?: Record<string, SchemaNode>;
+  items?: SchemaNode | false;
+  pattern?: string;
+  minimum?: number;
+  maximum?: number;
+  minLength?: number;
+  additionalProperties?: boolean;
   contains?: SchemaNode;
   not?: SchemaNode;
 }
@@ -47,6 +55,67 @@ const property = (node: SchemaNode, name: string): SchemaNode => {
     throw new Error(`Schema property missing: ${name}`);
   }
   return value;
+};
+
+const validates = (inputNode: SchemaNode, value: unknown): boolean => {
+  const node = resolve(inputNode);
+
+  if (node.anyOf && !node.anyOf.some((branch) => validates(branch, value))) {
+    return false;
+  }
+  if (node.oneOf && node.oneOf.filter((branch) => validates(branch, value)).length !== 1) {
+    return false;
+  }
+  if (node.const !== undefined && value !== node.const) {
+    return false;
+  }
+  if (node.enum && !node.enum.includes(value)) {
+    return false;
+  }
+
+  const types = node.type ? (Array.isArray(node.type) ? node.type : [node.type]) : [];
+  if (types.length > 0) {
+    const matchesType = types.some((type) => {
+      if (type === 'null') return value === null;
+      if (type === 'array') return Array.isArray(value);
+      if (type === 'integer') return typeof value === 'number' && Number.isInteger(value);
+      if (type === 'number') return typeof value === 'number' && Number.isFinite(value);
+      if (type === 'object') return typeof value === 'object' && value !== null && !Array.isArray(value);
+      return typeof value === type;
+    });
+    if (!matchesType) {
+      return false;
+    }
+  }
+
+  if (typeof value === 'string') {
+    if (node.minLength !== undefined && value.length < node.minLength) return false;
+    if (node.pattern && !new RegExp(node.pattern).test(value)) return false;
+  }
+  if (typeof value === 'number') {
+    if (node.minimum !== undefined && value < node.minimum) return false;
+    if (node.maximum !== undefined && value > node.maximum) return false;
+  }
+  if (Array.isArray(value) && node.items) {
+    if (!value.every((item) => validates(node.items as SchemaNode, item))) return false;
+  }
+
+  const isObject = typeof value === 'object' && value !== null && !Array.isArray(value);
+  if (isObject && (node.properties || node.required || node.additionalProperties === false)) {
+    const record = value as Record<string, unknown>;
+    if (node.required?.some((name) => !(name in record))) return false;
+    if (node.properties) {
+      for (const [name, child] of Object.entries(node.properties)) {
+        if (name in record && !validates(child, record[name])) return false;
+      }
+      if (
+        node.additionalProperties === false
+        && Object.keys(record).some((name) => !(name in node.properties!))
+      ) return false;
+    }
+  }
+
+  return true;
 };
 
 const report: AuditReport = {
@@ -94,10 +163,10 @@ const exported = buildAuraExportPackage({
 });
 
 describe('aura-technical-export JSON Schema', () => {
-  it('declara JSON Schema 2020-12 e identifica el contrato 2.0', () => {
+  it('declara JSON Schema 2020-12 e identifica el contrato 2.1', () => {
     expect(schema.$schema).toBe('https://json-schema.org/draft/2020-12/schema');
     expect(schema.$id).toContain('aura-technical-export.schema.json');
-    expect(schema.title).toContain('AURA Technical Export 2.0');
+    expect(schema.title).toContain('AURA Technical Export 2.1');
   });
 
   it('valida las restricciones mínimas del paquete generado', () => {
@@ -121,6 +190,7 @@ describe('aura-technical-export JSON Schema', () => {
       'profile',
       'diagnosis',
       'script',
+      'remediationExecution',
       'calibrationEvidence',
     ]);
 
@@ -147,5 +217,41 @@ describe('aura-technical-export JSON Schema', () => {
     expect(serialized).not.toContain('production-ready');
     expect(serialized).not.toContain('mejor modelo');
     expect(serialized).not.toContain('ganador universal');
+  });
+
+  it('aplica oneOf fail-closed: reaudited vacío no satisface el schema 2.1', () => {
+    const remediation = property(schema, 'remediationExecution');
+    expect(remediation.oneOf).toHaveLength(5);
+    expect(validates(remediation, {
+      status: 'reaudited',
+      executionBundle: null,
+      pythonReceipt: null,
+      verification: null,
+      correctedDataset: null,
+      limitations: [],
+    })).toBe(false);
+    expect(validates(remediation, {
+      status: 'reaudited',
+      executionBundle: {},
+      pythonReceipt: {},
+      verification: {
+        contractId: 'aura.remediation-verification.v1',
+        contractVersion: '1.0.0',
+        executionId: 'execution:test',
+        executedAt: '2026-07-18T12:00:00.000Z',
+        before: { score: 80, issueCount: 2, rowCount: 10, columnCount: 3 },
+        after: { score: 90, issueCount: 1, rowCount: 10, columnCount: 3 },
+        findings: { resolved: [], persistent: [], new: [] },
+        outcome: 'improved',
+        limitations: [],
+      },
+      correctedDataset: {
+        sha256: 'a'.repeat(64),
+        rowCount: 10,
+        columnCount: 3,
+        includedInEvidenceArchive: false,
+      },
+      limitations: [],
+    })).toBe(true);
   });
 });

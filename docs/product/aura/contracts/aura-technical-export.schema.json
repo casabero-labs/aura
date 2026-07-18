@@ -1,9 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/casabero-labs/aura/main/docs/product/aura/contracts/aura-technical-export.schema.json",
-  "title": "AURA Technical Export 2.0",
-  "description": "Contrato estructural independiente para el paquete técnico exportado por AURA. Valida forma y compatibilidad, no la calidad ni la verdad de los resultados.",
-  "$comment": "El bloque raíz experiment fue reemplazado por calibrationEvidence y solo se conserva como referencia de migración.",
+  "title": "AURA Technical Export 2.1",
+  "description": "Contrato estructural independiente para el paquete técnico exportado por AURA. La versión 2.1 añade evidencia opcional de remediación verificable y conserva lectura histórica 2.0 en el validador de aplicación.",
+  "$comment": "El builder canónico produce 2.1. El validador de aplicación acepta 2.0 histórico sin remediationExecution; no existe un segundo builder legacy.",
   "type": "object",
   "required": [
     "exportContract",
@@ -13,6 +13,7 @@
     "diagnosticReport",
     "diagnosis",
     "script",
+    "remediationExecution",
     "calibrationEvidence"
   ],
   "not": {
@@ -37,7 +38,7 @@
           "const": "aura-technical-export"
         },
         "version": {
-          "const": "2.0"
+          "const": "2.1"
         },
         "generatedAt": {
           "type": "string",
@@ -45,8 +46,8 @@
         },
         "canonicalBlocks": {
           "type": "array",
-          "minItems": 6,
-          "maxItems": 6,
+          "minItems": 7,
+          "maxItems": 7,
           "prefixItems": [
             {
               "const": "artifactIdentity"
@@ -62,6 +63,9 @@
             },
             {
               "const": "script"
+            },
+            {
+              "const": "remediationExecution"
             },
             {
               "const": "calibrationEvidence"
@@ -310,6 +314,88 @@
       },
       "additionalProperties": false
     },
+    "remediationExecution": {
+      "type": "object",
+      "required": [
+        "status",
+        "executionBundle",
+        "pythonReceipt",
+        "verification",
+        "correctedDataset",
+        "limitations"
+      ],
+      "properties": {
+        "status": {
+          "enum": ["not_run", "prepared", "invalid", "verified", "reaudited"]
+        },
+        "executionBundle": { "type": ["object", "null"] },
+        "pythonReceipt": { "type": ["object", "null"] },
+        "verification": {
+          "anyOf": [
+            { "$ref": "#/$defs/remediationVerification" },
+            { "type": "null" }
+          ]
+        },
+        "correctedDataset": {
+          "anyOf": [
+            { "$ref": "#/$defs/correctedDataset" },
+            { "type": "null" }
+          ]
+        },
+        "limitations": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "status": { "const": "not_run" },
+            "executionBundle": { "type": "null" },
+            "pythonReceipt": { "type": "null" },
+            "verification": { "type": "null" },
+            "correctedDataset": { "type": "null" }
+          }
+        },
+        {
+          "properties": {
+            "status": { "const": "prepared" },
+            "executionBundle": { "type": "object" },
+            "pythonReceipt": { "type": "null" },
+            "verification": { "type": "null" },
+            "correctedDataset": { "type": "null" }
+          }
+        },
+        {
+          "properties": {
+            "status": { "const": "invalid" },
+            "executionBundle": { "type": ["object", "null"] },
+            "pythonReceipt": { "type": ["object", "null"] },
+            "verification": { "type": "null" },
+            "correctedDataset": { "type": "null" }
+          }
+        },
+        {
+          "properties": {
+            "status": { "const": "verified" },
+            "executionBundle": { "type": "object" },
+            "pythonReceipt": { "type": "object" },
+            "verification": { "type": "null" },
+            "correctedDataset": { "$ref": "#/$defs/correctedDataset" }
+          }
+        },
+        {
+          "properties": {
+            "status": { "const": "reaudited" },
+            "executionBundle": { "type": "object" },
+            "pythonReceipt": { "type": "object" },
+            "verification": { "$ref": "#/$defs/remediationVerification" },
+            "correctedDataset": { "$ref": "#/$defs/correctedDataset" }
+          }
+        }
+      ],
+      "additionalProperties": false
+    },
     "calibrationEvidence": {
       "type": "object",
       "required": [
@@ -349,6 +435,56 @@
   },
   "additionalProperties": false,
   "$defs": {
+    "correctedDataset": {
+      "type": "object",
+      "required": ["sha256", "rowCount", "columnCount", "includedInEvidenceArchive"],
+      "properties": {
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "rowCount": { "type": "integer", "minimum": 0 },
+        "columnCount": { "type": "integer", "minimum": 0 },
+        "includedInEvidenceArchive": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "remediationVerificationSummary": {
+      "type": "object",
+      "required": ["score", "issueCount", "rowCount", "columnCount"],
+      "properties": {
+        "score": { "type": "number", "minimum": 0, "maximum": 100 },
+        "issueCount": { "type": "integer", "minimum": 0 },
+        "rowCount": { "type": "integer", "minimum": 0 },
+        "columnCount": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "remediationVerification": {
+      "type": "object",
+      "required": [
+        "contractId", "contractVersion", "executionId", "executedAt",
+        "before", "after", "findings", "outcome", "limitations"
+      ],
+      "properties": {
+        "contractId": { "const": "aura.remediation-verification.v1" },
+        "contractVersion": { "const": "1.0.0" },
+        "executionId": { "type": "string", "minLength": 1 },
+        "executedAt": { "type": "string", "minLength": 1 },
+        "before": { "$ref": "#/$defs/remediationVerificationSummary" },
+        "after": { "$ref": "#/$defs/remediationVerificationSummary" },
+        "findings": {
+          "type": "object",
+          "required": ["resolved", "persistent", "new"],
+          "properties": {
+            "resolved": { "type": "array" },
+            "persistent": { "type": "array" },
+            "new": { "type": "array" }
+          },
+          "additionalProperties": false
+        },
+        "outcome": { "enum": ["improved", "unchanged", "worsened", "inconclusive"] },
+        "limitations": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": true
+    },
     "calibrationSummary": {
       "type": "object",
       "required": [

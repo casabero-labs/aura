@@ -172,13 +172,13 @@ async function injectDiagnosis(page: any) {
 }
 
 test.describe('Apply & Verify E2E', () => {
+  test.describe.configure({ mode: 'serial' });
   test('full flow: upload → script → review → execution → runner → verified → export → ZIP', async ({ page }) => {
     const errors: any[] = [];
     page.on('pageerror', (err) => { console.log('PAGE_CRASH:', err.message); errors.push(err); });
     page.on('console', (msg) => {
       if (msg.type() === 'error') console.log('CONSOLE_ERR:', msg.text());
     });
-
     // ── 1. Upload CSV ──────────────────────────────────────────────────
     await uploadCsv(page, SOURCE_CSV);
 
@@ -318,6 +318,7 @@ test.describe('Apply & Verify E2E', () => {
     await page.locator('[data-testid="apply-verify-continue"]').click();
     await page.waitForTimeout(1000);
     await page.locator('[data-testid="export-stage"]').waitFor({ state: 'visible', timeout: 15_000 });
+    await page.getByTestId('export-corrected-opt-in').getByRole('checkbox').check();
 
     // ── 9. Download and verify evidence ZIP ──────────────────────────
     const capturedWarnings: string[] = [];
@@ -347,11 +348,13 @@ test.describe('Apply & Verify E2E', () => {
 
     const expectedFiles = [
       'remediation/approved-script.py',
-      'execution/execution-bundle.json',
-      'execution/receipt.json',
-      'execution/corrected.csv',
-      'execution/reaudit-result.json',
-      'execution/before-after-summary.json',
+      'remediation/execution-bundle.json',
+      'remediation/python-execution-receipt.json',
+      'remediation/verification-result.json',
+      'remediation/corrected.csv',
+      'remediation/reaudit-before.json',
+      'remediation/reaudit-after.json',
+      'snapshots/remediation-verification.svg',
     ];
     for (const f of expectedFiles) {
       const fullPath = path.join(zipTmp, f);
@@ -381,9 +384,9 @@ test.describe('Apply & Verify E2E', () => {
     }
 
     // source.csv must NOT be present
-    expect(existsSync(path.join(zipTmp, 'execution/source.csv'))).toBe(false);
+    expect(existsSync(path.join(zipTmp, 'remediation/source.csv'))).toBe(false);
     // reaudit-result.json must not contain rawCsv / beforeOutput / afterOutput
-    const reauditResult = JSON.parse(readFileSync(path.join(zipTmp, 'execution/reaudit-result.json'), 'utf-8'));
+    const reauditResult = JSON.parse(readFileSync(path.join(zipTmp, 'remediation/reaudit-summary.json'), 'utf-8'));
     expect(reauditResult).not.toHaveProperty('rawCsv');
     expect(reauditResult).not.toHaveProperty('beforeOutput');
     expect(reauditResult).not.toHaveProperty('afterOutput');

@@ -5,6 +5,7 @@ import {
 } from '../contracts/llm';
 import type { buildAuraExportPackage } from './exportPackage';
 import type { VerifiedRemediationEvidence } from './remediationExecution/verifiedRemediationEvidence';
+import { sha256BytesHex } from '../contracts/llm/hash';
 
 export const AURA_EVIDENCE_PACKAGE_CONTRACT = 'aura.evidence-package.v1' as const;
 
@@ -16,6 +17,7 @@ export interface EvidenceArchiveInput {
   diagnosticPdf?: Uint8Array | null;
   activityLog?: Array<{ time: string; msg: string }>;
   verifiedExecution?: VerifiedRemediationEvidence | null;
+  includeCorrectedDataset?: boolean;
 }
 
 export interface EvidenceArchiveManifestFile {
@@ -115,13 +117,13 @@ const buildSnapshotSvg = (
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="${height}" viewBox="0 0 1200 ${height}">
   <style>
-    .bg { fill: #ffffff; }
-    .ink { fill: #20242b; font-family: Inter, Arial, sans-serif; }
-    .eyebrow { fill: #5b626d; font-family: "JetBrains Mono", monospace; font-size: 16px; letter-spacing: 3px; }
-    .title { fill: #20242b; font-family: Inter, Arial, sans-serif; font-size: 42px; font-weight: 700; }
-    .label { fill: #7b8490; font-family: "JetBrains Mono", monospace; font-size: 14px; letter-spacing: 1px; }
-    .value { fill: #20242b; font-family: Inter, Arial, sans-serif; font-size: 18px; }
-    .rule { stroke: #d8dce1; stroke-width: 1; }
+    .bg { fill: #FAF8F4; }
+    .ink { fill: #1E1E1C; font-family: Inter, Arial, sans-serif; }
+    .eyebrow { fill: #4A4540; font-family: "JetBrains Mono", monospace; font-size: 16px; letter-spacing: 3px; }
+    .title { fill: #1E1E1C; font-family: "Playfair Display", Georgia, serif; font-size: 42px; font-weight: 700; }
+    .label { fill: #4A4540; font-family: "JetBrains Mono", monospace; font-size: 14px; letter-spacing: 1px; }
+    .value { fill: #1E1E1C; font-family: Inter, Arial, sans-serif; font-size: 18px; }
+    .rule { stroke: #D8D2C8; stroke-width: 1; }
   </style>
   <rect class="bg" width="1200" height="${height}" />
   <text x="72" y="62" class="eyebrow">${escapeXml(eyebrow.toUpperCase())}</text>
@@ -148,6 +150,7 @@ export const buildEvidenceArchive = async ({
   diagnosticPdf = null,
   activityLog = [],
   verifiedExecution = null,
+  includeCorrectedDataset = false,
 }: EvidenceArchiveInput): Promise<EvidenceArchiveResult> => {
   const files: Record<string, PendingFile> = {};
   const identity = technicalExport.artifactIdentity;
@@ -169,8 +172,15 @@ export const buildEvidenceArchive = async ({
     && verifiedExecution.reaudit
     && verifiedExecution.reaudit.beforeReport
     && verifiedExecution.reaudit.afterReport
-    && verifiedExecution.beforeAfterSummary,
+    && verifiedExecution.beforeAfterSummary
+    && technicalExport.remediationExecution.status === 'reaudited'
+    && technicalExport.remediationExecution.verification?.pythonReceiptHash === verifiedExecution?.receipt.receiptHash
+    && technicalExport.remediationExecution.verification?.executionBundleHash === verifiedExecution?.bundle.bundleHash
+    && technicalExport.remediationExecution.correctedDataset?.sha256 === verifiedExecution?.verification.correctedDatasetSha256
+    && technicalExport.remediationExecution.correctedDataset?.includedInEvidenceArchive === includeCorrectedDataset
+    && sha256BytesHex(verifiedExecution?.correctedCsv ?? new Uint8Array()) === verifiedExecution?.verification.correctedDatasetSha256
   );
+  const includesCorrectedDataset = hasVerifiedExecution && includeCorrectedDataset;
 
   const readme = [
     '# AURA - Paquete completo de evidencia',
@@ -189,12 +199,21 @@ export const buildEvidenceArchive = async ({
     '## Datasets',
     '',
     '- El CSV original (source.csv) NO está incluido en este ZIP; solo se conserva su SHA-256.',
-    hasVerifiedExecution
-      ? '- corrected.csv SÍ está incluido en execution/ porque esta corrida tiene ejecución Python y reauditoría verificadas.'
-      : '- corrected.csv NO está incluido: esta corrida no completó una ejecución Python + reauditoría verificadas.',
+    includesCorrectedDataset
+      ? '- corrected.csv SÍ está incluido en remediation/ por decisión explícita y porque la corrida tiene ejecución Python y reauditoría verificadas.'
+      : hasVerifiedExecution
+        ? '- corrected.csv NO está incluido porque no se activó la opción explícita de incluir datos potencialmente personales.'
+        : '- corrected.csv NO está incluido: esta corrida no completó una ejecución Python + reauditoría verificadas.',
     '- corrected.csv es el resultado de la remediación y puede conservar datos personales (PII); trátalo con el mismo cuidado que el original antes de compartirlo.',
     '',
   ].join('\n');
+
+  if (verifiedExecution && !hasVerifiedExecution) {
+    throw new Error('La evidencia de remediación no coincide con la cadena certificada del paquete técnico.');
+  }
+  if (technicalExport.remediationExecution.status === 'reaudited' && !verifiedExecution) {
+    throw new Error('El paquete declara reauditoría, pero faltan los artefactos en memoria para construir el ZIP.');
+  }
 
   addFile(files, 'README.md', readme, 'text/markdown', 'Guía humana y alcance de privacidad del expediente.');
   addFile(files, 'technical/aura-technical-export.json', json(technicalExport), 'application/json', 'Fuente técnica consolidada de la sesión.');
@@ -235,6 +254,13 @@ export const buildEvidenceArchive = async ({
   addFile(files, 'remediation/remediation-plan.json', script.remediationPlan ? json(script.remediationPlan) : null, 'application/json', 'Plan con decisiones humanas por acción.');
   addFile(files, 'remediation/script-contract.json', script.contract ? json(script.contract) : null, 'application/json', 'Contrato canónico del script, partición e identidad.');
   addFile(files, 'remediation/script-verification.json', script.verification ? json(script.verification) : null, 'application/json', 'Resultado de la verificación fresca del contrato.');
+  addFile(
+    files,
+    'remediation/STATUS.md',
+    `# Estado de remediación\n\nEstado: ${technicalExport.remediationExecution.status}\n\n${technicalExport.remediationExecution.limitations.join('\n')}\n`,
+    'text/markdown',
+    'Estado explícito de la rama opcional de remediación.',
+  );
   const scriptPath = script.approvalStatus === 'approved'
     ? 'remediation/approved-script.py'
     : 'remediation/reviewed-script-unverified.py';
@@ -252,11 +278,24 @@ export const buildEvidenceArchive = async ({
       beforeReport: verifiedExecution.reaudit.beforeReport,
       afterReport: verifiedExecution.reaudit.afterReport,
     };
-    addFile(files, 'execution/execution-bundle.json', json(verifiedExecution.bundle), 'application/json', 'Bundle determinista aprobado y ejecutado en Python.');
-    addFile(files, 'execution/receipt.json', json(verifiedExecution.receipt), 'application/json', 'Recibo criptográfico de la ejecución Python verificada.');
-    addFile(files, 'execution/corrected.csv', verifiedExecution.correctedCsv, 'text/csv', 'Dataset corregido resultante de la ejecución verificada; puede contener PII.');
-    addFile(files, 'execution/reaudit-result.json', json(reauditResult), 'application/json', 'Reauditoría determinista: summary, output y reportes before/after sin datos crudos.');
-    addFile(files, 'execution/before-after-summary.json', json(verifiedExecution.beforeAfterSummary), 'application/json', 'Comparación score/hallazgos antes y después de la remediación.');
+    addFile(files, 'remediation/execution-bundle.json', json(verifiedExecution.bundle), 'application/json', 'Bundle determinista aprobado y ejecutado en Python.');
+    addFile(files, 'remediation/python-execution-receipt.json', json(verifiedExecution.receipt), 'application/json', 'Recibo criptográfico de la ejecución Python verificada.');
+    addFile(files, 'remediation/verification-result.json', json(verifiedExecution.verification), 'application/json', 'Resultado canónico de verificación y clasificación antes/después.');
+    addFile(files, 'remediation/reaudit-before.json', json(verifiedExecution.reaudit.beforeReport), 'application/json', 'Reporte determinista anterior a la remediación.');
+    addFile(files, 'remediation/reaudit-after.json', json(verifiedExecution.reaudit.afterReport), 'application/json', 'Reporte determinista posterior a la remediación.');
+    addFile(files, 'remediation/reaudit-summary.json', json(reauditResult), 'application/json', 'Resumen de reauditoría sin datos CSV crudos.');
+    addFile(files, 'remediation/before-after-summary.json', json(verifiedExecution.beforeAfterSummary), 'application/json', 'Comparación score/hallazgos antes y después de la remediación.');
+    if (includeCorrectedDataset) {
+      addFile(files, 'remediation/corrected.csv', verifiedExecution.correctedCsv, 'text/csv', 'Dataset corregido incluido por acción explícita; puede contener PII.');
+    }
+    addFile(files, 'snapshots/remediation-verification.svg', buildSnapshotSvg('Remediación', 'Verificación antes / después', [
+      ['Estado', verifiedExecution.verification.outcome],
+      ['Score', `${verifiedExecution.verification.before.score} → ${verifiedExecution.verification.after.score}`],
+      ['Hallazgos', `${verifiedExecution.verification.before.issueCount} → ${verifiedExecution.verification.after.issueCount}`],
+      ['Bundle', verifiedExecution.verification.executionBundleHash],
+      ['Recibo Python', verifiedExecution.verification.pythonReceiptHash],
+      ['CSV corregido', verifiedExecution.verification.correctedDatasetSha256],
+    ]), 'image/svg+xml', 'Vista vectorial reproducible de la verificación de remediación.');
   }
 
   const report = isRecord(technicalExport.diagnosticReport) ? technicalExport.diagnosticReport : null;
@@ -313,9 +352,9 @@ export const buildEvidenceArchive = async ({
     diagnosisReceiptHash: identity.diagnosisReceiptHash,
     privacy: {
       rawDatasetIncluded: false,
-      correctedDatasetIncluded: hasVerifiedExecution,
-      correctedDatasetMayContainPersonalData: hasVerifiedExecution,
-      note: hasVerifiedExecution
+      correctedDatasetIncluded: includesCorrectedDataset,
+      correctedDatasetMayContainPersonalData: includesCorrectedDataset,
+      note: includesCorrectedDataset
         ? 'El CSV original permanece fuera del ZIP; su identidad se verifica mediante datasetSha256. Se incluye corrected.csv de una ejecución verificada, que puede conservar datos personales (PII). El expediente puede conservar muestras visibles de la evidencia.'
         : 'El CSV original permanece fuera del ZIP; su identidad se verifica mediante datasetSha256. El expediente puede conservar muestras visibles de la evidencia.',
     },
