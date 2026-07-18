@@ -15134,7 +15134,7 @@ textarea:focus {
   width: 30px;
   height: 30px;
   display: block;
-  stroke-width: 2;
+  stroke-width: 1.55;
 }
 
 .theme-toggle {
@@ -15912,6 +15912,25 @@ textarea:focus {
   .reaudit-trust-chain dl { grid-template-columns: minmax(0, 1fr); }
   .reaudit-trust-chain dl > div { border-right: 0; border-bottom: 1px solid var(--border); }
   .reaudit-trust-chain dl > div:last-child { border-bottom: 0; }
+}
+
+/* Home primary action follows the Casabero lg outline/light contract. */
+.home-actions .btn-p.btn--lg {
+  width: fit-content;
+  min-width: 120px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0 22px;
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--ink);
+  border-radius: var(--radius-sm);
+  box-shadow: none;
+}
+
+.home-actions .btn-p.btn--lg:hover:not(:disabled) {
+  background: var(--surface-hover);
+  opacity: 1;
 }
 .oe4-evaluation-strip { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 1px; margin-top: var(--space-sm); border: 1px solid var(--border); background: var(--border); }
 .oe4-evaluation-strip > div { padding: 10px; background: var(--bg); }

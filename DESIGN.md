@@ -46,6 +46,8 @@ rounded:
   lg: 12px
   xl: 16px
 components:
+  brand-mark: "Tres elipses sin glifo central, fill none y stroke currentColor 1.55"
+  primary-outline-lg: "CTA Home transparente, texto y borde ink, radio 6px, alto 44px, ancho minimo 120px y width fit-content"
   shell: "Header sticky, main centrado, secciones de trabajo sin landing comercial"
   upload: "Dropzone tecnico con alternativa de seleccion y estado visible"
   profile: "Bloques Archive para caracterizacion, reglas y evidencia"
@@ -81,6 +83,8 @@ Botones 6px, inputs 8px, cards/paneles 10-12px y drawers 16px. No usar botones t
 
 # Components
 
+- `AuraMark`: marca Casabero de exactamente tres elipses del mismo color, sin centro, glifo ni formas adicionales; usa `currentColor` y `stroke-width: 1.55`.
+- `home-actions .btn-p.btn--lg`: primary outline/light exclusivo del CTA `Empezar auditoría`; fondo transparente, texto y borde `--ink`, radio 6px, alto 44px, ancho mínimo 120px y `width: fit-content`.
 - `sys-nav`: header sticky sobrio, sin blur.
 - `file-drop`: entrada local-first con estado y alternativa de teclado.
 - `profile-block`: agrupacion Archive del perfil determinista.
