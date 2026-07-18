@@ -16,6 +16,7 @@ import AuditLogViewer from './components/AuditLogViewer';
 import SettingsPanel from './components/SettingsPanel';
 import HelpCenter from './components/HelpCenter';
 import ProgressDisclosure from './components/ProgressDisclosure';
+import AuraMark from './components/AuraMark';
 import MainPipeline, { PipelineData } from './components/MainPipeline';
 import { loadFromApi, syncToApi } from './services/api';
 import { createAIProvider } from './services/aiProvider';
@@ -765,17 +766,7 @@ const App: React.FC = () => {
         {/* Bloque Izquierdo: Branding */}
         <div className="nav-brand" onClick={goHome} aria-label="Ir al inicio">
           <span className="nav-logo-mark nav-logo-mark--visible" aria-hidden="true">
-            <svg className="aura-mark aura-data-mark" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="10" y="10" width="44" height="44" rx="8" />
-              <path d="M20 44V32" />
-              <path d="M32 44V24" />
-              <path d="M44 44V18" />
-              <path d="M18 24l10 6 8-10 10 6" />
-              <circle cx="18" cy="24" r="1.8" fill="currentColor" stroke="none" />
-              <circle cx="28" cy="30" r="1.8" fill="currentColor" stroke="none" />
-              <circle cx="36" cy="20" r="1.8" fill="currentColor" stroke="none" />
-              <circle cx="46" cy="26" r="1.8" fill="currentColor" stroke="none" />
-            </svg>
+            <AuraMark />
           </span>
           <span className="nav-logo">AURA</span>
         </div>

@@ -8,8 +8,74 @@ const fixtureCsv = path.resolve(__dirname, '../../../experiments/datasets/synthe
 const screenshotDir = path.resolve(__dirname, '../../../docs/qa');
 const regressionDir = path.resolve(__dirname, '../../../docs/qa/ui-regression-2026-06-15');
 const aestheticDir = path.resolve(__dirname, '../../../docs/qa/casabero-aesthetic-reset-2026-06-15');
+const brandDir = path.resolve(__dirname, '../../../docs/qa/aura-ux-brand-issue-40');
 
 test.describe('AURA QA — Human-first screenshots', () => {
+  test('Issue #40 — Home brand and CTA in light/dark desktop/mobile', async ({ page }) => {
+    fs.mkdirSync(brandDir, { recursive: true });
+    const consoleErrors: string[] = [];
+    page.on('console', (message) => {
+      if (message.type() === 'error') consoleErrors.push(message.text());
+    });
+
+    const cases = [
+      { name: 'light-desktop', theme: 'light', width: 1440, height: 900 },
+      { name: 'dark-desktop', theme: 'dark', width: 1440, height: 900 },
+      { name: 'light-mobile', theme: 'light', width: 390, height: 844 },
+      { name: 'dark-mobile', theme: 'dark', width: 390, height: 844 },
+    ] as const;
+
+    for (const scenario of cases) {
+      consoleErrors.length = 0;
+      await page.setViewportSize({ width: scenario.width, height: scenario.height });
+      await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 60_000 });
+      await page.evaluate((theme) => {
+        localStorage.setItem('aura_theme', theme);
+      }, scenario.theme);
+      await page.reload({ waitUntil: 'domcontentloaded' });
+
+      const mark = page.locator('.nav-brand .aura-mark');
+      const cta = page.getByRole('button', { name: 'Empezar auditoría' });
+      await expect(mark).toBeVisible();
+      await expect(cta).toBeVisible();
+      await expect(mark.locator('ellipse')).toHaveCount(3);
+      await expect(mark.locator('rect, path, circle, polygon, polyline, line')).toHaveCount(0);
+
+      const styles = await cta.evaluate((element) => {
+        const computed = getComputedStyle(element);
+        const inkProbe = document.createElement('span');
+        inkProbe.style.color = 'var(--ink)';
+        document.body.appendChild(inkProbe);
+        const ink = getComputedStyle(inkProbe).color;
+        inkProbe.remove();
+        return {
+          backgroundColor: computed.backgroundColor,
+          borderColor: computed.borderTopColor,
+          borderRadius: computed.borderRadius,
+          color: computed.color,
+          height: computed.height,
+          ink,
+          minWidth: computed.minWidth,
+          overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        };
+      });
+
+      expect(styles.backgroundColor).toBe('rgba(0, 0, 0, 0)');
+      expect(styles.color).toBe(styles.ink);
+      expect(styles.borderColor).toBe(styles.ink);
+      expect(styles.borderRadius).toBe('6px');
+      expect(styles.height).toBe('44px');
+      expect(styles.minWidth).toBe('120px');
+      expect(styles.overflow).toBeLessThanOrEqual(0);
+      expect(consoleErrors).toEqual([]);
+
+      await page.screenshot({
+        path: path.join(brandDir, `${scenario.name}.png`),
+        fullPage: false,
+      });
+    }
+  });
+
   test('Desktop 1280x900 — flujo completo con screenshots', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto('/', { waitUntil: 'commit', timeout: 60_000 });
