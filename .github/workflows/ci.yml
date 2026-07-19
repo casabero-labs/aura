@@ -38,7 +38,10 @@ jobs:
           if-no-files-found: error
 
       - name: Diagnosis V2.5-C focused tests
-        run: npm test -- diagnosisEvidenceIdentityV1.test.ts diagnosisV2_5Projection.test.ts
+        run: npm test -- diagnosisEvidenceIdentityV1.test.ts diagnosisV2_5Projection.test.ts formalDiagnosisV2_5.test.ts
+
+      - name: Diagnosis regression tests
+        run: npm test -- diagnosis
 
       - name: Build
         run: npm run build
