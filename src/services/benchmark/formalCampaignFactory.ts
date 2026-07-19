@@ -1,9 +1,10 @@
 import type { AuditExecutionEvidence, AuditReport } from '../../types';
 import { _buildEvidenceEnvelopeV2, type AuditReportInput } from '../../contracts/llm/evidenceEnvelopeV2';
-import { buildDiagnosisInputPackageV2 } from '../../contracts/llm/diagnosisInputPackageV2';
+import { buildDiagnosisInputPackageV2_5 } from '../../contracts/llm/diagnosisInputPackageV2_5';
+import type { DiagnosisInputPackageV2_5 } from '../../contracts/llm/diagnosisEvidenceIdentityV1';
 import { canonicalJson } from '../../contracts/llm/diagnosisPromptV2';
 import { sha256hex } from '../../contracts/llm/hash';
-import type { DiagnosisInputPackageV2, EvidenceEnvelopeV2, InferenceSnapshotV1 } from '../../contracts/llm/types';
+import type { EvidenceEnvelopeV2, InferenceSnapshotV1 } from '../../contracts/llm/types';
 import { FINAL_EVALUATION_PROTOCOL, type OE4ModelId } from './finalEvaluationProtocol';
 import { buildExperimentSchedule } from './experimentSchedule';
 import type {
@@ -95,11 +96,8 @@ const fetchOllamaPreflight = async (baseUrl: string): Promise<{
 };
 
 const cloneInputSnapshot = (
-  pkg: DiagnosisInputPackageV2,
-): DiagnosisInputPackageV2 => ({
-  ...pkg,
-  includedSections: [...pkg.includedSections],
-});
+  pkg: DiagnosisInputPackageV2_5,
+): DiagnosisInputPackageV2_5 => structuredClone(pkg);
 
 export const createFormalCampaignBundle = async (input: {
   report: AuditReport;
@@ -138,8 +136,8 @@ export const createFormalCampaignBundle = async (input: {
   const campaignId = `campaign:oe4:v2:${createdAt.replace(/[^0-9]/g, '')}`;
   const inputs = Object.fromEntries(FINAL_EVALUATION_PROTOCOL.inputModes.map((mode) => [
     mode,
-    cloneInputSnapshot(buildDiagnosisInputPackageV2(input.report, evidenceEnvelope, mode)),
-  ])) as Record<(typeof FINAL_EVALUATION_PROTOCOL.inputModes)[number], DiagnosisInputPackageV2>;
+    cloneInputSnapshot(buildDiagnosisInputPackageV2_5(input.report, evidenceEnvelope, mode)),
+  ])) as Record<(typeof FINAL_EVALUATION_PROTOCOL.inputModes)[number], DiagnosisInputPackageV2_5>;
   const runs = schedule.units.map((unit): ExperimentRunV1 => {
     const environment: EnvironmentSnapshotV1 = {
       contractId: 'aura.environment-snapshot.v1',
@@ -160,9 +158,6 @@ export const createFormalCampaignBundle = async (input: {
       model: {
         id: unit.modelId,
         quantization: 'UD-Q4_K_XL',
-        // The campaign freezes the digest reported by the installed Ollama
-        // model at creation time; AURA does not compare against a machine-
-        // specific digest hardcoded in the application.
         expectedGgufSha256: preflight.digests[unit.modelId],
         localDigest: preflight.digests[unit.modelId],
       },

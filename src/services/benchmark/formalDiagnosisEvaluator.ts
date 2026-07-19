@@ -6,7 +6,7 @@ import {
   type DiagnosticOracleV1,
   type PredictedDiagnosticFinding,
 } from './diagnosticOracleEvaluator';
-import { extractFormalDiagnosisEvidence } from './formalDiagnosisEvidence';
+import { extractCompatibleFormalDiagnosisEvidence } from './formalDiagnosisEvidenceV2_5';
 
 const oracle = diagnosticOracleJson as DiagnosticOracleV1;
 
@@ -16,12 +16,17 @@ export const evaluateFormalDiagnosisRun = (
   evaluatedAt = new Date().toISOString(),
 ): AutomaticEvaluationV1 => {
   if (run.diagnosis?.status !== 'completed') throw new Error('No se puede evaluar un diagnóstico incompleto.');
-  const diagnosis = run.diagnosis.parsedOutput as DiagnosisResponseV2;
-  const evidence = extractFormalDiagnosisEvidence(diagnosis, envelope, run, run.executionReceipt ?? null);
-  const issueById = new Map(diagnosis.issues.map((issue) => [issue.issueId, issue]));
+  const rawDiagnosis = run.diagnosis.parsedOutput as DiagnosisResponseV2;
+  const { evidence, resolvedDiagnosis } = extractCompatibleFormalDiagnosisEvidence(
+    rawDiagnosis,
+    envelope,
+    run,
+    run.executionReceipt ?? null,
+  );
+  const issueById = new Map(resolvedDiagnosis.issues.map((issue) => [issue.issueId, issue]));
   const columnNameById = new Map(envelope.columns.map((column) => [column.columnId, column.name]));
 
-  const predictions: PredictedDiagnosticFinding[] = diagnosis.diagnosisBlocks.map((block) => ({
+  const predictions: PredictedDiagnosticFinding[] = resolvedDiagnosis.diagnosisBlocks.map((block) => ({
     ruleId: block.ruleId,
     columnId: block.columnId === null ? null : columnNameById.get(block.columnId) ?? block.columnId,
     scope: block.scope,
@@ -43,7 +48,7 @@ export const evaluateFormalDiagnosisRun = (
     predictions,
     contractCompliant: evidence.contract.contractCompliant,
     contractErrors: evidence.contract.contractErrors,
-    unsupportedClaims: evidence.unsupportedClaims.map((c) => `${c.field}: ${c.text}`),
+    unsupportedClaims: evidence.unsupportedClaims.map((claim) => `${claim.field}: ${claim.text}`),
   });
 
   return {

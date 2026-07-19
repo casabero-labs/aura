@@ -79,10 +79,35 @@ export type {
 } from './types';
 
 export {
-  buildDiagnosisInputPackageV2,
+  buildDiagnosisInputPackageV2 as buildDiagnosisInputPackageV2Legacy,
   DIAGNOSIS_INCLUDED_SECTIONS_BY_MODE,
   exactDiagnosisPromptV2,
 } from './diagnosisInputPackageV2';
+
+export {
+  buildDiagnosisInputPackageV2_5 as buildDiagnosisInputPackageV2,
+  buildDiagnosisInputPackageV2_5,
+  validateDiagnosisInputSnapshotIntegrityV2_5,
+  DIAGNOSIS_PROMPT_VERSION_V2_5,
+} from './diagnosisInputPackageV2_5';
+
+export {
+  EVIDENCE_ALIAS_CONTRACT_V1,
+  EVIDENCE_ALIAS_MAP_CONTRACT_V1,
+  buildStableEvidenceRefV1,
+  buildEvidenceAliasMapV1,
+  buildEvidenceAliasMapHashV1,
+  buildResolvedCitationsHashV1,
+  isDiagnosisInputPackageV2_5,
+  resolveDiagnosisEvidenceAliasesV1,
+} from './diagnosisEvidenceIdentityV1';
+export type {
+  DiagnosisInputPackageV2_5,
+  EvidenceAliasEntryV1,
+  EvidenceAliasMapV1,
+  EvidenceAliasResolutionV1,
+  ResolvedEvidenceCitationV1,
+} from './diagnosisEvidenceIdentityV1';
 
 export {
   buildExecutionReceiptV1,
@@ -184,9 +209,9 @@ export {
 } from './diagnosisV2Errors';
 
 export {
-  processDiagnosisResponseV2,
-  runDiagnosisPipeline,
-  diagnoseWithV2,
+  processDiagnosisResponseV2 as processDiagnosisResponseV2Legacy,
+  runDiagnosisPipeline as runDiagnosisPipelineLegacy,
+  diagnoseWithV2 as diagnoseWithV2Legacy,
 } from './diagnosisPipelineV2';
 export type {
   DiagnosisAdapter,
@@ -194,6 +219,19 @@ export type {
   DiagnosisPipelineFailure,
   DiagnosisPipelineOutcome,
 } from './diagnosisPipelineV2';
+
+export {
+  processDiagnosisResponseV2_5 as processDiagnosisResponseV2,
+  processDiagnosisResponseV2_5,
+  runDiagnosisPipelineV2_5 as runDiagnosisPipeline,
+  runDiagnosisPipelineV2_5,
+  diagnoseWithV2_5 as diagnoseWithV2,
+  diagnoseWithV2_5,
+} from './diagnosisProjectedPipelineV2_5';
+export type {
+  DiagnosisPipelineOutcomeV2_5,
+  ProjectedDiagnosisPipelineEvidenceV1,
+} from './diagnosisProjectedPipelineV2_5';
 
 export {
   normalizeHumanReview,
@@ -214,8 +252,12 @@ export type {
 } from './humanReviewNormalizerV2';
 
 export {
-  runStructuredDiagnosis,
+  runStructuredDiagnosis as runStructuredDiagnosisLegacy,
 } from './diagnosisSelector';
+export {
+  runStructuredDiagnosisV2_5 as runStructuredDiagnosis,
+  runStructuredDiagnosisV2_5,
+} from './diagnosisSelectorV2_5';
 export type {
   StructuredDiagnosisResult,
   StructuredDiagnosisFailure,

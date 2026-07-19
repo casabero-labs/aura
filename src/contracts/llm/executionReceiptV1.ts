@@ -1,6 +1,11 @@
 import { sha256hex } from './hash';
 import { canonicalJson } from './diagnosisPromptV2';
 import { exactDiagnosisPromptV2 } from './diagnosisInputPackageV2';
+import {
+  isDiagnosisInputPackageV2_5,
+  resolveDiagnosisEvidenceAliasesV1,
+} from './diagnosisEvidenceIdentityV1';
+import { parseDiagnosisResponseV2 } from './diagnosisParserV2';
 import type {
   DiagnosisInputPackageV2,
   ExecutionReceiptV1,
@@ -30,6 +35,8 @@ export interface BuildExecutionReceiptInput {
   rawResponse: string;
   validationStatus: ExecutionReceiptV1['validationStatus'];
   validationErrorCodes?: string[];
+  /** Optional externally computed hash. When provided it must match AURA's derivation. */
+  resolvedCitationsHash?: string;
   /**
    * AURA-CIERRE-DETERMINISTIC-HITL-02-R2 — raw validation result before
    * governance normalization. When absent, defaults to the same values as
@@ -41,6 +48,42 @@ export interface BuildExecutionReceiptInput {
   normalizationApplied?: boolean;
 }
 
+const assertSha256 = (value: string, field: string): void => {
+  if (!/^[a-f0-9]{64}$/.test(value)) {
+    throw new Error(`${field} must be a lowercase 64-character SHA-256.`);
+  }
+};
+
+const deriveResolvedCitationsHash = (
+  source: BuildExecutionReceiptInput,
+): string | undefined => {
+  if (!isDiagnosisInputPackageV2_5(source.input)) {
+    return source.resolvedCitationsHash;
+  }
+  if (source.validationStatus !== 'valid') {
+    return source.resolvedCitationsHash;
+  }
+
+  const parsed = parseDiagnosisResponseV2(source.rawResponse);
+  if (!parsed.success) {
+    throw new Error('V2_5_VALID_RECEIPT_REQUIRES_PARSEABLE_RAW_RESPONSE: raw response could not be parsed.');
+  }
+  const resolution = resolveDiagnosisEvidenceAliasesV1(
+    parsed.response,
+    source.input.evidenceAliasMap,
+  );
+  if (resolution.errors.length > 0) {
+    throw new Error(`V2_5_VALID_RECEIPT_REQUIRES_RESOLVABLE_ALIASES: ${resolution.errors[0]?.message ?? 'alias resolution failed'}`);
+  }
+  if (
+    source.resolvedCitationsHash !== undefined
+    && source.resolvedCitationsHash !== resolution.resolvedCitationsHash
+  ) {
+    throw new Error('V2_5_RESOLVED_CITATIONS_HASH_MISMATCH: supplied hash differs from deterministic resolution.');
+  }
+  return resolution.resolvedCitationsHash;
+};
+
 export const buildExecutionReceiptV1 = (source: BuildExecutionReceiptInput): ExecutionReceiptV1 => {
   if (source.requestedInputMode !== source.input.inputMode) {
     throw new Error('TRACE_INPUT_MODE_MISMATCH: requested and effective input modes differ.');
@@ -51,6 +94,10 @@ export const buildExecutionReceiptV1 = (source: BuildExecutionReceiptInput): Exe
   if (sha256hex(source.exactPrompt) !== source.input.promptHash) {
     throw new Error('TRACE_PROMPT_HASH_MISMATCH: prompt hash does not match exact prompt.');
   }
+  if (source.resolvedCitationsHash !== undefined) {
+    assertSha256(source.resolvedCitationsHash, 'resolvedCitationsHash');
+  }
+  const resolvedCitationsHash = deriveResolvedCitationsHash(source);
   const rawValidStatus = source.rawValidationStatus;
   const rawErrorCodes = source.rawValidationErrorCodes;
 
@@ -76,6 +123,17 @@ export const buildExecutionReceiptV1 = (source: BuildExecutionReceiptInput): Exe
     throw new Error('INVALID_RAW_WITHOUT_NORMALIZATION: rawValidationStatus cannot be "invalid" unless normalizationApplied is true.');
   }
 
+  const aliasTrace = isDiagnosisInputPackageV2_5(source.input)
+    ? {
+        evidenceAliasContract: source.input.evidenceAliasContract,
+        evidenceAliasMapHash: source.input.evidenceAliasMapHash,
+        projectionHash: source.input.projectionHash,
+        ...(resolvedCitationsHash !== undefined
+          ? { resolvedCitationsHash }
+          : {}),
+      }
+    : {};
+
   const stable: Omit<ExecutionReceiptV1, 'receiptHash'> = {
     contractId: 'aura.execution-receipt.v1',
     contractVersion: '1.0.0',
@@ -87,6 +145,7 @@ export const buildExecutionReceiptV1 = (source: BuildExecutionReceiptInput): Exe
     promptHash: source.input.promptHash,
     inputHash: source.input.inputHash,
     responseSchemaHash: source.input.responseSchemaHash,
+    ...aliasTrace,
     provider: source.provider,
     requestedModel: source.requestedModel,
     observedModel: source.observedModel,
@@ -111,6 +170,9 @@ export const buildExecutionReceiptV1 = (source: BuildExecutionReceiptInput): Exe
     if (source.requestedModel.trim() === '' || source.requestedModel !== source.observedModel) {
       throw new Error('VALID_RECEIPT_REQUIRES_MODEL_MATCH: requestedModel and observedModel must match.');
     }
+    if (isDiagnosisInputPackageV2_5(source.input) && !resolvedCitationsHash) {
+      throw new Error('V2_5_VALID_RECEIPT_REQUIRES_RESOLVED_CITATIONS_HASH: valid alias-aware receipts must certify citation resolution.');
+    }
   }
   if (source.validationStatus === 'invalid') {
     if ((source.validationErrorCodes ?? []).length === 0) {
@@ -134,6 +196,19 @@ export const validateExecutionReceiptIntegrityV1 = (
   if (receipt.promptHash !== input.promptHash || receipt.promptHash !== sha256hex(exactPrompt)) errors.push('prompt hash mismatch');
   if (receipt.inputHash !== input.inputHash) errors.push('input hash mismatch');
   if (receipt.responseSchemaHash !== input.responseSchemaHash) errors.push('response schema hash mismatch');
+
+  if (isDiagnosisInputPackageV2_5(input)) {
+    if (receipt.evidenceAliasContract !== input.evidenceAliasContract) errors.push('evidence alias contract mismatch');
+    if (receipt.evidenceAliasMapHash !== input.evidenceAliasMapHash) errors.push('evidence alias map hash mismatch');
+    if (receipt.projectionHash !== input.projectionHash) errors.push('projection hash mismatch');
+    if (receipt.resolvedCitationsHash !== undefined && !/^[a-f0-9]{64}$/.test(receipt.resolvedCitationsHash)) {
+      errors.push('resolved citations hash is invalid');
+    }
+    if (receipt.validationStatus === 'valid' && !receipt.resolvedCitationsHash) {
+      errors.push('valid alias-aware receipt requires a resolved citations hash');
+    }
+  }
+
   const { receiptHash, ...stable } = receipt;
   if (receiptHash !== sha256hex(canonicalJson(receiptPayload(stable)))) errors.push('receipt hash mismatch');
 

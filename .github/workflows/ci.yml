@@ -26,5 +26,48 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Typecheck
+        run: set -o pipefail; npm run typecheck 2>&1 | tee typecheck.log
+
+      - name: Upload typecheck diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnosis-v2-5-c-typecheck
+          path: ./src/typecheck.log
+          if-no-files-found: error
+
+      - name: Diagnosis V2.5-C focused tests
+        run: set -o pipefail; npm test -- diagnosisEvidenceIdentityV1.test.ts diagnosisV2_5Projection.test.ts diagnosisV2_5Trace.test.ts diagnosisV2_5Comparison.test.ts formalDiagnosisV2_5.test.ts 2>&1 | tee diagnosis-v2-5-c-tests.log
+
+      - name: Upload focused test diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnosis-v2-5-c-tests
+          path: ./src/diagnosis-v2-5-c-tests.log
+          if-no-files-found: error
+
+      - name: Verify Diagnosis V2.5-C structural comparison
+        run: npm run diagnosis:v2.5-comparison -- --check ../docs/product/aura/evidence/diagnosis-v2.5/diagnosis-v2-5-c-comparison.json --output ./diagnosis-v2-5-c-comparison.json
+
+      - name: Upload Diagnosis V2.5-C comparison
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnosis-v2-5-c-comparison
+          path: ./src/diagnosis-v2-5-c-comparison.json
+          if-no-files-found: error
+
+      - name: Diagnosis regression tests
+        run: set -o pipefail; npm test -- diagnosis --exclude __tests__/controlledDatasetDiagnosisInputs.test.ts --exclude __tests__/formalDiagnosisEvaluator.test.ts 2>&1 | tee diagnosis-regression-tests.log
+
+      - name: Upload regression diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnosis-regression-tests
+          path: ./src/diagnosis-regression-tests.log
+          if-no-files-found: error
+
       - name: Build
         run: npm run build

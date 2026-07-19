@@ -1,0 +1,111 @@
+{
+  "contractId": "aura.diagnosis-v2.5-comparison.v1",
+  "contractVersion": "1.0.0",
+  "fixtureHash": "4320edb48e9d5627dc4b318d168d59efb3931f3f14fd6b2392eb16e50ffb3106",
+  "methodology": {
+    "comparison": "same_report_same_envelope_same_input_mode",
+    "tokenEstimate": "ceil(characters/4)",
+    "tokenizerStatus": "structural_proxy_not_provider_tokenizer",
+    "modelCalls": 0
+  },
+  "modes": [
+    {
+      "inputMode": "prompt_libre",
+      "legacy": {
+        "promptCharacters": 9149,
+        "estimatedPromptTokens": 2288,
+        "userPayloadCharacters": 2165,
+        "responseSchemaCharacters": 2895,
+        "visibleReferenceOccurrences": 0,
+        "visibleReferenceCharacters": 0
+      },
+      "v2_5_c": {
+        "promptCharacters": 9627,
+        "estimatedPromptTokens": 2407,
+        "userPayloadCharacters": 2287,
+        "responseSchemaCharacters": 2894,
+        "visibleReferenceOccurrences": 0,
+        "visibleReferenceCharacters": 0,
+        "aliasCount": 0,
+        "internalAliasMapCharacters": 82
+      },
+      "delta": {
+        "promptCharacters": 478,
+        "estimatedPromptTokens": 119,
+        "visibleReferenceCharacters": 0,
+        "promptCharactersPercent": 5.2246
+      }
+    },
+    {
+      "inputMode": "smart_sample",
+      "legacy": {
+        "promptCharacters": 11164,
+        "estimatedPromptTokens": 2791,
+        "userPayloadCharacters": 4180,
+        "responseSchemaCharacters": 2895,
+        "visibleReferenceOccurrences": 10,
+        "visibleReferenceCharacters": 70
+      },
+      "v2_5_c": {
+        "promptCharacters": 11720,
+        "estimatedPromptTokens": 2930,
+        "userPayloadCharacters": 4345,
+        "responseSchemaCharacters": 2929,
+        "visibleReferenceOccurrences": 15,
+        "visibleReferenceCharacters": 30,
+        "aliasCount": 5,
+        "internalAliasMapCharacters": 960
+      },
+      "delta": {
+        "promptCharacters": 556,
+        "estimatedPromptTokens": 139,
+        "visibleReferenceCharacters": -40,
+        "promptCharactersPercent": 4.9803
+      }
+    },
+    {
+      "inputMode": "recommended",
+      "legacy": {
+        "promptCharacters": 13812,
+        "estimatedPromptTokens": 3453,
+        "userPayloadCharacters": 6828,
+        "responseSchemaCharacters": 2895,
+        "visibleReferenceOccurrences": 15,
+        "visibleReferenceCharacters": 105
+      },
+      "v2_5_c": {
+        "promptCharacters": 14343,
+        "estimatedPromptTokens": 3586,
+        "userPayloadCharacters": 6968,
+        "responseSchemaCharacters": 2929,
+        "visibleReferenceOccurrences": 20,
+        "visibleReferenceCharacters": 40,
+        "aliasCount": 5,
+        "internalAliasMapCharacters": 960
+      },
+      "delta": {
+        "promptCharacters": 531,
+        "estimatedPromptTokens": 133,
+        "visibleReferenceCharacters": -65,
+        "promptCharactersPercent": 3.8445
+      }
+    }
+  ],
+  "totals": {
+    "legacyPromptCharacters": 34125,
+    "v2_5_cPromptCharacters": 35690,
+    "promptCharacterDelta": 1565,
+    "legacyEstimatedPromptTokens": 8532,
+    "v2_5_cEstimatedPromptTokens": 8923,
+    "estimatedPromptTokenDelta": 391,
+    "legacyVisibleReferenceCharacters": 175,
+    "v2_5_cVisibleReferenceCharacters": 70,
+    "visibleReferenceCharacterDelta": -105
+  },
+  "conclusions": [
+    "This artifact measures prompt structure only and does not replace a model campaign.",
+    "Estimated tokens use ceil(characters/4), not a provider tokenizer.",
+    "Internal stable refs and alias maps are persisted in the snapshot but are not exposed to the LLM prompt.",
+    "A campaign with real providers remains required before claiming latency, compliance or output-token improvement."
+  ]
+}
