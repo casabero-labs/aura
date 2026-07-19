@@ -87,6 +87,18 @@ const promptMetrics = (
 const percent = (delta: number, base: number): number =>
   base === 0 ? 0 : Number(((delta / base) * 100).toFixed(4));
 
+const stableFixtureDescriptor = (
+  report: DiagnosisInputReport,
+  envelope: EvidenceEnvelopeV2,
+): Record<string, unknown> => ({
+  report,
+  envelopeConfiguration: {
+    datasetSha256: envelope.datasetFingerprint.sha256,
+    delimiter: envelope.datasetFingerprint.delimiter,
+    privacyLevel: envelope.privacyPolicy.level,
+  },
+});
+
 export const buildDiagnosisV2_5Comparison = (
   report: DiagnosisInputReport,
   envelope: EvidenceEnvelopeV2,
@@ -141,7 +153,7 @@ export const buildDiagnosisV2_5Comparison = (
   return {
     contractId: DIAGNOSIS_V2_5_COMPARISON_CONTRACT,
     contractVersion: '1.0.0',
-    fixtureHash: sha256hex(canonicalJson({ report, envelope })),
+    fixtureHash: sha256hex(canonicalJson(stableFixtureDescriptor(report, envelope))),
     methodology: {
       comparison: 'same_report_same_envelope_same_input_mode',
       tokenEstimate: 'ceil(characters/4)',
