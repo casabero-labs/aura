@@ -225,7 +225,12 @@ export async function runStructuredDiagnosis(
     return text;
   };
 
-  const outcome = await runDiagnosisPipeline(envelope, promptPackage, pipelineAdapter);
+  const outcome = await runDiagnosisPipeline(
+    envelope,
+    promptPackage,
+    pipelineAdapter,
+    inputPackage,
+  );
 
   if (!outcome.success) {
     const failure = outcome as DiagnosisPipelineFailure;

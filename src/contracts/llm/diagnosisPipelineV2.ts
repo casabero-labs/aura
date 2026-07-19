@@ -17,6 +17,7 @@
  */
 
 import type {
+  DiagnosisInputPackageV2,
   DiagnosisPromptPackageV2,
   DiagnosisResponseV2,
   EvidenceEnvelopeV2,
@@ -26,6 +27,7 @@ import type {
 } from './types';
 import type { ProviderMetrics } from '../../types';
 import { sha256hex } from './hash';
+import { buildDiagnosisInputPackageV2 } from './diagnosisInputPackageV2';
 import { parseDiagnosisResponseV2, type DiagnosisParseOutcome, type ParseFailure } from './diagnosisParserV2';
 import { validateDiagnosisResponseV2 } from './diagnosisValidatorV2';
 import {
@@ -131,6 +133,7 @@ function normalizeEvidence(
 export function processDiagnosisResponseV2(
   envelope: EvidenceEnvelopeV2,
   raw: string,
+  inputSnapshot?: DiagnosisInputPackageV2,
 ): DiagnosisPipelineOutcome {
   if (typeof raw !== 'string') {
     return failure(
@@ -157,7 +160,7 @@ export function processDiagnosisResponseV2(
   // 3. Strict validate the raw response — this is what the Laboratory sees.
   let rawValidation;
   try {
-    rawValidation = validateDiagnosisResponseV2(parsed.response, envelope);
+    rawValidation = validateDiagnosisResponseV2(parsed.response, envelope, inputSnapshot);
   } catch (err) {
     return failure(
       'DIAGNOSIS_SCHEMA_INVALID',
@@ -234,7 +237,11 @@ export function processDiagnosisResponseV2(
   const normalizeResult = normalizeHumanReviewWithRawValidation(
     rawCaptured,
     envelope,
-    validateDiagnosisResponseV2,
+    (candidate, candidateEnvelope) => validateDiagnosisResponseV2(
+      candidate,
+      candidateEnvelope,
+      inputSnapshot,
+    ),
   );
   const { rawResponse: rawForLab, effectiveResponse, evidence } = normalizeResult;
 
@@ -244,7 +251,7 @@ export function processDiagnosisResponseV2(
   //     blocking.
   let effectiveValidation;
   try {
-    effectiveValidation = validateDiagnosisResponseV2(effectiveResponse, envelope);
+    effectiveValidation = validateDiagnosisResponseV2(effectiveResponse, envelope, inputSnapshot);
   } catch (err) {
     return failure(
       'DIAGNOSIS_SCHEMA_INVALID',
@@ -308,6 +315,7 @@ export async function runDiagnosisPipeline(
   envelope: EvidenceEnvelopeV2,
   promptPackage: DiagnosisPromptPackageV2,
   adapter: DiagnosisAdapter,
+  inputSnapshot?: DiagnosisInputPackageV2,
 ): Promise<DiagnosisPipelineOutcome> {
   let raw: string;
   try {
@@ -321,7 +329,7 @@ export async function runDiagnosisPipeline(
       cause,
     );
   }
-  return processDiagnosisResponseV2(envelope, raw);
+  return processDiagnosisResponseV2(envelope, raw, inputSnapshot);
 }
 
 /**
@@ -332,7 +340,23 @@ export async function diagnoseWithV2(
   envelope: EvidenceEnvelopeV2,
   adapter: DiagnosisAdapter,
 ): Promise<DiagnosisPipelineOutcome> {
-  const { buildDiagnosisPromptV2 } = await import('./diagnosisPromptV2');
-  const promptPackage = buildDiagnosisPromptV2(envelope);
-  return runDiagnosisPipeline(envelope, promptPackage, adapter);
+  const inputSnapshot = buildDiagnosisInputPackageV2({
+    score: envelope.datasetSummary.score,
+    rowCount: envelope.datasetSummary.rowCount,
+    colCount: envelope.datasetSummary.colCount,
+    duplicateRows: envelope.datasetSummary.duplicateRows,
+    delimiterDetected: envelope.datasetSummary.delimiter,
+  }, envelope, 'recommended');
+  const promptPackage: DiagnosisPromptPackageV2 = {
+    contractId: 'aura.diagnosis.v2',
+    contractVersion: '2.0.0',
+    evidenceEnvelopeRef: inputSnapshot.evidenceEnvelopeRef,
+    promptVersion: inputSnapshot.promptVersion,
+    promptHash: inputSnapshot.promptHash,
+    systemInstruction: inputSnapshot.systemInstruction,
+    userPayload: inputSnapshot.userPayload,
+    responseSchema: inputSnapshot.responseSchema,
+    generatedAt: new Date().toISOString(),
+  };
+  return runDiagnosisPipeline(envelope, promptPackage, adapter, inputSnapshot);
 }

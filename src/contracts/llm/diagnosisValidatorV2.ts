@@ -15,6 +15,7 @@
  */
 
 import type {
+  DiagnosisInputPackageV2,
   DiagnosisResponseV2,
   EvidenceEnvelopeV2,
   ValidationResultV2,
@@ -90,6 +91,131 @@ const VISUALIZATION_KINDS = new Set([
   'pie',
   'table',
 ]);
+
+interface ParsedProjectionPayloadV2 {
+  inputMode?: string;
+  evidenceEnvelopeRef?: string;
+  visibleEvidence?: {
+    datasetSummary?: unknown;
+    datasetSchema?: unknown;
+    issueRegistryMinimal?: Array<Record<string, unknown>>;
+    columnStatistics?: Record<string, unknown>;
+    ruleActivations?: Array<Record<string, unknown>>;
+    evidenceSamples?: Array<Record<string, unknown>>;
+    badSampleAnchors?: Array<Record<string, unknown>>;
+  };
+}
+
+interface DiagnosisProjectionContextV2 {
+  inputMode: DiagnosisInputPackageV2['inputMode'];
+  visibleEvidenceRefsByIssueId: Map<string, Set<string>>;
+  visibleEvidenceByIssueId: Map<string, string>;
+}
+
+const recordsForIssue = (
+  records: Array<Record<string, unknown>> | undefined,
+  issueId: string,
+): Array<Record<string, unknown>> => (records ?? []).filter((record) => record.issueId === issueId);
+
+const addVisibleRef = (target: Set<string>, value: unknown): void => {
+  if (typeof value === 'string' && value.length > 0) target.add(value);
+};
+
+const buildProjectionContext = (
+  inputSnapshot: DiagnosisInputPackageV2,
+  envelope: EvidenceEnvelopeV2,
+  errors: ValidationErrorV2[],
+): DiagnosisProjectionContextV2 | null => {
+  const expectedRef = buildEnvelopeRef(envelope);
+  if (inputSnapshot.contractId !== 'aura.input-snapshot.v2' || inputSnapshot.contractVersion !== '2.0.0') {
+    errors.push(err(
+      'DIAGNOSIS_SCHEMA_INVALID',
+      'inputSnapshot',
+      'Projection context must be an aura.input-snapshot.v2 contract.',
+      { contractId: inputSnapshot.contractId, contractVersion: inputSnapshot.contractVersion },
+    ));
+    return null;
+  }
+  if (inputSnapshot.evidenceEnvelopeRef !== expectedRef) {
+    errors.push(err(
+      'DIAGNOSIS_ENVELOPE_MISMATCH',
+      'inputSnapshot.evidenceEnvelopeRef',
+      'Input snapshot does not belong to the validated evidence envelope.',
+      { expected: expectedRef, actual: inputSnapshot.evidenceEnvelopeRef },
+    ));
+    return null;
+  }
+
+  let payload: ParsedProjectionPayloadV2;
+  try {
+    payload = JSON.parse(inputSnapshot.userPayload) as ParsedProjectionPayloadV2;
+  } catch {
+    errors.push(err(
+      'DIAGNOSIS_SCHEMA_INVALID',
+      'inputSnapshot.userPayload',
+      'Input snapshot userPayload must be valid JSON.',
+      null,
+    ));
+    return null;
+  }
+  if (
+    payload.inputMode !== inputSnapshot.inputMode
+    || payload.evidenceEnvelopeRef !== inputSnapshot.evidenceEnvelopeRef
+  ) {
+    errors.push(err(
+      'DIAGNOSIS_SCHEMA_INVALID',
+      'inputSnapshot.userPayload',
+      'Input snapshot metadata does not match its projected userPayload.',
+      {
+        snapshotInputMode: inputSnapshot.inputMode,
+        payloadInputMode: payload.inputMode,
+        snapshotEnvelopeRef: inputSnapshot.evidenceEnvelopeRef,
+        payloadEnvelopeRef: payload.evidenceEnvelopeRef,
+      },
+    ));
+    return null;
+  }
+
+  const visible = payload.visibleEvidence ?? {};
+  const visibleEvidenceRefsByIssueId = new Map<string, Set<string>>();
+  const visibleEvidenceByIssueId = new Map<string, string>();
+
+  for (const issue of envelope.issues) {
+    const refs = new Set<string>();
+    const activations = recordsForIssue(visible.ruleActivations, issue.issueId);
+    const samples = recordsForIssue(visible.evidenceSamples, issue.issueId);
+    const anchors = recordsForIssue(visible.badSampleAnchors, issue.issueId);
+
+    for (const activation of activations) {
+      if (Array.isArray(activation.evidenceRefs)) {
+        activation.evidenceRefs.forEach((ref) => addVisibleRef(refs, ref));
+      }
+    }
+    for (const sample of samples) addVisibleRef(refs, sample.evidenceRef);
+    for (const anchor of anchors) addVisibleRef(refs, anchor.evidenceRef);
+    visibleEvidenceRefsByIssueId.set(issue.issueId, refs);
+
+    const registryEntries = recordsForIssue(visible.issueRegistryMinimal, issue.issueId);
+    const columnStats = issue.columnId
+      ? visible.columnStatistics?.[issue.columnId]
+      : undefined;
+    visibleEvidenceByIssueId.set(issue.issueId, JSON.stringify({
+      datasetSummary: visible.datasetSummary,
+      datasetSchema: visible.datasetSchema,
+      issueRegistry: registryEntries,
+      ruleActivations: activations,
+      evidenceSamples: samples,
+      badSampleAnchors: anchors,
+      columnStatistics: columnStats,
+    }));
+  }
+
+  return {
+    inputMode: inputSnapshot.inputMode,
+    visibleEvidenceRefsByIssueId,
+    visibleEvidenceByIssueId,
+  };
+};
 
 function containsExecutable(text: string): boolean {
   return EXECUTABLE_PATTERNS.some(p => p.test(text));
@@ -390,6 +516,7 @@ function validateAgainstSchema(response: unknown): ValidationErrorV2[] {
 export function validateDiagnosisResponseV2(
   response: DiagnosisResponseV2,
   envelope: EvidenceEnvelopeV2,
+  inputSnapshot?: DiagnosisInputPackageV2,
 ): ValidationResultV2 {
   const errors: ValidationErrorV2[] = [];
   const warnings: ValidationErrorV2[] = [];
@@ -399,6 +526,11 @@ export function validateDiagnosisResponseV2(
   if (schemaErrors.length > 0) {
     return fail(schemaErrors);
   }
+
+  const projectionContext = inputSnapshot
+    ? buildProjectionContext(inputSnapshot, envelope, errors)
+    : null;
+  if (inputSnapshot && !projectionContext) return fail(errors);
 
   // 1. Contract identity
   if (response.contractId !== 'aura.diagnosis.v2') {
@@ -512,6 +644,7 @@ export function validateDiagnosisResponseV2(
       errors.push(err('DIAGNOSIS_SCHEMA_INVALID', `${base}.evidenceRefs`, 'Must be an array', diagIssue.evidenceRefs));
     } else {
       const validRefs = issueEvidenceRefs.get(diagIssue.issueId) ?? new Set<string>();
+      const visibleRefs = projectionContext?.visibleEvidenceRefsByIssueId.get(diagIssue.issueId);
       for (let j = 0; j < diagIssue.evidenceRefs.length; j++) {
         const ref = diagIssue.evidenceRefs[j];
         if (typeof ref !== 'string' || ref.length === 0) {
@@ -520,6 +653,13 @@ export function validateDiagnosisResponseV2(
           errors.push(err('DIAGNOSIS_REFERENCE_INVALID', `${base}.evidenceRefs[${j}]`, 'evidenceRef does not exist in envelope', ref));
         } else if (!validRefs.has(ref)) {
           errors.push(err('DIAGNOSIS_REFERENCE_INVALID', `${base}.evidenceRefs[${j}]`, 'evidenceRef belongs to different issue', { ref, issueId: diagIssue.issueId }));
+        } else if (visibleRefs && !visibleRefs.has(ref)) {
+          errors.push(err(
+            'DIAGNOSIS_REFERENCE_INVALID',
+            `${base}.evidenceRefs[${j}]`,
+            'evidenceRef was not visible in the input projection used for this diagnosis',
+            { ref, issueId: diagIssue.issueId, inputMode: projectionContext?.inputMode },
+          ));
         }
       }
     }
@@ -556,7 +696,9 @@ export function validateDiagnosisResponseV2(
         errors.push(err(
           'DIAGNOSIS_REVIEW_DOWNGRADE',
           `${base}.requiresHumanReview`,
-          'Must be true — no evidenceRefs provided',
+          projectionContext?.inputMode === 'prompt_libre'
+            ? 'Must be true — the input projection hides evidence samples and evidenceRefs'
+            : 'Must be true — no evidenceRefs provided',
           diagIssue.requiresHumanReview,
         ));
       }
@@ -826,7 +968,11 @@ export function validateDiagnosisResponseV2(
   }
 
   // 15. Explicit sample claims must exist in the evidence scope of that issue.
-  for (const claim of findUnsupportedDiagnosisClaims(response, envelope)) {
+  for (const claim of findUnsupportedDiagnosisClaims(
+    response,
+    envelope,
+    projectionContext?.visibleEvidenceByIssueId,
+  )) {
     errors.push(err(
       'DIAGNOSIS_REFERENCE_INVALID',
       claim.path,

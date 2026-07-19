@@ -10,6 +10,7 @@ import { _buildEvidenceEnvelopeV2 } from '../contracts/llm/evidenceEnvelopeV2';
 import type { AuditReportInput } from '../contracts/llm/evidenceEnvelopeV2';
 import type { DiagnosisResponseV2 } from '../contracts/llm/types';
 import { buildEnvelopeRef } from '../contracts/llm/diagnosisPromptV2';
+import { buildDiagnosisInputPackageV2 } from '../contracts/llm/diagnosisInputPackageV2';
 
 // ── Fixtures ──
 const opts = (overrides: Record<string, unknown> = {}) => ({
@@ -746,5 +747,85 @@ describe('validateDiagnosisResponseV2 — envelope ref exact match', () => {
     const result = validateDiagnosisResponseV2(resp, envelope);
     const refErrors = result.errors.filter(e => e.path === 'evidenceEnvelopeRef');
     expect(refErrors).toHaveLength(0);
+  });
+});
+
+describe('validateDiagnosisResponseV2 — projection-aware evidence', () => {
+  const promptLibre = buildDiagnosisInputPackageV2(minimalReport, envelope, 'prompt_libre');
+  const smartSample = buildDiagnosisInputPackageV2(minimalReport, envelope, 'smart_sample');
+
+  const responseWithoutRefs = (): DiagnosisResponseV2 => {
+    const response = validResponse();
+    response.issues = response.issues.map((issue) => ({
+      ...issue,
+      evidenceRefs: [],
+      requiresHumanReview: true,
+    }));
+    return response;
+  };
+
+  it('rejects an envelope-valid evidenceRef that was hidden by prompt_libre', () => {
+    const response = responseWithoutRefs();
+    response.issues[0] = {
+      ...response.issues[0],
+      evidenceRefs: [issue1.evidenceRefs[0]],
+    };
+
+    const legacyValidation = validateDiagnosisResponseV2(response, envelope);
+    const projectedValidation = validateDiagnosisResponseV2(response, envelope, promptLibre);
+
+    expect(legacyValidation.errors.some((error) => error.path === 'issues[0].evidenceRefs[0]')).toBe(false);
+    expect(projectedValidation.valid).toBe(false);
+    expect(projectedValidation.errors).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        code: 'DIAGNOSIS_REFERENCE_INVALID',
+        path: 'issues[0].evidenceRefs[0]',
+        message: expect.stringContaining('not visible'),
+      }),
+    ]));
+  });
+
+  it('rejects a quoted sample value hidden by prompt_libre', () => {
+    const response = responseWithoutRefs();
+    response.diagnosisBlocks[1] = {
+      ...response.diagnosisBlocks[1],
+      observation: 'The hidden sample contains "22".',
+    };
+
+    expect(validateDiagnosisResponseV2(response, envelope).valid).toBe(true);
+    const projectedValidation = validateDiagnosisResponseV2(response, envelope, promptLibre);
+    expect(projectedValidation.valid).toBe(false);
+    expect(projectedValidation.errors).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        code: 'DIAGNOSIS_REFERENCE_INVALID',
+        path: 'diagnosisBlocks[1].observation',
+      }),
+    ]));
+  });
+
+  it('accepts the same references and literal when smart_sample made them visible', () => {
+    const response = validResponse();
+    response.diagnosisBlocks[1] = {
+      ...response.diagnosisBlocks[1],
+      observation: 'The visible evidence includes "22".',
+    };
+
+    const result = validateDiagnosisResponseV2(response, envelope, smartSample);
+    expect(result.valid).toBe(true);
+  });
+
+  it('fails closed when the input snapshot belongs to another envelope', () => {
+    const mismatched = {
+      ...smartSample,
+      evidenceEnvelopeRef: 'env:' + 'f'.repeat(64),
+    };
+    const result = validateDiagnosisResponseV2(validResponse(), envelope, mismatched);
+    expect(result.valid).toBe(false);
+    expect(result.errors).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        code: 'DIAGNOSIS_ENVELOPE_MISMATCH',
+        path: 'inputSnapshot.evidenceEnvelopeRef',
+      }),
+    ]));
   });
 });

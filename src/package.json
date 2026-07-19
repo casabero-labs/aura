@@ -16,6 +16,7 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "evidence:deterministic": "npx tsx ../experiments/benchmarks/generate_final_deterministic_evidence.ts",
+    "diagnosis:campaign-baseline": "npx tsx ../experiments/benchmarks/analyze_diagnosis_campaign.ts",
     "contracts:baseline": "npx tsx ../experiments/contracts-v2/baseline/run-baseline.mjs",
     "contracts:evaluate": "npx tsx ../experiments/contracts-v2/baseline/evaluate.mjs",
     "contracts:compare": "npx tsx ../experiments/contracts-v2/compare-baseline.mjs",

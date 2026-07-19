@@ -290,7 +290,7 @@ const App: React.FC = () => {
         details: null,
       };
     }
-    return processDiagnosisResponseV2(formalEvidenceEnvelope, rawResponse);
+    return processDiagnosisResponseV2(formalEvidenceEnvelope, rawResponse, run.input);
   }, [formalEvidenceEnvelope]);
 
   const formalInitialInference = useMemo(

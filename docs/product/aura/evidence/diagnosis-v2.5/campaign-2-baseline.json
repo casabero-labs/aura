@@ -1,0 +1,498 @@
+{
+  "contractId": "aura.diagnosis-campaign-baseline.v1",
+  "contractVersion": "1.0.0",
+  "campaignId": "campaign:oe4:v2:20260715011720492",
+  "sourceGeneratedAt": "2026-07-15T01:54:15.873Z",
+  "totals": {
+    "runCount": 27,
+    "completedRuns": 20,
+    "failedRuns": 7,
+    "contractEvaluatedRuns": 20,
+    "contractCompliantRuns": 11,
+    "claimCount": 34,
+    "outputTokens": {
+      "count": 27,
+      "min": 2549,
+      "median": 3516,
+      "mean": 3405.6666666666665,
+      "max": 4113
+    },
+    "promptTokens": {
+      "count": 27,
+      "min": 3923,
+      "median": 7611,
+      "mean": 7198.666666666667,
+      "max": 10523
+    },
+    "latencyMs": {
+      "count": 27,
+      "min": 26988,
+      "median": 48926,
+      "mean": 45366.59259259259,
+      "max": 62031
+    }
+  },
+  "byModel": {
+    "hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL": {
+      "runCount": 9,
+      "completedRuns": 9,
+      "failedRuns": 0,
+      "contractEvaluatedRuns": 9,
+      "contractCompliantRuns": 3,
+      "claimCount": 11,
+      "outputTokens": {
+        "count": 9,
+        "min": 3292,
+        "median": 3537,
+        "mean": 3647.222222222222,
+        "max": 4088
+      },
+      "promptTokens": {
+        "count": 9,
+        "min": 4372,
+        "median": 7725,
+        "mean": 7540,
+        "max": 10523
+      },
+      "latencyMs": {
+        "count": 9,
+        "min": 45711,
+        "median": 50723,
+        "mean": 51877,
+        "max": 57732
+      }
+    },
+    "hf.co/unsloth/Qwen3.5-4B-GGUF:UD-Q4_K_XL": {
+      "runCount": 9,
+      "completedRuns": 9,
+      "failedRuns": 0,
+      "contractEvaluatedRuns": 9,
+      "contractCompliantRuns": 6,
+      "claimCount": 15,
+      "outputTokens": {
+        "count": 9,
+        "min": 3120,
+        "median": 3867,
+        "mean": 3704.6666666666665,
+        "max": 4113
+      },
+      "promptTokens": {
+        "count": 9,
+        "min": 4273,
+        "median": 7611,
+        "mean": 7402,
+        "max": 10322
+      },
+      "latencyMs": {
+        "count": 9,
+        "min": 43802,
+        "median": 55753,
+        "mean": 53925.666666666664,
+        "max": 62031
+      }
+    },
+    "hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL": {
+      "runCount": 9,
+      "completedRuns": 2,
+      "failedRuns": 7,
+      "contractEvaluatedRuns": 2,
+      "contractCompliantRuns": 2,
+      "claimCount": 8,
+      "outputTokens": {
+        "count": 9,
+        "min": 2549,
+        "median": 2863,
+        "mean": 2865.1111111111113,
+        "max": 3190
+      },
+      "promptTokens": {
+        "count": 9,
+        "min": 3923,
+        "median": 6792,
+        "mean": 6654,
+        "max": 9247
+      },
+      "latencyMs": {
+        "count": 9,
+        "min": 26988,
+        "median": 30923,
+        "mean": 30297.11111111111,
+        "max": 33856
+      }
+    }
+  },
+  "byModelAndInput": {
+    "hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL::prompt_libre": {
+      "runCount": 3,
+      "completedRuns": 3,
+      "failedRuns": 0,
+      "contractEvaluatedRuns": 3,
+      "contractCompliantRuns": 3,
+      "claimCount": 0,
+      "outputTokens": {
+        "count": 3,
+        "min": 3292,
+        "median": 3535,
+        "mean": 3469.3333333333335,
+        "max": 3581
+      },
+      "promptTokens": {
+        "count": 3,
+        "min": 4372,
+        "median": 4372,
+        "mean": 4372,
+        "max": 4372
+      },
+      "latencyMs": {
+        "count": 3,
+        "min": 45711,
+        "median": 48926,
+        "mean": 48312,
+        "max": 50299
+      }
+    },
+    "hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL::recommended": {
+      "runCount": 3,
+      "completedRuns": 3,
+      "failedRuns": 0,
+      "contractEvaluatedRuns": 3,
+      "contractCompliantRuns": 0,
+      "claimCount": 6,
+      "outputTokens": {
+        "count": 3,
+        "min": 3537,
+        "median": 3941,
+        "mean": 3855.3333333333335,
+        "max": 4088
+      },
+      "promptTokens": {
+        "count": 3,
+        "min": 10523,
+        "median": 10523,
+        "mean": 10523,
+        "max": 10523
+      },
+      "latencyMs": {
+        "count": 3,
+        "min": 52493,
+        "median": 55725,
+        "mean": 55316.666666666664,
+        "max": 57732
+      }
+    },
+    "hf.co/unsloth/gemma-4-E4B-it-qat-GGUF:UD-Q4_K_XL::smart_sample": {
+      "runCount": 3,
+      "completedRuns": 3,
+      "failedRuns": 0,
+      "contractEvaluatedRuns": 3,
+      "contractCompliantRuns": 0,
+      "claimCount": 5,
+      "outputTokens": {
+        "count": 3,
+        "min": 3516,
+        "median": 3532,
+        "mean": 3617,
+        "max": 3803
+      },
+      "promptTokens": {
+        "count": 3,
+        "min": 7725,
+        "median": 7725,
+        "mean": 7725,
+        "max": 7725
+      },
+      "latencyMs": {
+        "count": 3,
+        "min": 50670,
+        "median": 50723,
+        "mean": 52002.333333333336,
+        "max": 54614
+      }
+    },
+    "hf.co/unsloth/Qwen3.5-4B-GGUF:UD-Q4_K_XL::prompt_libre": {
+      "runCount": 3,
+      "completedRuns": 3,
+      "failedRuns": 0,
+      "contractEvaluatedRuns": 3,
+      "contractCompliantRuns": 3,
+      "claimCount": 0,
+      "outputTokens": {
+        "count": 3,
+        "min": 3120,
+        "median": 3291,
+        "mean": 3270,
+        "max": 3399
+      },
+      "promptTokens": {
+        "count": 3,
+        "min": 4273,
+        "median": 4273,
+        "mean": 4273,
+        "max": 4273
+      },
+      "latencyMs": {
+        "count": 3,
+        "min": 43802,
+        "median": 46343,
+        "mean": 46187.333333333336,
+        "max": 48417
+      }
+    },
+    "hf.co/unsloth/Qwen3.5-4B-GGUF:UD-Q4_K_XL::recommended": {
+      "runCount": 3,
+      "completedRuns": 3,
+      "failedRuns": 0,
+      "contractEvaluatedRuns": 3,
+      "contractCompliantRuns": 3,
+      "claimCount": 6,
+      "outputTokens": {
+        "count": 3,
+        "min": 3675,
+        "median": 3943,
+        "mean": 3860.3333333333335,
+        "max": 3963
+      },
+      "promptTokens": {
+        "count": 3,
+        "min": 10322,
+        "median": 10322,
+        "mean": 10322,
+        "max": 10322
+      },
+      "latencyMs": {
+        "count": 3,
+        "min": 55687,
+        "median": 57883,
+        "mean": 57294,
+        "max": 58312
+      }
+    },
+    "hf.co/unsloth/Qwen3.5-4B-GGUF:UD-Q4_K_XL::smart_sample": {
+      "runCount": 3,
+      "completedRuns": 3,
+      "failedRuns": 0,
+      "contractEvaluatedRuns": 3,
+      "contractCompliantRuns": 0,
+      "claimCount": 9,
+      "outputTokens": {
+        "count": 3,
+        "min": 3867,
+        "median": 3971,
+        "mean": 3983.6666666666665,
+        "max": 4113
+      },
+      "promptTokens": {
+        "count": 3,
+        "min": 7611,
+        "median": 7611,
+        "mean": 7611,
+        "max": 7611
+      },
+      "latencyMs": {
+        "count": 3,
+        "min": 55753,
+        "median": 57103,
+        "mean": 58295.666666666664,
+        "max": 62031
+      }
+    },
+    "hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL::prompt_libre": {
+      "runCount": 3,
+      "completedRuns": 2,
+      "failedRuns": 1,
+      "contractEvaluatedRuns": 2,
+      "contractCompliantRuns": 2,
+      "claimCount": 8,
+      "outputTokens": {
+        "count": 3,
+        "min": 2716,
+        "median": 3173,
+        "mean": 3026.3333333333335,
+        "max": 3190
+      },
+      "promptTokens": {
+        "count": 3,
+        "min": 3923,
+        "median": 3923,
+        "mean": 3923,
+        "max": 3923
+      },
+      "latencyMs": {
+        "count": 3,
+        "min": 27173,
+        "median": 31313,
+        "mean": 30053.666666666668,
+        "max": 31675
+      }
+    },
+    "hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL::recommended": {
+      "runCount": 3,
+      "completedRuns": 0,
+      "failedRuns": 3,
+      "contractEvaluatedRuns": 0,
+      "contractCompliantRuns": 0,
+      "claimCount": 0,
+      "outputTokens": {
+        "count": 3,
+        "min": 2549,
+        "median": 2577,
+        "mean": 2738.6666666666665,
+        "max": 3090
+      },
+      "promptTokens": {
+        "count": 3,
+        "min": 9247,
+        "median": 9247,
+        "mean": 9247,
+        "max": 9247
+      },
+      "latencyMs": {
+        "count": 3,
+        "min": 28465,
+        "median": 30202,
+        "mean": 30841,
+        "max": 33856
+      }
+    },
+    "hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL::smart_sample": {
+      "runCount": 3,
+      "completedRuns": 0,
+      "failedRuns": 3,
+      "contractEvaluatedRuns": 0,
+      "contractCompliantRuns": 0,
+      "claimCount": 0,
+      "outputTokens": {
+        "count": 3,
+        "min": 2574,
+        "median": 2863,
+        "mean": 2830.3333333333335,
+        "max": 3054
+      },
+      "promptTokens": {
+        "count": 3,
+        "min": 6792,
+        "median": 6792,
+        "mean": 6792,
+        "max": 6792
+      },
+      "latencyMs": {
+        "count": 3,
+        "min": 26988,
+        "median": 30923,
+        "mean": 29996.666666666668,
+        "max": 32079
+      }
+    }
+  },
+  "validation": {
+    "failedRuns": [
+      {
+        "runId": "run:oe4:v2:20260715011720492:s20260710:r1:m3:smart_sample",
+        "modelId": "hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL",
+        "inputMode": "smart_sample",
+        "firstBlockingCode": "DIAGNOSIS_REFERENCE_INVALID",
+        "codes": [
+          "DIAGNOSIS_REFERENCE_INVALID",
+          "DIAGNOSIS_SCHEMA_INVALID"
+        ],
+        "errorOccurrences": 58,
+        "additionalOccurrencesAfterFirstBlocker": 57
+      },
+      {
+        "runId": "run:oe4:v2:20260715011720492:s20260710:r1:m3:recommended",
+        "modelId": "hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL",
+        "inputMode": "recommended",
+        "firstBlockingCode": "DIAGNOSIS_REFERENCE_INVALID",
+        "codes": [
+          "DIAGNOSIS_REFERENCE_INVALID",
+          "DIAGNOSIS_SCHEMA_INVALID"
+        ],
+        "errorOccurrences": 51,
+        "additionalOccurrencesAfterFirstBlocker": 50
+      },
+      {
+        "runId": "run:oe4:v2:20260715011720492:s20260710:r2:m3:prompt_libre",
+        "modelId": "hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL",
+        "inputMode": "prompt_libre",
+        "firstBlockingCode": "DIAGNOSIS_SCHEMA_INVALID",
+        "codes": [
+          "DIAGNOSIS_SCHEMA_INVALID"
+        ],
+        "errorOccurrences": 14,
+        "additionalOccurrencesAfterFirstBlocker": 13
+      },
+      {
+        "runId": "run:oe4:v2:20260715011720492:s20260710:r2:m3:smart_sample",
+        "modelId": "hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL",
+        "inputMode": "smart_sample",
+        "firstBlockingCode": "DIAGNOSIS_REFERENCE_INVALID",
+        "codes": [
+          "DIAGNOSIS_REFERENCE_INVALID",
+          "DIAGNOSIS_SCHEMA_INVALID"
+        ],
+        "errorOccurrences": 58,
+        "additionalOccurrencesAfterFirstBlocker": 57
+      },
+      {
+        "runId": "run:oe4:v2:20260715011720492:s20260710:r2:m3:recommended",
+        "modelId": "hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL",
+        "inputMode": "recommended",
+        "firstBlockingCode": "DIAGNOSIS_SCHEMA_INVALID",
+        "codes": [
+          "DIAGNOSIS_SCHEMA_INVALID"
+        ],
+        "errorOccurrences": 1,
+        "additionalOccurrencesAfterFirstBlocker": 0
+      },
+      {
+        "runId": "run:oe4:v2:20260715011720492:s20260710:r3:m3:recommended",
+        "modelId": "hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL",
+        "inputMode": "recommended",
+        "firstBlockingCode": "DIAGNOSIS_REFERENCE_INVALID",
+        "codes": [
+          "DIAGNOSIS_REFERENCE_INVALID",
+          "DIAGNOSIS_SCHEMA_INVALID"
+        ],
+        "errorOccurrences": 39,
+        "additionalOccurrencesAfterFirstBlocker": 38
+      },
+      {
+        "runId": "run:oe4:v2:20260715011720492:s20260710:r3:m3:smart_sample",
+        "modelId": "hf.co/unsloth/SmolLM3-3B-GGUF:UD-Q4_K_XL",
+        "inputMode": "smart_sample",
+        "firstBlockingCode": "DIAGNOSIS_SCHEMA_INVALID",
+        "codes": [
+          "DIAGNOSIS_SCHEMA_INVALID"
+        ],
+        "errorOccurrences": 1,
+        "additionalOccurrencesAfterFirstBlocker": 0
+      }
+    ],
+    "runsWithCode": {
+      "DIAGNOSIS_REFERENCE_INVALID": 4,
+      "DIAGNOSIS_SCHEMA_INVALID": 7
+    },
+    "occurrencesByCode": {
+      "DIAGNOSIS_REFERENCE_INVALID": 172,
+      "DIAGNOSIS_SCHEMA_INVALID": 50
+    },
+    "firstBlockingCodes": {
+      "DIAGNOSIS_REFERENCE_INVALID": 4,
+      "DIAGNOSIS_SCHEMA_INVALID": 3
+    },
+    "totalErrorOccurrences": 222,
+    "additionalOccurrencesAfterFirstBlocker": 215,
+    "rootCauseClassification": "not_inferred"
+  },
+  "tokenComparison": {
+    "v2OutputTokens": {
+      "count": 27,
+      "min": 2549,
+      "median": 3516,
+      "mean": 3405.6666666666665,
+      "max": 4113
+    },
+    "v3SimulatedOutputTokens": null,
+    "status": "pending_v3_serializer"
+  }
+}

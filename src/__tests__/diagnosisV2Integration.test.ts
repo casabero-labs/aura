@@ -328,4 +328,31 @@ describe('canonical input propagation', () => {
     expect(new Set(observed)).toHaveLength(3);
     expect(new Set(hashes)).toHaveLength(3);
   });
+
+  it('rejects a prompt_libre response that guesses envelope-valid hidden refs', async () => {
+    const provider = makeProvider('ollama');
+    provider.generateTextWithProgress = vi.fn().mockResolvedValue({
+      text: validResponseForProviderType('ollama'),
+      metrics: {
+        latencyMs: 10,
+        firstTokenMs: 1,
+        tokensGenerated: 20,
+        model: 'model-a',
+        provider: 'Ollama',
+        isLocal: true,
+      },
+    });
+
+    const result = await runStructuredDiagnosis(minimalReport, {
+      provider,
+      auditEvidence,
+      inputMode: 'prompt_libre',
+      requestedModel: 'model-a',
+    });
+
+    expect(result).toEqual(expect.objectContaining({
+      contractId: 'aura.diagnosis-failure-evidence.v2',
+      code: 'DIAGNOSIS_REFERENCE_INVALID',
+    }));
+  });
 });

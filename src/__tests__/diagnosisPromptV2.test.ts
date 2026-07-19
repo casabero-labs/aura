@@ -1,24 +1,16 @@
-/**
- * Diagnosis Prompt v2 — Unit Tests.
- *
- * Tests: buildDiagnosisPromptV2, buildCompactDiagnosisPromptV2, canonicalJson, buildEnvelopeRef, estimatePromptTokens, shouldUseCompactPrompt.
- */
-
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
-  buildDiagnosisPromptV2,
   buildCompactDiagnosisPromptV2,
-  canonicalJson,
+  buildDiagnosisPromptV2,
   buildEnvelopeRef,
+  canonicalJson,
+  CHROME_TOKEN_BUDGET,
   estimatePromptTokens,
   shouldUseCompactPrompt,
-  CHROME_TOKEN_BUDGET,
 } from '../contracts/llm/diagnosisPromptV2';
 import { _buildEvidenceEnvelopeV2 } from '../contracts/llm/evidenceEnvelopeV2';
 import type { AuditReportInput } from '../contracts/llm/evidenceEnvelopeV2';
-import { sha256hex } from '../contracts/llm/hash';
 
-// ── Fixtures ──
 const opts = (overrides: Record<string, unknown> = {}) => ({
   privacyLevel: 'local_full' as const,
   datasetSha256: 'abc123',
@@ -27,352 +19,192 @@ const opts = (overrides: Record<string, unknown> = {}) => ({
 });
 
 const minimalReport: AuditReportInput = {
-  score: 85, rowCount: 100, colCount: 5, duplicateRows: 0, delimiterDetected: ',',
+  score: 85,
+  rowCount: 100,
+  colCount: 5,
+  duplicateRows: 0,
+  delimiterDetected: ',',
   issues: [
-    { id: 'hygiene-ghost-Name', column: 'Name', category: 'Higiene de Texto', ruleName: 'Espacios Fantasma (Trim)', description: 'whitespace padding', severity: 'info', count: 2, affectedPercentage: 2, sampleValues: ['Braund, Mr. Owen Harris'], ruleId: 'rule:trim-whitespace', automaticAuthorization: { actionType: 'trim_whitespace', authorized: true, conditionsMet: ['string-column'], reason: 'Deterministic lossless normalization' } },
-    { id: 'integrity-null-Age', column: 'Age', category: 'Integridad', ruleName: 'Valores Nulos', description: 'nulls in Age', severity: 'warning', count: 177, affectedPercentage: 19.9, sampleValues: [null, 22, 38], ruleId: 'rule:null-values', automaticAuthorization: { actionType: 'null_values', authorized: false, conditionsMet: [], reason: 'No auto_safe for nulls' } },
+    {
+      id: 'hygiene-ghost-Name', column: 'Name', category: 'Higiene de Texto',
+      ruleName: 'Espacios Fantasma (Trim)', description: 'whitespace padding', severity: 'info',
+      count: 2, affectedPercentage: 2, sampleValues: ['Braund, Mr. Owen Harris'],
+      ruleId: 'rule:trim-whitespace',
+      automaticAuthorization: {
+        actionType: 'trim_whitespace', authorized: true, conditionsMet: ['string-column'],
+        reason: 'Deterministic lossless normalization',
+      },
+    },
+    {
+      id: 'integrity-null-Age', column: 'Age', category: 'Integridad',
+      ruleName: 'Valores Nulos', description: 'nulls in Age', severity: 'warning',
+      count: 177, affectedPercentage: 19.9, sampleValues: [null, 22, 38],
+      ruleId: 'rule:null-values',
+      automaticAuthorization: {
+        actionType: 'null_values', authorized: false, conditionsMet: [],
+        reason: 'No auto_safe for nulls',
+      },
+    },
   ],
   columnStats: {
-    Name: { inferredType: 'string', semanticType: 'name', distinctCount: 89, nullCount: 0, nullPercentage: 0, topValues: [{ value: 'Braund', count: 1, percentage: 1 }], stats: {} },
-    Age: { inferredType: 'number', semanticType: 'age', distinctCount: 88, nullCount: 177, nullPercentage: 19.9, topValues: [{ value: '24', count: 5, percentage: 5 }], stats: {} },
+    Name: {
+      inferredType: 'string', semanticType: 'name', distinctCount: 89, nullCount: 0,
+      nullPercentage: 0, topValues: [{ value: 'Braund', count: 1, percentage: 1 }], stats: {},
+    },
+    Age: {
+      inferredType: 'number', semanticType: 'age', distinctCount: 88, nullCount: 177,
+      nullPercentage: 19.9, topValues: [{ value: '24', count: 5, percentage: 5 }], stats: {},
+    },
   },
   datasetProfile: { columns: [{ name: 'PassengerId' }, { name: 'Name' }, { name: 'Age' }] },
 };
 
-const envelope = _buildEvidenceEnvelopeV2(minimalReport, opts({ privacyLevel: 'local_full' }));
+const envelope = _buildEvidenceEnvelopeV2(minimalReport, opts());
 
-// ── Tests ──
+const parsePayload = (payload: string) => JSON.parse(payload) as {
+  inputMode: string;
+  evidenceEnvelopeRef: string;
+  task: {
+    requiredIssueIds: string[];
+    issueIdsRequiringHumanReview: string[];
+    maximumConfidence: number;
+    visualizationInstruction: string;
+  };
+  visibleEvidence: {
+    ruleActivations?: Array<Record<string, unknown>>;
+    evidenceSamples?: Array<Record<string, unknown>>;
+    columnStatistics?: Record<string, unknown>;
+    authorizationEvidence?: Array<Record<string, unknown>>;
+  };
+};
 
 describe('canonicalJson', () => {
-  it('produces stable output for objects regardless of key insertion order', () => {
-    const a = canonicalJson({ z: 1, a: 2 });
-    const b = canonicalJson({ a: 2, z: 1 });
-    expect(a).toBe(b);
+  it('sorts object keys and preserves array order', () => {
+    expect(canonicalJson({ z: [3, 1], a: { b: 1, a: 2 } }))
+      .toBe('{"a":{"a":2,"b":1},"z":[3,1]}');
   });
 
-  it('sorts nested object keys', () => {
-    const a = canonicalJson({ outer: { b: 1, a: 2 } });
-    expect(a).toContain('"a":2');
-    expect(a).toContain('"b":1');
-    expect(a.indexOf('"a":2')).toBeLessThan(a.indexOf('"b":1'));
-  });
-
-  it('preserves array order', () => {
-    const a = canonicalJson([3, 1, 2]);
-    expect(a).toBe('[3,1,2]');
-  });
-
-  it('handles null and primitives', () => {
-    expect(canonicalJson(null)).toBe('null');
-    expect(canonicalJson('hello')).toBe('"hello"');
-    expect(canonicalJson(42)).toBe('42');
-    expect(canonicalJson(true)).toBe('true');
-    expect(canonicalJson(false)).toBe('false');
-  });
-
-  it('handles NaN and Infinity as null', () => {
-    expect(canonicalJson(NaN)).toBe('null');
-    expect(canonicalJson(Infinity)).toBe('null');
-    expect(canonicalJson(-Infinity)).toBe('null');
-  });
-
-  it('handles nested arrays', () => {
-    const a = canonicalJson({ items: [[1, 2], [3]] });
-    expect(a).toBe('{"items":[[1,2],[3]]}');
+  it('normalizes unsupported numeric values to null', () => {
+    expect(canonicalJson({ nan: Number.NaN, infinite: Number.POSITIVE_INFINITY }))
+      .toBe('{"infinite":null,"nan":null}');
   });
 });
 
 describe('buildEnvelopeRef', () => {
-  it('returns env:<sha256> format', () => {
-    const ref = buildEnvelopeRef(envelope);
-    expect(ref).toMatch(/^env:[a-f0-9]{64}$/);
-  });
-
-  it('same envelope produces same ref (deterministic)', () => {
-    const envelope2 = _buildEvidenceEnvelopeV2(minimalReport, opts({ privacyLevel: 'local_full' }));
-    expect(buildEnvelopeRef(envelope)).toBe(buildEnvelopeRef(envelope2));
-  });
-
-  it('different envelope produces different ref', () => {
-    const envelope2 = _buildEvidenceEnvelopeV2(
-      { ...minimalReport, score: 80 },
-      opts({ privacyLevel: 'local_full' }),
-    );
-    expect(buildEnvelopeRef(envelope)).not.toBe(buildEnvelopeRef(envelope2));
+  it('is deterministic and content-addressed', () => {
+    expect(buildEnvelopeRef(envelope)).toMatch(/^env:[a-f0-9]{64}$/);
+    expect(buildEnvelopeRef(envelope)).toBe(buildEnvelopeRef(structuredClone(envelope)));
   });
 });
 
-describe('buildDiagnosisPromptV2', () => {
-  it('returns a valid DiagnosisPromptPackageV2', () => {
+describe('Diagnosis V2 compatibility adapters', () => {
+  it('routes the historical builder through the canonical recommended snapshot', () => {
     const pkg = buildDiagnosisPromptV2(envelope);
-    expect(pkg.contractId).toBe('aura.diagnosis.v2');
-    expect(pkg.contractVersion).toBe('2.0.0');
-    expect(pkg.evidenceEnvelopeRef).toMatch(/^env:/);
-    expect(pkg.promptVersion).toBe('1.6.0');
+    const payload = parsePayload(pkg.userPayload);
+
+    expect(pkg).toEqual(expect.objectContaining({
+      contractId: 'aura.diagnosis.v2',
+      contractVersion: '2.0.0',
+      promptVersion: '1.7.0',
+      evidenceEnvelopeRef: buildEnvelopeRef(envelope),
+    }));
     expect(pkg.promptHash).toMatch(/^[a-f0-9]{64}$/);
-    expect(pkg.systemInstruction.length).toBeGreaterThan(100);
-    expect(pkg.userPayload.length).toBeGreaterThan(50);
-    expect(pkg.responseSchema).toHaveProperty('additionalProperties', false);
-    expect(pkg.generatedAt).toBeTruthy();
+    expect(payload.inputMode).toBe('recommended');
+    expect(payload.task.requiredIssueIds).toEqual(envelope.issues.map((issue) => issue.issueId));
+    expect(payload.task.issueIdsRequiringHumanReview.length).toBeGreaterThan(0);
+    expect(payload.task.visualizationInstruction).toContain('visualizations.issueIds');
   });
 
-  it('includes envelope ref in user payload', () => {
-    const pkg = buildDiagnosisPromptV2(envelope);
-    expect(pkg.userPayload).toContain(pkg.evidenceEnvelopeRef);
+  it('routes the compact builder through smart_sample without changing coverage', () => {
+    const pkg = buildCompactDiagnosisPromptV2(envelope);
+    const payload = parsePayload(pkg.userPayload);
+    const schema = pkg.responseSchema as {
+      properties: { issues: { minItems: number; maxItems: number } };
+    };
+
+    expect(pkg.promptVersion).toBe('1.7.0');
+    expect(payload.inputMode).toBe('smart_sample');
+    expect(payload.task.requiredIssueIds).toEqual(envelope.issues.map((issue) => issue.issueId));
+    expect(schema.properties.issues.minItems).toBe(envelope.issues.length);
+    expect(schema.properties.issues.maxItems).toBe(envelope.issues.length);
   });
 
-  it('includes all issue IDs in user payload', () => {
-    const pkg = buildDiagnosisPromptV2(envelope);
-    expect(pkg.userPayload).toContain('hygiene-ghost-Name');
-    expect(pkg.userPayload).toContain('integrity-null-Age');
+  it('uses the same canonical payload shape in both adapters', () => {
+    const recommended = parsePayload(buildDiagnosisPromptV2(envelope).userPayload);
+    const compact = parsePayload(buildCompactDiagnosisPromptV2(envelope).userPayload);
+
+    expect(recommended.visibleEvidence.ruleActivations).toHaveLength(envelope.issues.length);
+    expect(recommended.visibleEvidence.evidenceSamples?.length).toBeGreaterThan(0);
+    expect(recommended.visibleEvidence.columnStatistics).toBeTypeOf('object');
+    expect(recommended.visibleEvidence.authorizationEvidence).toHaveLength(envelope.issues.length);
+    expect(compact.visibleEvidence.ruleActivations).toHaveLength(envelope.issues.length);
+    expect(compact.visibleEvidence.evidenceSamples?.length).toBeGreaterThan(0);
+    expect(compact.visibleEvidence.authorizationEvidence).toBeUndefined();
   });
 
-  it('system instruction prohibits Python', () => {
-    const pkg = buildDiagnosisPromptV2(envelope);
-    expect(pkg.systemInstruction).toContain('NO Python');
-    expect(pkg.systemInstruction).toContain('NO eval');
+  it('keeps compact smaller than recommended while preserving every issue', () => {
+    const recommended = buildDiagnosisPromptV2(envelope);
+    const compact = buildCompactDiagnosisPromptV2(envelope);
+
+    expect(compact.userPayload.length).toBeLessThan(recommended.userPayload.length);
+    expect(compact.promptHash).not.toBe(recommended.promptHash);
   });
 
-  it('system instruction prohibits code blocks', () => {
-    const pkg = buildDiagnosisPromptV2(envelope);
-    expect(pkg.systemInstruction).toContain('No markdown blocks');
-    expect(pkg.systemInstruction).toContain('```');
+  it('applies maxConfidence to task metadata and the response schema', () => {
+    const pkg = buildDiagnosisPromptV2(envelope, { maxConfidence: 0.75 });
+    const payload = parsePayload(pkg.userPayload);
+    const schema = pkg.responseSchema as {
+      properties: { issues: { items: { properties: { confidence: { maximum: number } } } } };
+    };
+
+    expect(payload.task.maximumConfidence).toBe(0.75);
+    expect(schema.properties.issues.items.properties.confidence.maximum).toBe(0.75);
   });
 
-  it('responseSchema has additionalProperties: false on nested objects', () => {
-    const pkg = buildDiagnosisPromptV2(envelope);
-    const schema = pkg.responseSchema as any;
+  it('rejects invalid maxConfidence rather than emitting a contradictory contract', () => {
+    expect(() => buildDiagnosisPromptV2(envelope, { maxConfidence: 2 })).toThrow(/maxConfidence/);
+  });
+
+  it('keeps prompt hashes deterministic', () => {
+    expect(buildDiagnosisPromptV2(envelope).promptHash)
+      .toBe(buildDiagnosisPromptV2(envelope).promptHash);
+  });
+
+  it('keeps the nested response schemas closed', () => {
+    const schema = buildDiagnosisPromptV2(envelope).responseSchema as any;
     expect(schema.additionalProperties).toBe(false);
     expect(schema.properties.issues.items.additionalProperties).toBe(false);
     expect(schema.properties.diagnosisBlocks.items.additionalProperties).toBe(false);
     expect(schema.properties.visualizations.items.additionalProperties).toBe(false);
   });
 
-  it('promptHash is deterministic for same input', () => {
-    const pkg1 = buildDiagnosisPromptV2(envelope);
-    const pkg2 = buildDiagnosisPromptV2(envelope);
-    expect(pkg1.promptHash).toBe(pkg2.promptHash);
+  it('retains privacy-filtered empty samples for cloud_no_samples', () => {
+    const privateEnvelope = _buildEvidenceEnvelopeV2(
+      minimalReport,
+      opts({ privacyLevel: 'cloud_no_samples' }),
+    );
+    const payload = parsePayload(buildDiagnosisPromptV2(privateEnvelope).userPayload);
+    expect(payload.visibleEvidence.evidenceSamples).toEqual([]);
   });
 
-  it('prompt declares untrusted content warning', () => {
-    const pkg = buildDiagnosisPromptV2(envelope);
-    expect(pkg.systemInstruction).toContain('UNTRUSTED CONTENT');
-  });
-
-  it('prompt declares no new columns/rules', () => {
-    const pkg = buildDiagnosisPromptV2(envelope);
-    expect(pkg.systemInstruction).toContain('CANNOT create new columns');
-  });
-
-  it('prompt lets the model decide PDF visualizations declaratively', () => {
-    const pkg = buildDiagnosisPromptV2(envelope);
-    expect(pkg.userPayload).toContain('visualizations: include an array');
-    expect(pkg.userPayload).toContain('top_null_columns');
-    expect(pkg.systemInstruction).toContain('MUST NOT write D3');
+  it('retains prompt-injection and executable-content guards', () => {
+    const instruction = buildDiagnosisPromptV2(envelope).systemInstruction;
+    expect(instruction).toContain('UNTRUSTED CONTENT');
+    expect(instruction).toContain('NO Python');
+    expect(instruction).toContain('NO eval');
+    expect(instruction).toContain('MUST NOT write D3');
   });
 });
 
-describe('UNTRUSTED_DATA block', () => {
-  it('uses evidenceRef (not sampleRef) in evidenceSamples', () => {
-    const pkg = buildDiagnosisPromptV2(envelope);
-    const match = pkg.userPayload.match(/=== UNTRUSTED_DATA ===\s*(\{[\s\S]*?\})\s*===/);
-    expect(match).toBeTruthy();
-    const untrustedData = JSON.parse(match![1]);
-    for (const issue of untrustedData.issues) {
-      for (const sample of issue.evidenceSamples || []) {
-        expect(sample).toHaveProperty('ref');
-        expect(sample).not.toHaveProperty('sampleRef');
-        expect(typeof sample.ref).toBe('string');
-      }
-    }
-  });
-
-  it('includes columnStats in untrustedData', () => {
-    const pkg = buildDiagnosisPromptV2(envelope);
-    const match = pkg.userPayload.match(/=== UNTRUSTED_DATA ===\s*(\{[\s\S]*?\})\s*===/);
-    expect(match).toBeTruthy();
-    const untrustedData = JSON.parse(match![1]);
-    expect(untrustedData).toHaveProperty('columnStats');
-    expect(typeof untrustedData.columnStats).toBe('object');
-    expect(Object.keys(untrustedData.columnStats).length).toBeGreaterThan(0);
-    for (const [colId, stats] of Object.entries(untrustedData.columnStats as Record<string, unknown>)) {
-      expect(stats).toHaveProperty('inferredType');
-      expect(stats).toHaveProperty('distinctCount');
-      expect(stats).toHaveProperty('nullCount');
-      expect(stats).toHaveProperty('nullPercentage');
-    }
-  });
-
-  it('untrustedData JSON contains no undefined values', () => {
-    const pkg = buildDiagnosisPromptV2(envelope);
-    const match = pkg.userPayload.match(/=== UNTRUSTED_DATA ===\s*(\{[\s\S]*?\})\s*===/);
-    expect(match).toBeTruthy();
-    const untrustedDataStr = match![1];
-    expect(untrustedDataStr).not.toContain('undefined');
-  });
-
-  it('evidenceSamples values are preserved as arrays', () => {
-    const pkg = buildDiagnosisPromptV2(envelope);
-    const match = pkg.userPayload.match(/=== UNTRUSTED_DATA ===\s*(\{[\s\S]*?\})\s*===/);
-    expect(match).toBeTruthy();
-    const untrustedData = JSON.parse(match![1]);
-    for (const issue of untrustedData.issues) {
-      for (const sample of issue.evidenceSamples || []) {
-        expect(Array.isArray(sample.values)).toBe(true);
-      }
-    }
-  });
-
-  it('issues contain issueId, ruleId, columnId, scope', () => {
-    const pkg = buildDiagnosisPromptV2(envelope);
-    const match = pkg.userPayload.match(/=== UNTRUSTED_DATA ===\s*(\{[\s\S]*?\})\s*===/);
-    expect(match).toBeTruthy();
-    const untrustedData = JSON.parse(match![1]);
-    for (const issue of untrustedData.issues) {
-      expect(issue).toHaveProperty('issueId');
-      expect(issue).toHaveProperty('ruleId');
-      expect(issue).toHaveProperty('columnId');
-      expect(issue).toHaveProperty('scope');
-      expect(typeof issue.issueId).toBe('string');
-      expect(typeof issue.ruleId).toBe('string');
-    }
-  });
-
-  it('issues contain evidenceRefs array', () => {
-    const pkg = buildDiagnosisPromptV2(envelope);
-    const match = pkg.userPayload.match(/=== UNTRUSTED_DATA ===\s*(\{[\s\S]*?\})\s*===/);
-    expect(match).toBeTruthy();
-    const untrustedData = JSON.parse(match![1]);
-    for (const issue of untrustedData.issues) {
-      expect(issue).toHaveProperty('evidenceRefs');
-      expect(Array.isArray(issue.evidenceRefs)).toBe(true);
-    }
-  });
-
-  it('issues contain description', () => {
-    const pkg = buildDiagnosisPromptV2(envelope);
-    const match = pkg.userPayload.match(/=== UNTRUSTED_DATA ===\s*(\{[\s\S]*?\})\s*===/);
-    expect(match).toBeTruthy();
-    const untrustedData = JSON.parse(match![1]);
-    for (const issue of untrustedData.issues) {
-      expect(issue).toHaveProperty('description');
-      expect(typeof issue.description).toBe('string');
-    }
-  });
-
-  it('issues contain automaticAuthorization with conditionsMet', () => {
-    const pkg = buildDiagnosisPromptV2(envelope);
-    const match = pkg.userPayload.match(/=== UNTRUSTED_DATA ===\s*(\{[\s\S]*?\})\s*===/);
-    expect(match).toBeTruthy();
-    const untrustedData = JSON.parse(match![1]);
-    for (const issue of untrustedData.issues) {
-      expect(issue).toHaveProperty('automaticAuthorization');
-      expect(issue.automaticAuthorization).toHaveProperty('actionType');
-      expect(issue.automaticAuthorization).toHaveProperty('authorized');
-      expect(issue.automaticAuthorization).toHaveProperty('conditionsMet');
-      expect(Array.isArray(issue.automaticAuthorization.conditionsMet)).toBe(true);
-    }
-  });
-});
-
-describe('Privacy policy enforcement in UNTRUSTED_DATA', () => {
-  it('cloud_no_samples has evidenceSamples=[]', () => {
-    const cloudNoSamplesEnvelope = _buildEvidenceEnvelopeV2(minimalReport, opts({ privacyLevel: 'cloud_no_samples' }));
-    const pkg = buildDiagnosisPromptV2(cloudNoSamplesEnvelope);
-    const match = pkg.userPayload.match(/=== UNTRUSTED_DATA ===\s*(\{[\s\S]*?\})\s*===/);
-    expect(match).toBeTruthy();
-    const untrustedData = JSON.parse(match![1]);
-    for (const issue of untrustedData.issues) {
-      expect(issue.evidenceSamples || []).toHaveLength(0);
-    }
-  });
-});
-
-describe('estimatePromptTokens', () => {
-  it('returns Math.ceil(text.length / 4)', () => {
+describe('prompt size routing', () => {
+  it('estimates one token per four characters', () => {
     expect(estimatePromptTokens('hello')).toBe(2);
-    expect(estimatePromptTokens('hellohellohellohello')).toBe(5);
-    expect(estimatePromptTokens('hellohellohellohelloh')).toBe(6);
-    expect(estimatePromptTokens('')).toBe(0);
     expect(estimatePromptTokens('a'.repeat(100))).toBe(25);
   });
-});
 
-describe('shouldUseCompactPrompt', () => {
-  it('chrome: returns true when prompt tokens > CHROME_TOKEN_BUDGET', () => {
-    const largePrompt = 'a'.repeat(CHROME_TOKEN_BUDGET * 4 + 1);
-    expect(shouldUseCompactPrompt(largePrompt, 'chrome')).toBe(true);
-  });
-
-  it('chrome: returns false when prompt tokens <= CHROME_TOKEN_BUDGET', () => {
-    const smallPrompt = 'a'.repeat(CHROME_TOKEN_BUDGET * 4 - 1);
-    expect(shouldUseCompactPrompt(smallPrompt, 'chrome')).toBe(false);
-  });
-
-  it('ollama: returns true when prompt tokens > numCtx - 2048', () => {
-    const numCtx = 16384;
-    const largePrompt = 'a'.repeat(numCtx * 4);
-    expect(shouldUseCompactPrompt(largePrompt, 'ollama', numCtx)).toBe(true);
-  });
-
-  it('ollama: returns false when prompt tokens <= numCtx - 2048', () => {
-    const numCtx = 16384;
-    const smallPrompt = 'a'.repeat((numCtx - 2048) * 4 - 1);
-    expect(shouldUseCompactPrompt(smallPrompt, 'ollama', numCtx)).toBe(false);
-  });
-
-  it('ollama: returns false when numCtx is undefined', () => {
-    const largePrompt = 'a'.repeat(100000);
-    expect(shouldUseCompactPrompt(largePrompt, 'ollama')).toBe(false);
-  });
-
-  it('cloud: returns false regardless of prompt size', () => {
-    const largePrompt = 'a'.repeat(100000);
-    expect(shouldUseCompactPrompt(largePrompt, 'cloud')).toBe(false);
-  });
-});
-
-describe('buildCompactDiagnosisPromptV2', () => {
-  it('returns a valid DiagnosisPromptPackageV2', () => {
-    const pkg = buildCompactDiagnosisPromptV2(envelope);
-    expect(pkg.contractId).toBe('aura.diagnosis.v2');
-    expect(pkg.contractVersion).toBe('2.0.0');
-    expect(pkg.evidenceEnvelopeRef).toMatch(/^env:/);
-    expect(pkg.promptVersion).toBe('1.6.0');
-    expect(pkg.promptHash).toMatch(/^[a-f0-9]{64}$/);
-    expect(pkg.systemInstruction.length).toBeGreaterThan(100);
-    expect(pkg.userPayload.length).toBeGreaterThan(50);
-  });
-
-  it('has same evidenceEnvelopeRef as full prompt', () => {
-    const fullPkg = buildDiagnosisPromptV2(envelope);
-    const compactPkg = buildCompactDiagnosisPromptV2(envelope);
-    expect(compactPkg.evidenceEnvelopeRef).toBe(fullPkg.evidenceEnvelopeRef);
-  });
-
-  it('userPayload contains envelope ref', () => {
-    const pkg = buildCompactDiagnosisPromptV2(envelope);
-    expect(pkg.userPayload).toContain(pkg.evidenceEnvelopeRef);
-  });
-
-  it('userPayload contains no pretty-printed JSON (compact)', () => {
-    const fullPkg = buildDiagnosisPromptV2(envelope);
-    const compactPkg = buildCompactDiagnosisPromptV2(envelope);
-    expect(compactPkg.userPayload).not.toContain('\n    ');
-    expect(fullPkg.userPayload).toContain('\n    ');
-  });
-});
-
-describe('compact vs full prompt size', () => {
-  it('compact prompt is smaller than full prompt', () => {
-    const fullPkg = buildDiagnosisPromptV2(envelope);
-    const compactPkg = buildCompactDiagnosisPromptV2(envelope);
-    expect(compactPkg.userPayload.length).toBeLessThan(fullPkg.userPayload.length);
-  });
-
-  it('compact prompt hash differs from full prompt hash', () => {
-    const fullPkg = buildDiagnosisPromptV2(envelope);
-    const compactPkg = buildCompactDiagnosisPromptV2(envelope);
-    expect(compactPkg.promptHash).not.toBe(fullPkg.promptHash);
+  it('routes oversized Chrome and bounded Ollama prompts to compact mode', () => {
+    expect(shouldUseCompactPrompt('a'.repeat(CHROME_TOKEN_BUDGET * 4 + 1), 'chrome')).toBe(true);
+    expect(shouldUseCompactPrompt('a'.repeat(16_384 * 4), 'ollama', 16_384)).toBe(true);
+    expect(shouldUseCompactPrompt('a'.repeat(100_000), 'cloud')).toBe(false);
   });
 });

@@ -147,7 +147,18 @@ describe('AURA-CIERRE-DETERMINISTIC-HITL-02-R2 — Laboratory scores RAW', () =>
         evidenceEnvelopeRef: buildEnvelopeRef(envelope),
         includedSections: ['dataset_summary'],
         systemInstruction: 'test',
-        userPayload: '{}',
+        userPayload: JSON.stringify({
+          inputMode: 'smart_sample',
+          evidenceEnvelopeRef: buildEnvelopeRef(envelope),
+          visibleEvidence: {
+            ruleActivations: envelope.issues.map((issue) => ({
+              issueId: issue.issueId,
+              evidenceRefs: issue.evidenceRefs,
+            })),
+            evidenceSamples: envelope.evidence.samples,
+            columnStatistics: envelope.evidence.columnStats,
+          },
+        }),
         inputMode: 'smart_sample',
         inputHash: 'a'.repeat(64),
         promptHash: 'b'.repeat(64),

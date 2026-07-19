@@ -62,10 +62,13 @@ const literalIsSupported = (literal: string, evidence: string): boolean => {
 export const findUnsupportedDiagnosisClaims = (
   response: DiagnosisResponseV2,
   envelope: EvidenceEnvelopeV2,
+  visibleEvidenceByIssueId?: ReadonlyMap<string, string>,
 ): UnsupportedDiagnosisClaim[] => {
   const claims: UnsupportedDiagnosisClaim[] = [];
   const inspect = (issueId: string, path: string, text: string) => {
-    const evidence = scopedEvidenceText(envelope, issueId);
+    const evidence = visibleEvidenceByIssueId
+      ? normalize(visibleEvidenceByIssueId.get(issueId) ?? '')
+      : scopedEvidenceText(envelope, issueId);
     for (const literal of extractDataLikeLiterals(text)) {
       if (!literalIsSupported(literal, evidence)) {
         claims.push({ issueId, path, literal });

@@ -87,7 +87,7 @@ export const extractContractEvidence = (
     errors.push('execution receipt is missing — formal runs must have an executionReceipt');
   }
 
-  const validation = validateDiagnosisResponseV2(diagnosis, envelope);
+  const validation = validateDiagnosisResponseV2(diagnosis, envelope, run.input);
   if (!validation.valid) {
     errors.push(...validation.errors.map((e) => `${e.code}: ${e.message}`));
   }

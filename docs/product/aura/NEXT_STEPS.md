@@ -1,6 +1,6 @@
 # Hoja de ruta definitiva de AURA
 
-Última actualización: 15 de julio de 2026.
+Última actualización: 19 de julio de 2026.
 
 ## Resultado que se entrega
 
@@ -32,6 +32,7 @@ Los seis objetivos permanecen alineados con el producto. El Laboratorio aporta l
 | Laboratorio | Diagnóstico automático, visualización D3, metodología visible, glosario y transferencia de configuración implementados. |
 | Campaña piloto | Conservada como evidencia de ajuste; no se presenta como resultado formal. |
 | Segunda campaña | Cerrada: 27/27 intentos, 20 válidos, 7 fallos y expediente formalmente válido. |
+| Diagnosis V2.5 | Builders unificados, validación consciente de proyección y baseline reproducible implementados. V3 sigue aislado y no productivo. |
 
 ## Método del Laboratorio
 
@@ -139,6 +140,8 @@ La evidencia definitiva y el texto para el TFM están en `docs/tercera_entrega_a
 
 ## Mejoras posteriores a la entrega
 
+- completar la ruta condicionada de Diagnosis V2.5/V3 documentada en
+  `architecture/DIAGNOSIS_V2_5_IMPLEMENTATION.md`;
 - asistente para registrar nuevos datasets controlados y sus ground truths;
 - pruebas con más datasets y hardware;
 - intervalos de confianza y más repeticiones;
