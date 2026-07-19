@@ -33,7 +33,10 @@ export interface ProjectedDiagnosisPipelineEvidenceV1 {
   aliasContract: 'aura.evidence-alias.v1';
   aliasMapHash: string;
   projectionHash: string;
+  resolvedCitationsHash: string;
   citations: ResolvedEvidenceCitationV1[];
+  /** Content-addressed persistence view. Projection-local aliases never survive here. */
+  stableDiagnosis: DiagnosisResponseV2;
 }
 
 export type DiagnosisPipelineOutcomeV2_5 =
@@ -85,11 +88,19 @@ const preflightProjectedDiagnosis = (
 ): {
   errors: ValidationErrorV2[];
   resolved: DiagnosisResponseV2;
+  stable: DiagnosisResponseV2;
   citations: ResolvedEvidenceCitationV1[];
+  resolvedCitationsHash: string;
 } => {
   const integrity = validateDiagnosisInputSnapshotIntegrityV2_5(snapshot, envelope);
   if (!integrity.valid) {
-    return { errors: integrity.errors, resolved: response, citations: [] };
+    return {
+      errors: integrity.errors,
+      resolved: response,
+      stable: response,
+      citations: [],
+      resolvedCitationsHash: '',
+    };
   }
 
   const resolution = resolveDiagnosisEvidenceAliasesV1(response, snapshot.evidenceAliasMap);
@@ -109,7 +120,9 @@ const preflightProjectedDiagnosis = (
   return {
     errors,
     resolved: resolution.response,
+    stable: resolution.stableResponse,
     citations: resolution.citations,
+    resolvedCitationsHash: resolution.resolvedCitationsHash,
   };
 };
 
@@ -176,7 +189,9 @@ export const processDiagnosisResponseV2_5 = (
       aliasContract: 'aura.evidence-alias.v1',
       aliasMapHash: inputSnapshot.evidenceAliasMapHash,
       projectionHash: inputSnapshot.projectionHash,
+      resolvedCitationsHash: preflight.resolvedCitationsHash,
       citations: preflight.citations,
+      stableDiagnosis: preflight.stable,
     },
   };
 };
