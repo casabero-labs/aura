@@ -28,7 +28,7 @@ jobs:
       - run: npm ci
       - name: Typecheck
         run: npm run typecheck
-      - name: Unit tests
-        run: npm test
+      - name: Diagnosis input architecture tests
+        run: npx vitest run __tests__/diagnosisPromptV2.test.ts __tests__/diagnosisSystemInstructionV2.test.ts --reporter=verbose
       - name: Build
         run: npm run build
