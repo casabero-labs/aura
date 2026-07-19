@@ -10,9 +10,12 @@ import {
   runDiagnosisPipeline as runDiagnosisPipelineLegacy,
   type DiagnosisAdapter,
   type DiagnosisPipelineFailure,
-  type DiagnosisPipelineOutcome,
+  type DiagnosisPipelineResult,
 } from './diagnosisPipelineV2';
-import { parseDiagnosisResponseV2 } from './diagnosisParserV2';
+import {
+  parseDiagnosisResponseV2,
+  type ParseFailure,
+} from './diagnosisParserV2';
 import { captureRawResponse } from './humanReviewNormalizerV2';
 import { findUnsupportedDiagnosisClaims } from './diagnosisEvidenceReview';
 import {
@@ -33,9 +36,13 @@ export interface ProjectedDiagnosisPipelineEvidenceV1 {
   citations: ResolvedEvidenceCitationV1[];
 }
 
-export type DiagnosisPipelineOutcomeV2_5 = DiagnosisPipelineOutcome & {
-  evidenceResolution?: ProjectedDiagnosisPipelineEvidenceV1;
-};
+export type DiagnosisPipelineOutcomeV2_5 =
+  | (DiagnosisPipelineResult & {
+      evidenceResolution?: ProjectedDiagnosisPipelineEvidenceV1;
+    })
+  | (DiagnosisPipelineFailure & {
+      evidenceResolution?: ProjectedDiagnosisPipelineEvidenceV1;
+    });
 
 const projectionEvidenceByIssue = (
   snapshot: DiagnosisInputPackageV2_5,
@@ -143,12 +150,13 @@ export const processDiagnosisResponseV2_5 = (
 
   const parsed = parseDiagnosisResponseV2(raw);
   if (!parsed.success) {
+    const failure = parsed as ParseFailure;
     return {
       success: false,
-      code: parsed.error.code,
-      message: parsed.error.message,
-      path: parsed.error.path,
-      details: parsed.error.details,
+      code: failure.error.code,
+      message: failure.error.message,
+      path: failure.error.path,
+      details: failure.error.details,
     };
   }
 
