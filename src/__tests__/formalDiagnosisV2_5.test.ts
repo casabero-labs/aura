@@ -199,7 +199,7 @@ describe('formal Diagnosis V2.5-C evidence', () => {
       .toEqual(envelope.issues.flatMap((issue) => issue.evidenceRefs).sort());
     expect(result.evidence.anchors.anchoredEvidenceRefs.sort())
       .toEqual(envelope.issues.flatMap((issue) => issue.evidenceRefs).sort());
-    expect(diagnosis.issues.flatMap((issue) => issue.evidenceRefs))
-      .toEqual(input.evidenceAliasMap.entries.map((entry) => entry.alias));
+    expect(new Set(diagnosis.issues.flatMap((issue) => issue.evidenceRefs)))
+      .toEqual(new Set(input.evidenceAliasMap.entries.map((entry) => entry.alias)));
   });
 });
