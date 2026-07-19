@@ -48,8 +48,8 @@ jobs:
           path: ./src/diagnosis-v2-5-c-tests.log
           if-no-files-found: error
 
-      - name: Generate Diagnosis V2.5-C structural comparison
-        run: npm run diagnosis:v2.5-comparison -- --output ./diagnosis-v2-5-c-comparison.json
+      - name: Verify Diagnosis V2.5-C structural comparison
+        run: npm run diagnosis:v2.5-comparison -- --check ../docs/product/aura/evidence/diagnosis-v2.5/diagnosis-v2-5-c-comparison.json --output ./diagnosis-v2-5-c-comparison.json
 
       - name: Upload Diagnosis V2.5-C comparison
         uses: actions/upload-artifact@v4
