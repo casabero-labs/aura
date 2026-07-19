@@ -50,7 +50,8 @@ const envelope = _buildEvidenceEnvelopeV2(report, {
   delimiter: ',',
 });
 const input = buildDiagnosisInputPackageV2_5(report, envelope, 'smart_sample');
-const alias = input.evidenceAliasMap.entries[0].alias;
+const aliasEntry = input.evidenceAliasMap.entries[0];
+const alias = aliasEntry.alias;
 const issue = envelope.issues[0];
 const response: DiagnosisResponseV2 = {
   contractId: 'aura.diagnosis.v2',
@@ -94,10 +95,10 @@ describe('Diagnosis V2.5-C stable trace', () => {
     expect(outcome.success).toBe(true);
     if (!outcome.success) return;
 
-    expect(outcome.rawResponse.issues[0].evidenceRefs).toEqual([alias]);
-    expect(outcome.response.issues[0].evidenceRefs).toEqual(issue.evidenceRefs);
+    expect(outcome.rawResponse.issues[0].evidenceRefs).toEqual([aliasEntry.alias]);
+    expect(outcome.response.issues[0].evidenceRefs).toEqual([aliasEntry.sourceEvidenceRef]);
     expect(outcome.evidenceResolution?.stableDiagnosis.issues[0].evidenceRefs)
-      .toEqual([input.evidenceAliasMap.entries[0].stableEvidenceRef]);
+      .toEqual([aliasEntry.stableEvidenceRef]);
     expect(outcome.evidenceResolution?.resolvedCitationsHash).toMatch(/^[a-f0-9]{64}$/);
   });
 
