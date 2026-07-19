@@ -5,7 +5,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 process.env.CONTRACTS_V2_ENABLED = 'true';
 
-// Set import.meta.env for vitest (needed by buildEvidenceEnvelopeV2)
 (import.meta as any).env = { ...((import.meta as any).env || {}), VITE_CONTRACTS_V2_ENABLED: 'true' };
 
 vi.mock('../contracts/llm/contractRegistry', () => ({ isContractsV2Enabled: vi.fn() }));
@@ -18,6 +17,8 @@ import type { DiagnosisInputPackageV2_5 } from '../contracts/llm/diagnosisEviden
 import type { AuditReportInput } from '../contracts/llm/evidenceEnvelopeV2';
 import type { EvidenceEnvelopeV2 } from '../contracts/llm/types';
 import type { AIProvider } from '../types';
+
+const TEST_TIMESTAMP = '2026-07-19T00:00:00.000Z';
 
 function makeProvider(type: AIProvider['type'] = 'cloud'): AIProvider {
   const provider: AIProvider = {
@@ -125,7 +126,15 @@ function validResponseForExactPrompt(prompt: string, env: EvidenceEnvelopeV2): s
 function setupValidProvider(provider: AIProvider, model = 'gemini-2.5-flash') {
   provider.generateTextWithProgress = vi.fn(async (prompt) => ({
     text: validResponseForExactPrompt(prompt, provider.type === 'cloud' ? envCloud : envLocal),
-    metrics: { latencyMs: 800, tokensGenerated: 250, model, provider: provider.type === 'cloud' ? 'google' : provider.name, isLocal: provider.type !== 'cloud' },
+    metrics: {
+      latencyMs: 800,
+      firstTokenMs: 1,
+      tokensGenerated: 250,
+      model,
+      provider: provider.type === 'cloud' ? 'google' : provider.name,
+      isLocal: provider.type !== 'cloud',
+      timestamp: TEST_TIMESTAMP,
+    },
   }));
 }
 
@@ -228,7 +237,15 @@ describe('result structure', () => {
       rawResponse = validResponseForExactPrompt(prompt, envCloud);
       return {
         text: rawResponse,
-        metrics: { latencyMs: 800, tokensGenerated: 250, model: 'gemini-2.5-flash', provider: 'google', isLocal: false },
+        metrics: {
+          latencyMs: 800,
+          firstTokenMs: 1,
+          tokensGenerated: 250,
+          model: 'gemini-2.5-flash',
+          provider: 'google',
+          isLocal: false,
+          timestamp: TEST_TIMESTAMP,
+        },
       };
     });
     const result = await runStructuredDiagnosis(minimalReport, { provider, auditEvidence, requestedModel: 'gemini-2.5-flash' });
@@ -269,7 +286,15 @@ describe('result structure', () => {
     const provider = makeProvider('ollama');
     provider.generateTextWithProgress = vi.fn(async (prompt) => ({
       text: validResponseForExactPrompt(prompt, envLocal),
-      metrics: { latencyMs: 10, tokensGenerated: 20, model: observedModel, provider: 'Ollama', isLocal: true },
+      metrics: {
+        latencyMs: 10,
+        firstTokenMs: 1,
+        tokensGenerated: 20,
+        model: observedModel,
+        provider: 'Ollama',
+        isLocal: true,
+        timestamp: TEST_TIMESTAMP,
+      },
     }));
 
     const result = await runStructuredDiagnosis(minimalReport, {
@@ -313,11 +338,13 @@ describe('result structure', () => {
       text: rawResponse,
       metrics: {
         latencyMs: 10,
+        firstTokenMs: 1,
         tokensGenerated: 4096,
         model: 'model-a',
         provider: 'Ollama',
         finishReason: 'length',
         isLocal: true,
+        timestamp: TEST_TIMESTAMP,
       },
     });
 
@@ -389,6 +416,7 @@ describe('canonical input propagation', () => {
         model: 'model-a',
         provider: 'Ollama',
         isLocal: true,
+        timestamp: TEST_TIMESTAMP,
       },
     });
 
