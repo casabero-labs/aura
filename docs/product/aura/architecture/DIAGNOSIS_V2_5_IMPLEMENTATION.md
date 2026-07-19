@@ -107,9 +107,23 @@ Las 215 ocurrencias adicionales no se clasifican automáticamente como causadas
 por el primer error. El baseline declara `rootCauseClassification: not_inferred`;
 atribuir causalidad exige una taxonomía de fallos raíz separada.
 
+## Próxima fase: V2.5-C
+
+El siguiente paso aprobado es **Diagnosis V2.5-C: identidad de evidencia e
+integridad de proyección**.
+
+Plan detallado:
+
+- [`DIAGNOSIS_V2_5_C_EVIDENCE_IDENTITY_PLAN.md`](./DIAGNOSIS_V2_5_C_EVIDENCE_IDENTITY_PLAN.md)
+
+La fase separa identidad interna estable, aliases cortos visibles al LLM y
+resolución determinista. También endurece la integridad del snapshot, hace
+explícita la ruta legacy y define el baseline que debe completarse antes del
+capability gate.
+
 ## Pendiente antes de V3
 
-1. Definir aliases cortos visibles para el LLM y refs estables internas.
+1. Implementar V2.5-C según su plan detallado.
 2. Diseñar un capability gate basado en comportamiento contractual, no en
    cantidad de parámetros.
 3. Implementar un serializador V3 aislado para medir tokens sobre las mismas
