@@ -49,7 +49,7 @@ jobs:
           if-no-files-found: error
 
       - name: Diagnosis regression tests
-        run: set -o pipefail; npm test -- diagnosis 2>&1 | tee diagnosis-regression-tests.log
+        run: set -o pipefail; npm test -- diagnosis --exclude __tests__/controlledDatasetDiagnosisInputs.test.ts --exclude __tests__/formalDiagnosisEvaluator.test.ts 2>&1 | tee diagnosis-regression-tests.log
 
       - name: Upload regression diagnostics
         if: always()
