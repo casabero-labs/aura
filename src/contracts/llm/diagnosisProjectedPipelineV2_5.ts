@@ -147,6 +147,22 @@ const projectedFailure = (
   };
 };
 
+const mergeStableRefsIntoEffectiveDiagnosis = (
+  effective: DiagnosisResponseV2,
+  stable: DiagnosisResponseV2,
+): DiagnosisResponseV2 => {
+  const stableRefsByIssueId = new Map(
+    stable.issues.map((issue) => [issue.issueId, [...issue.evidenceRefs]]),
+  );
+  return {
+    ...effective,
+    issues: effective.issues.map((issue) => ({
+      ...issue,
+      evidenceRefs: stableRefsByIssueId.get(issue.issueId) ?? [],
+    })),
+  };
+};
+
 /**
  * Compatibility dispatcher. Historical snapshots keep the legacy behavior;
  * alias-aware snapshots are verified, resolved and only then enter the
@@ -191,7 +207,10 @@ export const processDiagnosisResponseV2_5 = (
       projectionHash: inputSnapshot.projectionHash,
       resolvedCitationsHash: preflight.resolvedCitationsHash,
       citations: preflight.citations,
-      stableDiagnosis: preflight.stable,
+      stableDiagnosis: mergeStableRefsIntoEffectiveDiagnosis(
+        legacyOutcome.response,
+        preflight.stable,
+      ),
     },
   };
 };
