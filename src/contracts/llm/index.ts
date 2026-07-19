@@ -97,6 +97,7 @@ export {
   buildStableEvidenceRefV1,
   buildEvidenceAliasMapV1,
   buildEvidenceAliasMapHashV1,
+  buildResolvedCitationsHashV1,
   isDiagnosisInputPackageV2_5,
   resolveDiagnosisEvidenceAliasesV1,
 } from './diagnosisEvidenceIdentityV1';
@@ -251,8 +252,12 @@ export type {
 } from './humanReviewNormalizerV2';
 
 export {
-  runStructuredDiagnosis,
+  runStructuredDiagnosis as runStructuredDiagnosisLegacy,
 } from './diagnosisSelector';
+export {
+  runStructuredDiagnosisV2_5 as runStructuredDiagnosis,
+  runStructuredDiagnosisV2_5,
+} from './diagnosisSelectorV2_5';
 export type {
   StructuredDiagnosisResult,
   StructuredDiagnosisFailure,
