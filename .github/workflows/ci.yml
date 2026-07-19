@@ -49,7 +49,15 @@ jobs:
           if-no-files-found: error
 
       - name: Diagnosis regression tests
-        run: npm test -- diagnosis
+        run: set -o pipefail; npm test -- diagnosis 2>&1 | tee diagnosis-regression-tests.log
+
+      - name: Upload regression diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnosis-regression-tests
+          path: ./src/diagnosis-regression-tests.log
+          if-no-files-found: error
 
       - name: Build
         run: npm run build
