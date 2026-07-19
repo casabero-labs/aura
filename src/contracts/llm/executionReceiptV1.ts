@@ -166,8 +166,11 @@ export const validateExecutionReceiptIntegrityV1 = (
     if (receipt.evidenceAliasContract !== input.evidenceAliasContract) errors.push('evidence alias contract mismatch');
     if (receipt.evidenceAliasMapHash !== input.evidenceAliasMapHash) errors.push('evidence alias map hash mismatch');
     if (receipt.projectionHash !== input.projectionHash) errors.push('projection hash mismatch');
-    if (!receipt.resolvedCitationsHash || !/^[a-f0-9]{64}$/.test(receipt.resolvedCitationsHash)) {
-      errors.push('alias-aware receipt requires a valid resolved citations hash');
+    if (receipt.resolvedCitationsHash !== undefined && !/^[a-f0-9]{64}$/.test(receipt.resolvedCitationsHash)) {
+      errors.push('resolved citations hash is invalid');
+    }
+    if (receipt.validationStatus === 'valid' && !receipt.resolvedCitationsHash) {
+      errors.push('valid alias-aware receipt requires a resolved citations hash');
     }
   }
 
