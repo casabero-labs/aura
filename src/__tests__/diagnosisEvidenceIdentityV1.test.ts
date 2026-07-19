@@ -4,6 +4,7 @@ import {
   type AuditReportInput,
 } from '../contracts/llm/evidenceEnvelopeV2';
 import {
+  assertNoStableEvidenceRefCollisionsV1,
   buildEvidenceAliasMapV1,
   buildStableEvidenceRefV1,
 } from '../contracts/llm/diagnosisEvidenceIdentityV1';
@@ -129,5 +130,50 @@ describe('Diagnosis V2.5-C evidence identity', () => {
 
   it('does not expose aliases in prompt_libre', () => {
     expect(buildEvidenceAliasMapV1(envelopeFor(baseReport()), 'prompt_libre').entries).toEqual([]);
+  });
+
+  it('allows exact semantic duplicates to share one truncated stable ref', () => {
+    expect(() => assertNoStableEvidenceRefCollisionsV1([
+      {
+        stableEvidenceRef: 'ev:v1:aaaaaaaaaaaaaaaa:bbbbbbbbbbbbbbbbbbbbbbbb',
+        identityDigest: '1'.repeat(64),
+        issueId: 'issue:a',
+      },
+      {
+        stableEvidenceRef: 'ev:v1:aaaaaaaaaaaaaaaa:bbbbbbbbbbbbbbbbbbbbbbbb',
+        identityDigest: '1'.repeat(64),
+        issueId: 'issue:a',
+      },
+    ])).not.toThrow();
+  });
+
+  it('fails closed when a truncated stable ref maps to different full identities', () => {
+    expect(() => assertNoStableEvidenceRefCollisionsV1([
+      {
+        stableEvidenceRef: 'ev:v1:aaaaaaaaaaaaaaaa:bbbbbbbbbbbbbbbbbbbbbbbb',
+        identityDigest: '1'.repeat(64),
+        issueId: 'issue:a',
+      },
+      {
+        stableEvidenceRef: 'ev:v1:aaaaaaaaaaaaaaaa:bbbbbbbbbbbbbbbbbbbbbbbb',
+        identityDigest: '2'.repeat(64),
+        issueId: 'issue:a',
+      },
+    ])).toThrow(/collision/i);
+  });
+
+  it('fails closed when a stable ref is reused across issues', () => {
+    expect(() => assertNoStableEvidenceRefCollisionsV1([
+      {
+        stableEvidenceRef: 'ev:v1:aaaaaaaaaaaaaaaa:bbbbbbbbbbbbbbbbbbbbbbbb',
+        identityDigest: '1'.repeat(64),
+        issueId: 'issue:a',
+      },
+      {
+        stableEvidenceRef: 'ev:v1:aaaaaaaaaaaaaaaa:bbbbbbbbbbbbbbbbbbbbbbbb',
+        identityDigest: '1'.repeat(64),
+        issueId: 'issue:b',
+      },
+    ])).toThrow(/collision/i);
   });
 });
