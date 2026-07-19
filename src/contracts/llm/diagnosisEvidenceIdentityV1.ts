@@ -36,8 +36,12 @@ export interface DiagnosisInputPackageV2_5 extends DiagnosisInputPackageV2 {
 export type ResolvedEvidenceCitationV1 = EvidenceAliasEntryV1;
 
 export interface EvidenceAliasResolutionV1 {
+  /** V2 compatibility view using source ordinal refs for current validators. */
   response: DiagnosisResponseV2;
+  /** Persistence view using content-addressed refs, never projection-local aliases. */
+  stableResponse: DiagnosisResponseV2;
   citations: ResolvedEvidenceCitationV1[];
+  resolvedCitationsHash: string;
   errors: ValidationErrorV2[];
 }
 
@@ -148,6 +152,16 @@ export const buildEvidenceAliasMapV1 = (
 export const buildEvidenceAliasMapHashV1 = (aliasMap: EvidenceAliasMapV1): string =>
   sha256hex(canonicalJson(aliasMap));
 
+export const buildResolvedCitationsHashV1 = (
+  citations: readonly ResolvedEvidenceCitationV1[],
+): string => sha256hex(canonicalJson(
+  [...citations].sort((left, right) => (
+    left.issueId.localeCompare(right.issueId)
+    || left.stableEvidenceRef.localeCompare(right.stableEvidenceRef)
+    || left.alias.localeCompare(right.alias)
+  )),
+));
+
 export const isDiagnosisInputPackageV2_5 = (
   value: DiagnosisInputPackageV2 | null | undefined,
 ): value is DiagnosisInputPackageV2_5 => {
@@ -169,9 +183,13 @@ export const resolveDiagnosisEvidenceAliasesV1 = (
   const aliases = aliasLookup(aliasMap);
   const citations: ResolvedEvidenceCitationV1[] = [];
   const errors: ValidationErrorV2[] = [];
-  const issues = response.issues.map((issue, issueIndex) => {
+  const sourceIssues = [] as DiagnosisResponseV2['issues'];
+  const stableIssues = [] as DiagnosisResponseV2['issues'];
+
+  response.issues.forEach((issue, issueIndex) => {
     const seen = new Set<string>();
-    const resolvedRefs: string[] = [];
+    const sourceRefs: string[] = [];
+    const stableRefs: string[] = [];
     issue.evidenceRefs.forEach((alias, refIndex) => {
       const entry = aliases.get(alias);
       const path = `issues[${issueIndex}].evidenceRefs[${refIndex}]`;
@@ -203,15 +221,19 @@ export const resolveDiagnosisEvidenceAliasesV1 = (
         return;
       }
       seen.add(alias);
-      resolvedRefs.push(entry.sourceEvidenceRef);
+      sourceRefs.push(entry.sourceEvidenceRef);
+      stableRefs.push(entry.stableEvidenceRef);
       citations.push({ ...entry });
     });
-    return { ...issue, evidenceRefs: resolvedRefs };
+    sourceIssues.push({ ...issue, evidenceRefs: sourceRefs });
+    stableIssues.push({ ...issue, evidenceRefs: stableRefs });
   });
 
   return {
-    response: { ...response, issues },
+    response: { ...response, issues: sourceIssues },
+    stableResponse: { ...response, issues: stableIssues },
     citations,
+    resolvedCitationsHash: buildResolvedCitationsHashV1(citations),
     errors,
   };
 };
