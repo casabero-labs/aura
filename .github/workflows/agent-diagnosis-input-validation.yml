@@ -28,7 +28,19 @@ jobs:
       - run: npm ci
       - name: Typecheck
         run: npm run typecheck
-      - name: Diagnosis input architecture tests
-        run: npx vitest run __tests__/diagnosisPromptV2.test.ts __tests__/diagnosisSystemInstructionV2.test.ts --reporter=verbose
+      - name: Full unit suite
+        id: tests
+        continue-on-error: true
+        run: npx vitest run --reporter=json --outputFile=vitest-results.json
+      - name: Upload Vitest report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnosis-input-vitest-results
+          path: src/vitest-results.json
+          if-no-files-found: error
+      - name: Fail when tests failed
+        if: steps.tests.outcome == 'failure'
+        run: exit 1
       - name: Build
         run: npm run build
