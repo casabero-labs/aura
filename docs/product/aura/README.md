@@ -17,8 +17,13 @@
 - `evidence/`: evidencia de producto y recorridos verificados.
 - `../../archive/academic/`: entregas y evidencia académica histórica.
 
+## Propuestas técnicas no implementadas
+
+- [`architecture/DIAGNOSIS_V3_INTERPRETATION_PURE_DEMO_SPEC.md`](./architecture/DIAGNOSIS_V3_INTERPRETATION_PURE_DEMO_SPEC.md): especificación detallada y demo conceptual de un contrato V3 de interpretación pura, `PromptProjectionV3`, referencias estables, ensamblaje determinista y validador consciente de la proyección. **No constituye estado operativo ni roadmap aprobado.**
+
 ## Frontera documental
 
 - No crear nuevas fases ni roadmaps paralelos antes del depósito final.
 - No usar un closeout histórico como estado actual sin contrastarlo con `NEXT_STEPS.md`.
+- Las propuestas técnicas no implementadas deben permanecer claramente separadas del estado operativo y no ejecutarse sin decisión explícita.
 - Toda tabla, figura o conclusión de la memoria debe poder remontarse a una fuente incluida en el mapa de la memoria final.
