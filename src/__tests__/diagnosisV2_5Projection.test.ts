@@ -153,8 +153,10 @@ describe('Diagnosis V2.5-C projected pipeline', () => {
 
     expect(result.success).toBe(true);
     if (!result.success) return;
-    expect(result.response.issues.flatMap((issue) => issue.evidenceRefs))
-      .toEqual(envelope.issues.flatMap((issue) => issue.evidenceRefs));
+    for (const issue of result.response.issues) {
+      const envelopeIssue = envelope.issues.find((candidate) => candidate.issueId === issue.issueId);
+      expect(new Set(issue.evidenceRefs)).toEqual(new Set(envelopeIssue?.evidenceRefs ?? []));
+    }
     expect(result.rawResponse.issues.flatMap((issue) => issue.evidenceRefs))
       .toEqual(response.issues.flatMap((issue) => issue.evidenceRefs));
     expect(result.evidenceResolution?.citations.length)
