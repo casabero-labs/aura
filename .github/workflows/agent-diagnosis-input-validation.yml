@@ -1,3 +1,4 @@
+# Temporary branch-only validation. Removed after checks complete.
 name: Agent diagnosis input validation
 
 on:
