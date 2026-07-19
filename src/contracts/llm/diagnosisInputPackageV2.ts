@@ -6,11 +6,13 @@ import {
   canonicalJson,
   composeExactDiagnosisPromptV2,
   DIAGNOSIS_PROMPT_VERSION_V2,
-} from './diagnosisPromptV2';
+} from './diagnosisPromptCoreV2';
 import { computeIssueIdsRequiringHumanReview } from './humanReviewPolicyV2';
 import type {
   DiagnosisInputModeV2,
   DiagnosisInputPackageV2,
+  DiagnosisPromptOptionsV2,
+  DiagnosisPromptPackageV2,
   EvidenceEnvelopeV2,
 } from './types';
 
@@ -86,6 +88,7 @@ const visibleEvidence = (envelope: EvidenceEnvelopeV2, inputMode: DiagnosisInput
     issueRegistryMinimal: issueRegistryMinimal(envelope),
   };
   if (inputMode === 'prompt_libre') return minimal;
+
   const balanced = {
     ...minimal,
     columnStatistics: columnStatistics(envelope),
@@ -93,6 +96,7 @@ const visibleEvidence = (envelope: EvidenceEnvelopeV2, inputMode: DiagnosisInput
     evidenceSamples: evidenceSamples(envelope),
   };
   if (inputMode === 'smart_sample') return balanced;
+
   return {
     ...balanced,
     columnRegistry: envelope.columns,
@@ -111,6 +115,22 @@ export interface DiagnosisInputReport {
   duplicateRows: number;
   delimiterDetected: string;
 }
+
+/**
+ * Reconstruct the exact report identity fields required by the canonical input
+ * builder from an already validated envelope. This is intentionally narrow:
+ * it does not reconstruct audit issues or statistics and cannot mutate the
+ * envelope. It exists only for compatibility adapters that receive an envelope.
+ */
+export const diagnosisInputReportFromEnvelope = (
+  envelope: EvidenceEnvelopeV2,
+): DiagnosisInputReport => ({
+  score: envelope.datasetSummary.score,
+  rowCount: envelope.datasetSummary.rowCount,
+  colCount: envelope.datasetSummary.colCount,
+  duplicateRows: envelope.datasetSummary.duplicateRows,
+  delimiterDetected: envelope.datasetSummary.delimiter,
+});
 
 const assertReportMatchesEnvelope = (report: DiagnosisInputReport, envelope: EvidenceEnvelopeV2): void => {
   const summary = envelope.datasetSummary;
@@ -131,13 +151,39 @@ export const exactDiagnosisPromptV2 = (
   input.responseSchema,
 );
 
+/**
+ * Adapt a frozen canonical input snapshot to the provider-neutral prompt package
+ * consumed by the execution pipeline. No payload reconstruction occurs here.
+ */
+export const toDiagnosisPromptPackageV2 = (
+  input: DiagnosisInputPackageV2,
+  generatedAt: string = new Date().toISOString(),
+): DiagnosisPromptPackageV2 => ({
+  contractId: 'aura.diagnosis.v2',
+  contractVersion: '2.0.0',
+  evidenceEnvelopeRef: input.evidenceEnvelopeRef,
+  promptVersion: input.promptVersion,
+  promptHash: input.promptHash,
+  systemInstruction: input.systemInstruction,
+  userPayload: input.userPayload,
+  responseSchema: input.responseSchema,
+  generatedAt,
+});
+
 export const buildDiagnosisInputPackageV2 = (
   report: DiagnosisInputReport,
   envelope: EvidenceEnvelopeV2,
   inputMode: DiagnosisInputModeV2,
+  options?: DiagnosisPromptOptionsV2,
 ): DiagnosisInputPackageV2 => {
   if (!MODES.includes(inputMode)) throw new Error(`Unsupported diagnosis input mode: ${String(inputMode)}`);
   assertReportMatchesEnvelope(report, envelope);
+
+  const maxConfidence = options?.maxConfidence ?? 1;
+  if (!Number.isFinite(maxConfidence) || maxConfidence < 0 || maxConfidence > 1) {
+    throw new Error('maxConfidence must be between 0 and 1.');
+  }
+
   const evidenceEnvelopeRef = buildEnvelopeRef(envelope);
   const requiredIssueIds = envelope.issues.map((issue) => issue.issueId);
   const issueIdsWithoutEvidenceRefs = envelope.issues
@@ -158,6 +204,7 @@ export const buildDiagnosisInputPackageV2 = (
       requiredIssueIds,
       issueIdsWithoutEvidenceRefs,
       issueIdsRequiringHumanReview,
+      maxConfidence,
       humanReviewInstruction: 'For every issueId in issueIdsRequiringHumanReview you MUST set requiresHumanReview=true. For issueIds outside that list you may still set requiresHumanReview=true when in doubt, but you MUST NOT return requiresHumanReview=false for any ID in that list.',
       exactCoverageInstruction: 'Produce exactly one issues item and exactly one diagnosisBlocks item for every required issueId. Do not omit or duplicate any required issueId.',
       visualizationInstruction: 'visualizations.issueIds may use only requiredIssueIds. Use [] when no chart is justified.',
@@ -171,7 +218,7 @@ export const buildDiagnosisInputPackageV2 = (
       prohibitUnsupportedClaims: true,
     },
   });
-  const responseSchema = buildDiagnosisResponseSchemaV2(envelope);
+  const responseSchema = buildDiagnosisResponseSchemaV2(envelope, options);
   const promptVersion = DIAGNOSIS_PROMPT_VERSION_V2;
   const promptHash = sha256hex(composeExactDiagnosisPromptV2(systemInstruction, userPayload, responseSchema));
   const responseSchemaHash = sha256hex(canonicalJson(responseSchema));
@@ -188,6 +235,7 @@ export const buildDiagnosisInputPackageV2 = (
     promptHash,
     responseSchemaHash,
   };
+
   return deepFreeze({
     ...stable,
     inputHash: sha256hex(canonicalJson(stable)),
