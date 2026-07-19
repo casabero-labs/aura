@@ -1,7 +1,11 @@
 import { sha256hex } from './hash';
 import { canonicalJson } from './diagnosisPromptV2';
 import { exactDiagnosisPromptV2 } from './diagnosisInputPackageV2';
-import { isDiagnosisInputPackageV2_5 } from './diagnosisEvidenceIdentityV1';
+import {
+  isDiagnosisInputPackageV2_5,
+  resolveDiagnosisEvidenceAliasesV1,
+} from './diagnosisEvidenceIdentityV1';
+import { parseDiagnosisResponseV2 } from './diagnosisParserV2';
 import type {
   DiagnosisInputPackageV2,
   ExecutionReceiptV1,
@@ -31,7 +35,7 @@ export interface BuildExecutionReceiptInput {
   rawResponse: string;
   validationStatus: ExecutionReceiptV1['validationStatus'];
   validationErrorCodes?: string[];
-  /** Hash of the deterministic alias-to-stable-ref resolution for V2.5-C. */
+  /** Optional externally computed hash. When provided it must match AURA's derivation. */
   resolvedCitationsHash?: string;
   /**
    * AURA-CIERRE-DETERMINISTIC-HITL-02-R2 — raw validation result before
@@ -50,6 +54,36 @@ const assertSha256 = (value: string, field: string): void => {
   }
 };
 
+const deriveResolvedCitationsHash = (
+  source: BuildExecutionReceiptInput,
+): string | undefined => {
+  if (!isDiagnosisInputPackageV2_5(source.input)) {
+    return source.resolvedCitationsHash;
+  }
+  if (source.validationStatus !== 'valid') {
+    return source.resolvedCitationsHash;
+  }
+
+  const parsed = parseDiagnosisResponseV2(source.rawResponse);
+  if (!parsed.success) {
+    throw new Error('V2_5_VALID_RECEIPT_REQUIRES_PARSEABLE_RAW_RESPONSE: raw response could not be parsed.');
+  }
+  const resolution = resolveDiagnosisEvidenceAliasesV1(
+    parsed.response,
+    source.input.evidenceAliasMap,
+  );
+  if (resolution.errors.length > 0) {
+    throw new Error(`V2_5_VALID_RECEIPT_REQUIRES_RESOLVABLE_ALIASES: ${resolution.errors[0]?.message ?? 'alias resolution failed'}`);
+  }
+  if (
+    source.resolvedCitationsHash !== undefined
+    && source.resolvedCitationsHash !== resolution.resolvedCitationsHash
+  ) {
+    throw new Error('V2_5_RESOLVED_CITATIONS_HASH_MISMATCH: supplied hash differs from deterministic resolution.');
+  }
+  return resolution.resolvedCitationsHash;
+};
+
 export const buildExecutionReceiptV1 = (source: BuildExecutionReceiptInput): ExecutionReceiptV1 => {
   if (source.requestedInputMode !== source.input.inputMode) {
     throw new Error('TRACE_INPUT_MODE_MISMATCH: requested and effective input modes differ.');
@@ -63,6 +97,7 @@ export const buildExecutionReceiptV1 = (source: BuildExecutionReceiptInput): Exe
   if (source.resolvedCitationsHash !== undefined) {
     assertSha256(source.resolvedCitationsHash, 'resolvedCitationsHash');
   }
+  const resolvedCitationsHash = deriveResolvedCitationsHash(source);
   const rawValidStatus = source.rawValidationStatus;
   const rawErrorCodes = source.rawValidationErrorCodes;
 
@@ -93,8 +128,8 @@ export const buildExecutionReceiptV1 = (source: BuildExecutionReceiptInput): Exe
         evidenceAliasContract: source.input.evidenceAliasContract,
         evidenceAliasMapHash: source.input.evidenceAliasMapHash,
         projectionHash: source.input.projectionHash,
-        ...(source.resolvedCitationsHash !== undefined
-          ? { resolvedCitationsHash: source.resolvedCitationsHash }
+        ...(resolvedCitationsHash !== undefined
+          ? { resolvedCitationsHash }
           : {}),
       }
     : {};
@@ -135,7 +170,7 @@ export const buildExecutionReceiptV1 = (source: BuildExecutionReceiptInput): Exe
     if (source.requestedModel.trim() === '' || source.requestedModel !== source.observedModel) {
       throw new Error('VALID_RECEIPT_REQUIRES_MODEL_MATCH: requestedModel and observedModel must match.');
     }
-    if (isDiagnosisInputPackageV2_5(source.input) && !source.resolvedCitationsHash) {
+    if (isDiagnosisInputPackageV2_5(source.input) && !resolvedCitationsHash) {
       throw new Error('V2_5_VALID_RECEIPT_REQUIRES_RESOLVED_CITATIONS_HASH: valid alias-aware receipts must certify citation resolution.');
     }
   }
