@@ -184,7 +184,18 @@ describe('Truncated envelope handling', () => {
     const tinyEnvelope = _buildEvidenceEnvelopeV2(tinyReport, opts({ privacyLevel: 'local_full' }));
     const pkg = buildDiagnosisPromptV2(tinyEnvelope);
     expect(pkg.evidenceEnvelopeRef).toMatch(/^env:/);
-    expect(pkg.userPayload).toContain('issues: 0');
+    const payload = JSON.parse(pkg.userPayload) as {
+      inputMode: string;
+      task: {
+        expectedIssueCount: number;
+        expectedDiagnosisBlockCount: number;
+        requiredIssueIds: string[];
+      };
+    };
+    expect(payload.inputMode).toBe('smart_sample');
+    expect(payload.task.expectedIssueCount).toBe(0);
+    expect(payload.task.expectedDiagnosisBlockCount).toBe(0);
+    expect(payload.task.requiredIssueIds).toEqual([]);
   });
 });
 
