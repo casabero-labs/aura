@@ -6,6 +6,7 @@ import {
 import {
   processDiagnosisResponseV2_5,
 } from '../../contracts/llm/diagnosisProjectedPipelineV2_5';
+import type { DiagnosisPipelineFailure } from '../../contracts/llm/diagnosisPipelineV2';
 import { validateExecutionReceiptV1 } from '../../contracts/llm/executionReceiptV1';
 import { parseDiagnosisResponseV2 } from '../../contracts/llm/diagnosisParserV2';
 import { sha256hex } from '../../contracts/llm/hash';
@@ -134,16 +135,17 @@ const extractAliasAwareEvidence = (
   ));
 
   if (!outcome.success) {
-    const details = outcome.details as {
+    const failure = outcome as DiagnosisPipelineFailure;
+    const details = failure.details as {
       validationErrors?: Array<{ code?: string; message?: string }>;
     } | null;
     const validationErrors = details?.validationErrors ?? [];
     if (validationErrors.length > 0) {
       contractErrors.push(...validationErrors.map((entry) => (
-        `${entry.code ?? outcome.code}: ${entry.message ?? outcome.message}`
+        `${entry.code ?? failure.code}: ${entry.message ?? failure.message}`
       )));
     } else {
-      contractErrors.push(`${outcome.code}: ${outcome.message}`);
+      contractErrors.push(`${failure.code}: ${failure.message}`);
     }
     return {
       evidence: {
