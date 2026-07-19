@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - agent/unify-diagnosis-input-builders
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: read
