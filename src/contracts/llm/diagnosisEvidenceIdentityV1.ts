@@ -33,7 +33,7 @@ export interface DiagnosisInputPackageV2_5 extends DiagnosisInputPackageV2 {
   projectionHash: string;
 }
 
-export interface ResolvedEvidenceCitationV1 extends EvidenceAliasEntryV1 {}
+export type ResolvedEvidenceCitationV1 = EvidenceAliasEntryV1;
 
 export interface EvidenceAliasResolutionV1 {
   response: DiagnosisResponseV2;
@@ -130,10 +130,9 @@ export const buildEvidenceAliasMapV1 = (
   for (const candidate of candidates) {
     const key = `${candidate.issueId}\u0000${candidate.stableEvidenceRef}`;
     const existing = unique.get(key);
-    if (existing && canonicalJson(existing) !== canonicalJson(candidate)) {
-      throw new Error(`Stable evidence collision detected for ${candidate.stableEvidenceRef}`);
+    if (!existing || candidate.sourceEvidenceRef.localeCompare(existing.sourceEvidenceRef) < 0) {
+      unique.set(key, candidate);
     }
-    if (!existing) unique.set(key, candidate);
   }
 
   return {
