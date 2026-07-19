@@ -1,7 +1,7 @@
 {
   "contractId": "aura.diagnosis-v2.5-comparison.v1",
   "contractVersion": "1.0.0",
-  "fixtureHash": "357691ea92782607ffe97d56d0e81f3e4307ead400c0534204ff6792cb064dbf",
+  "fixtureHash": "4320edb48e9d5627dc4b318d168d59efb3931f3f14fd6b2392eb16e50ffb3106",
   "methodology": {
     "comparison": "same_report_same_envelope_same_input_mode",
     "tokenEstimate": "ceil(characters/4)",
