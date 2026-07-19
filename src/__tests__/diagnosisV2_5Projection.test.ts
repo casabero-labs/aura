@@ -10,6 +10,7 @@ import {
 import {
   processDiagnosisResponseV2_5,
 } from '../contracts/llm/diagnosisProjectedPipelineV2_5';
+import type { DiagnosisPipelineFailure } from '../contracts/llm/diagnosisPipelineV2';
 import type { DiagnosisResponseV2 } from '../contracts/llm/types';
 
 const report: AuditReportInput = {
@@ -175,9 +176,9 @@ describe('Diagnosis V2.5-C projected pipeline', () => {
 
     const result = processDiagnosisResponseV2_5(envelope, JSON.stringify(response), input);
     expect(result.success).toBe(false);
-    if (result.success) return;
-    expect(result.code).toBe('DIAGNOSIS_REFERENCE_INVALID');
-    expect(JSON.stringify(result.details)).toContain('DIAGNOSIS_ALIAS_PROJECTION_MISMATCH');
+    const failure = result as DiagnosisPipelineFailure;
+    expect(failure.code).toBe('DIAGNOSIS_REFERENCE_INVALID');
+    expect(JSON.stringify(failure.details)).toContain('DIAGNOSIS_ALIAS_PROJECTION_MISMATCH');
   });
 
   it('rejects internal or invented refs when the contract expects aliases', () => {
@@ -190,8 +191,8 @@ describe('Diagnosis V2.5-C projected pipeline', () => {
 
     const result = processDiagnosisResponseV2_5(envelope, JSON.stringify(response), input);
     expect(result.success).toBe(false);
-    if (result.success) return;
-    expect(JSON.stringify(result.details)).toContain('DIAGNOSIS_ALIAS_REFERENCE_INVALID');
+    const failure = result as DiagnosisPipelineFailure;
+    expect(JSON.stringify(failure.details)).toContain('DIAGNOSIS_ALIAS_REFERENCE_INVALID');
   });
 
   it('rejects any evidence alias in prompt_libre', () => {
@@ -201,7 +202,7 @@ describe('Diagnosis V2.5-C projected pipeline', () => {
 
     const result = processDiagnosisResponseV2_5(envelope, JSON.stringify(response), input);
     expect(result.success).toBe(false);
-    if (result.success) return;
-    expect(JSON.stringify(result.details)).toContain('DIAGNOSIS_ALIAS_REFERENCE_INVALID');
+    const failure = result as DiagnosisPipelineFailure;
+    expect(JSON.stringify(failure.details)).toContain('DIAGNOSIS_ALIAS_REFERENCE_INVALID');
   });
 });
