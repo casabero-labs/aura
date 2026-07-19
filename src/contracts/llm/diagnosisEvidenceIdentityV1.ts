@@ -45,6 +45,12 @@ export interface EvidenceAliasResolutionV1 {
   errors: ValidationErrorV2[];
 }
 
+export interface StableEvidenceCollisionCandidateV1 {
+  stableEvidenceRef: string;
+  identityDigest: string;
+  issueId: string;
+}
+
 const normalizeCanonicalValue = (value: unknown): unknown => {
   if (typeof value === 'string') return value.normalize('NFKC');
   if (Array.isArray(value)) return value.map(normalizeCanonicalValue);
@@ -87,6 +93,43 @@ const stableSampleMaterial = (
   metadata: normalizeCanonicalValue(sample.metadata),
 });
 
+const fullEvidenceIdentityDigest = (
+  envelope: EvidenceEnvelopeV2,
+  sample: EvidenceSampleV2,
+): string => sha256hex(canonicalJson({
+  issue: stableIssueMaterial(envelope, sample),
+  sample: stableSampleMaterial(envelope, sample),
+}));
+
+/**
+ * Fails closed when one truncated stable ref represents two different full
+ * identities. Identical evidence duplicates share the same identityDigest and
+ * may be deduplicated safely.
+ */
+export const assertNoStableEvidenceRefCollisionsV1 = (
+  candidates: readonly StableEvidenceCollisionCandidateV1[],
+): void => {
+  const identitiesByStableRef = new Map<string, { identityDigest: string; issueId: string }>();
+  for (const candidate of candidates) {
+    const existing = identitiesByStableRef.get(candidate.stableEvidenceRef);
+    if (
+      existing
+      && (
+        existing.identityDigest !== candidate.identityDigest
+        || existing.issueId !== candidate.issueId
+      )
+    ) {
+      throw new Error(`Stable evidence collision detected for ${candidate.stableEvidenceRef}`);
+    }
+    if (!existing) {
+      identitiesByStableRef.set(candidate.stableEvidenceRef, {
+        identityDigest: candidate.identityDigest,
+        issueId: candidate.issueId,
+      });
+    }
+  }
+};
+
 /**
  * Content-addressed identity derived only from the privacy-processed evidence
  * stored in the envelope. Raw source values are never reintroduced here.
@@ -119,22 +162,37 @@ export const buildEvidenceAliasMapV1 = (
   const candidates = envelope.evidence.samples
     .filter((sample) => visible.has(sample.evidenceRef))
     .map((sample) => ({
-      sourceEvidenceRef: sample.evidenceRef,
-      stableEvidenceRef: buildStableEvidenceRefV1(envelope, sample),
-      issueId: sample.issueId,
-      columnId: sample.columnId,
+      entry: {
+        sourceEvidenceRef: sample.evidenceRef,
+        stableEvidenceRef: buildStableEvidenceRefV1(envelope, sample),
+        issueId: sample.issueId,
+        columnId: sample.columnId,
+      },
+      identityDigest: fullEvidenceIdentityDigest(envelope, sample),
     }))
     .sort((left, right) => (
-      left.issueId.localeCompare(right.issueId)
-      || left.stableEvidenceRef.localeCompare(right.stableEvidenceRef)
-      || left.sourceEvidenceRef.localeCompare(right.sourceEvidenceRef)
+      left.entry.issueId.localeCompare(right.entry.issueId)
+      || left.entry.stableEvidenceRef.localeCompare(right.entry.stableEvidenceRef)
+      || left.entry.sourceEvidenceRef.localeCompare(right.entry.sourceEvidenceRef)
     ));
 
-  const unique = new Map<string, Omit<EvidenceAliasEntryV1, 'alias'>>();
+  assertNoStableEvidenceRefCollisionsV1(candidates.map((candidate) => ({
+    stableEvidenceRef: candidate.entry.stableEvidenceRef,
+    identityDigest: candidate.identityDigest,
+    issueId: candidate.entry.issueId,
+  })));
+
+  const unique = new Map<
+    string,
+    { entry: Omit<EvidenceAliasEntryV1, 'alias'>; identityDigest: string }
+  >();
   for (const candidate of candidates) {
-    const key = `${candidate.issueId}\u0000${candidate.stableEvidenceRef}`;
+    const key = `${candidate.entry.issueId}\u0000${candidate.entry.stableEvidenceRef}`;
     const existing = unique.get(key);
-    if (!existing || candidate.sourceEvidenceRef.localeCompare(existing.sourceEvidenceRef) < 0) {
+    if (
+      !existing
+      || candidate.entry.sourceEvidenceRef.localeCompare(existing.entry.sourceEvidenceRef) < 0
+    ) {
       unique.set(key, candidate);
     }
   }
@@ -142,7 +200,7 @@ export const buildEvidenceAliasMapV1 = (
   return {
     contractId: EVIDENCE_ALIAS_MAP_CONTRACT_V1,
     contractVersion: '1.0.0',
-    entries: [...unique.values()].map((entry, index) => ({
+    entries: [...unique.values()].map(({ entry }, index) => ({
       alias: `e${index + 1}`,
       ...entry,
     })),
