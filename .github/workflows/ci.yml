@@ -38,7 +38,15 @@ jobs:
           if-no-files-found: error
 
       - name: Diagnosis V2.5-C focused tests
-        run: npm test -- diagnosisEvidenceIdentityV1.test.ts diagnosisV2_5Projection.test.ts formalDiagnosisV2_5.test.ts
+        run: set -o pipefail; npm test -- diagnosisEvidenceIdentityV1.test.ts diagnosisV2_5Projection.test.ts formalDiagnosisV2_5.test.ts 2>&1 | tee diagnosis-v2-5-c-tests.log
+
+      - name: Upload focused test diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnosis-v2-5-c-tests
+          path: ./src/diagnosis-v2-5-c-tests.log
+          if-no-files-found: error
 
       - name: Diagnosis regression tests
         run: npm test -- diagnosis
