@@ -71,7 +71,9 @@ const promptMetrics = (
   responseSchema: Record<string, unknown>,
   referencePattern: RegExp,
 ): PromptShapeMetrics => {
-  const refs = quotedMatches(prompt, referencePattern);
+  // Count only references exposed in the generated user payload. Examples in
+  // the fixed system instruction are not evidence and must not inflate this metric.
+  const refs = quotedMatches(userPayload, referencePattern);
   return {
     promptCharacters: prompt.length,
     estimatedPromptTokens: estimatePromptTokens(prompt),
