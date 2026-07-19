@@ -38,7 +38,7 @@ jobs:
           if-no-files-found: error
 
       - name: Diagnosis V2.5-C focused tests
-        run: set -o pipefail; npm test -- diagnosisEvidenceIdentityV1.test.ts diagnosisV2_5Projection.test.ts formalDiagnosisV2_5.test.ts 2>&1 | tee diagnosis-v2-5-c-tests.log
+        run: set -o pipefail; npm test -- diagnosisEvidenceIdentityV1.test.ts diagnosisV2_5Projection.test.ts diagnosisV2_5Trace.test.ts diagnosisV2_5Comparison.test.ts formalDiagnosisV2_5.test.ts 2>&1 | tee diagnosis-v2-5-c-tests.log
 
       - name: Upload focused test diagnostics
         if: always()
@@ -46,6 +46,16 @@ jobs:
         with:
           name: diagnosis-v2-5-c-tests
           path: ./src/diagnosis-v2-5-c-tests.log
+          if-no-files-found: error
+
+      - name: Generate Diagnosis V2.5-C structural comparison
+        run: npm run diagnosis:v2.5-comparison -- --output ./diagnosis-v2-5-c-comparison.json
+
+      - name: Upload Diagnosis V2.5-C comparison
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnosis-v2-5-c-comparison
+          path: ./src/diagnosis-v2-5-c-comparison.json
           if-no-files-found: error
 
       - name: Diagnosis regression tests
