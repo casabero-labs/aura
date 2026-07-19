@@ -1,10 +1,10 @@
 # Diagnosis V2.5: corrección previa al experimento V3
 
-**Estado:** V2.5-A, V2.5-B y baseline V2 implementados
+**Estado:** V2.5-A y V2.5-B implementados en `main`; V2.5-C implementado como candidato en PR borrador #52
 
 **Fecha:** 2026-07-19
 
-**Alcance:** contrato de entrada, validación consciente de proyección y evidencia reproducible
+**Alcance:** contrato de entrada, validación consciente de proyección, identidad de evidencia y evidencia reproducible
 
 **V3 productivo:** no aprobado
 
@@ -15,12 +15,14 @@ La ruta vigente es:
 ```text
 corregir V2
 → medir V2 de forma reproducible
+→ estabilizar identidad y proyección
+→ evaluar capacidad de modelos
 → construir V3 aislado
 → ejecutar campaña dual
 → decidir con evidencia
 ```
 
-Esta iteración no introduce un gate por cantidad de parámetros, no modifica los
+Esta ruta no introduce un gate por cantidad de parámetros, no modifica los
 artefactos históricos de campaña y no conecta V3 al flujo productivo.
 
 ## V2.5-A: fábrica única de entrada
@@ -33,17 +35,18 @@ Los entrypoints históricos:
 - `buildDiagnosisPromptV2`;
 - `buildCompactDiagnosisPromptV2`;
 
-son ahora adaptadores de compatibilidad. El primero selecciona `recommended` y
-el segundo `smart_sample`. Ninguno selecciona diez issues ni genera un schema
+son adaptadores de compatibilidad. El primero selecciona `recommended` y el
+segundo `smart_sample`. Ninguno selecciona diez issues ni genera un schema
 contra un envelope distinto de la proyección.
 
-El prompt canónico sube a `1.7.0`. `maxConfidence` queda incorporado tanto en
-los metadatos de tarea como en el schema enviado al proveedor.
+El prompt canónico de esa etapa subió a `1.7.0`. `maxConfidence` quedó
+incorporado tanto en los metadatos de tarea como en el schema enviado al
+proveedor.
 
 ## V2.5-B: validación consciente de proyección
 
-`validateDiagnosisResponseV2` acepta opcionalmente el `DiagnosisInputPackageV2`
-real usado para la inferencia.
+`validateDiagnosisResponseV2` puede recibir el `DiagnosisInputPackageV2` real
+usado para la inferencia.
 
 Cuando existe ese snapshot, el validador:
 
@@ -107,45 +110,82 @@ Las 215 ocurrencias adicionales no se clasifican automáticamente como causadas
 por el primer error. El baseline declara `rootCauseClassification: not_inferred`;
 atribuir causalidad exige una taxonomía de fallos raíz separada.
 
-## Próxima fase: V2.5-C
-
-El siguiente paso aprobado es **Diagnosis V2.5-C: identidad de evidencia e
-integridad de proyección**.
+## V2.5-C: identidad de evidencia e integridad de proyección
 
 Plan detallado:
 
 - [`DIAGNOSIS_V2_5_C_EVIDENCE_IDENTITY_PLAN.md`](./DIAGNOSIS_V2_5_C_EVIDENCE_IDENTITY_PLAN.md)
 
-La fase separa identidad interna estable, aliases cortos visibles al LLM y
-resolución determinista. También endurece la integridad del snapshot, hace
-explícita la ruta legacy y define el baseline que debe completarse antes del
-capability gate.
+Registro de implementación:
+
+- [`DIAGNOSIS_V2_5_C_IMPLEMENTATION.md`](./DIAGNOSIS_V2_5_C_IMPLEMENTATION.md)
+
+Estado actual:
+
+```text
+implementado en agent/diagnosis-v2-5-c
+→ PR borrador #52
+→ sin merge a main
+```
+
+La implementación candidata:
+
+- genera stable refs desde evidencia ya procesada por privacidad;
+- expone aliases locales `e1`, `e2`, etc.;
+- mantiene refs fuente V2 para compatibilidad;
+- persiste una vista con stable refs;
+- verifica hashes e invariantes del snapshot;
+- certifica la resolución en el receipt;
+- migra el Laboratorio formal sin reescribir campañas históricas;
+- publica un baseline estructural reproducible.
+
+Baseline estructural:
+
+- [`diagnosis-v2-5-c-comparison.json`](../evidence/diagnosis-v2.5/diagnosis-v2-5-c-comparison.json)
+
+El fixture muestra una reducción de 105 caracteres dedicados a referencias
+visibles, pero un aumento total de 1.565 caracteres de prompt por las nuevas
+reglas y metadata contractual. La estimación estructural aumenta 391 tokens
+usando `ceil(caracteres/4)`. No hubo llamadas a modelos y no se declara una
+mejora de latencia, compliance u output tokens.
 
 ## Pendiente antes de V3
 
-1. Implementar V2.5-C según su plan detallado.
-2. Diseñar un capability gate basado en comportamiento contractual, no en
-   cantidad de parámetros.
-3. Implementar un serializador V3 aislado para medir tokens sobre las mismas
-   interpretaciones semánticas. El baseline deja ese campo en
-   `pending_v3_serializer`.
-4. Resolver antes del assembler V3:
-   - mapa frente a array;
-   - evidencia visible frente a evidencia del motor;
-   - visualizaciones;
-   - dataset sin issues;
-   - compatibilidad formal de receipts históricos;
-   - elevación unidireccional de revisión por parte del modelo.
-5. Ejecutar una campaña dual V2/V3 antes de aprobar migración productiva.
+1. Revisar y aprobar explícitamente el PR #52.
+2. Fusionar V2.5-C y registrar el SHA de `main`.
+3. Ejecutar Graphify local si continúa siendo un gate obligatorio.
+4. Resolver la portabilidad en CI de `synthetic_ground_truth.csv` para las dos
+   suites históricas dependientes del archivo.
+5. Diseñar V2.5-D como capability gate basado en comportamiento contractual,
+   no en cantidad de parámetros.
+6. Ejecutar una campaña real posterior para medir aliases con modelos y
+   tokenizers reales.
+7. Implementar un serializador V3 aislado para medir tokens sobre las mismas
+   interpretaciones semánticas.
+8. Ejecutar una campaña dual V2/V3 antes de aprobar migración productiva.
 
-## Gates de esta iteración
+## Gates
 
-- 123 pruebas focalizadas de builders, sistema, validador, pipeline,
-  integración, baseline y evaluación formal: pasan;
+### V2.5-A y V2.5-B en `main`
+
+- 123 pruebas focalizadas: pasan;
 - `npm run typecheck`: pasa;
-- `npm run build`: pasa, con los avisos de chunks grandes ya existentes;
-- suite completa de Vitest: 1982 pasan y 6 se omiten; quedan dos expectativas
-  UI fuera de este alcance que ya están desalineadas en `origin/main`:
-  `pipelineDiagnosticReportState.test.tsx` y
-  `exportJsonPreflight.integration.test.tsx`;
-- `graphify update .`: ejecutado después de cerrar los cambios de código.
+- `npm run build`: pasa;
+- suite completa histórica: 1982 pasan y 6 se omiten;
+- permanecen dos expectativas UI históricas fuera de ese alcance.
+
+### V2.5-C en PR #52
+
+El workflow del PR exige:
+
+- typecheck;
+- pruebas focalizadas de identidad, proyección, trazabilidad, comparación y
+  evaluación formal;
+- regeneración exacta del baseline estructural comprometido;
+- regresiones portables de diagnóstico;
+- build.
+
+Dos suites históricas dependientes de un dataset ausente en el checkout remoto
+se excluyen de este gate y están documentadas como deuda de portabilidad. El PR
+no debe marcarse como aprobado ni fusionarse mientras el HEAD no tenga todos
+los gates remotos verdes.
