@@ -26,15 +26,9 @@ jobs:
           cache: npm
           cache-dependency-path: src/package-lock.json
       - run: npm ci
-      - name: Export adversarial test source
-        uses: actions/upload-artifact@v4
-        with:
-          name: diagnosis-v2-adversarial-source
-          path: src/__tests__/diagnosisV2Adversarial.test.ts
-          if-no-files-found: error
       - name: Typecheck
         run: npm run typecheck
       - name: Diagnosis input architecture tests
-        run: npx vitest run __tests__/diagnosisPromptV2.test.ts __tests__/diagnosisSystemInstructionV2.test.ts --reporter=verbose
+        run: npx vitest run __tests__/diagnosisPromptV2.test.ts __tests__/diagnosisSystemInstructionV2.test.ts __tests__/diagnosisV2Adversarial.test.ts --reporter=verbose
       - name: Build
         run: npm run build
