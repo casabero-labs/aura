@@ -1,5 +1,7 @@
 # Aura: auditoría de recorrido, Editorial e investigación doctoral
 
+> **Estado vigente — 8 de septiembre de 2026:** recorrido V2 completado con ejecución externa real, reingreso de resultados, reauditoría y descargas verificadas. El fixture pasa de 10 a 9 filas y de 53 a 71 puntos, pero pierde ceros iniciales en identificadores por inferencia del runner (nuevo P1). Los pendientes históricos de recuperación del CSV y descargas quedan resueltos por la evidencia al final. Auditoría del producto sin modificaciones de código; solo este documento se versiona. No equivale a aprobación de producción ni a cobertura universal.
+
 Fecha: 2026-09-06. Estado: **EN CURSO — avance persistido, sin implementación UI**.
 
 ## Objetivo y autorización
@@ -258,3 +260,50 @@ La observación, recomendación y limitaciones se muestran en inglés dentro de 
 **Contraste medido — P2:** botón Copiar de `diagnosis.response.stream.json`: texto rgb(123,132,144) sobre blanco, 11 px, opacidad 1, contraste **3,79:1**, menor que 4,5:1 requerido para texto normal por el estándar local. Tamaño medido 55,6×20,5 px; no se afirma incumplimiento de target sin evaluar excepción de separación. Es medición puntual, no auditoría completa de contraste.
 
 **Error de extensión y recuperación:** Carga rechaza `invalido.txt` con Selecciona un archivo .csv para iniciar el perfilamiento; permite seleccionar después `aura_ux_sintetico.csv`. Se observó inicio de carga del archivo pequeño; resultado aún pendiente en este checkpoint. No se recargó la página para fingir éxito. Viewport restablecido de nuevo; las mediciones 320 siguen sin certificarse.
+
+## Cierre de recorrido real — 8 de septiembre de 2026
+
+### Recuperación, ejecución y reauditoría confirmadas
+
+El diagnóstico Ollama del fixture `aura_ux_sintetico.csv` finalizó en 111,1 s con contrato válido: 10 filas, cinco columnas, score 53 y cinco hallazgos. Se aprobó únicamente eliminar duplicados; se rechazaron capitalización, nulo de importe, negativo de importe y nulo de región. El control de lectura hasta el final del script habilitó la aprobación tras recorrer el código.
+
+**Corrección de evidencia previa:** el selector de recuperación sí funciona al pulsar su etiqueta visible Seleccionar CSV fuente. Los timeouts anteriores correspondían a la interacción automatizada con el input recortado y no demuestran un defecto de AURA. Se recuperó el original y pasó su comprobación SHA-256. También funcionan las etiquetas corrected.csv y receipt.json para reingresar resultados.
+
+Se descargaron realmente el bundle (3.188 bytes) y source.csv (302 bytes), se inspeccionó el código aprobado y se ejecutó el runner existente `experiments/runners/run-aura-remediation.mjs` con rutas exclusivamente externas de auditoría. Python 3.14.6/Pandas 3.0.3; salida correcta del proceso y recibo emitido. No se modificó el runner ni se introdujo estado artificial en la aplicación.
+
+Tras cargar corrected.csv y receipt.json y pulsar Validar ejecución, la pantalla informó **Ejecución verificada; resultado reauditable**. Comparación observada: **53→71 puntos, 10→9 filas, 5→4 hallazgos**, un duplicado resuelto, cuatro hallazgos persistentes y cero hallazgos nuevos detectados. Esto demuestra continuidad técnica V2 para este caso; no garantiza preservación semántica. Captura externa `screenshots/14-reauditoria-verificada.png`.
+
+### UX-08 — P1: el runner altera identificadores fuera de la acción aprobada
+
+La única acción aprobada genera `df_clean.drop_duplicates(keep="first").copy()`. Sin embargo, al comparar el CSV original con el corregido, registro `001` pasa a `1`, `002` a `2`, etc.; importe `120` pasa a `120.0`. El runner usa `pd.read_csv(input_path)` sin contrato de tipos en `experiments/runners/run-aura-remediation.mjs:248` y serializa en `:251`. La inferencia de lectura elimina ceros iniciales antes de la función de limpieza. La reauditoría mejora el score y no detecta esta pérdida.
+
+**Impacto:** una corrección limitada a duplicados puede modificar claves textuales y romper referencias externas sin que el resumen de cambios lo revele. El formato numérico de importe es un cambio adicional observado, sin afirmar pérdida de valor numérico. Recomendación: preservar tipos/representación originales por contrato, hacer explícitas las conversiones y verificar invariantes de columnas no autorizadas antes de aceptar el resultado. Un recibo válido certifica ejecución e identidad, no ausencia de daño semántico.
+
+**Ampliación UX-05:** la revisión del script con `drop_duplicates` muestra cero operaciones destructivas, de transformación y de lectura. Junto al falso positivo sobre un comentario español ya documentado, evidencia que los contadores no sirven como garantía del efecto real.
+
+### Exportaciones comprobadas desde la interfaz
+
+Los controles de exportación emitieron descargas reales; se observaron eventos del navegador y se abrieron los archivos en Downloads. Los timeouts previos del observador de alto nivel quedan superados: no son fallo probado de descarga.
+
+- JSON técnico: 146.625 bytes, JSON válido con perfil, diagnóstico, script y remediationExecution.
+- CSV de hallazgos: 2.350 bytes, cinco registros correspondientes al diagnóstico original. No es el dataset corregido.
+- PDF: 49.038 bytes, seis páginas A4 renderizadas e inspeccionadas una por una; sin solapamientos o cortes de página observados. La tabla abrevia recomendaciones con puntos suspensivos. Mantiene score base 53 y 10 filas, con script aprobado como anexo; no incorpora el resumen 53→71 de reauditoría. Conviene indicar su alcance inicial en la tarjeta y ofrecer una lectura humana del resultado posterior. No se certifica accesibilidad PDF: el archivo no está etiquetado.
+- ZIP: 74.744 bytes; estructura ZIP íntegra y **30 entradas del manifest con tamaño y SHA-256 coincidentes**, más manifest.json. Contiene recibo Python, bundle, verificación, reportes antes/después y comparación. La opción de incluir corrected.csv estaba desmarcada: se comprobó que no incluye el CSV original ni el corregido. Conserva evidencias/muestras como advierte la interfaz. No se ejercitó la variante con inclusión marcada.
+
+Evidencia local preservada en `/Users/casabero/Documents/Codex/audits/aura-2026-09-06/`: `execution/` contiene fuente, bundle, salida y recibo; `exports/` conserva los cuatro archivos descargados y renderizados del PDF. No se versionan datasets ni capturas en este commit documental.
+
+### Cobertura y prioridades vigentes
+
+| Recorrido | Evidencia actual |
+| --- | --- |
+| Carga vacía, extensión inválida y recuperación | Observados; vacío falsamente saludable sigue P1 |
+| Perfil completo de 6.001 filas y fixture con cinco problemas | Observados |
+| Proveedor Chrome ausente y respaldo determinista | Informe funciona; continuidad de corrección legacy bloqueada sigue P1 |
+| Ollama existente, diagnóstico y decisiones V2 | Completados con datos sintéticos |
+| Recuperación del original, ejecución y reauditoría | Completadas; pérdida de ceros iniciales P1 |
+| PDF/JSON/CSV/ZIP | Descargados y comprobados; variante ZIP con corrected no probada |
+| Modal destructivo, contraste y móvil | Defectos puntuales observados; cancelación probada, destrucción no ejecutada |
+| Laboratorio | Inspeccionado; campaña no ejecutada |
+| Investigación doctoral | Revisión inicial documentada; novedad y reproducción no establecidas |
+
+Priorizar **UX-01, UX-02, UX-03 y UX-08** antes del piloto visual. El éxito de V2 no resuelve el bloqueo legacy ni la preservación de identificadores. Quedan fuera de la cobertura demostrada: campaña experimental, navegador/proveedor cloud, CSV malformado más allá de extensión/vacío, recorrido completo de historial, teclado integral, viewport efectivo de 320 px y estudio con participantes. No se presenta esta auditoría acotada como certificación completa. No se hicieron cambios funcionales, rediseño, despliegue, ramas ni reconstrucción de Graphify.
