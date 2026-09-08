@@ -227,3 +227,34 @@ El archivo `docs/tfm/memoria_final/README.md` enlazado desde README no existe en
 - Resolver la verificación de descargas con capacidad autorizada de navegador; observar destino real y abrir PDF/JSON/CSV/ZIP. No inferir éxito de clic ni culpar al producto del timeout de la herramienta.
 - Reauditoría real queda pendiente de una ruta V2 válida. No usar manipulación de estado ni fixture interna como sustituto de recorrido humano.
 - Mantener separados los resultados documentales de investigación y el auditado runtime. No reparar código sin nueva autorización.
+
+### Continuación posterior: ajustes, laboratorio e inferencia local
+
+El push de `04595f5be94d4d145837b6d5647f7f2eb6643449` quedó confirmado en `origin/main`. El viewport temporal se restableció después de la interrupción; se volvió a abrir la sesión para ampliar cobertura.
+
+- **Configuración observada:** elección Chrome/Ollama/Cloud, explicación de salida de datos, tres niveles de evidencia con costes y límites, temperatura y guardar/cancelar. La pantalla inicial decía Ningún proveedor listo con Chrome seleccionado; al elegir Ollama detectó conexión y tres modelos ya instalados. No se instaló ni descargó modelo. Solo en el origen aislado 3017 se guardó Ollama/Qwen 3.5 4B, evidencia equilibrada y temperatura 0,1 para ejercitar inferencia sintética. No se introdujeron credenciales.
+- **Laboratorio observado:** pantalla real de protocolo 2.6.0, tres modelos × tres entradas × tres repeticiones (27 diagnósticos), nueve calentamientos y 36 llamadas. Exige dataset controlado `synthetic_ground_truth`; Crear experimento está deshabilitado para el fixture propio. No se lanzó campaña. Presenta el límite sin atribuir ganador universal, pero no ofrece acción directa junto al bloqueo para obtener/cargar el dataset requerido. Captura `screenshots/10-laboratorio.png`.
+- **Diagnóstico local iniciado:** Qwen recibe evidencia sintética de 6.001 filas; se observó salida incremental real. La primera ejecución se interrumpió al perderse la pestaña; no se presentó como éxito. La segunda se está esperando. Resultado validado y posterior ruta V2 todavía pendientes.
+- **320 px no certificado:** la capacidad de viewport solicitó 320×800 pero la medición efectiva devolvió 400 px. Es una limitación de la prueba, no evidencia de conformidad a 320. Se volvió a 1280×900.
+
+### UX-07 — P2: progreso narrativo no respaldado por estado del modelo
+
+Durante inferencia real, a los 2,5/5/7,5/10 segundos aparecen Analizando hallazgos críticos, Construyendo diagnóstico asistido, Organizando resumen ejecutivo y Finalizando salida diagnóstica, incluso mientras aún se espera respuesta. Código `src/components/DiagnosisStep.tsx:441` y `:447`: lista de mensajes y temporizador de 2.500 ms. Luego queda Finalizando aunque la salida sigue llegando.
+
+Recomendar estados verificables (conectando, solicitud enviada, recibiendo respuesta, validando contrato), duración transcurrida y cancelación/retorno explícitos. No asociar eventos temporizados con trabajo cognitivo confirmado. Mantener JSON/log bajo detalle técnico por defecto; la espera principal debería describir propósito y alternativas en español. Captura `screenshots/11-diagnostico-cargando.png`.
+
+### Resultado confirmado del diagnóstico local y decisiones V2
+
+La segunda inferencia finalizó: **46,6 s, 494 tokens**, Qwen 3.5 4B observado igual al solicitado, contrato válido con cero errores. El informe mantiene 96/100 y declara claims sin soporte, sintaxis, ejecución Python y reauditoría **No medido**. Esto confirma la ruta asistida hasta informe, no exactitud semántica ni ejecución de limpieza. Captura `screenshots/12-diagnostico-ollama-completo.png`.
+
+La observación, recomendación y limitaciones se muestran en inglés dentro de interfaz española. El modelo asignó **95% de confianza** a la hipótesis de placeholder 999 y recomendó revisar su significado; en el fixture 999 es válido. Ese porcentaje no viene acompañado de explicación de calibración y no debe interpretarse como probabilidad empíricamente validada. La respuesta visible también incluye una fecha generada por el modelo de 2023; el informe usa fecha de sesión de 2026. Distinguir metadatos del modelo de marcas temporales confiables.
+
+**Plan V2 observado:** Normalizar valores marcadores → Rechazar → Generar contrato produce cero acciones ejecutables y bloquea correctamente la continuación. Se puede Volver al plan y pulsar Rechazado para reabrir Aprobar/Rechazar; reversibilidad funcional, pero poco descubrible. Luego se aprobó solo para ejercitar la rama con datos sintéticos: contrato de una acción, revisión final y aprobación funcionan. El código V2 tampoco incluye 999 entre los valores que reemplaza, por lo que esta propuesta no resuelve el disparador observado. No se ejecutó el script.
+
+**Recuperación del original:** Aplicar y verificar con contrato V2 aprobado ya no muestra errores de contrato, pero pide CSV fuente porque la sesión fue restaurada. El selector Seleccionar CSV fuente y el input real `apply-verify-reselect-source` no emitieron filechooser en dos intentos. El selector principal de Carga sí funcionó inmediatamente después, lo que acota el problema al control/ruta de recuperación en esta combinación de navegador. Falta confirmar con interacción humana en navegador ordinario antes de atribuir causa definitiva.
+
+**Aprobación informada — P2:** el plan muestra acción, columna y cantidad de evidencias, pero Detalles técnicos solo abre identificadores; no muestra valor anterior, valor propuesto ni filas de ejemplo para decidir. En revisión V2, impacto aparece **afecta - columnas y - filas**. Mejorar el contenido de decisión: ejemplos antes/después, alcance real, riesgo y opción Conservar como válido, sin forzar lectura de hashes. El mensaje para cero acciones invita a aprobar una acción para continuar: ofrecer explícitamente cerrar sin cambios como resultado válido. Captura `screenshots/13-rechazo-sin-acciones.png`.
+
+**Contraste medido — P2:** botón Copiar de `diagnosis.response.stream.json`: texto rgb(123,132,144) sobre blanco, 11 px, opacidad 1, contraste **3,79:1**, menor que 4,5:1 requerido para texto normal por el estándar local. Tamaño medido 55,6×20,5 px; no se afirma incumplimiento de target sin evaluar excepción de separación. Es medición puntual, no auditoría completa de contraste.
+
+**Error de extensión y recuperación:** Carga rechaza `invalido.txt` con Selecciona un archivo .csv para iniciar el perfilamiento; permite seleccionar después `aura_ux_sintetico.csv`. Se observó inicio de carga del archivo pequeño; resultado aún pendiente en este checkpoint. No se recargó la página para fingir éxito. Viewport restablecido de nuevo; las mediciones 320 siguen sin certificarse.
