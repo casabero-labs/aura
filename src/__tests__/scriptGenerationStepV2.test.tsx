@@ -1139,6 +1139,30 @@ describe('MainPipeline session restoration', () => {
     }
   });
 
+  it('preserves verified CSV and receipt across an in-memory export round trip', async () => {
+    const { default: MainPipeline } = await import('../components/MainPipeline');
+    const correctedCsv = new TextEncoder().encode('id,importe\n001,120.00\n');
+    // Navigation must carry the verified object intact; verification itself has separate tests.
+    const verifiedEvidence = { correctedCsv, receipt: { receiptHash: 'receipt:verified' } };
+    const verifiedExecution = { executionId: 'execution:verified' };
+    const changed = vi.fn();
+    let data = makeInitialData({ state: 'review', executionState: 'verified',
+      reauditState: 'completed', verifiedEvidence, verifiedExecution });
+    for (let trip = 0; trip < 2; trip += 1) {
+      const view = render(<MainPipeline aiConfig={mockAiConfig} aiProvider={mockAiProvider}
+        initialData={data} onPipelineChange={changed} />);
+      await userEvent.click(screen.getByRole('button', { name: 'Ir a Exportación' }));
+      await waitFor(() => expect(changed.mock.calls.at(-1)?.[0].state).toBe('export'));
+      const exported = changed.mock.calls.at(-1)![0];
+      expect(exported.verifiedEvidence).toBe(verifiedEvidence);
+      expect(exported.verifiedEvidence.correctedCsv).toEqual(correctedCsv);
+      expect(exported.verifiedExecution).toBe(verifiedExecution);
+      expect(exported.reauditState).toBe('completed');
+      data = { ...exported, state: 'review' };
+      view.unmount();
+    }
+  });
+
   it('valid session at script with pre-built plan: can generate and shows contract', async () => {
     const user = userEvent.setup();
     const contract = makeValidContract();
@@ -1489,5 +1513,37 @@ describe('data-testid contract details', () => {
     expect(screen.getByTestId('script-contract-no-executable')).toBeTruthy();
     const blockedReviewButton = screen.getByRole('button', { name: /Sin acciones ejecutables/i }) as HTMLButtonElement;
     expect(blockedReviewButton.disabled).toBe(true);
+  });
+});
+
+
+describe('close without changes reaches export through the real pipeline', () => {
+  it.each(['empty', 'rejected'])('closes %s plan without generating a script or changing source cells', async (mode) => {
+    const {default:MainPipeline}=await import('../components/MainPipeline');
+    const {runAudit}=await import('../services/auditEngine');
+    const diag=makeExecutableStructuredDiagnosis();
+    if(mode==='empty') {
+      diag.remediationContext!.issues=[];
+      diag.diagnosis.issues=[];
+    }
+    const built=buildRemediationPlanV2(diag);
+    const plan={...built,plan:built.plan.map(action=>({...action,approvalStatus:'rejected' as const}))};
+    const data=[{id:'001',age:'30',name:'Ana'}];
+    const report=runAudit(data,['id','age','name'],',');
+    const changed=vi.fn();
+    render(<MainPipeline aiConfig={{providerType:'cloud',model:'test',temperature:0.1} as any} aiProvider={{} as any}
+      initialData={{state:'script',report,rawData:data,csvFields:['id','age','name'],csvDelimiter:',',
+        auditEvidence:{datasetSha256:'a'.repeat(64)},structuredDiagnosis:diag,remediationPlan:plan,
+        cleaningScript:'',approvedScript:'',logs:[],benchmarkResults:[]} as any}
+      onPipelineChange={changed}/>);
+    const close=await screen.findByRole('button',{name:'Cerrar sin cambios'});
+    await userEvent.click(close);
+    await waitFor(()=>expect(changed.mock.calls.at(-1)?.[0].state).toBe('export'));
+    const final=changed.mock.calls.at(-1)![0];
+    expect(final.rawData).toEqual(data);
+    expect(final.rawData[0].id).toBe('001');
+    expect(final.scriptContractV2).toBeNull();
+    expect(final.cleaningScript).toBe('');
+    expect(final.verifiedEvidence).toBeNull();
   });
 });

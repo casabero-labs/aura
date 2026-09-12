@@ -50,6 +50,7 @@ export interface ScriptGenerationStepV2Props {
   onScriptContractChange: (contract: ScriptContractV2 | null, verification: ScriptValidationResultV2 | null) => void;
   onRemediationPlanChange: (plan: RemediationPlanV2) => void;
   onContinue: () => void;
+  onCloseWithoutChanges?: () => void;
   onLog?: (stage: string, msg: string) => void;
 }
 
@@ -73,6 +74,7 @@ const ScriptGenerationStepV2: React.FC<ScriptGenerationStepV2Props> = ({
   onScriptContractChange,
   onRemediationPlanChange,
   onContinue,
+  onCloseWithoutChanges,
   onLog,
 }) => {
   const [view, setView] = useState<GenerationView>(
@@ -277,7 +279,7 @@ const ScriptGenerationStepV2: React.FC<ScriptGenerationStepV2Props> = ({
           continueLabel={genState.status === 'building' ? 'Generando...' : 'Generar contrato de script'}
           onRemediationPlanChange={onRemediationPlanChange}
           onContinueWithPlan={handleGenerate}
-          onContinue={() => {}}
+          onContinue={onCloseWithoutChanges ?? onContinue}
         />
         {genState.status === 'error' && (
           <div

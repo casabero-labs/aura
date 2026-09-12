@@ -39,4 +39,16 @@ describe('parseCsv', () => {
 
     expect(mockedParse.mock.calls[0][1]).toMatchObject({ preview: 1 });
   });
+
+  it('rejects empty parse results before a profile or score is built', async () => {
+    mockedParse.mockImplementation((_file: any, config: any) => {
+      config.complete({
+        data: [],
+        meta: { delimiter: ',', fields: ['id'], truncated: false },
+        errors: [],
+      });
+    });
+
+    await expect(parseCsv(new File(['id\n'], 'vacio.csv', { type: 'text/csv' }))).rejects.toThrow('No se pudo auditar');
+  });
 });

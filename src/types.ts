@@ -193,6 +193,8 @@ export interface ProgressDisclosureProps {
   steps?: string[];
   details?: React.ReactNode;
   compact?: boolean;
+  onCancel?: () => void;
+  cancelLabel?: string;
 }
 
 export interface ProviderProgressEvent {

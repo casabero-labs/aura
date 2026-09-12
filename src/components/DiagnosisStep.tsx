@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Brain, Database, Play, Lock, ChevronDown, ChevronRight, FileCode2, Trash2, X, AlertTriangle, ShieldAlert, ListChecks, FileJson, FileText, Settings, Activity, CheckCircle, Circle, Clock, AlertCircle, Server, Shield, Eye, EyeOff, Download, RefreshCw, Hash } from 'lucide-react';
 import GeminiAdvisor from './GeminiAdvisor';
 import ProgressDisclosure from './ProgressDisclosure';
@@ -122,6 +122,13 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
     initialDiagnosis?.inputSnapshot ?? initialFailureEvidence?.inputSnapshot ?? null,
   );
   const [liveModelOutput, setLiveModelOutput] = useState('');
+  const [elapsedSec, setElapsedSec] = useState(0);
+  const diagnosisRun = useRef(0);
+  const diagnosisTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  useEffect(() => () => {
+    diagnosisRun.current += 1;
+    if (diagnosisTimer.current) clearInterval(diagnosisTimer.current);
+  }, []);
 
   useEffect(() => {
     setStructuredDiagnosis(initialDiagnosis ?? null);
@@ -412,6 +419,8 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
 
   const runDiagnosis = useCallback(async () => {
     if (isLoading) return;
+    const runId = ++diagnosisRun.current;
+    const isCurrentRun = () => diagnosisRun.current === runId;
     setIsLoading(true);
     setError(null);
     setStructuredDiagnosis(null);
@@ -431,29 +440,15 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
     const promptHash = computePromptHash(prompt);
     const inputHash = computeInputHash(report);
 
-    pushEvent('info', 'Preparando contexto del dataset...');
+    setElapsedSec(0);
+    const startedAt = Date.now();
+    const elapsedTimer = setInterval(() => {
+      if (isCurrentRun()) setElapsedSec(Math.floor((Date.now() - startedAt) / 1000));
+    }, 1000);
+    diagnosisTimer.current = elapsedTimer;
+    pushEvent('info', 'Enviando solicitud al modelo');
     onLog?.('diagnosis', `Iniciando diagnóstico con ${aiConfig?.model} (${aiConfig?.providerType})`);
-
-    // Simulated human-friendly progress steps during execution
-    let progressTimer: any;
-    let stepCount = 0;
-    const stepsList = [
-      'Analizando hallazgos críticos...',
-      'Construyendo diagnóstico asistido...',
-      'Organizando resumen ejecutivo...',
-      'Finalizando salida diagnóstica...'
-    ];
-
-    progressTimer = setInterval(() => {
-      if (stepCount < stepsList.length) {
-        const nextStep = stepsList[stepCount];
-        pushEvent('info', nextStep);
-        setProgressStep(nextStep);
-        stepCount++;
-      } else {
-        clearInterval(progressTimer);
-      }
-    }, 2500);
+    setProgressStep('Enviando solicitud al modelo');
 
     try {
       let chromeMonitoringStarted = false;
@@ -474,17 +469,21 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
               : 'smart_sample',
             requestedModel: aiConfig.model,
             inference: resolveOllamaInferenceConfig(aiConfig),
-            onInputPrepared: setPreparedInputSnapshot,
+            onInputPrepared: (input) => { if (isCurrentRun()) setPreparedInputSnapshot(input); },
             onProgress: (event) => {
+              if (!isCurrentRun()) return;
               if (event.type === 'chunk') {
                 finalText += event.text;
                 setLiveModelOutput((current) => current + event.text);
+                setProgressStep('Recibiendo respuesta');
               } else {
                 pushEvent('info', event.text);
-                setProgressStep(event.text);
+                setProgressStep(event.text || 'Esperando respuesta del modelo');
               }
             },
           });
+
+          if (!isCurrentRun()) return;
 
           if ('contractId' in v2Result && v2Result.contractId === 'aura.diagnosis-failure-evidence.v2') {
             const failureEvidence = v2Result as DiagnosisFailureEvidenceV2;
@@ -564,7 +563,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
             onStructuredDiagnosisComplete?.(v2Success.result);
             pushEvent('success', `Diagnóstico completado · ${v2Success.result.metrics.tokensGenerated} tokens · ${(v2Success.result.metrics.latencyMs / 1000).toFixed(1)}s`);
             setProgressStatus('success');
-            setProgressStep(`Diagnóstico completado · ${(v2Success.result.metrics.latencyMs / 1000).toFixed(1)}s`);
+            setProgressStep(`Contrato validado · ${(v2Success.result.metrics.latencyMs / 1000).toFixed(1)}s`);
             recordLlmCall({
               callType: 'diagnosis',
               providerType: aiConfig.providerType as 'local' | 'cloud' | 'chrome' | 'ollama',
@@ -594,17 +593,18 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
               const placeholderData = [['placeholder']];
               const placeholderColumns = ['column'];
               const receipt = await generateQuickReceipt(placeholderData, placeholderColumns, networkGuardResult!, availability);
-              setPrivacyReceipt(receipt);
+              if (isCurrentRun()) setPrivacyReceipt(receipt);
             }
           }
       } finally {
-        if (chromeMonitoringStarted) {
+        if (chromeMonitoringStarted && isCurrentRun()) {
           const networkGuardResult = stopNetworkMonitoring();
           chromeMonitoringStarted = false;
           setNetworkResult(networkGuardResult);
         }
       }
     } catch (err: any) {
+      if (!isCurrentRun()) return;
       const normalized = normalizeAiProviderError(err, aiConfig);
       setError(normalized.message);
       setNormalizedError(normalized);
@@ -637,13 +637,12 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
         error: normalized.message,
       });
     } finally {
-      // Asegura que el timer visual de progreso no siga empujando eventos
-      // después de éxito, error o cancelación del flujo.
-      if (progressTimer) {
-        clearInterval(progressTimer);
-        progressTimer = undefined;
+      clearInterval(elapsedTimer);
+      if (isCurrentRun()) {
+        diagnosisTimer.current = null;
+        setIsLoading(false);
+        setProgressIndeterminate(false);
       }
-      setIsLoading(false);
     }
   }, [aiConfig?.model, aiConfig?.providerType, aiConfig?.cloudProvider, aiConfig?.temperature, aiProvider, isLoading, onAnalysisComplete, onDiagnosisFailure, onDiagnosisStarted, onStructuredDiagnosisComplete, onLog, onMetrics, report, auditEvidence, diagnosisPrompt, pushEvent]);
 
@@ -730,13 +729,26 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
         {/* 3. Progress disclosure during execution */}
         {progressStatus !== 'idle' && (
           <ProgressDisclosure
-            title={progressStatus === 'running' ? 'AURA está trabajando' : progressStatus === 'success' ? 'Diagnóstico completado' : 'Diagnóstico fallido'}
-            description={aiConfig.providerType === 'chrome' ? 'Chrome puede descargar Gemini Nano la primera vez. No cierres esta pestaña.' : undefined}
+            title={progressStatus === 'running' ? 'AURA está trabajando' : progressStatus === 'success' ? 'Diagnóstico completado' : progressStatus === 'warning' ? 'Diagnóstico cancelado' : 'Diagnóstico fallido'}
+            description={progressStatus === 'running'
+              ? `${elapsedSec}s transcurridos. El estado refleja la solicitud, no un trabajo cognitivo interno.`
+              : aiConfig.providerType === 'chrome' ? 'Chrome puede descargar Gemini Nano la primera vez. No cierres esta pestaña.' : undefined}
             value={progressValue}
             indeterminate={progressIndeterminate}
             status={progressStatus}
             currentStep={progressStep}
             compact={progressStatus !== 'running'}
+            onCancel={progressStatus === 'running' ? () => {
+              diagnosisRun.current += 1;
+              if (diagnosisTimer.current) clearInterval(diagnosisTimer.current);
+              diagnosisTimer.current = null;
+              if (aiConfig.providerType === 'chrome') stopNetworkMonitoring();
+              setProgressStatus('warning');
+              setProgressStep('Diagnóstico cancelado. Se descartará cualquier respuesta pendiente del proveedor.');
+              setProgressIndeterminate(false);
+              setIsLoading(false);
+            } : undefined}
+            cancelLabel="Cancelar diagnóstico"
           />
         )}
 

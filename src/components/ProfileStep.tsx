@@ -4,6 +4,7 @@ import ColumnStatsPanel from './ColumnStatsPanel';
 import IngestionEvidenceCard from './IngestionEvidenceCard';
 import SeverityDistributionChart from './SeverityDistributionChart';
 import { AuditExecutionEvidence, AuditReport, DeterministicValidationReport, IssueSeverity } from '../types';
+import { formatAffectedShare } from '../services/issuePresentation';
 
 interface ProfileStepProps {
   report: AuditReport | null;
@@ -11,9 +12,10 @@ interface ProfileStepProps {
   deterministicValidation?: DeterministicValidationReport | null;
   file?: File | null;
   onContinue: () => void;
+  onRetry?: () => void;
 }
 
-const ProfileStep: React.FC<ProfileStepProps> = ({ report, auditEvidence, file, onContinue }) => {
+const ProfileStep: React.FC<ProfileStepProps> = ({ report, auditEvidence, file, onContinue, onRetry }) => {
   const isError = auditEvidence.ingestionStatus === 'error';
 
   const criticalCount = report ? report.issues.filter(i => i.severity === IssueSeverity.CRITICAL).length : 0;
@@ -63,8 +65,8 @@ const ProfileStep: React.FC<ProfileStepProps> = ({ report, auditEvidence, file, 
       };
     } else {
       return {
-        label: 'Dataset saludable',
-        description: 'No se encontraron problemas significativos. El dataset está listo para análisis.'
+        label: 'Sin alertas prioritarias en las reglas evaluadas',
+        description: 'Este resultado describe las comprobaciones realizadas. La aptitud para tu análisis requiere revisar el contexto y los controles no evaluados.'
       };
     }
   }, [report, criticalCount, warningCount]);
@@ -72,7 +74,7 @@ const ProfileStep: React.FC<ProfileStepProps> = ({ report, auditEvidence, file, 
   const scoreColor = report ? (report.score >= 80 ? 'var(--success)' : report.score >= 60 ? 'var(--orange)' : 'var(--error)') : 'var(--ink3)';
 
   return (
-    <>
+    <div className="editorial-pilot">
       {isError && (
         <>
           <section className="profile-block">
@@ -91,8 +93,8 @@ const ProfileStep: React.FC<ProfileStepProps> = ({ report, auditEvidence, file, 
               <p className="guide-title">Error en la ingesta del archivo</p>
               <p className="guide-desc">No se pudo procesar el CSV. Verifica que el archivo sea válido y vuelve a intentarlo.</p>
             </div>
-            <button className="btn-p btn-sm" onClick={() => window.location.reload()}>
-              Volver a cargar <ArrowRight size={12} />
+            <button className="btn-p btn-sm" onClick={onRetry}>
+              Seleccionar otro archivo <ArrowRight size={12} />
             </button>
           </div>
         </>
@@ -197,7 +199,7 @@ const ProfileStep: React.FC<ProfileStepProps> = ({ report, auditEvidence, file, 
                       </span>
                     </div>
                     <p className="profile-priority-rule">{issue.ruleName}</p>
-                    <p className="profile-priority-impact">{issue.affectedPercentage.toFixed(0)}% de registros afectados</p>
+                    <p className="profile-priority-impact">{formatAffectedShare(issue.count, report.rowCount)} afectados</p>
                   </div>
                 ))}
               </div>
@@ -231,7 +233,7 @@ const ProfileStep: React.FC<ProfileStepProps> = ({ report, auditEvidence, file, 
             <summary className="technical-details-summary">
               <ChevronDown size={14} className="technical-details-chevron" />
               <span>Columnas detectadas</span>
-              <span className="technical-details-hint">detalle opcional; el diagnóstico explica el significado</span>
+              <span className="technical-details-hint">IQR es el rango entre cuartiles; cardinalidad es cuántos valores distintos hay</span>
             </summary>
             <div className="technical-details-body">
 
@@ -253,7 +255,7 @@ const ProfileStep: React.FC<ProfileStepProps> = ({ report, auditEvidence, file, 
           </details>
         </>
       )}
-    </>
+    </div>
   );
 };
 

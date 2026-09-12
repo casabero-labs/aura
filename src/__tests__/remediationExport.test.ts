@@ -25,7 +25,8 @@ import { buildVerifiedRemediationEvidence } from '../services/remediationExecuti
 import type { AuditReport } from '../types';
 
 const SOURCE = new TextEncoder().encode('id,name\n1,Ana\n');
-const CORRECTED = new TextEncoder().encode('id,name\n1,ANA\n');
+// This export fixture approves no actions: its output must preserve every value.
+const CORRECTED = SOURCE.slice();
 
 const report: AuditReport = {
   score: 100, rowCount: 1, colCount: 2, duplicateRows: 0,

@@ -11,6 +11,7 @@ if (typeof __AURA_BUILD_SHA__ !== 'undefined') {
 }
 import { ArrowLeft, Download, FileJson, FileText, AlertTriangle, Trash2, X } from 'lucide-react';
 import ChangelogModal from './components/ChangelogModal';
+import DestructiveSessionDialog from './components/DestructiveSessionDialog';
 import ErrorBoundary from './components/ErrorBoundary';
 import AuditLogViewer from './components/AuditLogViewer';
 import SettingsPanel from './components/SettingsPanel';
@@ -37,6 +38,7 @@ import { buildExportArtifactIdentity } from './services/exportArtifactIdentity';
 import { savePipelineSession, loadPipelineSession, clearPipelineSession } from './services/pipelineSession';
 import { downloadBlob, downloadTextFile } from './utils/download';
 import { AIConfig, AuditReport, DeterministicValidationReport, EvidenceManifest, ExecutiveReportContent, IssueSeverity } from './types';
+import { formatPipelineStage } from './services/issuePresentation';
 import { createFormalCampaignBundle, buildFormalEvidenceEnvelope } from './services/benchmark/formalCampaignFactory';
 import { buildEnvelopeRef, processDiagnosisResponseV2, type DiagnosisFailureEvidenceV2, type DiagnosisExecutionResult } from './contracts/llm';
 import type { InferenceSnapshotV1 } from './contracts/llm/types';
@@ -944,7 +946,21 @@ const App: React.FC = () => {
               Un entorno local para cargar un CSV, perfilar su calidad, priorizar hallazgos y producir evidencia defendible antes de limpiar o publicar datos.
             </p>
             <div className="home-actions">
-              <button className="btn-p btn--lg" onClick={goAudit}>Empezar auditoría</button>
+              {pipelineData.report && pipelineData.state !== 'upload' ? (
+                <>
+                  <button className="btn-p btn--lg" onClick={goAudit} data-testid="home-resume-audit">
+                    Reanudar {pipelineData.auditEvidence?.fileName || pipelineData.file?.name || 'análisis guardado'}
+                  </button>
+                  <p className="home-resume-meta" data-testid="home-resume-meta">
+                    {formatPipelineStage(pipelineData.state)}
+                  </p>
+                  <button className="btn-s" onClick={handleNewAnalysis} data-testid="home-start-new">
+                    Empezar otra auditoría
+                  </button>
+                </>
+              ) : (
+                <button className="btn-p btn--lg" onClick={goAudit}>Empezar auditoría</button>
+              )}
             </div>
             <div className="home-flow" aria-label="Resumen del proceso AURA">
               <div className="home-flow-step">
@@ -999,7 +1015,7 @@ const App: React.FC = () => {
 
         {/* ── Export Section ── */}
         {!showHome && report && pipelineState === 'export' && (
-          <section className="export-closure" id="export-section" data-testid="export-stage">
+          <section className="export-closure editorial-pilot" id="export-section" data-testid="export-stage">
             <button
               type="button"
               className="btn-s export-return-button"
@@ -1111,7 +1127,7 @@ const App: React.FC = () => {
                     <FileText size={20} />
                     <div>
                       <h4>Informe diagnóstico PDF</h4>
-                      <p>Documento de lectura con resumen ejecutivo, hallazgos priorizados, gráficos y límites metodológicos.</p>
+                      <p>Documento de lectura del diagnóstico inicial. No incorpora el resumen de una reauditoría posterior.</p>
                     </div>
                   </div>
                   <div className="export-delivery-card-action">
@@ -1128,7 +1144,7 @@ const App: React.FC = () => {
                       </>
                     ) : (
                       <>
-                        <p className="export-delivery-card-desc" data-testid="export-pdf-desc">Informe diagnóstico profesional con hallazgos, gráficos y recomendaciones. Para revisión humana.</p>
+                        <p className="export-delivery-card-desc" data-testid="export-pdf-desc">Informe del diagnóstico inicial: hallazgos, gráficos y límites. No sustituye una reauditoría posterior.</p>
                         <button className="btn-s btn-sm" onClick={handleDownloadPdf} disabled={isPdfGenerating} data-testid="export-download-pdf">
                           Descargar PDF
                         </button>
@@ -1237,32 +1253,7 @@ const App: React.FC = () => {
       )}
 
       {showDestroySessionDialog && (
-        <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowDestroySessionDialog(false); }} data-testid="destroy-session-dialog">
-          <div className="modal-container modal-container--sm">
-            <div className="modal-header">
-              <AlertTriangle size={20} style={{ color: 'var(--error)' }} />
-              <h3>Cerrar sesión y destruir datos</h3>
-              <button className="modal-close" onClick={() => setShowDestroySessionDialog(false)}><X size={16} /></button>
-            </div>
-            <div className="modal-body" style={{ padding: 'var(--space-md)' }}>
-              <p style={{ marginBottom: 'var(--space-sm)', color: 'var(--ink2)', fontSize: '13px', lineHeight: 1.6 }}>
-                <strong>Se eliminarán</strong> el análisis actual, diagnósticos, scripts, decisiones humanas y archivos preparados.
-              </p>
-              <p style={{ marginBottom: 'var(--space-sm)', color: 'var(--ink2)', fontSize: '13px', lineHeight: 1.6 }}>
-                <strong>Se preservarán.</strong> La configuración del proveedor y los modelos no se modificarán.
-              </p>
-              <p style={{ color: 'var(--ink3)', fontSize: '12px', fontStyle: 'italic' }}>
-                Esta acción no se puede deshacer.
-              </p>
-            </div>
-            <div className="modal-actions" style={{ display: 'flex', gap: 'var(--space-sm)', justifyContent: 'flex-end', padding: 'var(--space-md)', borderTop: '1px solid var(--border-faint)' }}>
-              <button className="btn-s" onClick={() => setShowDestroySessionDialog(false)}>Cancelar</button>
-              <button className="btn-p btn-p--destructive" onClick={confirmDestroySession} data-testid="destroy-session-confirm">
-                <Trash2 size={14} /> Destruir datos locales
-              </button>
-            </div>
-          </div>
-        </div>
+        <DestructiveSessionDialog onCancel={() => setShowDestroySessionDialog(false)} onConfirm={confirmDestroySession} />
       )}
 
     </ErrorBoundary>

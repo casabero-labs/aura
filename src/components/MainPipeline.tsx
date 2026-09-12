@@ -135,10 +135,12 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
   const [executionReceipt, setExecutionReceipt] = useState<PythonExecutionReceiptV1 | undefined>(() => initialData?.executionReceipt);
   const [executionValidationError, setExecutionValidationError] = useState(() => initialData?.executionValidationError ?? '');
   const [executionAfterFile, setExecutionAfterFile] = useState<File | null>(null);
-  const [verifiedExecution, setVerifiedExecution] = useState<VerifiedRemediationExecution | null>(null);
+  const [verifiedExecution, setVerifiedExecution] = useState<VerifiedRemediationExecution | null>(() => initialData?.verifiedExecution ?? null);
   const [reauditState, setReauditState] = useState<ReauditState>(() => initialData?.reauditState ?? 'not_run');
   const [reauditError, setReauditError] = useState(() => initialData?.reauditError ?? '');
-  const [verifiedEvidence, setVerifiedEvidence] = useState<VerifiedRemediationEvidence | null>(null);
+  // App unmounts the pipeline at Export. Keep its in-memory evidence on return;
+  // persisted sessions deliberately omit these objects and still require reimport.
+  const [verifiedEvidence, setVerifiedEvidence] = useState<VerifiedRemediationEvidence | null>(() => initialData?.verifiedEvidence ?? null);
 
   const invalidateDescendants = (level: 'plan' | 'script' | 'approval') => {
     if (level === 'plan') {
@@ -794,6 +796,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
       {/* ── Step 2: Dataset profile ── */}
       {state === 'profile' && auditEvidence && (
         <ProfileStep
+          onRetry={() => { setAuditEvidence(null); setReport(null); setFile(null); setState('upload'); }}
           report={report}
           auditEvidence={auditEvidence}
           deterministicValidation={deterministicValidation}
@@ -842,6 +845,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
       {/* ── Step 5: Diagnostic report ── */}
       {state === 'diagnostic_report' && diagnosticReport && (
         <DiagnosticReportStep
+          remediationAvailable={isContractsV2Enabled() && !!structuredDiagnosis?.remediationContext}
           diagnosticReport={diagnosticReport}
           evaluationSummary={{
             contractErrorsCount: structuredDiagnosis?.executionReceipt?.validationErrorCodes?.length
@@ -860,7 +864,9 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
               : null,
           }}
           onExportMain={() => setState('export')}
-          onGenerateScript={() => setState('script')}
+          onGenerateScript={() => {
+            if (isContractsV2Enabled() && structuredDiagnosis?.remediationContext) setState('script');
+          }}
           onBackToDiagnosis={() => setState('diagnosis')}
         />
       )}
@@ -909,6 +915,11 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
               addLog(contract ? `script.contract.v2 :: hash=${contract.scriptHash.slice(0, 12)}` : 'script.contract.v2.cleared');
             }}
             onLog={(stage, msg) => addLog(`${stage} :: ${msg}`)}
+            onCloseWithoutChanges={() => {
+              invalidateDescendants('plan');
+              setCleaningScript('');
+              setState('export');
+            }}
             onContinue={() => setState('review')}
           />
         </>
@@ -917,6 +928,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
       {/* ── Step 6: Script generation (legacy) ── */}
       {state === 'script' && report && (!isContractsV2Enabled() || !structuredDiagnosis?.remediationContext) && (
         <>
+          <p role="status" className="context-guide">Propuesta histórica: puedes revisar y exportar su estado, pero esta ruta no permite validar una ejecución externa. Vuelve al diagnóstico para preparar una corrección compatible.</p>
           <OptionalRemediationNotice />
           <RemediationBranchActions
             onBackToDiagnosticReport={() => {
@@ -992,7 +1004,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
             onHealthDelta={(delta) => setHealthDelta(delta)}
             onImprovementRun={(run) => setImprovementRun(run)}
             onLog={(stage, msg) => addLog(`${stage} :: ${msg}`)}
-            onContinue={() => setState('execution')}
+            onContinue={() => setState(scriptContractV2 ? 'execution' : 'export')}
             scriptContractV2={scriptContractV2}
             remediationPlanV2={remediationPlan}
             structuredDiagnosis={structuredDiagnosis}

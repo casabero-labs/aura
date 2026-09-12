@@ -112,8 +112,8 @@ describe('pipeline diagnostic report state', () => {
     expect(stage.textContent).toContain('12');
     expect(stage.textContent).toContain('Evidencia determinista');
     expect(stage.textContent).not.toContain('deterministic_only');
-    expect(stage.textContent).toContain('Riesgos confirmados');
-    expect(stage.textContent).toContain('Revisar antes de corregir');
+    expect(stage.textContent).toContain('Hallazgos únicos');
+    expect(stage.textContent).toContain('Hallazgo determinista');
     expect(stage.textContent).toContain('Recomendaciones');
     expect(stage.textContent).toContain('Score base calculado por motor determinista.');
     expect(stage.textContent).toContain('El informe principal puede cerrarse sin generar script.');

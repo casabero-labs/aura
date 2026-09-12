@@ -1,5 +1,7 @@
 # Aura: auditoría de recorrido, Editorial e investigación doctoral
 
+> **Implementación autorizada — 10 de septiembre de 2026:** el usuario autorizó corregir las etapas 1–3 de la propuesta, caso por caso y con registro de continuidad para otros agentes. El avance de implementación, las pruebas y el punto exacto de reanudación se mantienen en [2026-09-10-aura-correcciones-ux-editorial-registro.md](2026-09-10-aura-correcciones-ux-editorial-registro.md). La investigación doctoral continúa únicamente como sugerencia. Los hallazgos históricos siguientes conservan su evidencia original; su presencia no significa que ya estén corregidos.
+
 > **Estado vigente — 8 de septiembre de 2026:** recorrido V2 completado con ejecución externa real, reingreso de resultados, reauditoría y descargas verificadas. El fixture pasa de 10 a 9 filas y de 53 a 71 puntos, pero pierde ceros iniciales en identificadores por inferencia del runner (nuevo P1). Los pendientes históricos de recuperación del CSV y descargas quedan resueltos por la evidencia al final. Auditoría del producto sin modificaciones de código; solo este documento se versiona. No equivale a aprobación de producción ni a cobertura universal.
 
 Fecha: 2026-09-06. Estado: **EN CURSO — avance persistido, sin implementación UI**.

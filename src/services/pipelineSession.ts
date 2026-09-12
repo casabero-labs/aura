@@ -71,6 +71,8 @@ export const loadPipelineSession = (): PipelineSessionSnapshot | null => {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const snapshot = JSON.parse(raw) as Omit<PipelineSessionSnapshot, 'state'> & { state: string };
+    // Historical empty-file sessions must never restore a positive report.
+    if (snapshot.report && (snapshot.report.rowCount <= 0 || snapshot.report.colCount <= 0)) return null;
     if (snapshot.state === 'calibration') {
       return { ...snapshot, state: 'diagnosis' } as PipelineSessionSnapshot;
     }

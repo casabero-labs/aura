@@ -28,6 +28,7 @@ interface DiagnosticReportStepProps {
   onExportMain: () => void;
   onGenerateScript: () => void;
   onBackToDiagnosis: () => void;
+  remediationAvailable?: boolean;
 }
 
 const VISIBLE_FINDING_LIMIT = 4;
@@ -41,8 +42,8 @@ const subtitleByStatus: Record<DiagnosticReport['status']['diagnosticStatus'], s
 const numberFormatter = new Intl.NumberFormat('es-CO');
 
 const findingGroupDefinitions = [
-  { key: 'confirmedRisks', label: 'Riesgo confirmado' },
-  { key: 'possibleFalsePositiveCandidates', label: 'Posible falso positivo' },
+  { key: 'confirmedRisks', label: 'Hallazgo determinista' },
+  { key: 'possibleFalsePositiveCandidates', label: 'Señal pendiente de contexto' },
   { key: 'humanReviewRequired', label: 'Decisión humana' },
   { key: 'optionalRemediationCandidates', label: 'Remediación opcional' },
 ] as const;
@@ -389,6 +390,7 @@ const DiagnosticReportStep: React.FC<DiagnosticReportStepProps> = ({
   onExportMain,
   onGenerateScript,
   onBackToDiagnosis,
+  remediationAvailable = true,
 }) => {
   const presentation = useMemo(
     () => buildDiagnosticPresentation(diagnosticReport),
@@ -403,7 +405,7 @@ const DiagnosticReportStep: React.FC<DiagnosticReportStepProps> = ({
 
   return (
     <>
-      <section className="section diagnostic-report-stage" data-testid="diagnostic-report-stage">
+      <section className="section diagnostic-report-stage editorial-pilot" data-testid="diagnostic-report-stage">
         <div className="diagnostic-report-hero" data-testid="diagnostic-report-header">
           <div>
             <p className="sec-eye">REPORTE DIAGNÓSTICO</p>
@@ -414,7 +416,7 @@ const DiagnosticReportStep: React.FC<DiagnosticReportStepProps> = ({
             <button className="btn-p" onClick={onExportMain} data-testid="diagnostic-report-export-main">
               <ArrowRight size={14} /> Exportar informe
             </button>
-            <button className="btn-s" onClick={onGenerateScript} data-testid="diagnostic-report-generate-script-top">
+            <button className="btn-s" onClick={onGenerateScript} disabled={!remediationAvailable} aria-describedby={!remediationAvailable ? 'remediation-availability' : undefined} data-testid="diagnostic-report-generate-script-top">
               <FileCode2 size={14} /> Corregir una copia
             </button>
             <button className="btn-s" onClick={onBackToDiagnosis} data-testid="diagnostic-report-back-diagnosis">
@@ -423,6 +425,12 @@ const DiagnosticReportStep: React.FC<DiagnosticReportStepProps> = ({
           </div>
         </div>
 
+        {!remediationAvailable && (
+          <p id="remediation-availability" className="diagnostic-report-governance-card" role="status">
+            Este informe permite revisar y exportar los hallazgos. La corrección con ejecución verificada requiere un diagnóstico compatible; todavía no está disponible en la ruta determinista.
+            {' '}Puedes exportar el informe o volver al diagnóstico para configurar un proveedor.
+          </p>
+        )}
         <DatasetSummaryStrip report={diagnosticReport} findingCount={primaryFindings.findings.length} />
         <DiagnosticInvocationSummary report={diagnosticReport} evaluation={evaluationSummary} />
         <DiagnosticDecisionBrief presentation={presentation} />
@@ -509,10 +517,12 @@ const DiagnosticReportStep: React.FC<DiagnosticReportStepProps> = ({
               <p className="sec-eye">rama opcional</p>
               <h3>Corregir una copia del dataset</h3>
               <p>
-                La exportación del informe no depende de un script. AURA puede preparar uno revisable sin modificar el archivo original y ninguna acción se aplica sin tu aprobación.
+                {remediationAvailable
+                  ? 'La exportación del informe no depende de un script. Puedes revisar cada propuesta antes de aprobar una ejecución externa sobre una copia.'
+                  : 'Este informe puede exportarse. La corrección verificada no está disponible en esta ruta; vuelve al diagnóstico si necesitas preparar una propuesta compatible.'}
               </p>
             </div>
-            <button className="btn-s" onClick={onGenerateScript} data-testid="diagnostic-report-generate-script">
+            <button className="btn-s" onClick={onGenerateScript} disabled={!remediationAvailable} data-testid="diagnostic-report-generate-script">
               <FileCode2 size={14} /> Preparar script revisable
             </button>
           </section>

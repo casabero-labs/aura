@@ -1,5 +1,6 @@
 import Papa from 'papaparse';
 import { CsvParsedData } from '../types';
+import { assertUsableCsv } from './csvValidation';
 
 export const parseCsv = (file: File, previewLimit?: number): Promise<CsvParsedData> => {
   return new Promise((resolve, reject) => {
@@ -9,9 +10,10 @@ export const parseCsv = (file: File, previewLimit?: number): Promise<CsvParsedDa
       header: true,
       skipEmptyLines: true,
       delimiter: "", // Auto-detect delimiter (Sniffer)
-      dynamicTyping: true, // Auto-convert numbers
+      dynamicTyping: false, // Preserve source values; statistics use a separate view.
       worker: true, // Use Web Workers to parse asynchronously and keep the UI fluid
       complete: (results: any) => {
+        try { assertUsableCsv(results); } catch (error) { reject(error); return; }
         resolve({
           data: results.data,
           meta: {

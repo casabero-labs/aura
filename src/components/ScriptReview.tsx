@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, Check, ClipboardCheck, Copy, Download, Edit3, Eye, FileCode2, Search, Terminal } from 'lucide-react';
 import { AuditReport } from '../types';
 import { highlightPython } from '../services/highlightPython';
+import { classifyPythonLine, type PythonOperationKind } from '../services/pythonLineClassification';
 
 interface ScriptReviewProps {
   code: string;
@@ -15,15 +16,9 @@ interface ScriptReviewProps {
   approvalLabel?: string;
 }
 
-type OperationKind = 'destructiva' | 'transformacion' | 'lectura';
+type OperationKind = PythonOperationKind;
 
-const classifyOperation = (line: string): OperationKind | null => {
-  const normalized = line.toLowerCase();
-  if (/\b(drop|delete|del |remove|pop|truncate|overwrite|to_csv|to_excel)\b/.test(normalized)) return 'destructiva';
-  if (/\b(fillna|replace|astype|rename|assign|map|apply|clip|str\.|where|loc\[|iloc\[)\b/.test(normalized)) return 'transformacion';
-  if (/\b(value_counts|describe|isna|isnull|info|head|tail|shape|columns|dtypes|unique|nunique)\b/.test(normalized)) return 'lectura';
-  return null;
-};
+const classifyOperation = classifyPythonLine;
 
 const operationMeta: Record<OperationKind, { label: string; className: string }> = {
   destructiva: { label: 'destructiva', className: 'op-danger' },

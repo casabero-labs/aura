@@ -6,7 +6,9 @@ import {
   IssueCategory,
   IssueSeverity,
   QualityIssue,
+  RULE_IDS,
 } from '../../types';
+import { formatAffectedShare, isNumericSentinel } from '../issuePresentation';
 import type { DiagnosisExecutionResult } from '../../contracts/llm';
 import type {
   DiagnosticCardinalityColumnSummary,
@@ -316,6 +318,7 @@ const buildFindingGroups = (
     issue,
     structuredReviewIssueIds,
     structuredBlockByIssueId.get(issue.id),
+    report.rowCount,
   ));
   const documentedFalsePositives = issueFindings
     .filter((finding) => finding.sourceIssueIds.some((issueId) => expectedFalsePositiveIssueIds.has(issueId)))
@@ -438,6 +441,24 @@ const buildFalsePositiveCandidates = (report: AuditReport): DiagnosticFinding[] 
         sourceIssueIds,
         evidenceSummary: `${name} tiene ${column.uniqueCount} valores únicos; puede ser identificador, nombre, ticket, código o descriptor granular.`,
         contextualInterpretation: 'posible falso positivo contextual; requiere revisión humana; no modifica score; no corregir automáticamente.',
+      }));
+    }
+
+    const sentinelIssues = relatedIssues.filter((issue) =>
+      issue.ruleId === RULE_IDS.TOXIC_PLACEHOLDERS
+      && (issue.sampleValues ?? []).some(isNumericSentinel),
+    );
+    if (sentinelIssues.length > 0) {
+      const samples = sentinelIssues.flatMap((issue) => issue.sampleValues ?? []).map((value) => String(value));
+      candidates.push(falsePositiveFinding({
+        id: `fp-sentinel-${slugify(name)}`,
+        title: `${name}: posible sentinela, no nulo confirmado`,
+        category: IssueCategory.HYGIENE,
+        severity: IssueSeverity.WARNING,
+        columns: [name],
+        sourceIssueIds: sentinelIssues.map((issue) => issue.id),
+        evidenceSummary: `${name} contiene ${samples.slice(0, 4).join(', ') || '999'}. Puede ser un código o identificador válido.`,
+        contextualInterpretation: 'Señal pendiente de contexto. Conserva el valor hasta confirmar que representa un nulo y no un identificador.',
       }));
     }
   }
@@ -730,13 +751,15 @@ const issueToFinding = (
   issue: QualityIssue,
   structuredReviewIssueIds: Set<string>,
   structuredBlock?: { observation: string; recommendation: string },
+  rowCount = 0,
 ): DiagnosticFinding => {
   const canGenerateScript = isScriptableIssue(issue);
   const requiresHumanReview =
     issue.severity === IssueSeverity.CRITICAL ||
     issue.category === IssueCategory.SEMANTIC ||
     issue.automaticAuthorization?.authorized === false ||
-    structuredReviewIssueIds.has(issue.id);
+    structuredReviewIssueIds.has(issue.id)
+    || (issue.sampleValues ?? []).some(isNumericSentinel);
 
   return {
     id: `finding-${slugify(issue.id)}`,
@@ -745,10 +768,12 @@ const issueToFinding = (
     category: issue.category,
     sourceIssueIds: [issue.id],
     columns: issue.column ? [issue.column] : [],
-    evidenceSummary: `${issue.count} registro(s), ${round2(issue.affectedPercentage)}% afectado. ${truncateText(issue.description, 220)}`,
+    evidenceSummary: `${formatAffectedShare(issue.count, rowCount)} afectados. ${truncateText(issue.description, 220)}`,
     contextualInterpretation: structuredBlock
       ? `Lectura asistida: ${truncateText(structuredBlock.observation, 170)} Recomendación: ${truncateText(structuredBlock.recommendation, 170)}`
-      : 'Riesgo observado por regla determinista. El diagnóstico asistido puede contextualizarlo, pero no modifica el score.',
+      : (issue.sampleValues ?? []).some(isNumericSentinel)
+        ? 'Señal pendiente de contexto. El valor observado puede ser un identificador válido; no se corrige automáticamente.'
+        : 'Riesgo observado por regla determinista. El diagnóstico asistido puede contextualizarlo, pero no modifica el score.',
     confidence: issue.severity === IssueSeverity.CRITICAL ? 'high' : issue.severity === IssueSeverity.WARNING ? 'medium' : 'low',
     scoreModified: false,
     requiresHumanReview,
@@ -791,7 +816,7 @@ const isScriptableIssue = (issue: QualityIssue) =>
   SCRIPTABLE_RULE_IDS.has(issue.ruleId) && issue.automaticAuthorization?.authorized !== false;
 
 const isNullIssue = (issue: QualityIssue) =>
-  issue.ruleId === 'rule:null-values' || /nul|missing|ausencia/i.test(issue.ruleName + issue.description);
+  issue.ruleId ? issue.ruleId === RULE_IDS.NULL_VALUES : /nul|missing|ausencia/i.test(issue.ruleName + issue.description);
 
 const isOutlierIssue = (issue: QualityIssue) =>
   issue.ruleId === 'rule:mild-outliers' ||

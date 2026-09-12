@@ -237,12 +237,21 @@ const RemediationPlanStepV2: React.FC<RemediationPlanStepV2Props> = ({
                 <span>{evidenceLabel}</span>
               </div>
               <details className="remediation-action__technical">
-                <summary>Detalles técnicos</summary>
+                <summary>Antes y después propuesto</summary>
                 <dl>
                   <div><dt>Acción</dt><dd>{action.actionType}</dd></div>
                   <div><dt>Regla</dt><dd>{action.ruleId}</dd></div>
                   {action.columnId && <div><dt>ID de columna</dt><dd>{action.columnId}</dd></div>}
                   <div><dt>ID de acción</dt><dd>{action.actionId}</dd></div>
+                  <div>
+                    <dt>Valores observados</dt>
+                    <dd>{((report.issues ?? []).find(issue => issue.ruleId === action.ruleId && (!column || issue.column === column.name))?.sampleValues ?? [])
+                      .slice(0, 4).map(value => String(value ?? 'vacío')).join(', ') || 'Sin muestra en el perfil'}</dd>
+                  </div>
+                  <div>
+                    <dt>Alcance</dt>
+                    <dd>{columnLabel} · {evidenceLabel}</dd>
+                  </div>
                 </dl>
               </details>
             </div>
@@ -253,7 +262,7 @@ const RemediationPlanStepV2: React.FC<RemediationPlanStepV2Props> = ({
                     <CheckCircle2 size={12} /> Aprobar
                   </button>
                   <button className="btn-s btn-sm" onClick={() => handleReject(action.actionId)} style={{ background: 'var(--error-bg)', color: 'var(--error-fg)' }}>
-                    <AlertTriangle size={12} /> Rechazar
+                    <AlertTriangle size={12} /> {action.actionType === 'normalize_placeholders' ? 'Conservar como válido' : 'Rechazar'}
                   </button>
                 </>
               )}
@@ -272,6 +281,16 @@ const RemediationPlanStepV2: React.FC<RemediationPlanStepV2Props> = ({
         </div>
         );
       })}
+
+      {!v2Plan.plan.some(action => action.approvalStatus === 'approved') && (
+        <div className="context-guide" role="status" data-testid="remediation-close-without-changes">
+          <div>
+            <p className="guide-title">No hay acciones aprobadas</p>
+            <p className="guide-desc">Cerrar sin cambios es un resultado válido. Puedes exportar el informe con el dataset intacto.</p>
+          </div>
+          <button className="btn-p btn-sm" onClick={onContinue}>Cerrar sin cambios</button>
+        </div>
+      )}
 
       {v2Plan.exclusions.length > 0 && (
         <div style={{ marginTop: 'var(--space-md)', padding: '10px', background: 'var(--surface2)', borderRadius: '6px' }}>

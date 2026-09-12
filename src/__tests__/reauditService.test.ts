@@ -75,7 +75,7 @@ describe('reauditService', () => {
       expect(result.data).toHaveLength(2);
       expect(result.fields).toEqual(['name', 'age']);
       expect(result.data[0].name).toBe('John');
-      expect(result.data[0].age).toBe(30);
+      expect(result.data[0].age).toBe('30');
     });
 
     it('auto-detects comma delimiter', () => {

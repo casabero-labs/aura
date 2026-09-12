@@ -114,6 +114,12 @@
 
 /* ─── Reset & Base ─── */
 
+dialog.session-dialog { margin: auto; padding: 0; border: 1px solid var(--border-strong); color: var(--ink); background: var(--surface); max-width: min(480px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow: auto; }
+dialog.session-dialog::backdrop { background: rgb(0 0 0 / 40%); }
+.session-dialog .modal-body, .session-dialog .modal-actions { padding: 16px; }
+.session-dialog .modal-body p + p { margin-top: 12px; }
+.session-dialog .modal-actions { display: flex; justify-content: flex-end; gap: 12px; flex-wrap: wrap; }
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body, #root {
@@ -5850,6 +5856,9 @@ tr:hover td {
   gap: 6px;
   padding: var(--space-md) var(--space-md);
   width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
   border-bottom: 1px solid var(--border-faint);
 }
 
@@ -5857,6 +5866,9 @@ tr:hover td {
   display: flex;
   align-items: center;
   gap: 0;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
 }
 
 .stepper-step {
@@ -9975,7 +9987,7 @@ tr:hover td {
   }
 
   .stepper-track {
-    min-width: max-content;
+    min-width: 0;
     padding: 0 var(--space-sm);
   }
 
@@ -14527,11 +14539,30 @@ textarea:focus {
   .pipeline-progress,
   .stepper {
     top: 56px;
-    margin-left: calc(var(--space-md) * -1);
-    margin-right: calc(var(--space-md) * -1);
-    padding-left: var(--space-md);
-    padding-right: var(--space-md);
+    margin-left: 0;
+    margin-right: 0;
+    padding-left: 0;
+    padding-right: 0;
+    max-width: 100%;
     overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .stepper-track {
+    min-width: 0;
+    max-width: 100%;
+    gap: 12px;
+    justify-content: flex-start;
+    overflow-x: auto;
+  }
+
+  .severity-distribution-row {
+    grid-template-columns: minmax(0, 88px) minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .severity-distribution-svg {
+    overflow: hidden;
   }
 
   .home-flow,
@@ -14806,7 +14837,7 @@ textarea:focus {
 
 .severity-distribution-row {
   display: grid;
-  grid-template-columns: 94px minmax(180px, 1fr);
+  grid-template-columns: minmax(0, 94px) minmax(0, 1fr);
   align-items: center;
   gap: 12px;
 }
@@ -15077,7 +15108,7 @@ textarea:focus {
   .stepper-track {
     justify-content: flex-start;
     gap: 22px;
-    min-width: max-content;
+    min-width: 0;
   }
 
   .profile-decision-summary {
@@ -16274,4 +16305,96 @@ textarea:focus {
     color: var(--ink);
     background: var(--surface-hover);
   }
+}
+
+.home-resume-meta {
+  margin: 8px 0 0;
+  color: var(--ink2);
+  font-size: 13px;
+}
+
+
+/* Editorial 1.2 pilot: white reading canvas, serif prose, functional sans.
+   Local tokens also keep the document legible inside the application's dark shell. */
+.editorial-pilot {
+  --ink: #191919;
+  --ink2: #4D4D4A;
+  --ink3: #6B6B67;
+  --ink4: #6B6B67;
+  --surface: #FFFFFF;
+  --surface2: #F7F7F4;
+  --surface-raised: #F7F7F4;
+  --surface-hover: #F7F7F4;
+  --bg: #FFFFFF;
+  --border: #D9D9D4;
+  --border-strong: #A7A7A0;
+  --font-sans: "Source Sans 3", Arial, Helvetica, sans-serif;
+  background: #FFFFFF;
+  color: var(--ink);
+  color-scheme: light;
+  font-family: var(--font-sans);
+  min-width: 0;
+}
+.aura-system:has(.editorial-pilot),
+.sys-main:has(.editorial-pilot) { background: #FFFFFF; }
+.editorial-pilot :is(h1, h2, h3, h4) {
+  font-family: "Source Serif 4", Georgia, "Times New Roman", serif;
+  color: var(--ink);
+  letter-spacing: normal;
+}
+.editorial-pilot :is(.profile-editorial-title, .diagnostic-report-hero .sec-title, .export-closure-header .sec-title) {
+  font-size: clamp(32px, 4vw, 48px);
+  line-height: 1.15;
+}
+.editorial-pilot p:not(.sec-eye):not([class*="eyebrow"]):not(.guide-title) {
+  font-family: "Source Serif 4", Georgia, "Times New Roman", serif;
+  font-size: 18px;
+  line-height: 1.6;
+  color: var(--ink2);
+}
+.editorial-pilot :is(button, input, select, summary, table, .finding-card-meta, .stage-summary-item) {
+  font-family: var(--font-sans);
+}
+.editorial-pilot :is(.sec-eye, [class*="eyebrow"]) { color: var(--ink3); }
+.editorial-pilot :is(button, a, summary, input, select, textarea):focus-visible {
+  outline: 2px solid #191919;
+  outline-offset: 3px;
+  box-shadow: none;
+}
+.editorial-pilot :is(.btn-s, .btn-p) {
+  min-height: 44px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.editorial-pilot :is(.export-delivery-card, .diagnostic-finding-card, .diagnostic-recommendation-card) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 480px) {
+  .editorial-pilot { max-width: 100%; }
+  .editorial-pilot .export-delivery-cards { grid-template-columns: minmax(0, 1fr); }
+}
+.editorial-pilot :is(.profile-block-index, .col-detail-sep) { color: #6B6B67; }
+/* Column types remain explicit text; neutral ink replaces low-contrast inline swatches. */
+.editorial-pilot .col-detail-type-badge { color: #4D4D4A !important; background: #F7F7F4 !important; }
+.editorial-pilot .export-corrected-opt-in {
+  min-height: 44px;
+  font-size: 14px;
+  gap: 10px;
+}
+.editorial-pilot .export-corrected-opt-in input {
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+}
+/* Copy is a functional control, not muted metadata. */
+.syntax-display__copy {
+  color: var(--ink);
+  background: var(--surface);
+  min-height: 44px;
+  padding-inline: 12px;
+}
+.syntax-display__copy:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
 }

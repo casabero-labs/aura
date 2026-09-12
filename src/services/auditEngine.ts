@@ -1,5 +1,7 @@
 import { AuditReport, IssueSeverity, QualityIssue, IssueCategory, ColumnStats, ScoreDeduction, RULE_IDS, AutomaticAuthorization } from '../types';
 import { profileColumns, type DatasetProfile } from './columnProfiler';
+import { auditValue } from './auditValue';
+import { isNumericSentinel } from './issuePresentation';
 
 // --- Weighted scoring (composite quality score, pending #3) ---
 const SEVERITY_WEIGHTS: Record<IssueSeverity, number> = {
@@ -295,7 +297,7 @@ const calculateStats = (data: any[], fields: string[]): Record<string, ColumnSta
       v !== null && 
       v !== undefined && 
       v !== '' && 
-      !TOXIC_PLACEHOLDERS.includes(String(v).toLowerCase().trim())
+      (!TOXIC_PLACEHOLDERS.includes(String(v).toLowerCase().trim()) || isNumericSentinel(v))
     );
     const numValues = nonNulls.filter(v => typeof v === 'number').map(Number);
     const strValues = nonNulls.filter(v => typeof v === 'string').map(String);
@@ -395,6 +397,8 @@ const calculateStats = (data: any[], fields: string[]): Record<string, ColumnSta
 // --- Main Audit Function ---
 
 export const runAudit = (data: Record<string, any>[], fields: string[], delimiter: string): AuditReport => {
+  const originalRows = data;
+  data = data.map(row => Object.fromEntries(Object.entries(row).map(([key, value]) => [key, auditValue(value)])));
   const issues: QualityIssue[] = [];
   const scoreBreakdown: ScoreDeduction[] = [];
   const rowCount = data.length;
@@ -431,8 +435,8 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
   const uniqueHashes = new Set();
   let duplicateCount = 0;
 
-  data.forEach(row => {
-    const h = getFastHash(row);
+  originalRows.forEach(row => {
+    const h = JSON.stringify(fields.map(field => row[field]));
     if (uniqueHashes.has(h)) duplicateCount++;
     else uniqueHashes.add(h);
   });
@@ -787,8 +791,14 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
     }
 
     if (toxicCount > 0) {
-      addDeduction(`Placeholders Tóxicos en [${col}]`, 5, IssueCategory.HYGIENE, RULE_IDS.TOXIC_PLACEHOLDERS);
-      addIssue({ id: `hygiene-toxic-${col}`, column: col, category: IssueCategory.HYGIENE, ruleName: 'Placeholders Tóxicos', description: 'Valores como "n/a", "null" o "999" detectados.', severity: IssueSeverity.WARNING, count: toxicCount, affectedPercentage: (toxicCount / rowCount) * 100, sampleValues: samples.toxic, ruleId: RULE_IDS.TOXIC_PLACEHOLDERS, automaticAuthorization: autoAuth('replace_placeholders', false, [], 'Requires domain decision on replacement') });
+      if (values.some(value => TOXIC_PLACEHOLDERS.includes(String(value).toLowerCase().trim()) && !isNumericSentinel(value))) {
+        addDeduction(`Placeholders Tóxicos en [${col}]`, 5, IssueCategory.HYGIENE, RULE_IDS.TOXIC_PLACEHOLDERS);
+      }
+      const toxicSamples = samples.toxic.map(value => String(value)).join(', ');
+      const sentinelNote = samples.toxic.some(isNumericSentinel)
+        ? ' Un valor como 999 puede ser un identificador o código válido; confirma el contexto antes de tratarlo como nulo.'
+        : '';
+      addIssue({ id: `hygiene-toxic-${col}`, column: col, category: IssueCategory.HYGIENE, ruleName: 'Placeholders Tóxicos', description: `Valores marcadores detectados (${toxicSamples || 'n/a, null'}).${sentinelNote}`, severity: IssueSeverity.WARNING, count: toxicCount, affectedPercentage: (toxicCount / rowCount) * 100, sampleValues: samples.toxic, ruleId: RULE_IDS.TOXIC_PLACEHOLDERS, automaticAuthorization: autoAuth('replace_placeholders', false, [], 'Requires domain decision on replacement') });
     }
 
     if (isoDateCount > 0 && dmyDateCount > 0) {

@@ -110,7 +110,7 @@ describe('JSON technical export preflight integration', () => {
     render(<App />);
 
     await user.click(
-      screen.getByRole('button', { name: 'Empezar auditoría' }),
+      screen.getByRole('button', { name: /Reanudar|Empezar auditoría/ }),
     );
     await user.click(
       screen.getByRole('button', { name: 'Descargar JSON' }),
@@ -143,7 +143,8 @@ describe('JSON technical export preflight integration', () => {
     render(<App />);
 
     expect(screen.queryByText(/Laboratorio de Modelos/i)).toBeNull();
-    expect(screen.getAllByRole('button', { name: 'Laboratorio' })).toHaveLength(2);
+    expect(screen.getAllByRole('button', { name: 'Laboratorio' })).toHaveLength(1);
+    expect(screen.getAllByRole('button', { name: 'Laboratorio', hidden: true })).toHaveLength(2);
   });
 
   it('returns from Exportación to the preserved diagnostic results', async () => {
@@ -155,7 +156,7 @@ describe('JSON technical export preflight integration', () => {
     });
 
     render(<App />);
-    await user.click(screen.getByRole('button', { name: 'Empezar auditoría' }));
+    await user.click(screen.getByRole('button', { name: /Reanudar|Empezar auditoría/ }));
     expect(screen.getByTestId('export-stage')).toBeTruthy();
 
     await user.click(screen.getByRole('button', { name: 'Volver al informe diagnóstico' }));
@@ -167,7 +168,7 @@ describe('JSON technical export preflight integration', () => {
   it('declara con sobriedad que no hubo remediación y conserva todas las descargas principales', async () => {
     vi.mocked(validateAuraExportPackage).mockReturnValue({ valid: true, errors: [], warnings: [] });
     render(<App />);
-    await userEvent.click(screen.getByRole('button', { name: 'Empezar auditoría' }));
+    await userEvent.click(screen.getByRole('button', { name: /Reanudar|Empezar auditoría/ }));
 
     expect(screen.getByTestId('export-remediation-not-run').textContent).toBe(
       'El análisis fue completado, pero no se ejecutó una remediación sobre el dataset',
@@ -192,7 +193,7 @@ describe('JSON technical export preflight integration', () => {
     });
 
     render(<App />);
-    await user.click(screen.getByRole('button', { name: 'Empezar auditoría' }));
+    await user.click(screen.getByRole('button', { name: /Reanudar|Empezar auditoría/ }));
     await user.click(screen.getByTestId('export-download-evidence-package'));
 
     await waitFor(() => {
@@ -248,7 +249,7 @@ describe('JSON technical export preflight integration', () => {
     } as any);
 
     render(<App />);
-    await user.click(screen.getByRole('button', { name: 'Empezar auditoría' }));
+    await user.click(screen.getByRole('button', { name: /Reanudar|Empezar auditoría/ }));
     await user.click(screen.getByTestId('export-download-evidence-package'));
 
     await waitFor(() => {

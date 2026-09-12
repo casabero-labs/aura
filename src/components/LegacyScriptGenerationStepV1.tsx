@@ -128,7 +128,7 @@ const LegacyScriptGenerationStepV1: React.FC<LegacyScriptGenerationStepV1Props> 
   const scriptPromptPreview = React.useMemo(() => buildScriptPrompt(report, diagnosisText, diagnosisBrief), [report, diagnosisText, diagnosisBrief]);
 
   const safetyLabel = scriptValidation
-    ? (scriptValidation.safetyScore >= 80 ? 'Seguro' : scriptValidation.safetyScore >= 50 ? 'Requiere revisión' : 'Riesgoso')
+    ? (scriptValidation.safetyScore >= 80 ? 'Análisis estático alto' : scriptValidation.safetyScore >= 50 ? 'Requiere revisión' : 'Riesgoso')
     : null;
 
   const safetyColor = scriptValidation
@@ -260,7 +260,7 @@ const LegacyScriptGenerationStepV1: React.FC<LegacyScriptGenerationStepV1Props> 
               </div>
               <div className={`script-validation-card ${scriptValidation.coveragePercentage >= 50 ? 'script-validation-card--pass' : 'script-validation-card--warn'}`}>
                 <Gauge size={14} />
-                <span>Cobertura de hallazgos</span>
+                <span>Trazas en el texto</span>
                 <strong>{scriptValidation.coveragePercentage}%</strong>
               </div>
               <div className={`script-validation-card ${scriptValidation.destructiveOperations.length === 0 ? 'script-validation-card--pass' : 'script-validation-card--warn'}`}>

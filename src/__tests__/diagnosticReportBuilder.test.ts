@@ -246,6 +246,32 @@ describe('buildDiagnosticReport', () => {
       .some((finding) => finding.sourceIssueIds.includes(falsePositiveIssue.id))).toBe(true);
   });
 
+  it('does not treat a 999 sentinel as a confirmed null', () => {
+    const report = buildTitanicReport();
+    report.issues.push(issue({
+      id: 'hygiene-toxic-id',
+      column: 'id',
+      ruleId: 'rule:toxic-placeholders',
+      ruleName: 'Placeholders Tóxicos',
+      description: 'Valores marcadores detectados (999).',
+      sampleValues: ['999'],
+      count: 1,
+      affectedPercentage: 0.02,
+    }));
+    report.columnStats.id = {
+      name: 'id',
+      inferredType: 'string',
+      nullCount: 0,
+      uniqueCount: 6001,
+    };
+    report.rowCount = 6001;
+    const diagnosticReport = buildDiagnosticReport({ report, auditEvidence: null });
+    expect(diagnosticReport.findingGroups.confirmedRisks
+      .some((finding) => finding.sourceIssueIds.includes('hygiene-toxic-id'))).toBe(false);
+    expect(diagnosticReport.findingGroups.possibleFalsePositiveCandidates
+      .some((finding) => finding.sourceIssueIds.includes('hygiene-toxic-id'))).toBe(true);
+  });
+
   it('construye reporte con solo AuditReport', () => {
     const report = buildTitanicReport();
     const diagnosticReport = buildDiagnosticReport({ report, auditEvidence: null });

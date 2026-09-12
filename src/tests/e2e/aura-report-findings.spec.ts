@@ -122,7 +122,7 @@ for (const viewport of viewports) {
     await expect(page.getByRole('heading', { name: 'Filas Duplicadas', exact: true })).toHaveCount(1);
 
     const duplicateCard = page.locator('[data-finding-id="finding-duplicate-rows"]');
-    await expect(duplicateCard).toContainText('Riesgo confirmado');
+    await expect(duplicateCard).toContainText('Hallazgo determinista');
     await expect(duplicateCard).toContainText('Decisión humana');
     await expect(duplicateCard).toContainText('Remediación opcional');
     await expect(duplicateCard).toContainText('Revisión humanaSí');

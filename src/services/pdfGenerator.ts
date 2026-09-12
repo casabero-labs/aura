@@ -1,6 +1,7 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { AuditReport, ExecutiveReportContent, IssueSeverity, IssueCategory, ScriptValidationResult, HealthDelta } from '../types';
+import { classifyPythonLine } from './pythonLineClassification';
 
 declare module 'jspdf' {
   interface jsPDF {
@@ -12,13 +13,7 @@ declare module 'jspdf' {
 
 type SaveCallback = (doc: jsPDF, filename: string) => void;
 
-const classifyScriptLine = (line: string): 'destructiva' | 'transformacion' | 'lectura' | null => {
-  const normalized = line.toLowerCase();
-  if (/\b(drop|delete|del |remove|pop|truncate|overwrite|to_csv|to_excel)\b/.test(normalized)) return 'destructiva';
-  if (/\b(fillna|replace|astype|rename|assign|map|apply|clip|str\.|where|loc\[|iloc\[)\b/.test(normalized)) return 'transformacion';
-  if (/\b(value_counts|describe|isna|isnull|info|head|tail|shape|columns|dtypes|unique|nunique)\b/.test(normalized)) return 'lectura';
-  return null;
-};
+const classifyScriptLine = classifyPythonLine;
 
 const scriptLabelColor = (
   kind: ReturnType<typeof classifyScriptLine>,

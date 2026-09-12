@@ -1,5 +1,6 @@
 import { canonicalJson } from '../../contracts/llm/diagnosisPromptV2';
 import { sha256BytesHex, sha256hex } from '../../contracts/llm/hash';
+import { validateValuePreservation } from './valuePreservation.mjs';
 
 export type PythonCheckStatus = 'passed' | 'failed';
 
@@ -353,5 +354,8 @@ export const validatePythonExecutionChain = (
     evidenceEnvelopeRef: expectedEvidenceEnvelopeRef,
     afterCsv: input.outputCsv,
   }));
+  if (errors.length === 0 && input.outputCsv !== null && input.receipt.execution.status === 'passed') {
+    errors.push(...validateValuePreservation(input.bundle, input.sourceCsv, input.outputCsv));
+  }
   return deduplicate(errors);
 };

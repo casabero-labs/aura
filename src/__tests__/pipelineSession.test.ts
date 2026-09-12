@@ -87,6 +87,20 @@ describe('pipelineSession', () => {
     expect(loadPipelineSession()).toBeNull();
   });
 
+  it('does not restore a historical report with zero rows or columns', () => {
+    mockLs.setItem('aura_pipeline_session_v1', JSON.stringify({
+      state: 'profile',
+      report: { rowCount: 0, colCount: 0, score: 100, issues: [] },
+    }));
+    expect(loadPipelineSession()).toBeNull();
+
+    mockLs.setItem('aura_pipeline_session_v1', JSON.stringify({
+      state: 'diagnostic_report',
+      report: { rowCount: 3, colCount: 0, score: 100, issues: [] },
+    }));
+    expect(loadPipelineSession()).toBeNull();
+  });
+
   it('handles corrupt JSON gracefully', () => {
     mockLs.getItem.mockReturnValueOnce('{not json');
     const result = loadPipelineSession();

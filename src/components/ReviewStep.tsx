@@ -208,7 +208,7 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
   };
 
   const safetyLabel = scriptValidation
-    ? (scriptValidation.safetyScore >= 80 ? 'Seguro' : scriptValidation.safetyScore >= 50 ? 'Requiere revisión' : 'Bloqueado')
+    ? (scriptValidation.safetyScore >= 80 ? 'Análisis estático alto' : scriptValidation.safetyScore >= 50 ? 'Requiere revisión' : 'Bloqueado')
     : 'Sin validar';
 
   const safetyColor = scriptValidation
@@ -304,7 +304,7 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
 
       <div className="companion-note">
         <ShieldCheck size={16} />
-        <p>Aquí revisas la propuesta, confirmas que las columnas existen y decides si vale la pena simular. La aprobación humana queda registrada como evidencia.</p>
+        <p>Aquí revisas la propuesta, confirmas que las columnas existen y decides si vale la pena simular. El análisis estático y las trazas en el texto no equivalen a ejecución, seguridad ni resolución garantizada.</p>
       </div>
 
       <div className="stage-decision-summary" data-testid="stage-decision-summary">
@@ -313,12 +313,12 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
           <strong style={{ color: scriptStatusColor }}>{scriptStatus}</strong>
         </div>
         <div className="stage-summary-item">
-          <span className="stage-summary-label">Seguridad</span>
+          <span className="stage-summary-label">Análisis estático</span>
           <strong style={{ color: safetyColor }}>{safetyLabel}</strong>
         </div>
         {scriptValidation && (
           <div className="stage-summary-item">
-            <span className="stage-summary-label">Cobertura</span>
+            <span className="stage-summary-label">Trazas en el texto</span>
             <strong>{scriptValidation.coveragePercentage}%</strong>
           </div>
         )}
@@ -413,7 +413,7 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
       {canContinue && (
         <div className="stage-actions" data-testid="primary-stage-action">
           <button className="btn-p btn-sm" onClick={onContinue}>
-            Preparar exportación <ArrowRight size={12} />
+            {isV2Review ? 'Preparar ejecución externa' : 'Exportar propuesta sin ejecutar'} <ArrowRight size={12} />
           </button>
         </div>
       )}

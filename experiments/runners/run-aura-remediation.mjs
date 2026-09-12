@@ -7,6 +7,7 @@ import { tmpdir } from 'node:os';
 import { basename, dirname, isAbsolute, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
+import { readCsvTable, validateValuePreservation } from '../../src/services/remediationExecution/valuePreservation.mjs';
 
 const exec = promisify(execFile);
 const SHA256 = /^[a-f0-9]{64}$/;
@@ -209,6 +210,7 @@ const executeBundle = async ({ bundle, inputPath, outputPath, receiptPath, pytho
   const scriptPath = join(workDir, 'approved-script.py');
   const temporaryOutputPath = join(workDir, 'corrected.csv');
   const metadataPath = join(workDir, 'output-metadata.json');
+  const sourceTablePath = join(workDir, 'source-table.json');
   let executionPassed = false;
   let receiptWritten = false;
   let runStartedAt = new Date().toISOString();
@@ -239,13 +241,16 @@ const executeBundle = async ({ bundle, inputPath, outputPath, receiptPath, pytho
     }
 
     if (syntax.status === 'passed') {
+      const sourceBytes = await readFile(inputPath);
+      await writeFile(sourceTablePath, JSON.stringify(readCsvTable(sourceBytes)), 'utf8');
       const wrapper = [
         'import importlib.util,json,pandas as pd,sys',
         'script_path,input_path,output_path,metadata_path=sys.argv[1:5]',
         'spec=importlib.util.spec_from_file_location("aura_approved_script",script_path)',
         'module=importlib.util.module_from_spec(spec)',
         'spec.loader.exec_module(module)',
-        'source=pd.read_csv(input_path)',
+        'table=json.load(open(input_path,encoding="utf-8"))',
+        'source=pd.DataFrame(table["rows"],columns=table["fields"],dtype=object)',
         'result=module.clean_dataset(source.copy(deep=True))',
         'assert isinstance(result,pd.DataFrame), "clean_dataset must return a pandas DataFrame"',
         'result.to_csv(output_path,index=False,lineterminator="\\n")',
@@ -253,7 +258,7 @@ const executeBundle = async ({ bundle, inputPath, outputPath, receiptPath, pytho
       ].join(';');
       try {
         const result = await exec(python, [
-          '-c', wrapper, scriptPath, inputPath, temporaryOutputPath, metadataPath,
+          '-c', wrapper, scriptPath, sourceTablePath, temporaryOutputPath, metadataPath,
         ], {
           timeout: EXECUTION_TIMEOUT_MS,
           maxBuffer: MAX_BUFFER_BYTES,
@@ -262,13 +267,19 @@ const executeBundle = async ({ bundle, inputPath, outputPath, receiptPath, pytho
         stderr = result.stderr;
         output = JSON.parse(await readFile(metadataPath, 'utf8'));
         const outputBytes = await readFile(temporaryOutputPath);
+        const preservationErrors = validateValuePreservation(bundle, sourceBytes, outputBytes);
+        if (preservationErrors.length) throw new Error(preservationErrors.join('; '));
         afterDatasetSha256 = sha256(outputBytes);
         await writeFile(outputPath, outputBytes);
         executionStatus = 'passed';
       } catch (error) {
+        output = null;
+        afterDatasetSha256 = null;
         stdout = String(error?.stdout ?? '');
         stderr = String(error?.stderr ?? error?.message ?? '');
-        executionError = 'Python execution failed.';
+        executionError = String(error?.message ?? '').startsWith('PRESERVATION_')
+          ? 'PRESERVATION_FAILED: el resultado modifica valores o filas fuera del alcance aprobado.'
+          : 'Python execution failed.';
       }
     }
 

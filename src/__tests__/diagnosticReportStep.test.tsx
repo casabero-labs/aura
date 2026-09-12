@@ -253,7 +253,7 @@ describe('DiagnosticReportStep', () => {
     expect(screen.getByTestId('diagnostic-report-findings-count').textContent).toBe('1');
     const card = screen.getByTestId('diagnostic-finding-card');
     expect(card.getAttribute('data-finding-id')).toBe('duplicate-rows');
-    expect(within(card).getByText('Riesgo confirmado')).toBeTruthy();
+    expect(within(card).getByText('Hallazgo determinista')).toBeTruthy();
     expect(within(card).getByText('Decisión humana')).toBeTruthy();
     expect(within(card).getByText('Sí')).toBeTruthy();
   });
@@ -379,7 +379,7 @@ describe('DiagnosticReportStep', () => {
 
     const primaryFindings = screen.getByTestId('diagnostic-report-primary-findings');
     expect(primaryFindings.textContent).toContain('Age: ausencia con impacto analítico');
-    expect(primaryFindings.textContent).toContain('Riesgo confirmado');
+    expect(primaryFindings.textContent).toContain('Hallazgo determinista');
   });
 
   it('renderiza posible falso positivo con texto conservador', () => {
@@ -387,7 +387,7 @@ describe('DiagnosticReportStep', () => {
 
     const primaryFindings = screen.getByTestId('diagnostic-report-primary-findings');
     expect(primaryFindings.textContent).toContain('Fare: posible falso positivo contextual');
-    expect(primaryFindings.textContent).toContain('Posible falso positivo');
+    expect(primaryFindings.textContent).toContain('Señal pendiente de contexto');
     expect(primaryFindings.textContent).toContain('Posible, no definitivo. No modifica score.');
   });
 
@@ -413,6 +413,24 @@ describe('DiagnosticReportStep', () => {
     fireEvent.click(screen.getByTestId('diagnostic-report-generate-script'));
 
     expect(callbacks.onGenerateScript).toHaveBeenCalledTimes(1);
+  });
+
+  it('declara que la corrección verificada no está disponible sin contexto compatible', () => {
+    render(
+      <DiagnosticReportStep
+        diagnosticReport={diagnosticReport}
+        remediationAvailable={false}
+        onExportMain={vi.fn()}
+        onGenerateScript={vi.fn()}
+        onBackToDiagnosis={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('status').textContent).toContain(
+      'todavía no está disponible en la ruta determinista',
+    );
+    expect((screen.getByTestId('diagnostic-report-generate-script') as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByTestId('diagnostic-report-generate-script-top') as HTMLButtonElement).disabled).toBe(true);
   });
 
   it('botón volver diagnóstico llama callback', () => {

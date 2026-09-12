@@ -19,6 +19,8 @@ const ProgressDisclosure: React.FC<ProgressDisclosureProps> = ({
   steps,
   details,
   compact = false,
+  onCancel,
+  cancelLabel = 'Cancelar',
 }) => {
   const isRunning = status === 'running';
   const showBar = isRunning || (indeterminate && status !== 'idle');
@@ -58,6 +60,11 @@ const ProgressDisclosure: React.FC<ProgressDisclosureProps> = ({
         </div>
         {showDeterminate && (
           <span className="progress-disclosure-pct">{Math.round(value!)}%</span>
+        )}
+        {onCancel && isRunning && (
+          <button type="button" className="btn-s btn-sm" onClick={onCancel} data-testid="progress-disclosure-cancel">
+            {cancelLabel}
+          </button>
         )}
       </div>
 

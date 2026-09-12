@@ -71,7 +71,7 @@ export function parseCsvString(csvString: string, forcedDelimiter?: string): {
     header: true,
     skipEmptyLines: true,
     delimiter: forcedDelimiter || '',
-    dynamicTyping: true,
+    dynamicTyping: false,
   });
 
   const fatalErrors = result.errors.filter((error) => error.type === 'Quotes');
@@ -176,7 +176,7 @@ export function runReaudit(
   }
 
   try {
-    afterOutput = importExternalPythonOutput(afterCsv, { delimiter: options?.delimiter });
+    afterOutput = importExternalPythonOutput(afterCsv);
     logs.push(`after: ${afterOutput.rowCount} rows, ${afterOutput.colCount} cols, fp: ${afterOutput.fingerprint.slice(0, 16)}...`);
   } catch (err) {
     throw new Error(`afterCsv import failed: ${err instanceof Error ? err.message : String(err)}`);
