@@ -1044,4 +1044,5 @@ Una persona debe poder abrir AURA y reconocer un solo sistema: sereno, blanco, l
 
 ### PUBLICADO
 
-- Pendiente del commit y push autorizados de esta migración. Se confirmará aquí el hash de cierre y el resultado del push antes de declarar la publicación.
+- El commit de implementación `a1a0a08` (`feat(ui): complete Aura Casabero Editorial migration`) fue publicado correctamente en `origin/main`.
+- Este registro de cierre se entrega en el commit documental posterior, también sobre `main`; los archivos ajenos permanecen sin seguimiento.
