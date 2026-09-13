@@ -25,7 +25,6 @@ import OllamaSetupWizard from './OllamaSetupWizard';
 import { DEFAULT_OLLAMA_MODEL_ID } from '../services/modelRegistry';
 import { migrateFormalModelId } from '../services/aiConfigStorage';
 import { ollamaModelDisplayName, ollamaModelId, refreshOllamaModelCatalog } from '../services/ollamaModelCatalog';
-import EditorialDialog from './EditorialDialog';
 
 interface SettingsPanelProps {
   config: AIConfig;
@@ -365,14 +364,14 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
     && ollamaModels.some(m => ollamaModelId(m) === localConfig.model);
 
   return (
-    <main className="settings-workspace editorial-workbench" data-testid="settings-workspace" aria-labelledby="settings-title">
+    <main className="settings-workspace" data-testid="settings-workspace">
       <div className="settings-workspace-header">
         <button className="settings-back-btn" onClick={onClose}>
           <ArrowLeft size={14} /> Volver a auditoría
         </button>
         <div>
           <p className="sec-eye">configuración</p>
-          <h1 className="sec-title" id="settings-title">Configurar AURA</h1>
+          <h1 className="sec-title">Configurar AURA</h1>
           <p className="settings-workspace-subtitle">
             Elige Chrome AI, Ollama local o Cloud para interpretar los hallazgos.
           </p>
@@ -517,7 +516,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                     )}
                     <div>
                       <p>{chromeDiagnostic.message}</p>
-                      <p className="settings-meta-copy">
+                      <p style={{ fontSize: '11px', color: 'var(--ink3)', marginTop: '2px' }}>
                         API: {chromeDiagnostic.apiSurface === 'none' ? 'No detectada' : chromeDiagnostic.apiSurface}
                       </p>
                     </div>
@@ -526,7 +525,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
               </div>
 
               {shouldShowChromeProgress && (
-                <div className="settings-download-card settings-download-card--spaced" data-testid="chrome-ai-download-progress">
+                <div className="settings-download-card" style={{ marginTop: 'var(--space-sm)' }} data-testid="chrome-ai-download-progress">
                   <div className="settings-download-row">
                     {chromeProgress?.stage === 'error' ? <AlertTriangle size={14} /> : <Loader2 size={14} className="settings-download-spinner" />}
                     <span className="settings-download-message">
@@ -542,7 +541,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                       style={{ width: `${chromeProgressValue ?? 35}%`, opacity: chromeProgressValue === undefined ? 0.55 : 1 }}
                     />
                   </div>
-                  <p className="settings-meta-copy settings-meta-copy--spaced">
+                  <p style={{ fontSize: '11px', color: 'var(--ink3)', marginTop: '6px' }}>
                     Si la barra no avanza, libera espacio en disco, reinicia Chrome y revisa <code>chrome://on-device-internals</code>.
                   </p>
                 </div>
@@ -550,7 +549,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
 
               {chromeDiagnostic && chromeDiagnostic.status !== 'available' && (
                 <div className="settings-field">
-                  <div className="settings-inline-actions">
+                  <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
                     <button className="btn-s btn-sm" onClick={checkChromeDiagnostic} disabled={isPreparingChrome}>
                       <RefreshCw size={10} /> Verificar estado
                     </button>
@@ -573,22 +572,22 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                 </div>
               )}
 
-              <details className="settings-collapsible-section settings-collapsible-section--spaced" open={chromeDiagnostic?.status === 'unavailable' || chromeDiagnostic?.status === 'downloading'}>
-                <summary className="settings-collapsible-summary settings-collapsible-summary--compact">
+              <details className="settings-collapsible-section" style={{ marginTop: 'var(--space-sm)' }} open={chromeDiagnostic?.status === 'unavailable' || chromeDiagnostic?.status === 'downloading'}>
+                <summary className="settings-collapsible-summary" style={{ fontSize: '13px', padding: '8px 0' }}>
                   <HelpCircle size={12} />
                   <span>Cómo activar y destrabar Chrome AI</span>
                 </summary>
-                <div className="settings-collapsible-body settings-collapsible-body--spaced">
-                  <ol className="settings-instruction-list">
+                <div className="settings-collapsible-body" style={{ paddingTop: 'var(--space-sm)' }}>
+                  <ol style={{ fontSize: '13px', lineHeight: 1.7, paddingLeft: '20px', color: 'var(--ink2)' }}>
                     <li>Actualiza Chrome a la versión más reciente (138+).</li>
-                    <li>Abre <code className="settings-code-small">chrome://flags</code> en una pestaña nueva.</li>
+                    <li>Abre <code style={{ fontSize: '12px' }}>chrome://flags</code> en una pestaña nueva.</li>
                     <li>Busca <strong>Prompt API</strong>, <strong>Gemini Nano</strong>, <strong>Built-in AI</strong> y <strong>Optimization Guide On Device Model</strong>.</li>
                     <li>Activa las opciones disponibles y reinicia Chrome completo.</li>
                     <li>Deja al menos ~22 GB libres en el disco donde vive el perfil de Chrome.</li>
                     <li>Vuelve a AURA y pulsa <strong>Verificar estado</strong>.</li>
                   </ol>
-                  <p className="settings-meta-copy settings-meta-copy--spaced">
-                    Revisa <code className="settings-code-small">chrome://on-device-internals</code> para ver modelos on-device, errores y estado de descarga.
+                  <p style={{ fontSize: '12px', color: 'var(--ink3)', marginTop: 'var(--space-sm)' }}>
+                    Revisa <code style={{ fontSize: '11px' }}>chrome://on-device-internals</code> para ver modelos on-device, errores y estado de descarga.
                   </p>
                 </div>
               </details>
@@ -604,13 +603,14 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
             <div className="settings-provider-details">
               <div className="settings-field">
                 <label className="settings-label">Endpoint de Ollama</label>
-                <div className="settings-inline-actions settings-inline-actions--input">
+                <div style={{ display: 'flex', gap: 'var(--space-sm)', alignItems: 'center' }}>
                   <input
                     type="text"
                     value={ollamaBaseUrl}
                     onChange={(e) => setLocalConfig({ ...localConfig, ollamaBaseUrl: e.target.value })}
                     placeholder="http://localhost:11434"
                     className="settings-input"
+                    style={{ flex: 1 }}
                     data-testid="ollama-endpoint-input"
                   />
                   <button className="btn-s btn-sm" onClick={handleFetchOllamaModels} disabled={ollamaLoading} data-testid="ollama-test-connection">
@@ -629,8 +629,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                     <AlertTriangle size={14} className="settings-status-icon" />
                     <div>
                       <p><strong>Ollama todavía no está conectado</strong></p>
-                      <p className="settings-supporting-copy">AURA necesita conectarse con Ollama en este equipo.</p>
-                      <div className="settings-inline-actions settings-inline-actions--spaced">
+                      <p style={{ fontSize: '13px', marginTop: '4px' }}>AURA necesita conectarse con Ollama en este equipo.</p>
+                      <div style={{ display: 'flex', gap: 'var(--space-sm)', marginTop: 'var(--space-sm)', flexWrap: 'wrap' }}>
                         <button className="btn-p btn-sm" onClick={() => setShowOllamaWizard(true)} data-testid="ollama-open-setup">
                           Configurar Ollama en este equipo
                         </button>
@@ -681,7 +681,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                 <div className="settings-field">
                   <label className="settings-label">Modelos instalados ({ollamaModels.length})</label>
                   {ollamaConnected === true && !currentModelInstalled && (
-                    <div className="settings-status-card settings-status-card--warn settings-status-card--spaced" data-testid="ollama-model-missing-warning">
+                    <div className="settings-status-card settings-status-card--warn" style={{ marginBottom: 'var(--space-sm)' }} data-testid="ollama-model-missing-warning">
                       <AlertTriangle size={14} className="settings-status-icon" />
                       <p>El modelo configurado ya no está instalado en Ollama. Selecciona uno de los modelos detectados.</p>
                     </div>
@@ -713,20 +713,21 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
 
               <div className="settings-field">
                 <label className="settings-label">Descargar modelo</label>
-                <div className="settings-inline-actions settings-inline-actions--input">
+                <div style={{ display: 'flex', gap: 'var(--space-sm)', alignItems: 'center' }}>
                   <input
                     type="text"
                     value={ollamaPullModel}
                     onChange={(e) => setOllamaPullModel(e.target.value)}
                     placeholder={DEFAULT_OLLAMA_MODEL_ID}
                     className="settings-input"
+                    style={{ flex: 1 }}
                   />
                   <button className="btn-p btn-sm" onClick={handleOllamaPull} disabled={ollamaPullProgress?.stage === 'downloading'}>
                     <Download size={10} /> Descargar
                   </button>
                 </div>
                 {ollamaPullProgress && (
-                  <div className="settings-download-card settings-download-card--spaced">
+                  <div className="settings-download-card" style={{ marginTop: 'var(--space-sm)' }}>
                     <div className="settings-download-row">
                       {ollamaPullProgress.stage === 'downloading' && <Loader2 size={14} className="settings-download-spinner" />}
                       <span className="settings-download-message">{ollamaPullProgress.message}</span>
@@ -739,7 +740,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
                     )}
                   </div>
                 )}
-                <p className="settings-meta-copy">
+                <p style={{ fontSize: '11px', color: 'var(--ink3)', marginTop: '4px' }}>
                   Sugeridos: {OLLAMA_SUGGESTED_MODELS.join(', ')}
                 </p>
               </div>
@@ -919,27 +920,22 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose }
         </div>
       </div>
       {showOllamaWizard && (
-        <EditorialDialog
-          open={showOllamaWizard}
-          title="Configurar Ollama local"
-          description="Asistente para autorizar, detectar y verificar el modelo local."
-          onClose={() => setShowOllamaWizard(false)}
-          className="modal-container modal-container--lg settings-ollama-dialog"
-          testId="ollama-setup-dialog"
-        >
-          <OllamaSetupWizard
-            endpoint={localConfig.ollamaBaseUrl}
-            onReady={async (diagnostic) => {
-              const model = diagnostic.details.selectedModel ?? localConfig.model;
-              setLocalConfig({ ...localConfig, model, ollamaModel: model });
-              setOllamaConnected(true);
-              const snapshot = await refreshOllamaModelCatalog(localConfig.ollamaBaseUrl);
-              setOllamaModels(snapshot.models);
-              setShowOllamaWizard(false);
-            }}
-            onCancel={() => setShowOllamaWizard(false)}
-          />
-        </EditorialDialog>
+        <div className="modal-overlay" onClick={(event) => { if (event.target === event.currentTarget) setShowOllamaWizard(false); }}>
+          <div className="modal-container modal-container--lg">
+            <OllamaSetupWizard
+              endpoint={localConfig.ollamaBaseUrl}
+              onReady={async (diagnostic) => {
+                const model = diagnostic.details.selectedModel ?? localConfig.model;
+                setLocalConfig({ ...localConfig, model, ollamaModel: model });
+                setOllamaConnected(true);
+                const snapshot = await refreshOllamaModelCatalog(localConfig.ollamaBaseUrl);
+                setOllamaModels(snapshot.models);
+                setShowOllamaWizard(false);
+              }}
+              onCancel={() => setShowOllamaWizard(false)}
+            />
+          </div>
+        </div>
       )}
     </main>
   );

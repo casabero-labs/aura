@@ -6,7 +6,6 @@ import {
 import type { buildAuraExportPackage } from './exportPackage';
 import type { VerifiedRemediationEvidence } from './remediationExecution/verifiedRemediationEvidence';
 import { sha256BytesHex } from '../contracts/llm/hash';
-import { EDITORIAL_ARTIFACT_THEME } from './editorialArtifactTheme';
 
 export const AURA_EVIDENCE_PACKAGE_CONTRACT = 'aura.evidence-package.v1' as const;
 
@@ -100,7 +99,7 @@ const truncate = (value: unknown, length = 88): string => {
   return text.length <= length ? text : `${text.slice(0, length - 3)}...`;
 };
 
-export const buildSnapshotSvg = (
+const buildSnapshotSvg = (
   eyebrow: string,
   title: string,
   rows: Array<[string, unknown]>,
@@ -118,13 +117,13 @@ export const buildSnapshotSvg = (
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="${height}" viewBox="0 0 1200 ${height}">
   <style>
-    .bg { fill: ${EDITORIAL_ARTIFACT_THEME.colors.canvas}; }
-    .ink { fill: ${EDITORIAL_ARTIFACT_THEME.colors.ink}; font-family: "Source Sans 3", Arial, sans-serif; }
-    .eyebrow { fill: ${EDITORIAL_ARTIFACT_THEME.colors.muted}; font-family: "Courier New", monospace; font-size: 16px; letter-spacing: 3px; }
-    .title { fill: ${EDITORIAL_ARTIFACT_THEME.colors.ink}; font-family: "Times New Roman", Times, serif; font-size: 42px; font-weight: 700; }
-    .label { fill: ${EDITORIAL_ARTIFACT_THEME.colors.muted}; font-family: "Courier New", monospace; font-size: 14px; letter-spacing: 1px; }
-    .value { fill: ${EDITORIAL_ARTIFACT_THEME.colors.ink}; font-family: "Source Sans 3", Arial, sans-serif; font-size: 18px; }
-    .rule { stroke: ${EDITORIAL_ARTIFACT_THEME.colors.line}; stroke-width: 1; }
+    .bg { fill: #FAF8F4; }
+    .ink { fill: #1E1E1C; font-family: Inter, Arial, sans-serif; }
+    .eyebrow { fill: #4A4540; font-family: "JetBrains Mono", monospace; font-size: 16px; letter-spacing: 3px; }
+    .title { fill: #1E1E1C; font-family: "Playfair Display", Georgia, serif; font-size: 42px; font-weight: 700; }
+    .label { fill: #4A4540; font-family: "JetBrains Mono", monospace; font-size: 14px; letter-spacing: 1px; }
+    .value { fill: #1E1E1C; font-family: Inter, Arial, sans-serif; font-size: 18px; }
+    .rule { stroke: #D8D2C8; stroke-width: 1; }
   </style>
   <rect class="bg" width="1200" height="${height}" />
   <text x="72" y="62" class="eyebrow">${escapeXml(eyebrow.toUpperCase())}</text>
@@ -222,7 +221,7 @@ export const buildEvidenceArchive = async ({
   addFile(files, 'profile/audit-evidence.json', json(technicalExport.profile.auditEvidence), 'application/json', 'Trazas de carga, SHA-256 y ejecución del motor.');
   addFile(files, 'profile/deterministic-validation.json', technicalExport.deterministicValidation ? json(technicalExport.deterministicValidation) : null, 'application/json', 'Comparación contra ground truth cuando existe.');
   addFile(files, 'report/diagnostic-report.json', technicalExport.diagnosticReport ? json(technicalExport.diagnosticReport) : null, 'application/json', 'Modelo canónico usado para PDF y lectura humana.');
-  addFile(files, 'report/diagnostic-report.pdf', diagnosticPdf, 'application/pdf', 'Informe diagnóstico Casabero Editorial.');
+  addFile(files, 'report/diagnostic-report.pdf', diagnosticPdf, 'application/pdf', 'Informe diagnóstico Showcase Ink.');
   addFile(files, 'findings/issues.csv', issuesCsv, 'text/csv', 'Hallazgos deterministas en formato tabular.');
 
   if (snapshot) {

@@ -24,17 +24,24 @@ interface Props {
 }
 
 const LABEL: Record<DeltaStatus, string> = {
-  improved: 'Mejora observada',
-  unchanged: 'Sin cambio observado',
-  worsened: 'Deterioro observado',
-  inconclusive: 'Resultado inconcluso',
-};
-
-const LEGACY_LABEL: Record<DeltaStatus, string> = {
   improved: 'Improved',
   unchanged: 'Unchanged',
   worsened: 'Worsened',
   inconclusive: 'Inconclusive',
+};
+
+const STATUS_COLOR: Record<DeltaStatus, string> = {
+  improved: '#10b981',
+  unchanged: '#9ca3af',
+  worsened: '#ef4444',
+  inconclusive: '#f97316',
+};
+
+const BG: Record<DeltaStatus, string> = {
+  improved: '#ecfdf5',
+  unchanged: '#f9fafb',
+  worsened: '#fef2f2',
+  inconclusive: '#fff7ed',
 };
 
 const pct = (v: number | null, total: number): string => {
@@ -60,109 +67,112 @@ const HealthDeltaDashboard: React.FC<Props> = ({
   outputColumnCountAfter,
   changedCellsEstimate,
 }) => {
+  const color = STATUS_COLOR[status] ?? '#6b7280';
+  const bg = BG[status] ?? '#f9fafb';
   const label = LABEL[status] ?? status;
   const scoreWidth = 10;
-  const issueTrend = issueDelta > 0 ? 'increased' : issueDelta < 0 ? 'decreased' : 'unchanged';
-  const afterTrend = afterIssueCount > beforeIssueCount ? 'increased' : 'not-increased';
 
   return (
-    <section
-      className="health-delta-dashboard editorial-surface"
-      data-testid="health-delta-dashboard"
-      data-status={status}
-      aria-labelledby="health-delta-title"
-    >
+    <div data-testid="health-delta-dashboard" style={{ background: '#fff', borderRadius: 12, padding: 20, border: '1px solid #e5e7eb', fontFamily: 'system-ui, sans-serif' }}>
 
       {/* ── Status badge ── */}
-      <div className="health-delta-status-row">
+      <div style={{ marginBottom: 16 }}>
         <span
           data-testid="status-badge"
-          className="health-delta-status"
-          data-status={status}
-          role="status"
+          style={{
+            display: 'inline-block',
+            background: bg,
+            color,
+            fontWeight: 700,
+            fontSize: 14,
+            padding: '4px 12px',
+            borderRadius: 999,
+            border: `1px solid ${color}`,
+          }}
         >
           {label}
-          <span className="sr-only">{LEGACY_LABEL[status]}</span>
         </span>
       </div>
 
       {/* ── Score bar ── */}
-      <div className="health-delta-score" id="health-delta-title">
-        <div className="health-delta-score-heading">
-          <span>Calidad observada</span>
-          <span data-testid="score-delta" data-trend={issueTrend}>{nfmt(delta)} puntos</span>
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#6b7280', marginBottom: 4 }}>
+          <span>Score</span>
+          <span data-testid="score-delta" style={{ fontWeight: 600, color }}>{nfmt(delta)}</span>
         </div>
-        <div className="health-delta-score-values" aria-label="Comparación de calidad antes y después">
-          <span data-testid="score-before">{scoreBefore ?? '—'}</span>
-          <span aria-hidden="true">→</span>
-          <span data-testid="score-after">{scoreAfter ?? '—'}</span>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <span data-testid="score-before" style={{ fontSize: 24, fontWeight: 700 }}>{scoreBefore ?? '—'}</span>
+          <span style={{ color: '#d1d5db', fontSize: 20 }}>→</span>
+          <span data-testid="score-after" style={{ fontSize: 24, fontWeight: 700, color }}>{scoreAfter ?? '—'}</span>
         </div>
-        <div className="health-delta-score-track" aria-hidden="true">
+        <div style={{ height: 8, background: '#e5e7eb', borderRadius: 4, marginTop: 8, overflow: 'hidden' }}>
           <div
             data-testid="score-bar"
-            className="health-delta-score-fill"
             style={{
               width: `${Math.max(scoreWidth, Math.min(100, ((scoreAfter ?? 0) / 100) * 100))}%`,
+              height: '100%',
+              background: color,
+              borderRadius: 4,
+              transition: 'width 0.3s ease',
             }}
           />
         </div>
       </div>
 
       {/* ── Issues ── */}
-      <div className="health-delta-issues" aria-label="Comparación de hallazgos">
-        <div className="health-delta-issue">
-          <div className="health-delta-issue-label">Hallazgos antes</div>
-          <div data-testid="issues-before">{beforeIssueCount}</div>
+      <div style={{ display: 'flex', gap: 24, marginBottom: 20 }}>
+        <div>
+          <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 2 }}>Issues before</div>
+          <div data-testid="issues-before" style={{ fontSize: 20, fontWeight: 700 }}>{beforeIssueCount}</div>
         </div>
-        <div className="health-delta-issue" data-trend={afterTrend}>
-          <div className="health-delta-issue-label">Hallazgos después</div>
-          <div data-testid="issues-after">{afterIssueCount}</div>
+        <div>
+          <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 2 }}>Issues after</div>
+          <div data-testid="issues-after" style={{ fontSize: 20, fontWeight: 700, color: afterIssueCount > beforeIssueCount ? '#ef4444' : color }}>{afterIssueCount}</div>
         </div>
-        <div className="health-delta-issue" data-trend={issueTrend}>
-          <div className="health-delta-issue-label">Diferencia de hallazgos</div>
-          <div data-testid="issue-delta">{nfmt(issueDelta)}</div>
+        <div>
+          <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 2 }}>Issue delta</div>
+          <div data-testid="issue-delta" style={{ fontSize: 20, fontWeight: 700, color: issueDelta > 0 ? '#ef4444' : issueDelta < 0 ? '#10b981' : '#9ca3af' }}>{nfmt(issueDelta)}</div>
         </div>
       </div>
 
       {/* ── Output dataset ── */}
       {(outputRowCountBefore != null || outputColumnCountBefore != null) && (
-        <section data-testid="output-summary" className="health-delta-output" aria-labelledby="health-delta-output-title">
-          <h3 id="health-delta-output-title">Dataset de salida <span className="sr-only">Output Dataset</span></h3>
+        <div data-testid="output-summary" style={{ marginBottom: 16, padding: 12, background: '#f9fafb', borderRadius: 8, fontSize: 13 }}>
+          <div style={{ fontWeight: 600, marginBottom: 6, fontSize: 12, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Output Dataset</div>
           {outputRowCountBefore != null && (
-            <div>Filas: <strong data-testid="output-rows">{outputRowCountBefore}</strong> → <strong>{outputRowCountAfter ?? '—'}</strong></div>
+            <div>Rows: <strong data-testid="output-rows">{outputRowCountBefore}</strong> → <strong>{outputRowCountAfter ?? '—'}</strong></div>
           )}
           {outputColumnCountBefore != null && (
-            <div>Columnas: <strong data-testid="output-cols">{outputColumnCountBefore}</strong> → <strong>{outputColumnCountAfter ?? '—'}</strong></div>
+            <div>Columns: <strong data-testid="output-cols">{outputColumnCountBefore}</strong> → <strong>{outputColumnCountAfter ?? '—'}</strong></div>
           )}
           {changedCellsEstimate != null && (
-            <div data-testid="changed-cells">Celdas modificadas: <strong>{changedCellsEstimate}</strong> {outputRowCountBefore != null ? pct(changedCellsEstimate, outputRowCountBefore * (outputColumnCountBefore ?? 1)) : ''}</div>
+            <div data-testid="changed-cells">Changed cells: <strong>{changedCellsEstimate}</strong> {outputRowCountBefore != null ? pct(changedCellsEstimate, outputRowCountBefore * (outputColumnCountBefore ?? 1)) : ''}</div>
           )}
-        </section>
+        </div>
       )}
 
       {/* ── Summary ── */}
-      <p data-testid="delta-summary" className="health-delta-summary">
+      <div data-testid="delta-summary" style={{ marginBottom: 16, padding: 12, background: bg, borderRadius: 8, fontSize: 14, color: '#374151', lineHeight: 1.5 }}>
         {summary}
-      </p>
+      </div>
 
       {/* ── Caveats ── */}
       {caveats.length > 0 && (
-        <section data-testid="caveats" className="health-delta-caveats" aria-labelledby="health-delta-caveats-title">
-          <h3 id="health-delta-caveats-title">Límites y cautelas <span className="sr-only">Caveats</span></h3>
-          <ul>
+        <div data-testid="caveats" style={{ marginBottom: 16, padding: 12, border: '1px solid #fcd34d', background: '#fffbeb', borderRadius: 8 }}>
+          <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 6, color: '#92400e' }}>Caveats</div>
+          <ul style={{ margin: 0, paddingLeft: 18 }}>
             {caveats.map((c, i) => (
-              <li key={i}>{c}</li>
+              <li key={i} style={{ fontSize: 13, color: '#78350f', marginBottom: 4 }}>{c}</li>
             ))}
           </ul>
-        </section>
+        </div>
       )}
 
       {/* ── Limitation notice ── */}
-      <p data-testid="limitation-notice" className="health-delta-limitation">
-        Este resultado se calcula con fixtures controlados mediante la auditoría determinista de AURA; no es una validación externa independiente.
-        <span className="sr-only">HealthDelta is computed over controlled fixtures using AURA runAudit. It is not independent external validation.</span>
-      </p>
-    </section>
+      <div data-testid="limitation-notice" style={{ fontSize: 12, color: '#9ca3af', borderTop: '1px solid #e5e7eb', paddingTop: 12, marginTop: 8 }}>
+        HealthDelta is computed over controlled fixtures using AURA runAudit. It is not independent external validation.
+      </div>
+    </div>
   );
 };
 

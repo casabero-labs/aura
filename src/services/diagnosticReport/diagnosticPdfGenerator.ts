@@ -77,12 +77,12 @@ const drawCover = (ctx: PdfLayoutContext, report: DiagnosticReport) => {
   doc.rect(0, 0, pageWidth, pageHeight, 'F');
 
   doc.setFontSize(28);
-  doc.setFont(theme.fonts.reading, 'bold');
+  doc.setFont('helvetica', 'bold');
   doc.setTextColor(theme.colors.ink);
   doc.text('Informe diagnóstico', theme.margin.left, 48);
   doc.text('de calidad del dato', theme.margin.left, 60);
 
-  doc.setFont(theme.fonts.operation, 'normal');
+  doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
   doc.setTextColor(theme.colors.muted);
   doc.text(truncateText(report.metadata.fileName ?? 'Dataset sin nombre de archivo', 96), theme.margin.left, 75);
@@ -92,25 +92,25 @@ const drawCover = (ctx: PdfLayoutContext, report: DiagnosticReport) => {
 
   const decisionY = 108;
   const scoreX = pageWidth - theme.margin.right - 38;
-  doc.setFont(theme.fonts.operation, 'bold');
+  doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
   doc.setTextColor(theme.colors.accent);
   doc.text(presentation.decision.eyebrow.toUpperCase(), theme.margin.left, decisionY);
   doc.setFontSize(15);
   doc.setTextColor(theme.colors.ink);
   doc.text(doc.splitTextToSize(presentation.decision.title, contentWidth - 64), theme.margin.left, decisionY + 11);
-  doc.setFont(theme.fonts.operation, 'normal');
+  doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(theme.colors.muted);
   doc.text(doc.splitTextToSize(presentation.decision.body, contentWidth - 64), theme.margin.left, decisionY + 28);
 
   doc.setDrawColor(theme.colors.border);
   doc.rect(scoreX, decisionY - 2, 38, 32, 'S');
-  doc.setFont(theme.fonts.operation, 'bold');
+  doc.setFont('helvetica', 'bold');
   doc.setFontSize(22);
   doc.setTextColor(report.metadata.scoreBase >= 80 ? theme.colors.good : report.metadata.scoreBase >= 50 ? theme.colors.warning : theme.colors.critical);
   doc.text(`${report.metadata.scoreBase}`, scoreX + 19, decisionY + 14, { align: 'center' });
-  doc.setFont(theme.fonts.operation, 'normal');
+  doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
   doc.setTextColor(theme.colors.faint);
   doc.text('score base', scoreX + 19, decisionY + 23, { align: 'center' });
@@ -127,11 +127,11 @@ const drawCover = (ctx: PdfLayoutContext, report: DiagnosticReport) => {
     doc.setDrawColor(theme.colors.border);
     doc.setLineWidth(0.15);
     doc.line(theme.margin.left, y + 4, pageWidth - theme.margin.right, y + 4);
-    doc.setFont(theme.fonts.operation, 'bold');
+    doc.setFont('helvetica', 'bold');
     doc.setFontSize(8);
     doc.setTextColor(theme.colors.faint);
     doc.text(label.toUpperCase(), theme.margin.left, y);
-    doc.setFont(theme.fonts.operation, 'normal');
+    doc.setFont('helvetica', 'normal');
     doc.setTextColor(theme.colors.ink);
     doc.text(truncateText(value, 92), theme.margin.left + 54, y);
     y += 12;
@@ -139,11 +139,11 @@ const drawCover = (ctx: PdfLayoutContext, report: DiagnosticReport) => {
 
   doc.setDrawColor(theme.colors.border);
   doc.line(theme.margin.left, pageHeight - 67, pageWidth - theme.margin.right, pageHeight - 67);
-  doc.setFont(theme.fonts.operation, 'bold');
+  doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
   doc.setTextColor(theme.colors.ink);
   doc.text('Gobernanza del score', theme.margin.left, pageHeight - 56);
-  doc.setFont(theme.fonts.operation, 'normal');
+  doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.setTextColor(theme.colors.muted);
   doc.text('Score no modificado por IA. El diagnóstico contextualiza evidencia, no recalcula la calificación.', theme.margin.left, pageHeight - 48);
@@ -175,13 +175,13 @@ const addTraceCertificate = (ctx: PdfLayoutContext, rows: Array<[string, string]
   rows.forEach(([label, value]) => {
     const valueX = theme.margin.left + labelWidth;
     const valueWidth = getPageWidth(doc) - theme.margin.right - valueX;
-    const valueFont = /hash|sha|receipt|envelope/i.test(label) ? theme.fonts.data : theme.fonts.operation;
+    const valueFont = /hash|sha|receipt|envelope/i.test(label) ? 'courier' : 'helvetica';
     doc.setFont(valueFont, 'normal');
     doc.setFontSize(6.7);
     const valueLines = doc.splitTextToSize(value || 'no disponible', valueWidth) as string[];
     const rowHeight = Math.max(5, valueLines.length * 3.6 + 1.2);
     ensureSpace(ctx, rowHeight);
-    doc.setFont(theme.fonts.operation, 'bold');
+    doc.setFont('helvetica', 'bold');
     doc.setFontSize(6.7);
     doc.setTextColor(theme.colors.faint);
     doc.text(label, theme.margin.left, ctx.cursorY);
@@ -321,11 +321,11 @@ const addPythonScriptAppendix = (ctx: PdfLayoutContext, script: string, approved
     doc.setFillColor(theme.colors.white);
     doc.setDrawColor(theme.colors.border);
     doc.rect(blockX, ctx.cursorY, blockWidth, headerHeight, 'FD');
-    doc.setFont(theme.fonts.data, 'bold');
+    doc.setFont('courier', 'bold');
     doc.setFontSize(7.5);
     doc.setTextColor(theme.colors.ink);
     doc.text(continuation ? 'limpieza_dataset.py (continuacion)' : 'limpieza_dataset.py', blockX + 4, ctx.cursorY + 6.3);
-    doc.setFont(theme.fonts.operation, 'normal');
+    doc.setFont('helvetica', 'normal');
     doc.setFontSize(7);
     doc.setTextColor(theme.colors.faint);
     doc.text(approved ? 'Python - aprobado' : 'Python - pendiente HITL', blockX + blockWidth - 4, ctx.cursorY + 6.3, { align: 'right' });
@@ -352,7 +352,7 @@ const addPythonScriptAppendix = (ctx: PdfLayoutContext, script: string, approved
       doc.rect(blockX, ctx.cursorY - 3.1, blockWidth, rowHeight + 1.8, 'F');
     }
 
-    doc.setFont(theme.fonts.data, 'normal');
+    doc.setFont('courier', 'normal');
     doc.setFontSize(7.2);
     doc.setTextColor(theme.colors.faint);
     doc.text(String(index + 1).padStart(3, '0'), blockX + lineNumberWidth - 2, ctx.cursorY, { align: 'right' });

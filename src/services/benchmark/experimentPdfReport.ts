@@ -1,6 +1,5 @@
 import { jsPDF } from 'jspdf';
 import type { ExperimentCampaignEvidenceDocumentV1 } from './experimentReport';
-import { EDITORIAL_ARTIFACT_THEME } from '../editorialArtifactTheme';
 
 export interface ExperimentPdfReport {
   filename: string;
@@ -19,7 +18,6 @@ export const generateExperimentPdfReport = (
   markdown: string,
 ): ExperimentPdfReport => {
   const doc = new jsPDF({ unit: 'mm', format: 'a4', compress: true });
-  const theme = EDITORIAL_ARTIFACT_THEME;
   const margin = 18;
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -47,17 +45,17 @@ export const generateExperimentPdfReport = (
   };
 
   const addWrapped = (text: string, options: {
-    font?: string;
+    font?: 'helvetica' | 'courier';
     style?: 'normal' | 'bold';
     size?: number;
-    color?: string;
+    color?: [number, number, number];
     gap?: number;
   } = {}) => {
     const size = options.size ?? 9;
     const lineHeight = size * 0.42;
-    doc.setFont(options.font ?? theme.fonts.operation, options.style ?? 'normal');
+    doc.setFont(options.font ?? 'helvetica', options.style ?? 'normal');
     doc.setFontSize(size);
-    doc.setTextColor(options.color ?? theme.colors.ink);
+    doc.setTextColor(...(options.color ?? [58, 57, 54]));
     const lines = doc.splitTextToSize(text || ' ', contentWidth) as string[];
     ensureSpace((lines.length * lineHeight) + (options.gap ?? 3));
     doc.text(lines, margin, y);
@@ -72,19 +70,19 @@ export const generateExperimentPdfReport = (
     }
     if (line.startsWith('# ')) {
       ensureSpace(18);
-      addWrapped(stripMarkdown(line), { font: theme.fonts.reading, style: 'bold', size: 18, color: theme.colors.ink, gap: 6 });
+      addWrapped(stripMarkdown(line), { style: 'bold', size: 18, color: [45, 44, 42], gap: 6 });
       continue;
     }
     if (line.startsWith('## ')) {
       ensureSpace(16);
-      doc.setDrawColor(theme.colors.line);
+      doc.setDrawColor(176, 141, 87);
       doc.line(margin, y, pageWidth - margin, y);
       y += 6;
-      addWrapped(stripMarkdown(line), { font: theme.fonts.reading, style: 'bold', size: 12, color: theme.colors.ink, gap: 4 });
+      addWrapped(stripMarkdown(line), { style: 'bold', size: 12, color: [45, 44, 42], gap: 4 });
       continue;
     }
     if (line.startsWith('|')) {
-      addWrapped(line, { font: theme.fonts.data, size: 6.4, color: theme.colors.muted, gap: 1.5 });
+      addWrapped(line, { font: 'courier', size: 6.4, color: [85, 83, 78], gap: 1.5 });
       continue;
     }
     if (line.startsWith('- ')) {
@@ -97,11 +95,11 @@ export const generateExperimentPdfReport = (
   const pageCount = doc.getNumberOfPages();
   for (let page = 1; page <= pageCount; page += 1) {
     doc.setPage(page);
-    doc.setDrawColor(theme.colors.line);
+    doc.setDrawColor(226, 222, 214);
     doc.line(margin, pageHeight - 12, pageWidth - margin, pageHeight - 12);
-    doc.setFont(theme.fonts.operation, 'normal');
+    doc.setFont('helvetica', 'normal');
     doc.setFontSize(7);
-    doc.setTextColor(theme.colors.muted);
+    doc.setTextColor(125, 122, 116);
     doc.text(`AURA - Evaluación LLM - ${document.campaign.campaignId}`, margin, pageHeight - 7);
     doc.text(`${page}/${pageCount}`, pageWidth - margin, pageHeight - 7, { align: 'right' });
   }

@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from 'vitest';
 import SyntaxDisplay from '../components/SyntaxDisplay';
 
 describe('SyntaxDisplay', () => {
-  it('shows a technical artifact with the Editorial structure', () => {
+  it('shows a technical artifact with the showcase-ink structure', () => {
     render(<SyntaxDisplay filename="diagnosis.json" content={'{"status":"valid"}'} />);
 
     expect(screen.getByText('diagnosis.json').classList.contains('syntax-display__filename')).toBe(true);

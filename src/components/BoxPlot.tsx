@@ -5,10 +5,9 @@
  * Referencia: §3.3.3 OE1 — Motor Determinista
  */
 
-import React, { useEffect, useId, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 import type { ColumnStats } from '../types';
-import { EDITORIAL_ARTIFACT_THEME } from '../services/editorialArtifactTheme';
 
 interface BoxPlotProps {
   columnStats: Record<string, ColumnStats>;
@@ -16,7 +15,6 @@ interface BoxPlotProps {
 
 const BoxPlot: React.FC<BoxPlotProps> = ({ columnStats }) => {
   const svgRef = useRef<SVGSVGElement>(null);
-  const chartId = useId().replaceAll(':', '');
 
   useEffect(() => {
     const numericCols = Object.values(columnStats).filter(
@@ -40,10 +38,10 @@ const BoxPlot: React.FC<BoxPlotProps> = ({ columnStats }) => {
 
     // CSS var-aware colors
     const style = getComputedStyle(document.documentElement);
-    const accent = style.getPropertyValue('--accent').trim() || EDITORIAL_ARTIFACT_THEME.colors.accent;
-    const ink = style.getPropertyValue('--ink').trim() || EDITORIAL_ARTIFACT_THEME.colors.ink;
-    const textMuted = style.getPropertyValue('--color-muted').trim() || EDITORIAL_ARTIFACT_THEME.colors.muted;
-    const warning = style.getPropertyValue('--warning').trim() || EDITORIAL_ARTIFACT_THEME.colors.warning;
+    const accent = style.getPropertyValue('--accent').trim() || '#60a5fa';
+    const ink = style.getPropertyValue('--ink').trim() || '#1e293b';
+    const textMuted = style.getPropertyValue('--text-muted').trim() || '#94a3b8';
+    const warning = style.getPropertyValue('--warning').trim() || '#f59e0b';
 
     // Prepare data
     const boxData = numericCols.map(c => ({
@@ -58,11 +56,6 @@ const BoxPlot: React.FC<BoxPlotProps> = ({ columnStats }) => {
       upperFence: c.upperFence ?? c.q3! + 3 * c.iqr!,
       outliers: c.outlierCount ?? 0,
     }));
-
-    svg.append('title').attr('id', `${chartId}-title`).text('Distribución IQR por columna numérica');
-    svg.append('desc').attr('id', `${chartId}-desc`).text(
-      `Diagrama de caja para ${boxData.length} columnas numéricas. Cada columna muestra cuartil uno, media aproximada, cuartil tres, límites y cantidad de valores atípicos.`,
-    );
 
     // Scales
     const xScale = d3.scaleBand()
@@ -165,13 +158,13 @@ const BoxPlot: React.FC<BoxPlotProps> = ({ columnStats }) => {
       .attr('fill', textMuted)
       .text(d => `IQR: ${d.iqr.toFixed(1)}`);
 
-  }, [chartId, columnStats]);
+  }, [columnStats]);
 
   return (
-    <figure className="boxplot-container" aria-labelledby={`${chartId}-caption`}>
-      <figcaption id={`${chartId}-caption`} className="sec-eye">DISTRIBUCIÓN IQR POR COLUMNA NUMÉRICA</figcaption>
-      <svg ref={svgRef} className="boxplot-svg" role="img" aria-labelledby={`${chartId}-title ${chartId}-desc`} />
-    </figure>
+    <div className="boxplot-container">
+      <p className="sec-eye" style={{ marginBottom: 8 }}>DISTRIBUCIÓN IQR POR COLUMNA NUMÉRICA</p>
+      <svg ref={svgRef} style={{ width: '100%', overflow: 'visible' }} />
+    </div>
   );
 };
 

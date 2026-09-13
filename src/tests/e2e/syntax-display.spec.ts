@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test.describe('Syntax display — estándar Editorial', () => {
+test.describe('Syntax display — estándar showcase-ink', () => {
   test('el asistente de Ollama usa superficie clara, cabecera, tipografía mono y copia', async ({ page }) => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     await page.locator('.nav-center-menu').getByRole('button', { name: 'Configuración' }).click();
@@ -28,11 +28,11 @@ test.describe('Syntax display — estándar Editorial', () => {
       };
     });
 
-    expect(colors.outer).toBe('rgb(251, 251, 249)');
+    expect(colors.outer).toBe('rgb(238, 242, 246)');
     expect(colors.head).toBe('rgb(255, 255, 255)');
-    expect(colors.body).toBe('rgb(247, 247, 244)');
-    expect(colors.font).toContain('SFMono-Regular');
-    expect(colors.shadow).toBe('none');
+    expect(colors.body).toBe('rgb(238, 242, 246)');
+    expect(colors.font).toContain('JetBrains Mono');
+    expect(colors.shadow).not.toBe('none');
 
     await page.getByRole('button', { name: 'Continuar' }).click();
     await page.getByRole('button', { name: 'macOS' }).click();
@@ -42,7 +42,7 @@ test.describe('Syntax display — estándar Editorial', () => {
     await expect(macOSGuide).toBeVisible();
     await expect(page.getByTestId('ollama-macos-homebrew-command')).toContainText('brew services restart ollama');
     await expect(page.getByTestId('ollama-macos-app-command')).toContainText('open -a Ollama');
-    await expect(page.getByTestId('ollama-macos-verify-command')).toContainText(/Origin: http:\/\/127\.0\.0\.1:\d+/);
+    await expect(page.getByTestId('ollama-macos-verify-command')).toContainText('Origin: http://127.0.0.1:3000');
     await expect(page.getByTestId('ollama-macos-address-in-use')).toContainText('bind: address already in use');
     await expect(page.getByTestId('ollama-macos-homebrew-command')).not.toContainText('ollama serve');
 

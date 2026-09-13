@@ -15,7 +15,7 @@ const RemediationBranchActions: React.FC<RemediationBranchActionsProps> = ({
   showBack = true,
 }) => (
   <div
-    className="evidence-options editorial-branch-actions"
+    className="evidence-options"
     style={{ marginBottom: 'var(--space-md)' }}
     data-testid="remediation-branch-actions"
   >

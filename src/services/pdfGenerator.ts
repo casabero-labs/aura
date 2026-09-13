@@ -2,7 +2,6 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { AuditReport, ExecutiveReportContent, IssueSeverity, IssueCategory, ScriptValidationResult, HealthDelta } from '../types';
 import { classifyPythonLine } from './pythonLineClassification';
-import { EDITORIAL_ARTIFACT_THEME } from './editorialArtifactTheme';
 
 declare module 'jspdf' {
   interface jsPDF {
@@ -49,27 +48,23 @@ export const generatePdfReport = (
   };
 
   const colors = {
-    primary: EDITORIAL_ARTIFACT_THEME.colors.ink,
-    secondary: EDITORIAL_ARTIFACT_THEME.colors.muted,
-    accent: EDITORIAL_ARTIFACT_THEME.colors.ink,
-    text: EDITORIAL_ARTIFACT_THEME.colors.ink,
-    lightText: EDITORIAL_ARTIFACT_THEME.colors.muted,
-    red: EDITORIAL_ARTIFACT_THEME.colors.critical,
-    orange: EDITORIAL_ARTIFACT_THEME.colors.warning,
-    green: EDITORIAL_ARTIFACT_THEME.colors.good,
-    border: EDITORIAL_ARTIFACT_THEME.colors.line,
-    white: EDITORIAL_ARTIFACT_THEME.colors.white,
-    surface: EDITORIAL_ARTIFACT_THEME.colors.surface,
-    surfaceQuiet: EDITORIAL_ARTIFACT_THEME.colors.surfaceQuiet,
+    primary: '#2d2c2a',
+    secondary: '#5a5854',
+    accent: '#b08d57',
+    text: '#403e3c',
+    lightText: '#8c8a84',
+    red: '#8b3a3a',
+    orange: '#b08d57',
+    green: '#3e5a32',
+    border: '#e5e0d8',
   };
-  const fonts = EDITORIAL_ARTIFACT_THEME.fonts;
 
   let yPos = margin;
 
   const drawSectionHeader = (title: string) => {
     if (yPos > pageHeight - 30) { doc.addPage(); yPos = margin; }
     markPageContent();
-    doc.setFont(fonts.reading, 'bold');
+    doc.setFont('times', 'bold');
     doc.setFontSize(14);
     doc.setTextColor(colors.primary);
     doc.text(title.toUpperCase(), margin, yPos);
@@ -82,7 +77,7 @@ export const generatePdfReport = (
   const drawParagraph = (text: string) => {
     if (yPos > pageHeight - 20) { doc.addPage(); yPos = margin; }
     markPageContent();
-    doc.setFont(fonts.reading, 'normal');
+    doc.setFont('times', 'normal');
     doc.setFontSize(11);
     doc.setTextColor(colors.text);
     const lines = doc.splitTextToSize(text, pageWidth - (margin * 2));
@@ -93,18 +88,18 @@ export const generatePdfReport = (
   // --- PAGE 1: TITLE PAGE ---
   markPageContent(1);
 
-  doc.setFont(fonts.reading, 'bold');
+  doc.setFont('times', 'bold');
   doc.setFontSize(26);
   doc.setTextColor(colors.primary);
   const titleLines = doc.splitTextToSize(executiveContent.title, pageWidth - (margin * 2));
   doc.text(titleLines, pageWidth / 2, 60, { align: 'center' });
 
-  doc.setFont(fonts.reading, 'italic');
+  doc.setFont('times', 'italic');
   doc.setFontSize(14);
   doc.setTextColor(colors.accent);
   doc.text(executiveContent.domain_inferred, pageWidth / 2, 80, { align: 'center' });
 
-  doc.setFont(fonts.reading, 'normal');
+  doc.setFont('times', 'normal');
   doc.setFontSize(11);
   doc.setTextColor(colors.lightText);
   const dateStr = new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
@@ -115,7 +110,7 @@ export const generatePdfReport = (
   doc.setLineWidth(1);
   doc.circle(pageWidth / 2, circleY, 25, 'S');
 
-  doc.setFont(fonts.reading, 'bold');
+  doc.setFont('times', 'bold');
   doc.setFontSize(36);
   const scoreColor = auditReport.score >= 80 ? colors.green : auditReport.score >= 50 ? colors.orange : colors.red;
   doc.setTextColor(scoreColor);
@@ -139,9 +134,9 @@ export const generatePdfReport = (
   const statWidth = (pageWidth - margin * 2) / 4;
   stats.forEach((stat, i) => {
     const x = margin + (statWidth * i) + (statWidth / 2);
-    doc.setFont(fonts.reading, 'bold');
+    doc.setFont('times', 'bold');
     doc.text(stat.value, x, statsY, { align: 'center' });
-    doc.setFont(fonts.reading, 'normal');
+    doc.setFont('times', 'normal');
     doc.setFontSize(10);
     doc.setTextColor(colors.lightText);
     doc.text(stat.label, x, statsY + 6, { align: 'center' });
@@ -194,9 +189,9 @@ export const generatePdfReport = (
     sectionIndex++;
     drawSectionHeader(`${sectionIndex}. Preservacion de Deuda de Fuente`);
     yPos += 3;
-    doc.setFillColor(colors.red);
+    doc.setFillColor(139, 58, 58);
     doc.rect(margin, yPos, pageWidth - margin * 2, 22, 'F');
-    doc.setTextColor(colors.white);
+    doc.setTextColor(255, 255, 255);
     doc.setFontSize(10);
     const warningLines = doc.splitTextToSize(
       'La remediacion aplicada preserva deuda de fuente. El score no mejora bajo runAudit porque la deuda de CrimeId es de origen (columna contaminada en el sistema fuente). La remediacion no corrige el dato primario: CrimeId permanece como evidencia en columnas auxiliares. Deuda de fuente presente.',
@@ -221,7 +216,7 @@ export const generatePdfReport = (
     if (yPos > pageHeight - 50) { doc.addPage(); yPos = margin; }
     sectionIndex++;
     drawSectionHeader(`${sectionIndex}. Diagnostico LLM (OE3)`);
-    doc.setFont(fonts.reading, 'italic');
+    doc.setFont('times', 'italic');
     doc.setFontSize(10);
     doc.setTextColor(colors.lightText);
     doc.text("Interpretacion generada por modelo de lenguaje a partir de los hallazgos deterministas. No verificable estadisticamente.", margin, yPos - 3);
@@ -235,7 +230,7 @@ export const generatePdfReport = (
         diagYPos = margin;
       }
       markPageContent();
-      doc.setFont(fonts.reading, 'normal');
+      doc.setFont('times', 'normal');
       doc.setFontSize(10);
       doc.setTextColor(colors.text);
       doc.text(line, margin, diagYPos);
@@ -248,7 +243,7 @@ export const generatePdfReport = (
   if (yPos > pageHeight - 30) { doc.addPage(); yPos = margin; }
   sectionIndex++;
   drawSectionHeader(`${sectionIndex}. Perfil Detallado de Columnas`);
-  doc.setFont(fonts.reading, 'italic');
+  doc.setFont('times', 'italic');
   doc.setFontSize(10);
   doc.setTextColor(colors.lightText);
   doc.text("Analisis estadistico deterministico de cada variable del dataset.", margin, yPos - 3);
@@ -267,9 +262,9 @@ export const generatePdfReport = (
     head: [['Columna', 'Tipo', 'Nulos', 'Unicos', 'Valor Top']],
     body: profileData,
     theme: 'grid',
-    styles: { font: fonts.reading, fontSize: 10, cellPadding: 4, lineColor: colors.border, textColor: colors.secondary },
-    headStyles: { fillColor: colors.surface, textColor: colors.primary, fontStyle: 'bold' },
-    alternateRowStyles: { fillColor: colors.surfaceQuiet },
+    styles: { font: 'times', fontSize: 10, cellPadding: 4, lineColor: [203, 213, 225] },
+    headStyles: { fillColor: [51, 65, 85], textColor: 255, fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
     columnStyles: {
       0: { fontStyle: 'bold', cellWidth: 'auto' },
       1: { cellWidth: 25 },
@@ -312,7 +307,7 @@ export const generatePdfReport = (
 
     if (yPos > pageHeight - 40) { doc.addPage(); yPos = margin; }
 
-    doc.setFont(fonts.reading, 'bold');
+    doc.setFont('times', 'bold');
     doc.setFontSize(11);
     doc.setTextColor(colors.accent);
     doc.text(cat.toUpperCase(), margin, yPos);
@@ -333,8 +328,8 @@ export const generatePdfReport = (
       head: [['Regla', 'Columna', 'Sev.', 'Cant.', '%', 'Descripcion']],
       body: issueRows,
       theme: 'plain',
-      styles: { font: fonts.reading, fontSize: 9, cellPadding: 2, overflow: 'linebreak' },
-      headStyles: { fillColor: colors.surface, textColor: colors.primary, fontStyle: 'bold' },
+      styles: { font: 'times', fontSize: 9, cellPadding: 2, overflow: 'linebreak' },
+      headStyles: { fillColor: [241, 245, 249], textColor: [51, 65, 85], fontStyle: 'bold' },
       columnStyles: {
         0: { cellWidth: 35, fontStyle: 'bold' },
         1: { cellWidth: 25 },
@@ -346,8 +341,8 @@ export const generatePdfReport = (
       didParseCell: (data) => {
         if (data.section === 'body' && data.column.index === 2) {
           const val = data.cell.raw as string;
-          if (val === 'CRITICAL') data.cell.styles.textColor = colors.red;
-          else if (val === 'WARNING') data.cell.styles.textColor = colors.orange;
+          if (val === 'CRITICAL') data.cell.styles.textColor = [185, 28, 28];
+          else if (val === 'WARNING') data.cell.styles.textColor = [194, 65, 12];
         }
       },
       didDrawPage: () => markPageContent(),
@@ -362,7 +357,7 @@ export const generatePdfReport = (
     sectionIndex++;
     drawSectionHeader(`${sectionIndex}. Gobernanza y Validacion HITL`);
 
-    doc.setFont(fonts.reading, 'italic');
+    doc.setFont('times', 'italic');
     doc.setFontSize(10);
     doc.setTextColor(colors.lightText);
     doc.text("Auditoria de codigo estatica y trazabilidad de control humano (Human-in-the-Loop).", margin, yPos - 3);
@@ -373,18 +368,18 @@ export const generatePdfReport = (
       : "REQUIERE REVISION HUMANA O RE-PROCESAMIENTO";
     const statusColor = scriptValidation.valid ? colors.green : colors.orange;
 
-    doc.setFillColor(colors.surfaceQuiet);
+    doc.setFillColor(248, 250, 248);
     doc.setDrawColor(statusColor);
     doc.setLineWidth(1);
     doc.rect(margin, yPos, pageWidth - margin * 2, 20, 'FD');
     markPageContent();
 
-    doc.setFont(fonts.reading, 'bold');
+    doc.setFont('times', 'bold');
     doc.setFontSize(12);
     doc.setTextColor(statusColor);
     doc.text(statusText, margin + 5, yPos + 8);
 
-    doc.setFont(fonts.reading, 'normal');
+    doc.setFont('times', 'normal');
     doc.setFontSize(9);
     doc.setTextColor(colors.text);
     doc.text(
@@ -396,13 +391,13 @@ export const generatePdfReport = (
     );
     yPos += 28;
 
-    doc.setFont(fonts.reading, 'bold');
+    doc.setFont('times', 'bold');
     doc.setFontSize(11);
     doc.setTextColor(colors.primary);
     doc.text("DETALLES DE LA VERIFICACION:", margin, yPos);
     yPos += 6;
 
-    doc.setFont(fonts.reading, 'normal');
+    doc.setFont('times', 'normal');
     doc.setFontSize(10);
     doc.setTextColor(colors.text);
     const colStatus = scriptValidation.invalidColumns.length > 0
@@ -422,10 +417,10 @@ export const generatePdfReport = (
 
     if (scriptValidation.warnings.length > 0) {
       yPos += 4;
-      doc.setFont(fonts.reading, 'bold');
+      doc.setFont('times', 'bold');
       doc.text("ADVERTENCIAS DE SEGURIDAD:", margin, yPos);
       yPos += 6;
-      doc.setFont(fonts.reading, 'normal');
+      doc.setFont('times', 'normal');
       doc.setTextColor(colors.red);
       scriptValidation.warnings.forEach(warn => {
         if (yPos > pageHeight - 15) { doc.addPage(); yPos = margin; }
@@ -448,7 +443,7 @@ export const generatePdfReport = (
     const sigY = yPos + 20;
     doc.line(sigX, sigY, sigX + 60, sigY);
 
-    doc.setFont(fonts.reading, 'normal');
+    doc.setFont('times', 'normal');
     doc.setFontSize(9);
     doc.setTextColor(colors.secondary);
     doc.text("Firma del Auditor Humano (HITL)", sigX + 5, sigY + 5);
@@ -468,7 +463,7 @@ export const generatePdfReport = (
     sectionIndex++;
     drawSectionHeader(`${sectionIndex}. Script de Limpieza (Python/Pandas)`);
 
-    doc.setFont(fonts.reading, 'italic');
+    doc.setFont('times', 'italic');
     doc.setFontSize(10);
     doc.setTextColor(colors.red);
     doc.text("ATENCION: Codigo generado automaticamente por IA. Requiere revision humana (HITL) antes de ejecucion.", margin, yPos - 3);
@@ -487,7 +482,7 @@ export const generatePdfReport = (
       markPageContent();
 
       const kind = classifyScriptLine(line);
-      doc.setFont(fonts.data, 'normal');
+      doc.setFont('courier', 'normal');
       doc.setFontSize(7);
       doc.setTextColor(colors.lightText);
       doc.text(String(index + 1).padStart(2, '0'), margin + 4, codeYPos);
@@ -495,7 +490,7 @@ export const generatePdfReport = (
         doc.setTextColor(scriptLabelColor(kind, colors));
         doc.text(`[${kind}]`, margin + 14, codeYPos);
       }
-      doc.setTextColor(colors.primary);
+      doc.setTextColor(51, 65, 85);
       const wrappedLine = doc.splitTextToSize(line, codeMaxWidth);
       wrappedLine.forEach((part: string, partIndex: number) => {
         if (partIndex > 0) {
@@ -528,7 +523,7 @@ export const generatePdfReport = (
   limitations.forEach((lim) => {
     if (yPos > pageHeight - 20) { doc.addPage(); yPos = margin; }
     markPageContent();
-    doc.setFont(fonts.reading, 'normal');
+    doc.setFont('times', 'normal');
     doc.setFontSize(10);
     doc.setTextColor(colors.secondary);
     const lines = doc.splitTextToSize(`\u2022 ${lim}`, pageWidth - margin * 2);
@@ -548,7 +543,7 @@ export const generatePdfReport = (
     const total = doc.getNumberOfPages();
     for (let i = 1; i <= total; i++) {
       doc.setPage(i);
-      doc.setFont(fonts.reading, 'italic');
+      doc.setFont('times', 'italic');
       doc.setFontSize(8);
       doc.setTextColor(colors.lightText);
       doc.text(

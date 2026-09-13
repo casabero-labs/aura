@@ -178,6 +178,16 @@ const App: React.FC = () => {
   const [showMobileNav, setShowMobileNav] = useState(false);
   const mobileNavToggleRef = useRef<HTMLButtonElement>(null);
   const [includeCorrectedInEvidenceArchive, setIncludeCorrectedInEvidenceArchive] = useState(false);
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    const saved = localStorage.getItem('aura_theme') || localStorage.getItem('casabero-theme');
+    return saved === 'dark' ? 'dark' : 'light';
+  });
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem('aura_theme', theme);
+    localStorage.setItem('casabero-theme', theme);
+  }, [theme]);
 
   useEffect(() => {
     if (pipelineData.report) {
@@ -771,8 +781,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <ErrorBoundary><div className="aura-system" data-casabero-theme="editorial">
-      <a className="skip-link" href="#main-content">Saltar al contenido principal</a>
+    <ErrorBoundary><div className="aura-system">
       {showAuditLog && <AuditLogViewer onClose={() => setShowAuditLog(false)} />}
 
       {/* Navigation */}
@@ -827,6 +836,14 @@ const App: React.FC = () => {
 
           {/* Controles mínimos (Escritorio) */}
           <div className="nav-system-controls">
+            <label className="theme-toggle" aria-label="Cambiar tema">
+              <input
+                type="checkbox"
+                checked={theme === 'dark'}
+                onChange={(e) => setTheme(e.target.checked ? 'dark' : 'light')}
+              />
+            </label>
+
             {hasData && (
               <button
                 className="nav-reset-cta"
@@ -920,7 +937,7 @@ const App: React.FC = () => {
       {AvFixture && window.location.search.includes('av-fixture=') ? null : (
       <>
       {/* Main Content — only show when not in settings or help. */}
-      <main id="main-content" className="sys-main" tabIndex={-1} style={{ display: showExperimentCampaign || showSettings || showHelp ? 'none' : undefined }}>
+      <main className="sys-main" style={{ display: showExperimentCampaign || showSettings || showHelp ? 'none' : undefined }}>
         {showHome && (
           <section className="home-hero" id="home">
             <p className="home-eyebrow">diagnóstico reproducible de datos</p>
@@ -998,7 +1015,7 @@ const App: React.FC = () => {
 
         {/* ── Export Section ── */}
         {!showHome && report && pipelineState === 'export' && (
-          <section className="export-closure" id="export-section" data-testid="export-stage">
+          <section className="export-closure editorial-pilot" id="export-section" data-testid="export-stage">
             <button
               type="button"
               className="btn-s export-return-button"

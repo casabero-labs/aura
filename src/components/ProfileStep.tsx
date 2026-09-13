@@ -74,7 +74,7 @@ const ProfileStep: React.FC<ProfileStepProps> = ({ report, auditEvidence, file, 
   const scoreColor = report ? (report.score >= 80 ? 'var(--success)' : report.score >= 60 ? 'var(--orange)' : 'var(--error)') : 'var(--ink3)';
 
   return (
-    <div className="profile-surface">
+    <div className="editorial-pilot">
       {isError && (
         <>
           <section className="profile-block">

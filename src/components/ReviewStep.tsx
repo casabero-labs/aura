@@ -265,7 +265,7 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
 
   if (isV2Review && scriptContractV2) {
     return (
-      <div className="review-step editorial-workbench" data-testid="review-stage">
+      <div className="review-step" data-testid="review-stage">
         <V2Review
           scriptContract={scriptContractV2}
           remediationPlan={remediationPlanV2 ?? null}
@@ -284,7 +284,7 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
   }
 
   return (
-    <div className="review-step editorial-workbench" data-testid="review-stage">
+    <div className="review-step" data-testid="review-stage">
       <div className="section-header">
         <div>
           <p className="sec-eye">revisión humana</p>

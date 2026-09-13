@@ -321,14 +321,14 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
     : sections;
 
   return (
-    <main className="help-center editorial-workbench" data-testid="help-center" aria-labelledby="help-center-title">
+    <main className="help-center" data-testid="help-center">
       <div className="help-center-header">
         <button className="settings-back-btn" onClick={onClose}>
           <ArrowLeft size={14} /> Volver a auditoría
         </button>
         <div>
           <p className="sec-eye">centro de ayuda</p>
-          <h1 className="sec-title" id="help-center-title">Ayuda de AURA</h1>
+          <h1 className="sec-title">Ayuda de AURA</h1>
           <p className="help-center-subtitle">
             Guía operativa para auditar, interpretar, revisar y exportar evidencia sin perder el control del dato.
           </p>
@@ -337,9 +337,7 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
 
       <div className="help-center-search" data-testid="help-search">
         <Search size={14} className="help-search-icon" />
-        <label className="sr-only" htmlFor="help-search-input">Buscar en la ayuda</label>
         <input
-          id="help-search-input"
           type="text"
           placeholder="Buscar: privacidad, score, script, laboratorio, exportación..."
           value={searchQuery}
@@ -350,19 +348,18 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
 
       <div className="help-center-body">
         {filteredSections.map(section => (
-          <section key={section.id} className="help-center-section" data-testid={`help-section-${section.id}`} aria-labelledby={`help-section-title-${section.id}`}>
+          <section key={section.id} className="help-center-section" data-testid={`help-section-${section.id}`}>
             <button
               className="help-center-section-header"
               onClick={() => toggleSection(section.id)}
               aria-expanded={expandedSections.has(section.id)}
-              aria-controls={`help-section-content-${section.id}`}
             >
               <span className="help-center-section-icon">{section.icon}</span>
-              <span className="help-center-section-title" id={`help-section-title-${section.id}`}>{section.title}</span>
+              <span className="help-center-section-title">{section.title}</span>
               <ChevronDown size={14} className={`help-center-section-chevron ${expandedSections.has(section.id) ? 'help-center-section-chevron--open' : ''}`} />
             </button>
             {expandedSections.has(section.id) && (
-              <div className="help-center-section-content" id={`help-section-content-${section.id}`} role="region" aria-labelledby={`help-section-title-${section.id}`}>
+              <div className="help-center-section-content">
                 {section.content}
               </div>
             )}

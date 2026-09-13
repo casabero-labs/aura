@@ -22,7 +22,7 @@ const updateCursorAfterTable = (ctx: PdfLayoutContext) => {
 };
 
 const commonStyles = (ctx: PdfLayoutContext) => ({
-  font: ctx.theme.fonts.operation,
+  font: 'helvetica',
   fontSize: 7.8,
   cellPadding: 2.4,
   overflow: 'linebreak' as const,

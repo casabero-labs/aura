@@ -48,40 +48,36 @@ const ImprovementRunExportCard: React.FC<Props> = ({ improvementRun }) => {
   };
 
   return (
-    <section data-testid="export-card" className="improvement-run-export-card" aria-labelledby="improvement-run-export-title">
-      <div className="improvement-run-export-header">
-        <h3 id="improvement-run-export-title">Exportar ejecución de mejora <span className="sr-only">Export Improvement Run</span></h3>
-        <span className="improvement-run-export-id">{improvementRun.runId}</span>
+    <div data-testid="export-card" style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: '16px', background: '#fff' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <h4 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#111827' }}>Export Improvement Run</h4>
+        <span style={{ fontSize: 11, color: '#6b7280', fontFamily: 'monospace' }}>{improvementRun.runId}</span>
       </div>
 
-      <div className="improvement-run-export-actions">
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
         <button
           data-testid="download-button"
           onClick={handleDownload}
-          className="btn-s btn-sm"
+          style={{ padding: '6px 12px', fontSize: 13, borderRadius: 6, border: '1px solid #d1d5db', background: '#f9fafb', cursor: 'pointer' }}
         >
-          Descargar JSON <span className="sr-only">Download JSON</span>
+          Download JSON
         </button>
         <button
           data-testid="copy-button"
           onClick={handleCopy}
-          className="btn-s btn-sm"
-          data-copied={copied}
+          style={{ padding: '6px 12px', fontSize: 13, borderRadius: 6, border: '1px solid #d1d5db', background: copied ? '#d1fae5' : '#f9fafb', cursor: 'pointer' }}
         >
-          {copied ? 'Copiado' : 'Copiar al portapapeles'}
-          <span className="sr-only">{copied ? 'Copied!' : 'Copy to clipboard'}</span>
+          {copied ? 'Copied!' : 'Copy to clipboard'}
         </button>
       </div>
 
-      <div className="improvement-run-preview">
+      <div style={{ marginBottom: 12 }}>
         <button
           data-testid="toggle-preview"
           onClick={() => setPreviewOpen(o => !o)}
-          className="improvement-run-preview-toggle"
-          aria-expanded={previewOpen}
+          style={{ background: 'none', border: 'none', padding: 0, fontSize: 12, color: '#6b7280', cursor: 'pointer', marginBottom: 4 }}
         >
-          {previewOpen ? '▲ Ocultar vista previa' : '▶ Mostrar vista previa'}
-          <span className="sr-only">{previewOpen ? '▲ Hide preview' : '▶ Show preview'}</span>
+          {previewOpen ? '▲ Hide preview' : '▶ Show preview'}
         </button>
         {previewOpen && (
           <SyntaxDisplay
@@ -94,11 +90,10 @@ const ImprovementRunExportCard: React.FC<Props> = ({ improvementRun }) => {
         )}
       </div>
 
-      <p data-testid="export-notice" className="improvement-run-export-notice">
-        La exportación refleja una ejecución sobre fixture controlado, no una validación del dataset real.
-        <span className="sr-only">Export reflects controlled fixture run, not real dataset validation.</span>
+      <p data-testid="export-notice" style={{ fontSize: 11, color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
+        Export reflects controlled fixture run, not real dataset validation.
       </p>
-    </section>
+    </div>
   );
 };
 

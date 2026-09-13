@@ -271,7 +271,7 @@ const ScriptGenerationStepV2: React.FC<ScriptGenerationStepV2Props> = ({
   // Vista A — Decision: reuse RemediationPlanStepV2
   if (view === 'decision' || genState.status === 'idle') {
     return (
-      <section className="section editorial-workbench" data-testid="script-gen-v2-stage">
+      <section className="section" data-testid="script-gen-v2-stage">
         <RemediationPlanStepV2
           report={report}
           structuredDiagnosis={structuredDiagnosis}
@@ -303,7 +303,7 @@ const ScriptGenerationStepV2: React.FC<ScriptGenerationStepV2Props> = ({
       verifying: 'Verificando contrato...',
     };
     return (
-      <section className="section editorial-workbench" data-testid="script-gen-v2-stage">
+      <section className="section" data-testid="script-gen-v2-stage">
         <header className="section-header">
           <div>
             <p className="sec-eye">contrato de script v2</p>
@@ -318,7 +318,7 @@ const ScriptGenerationStepV2: React.FC<ScriptGenerationStepV2Props> = ({
   // Error state
   if (genState.status === 'error') {
     return (
-      <section className="section editorial-workbench" data-testid="script-gen-v2-stage">
+      <section className="section" data-testid="script-gen-v2-stage">
         <header className="section-header">
           <div>
             <p className="sec-eye">contrato de script v2</p>
@@ -345,7 +345,7 @@ const ScriptGenerationStepV2: React.FC<ScriptGenerationStepV2Props> = ({
   const scriptLines = contract.scriptText.split('\n');
 
   return (
-    <section className="section editorial-workbench" data-testid="script-gen-v2-stage">
+    <section className="section" data-testid="script-gen-v2-stage">
       <header className="section-header">
         <div>
           <p className="sec-eye">contrato de script v2</p>

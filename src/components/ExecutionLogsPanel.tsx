@@ -15,6 +15,12 @@ function classifyLog(text: string): LogLevel {
   return 'info';
 }
 
+const levelColors: Record<LogLevel, { bg: string; border: string; dot: string }> = {
+  info: { bg: '#f9fafb', border: '#e5e7eb', dot: '#6b7280' },
+  warn: { bg: '#fffbeb', border: '#fde68a', dot: '#d97706' },
+  error: { bg: '#fef2f2', border: '#fca5a5', dot: '#dc2626' },
+};
+
 const ExecutionLogsPanel: React.FC<Props> = ({ logs, execution }) => {
   const [expanded, setExpanded] = useState(false);
 
@@ -22,28 +28,34 @@ const ExecutionLogsPanel: React.FC<Props> = ({ logs, execution }) => {
   const visible = expanded ? logs : logs.slice(0, MAX_VISIBLE);
   const hasMore = logs.length > MAX_VISIBLE;
 
+  const statusColor: Record<string, string> = {
+    success: '#059669',
+    failed: '#dc2626',
+    blocked: '#d97706',
+    timeout: '#d97706',
+  };
+
   return (
-    <section className="execution-logs-panel editorial-surface" data-testid="execution-logs-panel" aria-labelledby="execution-logs-title">
-      <div className="execution-logs-header">
-        <h3 id="execution-logs-title">Registro de ejecución <span className="sr-only">Execution Logs</span></h3>
-        <div className="execution-logs-meta">
+    <div data-testid="execution-logs-panel" style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: '16px', background: '#fff' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <h4 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#111827' }}>Execution Logs</h4>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {execution && (
             <>
               <span
                 data-testid="runtime-badge"
-                className="execution-logs-badge execution-logs-runtime"
+                style={{ fontSize: 11, padding: '2px 6px', borderRadius: 4, background: '#ede9fe', color: '#6d28d9', fontFamily: 'monospace' }}
               >
                 {execution.runtime}
               </span>
               <span
                 data-testid="status-badge"
-                className="execution-logs-badge execution-logs-status"
-                data-status={execution.status}
+                style={{ fontSize: 11, padding: '2px 6px', borderRadius: 4, background: '#f3f4f6', color: statusColor[execution.status] ?? '#6b7280', fontFamily: 'monospace' }}
               >
                 {execution.status}
               </span>
               {execution.durationMs != null && (
-                <span data-testid="duration" className="execution-logs-duration">
+                <span data-testid="duration" style={{ fontSize: 11, color: '#6b7280' }}>
                   {`${execution.durationMs}ms`}
                 </span>
               )}
@@ -52,23 +64,31 @@ const ExecutionLogsPanel: React.FC<Props> = ({ logs, execution }) => {
         </div>
       </div>
 
-      <div className={`execution-logs-list-wrap${expanded ? ' is-expanded' : ''}`}>
+      <div style={{ maxHeight: expanded ? 'none' : 280, overflow: 'hidden', marginBottom: 12 }}>
         {visible.length === 0 ? (
-          <p data-testid="no-logs" className="execution-logs-empty">
-            No hay registros disponibles. <span className="sr-only">No logs available.</span>
-          </p>
+          <p data-testid="no-logs" style={{ fontSize: 12, color: '#9ca3af', margin: 0 }}>No logs available.</p>
         ) : (
-          <ul data-testid="log-list" className="execution-logs-list">
+          <ul data-testid="log-list" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
             {visible.map((line, i) => {
               const level: LogLevel = classifyLog(line);
+              const colors = levelColors[level];
               return (
                 <li
                   key={i}
                   data-testid={`log-line-${i}`}
                   data-level={level}
-                  className={`execution-log-line execution-log-line--${level}`}
+                  style={{
+                    fontSize: 12,
+                    fontFamily: 'monospace',
+                    padding: '3px 8px',
+                    background: colors.bg,
+                    borderLeft: `3px solid ${colors.dot}`,
+                    marginBottom: 2,
+                    borderRadius: '0 4px 4px 0',
+                    wordBreak: 'break-all',
+                  }}
                 >
-                  <span className="execution-log-marker" aria-hidden="true">●</span>
+                  <span style={{ color: colors.dot, marginRight: 6, fontSize: 10 }}>●</span>
                   {line}
                 </li>
               );
@@ -81,19 +101,16 @@ const ExecutionLogsPanel: React.FC<Props> = ({ logs, execution }) => {
         <button
           data-testid="toggle-logs"
           onClick={() => setExpanded(e => !e)}
-          className="execution-logs-toggle"
-          aria-expanded={expanded}
+          style={{ background: 'none', border: 'none', padding: 0, fontSize: 12, color: '#6b7280', cursor: 'pointer', marginBottom: 12, display: 'block' }}
         >
-          {expanded ? '▲ Mostrar menos' : `▶ Mostrar ${logs.length - MAX_VISIBLE} más`}
-          <span className="sr-only">{expanded ? 'Show less' : `Show ${logs.length - MAX_VISIBLE} more`}</span>
+          {expanded ? '▲ Show less' : `▶ Show ${logs.length - MAX_VISIBLE} more`}
         </button>
       )}
 
-      <p data-testid="logs-notice" className="execution-logs-notice">
-        El registro describe la orquestación de AURA. La ejecución Python permanece fuera de Colab.
-        <span className="sr-only">Logs describe AURA orchestration. Python execution remains external to Colab.</span>
+      <p data-testid="logs-notice" style={{ fontSize: 11, color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
+        Logs describe AURA orchestration. Python execution remains external to Colab.
       </p>
-    </section>
+    </div>
   );
 };
 

@@ -278,15 +278,9 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
   };
 
   return (
-    <section
-      className="step-card apply-verify-step editorial-workbench editorial-operational-sequence"
-      data-testid="apply-verify-step"
-      data-state={state}
-      aria-labelledby="apply-verify-title"
-    >
+    <div className="step-card apply-verify-step" data-testid="apply-verify-step">
       <div className="step-header">
-        <p className="workbench-kicker">07 · Ejecutar y verificar</p>
-        <h2 className="step-heading" id="apply-verify-title">Aplicar y verificar</h2>
+        <h2 className="step-heading">Aplicar y verificar</h2>
         <p className="step-subtitle">
           Descargá el bundle y el CSV fuente, ejecutá el script en el runner local controlado y subí el resultado junto con el recibo.
         </p>
@@ -297,7 +291,7 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
           <ShieldAlert size={16} />
           <div>
             <strong>Precondiciones no cumplidas</strong>
-            <ul className="apply-verify-list">
+            <ul style={{ margin: 'var(--space-xs) 0 0 var(--space-lg)', fontSize: '14px' }}>
               {preconditions.errors.map((e, i) => (
                 <li key={i}>{e}</li>
               ))}
@@ -307,13 +301,13 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
       )}
 
       {!sourceFile && preconditions.errors.some(e => e.includes('archivo CSV fuente')) && (
-        <div className="btn-row apply-verify-actions--source">
-          <label className="btn-p btn-sm apply-verify-file-button">
+        <div className="btn-row" style={{ marginTop: 'var(--space-sm)' }}>
+          <label className="btn-p btn-sm" style={{ cursor: 'pointer' }}>
             <FileText size={14} /> Seleccionar CSV fuente
             <input
               type="file"
               accept=".csv"
-              className="hidden-file-input"
+              style={{ position: 'absolute', width: '1px', height: '1px', margin: '-1px', overflow: 'hidden', clip: 'rect(0,0,0,0)' }}
               onChange={(e) => handleReuploadSource(e.target.files)}
               data-testid="apply-verify-reselect-source"
             />
@@ -331,15 +325,15 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
         <div data-testid="apply-verify-ready">
           <div
             data-execution-bundle-json={storedBundleJson}
-            className="visually-hidden"
+            style={{ display: 'none' }}
           />
-          <div className="evidence-options apply-verify-status-note">
+          <div className="evidence-options" style={{ marginBottom: 'var(--space-md)' }}>
             <ShieldCheck size={16} />
             <div>
               <strong>Ejecución preparada.</strong> Descargá los dos archivos y ejecutá el comando abajo en tu terminal.
             </div>
           </div>
-          <p className="apply-verify-supporting-copy">
+          <p style={{ fontSize: '13px', color: 'var(--ink-muted)', marginBottom: 'var(--space-xs)' }}>
             El comando debe ejecutarse desde la raíz del repositorio (<code>aura/</code>).
           </p>
           <div className="btn-row">
@@ -350,18 +344,18 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
               <FileText size={14} /> source.csv
             </button>
           </div>
-          <div className="apply-verify-mono-block apply-verify-command" data-testid="apply-verify-command">
+          <div className="apply-verify-mono-block" style={{ marginTop: 'var(--space-md)' }} data-testid="apply-verify-command">
             <code>{CLI_COMMAND}</code>
           </div>
-          <div className="btn-row apply-verify-actions--copy">
+          <div className="btn-row" style={{ marginTop: 'var(--space-xs)' }}>
             <button className="btn-s btn-sm" onClick={copyToClipboard} data-testid="apply-verify-copy-command">
               <ClipboardCheck size={14} /> {copyLabel}
             </button>
           </div>
-          <p className="apply-verify-supporting-copy">
+          <p style={{ fontSize: '13px', color: 'var(--ink-muted)', marginTop: 'var(--space-xs)' }}>
             AURA no ejecuta Python. Cuando termine, arrastrá o seleccioná los dos archivos de salida.
           </p>
-          <div className="btn-row apply-verify-actions--external-output">
+          <div className="btn-row" style={{ marginTop: 'var(--space-md)' }}>
             <button className="btn-s btn-sm" onClick={startAwaitingFiles} data-testid="apply-verify-await-files">
               <Upload size={14} /> Ya ejecuté, subir archivos
             </button>
@@ -375,47 +369,47 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
             <Upload size={16} />
             <div>
               <strong>{state === 'validating' ? 'Validando…' : 'Importar salida Python externa'}</strong>
-              <p className="apply-verify-supporting-copy">
+              <p style={{ fontSize: '14px', marginTop: 'var(--space-xxs)' }}>
                 Seleccioná corrected.csv y receipt.json juntos.
               </p>
             </div>
           </div>
           <div className="btn-row">
-            <label className="btn-p btn-sm apply-verify-file-button">
+            <label className="btn-p btn-sm" style={{ cursor: 'pointer' }}>
               <FileText size={14} /> corrected.csv
               <input
                 type="file"
                 accept=".csv"
-                className="hidden-file-input"
+                style={{ position: 'absolute', width: '1px', height: '1px', margin: '-1px', overflow: 'hidden', clip: 'rect(0,0,0,0)' }}
                 onChange={(e) => setAfterFile(e.target.files?.[0] ?? null)}
                 data-testid="apply-verify-after-file"
               />
             </label>
-            <label className="btn-p btn-sm apply-verify-file-button">
+            <label className="btn-p btn-sm" style={{ cursor: 'pointer' }}>
               <FileJson size={14} /> receipt.json
               <input
                 type="file"
                 accept=".json"
-                className="hidden-file-input"
+                style={{ position: 'absolute', width: '1px', height: '1px', margin: '-1px', overflow: 'hidden', clip: 'rect(0,0,0,0)' }}
                 onChange={(e) => setReceiptFile(e.target.files?.[0] ?? null)}
                 data-testid="apply-verify-receipt-file"
               />
             </label>
           </div>
-          {afterFile && <p className="apply-verify-file-status">CSV: {afterFile.name} ({afterFile.size} bytes)</p>}
-          {receiptFile && <p className="apply-verify-file-status">Recibo: {receiptFile.name} ({receiptFile.size} bytes)</p>}
+          {afterFile && <p style={{ fontSize: '13px', marginTop: 'var(--space-xs)' }}>CSV: {afterFile.name} ({afterFile.size} bytes)</p>}
+          {receiptFile && <p style={{ fontSize: '13px' }}>Recibo: {receiptFile.name} ({receiptFile.size} bytes)</p>}
 
           {!validating && state === 'invalid' && executionValidationError && (
-            <div className="evidence-options apply-verify-error-note" data-testid="apply-verify-error" role="alert">
+            <div className="evidence-options" style={{ marginTop: 'var(--space-md)' }} data-testid="apply-verify-error">
               <ShieldAlert size={16} />
               <div>
                 <strong>Error de validación</strong>
-                <p className="apply-verify-supporting-copy">{executionValidationError}</p>
+                <p style={{ fontSize: '14px', marginTop: 'var(--space-xxs)' }}>{executionValidationError}</p>
               </div>
             </div>
           )}
 
-          <div className="btn-row apply-verify-actions--validate">
+          <div className="btn-row" style={{ marginTop: 'var(--space-md)' }}>
             <button
               className="btn-p"
               disabled={!afterFile || !receiptFile || validating}
@@ -431,7 +425,7 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
 
       {state === 'verified' && executionReceipt && (
         <div data-testid="apply-verify-verified">
-          <div className="evidence-options apply-verify-status-note" role="status">
+          <div className="evidence-options" style={{ marginBottom: 'var(--space-md)' }} role="status">
             <CheckCircle2 size={16} />
             <div>
               <strong>Ejecución verificada; resultado reauditable</strong>
@@ -473,11 +467,11 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
           </div>
 
           {reauditState === 'running' && (
-            <div className="evidence-options apply-verify-reaudit-note" data-testid="apply-verify-reaudit-running" role="status" aria-live="polite">
+            <div className="evidence-options" style={{ marginTop: 'var(--space-md)' }} data-testid="apply-verify-reaudit-running" role="status" aria-live="polite">
               <Loader2 size={16} className="spin" />
               <div>
                 <strong>Reauditando resultado…</strong>
-                <p className="apply-verify-supporting-copy">
+                <p style={{ fontSize: '14px', marginTop: 'var(--space-xxs)' }}>
                   AURA está ejecutando el mismo motor determinista sobre el CSV corregido.
                 </p>
               </div>
@@ -485,14 +479,14 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
           )}
 
           {reauditState === 'failed' && (
-            <div className="evidence-options apply-verify-error-note" data-testid="apply-verify-reaudit-failed" role="alert">
+            <div className="evidence-options" style={{ marginTop: 'var(--space-md)' }} data-testid="apply-verify-reaudit-failed" role="alert">
               <ShieldAlert size={16} />
               <div>
                 <strong>La reauditoría falló.</strong>
-                <p className="apply-verify-supporting-copy">
+                <p style={{ fontSize: '14px', marginTop: 'var(--space-xxs)' }}>
                   El recibo Python sigue siendo válido, pero la remediación no puede declararse verificada.
                 </p>
-                {reauditError && <p className="apply-verify-supporting-copy">{reauditError}</p>}
+                {reauditError && <p style={{ fontSize: '13px', color: 'var(--ink-muted)' }}>{reauditError}</p>}
               </div>
             </div>
           )}
@@ -571,7 +565,7 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
           )}
 
           {reauditState === 'completed' && (
-            <div className="btn-row apply-verify-actions--continue">
+            <div className="btn-row" style={{ marginTop: 'var(--space-md)' }}>
               <button className="btn-p" onClick={onContinue} data-testid="apply-verify-continue">
                 <ArrowRight size={16} /> Ir a Exportación
               </button>
@@ -581,13 +575,13 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
       )}
 
       {state !== 'verified' && (
-        <div className="btn-row apply-verify-actions--back">
+        <div className="btn-row" style={{ marginTop: 'var(--space-lg)' }}>
           <button className="btn-s btn-sm" onClick={onBack} data-testid="apply-verify-back">
             <ArrowLeft size={14} /> Volver a Revisión
           </button>
         </div>
       )}
-    </section>
+    </div>
   );
 };
 
