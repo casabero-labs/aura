@@ -15,8 +15,7 @@ const OllamaSetupStandalone: React.FC = () => {
   const endpoint = localStorage.getItem('aura_ollama_endpoint') || 'http://127.0.0.1:11434';
 
   useEffect(() => {
-    const theme = localStorage.getItem('aura_theme') || localStorage.getItem('casabero-theme');
-    document.documentElement.dataset.theme = theme === 'dark' ? 'dark' : 'light';
+    document.documentElement.dataset.casaberoTheme = 'editorial';
     document.title = 'AURA · Configurar Ollama local';
   }, []);
 
@@ -54,7 +53,7 @@ const OllamaSetupStandalone: React.FC = () => {
   };
 
   return (
-    <div className="sys-root">
+    <div className="sys-root aura-system" data-casabero-theme="editorial">
       <main className="settings-workspace" data-testid="ollama-standalone-view">
         <div className="settings-workspace-header">
           <button type="button" className="settings-back-btn" onClick={closeAndReturn}>
@@ -67,12 +66,12 @@ const OllamaSetupStandalone: React.FC = () => {
               El mismo asistente de AURA, en una pestaña separada y conectado con tu configuración principal.
             </p>
           </div>
-          <span className="settings-active-provider-meta" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <span className="settings-active-provider-meta standalone-provider-meta">
             <Server size={13} /> navegador → localhost
           </span>
         </div>
 
-        <div className="settings-workspace-body" style={{ maxWidth: 980, margin: '0 auto', width: '100%' }}>
+        <div className="settings-workspace-body standalone-settings-body">
           {readyMessage && (
             <div className="settings-status-card settings-status-card--ok" role="status" data-testid="ollama-ready-message">
               <CheckCircle size={16} className="settings-status-icon" />

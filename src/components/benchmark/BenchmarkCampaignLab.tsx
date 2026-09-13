@@ -336,10 +336,11 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
   };
 
   return (
-    <div className="oe4-campaign-lab" data-testid="oe4-campaign-lab">
+    <div className="oe4-campaign-lab editorial-workbench" data-testid="oe4-campaign-lab" aria-labelledby="oe4-lab-title">
       <header className="oe4-hero">
         <div>
-          <h1>Laboratorio de evaluación LLM</h1>
+          <p className="oe4-eyebrow">09 · Laboratorio</p>
+          <h1 id="oe4-lab-title">Laboratorio de evaluación LLM</h1>
           <p>Compara modelos y métodos de entrada mediante {FINAL_EVALUATION_PROTOCOL.matrix.units} diagnósticos reproducibles, sin declarar un ganador universal.</p>
         </div>
         {campaign && (

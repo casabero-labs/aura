@@ -2,7 +2,7 @@ import React from 'react';
 import { Info } from 'lucide-react';
 
 const OptionalRemediationNotice: React.FC = () => (
-  <div className="companion-note" data-testid="optional-remediation-notice">
+  <div className="companion-note editorial-callout" data-testid="optional-remediation-notice">
     <Info size={16} />
     <div>
       <p>

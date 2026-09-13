@@ -140,7 +140,7 @@ const RemediationPlanStepV2: React.FC<RemediationPlanStepV2Props> = ({
 
   if (v2PlanError) {
     return (
-      <section className="section" data-testid="remediation-stage">
+      <section className="section editorial-workbench" data-testid="remediation-stage">
         <header className="section-header">
           <div>
             <p className="sec-eye">remediación estructurada v2</p>
@@ -157,7 +157,7 @@ const RemediationPlanStepV2: React.FC<RemediationPlanStepV2Props> = ({
 
   if (!v2Plan) {
     return (
-      <section className="section" data-testid="remediation-stage">
+      <section className="section editorial-workbench" data-testid="remediation-stage">
         <header className="section-header">
           <div>
             <p className="sec-eye">remediación estructurada v2</p>
@@ -170,7 +170,7 @@ const RemediationPlanStepV2: React.FC<RemediationPlanStepV2Props> = ({
   }
 
   return (
-    <section className="section" data-testid="remediation-stage">
+    <section className="section editorial-workbench" data-testid="remediation-stage">
       <header className="section-header">
         <div>
           <p className="sec-eye">remediación estructurada v2</p>
@@ -258,21 +258,21 @@ const RemediationPlanStepV2: React.FC<RemediationPlanStepV2Props> = ({
             <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
               {action.approvalStatus === 'pending' && (
                 <>
-                  <button className="btn-s btn-sm" onClick={() => handleApprove(action.actionId)} style={{ background: 'var(--success-bg)', color: 'var(--success-fg)' }}>
+                  <button className="btn-s btn-sm remediation-action__approve" onClick={() => handleApprove(action.actionId)}>
                     <CheckCircle2 size={12} /> Aprobar
                   </button>
-                  <button className="btn-s btn-sm" onClick={() => handleReject(action.actionId)} style={{ background: 'var(--error-bg)', color: 'var(--error-fg)' }}>
+                  <button className="btn-s btn-sm remediation-action__reject" onClick={() => handleReject(action.actionId)}>
                     <AlertTriangle size={12} /> {action.actionType === 'normalize_placeholders' ? 'Conservar como válido' : 'Rechazar'}
                   </button>
                 </>
               )}
               {action.approvalStatus === 'approved' && (
-                <button className="btn-s btn-sm" onClick={() => handleReset(action.actionId)} style={{ background: 'var(--success-bg)', color: 'var(--success-fg)' }}>
+                <button className="btn-s btn-sm remediation-action__approved" onClick={() => handleReset(action.actionId)}>
                   <ShieldCheck size={12} /> Aprobado
                 </button>
               )}
               {action.approvalStatus === 'rejected' && (
-                <button className="btn-s btn-sm" onClick={() => handleReset(action.actionId)} style={{ background: 'var(--error-bg)', color: 'var(--error-fg)' }}>
+                <button className="btn-s btn-sm remediation-action__rejected" onClick={() => handleReset(action.actionId)}>
                   <Ban size={12} /> Rechazado
                 </button>
               )}

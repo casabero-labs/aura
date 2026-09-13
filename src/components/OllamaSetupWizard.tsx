@@ -106,62 +106,50 @@ const PS_WINDOWS = `setx OLLAMA_ORIGINS "${ORIGIN}"`;
 
 const STATUS_INFO: Record<OllamaLocalStatus, {
   icon: React.ReactNode;
-  color: string;
   title: string;
 }> = {
   not_configured: {
     icon: <Wrench size={16} />,
-    color: 'var(--orange)',
     title: 'Falta configurar OLLAMA_ORIGINS',
   },
   permission_required: {
     icon: <Shield size={16} />,
-    color: 'var(--blue)',
     title: 'Permiso de red local requerido',
   },
   permission_denied: {
     icon: <AlertCircle size={16} />,
-    color: 'var(--error)',
     title: 'Permiso de red local denegado',
   },
   cors_blocked: {
     icon: <AlertCircle size={16} />,
-    color: 'var(--error)',
     title: 'Ollama no autoriza a AURA',
   },
   server_unreachable: {
     icon: <Server size={16} />,
-    color: 'var(--error)',
     title: 'Ollama no está iniciado',
   },
   timeout: {
     icon: <AlertCircle size={16} />,
-    color: 'var(--orange)',
     title: 'Ollama no respondió a tiempo',
   },
   model_missing: {
     icon: <HardDrive size={16} />,
-    color: 'var(--orange)',
     title: 'No hay modelos instalados',
   },
   insecure_context: {
     icon: <Lock size={16} />,
-    color: 'var(--error)',
     title: 'Contexto no seguro',
   },
   unsupported_browser: {
     icon: <Globe size={16} />,
-    color: 'var(--error)',
     title: 'Navegador no compatible',
   },
   ready: {
     icon: <CheckCircle size={16} />,
-    color: 'var(--success)',
     title: 'Ollama listo',
   },
   unknown_error: {
     icon: <AlertCircle size={16} />,
-    color: 'var(--error)',
     title: 'No se pudo diagnosticar la conexión',
   },
 };
@@ -451,7 +439,7 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
               ))}
             </div>
           </div>
-          <div className="ollama-wizard-section-header" style={{ marginTop: 'var(--space-md)' }}>
+          <div className="ollama-wizard-section-header ollama-wizard-section-header--spaced">
             <Globe size={14} />
             <strong>
               Navegador: {platform.browser === 'chrome' ? 'Chrome (recomendado)'
@@ -582,7 +570,7 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
           <p className="ollama-wizard-text">
             AURA consulta <code>{normalizedEndpoint}/api/tags</code> para detectar los modelos disponibles.
             {selectedModel && (
-              <span style={{ display: 'block', marginTop: '8px', color: 'var(--success)', fontWeight: 600 }}>
+              <span className="ollama-wizard-selected-model">
                 Modelo seleccionado: {selectedModel}
               </span>
             )}
@@ -603,9 +591,9 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
           </div>
 
           {scanError && (
-            <div className="ollama-wizard-diagnostic ollama-wizard-diagnostic--warning" style={{ marginTop: '12px' }} data-testid="ollama-scan-error">
+            <div className="ollama-wizard-diagnostic ollama-wizard-diagnostic--warning ollama-wizard-diagnostic--spaced" data-testid="ollama-scan-error">
               <div className="ollama-wizard-diagnostic-header">
-                <AlertCircle size={16} style={{ color: 'var(--orange)' }} />
+                <AlertCircle size={16} />
                 <div>
                   <strong>No se pudo completar el escaneo</strong>
                   <p className="ollama-wizard-diagnostic-msg">{scanError}</p>
@@ -625,7 +613,7 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
           )}
 
           {installedModels.length > 0 && (
-            <div className="ollama-wizard-model-list" style={{ marginTop: '12px' }}>
+            <div className="ollama-wizard-model-list ollama-wizard-model-list--spaced">
               <span className="ollama-wizard-model-label">Modelos instalados:</span>
               {installedModels.map(model => {
                 const sizeGB = model.size > 0 ? (model.size / (1024 ** 3)).toFixed(1) : null;
@@ -636,37 +624,24 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
                     type="button"
                     key={model.name}
                     className={`ollama-wizard-model-chip ${isSelected ? 'ollama-wizard-model-chip--selected' : ''}`}
-                    style={{
-                      width: '100%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      padding: '8px 12px',
-                      marginBottom: '8px',
-                      border: isSelected ? '2px solid var(--success)' : '1px solid var(--border)',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      background: isSelected ? 'var(--surface-success, #f0faf0)' : 'var(--surface1)',
-                    }}
                     onClick={() => setSelectedModel(model.name)}
                   >
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 600, fontSize: '13px' }}>{model.name}</div>
-                      <div style={{ fontSize: '11px', color: 'var(--ink3)' }}>
+                    <div className="ollama-wizard-model-chip-body">
+                      <div className="ollama-wizard-model-chip-name">{model.name}</div>
+                      <div className="ollama-wizard-model-chip-meta">
                         {sizeGB ? `${sizeGB} GB` : 'Tamaño no informado'}
                         {isCampaign ? ' · Modelo recomendado AURA' : ''}
                         {isModelHeavy(model.size) ? ' · Modelo pesado' : ''}
                       </div>
                     </div>
-                    {isSelected && <CheckCircle size={16} style={{ color: 'var(--success)', flexShrink: 0 }} />}
+                    {isSelected && <CheckCircle size={16} className="ollama-wizard-selected-icon" />}
                   </button>
                 );
               })}
             </div>
           )}
 
-          <div className="ollama-wizard-section-header" style={{ marginTop: 'var(--space-md)' }}>
+          <div className="ollama-wizard-section-header ollama-wizard-section-header--spaced">
             <Download size={14} />
             <strong>Modelos recomendados de AURA</strong>
           </div>
@@ -677,7 +652,7 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
             Detectados: {installedCampaignCount} de {FINAL_EVALUATION_OLLAMA_MODELS.length} modelos recomendados.
           </p>
 
-          <div style={{ display: 'grid', gap: '10px' }}>
+          <div className="ollama-wizard-campaign-list">
             {campaignModelStatus.map(model => {
               const command = `ollama run ${model.id}`;
               const download = downloads[model.id];
@@ -689,22 +664,17 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
                   className="ollama-wizard-code-block ollama-wizard-model-card"
                   data-testid={`ollama-formal-model-${model.id.replace(/[^a-zA-Z0-9]/g, '-')}`}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
+                  <div className="ollama-wizard-model-card-header">
                     <div>
                       <strong>{model.name}</strong>
-                      <p style={{ margin: '3px 0 0', fontSize: '11px', color: 'var(--ink3)' }}>{model.purpose}</p>
+                      <p className="ollama-wizard-model-card-meta">{model.purpose}</p>
                       {model.referenceSizeGB && (
-                        <p style={{ margin: '3px 0 0', fontSize: '11px', color: 'var(--ink3)' }}>
+                        <p className="ollama-wizard-model-card-meta">
                           Descarga GGUF de referencia: {model.referenceSizeGB.toFixed(2)} GB
                         </p>
                       )}
                     </div>
-                    <span style={{
-                      color: isInstalled ? 'var(--success)' : isDownloading ? 'var(--accent)' : 'var(--ink3)',
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      whiteSpace: 'nowrap',
-                    }}>
+                    <span className="ollama-wizard-model-status" data-status={isInstalled ? 'installed' : isDownloading ? 'downloading' : 'pending'}>
                       {isInstalled ? 'Instalado' : isDownloading ? 'Descargando' : 'Pendiente'}
                     </span>
                   </div>
@@ -794,13 +764,13 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
               <div className="ollama-wizard-diagnostic-header">
                 {STATUS_INFO[diagnostic.status].icon}
                 <div>
-                  <strong style={{ color: STATUS_INFO[diagnostic.status].color }}>{STATUS_INFO[diagnostic.status].title}</strong>
+                  <strong className="ollama-wizard-diagnostic-title" data-status={diagnostic.status}>{STATUS_INFO[diagnostic.status].title}</strong>
                   <p className="ollama-wizard-diagnostic-msg">{diagnostic.message}</p>
                 </div>
               </div>
 
               {diagnostic.details.selectedModel && (
-                <div className="ollama-wizard-model-list" style={{ marginTop: '8px' }}>
+                <div className="ollama-wizard-model-list ollama-wizard-model-list--compact">
                   <span className="ollama-wizard-model-label">Modelo activo:</span>
                   <code className="ollama-wizard-model-chip">{diagnostic.details.selectedModel}</code>
                 </div>
@@ -821,7 +791,7 @@ export const OllamaSetupWizard: React.FC<OllamaSetupWizardProps> = ({
                 {diagnostic.status === 'ready' && (
                   <>
                     <div className="ollama-wizard-ready-confirm">
-                      <CheckCircle size={16} style={{ color: 'var(--success)' }} />
+                      <CheckCircle size={16} className="ollama-wizard-selected-icon" />
                       <span>Ollama y el modelo están listos para diagnóstico local.</span>
                     </div>
                     <button

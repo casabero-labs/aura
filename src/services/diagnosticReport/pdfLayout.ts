@@ -1,4 +1,5 @@
 import { jsPDF } from 'jspdf';
+import { EDITORIAL_ARTIFACT_THEME } from '../editorialArtifactTheme';
 
 export interface PdfTheme {
   margin: {
@@ -8,6 +9,7 @@ export interface PdfTheme {
     left: number;
   };
   colors: {
+    canvas: string;
     ink: string;
     muted: string;
     faint: string;
@@ -20,6 +22,11 @@ export interface PdfTheme {
     info: string;
     good: string;
     white: string;
+  };
+  fonts: {
+    reading: string;
+    operation: string;
+    data: string;
   };
 }
 
@@ -43,18 +50,12 @@ export const createPdfTheme = (): PdfTheme => ({
     left: 18,
   },
   colors: {
-    ink: '#20242b',
-    muted: '#5b626d',
-    faint: '#7b8490',
-    border: '#d8dce1',
-    panel: '#f4f5f7',
-    accent: '#20242b',
-    accentSoft: '#eef2f6',
-    critical: '#b42318',
-    warning: '#b54708',
-    info: '#5b626d',
-    good: '#0f766e',
-    white: '#ffffff',
+    ...EDITORIAL_ARTIFACT_THEME.colors,
+  },
+  fonts: {
+    reading: EDITORIAL_ARTIFACT_THEME.fonts.reading,
+    operation: EDITORIAL_ARTIFACT_THEME.fonts.operation,
+    data: EDITORIAL_ARTIFACT_THEME.fonts.data,
   },
 });
 
@@ -111,12 +112,12 @@ export const addPageHeader = (doc: jsPDF, theme: PdfTheme, title = 'AURA - Infor
   doc.setLineWidth(0.2);
   doc.line(theme.margin.left, 13, pageWidth - theme.margin.right, 13);
 
-  doc.setFont('helvetica', 'bold');
+  doc.setFont(theme.fonts.reading, 'bold');
   doc.setFontSize(8);
   doc.setTextColor(theme.colors.accent);
   doc.text('AURA', theme.margin.left, 9.5);
 
-  doc.setFont('helvetica', 'normal');
+  doc.setFont(theme.fonts.operation, 'normal');
   doc.setTextColor(theme.colors.faint);
   doc.text(title, pageWidth - theme.margin.right, 9.5, { align: 'right' });
 };
@@ -128,7 +129,7 @@ export const addPageFooter = (doc: jsPDF, theme: PdfTheme, pageNumber: number, p
   doc.setLineWidth(0.2);
   doc.line(theme.margin.left, pageHeight - 16, pageWidth - theme.margin.right, pageHeight - 16);
 
-  doc.setFont('helvetica', 'normal');
+  doc.setFont(theme.fonts.operation, 'normal');
   doc.setFontSize(8);
   doc.setTextColor(theme.colors.faint);
   doc.text('AURA - Informe diagnóstico', theme.margin.left, pageHeight - 10);
@@ -148,13 +149,13 @@ export const addSectionTitle = (ctx: PdfLayoutContext, title: string, eyebrow?: 
   ensureSpace(ctx, eyebrow ? 22 : 16);
   const { doc, theme } = ctx;
   if (eyebrow) {
-    doc.setFont('courier', 'normal');
+    doc.setFont(theme.fonts.data, 'normal');
     doc.setFontSize(7);
     doc.setTextColor(theme.colors.accent);
     doc.text(eyebrow.toUpperCase(), theme.margin.left, ctx.cursorY);
     ctx.cursorY += 5;
   }
-  doc.setFont('helvetica', 'bold');
+  doc.setFont(theme.fonts.reading, 'bold');
   doc.setFontSize(14);
   doc.setTextColor(theme.colors.ink);
   doc.text(title, theme.margin.left, ctx.cursorY);
@@ -170,12 +171,12 @@ export const addParagraph = (ctx: PdfLayoutContext, text: string, options: { fon
   const { doc, theme } = ctx;
   const fontSize = options.fontSize ?? 9.5;
   const leading = options.leading ?? 5;
-  doc.setFont('helvetica', 'normal');
+  doc.setFont(theme.fonts.operation, 'normal');
   doc.setFontSize(fontSize);
   const lines = doc.splitTextToSize(text || 'Sin información disponible.', getContentWidth(ctx));
   for (const line of lines) {
     ensureSpace(ctx, leading + 2);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont(theme.fonts.operation, 'normal');
     doc.setFontSize(fontSize);
     doc.setTextColor(options.color ?? theme.colors.muted);
     doc.text(line, theme.margin.left, ctx.cursorY);
@@ -187,12 +188,12 @@ export const addParagraph = (ctx: PdfLayoutContext, text: string, options: { fon
 export const addBulletList = (ctx: PdfLayoutContext, items: string[], maxItems = 8) => {
   const visibleItems = items.length > 0 ? items.slice(0, maxItems) : ['Sin limitaciones registradas.'];
   const { doc, theme } = ctx;
-  doc.setFont('helvetica', 'normal');
+  doc.setFont(theme.fonts.operation, 'normal');
   doc.setFontSize(8.7);
   for (const item of visibleItems) {
     const lines = doc.splitTextToSize(truncateText(item, 260), getContentWidth(ctx) - 6);
     ensureSpace(ctx, lines.length * 4.8 + 2);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont(theme.fonts.operation, 'normal');
     doc.setFontSize(8.7);
     doc.setTextColor(theme.colors.muted);
     doc.text('•', theme.margin.left + 1, ctx.cursorY);
@@ -217,11 +218,11 @@ export const addKpiGrid = (ctx: PdfLayoutContext, items: KpiItem[]) => {
     doc.setFillColor(theme.colors.white);
     doc.setDrawColor(theme.colors.border);
     doc.rect(x, y, width, rowHeight, 'FD');
-    doc.setFont('helvetica', 'bold');
+    doc.setFont(theme.fonts.operation, 'bold');
     doc.setFontSize(13);
     doc.setTextColor(theme.colors.ink);
     doc.text(truncateText(item.value, 18), x + 4, y + 9);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont(theme.fonts.operation, 'normal');
     doc.setFontSize(7.6);
     doc.setTextColor(theme.colors.faint);
     doc.text(truncateText(item.label, 30), x + 4, y + 15);
@@ -237,7 +238,7 @@ export const addKpiGrid = (ctx: PdfLayoutContext, items: KpiItem[]) => {
 export const addGovernanceCallout = (ctx: PdfLayoutContext, title: string, items: string[]) => {
   const { doc, theme } = ctx;
   const width = getContentWidth(ctx);
-  doc.setFont('helvetica', 'normal');
+  doc.setFont(theme.fonts.operation, 'normal');
   doc.setFontSize(8.2);
   const itemLines = items.map((item) => doc.splitTextToSize(item, width - 12));
   const height = 14 + itemLines.reduce((sum, lines) => sum + Math.max(1, lines.length) * 4.8 + 1, 0);
@@ -248,11 +249,11 @@ export const addGovernanceCallout = (ctx: PdfLayoutContext, title: string, items
   doc.setDrawColor(theme.colors.accent);
   doc.setLineWidth(0.8);
   doc.line(theme.margin.left, ctx.cursorY, theme.margin.left, ctx.cursorY + height);
-  doc.setFont('helvetica', 'bold');
+  doc.setFont(theme.fonts.operation, 'bold');
   doc.setFontSize(9);
   doc.setTextColor(theme.colors.ink);
   doc.text(title, theme.margin.left + 5, ctx.cursorY + 7);
-  doc.setFont('helvetica', 'normal');
+  doc.setFont(theme.fonts.operation, 'normal');
   doc.setFontSize(8.2);
   doc.setTextColor(theme.colors.muted);
   let y = ctx.cursorY + 13;

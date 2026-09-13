@@ -1,5 +1,6 @@
 import React from 'react';
 import { X, Calendar } from 'lucide-react';
+import EditorialDialog from './EditorialDialog';
 
 interface ChangelogModalProps {
   onClose: () => void;
@@ -189,22 +190,28 @@ const CHANGELOG_ENTRIES: ChangelogEntry[] = [
 
 const ChangelogModal: React.FC<ChangelogModalProps> = ({ onClose }) => {
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-panel changelog-modal" onClick={e => e.stopPropagation()}>
+    <EditorialDialog
+      title="Historial de cambios"
+      onClose={onClose}
+      className="modal-panel changelog-modal"
+      bodyClassName="changelog-body"
+      testId="changelog-dialog"
+      header={(
         <div className="modal-header">
           <div className="modal-title-group">
             <Calendar size={18} className="modal-title-icon" />
             <div>
               <p className="modal-eyebrow">historial versionado</p>
-              <h2 className="modal-title">Historial de cambios</h2>
+              <h2 className="modal-title" id="changelog-title">Historial de cambios</h2>
             </div>
           </div>
           <button className="modal-close" onClick={onClose} aria-label="Cerrar">
             <X size={18} />
           </button>
         </div>
-
-        <div className="modal-body changelog-body">
+      )}
+    >
+      <div className="modal-body">
           {CHANGELOG_ENTRIES.map((entry) => (
             <div key={entry.version} className="changelog-entry">
               <div className="changelog-entry-header">
@@ -232,9 +239,8 @@ const ChangelogModal: React.FC<ChangelogModalProps> = ({ onClose }) => {
               </div>
             </div>
           ))}
-        </div>
       </div>
-    </div>
+    </EditorialDialog>
   );
 };
 

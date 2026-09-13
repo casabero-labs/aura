@@ -153,11 +153,12 @@ const CampaignReportPanel: React.FC<CampaignReportPanelProps> = ({
           </details>
           <div className="oe4-score-table-wrap">
             <table className="oe4-score-table">
-              <thead><tr><th>Modelo + entrada</th><th>Alineación GT</th><th>Fiabilidad</th><th>Contrato</th><th>Evidencia</th><th>Sin alucinaciones</th><th>Velocidad</th><th>Equilibrado</th></tr></thead>
+              <caption>Scores comparables por modelo y modo de entrada</caption>
+              <thead><tr><th scope="col">Modelo + entrada</th><th scope="col">Alineación GT</th><th scope="col">Fiabilidad</th><th scope="col">Contrato</th><th scope="col">Evidencia</th><th scope="col">Sin alucinaciones</th><th scope="col">Velocidad</th><th scope="col">Equilibrado</th></tr></thead>
               <tbody>
                 {evidenceDocument.decisionSupport.scores.map((entry) => (
                   <tr key={entry.cellId}>
-                    <th>{modelName(entry.modelId)}<small>{OE4_INPUT_MODE_LABELS[entry.inputMode]}</small></th>
+                    <th scope="row">{modelName(entry.modelId)}<small>{OE4_INPUT_MODE_LABELS[entry.inputMode]}</small></th>
                     <td>{score(entry.accuracy)}</td>
                     <td>{score(entry.reliability)}</td>
                     <td>{score(entry.contractCompliance)}</td>

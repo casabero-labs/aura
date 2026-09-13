@@ -405,11 +405,11 @@ const DiagnosticReportStep: React.FC<DiagnosticReportStepProps> = ({
 
   return (
     <>
-      <section className="section diagnostic-report-stage editorial-pilot" data-testid="diagnostic-report-stage">
+      <section className="section diagnostic-report-stage" data-testid="diagnostic-report-stage">
         <div className="diagnostic-report-hero" data-testid="diagnostic-report-header">
           <div>
             <p className="sec-eye">REPORTE DIAGNÓSTICO</p>
-            <h2 className="sec-title">Qué encontró AURA y qué puedes hacer</h2>
+            <h1 className="sec-title">Qué encontró AURA y qué puedes hacer</h1>
             <p className="section-note">{subtitleByStatus[diagnosticReport.status.diagnosticStatus]}</p>
           </div>
           <div className="diagnostic-report-actions diagnostic-report-actions--top">

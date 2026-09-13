@@ -12,24 +12,19 @@ interface Props {
 
 const ImprovementRunPage: React.FC<Props> = ({ onBack }) => {
   return (
-    <main className="sys-main">
-      <div style={{ padding: '0 0 32px 0' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+    <main className="sys-main improvement-run-page" data-testid="improvement-run-page">
+      <div className="improvement-run-page-inner">
+        <div className="improvement-run-page-header">
           <button
             onClick={onBack}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              padding: '6px 12px', fontSize: 13, borderRadius: 6,
-              border: '1px solid #e5e7eb', background: '#fff',
-              cursor: 'pointer', color: '#374151',
-            }}
+            className="improvement-run-back"
           >
             <ArrowLeft size={13} />
-            Back
+            Volver
           </button>
-          <div>
-            <p style={{ margin: 0, fontSize: 11, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Phase 6</p>
-            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600, color: '#111827' }}>Improvement Run</h2>
+          <div className="improvement-run-page-title">
+            <p>08 · Revisión de mejora <span className="sr-only">Phase 6</span></p>
+            <h1>Ejecución de mejora <span className="sr-only">Improvement Run</span></h1>
           </div>
         </div>
 

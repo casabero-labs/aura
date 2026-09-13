@@ -48,19 +48,14 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect }) => {
         setIsDragging(true);
       }}
       onDragLeave={() => setIsDragging(false)}
-      onClick={() => inputRef.current?.click()}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter' || event.key === ' ') inputRef.current?.click();
-      }}
+      aria-describedby={error ? 'csv-upload-error' : 'csv-upload-help'}
     >
       <span className="file-drop-icon"><FileUp size={24} /></span>
       <div className="file-drop-main">
         <h3>{uploadCopy.title}</h3>
-        <p className="file-drop-eyebrow">{uploadCopy.privacy}</p>
+        <p className="file-drop-eyebrow" id="csv-upload-help">{uploadCopy.privacy}</p>
         <div className="file-drop-actions">
-          <button className="btn-p btn-sm" type="button">
+          <button className="btn-p btn-sm" type="button" onClick={() => inputRef.current?.click()}>
             <FileUp size={13} /> Seleccionar archivo
           </button>
           <span className="file-drop-status">
@@ -71,9 +66,9 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect }) => {
             )}
           </span>
         </div>
-        {error && <p className="file-drop-error">{error}</p>}
+        {error && <p className="file-drop-error" id="csv-upload-error" role="alert">{error} Puedes elegir otro archivo.</p>}
       </div>
-      <input ref={inputRef} type="file" accept=".csv" className="hidden" tabIndex={-1} aria-hidden="true" onChange={handleChange} data-testid="csv-file-input" />
+      <input ref={inputRef} type="file" accept=".csv" className="file-drop-input" aria-label="Archivo CSV" onChange={handleChange} data-testid="csv-file-input" />
     </div>
   );
 };

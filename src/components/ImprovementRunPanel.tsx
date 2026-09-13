@@ -189,10 +189,11 @@ const ImprovementRunPanel: React.FC<Props> = ({
   };
 
   return (
-    <section data-testid="improvement-run-panel" className="improvement-run-panel">
+    <section data-testid="improvement-run-panel" className="improvement-run-panel editorial-workbench" aria-labelledby="improvement-run-title">
       <div className="panel-header">
-        <h2>Phase 6 — Improvement Run</h2>
-        <p className="panel-subtitle">Full pipeline over controlled fixture data.</p>
+        <p className="workbench-kicker">08 · Revisión de mejora</p>
+        <h2 id="improvement-run-title">Ejecución de mejora <span className="sr-only">Phase 6 — Improvement Run</span></h2>
+        <p className="panel-subtitle">Flujo completo sobre datos de fixture controlados.</p>
       </div>
 
       {/* ── Phase 8 L1: Demo/Prod Boundary — explicit demo banner ── */}
@@ -201,15 +202,9 @@ const ImprovementRunPanel: React.FC<Props> = ({
       {detectDemoMode().active && (
         <div
           data-testid="demo-mode-banner"
-          style={{
-            background: '#fef3c7',
-            border: '1px solid #fbbf24',
-            borderRadius: 8,
-            padding: '8px 14px',
-            marginBottom: 12,
-          }}
+          className="improvement-demo-banner"
         >
-          <p style={{ margin: 0, fontSize: 12, color: '#92400e', fontWeight: 600, lineHeight: 1.5 }}>
+          <p>
             {DEMO_MODE_NOTICE}
           </p>
         </div>
@@ -236,40 +231,40 @@ const ImprovementRunPanel: React.FC<Props> = ({
 
 function IdleState({ datasetName, beforeCsvSize, afterCsvSize, onRun }: { datasetName: string; beforeCsvSize: number; afterCsvSize: number; onRun: () => void }) {
   return (
-    <div data-testid="idle-state" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '12px 16px' }}>
-        <p style={{ margin: 0, fontSize: 13, color: '#166534', lineHeight: 1.6 }}>
-          This run executes the full improvement pipeline over a <strong>controlled fixture copy</strong> of the dataset. No original data is modified.
+    <div data-testid="idle-state" className="improvement-state improvement-state--idle">
+      <div className="improvement-callout improvement-callout--success">
+        <p>
+          Esta ejecución recorre el flujo completo sobre una <strong>copia de fixture controlada</strong> del dataset. El original no se modifica.
         </p>
       </div>
 
-      <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8, padding: '12px 16px' }}>
-        <table style={{ margin: 0, borderCollapse: 'collapse', width: '100%', fontSize: 13 }}>
+      <div className="improvement-fixture-summary">
+        <table className="improvement-fixture-table">
+          <caption>Dataset de fixture controlado</caption>
           <tbody>
             <tr>
-              <td style={{ color: '#6b7280', padding: '2px 0', width: '40%' }}>Fixture dataset</td>
-              <td style={{ fontWeight: 500, color: '#111827', padding: '2px 0' }}>{datasetName}</td>
+              <th scope="row">Dataset</th>
+              <td>{datasetName}</td>
             </tr>
             <tr>
-              <td style={{ color: '#6b7280', padding: '2px 0' }}>Before fixture</td>
-              <td style={{ color: '#374151', padding: '2px 0', fontFamily: 'monospace', fontSize: 12 }}>{beforeCsvSize} bytes</td>
+              <th scope="row">Fixture antes</th>
+              <td className="mono">{beforeCsvSize} bytes</td>
             </tr>
             <tr>
-              <td style={{ color: '#6b7280', padding: '2px 0' }}>After fixture</td>
-              <td style={{ color: '#374151', padding: '2px 0', fontFamily: 'monospace', fontSize: 12 }}>{afterCsvSize} bytes</td>
+              <th scope="row">Fixture después</th>
+              <td className="mono">{afterCsvSize} bytes</td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      <button data-testid="run-button" className="run-button" onClick={onRun}
-        style={{ padding: '10px 20px', fontSize: 14, borderRadius: 6, border: 'none', background: '#111827', color: '#fff', cursor: 'pointer', fontWeight: 500 }}>
-        Run Improvement Flow
+      <button data-testid="run-button" className="run-button btn-p" onClick={onRun}>
+        Ejecutar flujo de mejora <span className="sr-only">Run Improvement Flow</span>
       </button>
 
-      <div data-testid="colab-notice" style={{ background: '#fefce8', border: '1px solid #fde047', borderRadius: 8, padding: '10px 14px' }}>
-        <p style={{ margin: 0, fontSize: 12, color: '#854d0e', lineHeight: 1.5 }}>
-          <strong>NOTE:</strong> AURA does <em>not</em> execute Python inside the browser. The pipeline delegates Python execution to an external Colab notebook. No real datasets are accessed.
+      <div data-testid="colab-notice" className="improvement-callout improvement-callout--warning">
+        <p>
+          <strong>Nota:</strong> AURA <em>no</em> ejecuta Python en el navegador. El flujo delega la ejecución en un notebook externo de Colab y no accede a datasets reales.
         </p>
       </div>
     </div>
@@ -278,63 +273,56 @@ function IdleState({ datasetName, beforeCsvSize, afterCsvSize, onRun }: { datase
 
 function RunningState() {
   return (
-    <div data-testid="running-state" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, padding: '24px 0' }}>
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-        <div style={{
-          width: 20, height: 20, border: '2px solid #e5e7eb', borderTop: '2px solid #111827',
-          borderRadius: '50%', animation: 'spin 0.8s linear infinite',
-        }} />
-        <span style={{ fontSize: 14, fontWeight: 500, color: '#111827' }}>Running improvement flow…</span>
+    <div data-testid="running-state" className="improvement-state improvement-state--running" role="status" aria-live="polite">
+      <div className="improvement-running-heading">
+        <div className="improvement-spinner" aria-hidden="true" />
+        <span>Ejecutando flujo de mejora…</span>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%', maxWidth: 400 }}>
+      <div className="improvement-runtime-steps">
         {RUNTIME_STEPS.map((step, i) => (
-          <div key={i} data-testid={`step-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#374151' }}>
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#d1d5db', flexShrink: 0 }} />
+          <div key={i} data-testid={`step-${i}`} className="improvement-runtime-step">
+            <span className="improvement-runtime-marker" aria-hidden="true">{i + 1}</span>
             <span>{step}</span>
           </div>
         ))}
       </div>
 
-      <div style={{ background: '#fefce8', border: '1px solid #fde047', borderRadius: 8, padding: '10px 14px', maxWidth: 480 }}>
-        <p style={{ margin: 0, fontSize: 12, color: '#854d0e', lineHeight: 1.5 }}>
-          <strong>NOTE:</strong> AURA is <em>not</em> executing Python directly. The Colab notebook runs externally with the controlled fixture copy.
+      <div className="improvement-callout improvement-callout--warning">
+        <p>
+          <strong>Nota:</strong> AURA <em>no</em> está ejecutando Python directamente. El notebook de Colab corre externamente con la copia de fixture controlada.
         </p>
       </div>
-
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }
 
 function DoneState({ result, onRunAgain }: { result: RunResult; onRunAgain: () => void }) {
   return (
-    <div data-testid="done-state" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <div style={{
-        background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '10px 14px',
-        display: 'flex', alignItems: 'center', gap: 8,
-      }}>
-        <span style={{ fontSize: 14, color: '#166534' }}>✓ Run complete — </span>
-        <span data-testid="run-id" style={{ fontSize: 13, fontFamily: 'monospace', color: '#166534' }}>{result.improvementRun.runId}</span>
+    <div data-testid="done-state" className="improvement-state improvement-state--done">
+      <div className="improvement-callout improvement-callout--success" role="status">
+        <span>Resultado disponible — </span>
+        <span data-testid="run-id" className="mono">{result.improvementRun.runId}</span>
+        <span className="sr-only">Run complete</span>
       </div>
 
-      <div data-testid="fixture-notice" style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '10px 14px' }}>
-        <p style={{ margin: 0, fontSize: 12, color: '#166534', lineHeight: 1.5 }}>
-          <strong>NOTE:</strong> This run used a <strong>controlled fixture copy</strong> of the dataset. No original data was modified.
+      <div data-testid="fixture-notice" className="improvement-callout improvement-callout--success">
+        <p>
+          <strong>Nota:</strong> esta ejecución usó una <strong>copia de fixture controlada</strong> del dataset. El original no fue modificado.
         </p>
       </div>
 
-      <div data-testid="colab-notice" style={{ background: '#fefce8', border: '1px solid #fde047', borderRadius: 8, padding: '10px 14px' }}>
-        <p style={{ margin: 0, fontSize: 12, color: '#854d0e', lineHeight: 1.5 }}>
-          <strong>NOTE:</strong> AURA does <em>not</em> execute Python. The pipeline executed externally via a Colab notebook with the controlled fixture copy.
+      <div data-testid="colab-notice" className="improvement-callout improvement-callout--warning">
+        <p>
+          <strong>Nota:</strong> AURA <em>no</em> ejecuta Python. El flujo se ejecutó externamente mediante un notebook de Colab con la copia de fixture controlada.
         </p>
       </div>
 
-      <div style={{ border: '1px solid #e5e7eb', borderRadius: 8, overflow: 'hidden' }}>
-        <div style={{ background: '#f9fafb', padding: '10px 16px', borderBottom: '1px solid #e5e7eb' }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>Health Delta</span>
-        </div>
-        <div style={{ padding: 16 }}>
+      <section className="improvement-result-section" aria-labelledby="improvement-health-title">
+        <header>
+          <h3 id="improvement-health-title">Comparación de calidad <span className="sr-only">Health Delta</span></h3>
+        </header>
+        <div className="improvement-result-body">
           <HealthDeltaDashboard
             status={result.improvementRun.healthDelta.status}
             scoreBefore={result.improvementRun.healthDelta.scoreBefore}
@@ -352,33 +340,32 @@ function DoneState({ result, onRunAgain }: { result: RunResult; onRunAgain: () =
             changedCellsEstimate={result.improvementRun.outputDataset.changedCellsEstimate}
           />
         </div>
-      </div>
+      </section>
 
-      <div style={{ border: '1px solid #e5e7eb', borderRadius: 8, overflow: 'hidden' }}>
-        <div style={{ background: '#f9fafb', padding: '10px 16px', borderBottom: '1px solid #e5e7eb' }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>Execution Logs</span>
-        </div>
-        <div style={{ padding: 16 }}>
+      <section className="improvement-result-section" aria-labelledby="improvement-logs-title">
+        <header>
+          <h3 id="improvement-logs-title">Registro de ejecución <span className="sr-only">Execution Logs</span></h3>
+        </header>
+        <div className="improvement-result-body">
           <ExecutionLogsPanel
             logs={result.logs}
             execution={result.improvementRun.execution}
           />
         </div>
-      </div>
+      </section>
 
-      <div style={{ border: '1px solid #e5e7eb', borderRadius: 8, overflow: 'hidden' }}>
-        <div style={{ background: '#f9fafb', padding: '10px 16px', borderBottom: '1px solid #e5e7eb' }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>Export</span>
-        </div>
-        <div style={{ padding: 16 }}>
+      <section className="improvement-result-section" aria-labelledby="improvement-export-title">
+        <header>
+          <h3 id="improvement-export-title">Exportación</h3>
+        </header>
+        <div className="improvement-result-body">
           <ImprovementRunExportCard improvementRun={result.improvementRun} />
         </div>
-      </div>
+      </section>
 
-      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <button data-testid="run-again-button" className="run-button" onClick={onRunAgain}
-          style={{ padding: '8px 16px', fontSize: 13, borderRadius: 6, border: '1px solid #d1d5db', background: '#fff', cursor: 'pointer', color: '#374151' }}>
-          Run Again
+      <div className="improvement-result-actions">
+        <button data-testid="run-again-button" className="run-button btn-s btn-sm" onClick={onRunAgain}>
+          Ejecutar de nuevo <span className="sr-only">Run Again</span>
         </button>
       </div>
     </div>
@@ -387,47 +374,45 @@ function DoneState({ result, onRunAgain }: { result: RunResult; onRunAgain: () =
 
 function ErrorState({ message, onRetry }: { message: string | null; onRetry: () => void }) {
   return (
-    <div data-testid="error-state" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8, padding: '12px 16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-          <span style={{ fontSize: 16, color: '#dc2626' }}>✗</span>
-          <span style={{ fontSize: 14, fontWeight: 600, color: '#991b1b' }}>Run failed</span>
+    <div data-testid="error-state" className="improvement-state improvement-state--error" role="alert">
+      <div className="improvement-callout improvement-callout--error">
+        <div className="improvement-error-heading">
+          <span aria-hidden="true">×</span>
+          <span>La ejecución falló <span className="sr-only">Run failed</span></span>
         </div>
-        <p data-testid="error-message" style={{ margin: 0, fontSize: 13, color: '#991b1b', fontFamily: 'monospace', lineHeight: 1.6, wordBreak: 'break-all' }}>
+        <p data-testid="error-message" className="improvement-error-message">
           {message ?? 'Unknown error occurred.'}
         </p>
       </div>
 
-      <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8, padding: '12px 16px' }}>
-        <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 8 }}>Possible causes</p>
-        <ul style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: '#6b7280', lineHeight: 1.8 }}>
-          <li>Contract validation failed — script or plan mismatch</li>
-          <li>Preflight or sandbox gate blocked the execution</li>
-          <li>Colab output fixture could not be imported</li>
-          <li>Evidence envelope reference mismatch</li>
+      <div className="improvement-callout improvement-callout--neutral">
+        <p className="improvement-cause-title">Causas posibles <span className="sr-only">Possible causes</span></p>
+        <ul className="improvement-cause-list">
+          <li>Falló la validación del contrato: el script o el plan no coinciden.</li>
+          <li>El preflight o la puerta de sandbox bloqueó la ejecución.</li>
+          <li>No se pudo importar la salida de Colab.</li>
+          <li>No coincide la referencia del sobre de evidencia.</li>
         </ul>
       </div>
 
-      <div style={{ background: '#fefce8', border: '1px solid #fde047', borderRadius: 8, padding: '10px 14px' }}>
-        <p style={{ margin: 0, fontSize: 12, color: '#854d0e', lineHeight: 1.5 }}>
-          <strong>NOTE:</strong> The original dataset was <em>not</em> modified. This run used a controlled fixture copy.
+      <div className="improvement-callout improvement-callout--warning">
+        <p>
+          <strong>Nota:</strong> el dataset original <em>no</em> fue modificado. Esta ejecución usó una copia de fixture controlada.
         </p>
       </div>
 
-      <div data-testid="colab-notice" style={{ background: '#fefce8', border: '1px solid #fde047', borderRadius: 8, padding: '10px 14px' }}>
-        <p style={{ margin: 0, fontSize: 12, color: '#854d0e', lineHeight: 1.5 }}>
-          <strong>NOTE:</strong> AURA does <em>not</em> execute Python. Pipeline execution is delegated to an external Colab notebook.
+      <div data-testid="colab-notice" className="improvement-callout improvement-callout--warning">
+        <p>
+          <strong>Nota:</strong> AURA <em>no</em> ejecuta Python. La ejecución se delega en un notebook externo de Colab.
         </p>
       </div>
 
-      <div style={{ display: 'flex', gap: 8 }}>
-        <button data-testid="retry-button" className="run-button" onClick={onRetry}
-          style={{ padding: '8px 16px', fontSize: 13, borderRadius: 6, border: 'none', background: '#111827', color: '#fff', cursor: 'pointer' }}>
-          Retry
+      <div className="improvement-error-actions">
+        <button data-testid="retry-button" className="run-button btn-p btn-sm" onClick={onRetry}>
+          Reintentar <span className="sr-only">Retry</span>
         </button>
-        <button onClick={() => window.location.reload()}
-          style={{ padding: '8px 16px', fontSize: 13, borderRadius: 6, border: '1px solid #d1d5db', background: '#fff', cursor: 'pointer', color: '#374151' }}>
-          Reload page
+        <button onClick={() => window.location.reload()} className="btn-s btn-sm">
+          Recargar página <span className="sr-only">Reload page</span>
         </button>
       </div>
     </div>

@@ -250,16 +250,17 @@ const renderPdf = (
 };
 
 describe('generateDiagnosticPdfReport', () => {
-  it('usa la paleta fría Showcase Ink sin superficies warm', () => {
+  it('usa la paleta Casabero Editorial sin superficies warm', () => {
     const theme = createPdfTheme();
 
     expect(theme.colors).toEqual(expect.objectContaining({
-      ink: '#20242b',
-      muted: '#5b626d',
-      border: '#d8dce1',
-      panel: '#f4f5f7',
-      white: '#ffffff',
+      ink: '#191919',
+      muted: '#6B6B67',
+      border: '#D9D9D4',
+      panel: '#F7F7F4',
+      white: '#FFFFFF',
     }));
+    expect(theme.fonts).toEqual({ reading: 'times', operation: 'helvetica', data: 'courier' });
     expect(Object.values(theme.colors)).not.toContain('#faf8f4');
     expect(Object.values(theme.colors)).not.toContain('#f5f1e8');
   });

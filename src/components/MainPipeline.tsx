@@ -740,19 +740,31 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
       <PipelineProgress
         currentStep={state}
         onStepClick={(step) => {
-          // Allow navigation to completed or current steps
+          const stepOrder: Record<PipelineState, number> = {
+            upload: 0,
+            profile: 1,
+            diagnosis: 2,
+            diagnostic_report: 3,
+            script: 4,
+            review: 5,
+            execution: 6,
+            export: 7,
+          };
+          // The stepper is a history navigator, not a way to bypass a pending gate.
+          if (stepOrder[step] > stepOrder[state]) return;
+
           if (step === 'diagnostic_report') {
             if (hasData && ensureDiagnosticReportForNavigation()) {
               setState(step);
             }
             return;
           }
-          if (hasData && ['script', 'review', 'export'].includes(step)) {
+          if (hasData && ['script', 'review', 'execution', 'export'].includes(step)) {
             ensureDiagnosticReportForNavigation();
             setState(step);
             return;
           }
-          if (step === 'upload' || (hasData && ['profile', 'calibration', 'diagnosis'].includes(step))) {
+          if (step === 'upload' || (hasData && ['profile', 'diagnosis'].includes(step))) {
             setState(step);
           }
         }}
@@ -764,7 +776,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
           <div className="section-header">
             <div>
               <p className="sec-eye">entrada local</p>
-              <h2 className="sec-title">Cargar dataset.</h2>
+              <h2 className="sec-title">01 · Cargar dataset</h2>
             </div>
           </div>
           <FileUpload onFileSelect={processFile} />

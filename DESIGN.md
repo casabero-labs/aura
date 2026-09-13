@@ -1,111 +1,87 @@
 ---
-version: "1.1"
+version: "1.2.0"
+standard_version: "1.2.0"
+theme: "Casabero Editorial"
 name: AURA
-description: Interfaz Warm Core con variante Terminal + Archive para auditoria reproducible de calidad del dato, diagnostico asistido por LLM y benchmark experimental.
+description: Interfaz Editorial para diagnóstico reproducible, evidencia verificable y decisiones humanas sobre calidad de datos.
 source_of_truth:
   standards_repo: "/Users/casabero/Documents/GitHub/estandar-casabero"
-  primary_reference: "/Users/casabero/Documents/GitHub/estandar-casabero/examples/frontend/showcase.html"
-  required_frontend_docs:
-    - "standards/frontend/UX_UI_MANIFESTO.md"
-    - "standards/frontend/VARIANTS.md"
-    - "standards/frontend/DESIGN_SYSTEM.md"
-    - "standards/frontend/ACCESSIBILITY.md"
-    - "standards/frontend/STATE.md"
-variant: "Terminal + Archive"
-colors:
-  ink: "#1E1E1C"
-  ink2: "#4A4540"
-  ink3: "#9A9490"
-  ink-soft: "#3A3632"
-  ink-muted: "#8A857E"
-  ink-faint: "#B5B0A8"
-  bg: "#FAF8F4"
-  surface: "#F5F1E8"
-  surface-raised: "#F0ECE2"
-  surface-hover: "#EBE6DB"
-  border: "rgba(30,30,28,0.1)"
-  border-strong: "rgba(30,30,28,0.18)"
-  border-faint: "rgba(30,30,28,0.05)"
+  standard_commit: "1ac2d4d0e49a5f393c30c26f5c7d2bbe163e3383"
+  normative_theme: "standards/design/themes/EDITORIAL.md"
+  core: "standards/design/CORE.md"
+  web: "standards/design/media/WEB.md"
+  record_detail: "standards/design/components/RECORD_DETAIL.md"
+  table: "standards/design/components/TABLE.md"
+  accessibility: "standards/frontend/ACCESSIBILITY.md"
+  human_first_ux: "standards/frontend/HUMAN_FIRST_UX.md"
+  visual_example: "examples/frontend/showcase-editorial.html"
+preset: "Editorial estándar"
 typography:
-  font-heading: "Playfair Display"
-  font-body: Inter
-  font-mono: "JetBrains Mono"
-spacing:
-  xxs: 4px
-  xs: 8px
-  sm: 12px
-  md: 16px
-  lg: 24px
-  xl: 32px
-  xxl: 48px
-  section: 64px
-rounded:
-  xs: 4px
-  sm: 6px
-  md: 8px
-  lg: 12px
-  xl: 16px
+  reading: 'Source Serif 4'
+  operation: 'Source Sans 3'
+  data: system-mono
+roles:
+  Lectura: "Párrafos, explicaciones, citas y conclusiones en serif."
+  Estructura: "Títulos, subtítulos y entradas de sección en serif con jerarquía contenida."
+  Operación: "Navegación, botones, formularios, ayudas y estados en sans funcional."
+  Datos: "Tablas, cifras, identificadores y código con sans tabular o mono cuando el dominio lo exige."
+  Metadatos: "Fechas, numeración, fuentes, captions y firma en sans discreta."
+tokens:
+  canvas: "#FFFFFF"
+  ink: "#191919"
+  ink_secondary: "#4D4D4A"
+  ink_muted: "#6B6B67"
+  line: "#D9D9D4"
+  line_strong: "#A7A7A0"
+  surface: "#F7F7F4"
+  surface_quiet: "#FBFBF9"
 components:
-  brand-mark: "Tres elipses sin glifo central, fill none y stroke currentColor 1.55"
-  primary-outline-lg: "CTA Home transparente, texto y borde ink, radio 6px, alto 44px, ancho minimo 120px y width fit-content"
-  shell: "Header sticky, main centrado, secciones de trabajo sin landing comercial"
-  upload: "Dropzone tecnico con alternativa de seleccion y estado visible"
-  profile: "Bloques Archive para caracterizacion, reglas y evidencia"
-  diagnosis: "Panel cognitivo amplio con tablas legibles y contrato visible"
-  lab: "Banco experimental con protocolo, runner, log, matriz y graficas"
-  drawer: "Sheet lateral sin modal flotante para configuracion"
-  feedback: "Logs, barras, etiquetas y texto; nunca solo color"
+  brand_mark: "Tres elipses del mismo color, fill none, currentColor y stroke-width 1.55; sin glifo interno."
+  shell: "Nav estable de 52px, skip link, ubicación actual, contenido centrado hasta 1280px y ayuda consistente."
+  primary_action: "Una acción primaria por bloque; botones outline o texto salvo diferenciación operativa necesaria."
+  record_detail: "Identidad, identificador, metadata, procedencia y acciones en un eje editorial."
+  table: "Tabla semántica con caption, thead, scope, unidades y scroll local cuando sea necesario."
+  status: "Texto, estructura y señal no cromática; el color solo refuerza."
+  artifact: "Web, PDF, SVG e impresión comparten canvas, tinta, líneas y roles tipográficos."
+invariants:
+  - "Los contratos de datos, schemas, hashes, receipts, score, reglas y resultados permanecen intactos."
+  - "La evidencia se conserva al navegar entre ejecución, informe y exportación."
+  - "El contenido sigue siendo legible sin fuentes remotas."
+  - "No se habilita modo oscuro automático dentro de esta migración."
 ---
 
-# Overview
+# AURA — Casabero Editorial
 
-AURA usa como fuente de verdad el repositorio `estandar-casabero` y, para esta interfaz, el archivo `examples/frontend/showcase.html`. La aplicacion debe sentirse como un instrumento tecnico de auditoria: clara, trazable y sobria. La variante elegida es **Terminal + Archive** porque el producto combina evidencia reproducible, logs, contratos, matrices y resultados experimentales.
+AURA adopta Casabero Editorial 1.2 como su único tema visual activo. La pieza usa
+blanco puro, serif dominante para lectura y títulos, sans funcional para operación,
+tablas y metadatos, y mono únicamente para código, hashes e identificadores técnicos.
 
-# Colors
+La referencia normativa es `EDITORIAL.md` en el commit indicado arriba. El catálogo
+`showcase.html` es Warm y no gobierna esta interfaz; `showcase-editorial.html` se usa
+solo para contrastar ejemplos de composición.
 
-La identidad visual usa Warm Core: parchment, linen y off-black. El color frio solo aparece como utilidad tecnica en codigo, logs o graficas, no como identidad ni decoracion. Los estados se expresan con texto, borde, icono, peso visual y movimiento sutil; nunca solo por color.
+## Composición y estados
 
-# Typography
+El shell tiene una medida máxima de 1280px y la narrativa se mantiene entre 58 y
+72ch. Las secciones se orientan con numeración `01`, `02`, `03`; las tablas y el
+código pueden ocupar el ancho disponible en un wrapper local. Las líneas finas
+separan estructura, no decoran, y una acción primaria queda diferenciada por bloque.
 
-Titulos editoriales con `Playfair Display`. Inter para UI, labels y lectura continua. `JetBrains Mono` para fingerprints, logs, contratos, JSON, metricas y evidencia reproducible.
+Los estados comunican qué ocurrió, qué sigue y qué límite existe mediante texto y
+estructura además del color. Las operaciones mayores a 800ms muestran progreso
+humano. El foco visible, el teclado, la impresión, el zoom y `prefers-reduced-motion`
+son parte del contrato de la interfaz.
 
-# Spacing
+## Marca
 
-El contenido operativo se centra en un ancho legible. Las secciones se agrupan por responsabilidad: carga, perfil, reglas, hallazgos, diagnostico, script, revision y laboratorio. Se evita repetir informacion en bloques dispersos.
+`AuraMark` conserva exactamente tres elipses del mismo color, `fill="none"`,
+`stroke="currentColor"` y `stroke-width="1.55"`, sin centro, glifo ni forma adicional.
+La firma CASABERO es opcional y discreta; no compite con AURA ni con la procedencia
+de los datos.
 
-# Elevation
+## Límites
 
-La profundidad se resuelve con `surface + border`. No usar glassmorphism, blur, gradientes decorativos ni sombras pesadas. Los paneles deben parecer documentos tecnicos, no tarjetas de marketing.
-
-# Shapes
-
-Botones 6px, inputs 8px, cards/paneles 10-12px y drawers 16px. No usar botones tipo pill salvo toggles o controles nativos donde aplique.
-
-# Components
-
-- `AuraMark`: marca Casabero de exactamente tres elipses del mismo color, sin centro, glifo ni formas adicionales; usa `currentColor` y `stroke-width: 1.55`.
-- `home-actions .btn-p.btn--lg`: primary outline/light exclusivo del CTA `Empezar auditoría`; fondo transparente, texto y borde `--ink`, radio 6px, alto 44px, ancho mínimo 120px y `width: fit-content`.
-- `sys-nav`: header sticky sobrio, sin blur.
-- `file-drop`: entrada local-first con estado y alternativa de teclado.
-- `profile-block`: agrupacion Archive del perfil determinista.
-- `advisor-shell`: lectura amplia del diagnostico LLM.
-- `settings-sheet`: drawer lateral para modelos y contrato tecnico.
-- `benchmark-lab-page`: banco experimental con protocolo, logs, tabla y metricas.
-
-# Dos and Donts
-
-Do:
-
-- Usar `estandar-casabero/examples/frontend/showcase.html` como referencia visual primaria.
-- Mantener Warm Core y Lucide con `stroke-width: 1.5px`.
-- Separar determinismo, cognicion, script, HITL y benchmark.
-- Mostrar progreso/logs cuando una operacion tarda.
-- Preferir tablas anchas con scroll horizontal antes que columnas truncadas.
-
-Dont:
-
-- No usar el path antiguo `casabero-standards` como referencia si el usuario no lo pide.
-- No usar glass, blur, gradientes decorativos, orbes ni paletas moradas/azules dominantes.
-- No mezclar narrativas repetidas con evidencia operativa.
-- No esconder explicaciones de metricas experimentales.
-- No presentar benchmark como adorno si el titulo del TFM lo usa como parte central.
+Esta definición visual no modifica `PipelineState`, contratos V2, schemas, hashes,
+receipts, archivos exportados ni decisiones humanas. Una evidencia de DOM,
+captura, build o prueba unitaria no se presenta por sí sola como cierre del flujo:
+la migración se cierra con recorridos humanos y evidencia runtime delimitada.

@@ -23,7 +23,8 @@ const SeverityDistributionChart = ({ critical, warning, info }: SeverityDistribu
   const x = d3.scaleLinear().domain([0, max]).range([0, 168]);
 
   return (
-    <div className="severity-distribution" data-testid="severity-distribution-chart">
+    <figure className="severity-distribution" data-testid="severity-distribution-chart" aria-labelledby="severity-distribution-title">
+      <figcaption id="severity-distribution-title" className="severity-distribution-caption">Distribución de severidad de hallazgos</figcaption>
       {severityRows.map((row, index) => {
         const count = counts[row.key];
         return (
@@ -52,7 +53,8 @@ const SeverityDistributionChart = ({ critical, warning, info }: SeverityDistribu
           </div>
         );
       })}
-    </div>
+      <p className="sr-only">Críticos: {critical}. Advertencias: {warning}. Informativos: {info}.</p>
+    </figure>
   );
 };
 

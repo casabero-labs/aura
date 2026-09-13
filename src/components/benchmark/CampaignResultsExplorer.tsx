@@ -413,8 +413,10 @@ const CampaignResultsExplorer: React.FC<CampaignResultsExplorerProps> = ({
                 className="oe4-results-chart"
                 role="img"
                 aria-labelledby={`${chartId}-title ${chartId}-desc`}
+                aria-describedby={`${chartId}-text-equivalent`}
                 data-testid={`oe4-results-chart-${view}`}
               />
+              <p id={`${chartId}-text-equivalent`} className="sr-only">{chartDescription(view)} La tabla de datos exactos debajo conserva los valores comparables de todas las combinaciones.</p>
             </div>
 
             <aside className="oe4-results-selection" aria-label="Combinación seleccionada">
@@ -439,15 +441,16 @@ const CampaignResultsExplorer: React.FC<CampaignResultsExplorerProps> = ({
             <summary>Ver los datos exactos representados</summary>
             <div>
               <table>
+                <caption>Datos exactos representados en la vista {VIEW_LABELS[view].toLowerCase()}</caption>
                 <thead>
-                  <tr><th>Modelo</th><th>Entrada</th><th>Alineación GT</th><th>Fiabilidad</th><th>Latencia mediana</th><th>Equilibrado</th></tr>
+                  <tr><th scope="col">Modelo</th><th scope="col">Entrada</th><th scope="col">Alineación GT</th><th scope="col">Fiabilidad</th><th scope="col">Latencia mediana</th><th scope="col">Equilibrado</th></tr>
                 </thead>
                 <tbody>
                   {scores.map((entry) => {
                     const cell = aggregationByCell.get(entry.cellId);
                     return (
                       <tr key={entry.cellId}>
-                        <th>{modelName(entry.modelId)}</th>
+                        <th scope="row">{modelName(entry.modelId)}</th>
                         <td>{OE4_INPUT_MODE_LABELS[entry.inputMode]}</td>
                         <td>{formatScore(entry.accuracy)}</td>
                         <td>{formatScore(entry.reliability)}</td>

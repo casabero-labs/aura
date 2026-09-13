@@ -7,10 +7,13 @@ interface PipelineProgressProps {
 
 const mainFlowSteps: { num: number; label: string; state: PipelineState }[] = [
   { num: 1, label: 'Carga', state: 'upload' },
-  { num: 2, label: 'Perfil base', state: 'profile' },
+  { num: 2, label: 'Perfil', state: 'profile' },
   { num: 3, label: 'Diagnóstico', state: 'diagnosis' },
-  { num: 4, label: 'Reporte diagnóstico', state: 'diagnostic_report' },
-  { num: 5, label: 'Exportación', state: 'export' },
+  { num: 4, label: 'Informe', state: 'diagnostic_report' },
+  { num: 5, label: 'Corrección opcional', state: 'script' },
+  { num: 6, label: 'Revisión', state: 'review' },
+  { num: 7, label: 'Ejecución', state: 'execution' },
+  { num: 8, label: 'Exportación', state: 'export' },
 ];
 
 const mainFlowIndex: Record<PipelineState, number> = {
@@ -18,21 +21,10 @@ const mainFlowIndex: Record<PipelineState, number> = {
   profile: 1,
   diagnosis: 2,
   diagnostic_report: 3,
-  export: 4,
-  script: 3,
-  review: 3,
-  execution: 3,
-};
-
-const branchLabelFor: Record<PipelineState, string | null> = {
-  upload: null,
-  profile: null,
-  diagnosis: null,
-  diagnostic_report: null,
-  export: null,
-  script: 'Rama opcional: Remediación',
-  review: 'Rama opcional: Remediación',
-  execution: 'Rama opcional: Remediación',
+  script: 4,
+  review: 5,
+  execution: 6,
+  export: 7,
 };
 
 const getStepStatus = (stepState: PipelineState, currentStep: PipelineState) => {
@@ -45,38 +37,36 @@ const getStepStatus = (stepState: PipelineState, currentStep: PipelineState) => 
 };
 
 const PipelineProgress = ({ currentStep, onStepClick }: PipelineProgressProps) => {
-  const handleStepClick = (step: PipelineState) => {
-    if (onStepClick) {
-      onStepClick(step);
-    }
-  };
-
-  const branchLabel = branchLabelFor[currentStep];
+  const currentIndex = mainFlowIndex[currentStep];
 
   return (
     <div className="stepper" data-testid="pipeline-stepper">
       <div className="stepper-track">
         {mainFlowSteps.map((step, index) => {
           const status = getStepStatus(step.state, currentStep);
-          const isClickable = onStepClick !== undefined;
+          const isClickable = onStepClick !== undefined && mainFlowIndex[step.state] <= currentIndex;
 
           return (
             <div key={step.state} style={{ display: 'contents' }}>
-              <div
+              <button
+                type="button"
                 className={`stepper-step ${status} ${isClickable ? 'clickable' : ''}`}
-                onClick={() => handleStepClick(step.state)}
-                role={isClickable ? 'button' : undefined}
-                tabIndex={isClickable ? 0 : undefined}
+                onClick={() => isClickable && onStepClick?.(step.state)}
+                disabled={!isClickable}
+                aria-current={status === 'active' ? 'step' : undefined}
+                aria-label={`${String(step.num).padStart(2, '0')} · ${step.label}${status === 'pending' ? ' (pendiente)' : ''}`}
                 data-step={step.state}
                 onKeyDown={(e) => {
-                  if (isClickable && (e.key === 'Enter' || e.key === ' ')) {
-                    handleStepClick(step.state);
+                  if (isClickable && e.key === ' ') {
+                    e.preventDefault();
+                    onStepClick?.(step.state);
                   }
                 }}
               >
-                <span className="stepper-index">{step.num}</span>
+                <span className="stepper-index">{String(step.num).padStart(2, '0')}</span>
                 <span className="stepper-label">{step.label}</span>
-              </div>
+                {step.state === 'diagnostic_report' && <span className="sr-only">Reporte diagnóstico</span>}
+              </button>
               {index < mainFlowSteps.length - 1 && (
                 <div className="stepper-line" />
               )}
@@ -84,12 +74,10 @@ const PipelineProgress = ({ currentStep, onStepClick }: PipelineProgressProps) =
           );
         })}
       </div>
-      {branchLabel && (
-        <div className="stepper-branch" data-testid="pipeline-stepper-branch" role="status">
-          <span className="stepper-branch-dot" aria-hidden="true" />
-          {branchLabel}
-        </div>
-      )}
+      <p className="stepper-current-context" role="status">
+        <span>{String(currentIndex + 1).padStart(2, '0')}</span> · {mainFlowSteps[currentIndex]?.label}
+        {['script', 'review', 'execution'].includes(currentStep) && ' · Rama opcional de remediación'}
+      </p>
     </div>
   );
 };

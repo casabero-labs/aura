@@ -1,0 +1,142 @@
+/* Casabero Editorial 1.2 — structural foundation. */
+html {
+  background: var(--editorial-canvas, #FFFFFF);
+}
+
+body {
+  margin: 0;
+  background: var(--editorial-canvas, #FFFFFF);
+  color: var(--editorial-ink, #191919);
+  font-family: var(--font-operation, Arial, Helvetica, sans-serif);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.aura-system[data-casabero-theme="editorial"] {
+  min-height: 100vh;
+  overflow-x: clip;
+  background: var(--editorial-canvas);
+  color: var(--editorial-ink);
+  color-scheme: light;
+  font-family: var(--font-operation);
+}
+
+.aura-system[data-casabero-theme="editorial"] :where(h1, h2, h3, h4, h5, h6) {
+  margin: 0;
+  color: var(--editorial-ink);
+  font-family: var(--font-reading);
+  font-weight: 600;
+  letter-spacing: normal;
+}
+
+.aura-system[data-casabero-theme="editorial"] :where(p, li, blockquote, .narrative, .section-note) {
+  font-family: var(--font-reading);
+}
+
+.aura-system[data-casabero-theme="editorial"] :where(button, input, select, textarea, summary, table, caption, label, dt, dd, small, .eyebrow, [class*="meta"], [class*="status"]) {
+  font-family: var(--font-operation);
+}
+
+.aura-system[data-casabero-theme="editorial"] :where(code, pre, kbd, .font-mono, [class*="hash"], [class*="fingerprint"], [class*="identifier"]) {
+  font-family: var(--font-data);
+}
+
+.aura-system[data-casabero-theme="editorial"] :where(a) {
+  color: var(--editorial-ink);
+  text-underline-offset: 0.18em;
+}
+
+.aura-system[data-casabero-theme="editorial"] :where(:focus-visible) {
+  outline: 2px solid var(--editorial-ink);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+.aura-system[data-casabero-theme="editorial"] :where(.sys-main, .audit-workspace, .home-hero, .export-closure, .benchmark-lab-page, .settings-panel, .help-center) {
+  scroll-margin-top: 68px;
+}
+
+.aura-system[data-casabero-theme="editorial"] .skip-link {
+  position: fixed;
+  top: -80px;
+  left: 20px;
+  z-index: 1000;
+  padding: 10px 14px;
+  border: 1px solid var(--editorial-ink);
+  background: var(--editorial-canvas);
+  color: var(--editorial-ink);
+  font: 600 14px/1.2 var(--font-operation);
+  text-decoration: none;
+  transition: top 120ms ease-out;
+}
+
+.aura-system[data-casabero-theme="editorial"] .skip-link:focus {
+  top: 12px;
+}
+
+.aura-system[data-casabero-theme="editorial"] #main-content:focus {
+  outline: none;
+}
+
+.aura-system[data-casabero-theme="editorial"] .sr-only,
+.aura-system[data-casabero-theme="editorial"] .visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.aura-system[data-casabero-theme="editorial"] .section-note,
+.aura-system[data-casabero-theme="editorial"] .home-desc,
+.aura-system[data-casabero-theme="editorial"] .sec-desc {
+  max-width: 72ch;
+  color: var(--editorial-ink-secondary);
+  font-size: 18px;
+  line-height: 1.6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aura-system[data-casabero-theme="editorial"] *,
+  .aura-system[data-casabero-theme="editorial"] *::before,
+  .aura-system[data-casabero-theme="editorial"] *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media print {
+  .sys-nav,
+  .sys-footer,
+  .skip-link,
+  .nav-system-controls,
+  .mobile-nav-toggle,
+  .nav-links,
+  button,
+  input,
+  select,
+  textarea,
+  [role="button"] {
+    display: none !important;
+  }
+
+  .aura-system[data-casabero-theme="editorial"],
+  .aura-system[data-casabero-theme="editorial"] .sys-main {
+    max-width: none;
+    padding: 0;
+    background: var(--editorial-canvas, #FFFFFF);
+    color: var(--editorial-ink, #191919);
+  }
+
+  .aura-system[data-casabero-theme="editorial"] :where(table, figure, section) {
+    break-inside: avoid;
+  }
+}

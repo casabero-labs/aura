@@ -9,12 +9,6 @@ const statusLabel: Record<LlmAuditEntry['status'], string> = {
   stopped: 'Detenido',
 };
 
-const statusColor: Record<LlmAuditEntry['status'], string> = {
-  completed: 'var(--success)',
-  error: 'var(--error)',
-  stopped: 'var(--orange)',
-};
-
 interface AuditLogViewerProps {
   onClose: () => void;
 }
@@ -37,16 +31,16 @@ const AuditLogViewer: React.FC<AuditLogViewerProps> = ({ onClose }) => {
 
   return (
     <div className="audit-log-backdrop" onClick={handleBackdropClick}>
-      <div className="audit-log-panel">
+      <div className="audit-log-panel" role="dialog" aria-modal="true" aria-labelledby="audit-log-title">
         <header className="audit-log-header">
           <div className="audit-log-title-block">
             <ClipboardList size={18} />
             <div>
-              <h2>Log de auditoría LLM</h2>
+              <h2 id="audit-log-title">Log de auditoría LLM</h2>
               <p>Registro de todas las llamadas a modelos. Útil para evidencia académica.</p>
             </div>
           </div>
-          <button className="audit-log-close" onClick={onClose}>
+          <button className="audit-log-close" onClick={onClose} aria-label="Cerrar log de auditoría">
             <X size={16} />
           </button>
         </header>
@@ -76,7 +70,7 @@ const AuditLogViewer: React.FC<AuditLogViewerProps> = ({ onClose }) => {
           <button className="btn-s btn-sm" onClick={downloadAuditLog}>
             <Download size={12} /> Exportar JSON
           </button>
-          <button className="btn-s btn-sm" onClick={handleClear} style={{ color: 'var(--error)' }}>
+          <button className="btn-s btn-sm audit-log-clear" onClick={handleClear}>
             <Trash2 size={12} /> Borrar log
           </button>
         </div>
@@ -100,7 +94,7 @@ const AuditLogViewer: React.FC<AuditLogViewerProps> = ({ onClose }) => {
                   {entry.provider}
                 </span>
                 <span className="audit-entry-model">{entry.model}</span>
-                <span className="audit-entry-status" style={{ color: statusColor[entry.status] }}>
+                <span className="audit-entry-status" data-status={entry.status}>
                   {statusLabel[entry.status]}
                 </span>
                 <span className="audit-entry-latency">{entry.latencyMs}ms</span>
