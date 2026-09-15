@@ -85,7 +85,7 @@ test.describe('Phase 7 L4 — No-Regression Suite', () => {
     await expect(page.locator('[data-testid="settings-workspace"]')).toBeVisible({ timeout: 5000 });
     await expect(page.locator('.sys-footer')).toBeHidden();
 
-    await page.locator('.nav-center-menu').getByRole('button', { name: 'Home' }).click();
+    await page.getByRole('button', { name: 'Ir al inicio' }).click();
     await page.waitForTimeout(300);
     await expect(page.locator('.sys-footer')).toBeVisible();
   });

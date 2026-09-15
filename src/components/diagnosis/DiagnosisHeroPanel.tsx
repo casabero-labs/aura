@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Brain, Settings, RefreshCw } from 'lucide-react';
+import { Settings, RefreshCw } from 'lucide-react';
 import type { InputMode } from '../../types';
 import {
   DiagnosisQuickConfigModal,
@@ -159,15 +159,15 @@ export const DiagnosisHeroPanel: React.FC<DiagnosisHeroPanelProps> = ({
           </button>
         ) : (
           <button
-            className="btn-p"
+            className="btn-p btn-hold"
             onClick={onGenerateDiagnosis}
             disabled={isLoading || providerAvailable === false}
-            style={{ width: 'fit-content', display: 'flex', alignItems: 'center', gap: '6px' }}
+            aria-busy={isLoading}
             type="button"
             data-testid="diagnosis-generate"
           >
-            <Brain size={14} />
-            {isLoading ? 'Diagnosticando...' : 'Generar diagnóstico asistido'}
+            <span data-state="idle">Generar diagnóstico asistido</span>
+            <span data-state="busy">Diagnosticando…</span>
           </button>
         )}
       </div>

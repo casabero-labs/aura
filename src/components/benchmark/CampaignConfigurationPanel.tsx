@@ -76,7 +76,10 @@ const CampaignConfigurationPanel: React.FC<CampaignConfigurationPanelProps> = ({
       {!modelInstalled && (
         <p className="oe4-blocker" role="alert">El modelo seleccionado no está instalado en Ollama. Refresca o instálalo antes de aplicar esta configuración.</p>
       )}
-      <p className="oe4-configuration-caveat">{configuration.interpretation}</p>
+      <p className="oe4-configuration-caveat">
+        {configuration.interpretation}
+        {' '}Aplicar esta configuración no inicia un diagnóstico.
+      </p>
 
       <div className="oe4-configuration-actions">
         <button type="button" className="btn-s" onClick={() => void copy()}>{copied ? 'Configuración copiada' : 'Copiar configuración'}</button>

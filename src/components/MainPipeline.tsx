@@ -8,7 +8,7 @@ import ProfileStep from './ProfileStep';
 import ReviewStep from './ReviewStep';
 import ScriptGenerationStep from './ScriptGenerationStep';
 import ScriptGenerationStepV2 from './ScriptGenerationStepV2';
-import { OptionalRemediationNotice, RemediationBranchActions } from './remediation';
+import { OptionalRemediationNotice, RemediationBranchActions, RemediationBranchHeader } from './remediation';
 import { runAudit } from '../services/auditEngine';
 import { parseCsv } from '../services/csvService';
 import { buildAuditEvidence, buildIngestionEvidence, computeFileSha256, createTraceRecorder, fingerprintDataset } from '../services/executionEvidence';
@@ -761,12 +761,6 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
       {/* ── Step 1: Upload ── */}
       {state === 'upload' && (
         <section className="section" id="upload-step">
-          <div className="section-header">
-            <div>
-              <p className="sec-eye">entrada local</p>
-              <h2 className="sec-title">Cargar dataset.</h2>
-            </div>
-          </div>
           <FileUpload onFileSelect={processFile} />
           {isProcessing && (
             <div style={{ marginTop: 'var(--space-md)' }}>
@@ -874,6 +868,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
       {/* ── Step 6: Script generation ── */}
       {state === 'script' && report && isContractsV2Enabled() && !!structuredDiagnosis?.remediationContext && (
         <>
+          <RemediationBranchHeader milestone="proposal" />
           <OptionalRemediationNotice />
           <RemediationBranchActions
             onBackToDiagnosticReport={() => {
@@ -928,6 +923,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
       {/* ── Step 6: Script generation (legacy) ── */}
       {state === 'script' && report && (!isContractsV2Enabled() || !structuredDiagnosis?.remediationContext) && (
         <>
+          <RemediationBranchHeader milestone="proposal" />
           <p role="status" className="context-guide">Propuesta histórica: puedes revisar y exportar su estado, pero esta ruta no permite validar una ejecución externa. Vuelve al diagnóstico para preparar una corrección compatible.</p>
           <OptionalRemediationNotice />
           <RemediationBranchActions
@@ -974,6 +970,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
       {/* ── Step 7: Review & HITL ── */}
       {state === 'review' && report && (
         <>
+          <RemediationBranchHeader milestone="approval" />
           <OptionalRemediationNotice />
           <RemediationBranchActions
             onBackToDiagnosticReport={() => {
@@ -1016,6 +1013,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
       {/* ── Step 8: Apply & verify ── */}
       {state === 'execution' && report && (
         <>
+          <RemediationBranchHeader milestone="apply" />
           <OptionalRemediationNotice />
           <RemediationBranchActions
             onBackToDiagnosticReport={() => {

@@ -40,6 +40,7 @@ describe('CampaignConfigurationPanel', () => {
     expect(onApply).toHaveBeenCalledWith(value);
     await user.click(screen.getByRole('button', { name: 'Ir a Auditoría' }));
     expect(onGoToAudit).toHaveBeenCalledTimes(1);
+    expect(screen.getByText(/no inicia un diagnóstico/i)).toBeTruthy();
   });
 
   it('blocks applying a model that is not installed in Ollama', () => {

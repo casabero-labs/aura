@@ -65,7 +65,7 @@ test.describe('Local Qwen walkthrough and viewports', () => {
     }
 
     await page.setViewportSize({ width: 1280, height: 900 });
-    await page.getByRole('button', { name: 'Home' }).first().click();
+    await page.getByRole('button', { name: 'Ir al inicio' }).click();
     await expect(page.getByTestId('home-resume-audit')).toBeVisible();
     await expect(page.getByTestId('home-resume-meta')).toContainText('Perfil base');
     await page.screenshot({ path: join(evidenceDir, '21-portada-reanudar.png'), fullPage: true });

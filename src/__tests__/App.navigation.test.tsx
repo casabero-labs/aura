@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 
@@ -55,16 +55,18 @@ describe('App - accessible global navigation', () => {
     expect(screen.queryByRole('button', { name: /^Health Delta$/i })).toBeNull();
   });
 
-  it('keeps other primary nav destinations available', async () => {
+  it('keeps work destinations and labeled utilities available', async () => {
     render(<App />);
 
     await waitFor(() => {
       expect(screen.getAllByText('AURA').length).toBeGreaterThan(0);
     });
 
-    expect(screen.getAllByRole('button', { name: /^Home$/i }).length).toBeGreaterThan(0);
+    expect(screen.queryByRole('button', { name: /^Home$/i })).toBeNull();
     expect(screen.getAllByRole('button', { name: /^Auditoría$/i }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('button', { name: /^Laboratorio$/i }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole('button', { name: /^Configuración$/i }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('button', { name: /^Ayuda$/i }).length).toBeGreaterThan(0);
   });
 
   it('does not mount ImprovementRunPage when navigating to Auditoría', async () => {
@@ -85,7 +87,7 @@ describe('App - accessible global navigation', () => {
     expect(screen.queryByTestId('improvement-run-page')).toBeNull();
   });
 
-  it('exposes the AURA mark as a native Home button operable with Enter and Space', async () => {
+  it('exposes the AURA mark as Inicio operable with Enter and Space', async () => {
     const user = userEvent.setup();
     render(<App />);
 
@@ -93,63 +95,39 @@ describe('App - accessible global navigation', () => {
     expect(brand.getAttribute('type')).toBe('button');
 
     await user.click(screen.getByRole('button', { name: 'Auditoría' }));
+    expect(brand.getAttribute('aria-current')).toBeNull();
     brand.focus();
     await user.keyboard('{Enter}');
-    expect(screen.getByRole('button', { name: 'Home' }).getAttribute('aria-current')).toBe('page');
+    expect(brand.getAttribute('aria-current')).toBe('page');
 
     await user.click(screen.getByRole('button', { name: 'Auditoría' }));
     brand.focus();
     await user.keyboard(' ');
-    expect(screen.getByRole('button', { name: 'Home' }).getAttribute('aria-current')).toBe('page');
+    expect(brand.getAttribute('aria-current')).toBe('page');
   });
 
-  it('keeps the closed mobile disclosure outside the accessibility tree and Tab order', async () => {
-    render(<App />);
-
-    const toggle = await screen.findByRole('button', { name: 'Abrir menú de navegación' });
-    const mobileMenu = document.getElementById('mobile-navigation');
-
-    expect(toggle.getAttribute('aria-expanded')).toBe('false');
-    expect(toggle.getAttribute('aria-controls')).toBe('mobile-navigation');
-    expect(mobileMenu?.hasAttribute('hidden')).toBe(true);
-    expect(within(mobileMenu as HTMLElement).queryByRole('button')).toBeNull();
-  });
-
-  it('opens four canonical mobile destinations in stable order with current-page semantics', async () => {
+  it('opens configuration as a drawer without hiding the current view', async () => {
     const user = userEvent.setup();
     render(<App />);
 
-    const toggle = await screen.findByRole('button', { name: 'Abrir menú de navegación' });
-    await user.click(toggle);
+    expect(screen.getByRole('heading', { name: 'Auditar un CSV' })).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Configuración' }));
 
-    expect(toggle.getAttribute('aria-label')).toBe('Cerrar menú de navegación');
-    expect(toggle.getAttribute('aria-expanded')).toBe('true');
-
-    const mobileMenu = document.getElementById('mobile-navigation') as HTMLElement;
-    expect(mobileMenu.hasAttribute('hidden')).toBe(false);
-    expect(within(mobileMenu).getAllByRole('button').map((button) => button.textContent?.trim())).toEqual([
-      'Home',
-      'Auditoría',
-      'Laboratorio',
-      'Configuración',
-    ]);
-    expect(within(mobileMenu).getByRole('button', { name: 'Home' }).getAttribute('aria-current')).toBe('page');
-    expect(within(mobileMenu).queryByRole('button', { name: 'Trazabilidad' })).toBeNull();
+    expect(screen.getByTestId('utility-drawer')).toBeTruthy();
+    expect(screen.getByTestId('settings-workspace')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Auditar un CSV' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Configuración' }).getAttribute('aria-expanded')).toBe('true');
   });
 
-  it('closes the mobile disclosure with Escape and restores focus to its toggle', async () => {
+  it('returns focus to Configuración after closing the drawer with Escape', async () => {
     const user = userEvent.setup();
     render(<App />);
 
-    const toggle = await screen.findByRole('button', { name: 'Abrir menú de navegación' });
-    await user.click(toggle);
-    await user.tab();
-    expect(document.activeElement).not.toBe(toggle);
-
+    const config = screen.getByRole('button', { name: 'Configuración' });
+    await user.click(config);
     await user.keyboard('{Escape}');
 
-    await waitFor(() => expect(document.activeElement).toBe(toggle));
-    expect(toggle.getAttribute('aria-label')).toBe('Abrir menú de navegación');
-    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    await waitFor(() => expect(document.activeElement).toBe(config));
+    expect(screen.queryByTestId('utility-drawer')).toBeNull();
   });
 });

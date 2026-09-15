@@ -1,111 +1,92 @@
 ---
-version: "1.1"
+version: "2.0"
 name: AURA
-description: Interfaz Warm Core con variante Terminal + Archive para auditoria reproducible de calidad del dato, diagnostico asistido por LLM y benchmark experimental.
+description: Auditoría local-first de calidad del dato. Casabero Editorial 1.2 exclusivo. Claro y oscuro son modos, no temas.
 source_of_truth:
   standards_repo: "/Users/casabero/Documents/GitHub/estandar-casabero"
-  primary_reference: "/Users/casabero/Documents/GitHub/estandar-casabero/examples/frontend/showcase.html"
-  required_frontend_docs:
-    - "standards/frontend/UX_UI_MANIFESTO.md"
-    - "standards/frontend/VARIANTS.md"
-    - "standards/frontend/DESIGN_SYSTEM.md"
-    - "standards/frontend/ACCESSIBILITY.md"
-    - "standards/frontend/STATE.md"
-variant: "Terminal + Archive"
+  theme: "standards/design/themes/EDITORIAL.md"
+  profile: "standards/frontend/DESIGN_SYSTEM_EDITORIAL.md"
+  catalog: "examples/frontend/showcase-editorial.html"
+  design_context: "CLAUDE.md"
+  sequence: "docs/plans/2026-09-14-aura-editorial-orden-ejecucion.md"
+theme: editorial
+selector: '[data-casabero-theme="editorial"]'
+mode_attribute: data-theme
+modes: [light, dark]
+preset: standard
 colors:
-  ink: "#1E1E1C"
-  ink2: "#4A4540"
-  ink3: "#9A9490"
-  ink-soft: "#3A3632"
-  ink-muted: "#8A857E"
-  ink-faint: "#B5B0A8"
-  bg: "#FAF8F4"
-  surface: "#F5F1E8"
-  surface-raised: "#F0ECE2"
-  surface-hover: "#EBE6DB"
-  border: "rgba(30,30,28,0.1)"
-  border-strong: "rgba(30,30,28,0.18)"
-  border-faint: "rgba(30,30,28,0.05)"
+  canvas: "#FFFFFF"
+  ink: "#191919"
+  ink-secondary: "#4D4D4A"
+  ink-muted: "#6B6B67"
+  line: "#D9D9D4"
+  line-strong: "#A7A7A0"
+  surface: "#F7F7F4"
+  surface-quiet: "#FBFBF9"
+dark:
+  canvas: "#161614"
+  ink: "#F2F1EC"
 typography:
-  font-heading: "Playfair Display"
-  font-body: Inter
-  font-mono: "JetBrains Mono"
-spacing:
-  xxs: 4px
-  xs: 8px
-  sm: 12px
-  md: 16px
-  lg: 24px
-  xl: 32px
-  xxl: 48px
-  section: 64px
-rounded:
-  xs: 4px
-  sm: 6px
-  md: 8px
-  lg: 12px
-  xl: 16px
-components:
-  brand-mark: "Tres elipses sin glifo central, fill none y stroke currentColor 1.55"
-  primary-outline-lg: "CTA Home transparente, texto y borde ink, radio 6px, alto 44px, ancho minimo 120px y width fit-content"
-  shell: "Header sticky, main centrado, secciones de trabajo sin landing comercial"
-  upload: "Dropzone tecnico con alternativa de seleccion y estado visible"
-  profile: "Bloques Archive para caracterizacion, reglas y evidencia"
-  diagnosis: "Panel cognitivo amplio con tablas legibles y contrato visible"
-  lab: "Banco experimental con protocolo, runner, log, matriz y graficas"
-  drawer: "Sheet lateral sin modal flotante para configuracion"
-  feedback: "Logs, barras, etiquetas y texto; nunca solo color"
+  font-display: '"Source Serif 4", Georgia, "Times New Roman", serif'
+  font-body: '"Source Serif 4", Georgia, "Times New Roman", serif'
+  font-sans: '"Source Sans 3", Arial, Helvetica, sans-serif'
+  font-meta: '"Source Sans 3", Arial, Helvetica, sans-serif'
+  font-mono: SFMono-Regular, Consolas, "Liberation Mono", monospace
+spacing: [4, 8, 12, 16, 24, 32, 48, 64]
+rounded: { none: 0, sm: 2, md: 4 }
+shadow: none
+nav:
+  height: 52px
+  min-target: 44px
 ---
 
-# Overview
+# AURA — contrato visual Editorial 1.2
 
-AURA usa como fuente de verdad el repositorio `estandar-casabero` y, para esta interfaz, el archivo `examples/frontend/showcase.html`. La aplicacion debe sentirse como un instrumento tecnico de auditoria: clara, trazable y sobria. La variante elegida es **Terminal + Archive** porque el producto combina evidencia reproducible, logs, contratos, matrices y resultados experimentales.
+AURA es un espacio de trabajo para auditar un CSV, decidir con evidencia y exportar. No es un dashboard, no es una gaceta y no es una consola.
 
-# Colors
+Tema único: **Casabero Editorial 1.2**. Cero Ink. Cero Warm. Claro y oscuro son `data-theme="light|dark"` sobre el mismo tema.
 
-La identidad visual usa Warm Core: parchment, linen y off-black. El color frio solo aparece como utilidad tecnica en codigo, logs o graficas, no como identidad ni decoracion. Los estados se expresan con texto, borde, icono, peso visual y movimiento sutil; nunca solo por color.
+El catálogo `showcase-editorial.html` demuestra patrones. No se copia su serif extra al chrome, ni su contenido predial, ni `showcase-editorial-gaceta.html`.
 
-# Typography
+## Personalidad
 
-Titulos editoriales con `Playfair Display`. Inter para UI, labels y lectura continua. `JetBrains Mono` para fingerprints, logs, contratos, JSON, metricas y evidencia reproducible.
+Riguroso, sereno, legible. Emoción: poder defender un hallazgo. Marca: wordmark AURA y tres elipses (`AuraMark`, `currentColor`, `stroke-width: 1.55`). UNIR y el TFM viven en la memoria, no en la nav.
 
-# Spacing
+## Roles tipográficos
 
-El contenido operativo se centra en un ancho legible. Las secciones se agrupan por responsabilidad: carga, perfil, reglas, hallazgos, diagnostico, script, revision y laboratorio. Se evita repetir informacion en bloques dispersos.
+| Rol | Familia | Dónde |
+|---|---|---|
+| Lectura | serif | Títulos, conclusiones, cuerpo de inicio e informe |
+| Operación | sans meta | Nav, botones, formularios, ayudas |
+| Datos | sans tabular | Tablas, cifras, NPN, porcentajes |
+| Técnico | mono | Código, hashes |
 
-# Elevation
+`--font-sans` permanece sans. `--font-body` y `--font-display` son serif.
 
-La profundidad se resuelve con `surface + border`. No usar glassmorphism, blur, gradientes decorativos ni sombras pesadas. Los paneles deben parecer documentos tecnicos, no tarjetas de marketing.
+## Composición
 
-# Shapes
+Documento operativo: sección + filete. Una primaria outline por contexto. Nav 52 px. Móvil: marca y utilidades en la primera línea; Auditoría y Laboratorio en la segunda. Configuración y Ayuda abren drawer, no sustituyen la vista.
 
-Botones 6px, inputs 8px, cards/paneles 10-12px y drawers 16px. No usar botones tipo pill salvo toggles o controles nativos donde aplique.
+Inicio es operativo: reanudar o cargar. Sin hero de estadísticas ni tres tarjetas de proceso.
 
-# Components
+## Foco y movimiento
 
-- `AuraMark`: marca Casabero de exactamente tres elipses del mismo color, sin centro, glifo ni formas adicionales; usa `currentColor` y `stroke-width: 1.55`.
-- `home-actions .btn-p.btn--lg`: primary outline/light exclusivo del CTA `Empezar auditoría`; fondo transparente, texto y borde `--ink`, radio 6px, alto 44px, ancho mínimo 120px y `width: fit-content`.
-- `sys-nav`: header sticky sobrio, sin blur.
-- `file-drop`: entrada local-first con estado y alternativa de teclado.
-- `profile-block`: agrupacion Archive del perfil determinista.
-- `advisor-shell`: lectura amplia del diagnostico LLM.
-- `settings-sheet`: drawer lateral para modelos y contrato tecnico.
-- `benchmark-lab-page`: banco experimental con protocolo, logs, tabla y metricas.
+- Enlaces y botones: anillo 2 px con hueco de canvas.
+- Campos: un filete inset de 2 px. Nunca borde + outline.
+- Botones con etiqueta de estado: geometría estable (el ancho es el verbo más largo).
+- Movimiento: `transform` y `opacity`; 150 / 220 / 280 ms; `--ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1)`. Progreso con `scaleX`. Confirmación: shake 2 px / 280 ms.
+- `prefers-reduced-motion` conserva mensaje y estado.
 
-# Dos and Donts
+## Qué no hacer
 
-Do:
+- No Inter como serif. No Playfair. No parchment. No `#F6F8FB`. No teal Ink.
+- No cards operativas, pills, glass, gradiente, bounce, hero métrico.
+- No Lucide como personalidad.
+- No publicar un híbrido. LOOP-01 cubre shell y carga; el resto hereda tokens hasta su loop.
 
-- Usar `estandar-casabero/examples/frontend/showcase.html` como referencia visual primaria.
-- Mantener Warm Core y Lucide con `stroke-width: 1.5px`.
-- Separar determinismo, cognicion, script, HITL y benchmark.
-- Mostrar progreso/logs cuando una operacion tarda.
-- Preferir tablas anchas con scroll horizontal antes que columnas truncadas.
+## Archivos de implementación
 
-Dont:
-
-- No usar el path antiguo `casabero-standards` como referencia si el usuario no lo pide.
-- No usar glass, blur, gradientes decorativos, orbes ni paletas moradas/azules dominantes.
-- No mezclar narrativas repetidas con evidencia operativa.
-- No esconder explicaciones de metricas experimentales.
-- No presentar benchmark como adorno si el titulo del TFM lo usa como parte central.
+- `src/styles/casabero-editorial.tokens.css`
+- `src/styles/editorial-foundations.css`
+- `src/styles/editorial-shell.css`
+- `src/index.css` — legado en retirada por familia; no añadir overrides al final.

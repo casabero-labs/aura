@@ -1,3 +1,7 @@
+## Design Context
+
+Impeccable y cualquier trabajo visual leen `CLAUDE.md` (sección Design Context). Destino: Casabero Editorial 1.2 exclusivo. Secuencia: `docs/plans/2026-09-14-aura-editorial-orden-ejecucion.md`. El `DESIGN.md` Warm/Ink es deuda hasta LOOP-01.
+
 ## graphify
 
 This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.

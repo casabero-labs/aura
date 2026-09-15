@@ -8,7 +8,8 @@ const ACCESSIBLE_NAV_VIEWPORTS = [
   { width: 320, height: 720 },
 ] as const;
 
-const CANONICAL_DESTINATIONS = ['Home', 'Auditoría', 'Laboratorio', 'Configuración'];
+const CANONICAL_DESTINATIONS = ['Auditoría', 'Laboratorio'];
+const CANONICAL_UTILITIES = ['Configuración', 'Ayuda'];
 
 test.describe('Phase 7 L1 — E2E Smoke: Navigation + Laboratorio', () => {
 
@@ -25,14 +26,14 @@ test.describe('Phase 7 L1 — E2E Smoke: Navigation + Laboratorio', () => {
 
   test.describe('A. Navegación — E2E-NAV', () => {
 
-    test('E2E-NAV-001 — Home carga correctamente', async ({ page }) => {
-      const navCenterMenu = page.locator('.nav-center-menu');
-      await expect(navCenterMenu).toBeVisible();
-
-      await expect(navCenterMenu.getByRole('button', { name: 'Home' })).toBeVisible();
-      await expect(navCenterMenu.getByRole('button', { name: 'Auditoría' })).toBeVisible();
-      await expect(navCenterMenu.getByRole('button', { name: 'Laboratorio' })).toBeVisible();
-      await expect(navCenterMenu.getByRole('button', { name: 'Configuración' })).toBeVisible();
+    test('E2E-NAV-001 — Inicio carga correctamente', async ({ page }) => {
+      const nav = page.getByRole('navigation', { name: 'Navegación principal' });
+      await expect(nav.getByRole('button', { name: 'Ir al inicio' })).toBeVisible();
+      await expect(nav.getByRole('button', { name: 'Auditoría' })).toBeVisible();
+      await expect(nav.getByRole('button', { name: 'Laboratorio' })).toBeVisible();
+      await expect(nav.getByRole('button', { name: 'Configuración' })).toBeVisible();
+      await expect(nav.getByRole('button', { name: 'Ayuda' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Auditar un CSV' })).toBeVisible();
     });
 
     test('E2E-NAV-002 — Auditoría abre correctamente', async ({ page }) => {
@@ -44,11 +45,11 @@ test.describe('Phase 7 L1 — E2E Smoke: Navigation + Laboratorio', () => {
     });
 
     test('E2E-NAV-003 — Configuración no expone el laboratorio retirado', async ({ page }) => {
-      const navCenterMenu = page.locator('.nav-center-menu');
-      const configBtn = navCenterMenu.getByRole('button', { name: 'Configuración' });
+      const configBtn = page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('button', { name: 'Configuración' });
 
       await configBtn.click();
-      await expect(configBtn).toHaveClass(/active/);
+      await expect(configBtn).toHaveAttribute('aria-expanded', 'true');
+      await expect(page.getByTestId('utility-drawer')).toBeVisible();
 
       await expect(page.getByText(/Laboratorio avanzado/i)).toHaveCount(0);
       await expect(page.getByRole('button', { name: /Abrir laboratorio experimental/i })).toHaveCount(0);
@@ -69,11 +70,10 @@ test.describe('Phase 7 L1 — E2E Smoke: Navigation + Laboratorio', () => {
     });
 
     test('E2E-NAV-005 — Configuración abre correctamente', async ({ page }) => {
-      const navCenterMenu = page.locator('.nav-center-menu');
-      const configBtn = navCenterMenu.getByRole('button', { name: 'Configuración' });
+      const configBtn = page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('button', { name: 'Configuración' });
 
       await configBtn.click();
-      await expect(configBtn).toHaveClass(/active/);
+      await expect(configBtn).toHaveAttribute('aria-expanded', 'true');
 
       const guardBtn = page.getByRole('button', { name: /Guardar configuración/i });
       await expect(guardBtn.first()).toBeVisible();
@@ -129,7 +129,7 @@ test.describe('Phase 7 L1 — E2E Smoke: Navigation + Laboratorio', () => {
 
 });
 
-test.describe('Issue #41 — accessible navigation disclosure', () => {
+test.describe('Issue #41 — accessible two-line navigation', () => {
   for (const viewport of ACCESSIBLE_NAV_VIEWPORTS) {
     test(`${viewport.width}px — keyboard, semantics, focus, console and overflow`, async ({ page }) => {
       const consoleErrors: string[] = [];
@@ -144,105 +144,34 @@ test.describe('Issue #41 — accessible navigation disclosure', () => {
 
       const primaryNav = page.getByRole('navigation', { name: 'Navegación principal' });
       const brand = primaryNav.getByRole('button', { name: 'Ir al inicio' });
-      const desktopMenu = primaryNav.locator('.nav-center-menu');
-      const toggle = primaryNav.locator('.mobile-nav-toggle');
-      const mobileMenu = page.locator('#mobile-navigation');
+      const work = primaryNav.locator('.nav-work');
 
       await expect(brand).toBeVisible();
       await expect(brand).toHaveAttribute('type', 'button');
-
-      if (viewport.width > 920) {
-        await expect(toggle).toBeHidden();
-        await expect(mobileMenu).toHaveAttribute('hidden', '');
-        await expect(mobileMenu.getByRole('button')).toHaveCount(0);
-        await expect(desktopMenu.getByRole('button')).toHaveText(CANONICAL_DESTINATIONS);
-        await expect(desktopMenu.getByRole('button', { name: 'Home' })).toHaveAttribute('aria-current', 'page');
-        await expect(desktopMenu.getByRole('button', { name: 'Trazabilidad' })).toHaveCount(0);
-
-        await desktopMenu.getByRole('button', { name: 'Auditoría' }).click();
-        await brand.focus();
-        await page.keyboard.press('Enter');
-        await expect(desktopMenu.getByRole('button', { name: 'Home' })).toHaveAttribute('aria-current', 'page');
-
-        await desktopMenu.getByRole('button', { name: 'Auditoría' }).click();
-        await brand.focus();
-        await page.keyboard.press('Space');
-        await expect(desktopMenu.getByRole('button', { name: 'Home' })).toHaveAttribute('aria-current', 'page');
-
-        await brand.focus();
-        await page.keyboard.press('Tab');
-        await expect(desktopMenu.getByRole('button', { name: 'Home' })).toBeFocused();
-        await page.keyboard.press('Shift+Tab');
-        await expect(brand).toBeFocused();
-      } else {
-        await expect(desktopMenu).toBeHidden();
-        await expect(toggle).toBeVisible();
-        await expect(toggle).toHaveAccessibleName('Abrir menú de navegación');
-        await expect(toggle).toHaveAttribute('aria-expanded', 'false');
-        await expect(toggle).toHaveAttribute('aria-controls', 'mobile-navigation');
-        await expect(mobileMenu).toHaveAttribute('hidden', '');
-        await expect(mobileMenu.getByRole('button')).toHaveCount(0);
-        const closedAccessibilitySnapshot = await page.locator('body').ariaSnapshot();
-        for (const destination of CANONICAL_DESTINATIONS) {
-          expect(closedAccessibilitySnapshot).not.toContain(`button "${destination}"`);
-        }
-
-        const toggleBox = await toggle.boundingBox();
-        expect(toggleBox?.width).toBeGreaterThanOrEqual(44);
-        expect(toggleBox?.height).toBeGreaterThanOrEqual(44);
-
-        await brand.focus();
-        await page.keyboard.press('Tab');
-        await expect(toggle).toBeFocused();
-        await page.keyboard.press('Shift+Tab');
-        await expect(brand).toBeFocused();
-        await page.keyboard.press('Tab');
-
-        await page.keyboard.press('Enter');
-        await expect(toggle).toHaveAccessibleName('Cerrar menú de navegación');
-        await expect(toggle).toHaveAttribute('aria-expanded', 'true');
-        await expect(mobileMenu).not.toHaveAttribute('hidden', '');
-        await expect(mobileMenu.getByRole('button')).toHaveText(CANONICAL_DESTINATIONS);
-        await expect(mobileMenu.getByRole('button', { name: 'Home' })).toHaveAttribute('aria-current', 'page');
-        await expect(mobileMenu.getByRole('button', { name: 'Trazabilidad' })).toHaveCount(0);
-        const openAccessibilitySnapshot = await page.locator('body').ariaSnapshot();
-        for (const destination of CANONICAL_DESTINATIONS) {
-          expect(openAccessibilitySnapshot).toContain(`button "${destination}"`);
-        }
-
-        await page.keyboard.press('Tab');
-        await expect(mobileMenu.getByRole('button', { name: 'Home' })).toBeFocused();
-        await page.keyboard.press('Escape');
-        await expect(toggle).toBeFocused();
-        await expect(toggle).toHaveAccessibleName('Abrir menú de navegación');
-        await expect(mobileMenu).toHaveAttribute('hidden', '');
-        await expect(mobileMenu.getByRole('button')).toHaveCount(0);
-
-        await page.keyboard.press('Space');
-        await page.keyboard.press('Tab');
-        await page.keyboard.press('Tab');
-        await expect(mobileMenu.getByRole('button', { name: 'Auditoría' })).toBeFocused();
-        await page.keyboard.press('Enter');
-        await expect(toggle).toBeFocused();
-        await expect(mobileMenu).toHaveAttribute('hidden', '');
-
-        await page.keyboard.press('Space');
-        await expect(mobileMenu.getByRole('button', { name: 'Auditoría' })).toHaveAttribute('aria-current', 'page');
-        await page.keyboard.press('Escape');
-        await expect(toggle).toBeFocused();
+      await expect(brand).toHaveAttribute('aria-current', 'page');
+      await expect(work.getByRole('button')).toHaveText(CANONICAL_DESTINATIONS);
+      for (const name of CANONICAL_UTILITIES) {
+        await expect(primaryNav.getByRole('button', { name })).toBeVisible();
       }
+      await expect(primaryNav.getByRole('button', { name: 'Trazabilidad' })).toHaveCount(0);
+
+      await work.getByRole('button', { name: 'Auditoría' }).click();
+      await expect(work.getByRole('button', { name: 'Auditoría' })).toHaveAttribute('aria-current', 'page');
+      await brand.focus();
+      await page.keyboard.press('Enter');
+      await expect(brand).toHaveAttribute('aria-current', 'page');
+
+      await brand.focus();
+      await page.keyboard.press('Tab');
+      await expect(work.getByRole('button', { name: 'Auditoría' })).toBeFocused();
+      await page.keyboard.press('Shift+Tab');
+      await expect(brand).toBeFocused();
 
       const hasHorizontalOverflow = await page.evaluate(
-        () => document.documentElement.scrollWidth > window.innerWidth,
+        () => document.documentElement.scrollWidth > window.innerWidth + 1,
       );
       expect(hasHorizontalOverflow).toBe(false);
       expect(consoleErrors).toEqual([]);
-
-      if (viewport.width <= 920) {
-        await toggle.press('Space');
-        await expect(toggle).toHaveAccessibleName('Cerrar menú de navegación');
-        await expect(mobileMenu).toBeVisible();
-      }
 
       await page.screenshot({
         path: `test-results/issue-41-nav-${viewport.width}.png`,

@@ -119,7 +119,7 @@ test.describe('Entrega 3 Universidad — AURA', () => {
     }, fixture.diagnosis);
     await page.waitForTimeout(2000);
     // Navigate to diagnosis step
-    await page.locator('.profile-actions').getByRole('button', { name: /Continuar al diagnóstico/i }).click();
+    await page.locator('.profile-actions').getByRole('button', { name: /al diagnóstico/i }).click();
     await page.waitForTimeout(600);
     const diagStage = page.locator('[data-testid="diagnosis-stage"]');
     await expect(diagStage).toBeVisible({ timeout: 10_000 });

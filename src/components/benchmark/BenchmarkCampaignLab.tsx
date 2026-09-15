@@ -180,6 +180,13 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
   const failed = runs.filter((run) => run.status === 'failed').length;
   const automaticallyEvaluated = runs.filter((run) => run.automaticEvaluation !== null).length;
   const campaignUsesCurrentProtocol = campaign?.protocolVersion === FINAL_EVALUATION_PROTOCOL.version;
+  const labView: 'setup' | 'running' | 'complete' = !campaign || !campaignUsesCurrentProtocol
+    ? 'setup'
+    : phase === 'running' || (attempted > 0 && attempted < campaign.plannedRuns)
+      ? 'running'
+      : attempted >= campaign.plannedRuns && attempted > 0
+        ? 'complete'
+        : 'running';
   const campaignForEvidence = useMemo(() => {
     if (!campaign) return null;
     const campaignComplete = runs.length === campaign.plannedRuns
@@ -336,7 +343,7 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
   };
 
   return (
-    <div className="oe4-campaign-lab" data-testid="oe4-campaign-lab">
+    <div className="oe4-campaign-lab" data-testid="oe4-campaign-lab" data-lab-view={labView}>
       <header className="oe4-hero">
         <div>
           <h1>Laboratorio de evaluación LLM</h1>
@@ -410,7 +417,7 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
                 <div><span>Progreso</span><strong>{attempted} terminadas · {campaign.plannedRuns - attempted} restantes</strong></div>
               </div>
               <div className="oe4-live-progress-track" aria-hidden="true">
-                <span style={{ width: `${Math.max(2, (attempted / campaign.plannedRuns) * 100)}%` }} />
+                <span style={{ transform: `scaleX(${Math.max(0.02, attempted / campaign.plannedRuns)})` }} />
               </div>
               <div className="oe4-live-stream">
                 <div className="oe4-live-stream-meta">
@@ -443,7 +450,15 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
           />
 
           {evidenceDocument?.formalValidity.valid && (
-            <>
+            <div className="oe4-lab-results">
+              {labView === 'complete' && (
+                <nav className="lab-local-index" aria-label="Secciones de la campaña">
+                  <a href="#oe4-results">Resultados</a>
+                  <a href="#oe4-matrix-title">Matriz</a>
+                  <a href="#oe4-configuration-title">Configuración</a>
+                </nav>
+              )}
+              <div id="oe4-results">
               <CampaignResultsExplorer
                 evidenceDocument={evidenceDocument}
                 selectedCellId={selectedResultCellId ?? undefined}
@@ -458,7 +473,8 @@ const BenchmarkCampaignLab: React.FC<BenchmarkCampaignLabProps> = ({
                 />
               )}
               <BenchmarkGlossary />
-            </>
+              </div>
+            </div>
           )}
 
           {selectedRun && (

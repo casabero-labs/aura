@@ -16,6 +16,7 @@ const OllamaSetupStandalone: React.FC = () => {
 
   useEffect(() => {
     const theme = localStorage.getItem('aura_theme') || localStorage.getItem('casabero-theme');
+    document.documentElement.dataset.casaberoTheme = 'editorial';
     document.documentElement.dataset.theme = theme === 'dark' ? 'dark' : 'light';
     document.title = 'AURA · Configurar Ollama local';
   }, []);

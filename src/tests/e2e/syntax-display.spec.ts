@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test.describe('Syntax display — estándar showcase-ink', () => {
+test.describe('Syntax display — artefactos Editorial', () => {
   test('el asistente de Ollama usa superficie clara, cabecera, tipografía mono y copia', async ({ page }) => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     await page.locator('.nav-center-menu').getByRole('button', { name: 'Configuración' }).click();
@@ -28,11 +28,12 @@ test.describe('Syntax display — estándar showcase-ink', () => {
       };
     });
 
-    expect(colors.outer).toBe('rgb(238, 242, 246)');
-    expect(colors.head).toBe('rgb(255, 255, 255)');
-    expect(colors.body).toBe('rgb(238, 242, 246)');
-    expect(colors.font).toContain('JetBrains Mono');
-    expect(colors.shadow).not.toBe('none');
+    expect(colors.outer).toBe('rgb(247, 247, 244)');
+    expect(colors.head).toBe('rgb(247, 247, 244)');
+    expect(colors.body).toBe('rgb(247, 247, 244)');
+    expect(colors.font).not.toContain('JetBrains Mono');
+    expect(colors.font).not.toContain('Inter');
+    expect(colors.shadow === 'none' || colors.shadow === '').toBeTruthy();
 
     await page.getByRole('button', { name: 'Continuar' }).click();
     await page.getByRole('button', { name: 'macOS' }).click();

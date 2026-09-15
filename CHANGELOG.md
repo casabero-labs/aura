@@ -4,6 +4,40 @@ Todos los cambios significativos se documentan aquí. Formato: `[YYYY-MM-DD] Tip
 
 ---
 
+## [2026-09-15] standards: F9 tokens Editorial y retirada del piloto
+
+- `:root` y `[data-theme=dark]` usan hex Editorial 1.2. Sombras none, radios 0–4 px, Source Serif/Sans.
+- Retirado `editorial-pilot` y `:has(.editorial-pilot)`. Syntax display ya no exige JetBrains ni superficie Ink.
+- 15 componentes sin camino de import se conservan bajo tokens; no se borraron.
+
+## [2026-09-15] standards: LOOP-03 Laboratorio Editorial
+
+- Laboratorio por estado (`data-lab-view`): setup, running, complete. Resultados primero cuando la campaña está cerrada. Progreso con `scaleX`.
+- Aplicar configuración de campaña no inicia diagnóstico. PDF de experimento sin filete Warm. Standalone Ollama declara Editorial.
+- Catálogo EC-13. `index.css` Ink heredado aún no se retira línea a línea.
+
+## [2026-09-15] standards: LOOP-02 U06 (corregir una copia) y PDF Editorial
+
+- Rama opcional con hitos Propuesta / Aprobación / Aplicar. Aprobar no usa relleno verde. Cerrar sin cambios es una salida.
+- PDF diagnóstico: paleta Editorial `#FFFFFF` / `#191919`. Catálogo EC-07, EC-08, EC-09.
+
+## [2026-09-15] standards: LOOP-02 camino feliz (perfil, informe, exportar)
+
+- Perfil: conclusión primero, tabla de columnas, sin anillo de score. CTA «Ir al diagnóstico».
+- Informe: conclusión y decisión antes de la invocación del modelo. Configuración de diagnóstico en drawer (no cubre la tarea).
+- Etapas del pipeline como filete, no pills. Catálogo: EC-02, EC-04/18, EC-06, EC-11.
+- U06 (corregir copia) y PDF de auditoría quedan como última tajada.
+
+## [2026-09-15] standards: inicia LOOP-01 Editorial (Inicio y carga)
+
+- `DESIGN.md` pasa a Casabero Editorial 1.2 exclusivo. Tokens en `src/styles/casabero-editorial.tokens.css`.
+- Shell: marca = Inicio; destinos = Auditoría y Laboratorio; Configuración y Ayuda en drawer. Inicio operativo, sin hero ni tres tarjetas.
+- Carga: input nativo asociado, error con alerta, sin botón anidado.
+- Impeccable aplicado al contrato de `CLAUDE.md` (`quieter`, foco inset, geometría, filete de overlay).
+- Diario: `docs/plans/2026-09-14-aura-editorial-ejecucion.md`.
+
+---
+
 ## [2026-05-20] feat(ui): migrate 2749 CSS classes for all AURA components
 
 - Migración masiva de CSS: 2,749 líneas añadidas a `src/index.css`

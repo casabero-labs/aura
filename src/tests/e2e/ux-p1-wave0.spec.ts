@@ -22,7 +22,7 @@ test.describe('UX P1 wave 0 — empty input, deterministic scope, destroy dialog
     await page.locator('[data-testid="csv-file-input"]').setInputFiles(emptyCsv);
     await expect(page.getByText(/No se pudo auditar/i)).toBeVisible({ timeout: 20_000 });
     await expect(page.getByText(/Dataset saludable/i)).toHaveCount(0);
-    await expect(page.getByRole('button', { name: /Continuar al diagnóstico/i })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /al diagnóstico/i })).toHaveCount(0);
     await expect(page.getByRole('button', { name: /Seleccionar otro archivo/i })).toBeVisible();
     await page.screenshot({ path: join(evidenceDir, '15-csv-vacio-rechazado.png'), fullPage: true });
 
@@ -30,7 +30,7 @@ test.describe('UX P1 wave 0 — empty input, deterministic scope, destroy dialog
     await page.locator('[data-testid="csv-file-input"]').setInputFiles(validCsv);
     await expect(page.getByTestId('profile-hero')).toBeVisible({ timeout: 20_000 });
 
-    await page.getByRole('button', { name: /Continuar al diagnóstico/i }).click();
+    await page.getByRole('button', { name: /al diagnóstico/i }).click();
     await expect(page.getByRole('button', { name: /Continuar con informe determinista/i })).toBeVisible({ timeout: 20_000 });
     await page.getByRole('button', { name: /Continuar con informe determinista/i }).click();
 

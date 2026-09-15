@@ -117,13 +117,13 @@ const buildSnapshotSvg = (
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="${height}" viewBox="0 0 1200 ${height}">
   <style>
-    .bg { fill: #FAF8F4; }
-    .ink { fill: #1E1E1C; font-family: Inter, Arial, sans-serif; }
-    .eyebrow { fill: #4A4540; font-family: "JetBrains Mono", monospace; font-size: 16px; letter-spacing: 3px; }
-    .title { fill: #1E1E1C; font-family: "Playfair Display", Georgia, serif; font-size: 42px; font-weight: 700; }
-    .label { fill: #4A4540; font-family: "JetBrains Mono", monospace; font-size: 14px; letter-spacing: 1px; }
-    .value { fill: #1E1E1C; font-family: Inter, Arial, sans-serif; font-size: 18px; }
-    .rule { stroke: #D8D2C8; stroke-width: 1; }
+    .bg { fill: #FFFFFF; }
+    .ink { fill: #191919; font-family: "Source Sans 3", Arial, sans-serif; }
+    .eyebrow { fill: #6B6B67; font-family: "Source Sans 3", Arial, sans-serif; font-size: 16px; letter-spacing: 3px; }
+    .title { fill: #191919; font-family: "Source Serif 4", Georgia, serif; font-size: 42px; font-weight: 700; }
+    .label { fill: #6B6B67; font-family: "Source Sans 3", Arial, sans-serif; font-size: 14px; letter-spacing: 1px; }
+    .value { fill: #191919; font-family: "Source Sans 3", Arial, sans-serif; font-size: 18px; }
+    .rule { stroke: #D9D9D4; stroke-width: 1; }
   </style>
   <rect class="bg" width="1200" height="${height}" />
   <text x="72" y="62" class="eyebrow">${escapeXml(eyebrow.toUpperCase())}</text>

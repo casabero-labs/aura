@@ -91,7 +91,7 @@ test.describe('Phase 8 L1 — Demo/Prod Boundary', () => {
     await page.goto('/?demoMode=1&nocache=' + Date.now(), { waitUntil: 'domcontentloaded', timeout: 60_000 });
     await page.locator('.sys-nav').waitFor({ state: 'visible', timeout: 15_000 });
 
-    await page.locator('.nav-center-menu').getByRole('button', { name: 'Home' }).click();
+    await page.getByRole('button', { name: 'Ir al inicio' }).click();
     await page.waitForTimeout(500);
 
     await expect(page.locator('[data-testid="demo-mode-banner"]')).toHaveCount(0);

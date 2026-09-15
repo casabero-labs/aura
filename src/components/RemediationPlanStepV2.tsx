@@ -143,8 +143,8 @@ const RemediationPlanStepV2: React.FC<RemediationPlanStepV2Props> = ({
       <section className="section" data-testid="remediation-stage">
         <header className="section-header">
           <div>
-            <p className="sec-eye">remediación estructurada v2</p>
-            <h2 className="sec-title">Plan de remediación determinista</h2>
+            <p className="sec-eye">propuesta</p>
+            <h2 className="sec-title">Acciones sobre una copia</h2>
           </div>
         </header>
         <div className="provider-error-notice" style={{ marginBottom: 'var(--space-md)' }}>
@@ -160,8 +160,8 @@ const RemediationPlanStepV2: React.FC<RemediationPlanStepV2Props> = ({
       <section className="section" data-testid="remediation-stage">
         <header className="section-header">
           <div>
-            <p className="sec-eye">remediación estructurada v2</p>
-            <h2 className="sec-title">Plan de remediación determinista</h2>
+            <p className="sec-eye">propuesta</p>
+            <h2 className="sec-title">Acciones sobre una copia</h2>
           </div>
         </header>
         <p className="section-note">Construyendo plan de remediación determinista...</p>
@@ -173,13 +173,23 @@ const RemediationPlanStepV2: React.FC<RemediationPlanStepV2Props> = ({
     <section className="section" data-testid="remediation-stage">
       <header className="section-header">
         <div>
-          <p className="sec-eye">remediación estructurada v2</p>
-          <h2 className="sec-title">Plan de remediación determinista</h2>
+          <p className="sec-eye">propuesta</p>
+          <h2 className="sec-title">Acciones sobre una copia</h2>
         </div>
       </header>
       <p className="section-note">
-        Plan estructurado listo. La generación determinista del script se realizará en la siguiente fase.
+        Cada fila es una acción propuesta. Aprobar no genera el script ni ejecuta Python.
       </p>
+
+      {v2Plan.plan.length === 0 && (
+        <div className="context-guide" role="status" data-testid="remediation-empty-plan">
+          <div>
+            <p className="guide-title">No hay acciones que proponer</p>
+            <p className="guide-desc">Cerrar sin cambios deja el dataset intacto y permite exportar el informe.</p>
+          </div>
+          <button className="btn-p btn-sm" type="button" onClick={onContinue}>Cerrar sin cambios</button>
+        </div>
+      )}
 
       <div className="stage-decision-summary" style={{ marginBottom: 'var(--space-md)' }}>
         <div className="stage-summary-item">
@@ -258,22 +268,22 @@ const RemediationPlanStepV2: React.FC<RemediationPlanStepV2Props> = ({
             <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
               {action.approvalStatus === 'pending' && (
                 <>
-                  <button className="btn-s btn-sm" onClick={() => handleApprove(action.actionId)} style={{ background: 'var(--success-bg)', color: 'var(--success-fg)' }}>
-                    <CheckCircle2 size={12} /> Aprobar
+                  <button className="btn-p btn-sm" type="button" onClick={() => handleApprove(action.actionId)}>
+                    Aprobar
                   </button>
-                  <button className="btn-s btn-sm" onClick={() => handleReject(action.actionId)} style={{ background: 'var(--error-bg)', color: 'var(--error-fg)' }}>
-                    <AlertTriangle size={12} /> {action.actionType === 'normalize_placeholders' ? 'Conservar como válido' : 'Rechazar'}
+                  <button className="btn-s btn-sm" type="button" onClick={() => handleReject(action.actionId)}>
+                    {action.actionType === 'normalize_placeholders' ? 'Conservar como válido' : 'Rechazar'}
                   </button>
                 </>
               )}
               {action.approvalStatus === 'approved' && (
-                <button className="btn-s btn-sm" onClick={() => handleReset(action.actionId)} style={{ background: 'var(--success-bg)', color: 'var(--success-fg)' }}>
-                  <ShieldCheck size={12} /> Aprobado
+                <button className="btn-s btn-sm" type="button" onClick={() => handleReset(action.actionId)}>
+                  Aprobado · deshacer
                 </button>
               )}
               {action.approvalStatus === 'rejected' && (
-                <button className="btn-s btn-sm" onClick={() => handleReset(action.actionId)} style={{ background: 'var(--error-bg)', color: 'var(--error-fg)' }}>
-                  <Ban size={12} /> Rechazado
+                <button className="btn-s btn-sm" type="button" onClick={() => handleReset(action.actionId)}>
+                  Rechazado · deshacer
                 </button>
               )}
             </div>

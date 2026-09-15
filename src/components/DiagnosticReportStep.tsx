@@ -405,7 +405,7 @@ const DiagnosticReportStep: React.FC<DiagnosticReportStepProps> = ({
 
   return (
     <>
-      <section className="section diagnostic-report-stage editorial-pilot" data-testid="diagnostic-report-stage">
+      <section className="section diagnostic-report-stage" data-testid="diagnostic-report-stage">
         <div className="diagnostic-report-hero" data-testid="diagnostic-report-header">
           <div>
             <p className="sec-eye">REPORTE DIAGNÓSTICO</p>
@@ -431,10 +431,6 @@ const DiagnosticReportStep: React.FC<DiagnosticReportStepProps> = ({
             {' '}Puedes exportar el informe o volver al diagnóstico para configurar un proveedor.
           </p>
         )}
-        <DatasetSummaryStrip report={diagnosticReport} findingCount={primaryFindings.findings.length} />
-        <DiagnosticInvocationSummary report={diagnosticReport} evaluation={evaluationSummary} />
-        <DiagnosticDecisionBrief presentation={presentation} />
-
         <section className="diagnostic-report-executive" data-testid="diagnostic-report-executive-summary">
           <div className="diagnostic-report-section-head">
             <div>
@@ -463,6 +459,9 @@ const DiagnosticReportStep: React.FC<DiagnosticReportStepProps> = ({
             </p>
           )}
         </section>
+
+        <DiagnosticDecisionBrief presentation={presentation} />
+        <DatasetSummaryStrip report={diagnosticReport} findingCount={primaryFindings.findings.length} />
 
         <ReportDisclosure
           title="Ver gráficos del informe"
@@ -539,6 +538,11 @@ const DiagnosticReportStep: React.FC<DiagnosticReportStepProps> = ({
           </button>
         </section>
       </section>
+
+      <details className="diagnostic-report-tech-disclosure" data-testid="diagnostic-invocation-disclosure">
+        <summary className="diagnostic-report-tech-summary">Cómo se obtuvo este resultado</summary>
+        <DiagnosticInvocationSummary report={diagnosticReport} evaluation={evaluationSummary} />
+      </details>
 
       <TechnicalEvidenceDisclosure report={diagnosticReport} />
     </>

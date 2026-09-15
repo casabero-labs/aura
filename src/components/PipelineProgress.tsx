@@ -62,21 +62,16 @@ const PipelineProgress = ({ currentStep, onStepClick }: PipelineProgressProps) =
 
           return (
             <div key={step.state} style={{ display: 'contents' }}>
-              <div
+              <button
+                type="button"
                 className={`stepper-step ${status} ${isClickable ? 'clickable' : ''}`}
                 onClick={() => handleStepClick(step.state)}
-                role={isClickable ? 'button' : undefined}
-                tabIndex={isClickable ? 0 : undefined}
                 data-step={step.state}
-                onKeyDown={(e) => {
-                  if (isClickable && (e.key === 'Enter' || e.key === ' ')) {
-                    handleStepClick(step.state);
-                  }
-                }}
+                aria-current={status === 'active' ? 'step' : undefined}
               >
                 <span className="stepper-index">{step.num}</span>
                 <span className="stepper-label">{step.label}</span>
-              </div>
+              </button>
               {index < mainFlowSteps.length - 1 && (
                 <div className="stepper-line" />
               )}

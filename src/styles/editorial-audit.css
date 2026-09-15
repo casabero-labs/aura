@@ -1,0 +1,223 @@
+/* LOOP-02: perfil, etapas, diagnóstico, informe, exportación. */
+
+[data-casabero-theme="editorial"] .stepper {
+  padding: 16px 0 8px;
+  border-bottom: 0.5px solid var(--editorial-line);
+  background: transparent;
+}
+
+[data-casabero-theme="editorial"] .stepper-track {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 0;
+  align-items: stretch;
+}
+
+[data-casabero-theme="editorial"] .stepper-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  color: var(--ink-muted);
+  font-family: var(--font-meta);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+[data-casabero-theme="editorial"] .stepper-step.active {
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: inset 0 -1px 0 var(--ink);
+}
+
+[data-casabero-theme="editorial"] .stepper-step.done {
+  color: var(--ink2);
+}
+
+[data-casabero-theme="editorial"] .stepper-line {
+  width: 16px;
+  height: 1px;
+  align-self: center;
+  background: var(--editorial-line);
+}
+
+[data-casabero-theme="editorial"] .stepper-branch {
+  margin-top: 8px;
+  font-family: var(--font-meta);
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+[data-casabero-theme="editorial"] .profile-editorial-header,
+[data-casabero-theme="editorial"] .diagnosis-hero-panel,
+[data-casabero-theme="editorial"] .diagnostic-report-hero {
+  max-width: 42em;
+  padding: 32px 0 16px;
+}
+
+[data-casabero-theme="editorial"] .profile-editorial-title,
+[data-casabero-theme="editorial"] .diagnosis-hero-title,
+[data-casabero-theme="editorial"] .diagnostic-report-hero .sec-title {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 4vw, 40px);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+[data-casabero-theme="editorial"] .profile-editorial-desc,
+[data-casabero-theme="editorial"] .diagnosis-hero-desc,
+[data-casabero-theme="editorial"] .profile-decision-description {
+  font-family: var(--font-body);
+  font-size: 18px;
+  line-height: 1.55;
+  color: var(--ink2);
+  max-width: 40em;
+}
+
+[data-casabero-theme="editorial"] .profile-summary-strip,
+[data-casabero-theme="editorial"] .diagnosis-summary-strip,
+[data-casabero-theme="editorial"] .dataset-summary-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 16px 24px;
+  max-width: 720px;
+  padding: 16px 0;
+  border-top: 0.5px solid var(--editorial-line);
+  border-bottom: 0.5px solid var(--editorial-line);
+  background: transparent;
+  box-shadow: none;
+}
+
+[data-casabero-theme="editorial"] .profile-summary-value,
+[data-casabero-theme="editorial"] .diagnosis-summary-value {
+  font-family: var(--font-meta);
+  font-variant-numeric: tabular-nums;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+[data-casabero-theme="editorial"] .profile-summary-label,
+[data-casabero-theme="editorial"] .diagnosis-summary-label {
+  font-family: var(--font-meta);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+[data-casabero-theme="editorial"] .profile-decision-score-ring {
+  display: none;
+}
+
+[data-casabero-theme="editorial"] .profile-decision-summary {
+  padding: 24px 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+[data-casabero-theme="editorial"] .profile-decision-status-label {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+[data-casabero-theme="editorial"] .profile-priorities,
+[data-casabero-theme="editorial"] .profile-block,
+[data-casabero-theme="editorial"] .context-guide,
+[data-casabero-theme="editorial"] .diagnostic-report-executive,
+[data-casabero-theme="editorial"] .diagnostic-invocation-summary,
+[data-casabero-theme="editorial"] .diagnostic-report-governance-card {
+  border: 0;
+  border-top: 0.5px solid var(--editorial-line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 24px 0;
+}
+
+[data-casabero-theme="editorial"] .profile-priority-item {
+  border: 0;
+  border-bottom: 0.5px solid var(--editorial-line);
+  border-radius: 0;
+  background: transparent;
+  padding: 12px 0;
+}
+
+[data-casabero-theme="editorial"] .editorial-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-meta);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+[data-casabero-theme="editorial"] .editorial-data-table th,
+[data-casabero-theme="editorial"] .editorial-data-table td {
+  text-align: left;
+  padding: 8px 12px 8px 0;
+  border-bottom: 0.5px solid var(--editorial-line);
+  vertical-align: top;
+}
+
+[data-casabero-theme="editorial"] .editorial-data-table tbody tr {
+  cursor: pointer;
+}
+
+[data-casabero-theme="editorial"] .editorial-data-table tbody tr[aria-selected="true"] {
+  box-shadow: inset 2px 0 0 var(--ink);
+}
+
+[data-casabero-theme="editorial"] .editorial-data-table caption {
+  caption-side: top;
+  text-align: left;
+  font-size: 12px;
+  color: var(--ink-muted);
+  padding-bottom: 8px;
+}
+
+[data-casabero-theme="editorial"] .profile-actions,
+[data-casabero-theme="editorial"] .diagnosis-hero-actions,
+[data-casabero-theme="editorial"] .diagnostic-report-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 24px 0;
+}
+
+[data-casabero-theme="editorial"] .status-dot {
+  display: none;
+}
+
+[data-casabero-theme="editorial"] .diagnosis-active-mode {
+  font-family: var(--font-meta);
+  font-size: 13px;
+  color: var(--ink2);
+}
+
+[data-casabero-theme="editorial"] .export-closure,
+[data-casabero-theme="editorial"] .audit-workspace,
+[data-casabero-theme="editorial"] .section {
+  box-shadow: none;
+}
+
+[data-casabero-theme="editorial"] .export-closure-header .sec-title {
+  font-family: var(--font-display);
+}
+
+@media (max-width: 720px) {
+  [data-casabero-theme="editorial"] .stepper-track {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+
+  [data-casabero-theme="editorial"] .diagnostic-report-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

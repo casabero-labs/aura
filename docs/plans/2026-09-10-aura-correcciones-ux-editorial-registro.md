@@ -10,6 +10,8 @@ No confundir código cambiado, prueba automatizada, recorrido real y publicació
 
 ## Estado vigente y punto de reanudación — actualizado 2026-09-12
 
+**Continuidad añadida el 2026-09-14:** el [próximo plan integral Editorial](2026-09-14-aura-migracion-editorial-integral.md) está preparado para revisión y no iniciado. El [orden de ejecución](2026-09-14-aura-editorial-orden-ejecucion.md) lo agrupa en tres loops. Usa el showcase Editorial específico e incluye su catálogo de brechas. No reabre los cierres funcionales de este registro; el piloto completado es un antecedente acotado, no una certificación de la futura migración global.
+
 Esta sección y la matriz son el resumen vigente. Las olas posteriores son evidencia histórica, no estados acumulativos ni instrucciones actuales. No reabrir UX-01, UX-02 o UX-03 por pendientes históricos ya superados. Las verificaciones tienen el alcance explícito de cada fila. El piloto acotado de Perfil → Informe → Exportación está completado; no implica una auditoría universal del producto.
 
 - **Solicitud actual COMPLETADA (2026-09-11): cancelación concurrente, cierre sin cambios y separación de 999/nulos corregidos y verificados. No hay un caso activo de esta solicitud ni trabajo que deba trasladarse a otro agente.**

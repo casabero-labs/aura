@@ -1,0 +1,64 @@
+/* LOOP-02 U06: corregir una copia. Aprobar ≠ ejecutar. */
+
+[data-casabero-theme="editorial"] .remediation-branch-header {
+  max-width: 42em;
+  padding: 24px 0 8px;
+  border-bottom: 0.5px solid var(--editorial-line);
+}
+
+[data-casabero-theme="editorial"] .remediation-milestones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-meta);
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+[data-casabero-theme="editorial"] .remediation-milestones [aria-current="step"] {
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: inset 0 -1px 0 var(--ink);
+}
+
+[data-casabero-theme="editorial"] .companion-note,
+[data-casabero-theme="editorial"] .step-card,
+[data-casabero-theme="editorial"] .apply-verify-step,
+[data-casabero-theme="editorial"] .review-step,
+[data-casabero-theme="editorial"] .remediation-action {
+  border: 0;
+  border-top: 0.5px solid var(--editorial-line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+[data-casabero-theme="editorial"] .remediation-action__title,
+[data-casabero-theme="editorial"] .apply-verify-step .step-heading,
+[data-casabero-theme="editorial"] .review-step .sec-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+}
+
+[data-casabero-theme="editorial"] .remediation-action [style*="success"],
+[data-casabero-theme="editorial"] .remediation-action [style*="error"] {
+  background: transparent !important;
+  color: var(--ink) !important;
+}
+
+[data-casabero-theme="editorial"] .apply-verify-mono-block {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 12px 0;
+  border-top: 0.5px solid var(--editorial-line);
+  border-bottom: 0.5px solid var(--editorial-line);
+  background: transparent;
+}
+
+[data-casabero-theme="editorial"] .reaudit-finding-list {
+  font-family: var(--font-meta);
+  font-variant-numeric: tabular-nums;
+}

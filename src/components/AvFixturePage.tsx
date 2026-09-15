@@ -141,7 +141,7 @@ export default function AvFixturePage() {
   }
 
   return (
-    <div className="step-card" style={{ maxWidth: 960, margin: '1.5rem auto' }}>
+    <div className="apply-verify-fixture" style={{ maxWidth: 960, margin: '1.5rem auto' }}>
 
       <ApplyVerifyStep
         key={fixture}

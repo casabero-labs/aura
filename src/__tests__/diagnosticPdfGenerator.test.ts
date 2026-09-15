@@ -250,18 +250,20 @@ const renderPdf = (
 };
 
 describe('generateDiagnosticPdfReport', () => {
-  it('usa la paleta fría Showcase Ink sin superficies warm', () => {
+  it('usa la paleta Editorial 1.2 sin Ink ni Warm', () => {
     const theme = createPdfTheme();
 
     expect(theme.colors).toEqual(expect.objectContaining({
-      ink: '#20242b',
-      muted: '#5b626d',
-      border: '#d8dce1',
-      panel: '#f4f5f7',
+      ink: '#191919',
+      muted: '#4d4d4a',
+      border: '#d9d9d4',
+      panel: '#f7f7f4',
       white: '#ffffff',
     }));
     expect(Object.values(theme.colors)).not.toContain('#faf8f4');
     expect(Object.values(theme.colors)).not.toContain('#f5f1e8');
+    expect(Object.values(theme.colors)).not.toContain('#20242b');
+    expect(Object.values(theme.colors)).not.toContain('#0f766e');
   });
   it('genera PDF con solo DiagnosticReport determinista', () => {
     const { result, capturedDoc } = renderPdf(buildDiagnosticReportFixture());

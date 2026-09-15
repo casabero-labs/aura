@@ -8,7 +8,7 @@ import {
   truncateText,
 } from './pdfLayout';
 
-const palette = ['#20242b', '#5b626d', '#2563eb', '#0f766e', '#b54708', '#b42318'];
+const palette = ['#191919', '#4d4d4a', '#6b6b67', '#a7a7a0', '#d9d9d4', '#161614'];
 
 const asNumber = (value: unknown) => {
   if (typeof value === 'number' && Number.isFinite(value)) return value;

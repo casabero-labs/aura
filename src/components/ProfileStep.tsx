@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { ArrowRight, ChevronDown, BarChart3, Columns3 } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 import ColumnStatsPanel from './ColumnStatsPanel';
 import IngestionEvidenceCard from './IngestionEvidenceCard';
 import SeverityDistributionChart from './SeverityDistributionChart';
@@ -71,10 +71,14 @@ const ProfileStep: React.FC<ProfileStepProps> = ({ report, auditEvidence, file, 
     }
   }, [report, criticalCount, warningCount]);
 
-  const scoreColor = report ? (report.score >= 80 ? 'var(--success)' : report.score >= 60 ? 'var(--orange)' : 'var(--error)') : 'var(--ink3)';
+  const [selectedColumn, setSelectedColumn] = useState<string | null>(null);
+  const columnEntries = report
+    ? Object.values(report.columnStats)
+    : [];
+  const selectedStats = selectedColumn ? report?.columnStats[selectedColumn] : undefined;
 
   return (
-    <div className="editorial-pilot">
+    <div className="profile-step">
       {isError && (
         <>
           <section className="profile-block">
@@ -88,13 +92,12 @@ const ProfileStep: React.FC<ProfileStepProps> = ({ report, auditEvidence, file, 
             <IngestionEvidenceCard evidence={auditEvidence} />
           </section>
           <div className="context-guide">
-            <span className="guide-icon"><ArrowRight size={14} /></span>
             <div>
               <p className="guide-title">Error en la ingesta del archivo</p>
               <p className="guide-desc">No se pudo procesar el CSV. Verifica que el archivo sea válido y vuelve a intentarlo.</p>
             </div>
             <button className="btn-p btn-sm" onClick={onRetry}>
-              Seleccionar otro archivo <ArrowRight size={12} />
+              Seleccionar otro archivo
             </button>
           </div>
         </>
@@ -104,14 +107,11 @@ const ProfileStep: React.FC<ProfileStepProps> = ({ report, auditEvidence, file, 
         <>
           {/* A. Hero del paso (eyebrow, título, descripción) */}
           <div className="profile-editorial-header" data-testid="profile-hero">
-            <p className="profile-editorial-eyebrow">PERFIL BASE</p>
-            <h1 className="profile-editorial-title">Perfil inicial del dataset</h1>
-            <p className="profile-editorial-desc">
-              AURA revisó volumen, columnas y señales principales de riesgo. El detalle interpretativo queda para el diagnóstico.
-            </p>
+            <p className="profile-editorial-eyebrow">Perfil base</p>
+            <h1 className="profile-editorial-title">{datasetStatus.label}</h1>
+            <p className="profile-editorial-desc">{datasetStatus.description}</p>
           </div>
 
-          {/* B. Resumen del dataset (archivo, filas, columnas, hallazgos) */}
           <div className="profile-summary-strip" data-testid="profile-summary-strip">
             <div className="profile-summary-item">
               <span className="profile-summary-value" style={{ fontSize: '15px', wordBreak: 'break-all' }}>
@@ -131,26 +131,13 @@ const ProfileStep: React.FC<ProfileStepProps> = ({ report, auditEvidence, file, 
               <span className="profile-summary-value profile-summary-value--critical">{totalFindings}</span>
               <span className="profile-summary-label">hallazgos</span>
             </div>
+            <div className="profile-summary-item">
+              <span className="profile-summary-value">{report.score}/100</span>
+              <span className="profile-summary-label">puntuación determinista</span>
+            </div>
           </div>
 
-          {/* C. Resumen de decisión (score, estado, distribución por severidad) */}
           <section className="profile-decision-summary" data-testid="profile-decision-summary">
-            <div className="profile-decision-score">
-              <div className="profile-decision-score-ring" style={{ '--score-color': scoreColor } as React.CSSProperties}>
-                <span className="profile-decision-score-value" style={{ color: scoreColor }}>
-                  {report.score}
-                </span>
-              </div>
-              <div className="profile-decision-status">
-                <span className="profile-decision-status-label">{datasetStatus.label}</span>
-                <span className="profile-decision-status-desc">
-                  Puntuación general del motor determinista (0-100)
-                </span>
-              </div>
-            </div>
-            <p className="profile-decision-description">{datasetStatus.description}</p>
-
-            {/* Distribución por severidad — visible por defecto */}
             {totalFindings > 0 && (
               <SeverityDistributionChart
                 critical={criticalCount}
@@ -163,10 +150,7 @@ const ProfileStep: React.FC<ProfileStepProps> = ({ report, auditEvidence, file, 
           {/* D. Columnas más afectadas (visible por defecto) */}
           {topAffectedColumns.length > 0 && (
             <section className="profile-priorities" data-testid="profile-affected-columns">
-              <h2 className="profile-priorities-title">
-                <Columns3 size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />
-                Columnas más afectadas
-              </h2>
+              <h2 className="profile-priorities-title">Columnas más afectadas</h2>
               <div className="profile-priorities-list">
                 {topAffectedColumns.map(({ column, count }) => (
                   <div key={column} className="profile-priority-item">
@@ -185,10 +169,7 @@ const ProfileStep: React.FC<ProfileStepProps> = ({ report, auditEvidence, file, 
           {/* E. Prioridades de limpieza (top hallazgos) */}
           {topPriorities.length > 0 && (
             <section className="profile-priorities" data-testid="profile-priorities">
-              <h2 className="profile-priorities-title">
-                <BarChart3 size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />
-                Prioridades principales
-              </h2>
+              <h2 className="profile-priorities-title">Prioridades principales</h2>
               <div className="profile-priorities-list">
                 {topPriorities.map(issue => (
                   <div key={issue.id} className="profile-priority-item">
@@ -207,6 +188,49 @@ const ProfileStep: React.FC<ProfileStepProps> = ({ report, auditEvidence, file, 
           )}
 
           {/* F. CTA principal — único botón prominente hacia Diagnóstico */}
+          <section className="profile-columns" data-testid="profile-column-table">
+            <h2 className="profile-priorities-title">Columnas</h2>
+            <table className="editorial-data-table">
+              <caption>Tipo y completitud. Selecciona una fila para el detalle.</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Columna</th>
+                  <th scope="col">Tipo</th>
+                  <th scope="col">Nulos</th>
+                  <th scope="col">Distintos</th>
+                </tr>
+              </thead>
+              <tbody>
+                {columnEntries.map((col) => (
+                  <tr
+                    key={col.name}
+                    aria-selected={selectedColumn === col.name}
+                    onClick={() => setSelectedColumn(col.name)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        setSelectedColumn(col.name);
+                      }
+                    }}
+                    tabIndex={0}
+                  >
+                    <th scope="row">{col.name}</th>
+                    <td>{col.inferredType || '—'}</td>
+                    <td>{col.nullCount}</td>
+                    <td>{col.uniqueCount}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {selectedStats && (
+              <p className="profile-decision-description" data-testid="profile-column-detail">
+                {selectedStats.name}: {selectedStats.inferredType || 'tipo no inferido'}.
+                {' '}{selectedStats.nullCount} nulos de {report.rowCount} filas.
+                {selectedStats.semanticType ? ` Lectura semántica: ${selectedStats.semanticType}.` : ''}
+              </p>
+            )}
+          </section>
+
           <div className="profile-actions" data-testid="profile-actions">
             <button
               className="btn-p profile-actions-primary"
@@ -214,21 +238,10 @@ const ProfileStep: React.FC<ProfileStepProps> = ({ report, auditEvidence, file, 
               type="button"
               data-testid="profile-continue-diagnosis"
             >
-              Continuar al diagnóstico <ArrowRight size={14} />
-            </button>
-            <button
-              className="btn-s profile-actions-secondary"
-              onClick={() => {
-                const details = document.querySelector('.technical-details') as HTMLDetailsElement;
-                if (details) details.open = true;
-              }}
-              type="button"
-            >
-              Ver columnas detectadas
+              Ir al diagnóstico
             </button>
           </div>
 
-          {/* ── TECHNICAL DETAILS (closed by default) ── */}
           <details className="technical-details" data-testid="profile-tech-disclosure">
             <summary className="technical-details-summary">
               <ChevronDown size={14} className="technical-details-chevron" />

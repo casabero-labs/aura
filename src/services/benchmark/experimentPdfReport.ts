@@ -55,7 +55,7 @@ export const generateExperimentPdfReport = (
     const lineHeight = size * 0.42;
     doc.setFont(options.font ?? 'helvetica', options.style ?? 'normal');
     doc.setFontSize(size);
-    doc.setTextColor(...(options.color ?? [58, 57, 54]));
+    doc.setTextColor(...(options.color ?? [25, 25, 25]));
     const lines = doc.splitTextToSize(text || ' ', contentWidth) as string[];
     ensureSpace((lines.length * lineHeight) + (options.gap ?? 3));
     doc.text(lines, margin, y);
@@ -70,15 +70,15 @@ export const generateExperimentPdfReport = (
     }
     if (line.startsWith('# ')) {
       ensureSpace(18);
-      addWrapped(stripMarkdown(line), { style: 'bold', size: 18, color: [45, 44, 42], gap: 6 });
+      addWrapped(stripMarkdown(line), { style: 'bold', size: 18, color: [25, 25, 25], gap: 6 });
       continue;
     }
     if (line.startsWith('## ')) {
       ensureSpace(16);
-      doc.setDrawColor(176, 141, 87);
+      doc.setDrawColor(167, 167, 160);
       doc.line(margin, y, pageWidth - margin, y);
       y += 6;
-      addWrapped(stripMarkdown(line), { style: 'bold', size: 12, color: [45, 44, 42], gap: 4 });
+      addWrapped(stripMarkdown(line), { style: 'bold', size: 12, color: [25, 25, 25], gap: 4 });
       continue;
     }
     if (line.startsWith('|')) {
@@ -95,11 +95,11 @@ export const generateExperimentPdfReport = (
   const pageCount = doc.getNumberOfPages();
   for (let page = 1; page <= pageCount; page += 1) {
     doc.setPage(page);
-    doc.setDrawColor(226, 222, 214);
+    doc.setDrawColor(217, 217, 212);
     doc.line(margin, pageHeight - 12, pageWidth - margin, pageHeight - 12);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('times', 'normal');
     doc.setFontSize(7);
-    doc.setTextColor(125, 122, 116);
+    doc.setTextColor(107, 107, 103);
     doc.text(`AURA - Evaluación LLM - ${document.campaign.campaignId}`, margin, pageHeight - 7);
     doc.text(`${page}/${pageCount}`, pageWidth - margin, pageHeight - 7, { align: 'right' });
   }

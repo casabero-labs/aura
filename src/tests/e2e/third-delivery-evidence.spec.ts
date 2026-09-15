@@ -71,7 +71,7 @@ test.describe('Phase 3 — Third Delivery Evidence Screenshots', () => {
   test('04 — structured_diagnosis_v2.png (titanic)', async ({ page }) => {
     await uploadDataset(page, DATASETS.titanic);
 
-    await page.locator('.profile-actions').getByRole('button', { name: /Continuar al diagnóstico/i }).click();
+    await page.locator('.profile-actions').getByRole('button', { name: /al diagnóstico/i }).click();
     await page.waitForTimeout(600);
 
     const diagnosisStage = page.locator('[data-testid="diagnosis-stage"]');

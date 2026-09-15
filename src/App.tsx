@@ -16,6 +16,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import AuditLogViewer from './components/AuditLogViewer';
 import SettingsPanel from './components/SettingsPanel';
 import HelpCenter from './components/HelpCenter';
+import UtilityDrawer from './components/UtilityDrawer';
 import ProgressDisclosure from './components/ProgressDisclosure';
 import AuraMark from './components/AuraMark';
 import MainPipeline, { PipelineData } from './components/MainPipeline';
@@ -184,9 +185,9 @@ const App: React.FC = () => {
   });
 
   useEffect(() => {
+    document.documentElement.dataset.casaberoTheme = 'editorial';
     document.documentElement.dataset.theme = theme;
     localStorage.setItem('aura_theme', theme);
-    localStorage.setItem('casabero-theme', theme);
   }, [theme]);
 
   useEffect(() => {
@@ -721,18 +722,23 @@ const App: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const openSettings = () => {
+    setShowHelp(false);
+    setShowSettings(true);
+    closeMobileNavigation(showMobileNav);
+  };
+
+  const openHelp = () => {
+    setShowSettings(false);
+    setShowHelp(true);
+    closeMobileNavigation(showMobileNav);
+  };
+
   const applyCampaignPipelineConfiguration = (configuration: CampaignPipelineConfigurationV1) => {
     setAiConfig((current) => applyCampaignConfigurationToAIConfig(current, configuration));
   };
 
-  const goSettings = () => {
-    setShowHome(false);
-    setShowSettings(true);
-    setShowExperimentCampaign(false);
-    setShowAuditLog(false);
-    setShowHelp(false);
-    closeMobileNavigation(showMobileNav);
-  };
+  const goSettings = openSettings;
 
   const handleDestroySession = () => {
     setShowDestroySessionDialog(true);
@@ -782,68 +788,70 @@ const App: React.FC = () => {
 
   return (
     <ErrorBoundary><div className="aura-system">
+      <a className="aura-skip" href="#main-content">Saltar al contenido</a>
       {showAuditLog && <AuditLogViewer onClose={() => setShowAuditLog(false)} />}
 
-      {/* Navigation */}
       <nav className="sys-nav" aria-label="Navegación principal">
-        {/* Bloque Izquierdo: Branding */}
-        <button className="nav-brand" onClick={goHome} aria-label="Ir al inicio" type="button">
-          <span className="nav-logo-mark nav-logo-mark--visible" aria-hidden="true">
-            <AuraMark />
-          </span>
-          <span className="nav-logo">AURA</span>
-        </button>
+        <div className="nav-primary-row">
+          <button
+            className="nav-brand"
+            onClick={goHome}
+            aria-label="Ir al inicio"
+            aria-current={showHome ? 'page' : undefined}
+            type="button"
+          >
+            <span className="nav-logo-mark nav-logo-mark--visible" aria-hidden="true">
+              <AuraMark />
+            </span>
+            <span className="nav-logo">AURA</span>
+          </button>
 
-        <div className="nav-right-cluster">
-          {/* Bloque Derecho: Navegación de Capas (Escritorio) */}
-          <div className="nav-center-menu">
+          <div className="nav-work nav-center-menu" aria-label="Destinos de trabajo">
             <button
-              className={`nav-menu-item ${showHome ? 'active' : ''}`}
-              onClick={goHome}
-              aria-current={showHome ? 'page' : undefined}
-              type="button"
-            >
-              Home
-            </button>
-
-            <button
-              className={`nav-menu-item ${!showHome && !showExperimentCampaign && !showAuditLog && !showSettings ? 'active' : ''}`}
+              className={`nav-work-item nav-menu-item ${!showHome && !showExperimentCampaign ? 'active' : ''}`}
               onClick={goAudit}
-              aria-current={!showHome && !showExperimentCampaign && !showAuditLog && !showSettings ? 'page' : undefined}
+              aria-current={!showHome && !showExperimentCampaign ? 'page' : undefined}
               type="button"
             >
               Auditoría
             </button>
-
             <button
-              className={`nav-menu-item ${showExperimentCampaign ? 'active' : ''}`}
+              className={`nav-work-item nav-menu-item ${showExperimentCampaign ? 'active' : ''}`}
               onClick={goExperimentCampaign}
               aria-current={showExperimentCampaign ? 'page' : undefined}
               type="button"
             >
               Laboratorio
             </button>
+          </div>
 
+          <div className="nav-utilities">
             <button
-              className={`nav-menu-item ${showSettings ? 'active' : ''}`}
-              onClick={goSettings}
-              aria-current={showSettings ? 'page' : undefined}
+              className="nav-utility"
+              onClick={openSettings}
+              aria-expanded={showSettings}
               type="button"
             >
               Configuración
             </button>
-          </div>
-
-          {/* Controles mínimos (Escritorio) */}
-          <div className="nav-system-controls">
-            <label className="theme-toggle" aria-label="Cambiar tema">
+            <button
+              className="nav-utility"
+              onClick={openHelp}
+              aria-expanded={showHelp}
+              type="button"
+            >
+              Ayuda
+            </button>
+            <label className="theme-toggle">
+              <span className="sr-only">Usar tema oscuro</span>
               <input
                 type="checkbox"
+                role="switch"
                 checked={theme === 'dark'}
                 onChange={(e) => setTheme(e.target.checked ? 'dark' : 'light')}
+                aria-label="Usar tema oscuro"
               />
             </label>
-
             {hasData && (
               <button
                 className="nav-reset-cta"
@@ -856,56 +864,18 @@ const App: React.FC = () => {
             )}
           </div>
         </div>
-
-        {/* Botón Hamburguesa Móvil */}
-        <button
-          ref={mobileNavToggleRef}
-          className="mobile-nav-toggle"
-          onClick={() => showMobileNav ? closeMobileNavigation(true) : setShowMobileNav(true)}
-          aria-label={`${showMobileNav ? 'Cerrar' : 'Abrir'} menú de navegación`}
-          aria-expanded={showMobileNav}
-          aria-controls="mobile-navigation"
-          type="button"
-        >
-          <div className={`hamburger ${showMobileNav ? 'open' : ''}`} aria-hidden="true">
-            <span /><span /><span />
-          </div>
-        </button>
       </nav>
 
-      {/* Mobile Navigation Menu */}
-      <nav
-        id="mobile-navigation"
-        className={`nav-links ${showMobileNav ? 'nav-links-open' : ''}`}
-        aria-label="Navegación móvil"
-        hidden={!showMobileNav}
-      >
-        <button className="nav-link" onClick={goHome} aria-current={showHome ? 'page' : undefined} type="button">
-          Home
-        </button>
-        <button
-          className="nav-link"
-          onClick={goAudit}
-          aria-current={!showHome && !showExperimentCampaign && !showAuditLog && !showSettings ? 'page' : undefined}
-          type="button"
-        >
-          Auditoría
-        </button>
-        <button className="nav-link" onClick={goExperimentCampaign} aria-current={showExperimentCampaign ? 'page' : undefined} type="button">
-          Laboratorio
-        </button>
-        <button className="nav-link" onClick={goSettings} aria-current={showSettings ? 'page' : undefined} type="button">
-          Configuración
-        </button>
-      </nav>
-
-      {/* Settings and help stay inside the persistent app shell. */}
       {showSettings && (
-        <SettingsPanel config={aiConfig} onSave={setAiConfig} onClose={() => setShowSettings(false)} />
+        <UtilityDrawer title="Configuración" onClose={() => setShowSettings(false)}>
+          <SettingsPanel config={aiConfig} onSave={setAiConfig} onClose={() => setShowSettings(false)} />
+        </UtilityDrawer>
       )}
 
       {showHelp && (
-        <HelpCenter onClose={() => setShowHelp(false)} />
+        <UtilityDrawer title="Ayuda" onClose={() => setShowHelp(false)}>
+          <HelpCenter onClose={() => setShowHelp(false)} />
+        </UtilityDrawer>
       )}
 
       {showChangelog && <ChangelogModal onClose={() => setShowChangelog(false)} />}
@@ -937,48 +907,45 @@ const App: React.FC = () => {
       {AvFixture && window.location.search.includes('av-fixture=') ? null : (
       <>
       {/* Main Content — only show when not in settings or help. */}
-      <main className="sys-main" style={{ display: showExperimentCampaign || showSettings || showHelp ? 'none' : undefined }}>
+      <main id="main-content" className="sys-main" style={{ display: showExperimentCampaign ? 'none' : undefined }}>
         {showHome && (
           <section className="home-hero" id="home">
-            <p className="home-eyebrow">diagnóstico reproducible de datos</p>
-            <h1 className="home-title">AURA</h1>
-            <p className="home-desc">
-              Un entorno local para cargar un CSV, perfilar su calidad, priorizar hallazgos y producir evidencia defendible antes de limpiar o publicar datos.
-            </p>
-            <div className="home-actions">
-              {pipelineData.report && pipelineData.state !== 'upload' ? (
-                <>
+            <p className="home-eyebrow">Auditoría local de calidad del dato</p>
+            {pipelineData.report && pipelineData.state !== 'upload' ? (
+              <>
+                <h1 className="home-title">Reanudar el análisis</h1>
+                <p className="home-desc">
+                  El archivo y la etapa se conservan en esta sesión. Reanudar no vuelve a enviar datos.
+                </p>
+                <p className="home-resume-meta" data-testid="home-resume-meta">
+                  {pipelineData.auditEvidence?.fileName || pipelineData.file?.name || 'análisis guardado'}
+                  {' · '}
+                  {formatPipelineStage(pipelineData.state)}
+                </p>
+                <div className="home-actions">
                   <button className="btn-p btn--lg" onClick={goAudit} data-testid="home-resume-audit">
-                    Reanudar {pipelineData.auditEvidence?.fileName || pipelineData.file?.name || 'análisis guardado'}
+                    Reanudar análisis
                   </button>
-                  <p className="home-resume-meta" data-testid="home-resume-meta">
-                    {formatPipelineStage(pipelineData.state)}
-                  </p>
                   <button className="btn-s" onClick={handleNewAnalysis} data-testid="home-start-new">
                     Empezar otra auditoría
                   </button>
-                </>
-              ) : (
-                <button className="btn-p btn--lg" onClick={goAudit}>Empezar auditoría</button>
-              )}
-            </div>
-            <div className="home-flow" aria-label="Resumen del proceso AURA">
-              <div className="home-flow-step">
-                <span>01</span>
-                <strong>Perfilar</strong>
-                <p>Lectura del CSV, delimitador, columnas, volumen y señales de riesgo.</p>
-              </div>
-              <div className="home-flow-step">
-                <span>02</span>
-                <strong>Diagnosticar</strong>
-                <p>Reglas deterministas, severidad, evidencia y asistencia del modelo cuando aplica.</p>
-              </div>
-              <div className="home-flow-step">
-                <span>03</span>
-                <strong>Defender</strong>
-                <p>Reporte, hallazgos, script revisable y trazabilidad de decisiones.</p>
-              </div>
-            </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <h1 className="home-title">Auditar un CSV</h1>
+                <p className="home-desc">
+                  Carga un archivo, lee el perfil y exporta evidencia. El diagnóstico asistido es opcional y no se exige para terminar.
+                </p>
+                <div className="home-actions">
+                  <button className="btn-p btn--lg" onClick={goAudit}>Empezar auditoría</button>
+                  <button className="btn-s" onClick={goExperimentCampaign}>Abrir Laboratorio</button>
+                </div>
+              </>
+            )}
+            <p className="home-process">
+              Carga → Perfil → Diagnóstico → Informe → Exportación. Corregir una copia es una rama opcional.
+            </p>
           </section>
         )}
 
@@ -1015,7 +982,7 @@ const App: React.FC = () => {
 
         {/* ── Export Section ── */}
         {!showHome && report && pipelineState === 'export' && (
-          <section className="export-closure editorial-pilot" id="export-section" data-testid="export-stage">
+          <section className="export-closure" id="export-section" data-testid="export-stage">
             <button
               type="button"
               className="btn-s export-return-button"
@@ -1211,10 +1178,10 @@ const App: React.FC = () => {
           </section>
         )}
       </main>
-      <footer className="sys-footer" style={{ display: showSettings || showHelp ? 'none' : undefined }}>
+      <footer className="sys-footer">
         <span className="footer-brand">AURA</span>
         <div className="footer-links">
-          <button className="footer-link" onClick={() => setShowHelp(true)}>Ayuda</button>
+          <button className="footer-link" onClick={openHelp}>Ayuda</button>
           <button className="footer-link" onClick={() => setShowChangelog(true)}>Historial</button>
         </div>
         <span className="footer-copy">casabero · aura · 2026</span>

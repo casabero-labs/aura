@@ -17,11 +17,11 @@ test('AURA: flujo completo perfil → diagnóstico → script → revisar → ex
   // ── Perfil compacto ──
   const profileSummary = page.locator('.profile-decision-summary');
   await expect(profileSummary.locator('.profile-decision-status-label')).toBeVisible();
-  await expect(page.locator('.profile-actions').getByRole('button', { name: /Continuar al diagnóstico/i })).toBeVisible();
+  await expect(page.locator('.profile-actions').getByRole('button', { name: /al diagnóstico/i })).toBeVisible();
   await expect(page.getByText('Macro F1')).not.toBeVisible();
 
   // ── Ir a Diagnóstico ──
-  await page.locator('.profile-actions').getByRole('button', { name: /Continuar al diagnóstico/i }).click();
+  await page.locator('.profile-actions').getByRole('button', { name: /al diagnóstico/i }).click();
   const diagnosisSection = page.locator('[data-testid="diagnosis-stage"]');
   await expect(diagnosisSection).toBeVisible();
   await expect(diagnosisSection.getByText(/AURA interpreta los hallazgos/i)).toBeVisible();

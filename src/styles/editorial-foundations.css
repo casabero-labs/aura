@@ -1,0 +1,112 @@
+/* Roles, foco y geometría estable. Consumidores: shell y carga (LOOP-01). */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+[data-casabero-theme="editorial"] {
+  color-scheme: light;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+
+[data-casabero-theme="editorial"][data-theme="dark"] {
+  color-scheme: dark;
+}
+
+[data-casabero-theme="editorial"] h1,
+[data-casabero-theme="editorial"] h2,
+[data-casabero-theme="editorial"] h3,
+[data-casabero-theme="editorial"] .home-title,
+[data-casabero-theme="editorial"] .sec-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+[data-casabero-theme="editorial"] .sec-eye,
+[data-casabero-theme="editorial"] .home-eyebrow,
+[data-casabero-theme="editorial"] .home-resume-meta,
+[data-casabero-theme="editorial"] .file-drop-status,
+[data-casabero-theme="editorial"] .file-drop-hint {
+  font-family: var(--font-meta);
+}
+
+[data-casabero-theme="editorial"] :focus {
+  outline: none;
+}
+
+[data-casabero-theme="editorial"] a:focus-visible,
+[data-casabero-theme="editorial"] button:focus-visible,
+[data-casabero-theme="editorial"] [role="button"]:focus-visible,
+[data-casabero-theme="editorial"] .nav-brand:focus-visible,
+[data-casabero-theme="editorial"] .nav-work-item:focus-visible,
+[data-casabero-theme="editorial"] .nav-utility:focus-visible {
+  box-shadow: 0 0 0 2px var(--canvas), 0 0 0 4px var(--ink);
+}
+
+[data-casabero-theme="editorial"] input:focus-visible,
+[data-casabero-theme="editorial"] select:focus-visible,
+[data-casabero-theme="editorial"] textarea:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--ink);
+}
+
+[data-casabero-theme="editorial"] .btn-p,
+[data-casabero-theme="editorial"] .btn-s,
+[data-casabero-theme="editorial"] .cb-btn {
+  border-radius: var(--editorial-radius-sm);
+  font-family: var(--font-meta);
+}
+
+[data-casabero-theme="editorial"] .btn-p {
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--ink);
+}
+
+[data-casabero-theme="editorial"] .btn-p:hover {
+  background: var(--ink);
+  color: var(--canvas);
+}
+
+[data-casabero-theme="editorial"] .btn-hold {
+  display: inline-grid;
+  justify-items: center;
+  align-items: center;
+}
+
+[data-casabero-theme="editorial"] .btn-hold > span {
+  grid-area: 1 / 1;
+}
+
+[data-casabero-theme="editorial"] .btn-hold > [data-state="busy"] {
+  visibility: hidden;
+}
+
+[data-casabero-theme="editorial"] .btn-hold[aria-busy="true"] > [data-state="idle"] {
+  visibility: hidden;
+}
+
+[data-casabero-theme="editorial"] .btn-hold[aria-busy="true"] > [data-state="busy"] {
+  visibility: visible;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-casabero-theme="editorial"] *,
+  [data-casabero-theme="editorial"] *::before,
+  [data-casabero-theme="editorial"] *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

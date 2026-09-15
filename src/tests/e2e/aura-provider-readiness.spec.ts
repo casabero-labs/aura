@@ -291,7 +291,7 @@ async function walkToDiagnosisWithoutProvider(page: any) {
   await fileInput.setInputFiles(FIXTURE_CSV);
 
   const continueToDiagnosis = page.locator('.profile-actions')
-    .getByRole('button', { name: /Continuar al diagnóstico/i });
+    .getByRole('button', { name: /al diagnóstico/i });
   await expect(continueToDiagnosis).toBeVisible({ timeout: 30_000 });
   await continueToDiagnosis.click();
 

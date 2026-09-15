@@ -2,6 +2,18 @@
 
 Última actualización: 19 de julio de 2026.
 
+## Próximo plan de interfaz — añadido el 14 de septiembre de 2026
+
+**F9 en el árbol · 15 de septiembre de 2026.** Tokens `:root` Editorial; `editorial-pilot` retirado. Diario: [ejecución](../../plans/2026-09-14-aura-editorial-ejecucion.md). Gate: canvas `#FFFFFF`, sans Source Sans 3, sin piloto, claro/oscuro. No reintroducir Ink/Warm. Commit/push pendiente de autorización.
+
+Cada loop completa el mínimo de [brechas del showcase](../../plans/2026-09-14-editorial-showcase-brechas.md) de su recorrido antes de adoptar esos consumidores; no se esperan las 18 familias para tocar Inicio. El [inventario](../../plans/2026-09-14-aura-editorial-inventario.md) distingue alcance por imports de vigencia por confirmar.
+
+**Reorganización UI/UX autorizada para el plan:** la disposición actual puede reconsiderarse completamente. El [diseño propuesto](../../plans/2026-09-14-aura-editorial-ux-design.md) desarrolla navegación, nueve superficies y contratos de selección/retorno. Impeccable está localizada (plugin skills); se aplica al ejecutar cada loop, no como certificación previa.
+
+**Destino obligatorio aclarado por el usuario: Editorial exclusivo.** Retirar completamente Ink/Warm del código de presentación y recursos entregables. Todo componente conservado, incluidos auxiliares y legacy, debe ser Editorial; lo no utilizado se retira tras comprobarlo. Claro, oscuro, PDF y Laboratorio quedan cubiertos. No se entrega una versión híbrida ni se conservan temas anteriores inactivos.
+
+La solicitud actual es dejar este plan como próximo trabajo, no ejecutar la migración. El estado técnico/experimental que sigue conserva su fecha histórica; este añadido no reabre campañas cerradas ni acredita nueva validación del producto.
+
 ## Resultado que se entrega
 
 AURA queda organizado en dos recorridos complementarios:

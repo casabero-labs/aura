@@ -278,11 +278,12 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
   };
 
   return (
-    <div className="step-card apply-verify-step" data-testid="apply-verify-step">
+    <section className="apply-verify-step" data-testid="apply-verify-step">
       <div className="step-header">
+        <p className="sec-eye">aplicación externa</p>
         <h2 className="step-heading">Aplicar y verificar</h2>
         <p className="step-subtitle">
-          Descargá el bundle y el CSV fuente, ejecutá el script en el runner local controlado y subí el resultado junto con el recibo.
+          AURA no ejecuta Python. Descarga el bundle y el CSV fuente, corre el runner sobre una copia y sube el resultado con el recibo. Validar el recibo no equivale a integridad semántica.
         </p>
       </div>
 
@@ -581,7 +582,7 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
           </button>
         </div>
       )}
-    </div>
+    </section>
   );
 };
 

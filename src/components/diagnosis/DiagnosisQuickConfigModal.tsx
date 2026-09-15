@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { X } from 'lucide-react';
 import type { InputMode } from '../../types';
+import UtilityDrawer from '../UtilityDrawer';
 
 export interface DiagnosisQuickConfigModel {
   id: string;
@@ -63,41 +63,14 @@ export const DiagnosisQuickConfigModal: React.FC<DiagnosisQuickConfigModalProps>
 
   useEffect(() => {
     modelSelectRef.current?.focus();
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-      if (event.key === 'Tab' && dialogRef.current) {
-        const focusable = Array.from(dialogRef.current.querySelectorAll<HTMLElement>(
-          'button:not([disabled]), select:not([disabled]), input:not([disabled])',
-        ));
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-        if (event.shiftKey && document.activeElement === first) {
-          event.preventDefault();
-          last?.focus();
-        } else if (!event.shiftKey && document.activeElement === last) {
-          event.preventDefault();
-          first?.focus();
-        }
-      }
-    };
-    document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
-  }, [onClose]);
+  }, []);
 
   return (
-    <div
-      className="modal-overlay diagnosis-quick-config-overlay"
-      role="presentation"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-      data-testid="diagnosis-quick-config-modal"
-    >
+    <UtilityDrawer title="Modelo y evidencia" onClose={onClose}>
       <form
         ref={dialogRef}
-        className="modal-container modal-container--sm diagnosis-quick-config-modal"
-        role="dialog"
-        aria-modal="true"
+        className="diagnosis-quick-config-modal"
+        data-testid="diagnosis-quick-config-modal"
         aria-labelledby="diagnosis-quick-config-title"
         aria-describedby="diagnosis-quick-config-description"
         onSubmit={(event) => {
@@ -107,12 +80,9 @@ export const DiagnosisQuickConfigModal: React.FC<DiagnosisQuickConfigModalProps>
       >
         <div className="diagnosis-quick-config-header">
           <div>
-            <p className="diagnosis-quick-config-eyebrow">CONFIGURACIÓN DEL DIAGNÓSTICO</p>
+            <p className="diagnosis-quick-config-eyebrow">Configuración del diagnóstico</p>
             <h2 id="diagnosis-quick-config-title">Modelo y evidencia</h2>
           </div>
-          <button type="button" className="modal-close" onClick={onClose} aria-label="Cerrar configuración rápida">
-            <X size={18} aria-hidden="true" />
-          </button>
         </div>
 
         <div className="diagnosis-quick-config-body">
@@ -169,7 +139,7 @@ export const DiagnosisQuickConfigModal: React.FC<DiagnosisQuickConfigModalProps>
           </button>
         </div>
       </form>
-    </div>
+    </UtilityDrawer>
   );
 };
 

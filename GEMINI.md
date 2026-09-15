@@ -10,10 +10,12 @@
 ## Fuentes que mandan
 
 1. `docs/product/aura/NEXT_STEPS.md` — estado técnico y experimental vigente.
-2. `docs/tfm/memoria_final/README.md` — mapa de fuentes canónicas para redactar el documento final.
-3. Artefactos exportados, código y tests del commit de trabajo.
-4. `docs/plans/2026-07-09-cierre-definitivo-aura.md` — línea base histórica del cierre, no bitácora operativa reciente.
-5. `docs/archive/academic/` — entregas históricas y antecedentes; no define trabajo nuevo.
+2. `CLAUDE.md` — Design Context Editorial para Impeccable y UI nueva. Prevalece sobre `DESIGN.md` mientras este siga en Warm/Ink.
+3. `docs/plans/2026-09-14-aura-editorial-orden-ejecucion.md` y el resto del paquete Editorial del 14 de septiembre — secuencia e invariantes de interfaz; implementación no iniciada.
+4. `docs/tfm/memoria_final/README.md` — mapa de fuentes canónicas para redactar el documento final.
+5. Artefactos exportados, código y tests del commit de trabajo.
+6. `docs/plans/2026-07-09-cierre-definitivo-aura.md` — línea base histórica del cierre, no bitácora operativa reciente.
+7. `docs/archive/academic/` — entregas históricas y antecedentes; no define trabajo nuevo.
 
 Cuando dos documentos se contradicen, prevalece la evidencia reproducible más reciente y después `NEXT_STEPS.md`.
 

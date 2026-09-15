@@ -1,6 +1,7 @@
 /* =============================================
-   AURA - Ink interface system
-   Source: estandar-casabero/examples/frontend/showcase-ink.html
+   AURA — layout de componentes. Tokens F9 en :root = Editorial 1.2.
+   Complemento: src/styles/casabero-editorial.tokens.css
+   No reintroducir Ink (#F6F8FB, Inter-as-serif, teal) ni Warm.
    ============================================= */
 
 /* ─── Design Tokens ─── */
@@ -8,19 +9,19 @@
 /* ─── Design Tokens (Casabero Design System v6b_swap) ─── */
 
 :root {
-  --ink:         #20242B;
-  --ink2:        #4B5563;
-  --ink3:        #7B8490;
-  --ink-soft:    #2F3640;
-  --ink-muted:   #8B949E;
-  --ink-faint:   #C4CAD2;
-  --bg:          #F6F8FB;
-  --surface:     #FFFFFF;
-  --surface-raised: #EEF2F6;
-  --surface-hover: #E7EBF0;
-  --border:      rgba(32,36,43,0.10);
-  --border-strong: rgba(32,36,43,0.18);
-  --border-faint: rgba(32,36,43,0.06);
+  --ink:         #191919;
+  --ink2:        #4D4D4A;
+  --ink3:        #6B6B67;
+  --ink-soft:    #4D4D4A;
+  --ink-muted:   #6B6B67;
+  --ink-faint:   #A7A7A0;
+  --bg:          #FFFFFF;
+  --surface:     #F7F7F4;
+  --surface-raised: #F7F7F4;
+  --surface-hover: #FBFBF9;
+  --border:      #D9D9D4;
+  --border-strong: #A7A7A0;
+  --border-faint: #D9D9D4;
 
   --space-xxs: 4px;
   --space-xs: 8px;
@@ -33,24 +34,24 @@
   --space-section-lg: 96px;
 
   --radius-none: 0px;
-  --radius-xs: 4px;
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 14px;
-  --radius-xl: 18px;
-  --radius-card: 12px;
-  --radius-full: 999px;
+  --radius-xs: 2px;
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 4px;
+  --radius-xl: 4px;
+  --radius-card: 0px;
+  --radius-full: 0px;
 
-  --shadow-card-subtle: 0 0 0 1px rgba(32,36,43,0.04), 0 1px 3px rgba(32,36,43,0.06), 0 8px 24px rgba(32,36,43,0.04);
-  --shadow-card-medium: 0 0 0 1px rgba(32,36,43,0.06), 0 4px 16px rgba(32,36,43,0.10), 0 16px 48px rgba(32,36,43,0.06);
-  --shadow-fab: 0 2px 10px rgba(32,36,43,0.16);
-  --shadow-pressed: inset 0 0 0 9999px rgba(32,36,43,0.08);
-  --shadow-ring: 0 0 0 1px rgba(32,36,43,0.06);
-  --focus-ring: 0 0 0 2px var(--surface), 0 0 0 4px var(--ink);
+  --shadow-card-subtle: none;
+  --shadow-card-medium: none;
+  --shadow-fab: none;
+  --shadow-pressed: none;
+  --shadow-ring: none;
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--ink);
 
-  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-serif: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+  --font-sans: "Source Sans 3", Arial, Helvetica, sans-serif;
+  --font-serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --font-mono: SFMono-Regular, Consolas, "Liberation Mono", monospace;
 
   --transition-fast: 0.15s ease-out;
   --transition-base: 0.2s ease-out;
@@ -66,14 +67,14 @@
   --state-press-scale: 0.97;
   --state-breathe-duration: 1400ms;
 
-  /* Semantic aliases for AURA logic */
-  --success: #0F766E;
-  --accent: #1D4ED8;
-  --error: #B42318;
-  --orange: #B54708;
-  --warning: #B54708;
-  --blue: #2563EB;
-  --green: #0F766E;
+  /* Semantic aliases: Editorial ink, not Ink teal / SaaS blue */
+  --success: #191919;
+  --accent: #191919;
+  --error: #191919;
+  --orange: #4D4D4A;
+  --warning: #4D4D4A;
+  --blue: #4D4D4A;
+  --green: #191919;
   --green-bg: color-mix(in srgb, var(--success) 9%, transparent);
   --green-border: color-mix(in srgb, var(--success) 24%, transparent);
   --warning-bg: color-mix(in srgb, var(--orange) 9%, transparent);
@@ -84,32 +85,32 @@
 }
 
 [data-theme="dark"] {
-  --ink:         #E5EAF0;
-  --ink2:        #B7C0CB;
-  --ink3:        #87919E;
-  --ink-soft:    #D7DEE7;
-  --ink-muted:   #768190;
-  --ink-faint:   #3A414B;
-  --bg:          #0B0D10;
-  --surface:     #15181C;
-  --surface-raised: #1D2229;
-  --surface-hover: #252B34;
-  --border:      rgba(229,234,240,0.10);
-  --border-strong: rgba(229,234,240,0.18);
-  --border-faint: rgba(229,234,240,0.06);
-  --shadow-card-subtle: 0 0 0 1px rgba(229,234,240,0.04), 0 1px 3px rgba(0,0,0,0.28), 0 8px 24px rgba(0,0,0,0.30);
-  --shadow-card-medium: 0 0 0 1px rgba(229,234,240,0.06), 0 4px 16px rgba(0,0,0,0.34), 0 16px 48px rgba(0,0,0,0.40);
-  --shadow-fab: 0 2px 10px rgba(0,0,0,0.36);
-  --shadow-ring: 0 0 0 1px rgba(229,234,240,0.08);
-  --focus-ring: 0 0 0 2px var(--surface), 0 0 0 4px var(--ink);
+  --ink:         #F2F1EC;
+  --ink2:        #B8B6B0;
+  --ink3:        #8A8882;
+  --ink-soft:    #B8B6B0;
+  --ink-muted:   #8A8882;
+  --ink-faint:   #5C5C56;
+  --bg:          #161614;
+  --surface:     #1C1C19;
+  --surface-raised: #1C1C19;
+  --surface-hover: #191916;
+  --border:      #2E2E2A;
+  --border-strong: #5C5C56;
+  --border-faint: #2E2E2A;
+  --shadow-card-subtle: none;
+  --shadow-card-medium: none;
+  --shadow-fab: none;
+  --shadow-ring: none;
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--ink);
 
-  --success: #2DD4BF;
-  --accent: #8AB4FF;
-  --error: #F87171;
-  --orange: #FBBF24;
-  --warning: #FBBF24;
-  --blue: #93C5FD;
-  --green: #2DD4BF;
+  --success: #F2F1EC;
+  --accent: #F2F1EC;
+  --error: #F2F1EC;
+  --orange: #B8B6B0;
+  --warning: #B8B6B0;
+  --blue: #B8B6B0;
+  --green: #F2F1EC;
 }
 
 /* ─── Reset & Base ─── */
@@ -136,7 +137,7 @@ body {
   transition: background var(--transition-theme), color var(--transition-theme);
 }
 
-/* ─── Syntax display (showcase-ink) ─── */
+/* ─── Syntax display (Editorial, artefactos técnicos) ─── */
 
 .syntax-display {
   min-width: 0;
@@ -16314,75 +16315,13 @@ textarea:focus {
 }
 
 
-/* Editorial 1.2 pilot: white reading canvas, serif prose, functional sans.
-   Local tokens also keep the document legible inside the application's dark shell. */
-.editorial-pilot {
-  --ink: #191919;
-  --ink2: #4D4D4A;
-  --ink3: #6B6B67;
-  --ink4: #6B6B67;
-  --surface: #FFFFFF;
-  --surface2: #F7F7F4;
-  --surface-raised: #F7F7F4;
-  --surface-hover: #F7F7F4;
-  --bg: #FFFFFF;
-  --border: #D9D9D4;
-  --border-strong: #A7A7A0;
-  --font-sans: "Source Sans 3", Arial, Helvetica, sans-serif;
-  background: #FFFFFF;
-  color: var(--ink);
-  color-scheme: light;
-  font-family: var(--font-sans);
-  min-width: 0;
-}
-.aura-system:has(.editorial-pilot),
-.sys-main:has(.editorial-pilot) { background: #FFFFFF; }
-.editorial-pilot :is(h1, h2, h3, h4) {
-  font-family: "Source Serif 4", Georgia, "Times New Roman", serif;
-  color: var(--ink);
-  letter-spacing: normal;
-}
-.editorial-pilot :is(.profile-editorial-title, .diagnostic-report-hero .sec-title, .export-closure-header .sec-title) {
-  font-size: clamp(32px, 4vw, 48px);
-  line-height: 1.15;
-}
-.editorial-pilot p:not(.sec-eye):not([class*="eyebrow"]):not(.guide-title) {
-  font-family: "Source Serif 4", Georgia, "Times New Roman", serif;
-  font-size: 18px;
-  line-height: 1.6;
-  color: var(--ink2);
-}
-.editorial-pilot :is(button, input, select, summary, table, .finding-card-meta, .stage-summary-item) {
-  font-family: var(--font-sans);
-}
-.editorial-pilot :is(.sec-eye, [class*="eyebrow"]) { color: var(--ink3); }
-.editorial-pilot :is(button, a, summary, input, select, textarea):focus-visible {
-  outline: 2px solid #191919;
-  outline-offset: 3px;
-  box-shadow: none;
-}
-.editorial-pilot :is(.btn-s, .btn-p) {
-  min-height: 44px;
-  white-space: normal;
-  overflow-wrap: anywhere;
-}
-.editorial-pilot :is(.export-delivery-card, .diagnostic-finding-card, .diagnostic-recommendation-card) {
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-@media (max-width: 480px) {
-  .editorial-pilot { max-width: 100%; }
-  .editorial-pilot .export-delivery-cards { grid-template-columns: minmax(0, 1fr); }
-}
-.editorial-pilot :is(.profile-block-index, .col-detail-sep) { color: #6B6B67; }
-/* Column types remain explicit text; neutral ink replaces low-contrast inline swatches. */
-.editorial-pilot .col-detail-type-badge { color: #4D4D4A !important; background: #F7F7F4 !important; }
-.editorial-pilot .export-corrected-opt-in {
+.col-detail-type-badge { color: #4D4D4A; background: #F7F7F4; }
+.export-corrected-opt-in {
   min-height: 44px;
   font-size: 14px;
   gap: 10px;
 }
-.editorial-pilot .export-corrected-opt-in input {
+.export-corrected-opt-in input {
   flex: 0 0 18px;
   width: 18px;
   height: 18px;
