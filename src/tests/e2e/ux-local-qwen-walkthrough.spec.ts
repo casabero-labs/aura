@@ -72,6 +72,9 @@ test.describe('Local Qwen walkthrough and viewports', () => {
   });
 
   test('Qwen diagnosis can cancel, then complete without timed cognitive copy', async ({ page }) => {
+    // Nota 2026-09-17: en esta máquina Qwen3.5-4B tarda >240 s en completar
+    // (21 s un prompt trivial con carga del modelo). Cancelar sí está
+    // verificado; el timeout de abajo es capacidad del entorno, no del flujo.
     test.setTimeout(600_000);
     await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 60_000 });
     await page.locator('.sys-nav').waitFor({ state: 'visible', timeout: 15_000 });
