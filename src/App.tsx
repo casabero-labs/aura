@@ -16,7 +16,6 @@ import ErrorBoundary from './components/ErrorBoundary';
 import AuditLogViewer from './components/AuditLogViewer';
 import SettingsPanel from './components/SettingsPanel';
 import HelpCenter from './components/HelpCenter';
-import UtilityDrawer from './components/UtilityDrawer';
 import ProgressDisclosure from './components/ProgressDisclosure';
 import AuraMark from './components/AuraMark';
 import MainPipeline, { PipelineData } from './components/MainPipeline';
@@ -737,6 +736,33 @@ const App: React.FC = () => {
     closeMobileNavigation(showMobileNav);
   };
 
+  // Sin drawers: Configuración y Ayuda son vistas exclusivas. Al volver,
+  // el foco regresa al disparador de la nav.
+  const settingsNavRef = useRef<HTMLButtonElement>(null);
+  const helpNavRef = useRef<HTMLButtonElement>(null);
+  const settingsViewRef = useRef<HTMLElement>(null);
+  const helpViewRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (showSettings) settingsViewRef.current?.focus();
+  }, [showSettings]);
+
+  useEffect(() => {
+    if (showHelp) helpViewRef.current?.focus();
+  }, [showHelp]);
+
+  const closeSettings = useCallback(() => {
+    setShowSettings(false);
+    requestAnimationFrame(() => settingsNavRef.current?.focus());
+  }, []);
+
+  const closeHelp = useCallback(() => {
+    setShowHelp(false);
+    requestAnimationFrame(() => helpNavRef.current?.focus());
+  }, []);
+
+  const showUtilityView = showSettings || showHelp;
+
   const applyCampaignPipelineConfiguration = (configuration: CampaignPipelineConfigurationV1) => {
     setAiConfig((current) => applyCampaignConfigurationToAIConfig(current, configuration));
   };
@@ -832,7 +858,8 @@ const App: React.FC = () => {
             <button
               className="nav-utility"
               onClick={openSettings}
-              aria-expanded={showSettings}
+              ref={settingsNavRef}
+              aria-current={showSettings ? 'page' : undefined}
               type="button"
             >
               Configuración
@@ -840,7 +867,8 @@ const App: React.FC = () => {
             <button
               className="nav-utility"
               onClick={openHelp}
-              aria-expanded={showHelp}
+              ref={helpNavRef}
+              aria-current={showHelp ? 'page' : undefined}
               type="button"
             >
               Ayuda
@@ -860,7 +888,14 @@ const App: React.FC = () => {
       </nav>
 
       {showSettings && (
-        <UtilityDrawer title="Configuración" onClose={() => setShowSettings(false)}>
+        <section
+          className="utility-view"
+          data-testid="settings-view"
+          aria-labelledby="settings-view-title"
+          ref={settingsViewRef}
+          tabIndex={-1}
+        >
+          <p className="sec-eye" id="settings-view-title">Configuración</p>
           <div className="drawer-appearance">
             <span className="drawer-appearance-label" id="appearance-label">Apariencia</span>
             <label className="theme-toggle" aria-labelledby="appearance-label">
@@ -875,19 +910,27 @@ const App: React.FC = () => {
               />
             </label>
           </div>
-          <SettingsPanel config={aiConfig} onSave={setAiConfig} onClose={() => setShowSettings(false)} />
-        </UtilityDrawer>
+          <SettingsPanel config={aiConfig} onSave={setAiConfig} onClose={closeSettings} />
+        </section>
       )}
 
       {showHelp && (
-        <UtilityDrawer title="Ayuda" onClose={() => setShowHelp(false)}>
-          <HelpCenter onClose={() => setShowHelp(false)} />
-        </UtilityDrawer>
+        <section
+          className="utility-view"
+          data-testid="help-view"
+          aria-labelledby="help-view-title"
+          ref={helpViewRef}
+          tabIndex={-1}
+        >
+          <p className="sec-eye" id="help-view-title">Ayuda</p>
+          <HelpCenter onClose={closeHelp} />
+        </section>
       )}
 
       {showChangelog && <ChangelogModal onClose={() => setShowChangelog(false)} />}
 
       {showExperimentCampaign && (
+        <div style={{ display: showUtilityView ? 'none' : undefined }}>
         <Suspense fallback={<div className="oe4-campaign-loading">Preparando Laboratorio…</div>}>
           {oe4E2eHarnessEnabled && Oe4CampaignE2eHarness
             ? <Oe4CampaignE2eHarness />
@@ -902,6 +945,7 @@ const App: React.FC = () => {
                 onGoToAudit={goAudit}
               />}
         </Suspense>
+        </div>
       )}
 
       {/* AV Fixture — render Apply & Verify step visual states */}
@@ -915,7 +959,7 @@ const App: React.FC = () => {
       <>
       {/* Main Content — only show when not in settings or help. */}
       <main id="main-content" className="sys-main" style={{ display: showExperimentCampaign ? 'none' : undefined }}>
-        {showHome && (
+        {showHome && !showUtilityView && (
           <section className="home-hero" id="home">
             <p className="home-eyebrow">Auditoría local de calidad del dato</p>
             {pipelineData.report && pipelineData.state !== 'upload' ? (
@@ -977,7 +1021,7 @@ const App: React.FC = () => {
         )}
 
         {/* Main Pipeline — Phase 1: Upload + Diagnostic */}
-        {!showHome && pipelineState !== 'export' && (
+        {!showHome && !showUtilityView && pipelineState !== 'export' && (
           <section id="sistema" className="audit-workspace">
             <MainPipeline
               aiConfig={aiConfig}
@@ -992,7 +1036,7 @@ const App: React.FC = () => {
         )}
 
         {/* ── Export Section ── */}
-        {!showHome && report && pipelineState === 'export' && (
+        {!showHome && !showUtilityView && report && pipelineState === 'export' && (
           <section className="export-closure" id="export-section" data-testid="export-stage">
             <button
               type="button"

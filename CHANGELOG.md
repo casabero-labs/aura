@@ -4,7 +4,11 @@ Todos los cambios significativos se documentan aquí. Formato: `[YYYY-MM-DD] Tip
 
 ---
 
-## [2026-09-17] standards: cierre LOOP-01–03 Editorial 1.2
+## [2026-09-17] standards: fuera drawers — utilidades como vistas
+
+- Decisión de producto: ningún drawer. Configuración y Ayuda son vistas exclusivas con Volver y retorno de foco; la config contextual del diagnóstico es inline. `UtilityDrawer` retirado.
+- Tablas densas (perfil, laboratorio) con scroll local rotulado; overflow 320/390 en 0.
+- E2E-NAV-008 actualizado a nav de dos líneas sin hamburguesa (el control no existe).
 
 - LOOP-01: J11 declara reimportación tras recarga (`sessionNeedsReimport`); hero sin Lab duplicado; modo oscuro en Configuración; footer firma + Historial; stepper en hitos; ingestión como identidad + detalle.
 - LOOP-02: prioridades en tabla; severidad en tinta; diagnóstico sin semáforo; informe con una zona de acción; export con recomendada; PDF sin veredicto de salud; V2 sin color semántico.

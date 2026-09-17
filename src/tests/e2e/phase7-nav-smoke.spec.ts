@@ -48,8 +48,8 @@ test.describe('Phase 7 L1 — E2E Smoke: Navigation + Laboratorio', () => {
       const configBtn = page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('button', { name: 'Configuración' });
 
       await configBtn.click();
-      await expect(configBtn).toHaveAttribute('aria-expanded', 'true');
-      await expect(page.getByTestId('utility-drawer')).toBeVisible();
+      await expect(configBtn).toHaveAttribute('aria-current', 'page');
+      await expect(page.getByTestId('settings-view')).toBeVisible();
 
       await expect(page.getByText(/Laboratorio avanzado/i)).toHaveCount(0);
       await expect(page.getByRole('button', { name: /Abrir laboratorio experimental/i })).toHaveCount(0);
@@ -73,7 +73,7 @@ test.describe('Phase 7 L1 — E2E Smoke: Navigation + Laboratorio', () => {
       const configBtn = page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('button', { name: 'Configuración' });
 
       await configBtn.click();
-      await expect(configBtn).toHaveAttribute('aria-expanded', 'true');
+      await expect(configBtn).toHaveAttribute('aria-current', 'page');
 
       const guardBtn = page.getByRole('button', { name: /Guardar configuración/i });
       await expect(guardBtn.first()).toBeVisible();
@@ -105,21 +105,15 @@ test.describe('Phase 7 L1 — E2E Smoke: Navigation + Laboratorio', () => {
       await expect(laboratoryBtn).not.toHaveClass(/active/);
     });
 
-    test('E2E-NAV-008 — Mobile nav permite abrir Laboratorio', async ({ page }) => {
+    test('E2E-NAV-008 — Mobile muestra Laboratorio sin hamburguesa', async ({ page }) => {
       await page.setViewportSize({ width: 375, height: 667 });
 
-      const mobileToggle = page.locator('.mobile-nav-toggle');
-      await expect(mobileToggle).toBeVisible();
+      // Sin hamburguesa: la nav va en dos líneas y los destinos siguen visibles.
+      await expect(page.locator('.mobile-nav-toggle')).toHaveCount(0);
+      const laboratoryBtn = page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('button', { name: 'Laboratorio' });
+      await expect(laboratoryBtn).toBeVisible();
 
-      await mobileToggle.click();
-
-      const navLinks = page.locator('.nav-links');
-      await expect(navLinks).toHaveClass(/nav-links-open/);
-
-      const laboratoryLink = navLinks.getByRole('button', { name: 'Laboratorio' });
-      await expect(laboratoryLink).toBeVisible();
-
-      await laboratoryLink.click();
+      await laboratoryBtn.click();
 
       const runButton = page.getByRole('button', { name: 'Crear experimento' });
       await expect(runButton).toBeVisible();

@@ -82,28 +82,28 @@ describe('App - accessible global navigation', () => {
     expect(brand.getAttribute('aria-current')).toBe('page');
   });
 
-  it('opens configuration as a drawer without hiding the current view', async () => {
+  it('opens configuration as a view and hides the home content', async () => {
     const user = userEvent.setup();
     render(<App />);
 
     expect(screen.getByRole('heading', { name: 'Auditar un CSV' })).toBeTruthy();
     await user.click(screen.getByRole('button', { name: 'Configuración' }));
 
-    expect(screen.getByTestId('utility-drawer')).toBeTruthy();
+    expect(screen.getByTestId('settings-view')).toBeTruthy();
     expect(screen.getByTestId('settings-workspace')).toBeTruthy();
-    expect(screen.getByRole('heading', { name: 'Auditar un CSV' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Configuración' }).getAttribute('aria-expanded')).toBe('true');
+    expect(screen.queryByRole('heading', { name: 'Auditar un CSV' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Configuración' }).getAttribute('aria-current')).toBe('page');
   });
 
-  it('returns focus to Configuración after closing the drawer with Escape', async () => {
+  it('returns focus to Configuración after leaving the view with Volver', async () => {
     const user = userEvent.setup();
     render(<App />);
 
     const config = screen.getByRole('button', { name: 'Configuración' });
     await user.click(config);
-    await user.keyboard('{Escape}');
+    await user.click(screen.getByRole('button', { name: 'Volver a auditoría' }));
 
     await waitFor(() => expect(document.activeElement).toBe(config));
-    expect(screen.queryByTestId('utility-drawer')).toBeNull();
+    expect(screen.queryByTestId('settings-view')).toBeNull();
   });
 });

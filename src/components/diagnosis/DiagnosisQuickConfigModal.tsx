@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { InputMode } from '../../types';
-import UtilityDrawer from '../UtilityDrawer';
 
 export interface DiagnosisQuickConfigModel {
   id: string;
@@ -66,12 +65,11 @@ export const DiagnosisQuickConfigModal: React.FC<DiagnosisQuickConfigModalProps>
   }, []);
 
   return (
-    <UtilityDrawer title="Modelo y evidencia" onClose={onClose}>
+    <section aria-labelledby="diagnosis-quick-config-title" className="diagnosis-quick-config">
       <form
         ref={dialogRef}
         className="diagnosis-quick-config-modal"
         data-testid="diagnosis-quick-config-modal"
-        aria-labelledby="diagnosis-quick-config-title"
         aria-describedby="diagnosis-quick-config-description"
         onSubmit={(event) => {
           event.preventDefault();
@@ -139,7 +137,7 @@ export const DiagnosisQuickConfigModal: React.FC<DiagnosisQuickConfigModalProps>
           </button>
         </div>
       </form>
-    </UtilityDrawer>
+    </section>
   );
 };
 

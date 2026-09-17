@@ -39,6 +39,7 @@ Especificación: [orden de ejecución](2026-09-14-aura-editorial-orden-ejecucion
 - Tokens Editorial en archivos propios, importados después de `index.css`. No un bloque al final de las 16.400 líneas.
 - Nav: marca = Inicio; destinos = Auditoría y Laboratorio; Configuración y Ayuda = utilidades en drawer. Móvil en dos líneas, sin esconder destinos en hamburguesa.
 - Inicio operativo: título de tarea, no hero de 148 px ni tres tarjetas.
+- 2026-09-17 PM — Decisión de producto (revierte drawer): ningún drawer. Configuración y Ayuda son vistas exclusivas con Volver y retorno de foco; config contextual del diagnóstico inline; `UtilityDrawer.tsx` retirado. J14 reescrito a vistas. Tablas densas con scroll local rotulado (overflow 320/390 = 0). E2E-NAV-008 actualizado (no existe hamburguesa).
 - Impeccable no inventa paleta: `#FFFFFF` / `#191919` mandan sobre el “no pure white” genérico de la skill.
 
 ## Evidencia

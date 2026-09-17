@@ -260,6 +260,21 @@
   margin-top: 12px;
 }
 
+/* Tablas densas: scroll local rotulado y operable, nunca del documento. */
+[data-casabero-theme="editorial"] .table-scroll {
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+[data-casabero-theme="editorial"] .table-scroll:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+[data-casabero-theme="editorial"] .table-scroll .editorial-data-table {
+  min-width: 560px;
+}
+
 /* Descarga recomendada frente a alternativas. */
 [data-casabero-theme="editorial"] .export-delivery-card--recommended {
   border-top: 2px solid var(--ink);

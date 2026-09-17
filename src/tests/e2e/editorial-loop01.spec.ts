@@ -30,13 +30,13 @@ test.describe('LOOP-01 Editorial — Inicio y carga', () => {
     await expect(page.getByTestId('csv-file-input')).toBeEnabled();
   });
 
-  test('J14 — Configuración abre drawer y Escape restaura el origen', async ({ page }) => {
+  test('J14 — Configuración abre vista y Volver restaura el origen', async ({ page }) => {
     const config = page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('button', { name: 'Configuración' });
     await config.click();
-    await expect(page.getByTestId('utility-drawer')).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Auditar un CSV' })).toBeVisible();
-    await page.keyboard.press('Escape');
-    await expect(page.getByTestId('utility-drawer')).toHaveCount(0);
+    await expect(page.getByTestId('settings-view')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Auditar un CSV' })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Volver a auditoría' }).click();
+    await expect(page.getByTestId('settings-view')).toHaveCount(0);
     await expect(config).toBeFocused();
   });
 
@@ -56,13 +56,13 @@ test.describe('LOOP-01 Editorial — Inicio y carga', () => {
     const canvas = await page.locator('html').evaluate((el) => getComputedStyle(el).getPropertyValue('--bg').trim());
     expect(canvas.toLowerCase()).toBe('#ffffff');
     await page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('button', { name: 'Configuración' }).click();
-    await expect(page.getByTestId('utility-drawer')).toBeVisible();
+    await expect(page.getByTestId('settings-view')).toBeVisible();
     await page.getByRole('switch', { name: 'Usar tema oscuro' }).click();
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
     const dark = await page.locator('html').evaluate((el) => getComputedStyle(el).getPropertyValue('--bg').trim());
     expect(dark.toLowerCase()).toBe('#161614');
-    await page.keyboard.press('Escape');
-    await expect(page.getByTestId('utility-drawer')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Volver a auditoría' }).click();
+    await expect(page.getByTestId('settings-view')).toHaveCount(0);
   });
 
   test('J11 — recarga con sesión declara reimportación sin fingir el File', async ({ page }) => {

@@ -453,7 +453,7 @@ const CampaignResultsExplorer: React.FC<CampaignResultsExplorerProps> = ({
 
           <details className="oe4-results-data-table">
             <summary>Ver los datos exactos representados</summary>
-            <div>
+            <div className="table-scroll" role="region" aria-label="Datos exactos de la campaña" tabIndex={0}>
               <table>
                 <thead>
                   <tr><th>Modelo</th><th>Entrada</th><th>Alineación GT</th><th>Fiabilidad</th><th>Latencia mediana</th><th>Equilibrado</th></tr>

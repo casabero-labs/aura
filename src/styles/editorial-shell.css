@@ -358,6 +358,24 @@
 
 /* ── LOOP-01 deltas inventario 16-sep ─────────────────────────── */
 
+/* Utilidades como vistas exclusivas: sin drawers ni overlays. */
+[data-casabero-theme="editorial"] .utility-view {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 40px 24px 80px;
+}
+
+[data-casabero-theme="editorial"] .utility-view:focus {
+  outline: none;
+}
+
+[data-casabero-theme="editorial"] .utility-view .drawer-appearance {
+  border: 0.5px solid var(--editorial-line);
+  border-radius: 0;
+  padding: 16px 20px;
+  margin: 24px 0;
+}
+
 /* «Nuevo análisis» en nav: utilidad subordinada, nunca relleno sólido. */
 [data-casabero-theme="editorial"] .nav-reset-cta {
   min-height: 44px;

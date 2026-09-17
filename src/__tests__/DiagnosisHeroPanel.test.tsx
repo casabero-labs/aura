@@ -30,13 +30,13 @@ describe('DiagnosisHeroPanel quick configuration', () => {
     expect(screen.getByTestId('diagnosis-active-input-mode').textContent).toContain('Contexto mínimo');
   });
 
-  it('changes only model and input mode from the compact modal', async () => {
+  it('changes only model and input mode from the inline config', async () => {
     const user = userEvent.setup();
     const onQuickConfigSave = vi.fn();
     render(<DiagnosisHeroPanel {...baseProps} onQuickConfigSave={onQuickConfigSave} />);
 
     await user.click(screen.getByTestId('diagnosis-config-toggle'));
-    expect(screen.getByRole('dialog', { name: 'Modelo y evidencia' })).not.toBeNull();
+    expect(screen.getByTestId('diagnosis-quick-config-modal')).not.toBeNull();
 
     await user.selectOptions(screen.getByTestId('diagnosis-quick-model'), FINAL_EVALUATION_OLLAMA_MODELS[1].id);
     await user.click(screen.getByRole('radio', { name: /Evidencia completa/i }));
@@ -46,6 +46,6 @@ describe('DiagnosisHeroPanel quick configuration', () => {
       model: FINAL_EVALUATION_OLLAMA_MODELS[1].id,
       inputMode: 'recommended',
     });
-    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.queryByTestId('diagnosis-quick-config-modal')).toBeNull();
   });
 });

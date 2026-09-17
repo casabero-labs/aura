@@ -170,6 +170,7 @@ const ProfileStep: React.FC<ProfileStepProps> = ({ report, auditEvidence, file, 
           {topPriorities.length > 0 && (
             <section className="profile-priorities" data-testid="profile-priorities">
               <h2 className="profile-priorities-title">Prioridades principales</h2>
+              <div className="table-scroll" role="region" aria-label="Prioridades principales" tabIndex={0}>
               <table className="editorial-data-table">
                 <caption>Regla, columna y evidencia. La clasificación es de la regla, no un riesgo confirmado.</caption>
                 <thead>
@@ -191,12 +192,14 @@ const ProfileStep: React.FC<ProfileStepProps> = ({ report, auditEvidence, file, 
                   ))}
                 </tbody>
               </table>
+              </div>
             </section>
           )}
 
           {/* F. CTA principal — único botón prominente hacia Diagnóstico */}
           <section className="profile-columns" data-testid="profile-column-table">
             <h2 className="profile-priorities-title">Columnas</h2>
+            <div className="table-scroll" role="region" aria-label="Columnas: tipo y completitud" tabIndex={0}>
             <table className="editorial-data-table">
               <caption>Tipo y completitud. Selecciona una fila para el detalle.</caption>
               <thead>
@@ -229,6 +232,7 @@ const ProfileStep: React.FC<ProfileStepProps> = ({ report, auditEvidence, file, 
                 ))}
               </tbody>
             </table>
+            </div>
             {selectedStats && (
               <p className="profile-decision-description" data-testid="profile-column-detail">
                 {selectedStats.name}: {selectedStats.inferredType || 'tipo no inferido'}.

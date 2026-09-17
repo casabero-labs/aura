@@ -31,10 +31,10 @@ test.describe('LOOP-02 Editorial — Informe y exportar', () => {
     await page.getByTestId('profile-continue-diagnosis').click({ timeout: 20_000 });
     await expect(page.getByTestId('diagnosis-hero-panel')).toBeVisible();
     await page.getByTestId('diagnosis-config-toggle').click();
-    await expect(page.getByTestId('utility-drawer')).toBeVisible();
     await expect(page.getByTestId('diagnosis-quick-config-modal')).toBeVisible();
-    await page.keyboard.press('Escape');
-    await expect(page.getByTestId('utility-drawer')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Cancelar' }).click();
+    await expect(page.getByTestId('diagnosis-quick-config-modal')).toHaveCount(0);
+    await expect(page.getByTestId('diagnosis-config-toggle')).toBeFocused();
     const deterministic = page.getByRole('button', { name: /informe determinista|Continuar sin diagnóstico/i });
     await expect(deterministic.first()).toBeVisible();
     await deterministic.first().click();
