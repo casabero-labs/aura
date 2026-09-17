@@ -7,7 +7,6 @@ import './styles/editorial-foundations.css';
 import './styles/editorial-shell.css';
 import './styles/editorial-audit.css';
 import './styles/editorial-remediation.css';
-import './styles/editorial-lab.css';
 
 document.documentElement.dataset.casaberoTheme = 'editorial';
 if (!document.documentElement.dataset.theme) {

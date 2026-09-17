@@ -1,4 +1,4 @@
-/* Roles, foco y geometría estable. Consumidores: shell y carga (LOOP-01). */
+/* Roles, foco y geometría estable. Base Editorial compartida (LOOP-01–03). */
 
 .sr-only {
   position: absolute;
@@ -109,4 +109,121 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* ── LOOP-03: Laboratorio y utilidades (absorbido de editorial-lab.css; sin hoja paralela) ── */
+
+
+
+[data-casabero-theme="editorial"] .oe4-campaign-lab {
+  display: flex;
+  flex-direction: column;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 32px 24px 80px;
+}
+
+[data-casabero-theme="editorial"] .oe4-campaign-lab[data-lab-view="complete"] .oe4-lab-results {
+  order: -1;
+}
+
+[data-casabero-theme="editorial"] .oe4-hero h1 {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 4vw, 40px);
+  font-weight: 600;
+}
+
+[data-casabero-theme="editorial"] .oe4-hero p,
+[data-casabero-theme="editorial"] .oe4-configuration-caveat {
+  font-family: var(--font-body);
+  font-size: 17px;
+  max-width: 40em;
+}
+
+[data-casabero-theme="editorial"] .oe4-panel,
+[data-casabero-theme="editorial"] .oe4-progress > div,
+[data-casabero-theme="editorial"] .oe4-live-execution,
+[data-casabero-theme="editorial"] .oe4-matrix-cell {
+  border: 0.5px solid var(--editorial-line);
+  border-radius: 0;
+  background: var(--canvas);
+  box-shadow: none;
+}
+
+[data-casabero-theme="editorial"] .oe4-progress {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0;
+  border-top: 0.5px solid var(--editorial-line);
+  border-bottom: 0.5px solid var(--editorial-line);
+  background: transparent;
+}
+
+[data-casabero-theme="editorial"] .oe4-progress > div {
+  border: 0;
+  border-right: 0.5px solid var(--editorial-line);
+}
+
+[data-casabero-theme="editorial"] .oe4-live-progress-track {
+  height: 2px;
+  background: var(--editorial-line);
+  overflow: hidden;
+}
+
+[data-casabero-theme="editorial"] .oe4-live-progress-track > span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--ink);
+  transform-origin: left center;
+}
+
+[data-casabero-theme="editorial"] .oe4-status--reaudited,
+[data-casabero-theme="editorial"] .oe4-status--blocked {
+  background: transparent;
+  color: var(--ink);
+  border: 0.5px solid var(--editorial-line);
+}
+
+[data-casabero-theme="editorial"] .settings-workspace,
+[data-casabero-theme="editorial"] .help-center {
+  font-family: var(--font-sans);
+}
+
+[data-casabero-theme="editorial"] .settings-workspace .sec-title,
+[data-casabero-theme="editorial"] .help-center .sec-title {
+  font-family: var(--font-display);
+}
+
+[data-casabero-theme="editorial"] .lab-local-index {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  margin: 16px 0 24px;
+  font-family: var(--font-meta);
+  font-size: 13px;
+}
+
+[data-casabero-theme="editorial"] .lab-local-index a {
+  color: var(--ink);
+}
+
+/* J13 — fila de corrida seleccionada: filete + peso, foco visible. */
+[data-casabero-theme="editorial"] .oe4-results-data-table tbody tr {
+  cursor: pointer;
+}
+
+[data-casabero-theme="editorial"] .oe4-results-data-table tbody tr[aria-selected="true"] {
+  box-shadow: inset 0 2px 0 var(--ink), inset 0 -2px 0 var(--ink);
+  font-weight: 600;
+}
+
+[data-casabero-theme="editorial"] .oe4-results-data-table tbody tr:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: -2px;
+}
+
+[data-casabero-theme="editorial"] .oe4-results-tabs [role="tab"]:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
 }

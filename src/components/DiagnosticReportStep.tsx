@@ -532,10 +532,7 @@ const DiagnosticReportStep: React.FC<DiagnosticReportStepProps> = ({
             <ShieldCheck size={16} />
             <strong>¿Solo necesitas el informe?</strong>
           </div>
-          <p>Puedes exportar los resultados sin generar ni ejecutar un script.</p>
-          <button className="btn-s" onClick={onExportMain}>
-            <ArrowRight size={14} /> Ir a exportación
-          </button>
+          <p>Puedes exportar los resultados sin generar ni ejecutar un script, con el botón Exportar informe de arriba.</p>
         </section>
       </section>
 

@@ -17,4 +17,9 @@ test.describe('LOOP-03 Editorial — Laboratorio', () => {
     await expect(page.getByTestId('ollama-standalone-view')).toBeVisible();
     await expect(page.getByRole('button', { name: /Cerrar y volver a AURA/i })).toBeVisible();
   });
+
+  // J13 vive en `src/__tests__/CampaignResultsExplorer.test.tsx` (teclado
+  // determinista sobre fixture). La campaña controlada E2E exige modelos
+  // instalados (`formalModelsInstalled`); sin ellos ni este spec ni
+  // `oe4-p1-04-ux` pueden crear el experimento en este entorno.
 });

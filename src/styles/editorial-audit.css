@@ -221,3 +221,55 @@
     align-items: stretch;
   }
 }
+
+/* ── LOOP-02 inventario 16-sep: severidad en tinta, sin rojo ────── */
+/* Jerarquía por peso (opacidad del filete), no por color semántico. */
+[data-casabero-theme="editorial"] .severity-distribution-track {
+  fill: var(--editorial-line);
+}
+
+[data-casabero-theme="editorial"] .severity-distribution-fill--critical {
+  fill: var(--ink);
+  fill-opacity: 1;
+}
+
+[data-casabero-theme="editorial"] .severity-distribution-fill--warning {
+  fill: var(--ink);
+  fill-opacity: 0.55;
+}
+
+[data-casabero-theme="editorial"] .severity-distribution-fill--info {
+  fill: var(--ink);
+  fill-opacity: 0.3;
+}
+
+[data-casabero-theme="editorial"] .severity-distribution-count {
+  fill: var(--ink);
+  font-family: var(--font-meta);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Estado del proveedor por peso y copy, sin puntos de color. */
+[data-casabero-theme="editorial"] .diagnosis-active-mode-status {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* Prioridades como tabla de lectura, misma familia que Columnas. */
+[data-casabero-theme="editorial"] .profile-priorities .editorial-data-table {
+  margin-top: 12px;
+}
+
+/* Descarga recomendada frente a alternativas. */
+[data-casabero-theme="editorial"] .export-delivery-card--recommended {
+  border-top: 2px solid var(--ink);
+}
+
+[data-casabero-theme="editorial"] .export-delivery-recommended-tag {
+  font-family: var(--font-meta);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}

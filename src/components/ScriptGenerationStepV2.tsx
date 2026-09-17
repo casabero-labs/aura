@@ -286,7 +286,7 @@ const ScriptGenerationStepV2: React.FC<ScriptGenerationStepV2Props> = ({
             className="provider-error-notice"
             style={{ marginTop: 'var(--space-md)' }}
           >
-            <AlertTriangle size={14} style={{ color: 'var(--error)' }} />
+            <AlertTriangle size={14} aria-hidden="true" />
             <span>{genState.errorMessage}</span>
           </div>
         )}
@@ -329,7 +329,7 @@ const ScriptGenerationStepV2: React.FC<ScriptGenerationStepV2Props> = ({
           className="provider-error-notice"
           style={{ marginBottom: 'var(--space-md)' }}
         >
-          <AlertTriangle size={14} style={{ color: 'var(--error)' }} />
+          <AlertTriangle size={14} aria-hidden="true" />
           <span>{genState.errorMessage}</span>
         </div>
         <button className="btn-s" onClick={() => setView('decision')}>
@@ -360,15 +360,15 @@ const ScriptGenerationStepV2: React.FC<ScriptGenerationStepV2Props> = ({
         >
           {contractValid ? (
             <>
-              <CheckCircle2 size={16} style={{ color: 'var(--success)' }} />
-              <span style={{ color: 'var(--success)', fontWeight: 600 }}>
+              <CheckCircle2 size={16} aria-hidden="true" />
+              <span style={{ fontWeight: 600 }}>
                 Contrato válido
               </span>
             </>
           ) : (
             <>
-              <Ban size={16} style={{ color: 'var(--error)' }} />
-              <span style={{ color: 'var(--error)', fontWeight: 600 }}>
+              <Ban size={16} aria-hidden="true" />
+              <span style={{ fontWeight: 600 }}>
                 Validación fallida
               </span>
             </>
@@ -380,19 +380,19 @@ const ScriptGenerationStepV2: React.FC<ScriptGenerationStepV2Props> = ({
         <div className="stage-decision-summary" style={{ marginBottom: 'var(--space-md)' }}>
           <div className="stage-summary-item" data-testid="partition-accepted">
             <span className="stage-summary-label">aceptadas</span>
-            <strong style={{ color: 'var(--success)' }}>
+            <strong>
               {partition.accepted}
             </strong>
           </div>
           <div className="stage-summary-item" data-testid="partition-rejected">
             <span className="stage-summary-label">rechazadas</span>
-            <strong style={{ color: 'var(--error)' }}>
+            <strong>
               {partition.rejected}
             </strong>
           </div>
           <div className="stage-summary-item" data-testid="partition-excluded">
             <span className="stage-summary-label">excluidas</span>
-            <strong style={{ color: 'var(--orange)' }}>
+            <strong>
               {partition.excluded}
             </strong>
           </div>
@@ -409,7 +409,7 @@ const ScriptGenerationStepV2: React.FC<ScriptGenerationStepV2Props> = ({
           data-testid="script-contract-no-executable"
           style={{ marginBottom: 'var(--space-md)' }}
         >
-          <AlertTriangle size={14} style={{ color: 'var(--orange)' }} />
+          <AlertTriangle size={14} aria-hidden="true" />
           <p>
             <strong>Sin acciones ejecutables.</strong> El contrato es verificable, pero el
             script solo conserva el dataset. Vuelve al plan y aprueba una acción
@@ -461,16 +461,13 @@ const ScriptGenerationStepV2: React.FC<ScriptGenerationStepV2Props> = ({
           style={{
             marginBottom: 'var(--space-md)',
             padding: '8px 10px',
-            background: 'color-mix(in srgb, var(--orange) 10%, transparent)',
-            borderRadius: '6px',
-            borderLeft: '3px solid var(--orange)',
+            borderLeft: '2px solid var(--ink)',
           }}
         >
           <div
             style={{
               fontSize: '12px',
               fontWeight: 600,
-              color: 'var(--orange)',
               marginBottom: '4px',
             }}
           >
@@ -490,16 +487,13 @@ const ScriptGenerationStepV2: React.FC<ScriptGenerationStepV2Props> = ({
           style={{
             marginBottom: 'var(--space-md)',
             padding: '8px 10px',
-            background: 'color-mix(in srgb, var(--error) 10%, transparent)',
-            borderRadius: '6px',
-            borderLeft: '3px solid var(--error)',
+            borderLeft: '2px solid var(--ink)',
           }}
         >
           <div
             style={{
               fontSize: '12px',
               fontWeight: 600,
-              color: 'var(--error)',
               marginBottom: '4px',
             }}
           >
@@ -580,7 +574,7 @@ const ScriptGenerationStepV2: React.FC<ScriptGenerationStepV2Props> = ({
         {contract.placeholderVocabularyVersion} · hash:{' '}
         <span data-testid="contract-hash" data-contract-hash={contract.scriptHash}>{contract.scriptHash.slice(0, 12)}</span>
         {contract.validationResult.pythonSyntax.state === 'not_run' && (
-          <span style={{ color: 'var(--orange)', marginLeft: '8px' }} data-testid="syntax-state">
+          <span style={{ marginLeft: '8px' }} data-testid="syntax-state">
             syntax: not_run (Python no disponible en navegador)
           </span>
         )}
@@ -639,7 +633,7 @@ const ScriptGenerationStepV2: React.FC<ScriptGenerationStepV2Props> = ({
                       marginBottom: '4px',
                     }}
                   >
-                    <span style={{ color: 'var(--error)' }}>{e.code}</span>{' '}
+                    <span>{e.code}</span>{' '}
                     {e.path && (
                       <span style={{ color: 'var(--ink3)' }}>{e.path}</span>
                     )}{' '}

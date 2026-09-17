@@ -5,12 +5,6 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 
-vi.mock('../components/ImprovementRunPage', () => ({
-  default: () => {
-    throw new Error('ImprovementRunPage should not be mounted from App.tsx (Issue #25)');
-  },
-}));
-
 vi.mock('../components/benchmark/BenchmarkCampaignLab', () => ({
   default: () => <div data-testid="benchmark-campaign-lab-stub" />,
 }));
@@ -67,24 +61,6 @@ describe('App - accessible global navigation', () => {
     expect(screen.getAllByRole('button', { name: /^Laboratorio$/i }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole('button', { name: /^Configuración$/i }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole('button', { name: /^Ayuda$/i }).length).toBeGreaterThan(0);
-  });
-
-  it('does not mount ImprovementRunPage when navigating to Auditoría', async () => {
-    const user = userEvent.setup();
-    render(<App />);
-
-    await waitFor(() => {
-      expect(screen.getAllByText('AURA').length).toBeGreaterThan(0);
-    });
-
-    const auditButtons = screen.getAllByRole('button', { name: /^Auditoría$/i });
-    await user.click(auditButtons[0]);
-
-    await waitFor(() => {
-      expect(document.getElementById('sistema')).toBeTruthy();
-    });
-
-    expect(screen.queryByTestId('improvement-run-page')).toBeNull();
   });
 
   it('exposes the AURA mark as Inicio operable with Enter and Space', async () => {

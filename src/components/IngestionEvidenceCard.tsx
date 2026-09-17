@@ -1,5 +1,4 @@
 import React from 'react';
-import { Activity, AlertTriangle, CheckCircle2, Clock, Columns3, FileSpreadsheet, Fingerprint, Hash, Scissors } from 'lucide-react';
 import { AuditExecutionEvidence } from '../types';
 
 interface IngestionEvidenceCardProps {
@@ -13,74 +12,55 @@ const formatBytes = (bytes?: number): string => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
+const shortHash = (hash?: string): string => {
+  if (!hash || hash === 'error') return '—';
+  return hash.length > 16 ? `${hash.slice(0, 12)}…` : hash;
+};
+
+/**
+ * Identidad del archivo cargado + detalle expandible de ingestión.
+ * Sin tarjetas de métricas ni iconografía: filete, cifras tabulares y copy.
+ */
 const IngestionEvidenceCard: React.FC<IngestionEvidenceCardProps> = ({ evidence }) => {
   const isSuccess = evidence.ingestionStatus === 'success';
 
   return (
-    <section className="ingestion-evidence-card" data-status={evidence.ingestionStatus} aria-labelledby="ingestion-evidence-title">
-      <div className="ingestion-evidence-header">
-        <div className="ingestion-evidence-kicker">
-          {isSuccess ? <CheckCircle2 size={14} /> : <AlertTriangle size={14} />}
-          <span>CONTRATO DE INGESTIÓN</span>
-          <code className="ingestion-evidence-id">{evidence.id}</code>
-        </div>
-        <h3 id="ingestion-evidence-title" className="ingestion-evidence-title">
-          Evidencia de carga del dataset
-        </h3>
-        <p className="ingestion-evidence-desc">
-          {isSuccess
-            ? 'Archivo CSV cargado, parseado y perfilado exitosamente en el navegador. Todos los metadatos registrados son trazables y reproducibles.'
-            : `Error durante la ingesta: ${evidence.ingestionError || 'desconocido'}`
-          }
+    <section className="file-identity" aria-labelledby="file-identity-title">
+      <p className="file-identity-kicker">
+        Archivo cargado · <code>{evidence.id}</code>
+      </p>
+      <h3 id="file-identity-title" className="file-identity-name">
+        {evidence.fileName || '—'}
+      </h3>
+      <p className="file-identity-facts">
+        {evidence.rowsProcessed.toLocaleString('es-CO')} filas · {evidence.columnsProcessed} columnas · delimitador {evidence.delimiter === ',' ? 'coma (,)' : `"${evidence.delimiter}"`} · {isSuccess ? 'ingestión completa' : 'ingestión fallida'}
+      </p>
+      {!isSuccess && (
+        <p className="file-identity-error" role="alert">
+          Error durante la ingesta: {evidence.ingestionError || 'desconocido'}
         </p>
-      </div>
-
-      <div className="ingestion-evidence-grid">
-        <div className="ingestion-metric">
-          <FileSpreadsheet size={12} />
-          <span className="ingestion-metric-label">Dataset</span>
-          <code className="ingestion-metric-value">{evidence.fileName || '—'}</code>
-        </div>
-        <div className="ingestion-metric">
-          <Hash size={12} />
-          <span className="ingestion-metric-label">Tamaño</span>
-          <code className="ingestion-metric-value">{formatBytes(evidence.fileSize)}</code>
-        </div>
-        <div className="ingestion-metric">
-          <Hash size={12} />
-          <span className="ingestion-metric-label">Filas</span>
-          <code className="ingestion-metric-value">{evidence.rowsProcessed.toLocaleString('es-CO')}</code>
-        </div>
-        <div className="ingestion-metric">
-          <Columns3 size={12} />
-          <span className="ingestion-metric-label">Columnas</span>
-          <code className="ingestion-metric-value">{evidence.columnsProcessed}</code>
-        </div>
-        <div className="ingestion-metric">
-          <Scissors size={12} />
-          <span className="ingestion-metric-label">Delimitador</span>
-          <code className="ingestion-metric-value">{evidence.delimiter === ',' ? 'coma (,)' : `"${evidence.delimiter}"`}</code>
-        </div>
-        <div className="ingestion-metric">
-          <Activity size={12} />
-          <span className="ingestion-metric-label">Truncado</span>
-          <code className="ingestion-metric-value">{evidence.truncated ? 'Sí' : 'No'}</code>
-        </div>
-        <div className="ingestion-metric">
-          <Clock size={12} />
-          <span className="ingestion-metric-label">Parseo</span>
-          <code className="ingestion-metric-value">{evidence.parseDurationMs}ms</code>
-        </div>
-        <div className="ingestion-metric ingestion-metric--fingerprint">
-          <Fingerprint size={12} />
-          <span className="ingestion-metric-label">Fingerprint</span>
-          <code className="ingestion-metric-value ingestion-fingerprint">{evidence.datasetFingerprint}</code>
-        </div>
-      </div>
-
-      <div className={`ingestion-evidence-status ingestion-evidence-status--${evidence.ingestionStatus}`}>
-        {isSuccess ? 'INGESTIÓN COMPLETA' : 'INGESTIÓN FALLIDA'}
-      </div>
+      )}
+      <details className="file-identity-detail">
+        <summary>Detalle de ingestión</summary>
+        <dl className="file-identity-list">
+          <div>
+            <dt>Tamaño</dt>
+            <dd>{formatBytes(evidence.fileSize)}</dd>
+          </div>
+          <div>
+            <dt>Parseo</dt>
+            <dd>{evidence.parseDurationMs} ms{evidence.truncated ? ' · truncado' : ''}</dd>
+          </div>
+          <div>
+            <dt>Fingerprint</dt>
+            <dd><code>{evidence.datasetFingerprint}</code></dd>
+          </div>
+          <div>
+            <dt>SHA-256</dt>
+            <dd><code>{shortHash(evidence.datasetSha256)}</code></dd>
+          </div>
+        </dl>
+      </details>
     </section>
   );
 };

@@ -4,11 +4,18 @@ Todos los cambios significativos se documentan aquí. Formato: `[YYYY-MM-DD] Tip
 
 ---
 
+## [2026-09-17] standards: cierre LOOP-01–03 Editorial 1.2
+
+- LOOP-01: J11 declara reimportación tras recarga (`sessionNeedsReimport`); hero sin Lab duplicado; modo oscuro en Configuración; footer firma + Historial; stepper en hitos; ingestión como identidad + detalle.
+- LOOP-02: prioridades en tabla; severidad en tinta; diagnóstico sin semáforo; informe con una zona de acción; export con recomendada; PDF sin veredicto de salud; V2 sin color semántico.
+- LOOP-03/F9: J13 con teclado (tabs + filas); 13 TSX huérfanos retirados; `editorial-lab.css` absorbida en foundations; exclusividad verificada (`editorial-f9`).
+- Evidencia: unit 2023/2023, E2E editoriales 14/14, `editorial-loop01` 6/6.
+
 ## [2026-09-15] standards: F9 tokens Editorial y retirada del piloto
 
 - `:root` y `[data-theme=dark]` usan hex Editorial 1.2. Sombras none, radios 0–4 px, Source Serif/Sans.
 - Retirado `editorial-pilot` y `:has(.editorial-pilot)`. Syntax display ya no exige JetBrains ni superficie Ink.
-- 15 componentes sin camino de import se conservan bajo tokens; no se borraron.
+- 13 componentes sin camino de import retirados el 2026-09-17 (F9); ver entrada de cierre arriba.
 
 ## [2026-09-15] standards: LOOP-03 Laboratorio Editorial
 

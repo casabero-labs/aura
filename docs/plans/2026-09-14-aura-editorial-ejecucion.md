@@ -24,14 +24,15 @@ Especificación: [orden de ejecución](2026-09-14-aura-editorial-orden-ejecucion
 | F3 shell / U01 / drawer | IMPLEMENTADO_SIN_VALIDAR |
 | F4 carga U02 | IMPLEMENTADO_SIN_VALIDAR |
 | J01 J02 J14 J15 + tema | VERIFICADO (`editorial-loop01.spec.ts`, 5/5) |
-| J11 recarga/reimportación | PENDIENTE |
-| LOOP-02 perfil/diagnóstico/informe/exportación | IMPLEMENTADO_SIN_VALIDAR humana |
-| J03 J04 J07 | VERIFICADO (`editorial-loop02.spec.ts`, 3/3) |
-| U06 remediación | IMPLEMENTADO_SIN_VALIDAR humana (hitos, aprobar sin color de autorización, cierre sin cambios) |
-| EC-15 PDF auditoría | IMPLEMENTADO_SIN_VALIDAR (paleta Editorial en `createPdfTheme`) |
-| LOOP-03 Laboratorio U08 | IMPLEMENTADO_SIN_VALIDAR humana |
-| U09 standalone Ollama | IMPLEMENTADO_SIN_VALIDAR |
-| F9 exclusividad | IMPLEMENTADO_SIN_VALIDAR humana: `:root` Editorial, piloto retirado, sombras/radios/fuentes alineados. Layout histórico en `index.css` lee esas variables. 15 componentes sin camino no se borraron. |
+| J11 recarga/reimportación | VERIFICADO 2026-09-17 (`editorial-loop01.spec.ts` 6/6): `sessionNeedsReimport` + nota `home-reimport-notice`; el bloque Reanudar ya no afirma que el archivo se conserva |
+| LOOP-01 deltas inventario 16-sep | IMPLEMENTADO 2026-09-17: hero sin secundaria Lab; modo oscuro en drawer Configuración (Apariencia); footer firma + Historial (Ayuda solo en nav); stepper → hitos con filete; evidencia de ingestión → identidad + `<details>`; copy de carga en sans; `nav-new-analysis` conservado por J15 |
+| LOOP-02 perfil/diagnóstico/informe/exportación | IMPLEMENTADO 2026-09-17: prioridades→tabla, severidad en tinta, héroe diagnóstico sin semáforo, informe con una zona de acción, export con recomendada, PDF sin «salud», V2 sin color semántico |
+| J03 J04 J07 | VERIFICADO (`editorial-loop02.spec.ts`, 3/3 + aserciones tabla/zona-acción/recomendada 2026-09-17) |
+| U06 remediación | IMPLEMENTADO 2026-09-17 (hitos, aprobar sin color de autorización, cierre sin cambios). Plan por acción conservado: el contrato no trae valores propuestos, así que observado→propuesto tabular inventaría datos. `scriptGenerationStepV2.test.tsx` reparado (46/46): el copy migrado en d303c2b había dejado 5 aserciones viejas |
+| EC-15 PDF auditoría | IMPLEMENTADO (paleta Editorial en `createPdfTheme`; copy ejecutivo sin veredicto de salud) |
+| LOOP-03 Laboratorio U08 | VERIFICADO 2026-09-17: vistas setup/running/complete por `data-lab-view`; J12+J17 E2E; J13 teclado (tabs con flechas + filas seleccionables con Enter, `aria-selected`, detalle `aria-live`, gráfico sincronizado) en `CampaignResultsExplorer.test.tsx` 4/4. Campaña E2E completa exige modelos instalados (`oe4-p1-04-ux` también bloqueado en este entorno) |
+| U09 standalone Ollama | VERIFICADO (J17). Settings ya agrupado, HelpCenter seccionado+buscable, PDF lab en tinta |
+| F9 exclusividad | VERIFICADO 2026-09-17: `editorial-f9.spec` verde; 13 TSX huérfanos retirados (BoxPlot, DatasetProfile, DeterministicEngineSummary, DeterministicValidationPanel, DevelopmentLoopsPanel, DiagnosisContractGuide, DiagnosticReportGateStep, FindingsTable, ImprovementRunPage+su test, ProfileEvidencePackage, RuleActivationMatrix, ExecutionEvidencePanel, HumanRubricPanel); `editorial-lab.css` absorbida en foundations; cero refs `editorial-pilot`; Ink/Warm solo en comentarios y aserciones; graphify actualizado (8526 nodos) |
 
 ## Decisiones de este loop
 

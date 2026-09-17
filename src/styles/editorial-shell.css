@@ -218,6 +218,7 @@
 
 [data-casabero-theme="editorial"] .file-drop-hint,
 [data-casabero-theme="editorial"] .file-drop-eyebrow {
+  font-family: var(--font-meta);
   font-size: 14px;
   letter-spacing: 0;
   text-transform: none;
@@ -353,4 +354,214 @@
   .utility-drawer {
     animation: none;
   }
+}
+
+/* ── LOOP-01 deltas inventario 16-sep ─────────────────────────── */
+
+/* «Nuevo análisis» en nav: utilidad subordinada, nunca relleno sólido. */
+[data-casabero-theme="editorial"] .nav-reset-cta {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 0.5px solid var(--editorial-line-strong);
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-meta);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+/* J11: la recarga declara reimportación; nota sobria junto al resumen. */
+[data-casabero-theme="editorial"] .home-reimport-note {
+  font-family: var(--font-meta);
+  font-size: 13px;
+  color: var(--ink2);
+  border-left: 2px solid var(--editorial-line-strong);
+  padding-left: 12px;
+  margin-top: 16px;
+  max-width: 42em;
+}
+
+[data-casabero-theme="editorial"] .home-resume-meta {
+  font-family: var(--font-meta);
+  font-size: 13px;
+  color: var(--ink2);
+  margin-top: 12px;
+}
+
+/* Stepper → hitos de documento: filete + nombre de etapa, sin pills. */
+[data-casabero-theme="editorial"] .stepper {
+  align-items: stretch;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+[data-casabero-theme="editorial"] .stepper-step {
+  border: 0;
+  border-radius: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  font-family: var(--font-meta);
+}
+
+[data-casabero-theme="editorial"] .stepper-step.active {
+  background: transparent;
+  border-color: transparent;
+  border-bottom-color: var(--ink);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+[data-casabero-theme="editorial"] .stepper-step.clickable:hover {
+  background: transparent;
+  color: var(--ink);
+  border-bottom-color: var(--editorial-line-strong);
+}
+
+[data-casabero-theme="editorial"] .stepper-index {
+  min-width: 0;
+  height: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font-family: var(--font-meta);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+}
+
+[data-casabero-theme="editorial"] .stepper-step.active .stepper-index,
+[data-casabero-theme="editorial"] .stepper-step.done .stepper-index {
+  background: transparent;
+  color: inherit;
+  border: 0;
+}
+
+[data-casabero-theme="editorial"] .stepper-label {
+  font-size: 13px;
+}
+
+/* Apariencia en Configuración: modo, no tema; sin cromo en la nav. */
+[data-casabero-theme="editorial"] .drawer-appearance {
+  padding: 20px 20px 16px;
+  border-bottom: 0.5px solid var(--editorial-line);
+}
+
+[data-casabero-theme="editorial"] .drawer-appearance-label {
+  display: block;
+  font-family: var(--font-meta);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-bottom: 8px;
+}
+
+[data-casabero-theme="editorial"] .drawer-appearance .theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  cursor: pointer;
+}
+
+[data-casabero-theme="editorial"] .drawer-appearance-name {
+  font-family: var(--font-meta);
+  font-size: 14px;
+  color: var(--ink);
+}
+
+/* Identidad del archivo: nombre + hechos + detalle plegado. */
+[data-casabero-theme="editorial"] .file-identity {
+  max-width: 720px;
+  margin: 0 0 32px;
+  padding: 0 0 24px;
+  border-bottom: 0.5px solid var(--editorial-line-strong);
+}
+
+[data-casabero-theme="editorial"] .file-identity-kicker {
+  font-family: var(--font-meta);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin: 0 0 8px;
+}
+
+[data-casabero-theme="editorial"] .file-identity-kicker code,
+[data-casabero-theme="editorial"] .file-identity-list code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+[data-casabero-theme="editorial"] .file-identity-name {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+[data-casabero-theme="editorial"] .file-identity-facts {
+  font-family: var(--font-meta);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink2);
+  margin: 8px 0 0;
+}
+
+[data-casabero-theme="editorial"] .file-identity-error {
+  font-family: var(--font-meta);
+  font-size: 14px;
+  color: var(--ink);
+  border-left: 2px solid var(--ink);
+  padding-left: 12px;
+  margin: 12px 0 0;
+}
+
+[data-casabero-theme="editorial"] .file-identity-detail {
+  margin-top: 12px;
+  font-family: var(--font-meta);
+  font-size: 13px;
+}
+
+[data-casabero-theme="editorial"] .file-identity-detail summary {
+  cursor: pointer;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+[data-casabero-theme="editorial"] .file-identity-list {
+  margin: 8px 0 0;
+  display: grid;
+  gap: 6px;
+}
+
+[data-casabero-theme="editorial"] .file-identity-list > div {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 12px;
+}
+
+[data-casabero-theme="editorial"] .file-identity-list dt {
+  color: var(--ink-muted);
+}
+
+[data-casabero-theme="editorial"] .file-identity-list dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
 }

@@ -83,25 +83,10 @@ export const DiagnosisHeroPanel: React.FC<DiagnosisHeroPanelProps> = ({
             <span>Proveedor: {providerName}</span>
           </span>
           <span className="diagnosis-active-mode-sep" />
-          <span className="diagnosis-active-mode-status" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            {providerAvailable === true && (
-              <>
-                <span className="status-dot status-dot--ready" style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--success)' }} />
-                <span style={{ color: 'var(--success)', fontWeight: 500 }}>(Disponible)</span>
-              </>
-            )}
-            {providerAvailable === false && (
-              <>
-                <span className="status-dot status-dot--error" style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--error)' }} />
-                <span style={{ color: 'var(--error)', fontWeight: 500 }}>(No disponible)</span>
-              </>
-            )}
-            {providerAvailable === null && (
-              <>
-                <span className="status-dot status-dot--checking" style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--ink3)' }} />
-                <span style={{ color: 'var(--ink3)' }}>(Verificando...)</span>
-              </>
-            )}
+          <span className="diagnosis-active-mode-status">
+            {providerAvailable === true && <span>(Disponible)</span>}
+            {providerAvailable === false && <span>(No disponible)</span>}
+            {providerAvailable === null && <span>(Verificando…)</span>}
           </span>
           <span className="diagnosis-active-mode-sep" />
           <span className="diagnosis-active-mode-entry" title={model} data-testid="diagnosis-active-model">

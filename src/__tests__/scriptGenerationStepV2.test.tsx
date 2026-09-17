@@ -577,7 +577,7 @@ describe('ScriptGenerationStepV2 component', () => {
       />,
     );
     // RemediationPlanStepV2 renders its own header
-    expect(screen.getByText('Plan de remediación determinista')).toBeTruthy();
+    expect(screen.getByText('Acciones sobre una copia')).toBeTruthy();
   });
 
   it('generates contract on button click (Vista A → Vista B)', async () => {
@@ -1012,9 +1012,9 @@ describe('RemediationPlanStepV2 props', () => {
     const approveBtn = screen.getAllByText('Aprobar')[0];
     await user.click(approveBtn);
 
-    // Status should change to "Aprobado"
+    // Status should change to "Aprobado · deshacer"
     await waitFor(() => {
-      expect(screen.getAllByText('Aprobado').length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/Aprobado/).length).toBeGreaterThan(0);
     });
   });
 });
@@ -1179,7 +1179,7 @@ describe('MainPipeline session restoration', () => {
     );
 
     // Plan is preserved — RemediationPlanStepV2 shows plan summary
-    expect(screen.getByText('Plan de remediación determinista')).toBeTruthy();
+    expect(screen.getByText('Acciones sobre una copia')).toBeTruthy();
     // Generate button available (plan already built)
     expect(screen.getByText('Generar contrato de script')).toBeTruthy();
 
@@ -1394,7 +1394,7 @@ describe('Volver al plan cleanup', () => {
 
     // Should return to plan view
     await waitFor(() => {
-      expect(screen.getByText('Plan de remediación determinista')).toBeTruthy();
+      expect(screen.getByText('Acciones sobre una copia')).toBeTruthy();
     });
     expect(screen.queryByText('Contrato válido')).toBeNull();
   });
@@ -1536,8 +1536,8 @@ describe('close without changes reaches export through the real pipeline', () =>
         auditEvidence:{datasetSha256:'a'.repeat(64)},structuredDiagnosis:diag,remediationPlan:plan,
         cleaningScript:'',approvedScript:'',logs:[],benchmarkResults:[]} as any}
       onPipelineChange={changed}/>);
-    const close=await screen.findByRole('button',{name:'Cerrar sin cambios'});
-    await userEvent.click(close);
+    const closeButtons = await screen.findAllByRole('button', { name: 'Cerrar sin cambios' });
+    await userEvent.click(closeButtons[0]);
     await waitFor(()=>expect(changed.mock.calls.at(-1)?.[0].state).toBe('export'));
     const final=changed.mock.calls.at(-1)![0];
     expect(final.rawData).toEqual(data);

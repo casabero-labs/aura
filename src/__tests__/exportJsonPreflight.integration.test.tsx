@@ -143,8 +143,9 @@ describe('JSON technical export preflight integration', () => {
     render(<App />);
 
     expect(screen.queryByText(/Laboratorio de Modelos/i)).toBeNull();
+    // Laboratorio vive solo en la nav (el hero no lo repite desde LOOP-01).
     expect(screen.getAllByRole('button', { name: 'Laboratorio' })).toHaveLength(1);
-    expect(screen.getAllByRole('button', { name: 'Laboratorio', hidden: true })).toHaveLength(2);
+    expect(screen.getAllByRole('button', { name: 'Laboratorio', hidden: true })).toHaveLength(1);
   });
 
   it('returns from Exportación to the preserved diagnostic results', async () => {

@@ -97,3 +97,17 @@ export const clearPipelineSession = () => {
     localStorage.removeItem(STORAGE_KEY);
   } catch { /* storage unavailable */ }
 };
+
+/**
+ * J11 — Una sesión restaurada conserva etapa y datos procesados, pero el
+ * objeto File original nunca sobrevive a la recarga. Si el snapshot trae
+ * fileMeta e informe, la UI debe declarar que el archivo se reimporta.
+ */
+export const sessionNeedsReimport = (snap: {
+  fileMeta?: { name: string; size: number; type: string; lastModified: number } | undefined;
+  report?: unknown;
+  state?: string;
+} | null): boolean => {
+  if (!snap) return false;
+  return !!snap.fileMeta && !!snap.report && snap.state !== 'upload';
+};

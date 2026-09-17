@@ -18,6 +18,11 @@ test.describe('LOOP-02 Editorial — Informe y exportar', () => {
     await expect(page.getByTestId('profile-hero').locator('h1')).toBeVisible();
     await expect(page.getByTestId('profile-column-table')).toBeVisible();
     await expect(page.getByTestId('profile-continue-diagnosis')).toHaveText(/Ir al diagnóstico/);
+    // Prioridades: una tabla (regla, columna, N/M, clasificación), no tarjetas.
+    const priorities = page.getByTestId('profile-priorities').locator('table');
+    await expect(priorities).toBeVisible();
+    await expect(priorities.getByRole('columnheader', { name: 'Evidencia' })).toBeVisible();
+    await expect(priorities.getByRole('columnheader', { name: 'Clasificación' })).toBeVisible();
   });
 
   test('J04 — diagnóstico: informe determinista y config en drawer', async ({ page }) => {
@@ -50,5 +55,9 @@ test.describe('LOOP-02 Editorial — Informe y exportar', () => {
     expect(conclusionBox && invocationBox && conclusionBox.y < invocationBox.y).toBeTruthy();
     await page.getByTestId('diagnostic-report-export-main').click();
     await expect(page.getByTestId('export-stage')).toBeVisible();
+    // Una zona de acción: el cierre inferior orienta sin duplicar el botón.
+    await expect(page.getByTestId('diagnostic-report-export-choice').getByRole('button')).toHaveCount(0);
+    // Exportación: una recomendada frente a alternativas.
+    await expect(page.getByText('Recomendado · expediente completo')).toBeVisible();
   });
 });

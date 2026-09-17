@@ -36,7 +36,7 @@ import {
   type RemediationExecutionExportV1,
 } from './services/remediationExecution/remediationExport';
 import { buildExportArtifactIdentity } from './services/exportArtifactIdentity';
-import { savePipelineSession, loadPipelineSession, clearPipelineSession } from './services/pipelineSession';
+import { savePipelineSession, loadPipelineSession, clearPipelineSession, sessionNeedsReimport } from './services/pipelineSession';
 import { downloadBlob, downloadTextFile } from './utils/download';
 import { AIConfig, AuditReport, DeterministicValidationReport, EvidenceManifest, ExecutiveReportContent, IssueSeverity } from './types';
 import { formatPipelineStage } from './services/issuePresentation';
@@ -72,11 +72,6 @@ const csvCell = (value: unknown) => {
 const buildDeterministicPdfContent = (auditReport: AuditReport, approvedScript?: string): ExecutiveReportContent => {
   const criticalIssues = auditReport.issues.filter((issue) => issue.severity === IssueSeverity.CRITICAL);
   const topIssues = auditReport.issues.slice(0, 6);
-  const healthLabel = auditReport.score >= 80
-    ? 'salud alta'
-    : auditReport.score >= 50
-      ? 'salud intermedia'
-      : 'salud critica';
 
   return {
     title: 'AURA - Informe de Auditoria Determinista',
@@ -85,7 +80,8 @@ const buildDeterministicPdfContent = (auditReport: AuditReport, approvedScript?:
       `Dataset CSV auditado en navegador con ${auditReport.rowCount} filas, ${auditReport.colCount} columnas y delimitador "${auditReport.delimiterDetected}". ` +
       `El motor determinista calculo un score de ${auditReport.score}/100, detecto ${auditReport.issues.length} reglas activadas y ${auditReport.duplicateRows} filas duplicadas.`,
     executive_summary:
-      `El dataset presenta ${healthLabel} segun el motor determinista de AURA. ` +
+      `El motor determinista calculó un score de ${auditReport.score}/100 sobre las reglas evaluadas, con ${criticalIssues.length} hallazgos clasificados como críticos. ` +
+      `El score describe esas comprobaciones; la aptitud del dataset para un uso concreto requiere revisión humana del contexto. ` +
       `${criticalIssues.length} hallazgos fueron clasificados como criticos y requieren revision antes de usar el dataset en analisis o entrenamiento.`,
     business_impact:
       'El riesgo principal es tecnico: valores nulos, duplicados, formatos inconsistentes o reglas logicas activadas pueden sesgar analisis posteriores. ' +
@@ -169,9 +165,16 @@ const App: React.FC = () => {
     return INITIAL_PIPELINE_DATA;
   });
 
+  // J11 — la recarga conserva etapa y datos, nunca el File original.
+  const [restoredWithoutFile] = useState(() => {
+    try {
+      const raw = localStorage.getItem('aura_pipeline_session_v1');
+      if (!raw) return false;
+      return sessionNeedsReimport(JSON.parse(raw));
+    } catch { return false; }
+  });
   // ── UI state ──
-  const [showSettings, setShowSettings] = useState(false);
-  const [showHelp, setShowHelp] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);  const [showHelp, setShowHelp] = useState(false);
   const [showExperimentCampaign, setShowExperimentCampaign] = useState(false);
   const [showHome, setShowHome] = useState(true);
   const [showAuditLog, setShowAuditLog] = useState(false);
@@ -842,16 +845,6 @@ const App: React.FC = () => {
             >
               Ayuda
             </button>
-            <label className="theme-toggle">
-              <span className="sr-only">Usar tema oscuro</span>
-              <input
-                type="checkbox"
-                role="switch"
-                checked={theme === 'dark'}
-                onChange={(e) => setTheme(e.target.checked ? 'dark' : 'light')}
-                aria-label="Usar tema oscuro"
-              />
-            </label>
             {hasData && (
               <button
                 className="nav-reset-cta"
@@ -868,6 +861,20 @@ const App: React.FC = () => {
 
       {showSettings && (
         <UtilityDrawer title="Configuración" onClose={() => setShowSettings(false)}>
+          <div className="drawer-appearance">
+            <span className="drawer-appearance-label" id="appearance-label">Apariencia</span>
+            <label className="theme-toggle" aria-labelledby="appearance-label">
+              <span className="drawer-appearance-name">Usar tema oscuro</span>
+              <input
+                type="checkbox"
+                role="switch"
+                checked={theme === 'dark'}
+                onChange={(e) => setTheme(e.target.checked ? 'dark' : 'light')}
+                aria-label="Usar tema oscuro"
+                data-testid="appearance-theme-switch"
+              />
+            </label>
+          </div>
           <SettingsPanel config={aiConfig} onSave={setAiConfig} onClose={() => setShowSettings(false)} />
         </UtilityDrawer>
       )}
@@ -915,8 +922,13 @@ const App: React.FC = () => {
               <>
                 <h1 className="home-title">Reanudar el análisis</h1>
                 <p className="home-desc">
-                  El archivo y la etapa se conservan en esta sesión. Reanudar no vuelve a enviar datos.
+                  La etapa y los datos procesados se conservan en esta sesión. El archivo original no se guarda en el navegador.
                 </p>
+                {restoredWithoutFile && !pipelineData.file && (
+                  <p className="home-reimport-note" role="note" data-testid="home-reimport-notice">
+                    Para reprocesar o verificar el hash, reimportá el archivo desde la etapa Carga del flujo.
+                  </p>
+                )}
                 <p className="home-resume-meta" data-testid="home-resume-meta">
                   {pipelineData.auditEvidence?.fileName || pipelineData.file?.name || 'análisis guardado'}
                   {' · '}
@@ -939,7 +951,6 @@ const App: React.FC = () => {
                 </p>
                 <div className="home-actions">
                   <button className="btn-p btn--lg" onClick={goAudit}>Empezar auditoría</button>
-                  <button className="btn-s" onClick={goExperimentCampaign}>Abrir Laboratorio</button>
                 </div>
               </>
             )}
@@ -1048,7 +1059,8 @@ const App: React.FC = () => {
               <p className="export-delivery-block-eyebrow">Resultados</p>
               <h3 className="export-delivery-block-title">Archivos disponibles</h3>
               <div className="export-delivery-cards">
-                <article className="export-delivery-card export-delivery-card--primary export-delivery-card--evidence">
+                <article className="export-delivery-card export-delivery-card--primary export-delivery-card--evidence export-delivery-card--recommended">
+                  <p className="export-delivery-recommended-tag">Recomendado · expediente completo</p>
                   <div className="export-delivery-card-head">
                     <Download size={20} />
                     <div>
@@ -1181,7 +1193,6 @@ const App: React.FC = () => {
       <footer className="sys-footer">
         <span className="footer-brand">AURA</span>
         <div className="footer-links">
-          <button className="footer-link" onClick={openHelp}>Ayuda</button>
           <button className="footer-link" onClick={() => setShowChangelog(true)}>Historial</button>
         </div>
         <span className="footer-copy">casabero · aura · 2026</span>

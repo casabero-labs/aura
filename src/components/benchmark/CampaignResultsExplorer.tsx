@@ -113,6 +113,22 @@ const CampaignResultsExplorer: React.FC<CampaignResultsExplorerProps> = ({
     setSelectedCellId(cellId);
     onSelectedCellIdChange?.(cellId);
   }, [onSelectedCellIdChange]);
+
+  // J13 — pestañas con flechas (WAI-APG): el roving tabindex ya existe.
+  const viewOrder = useMemo(() => Object.keys(VIEW_LABELS) as ExplorerView[], []);
+  const handleTablistKeyDown = useCallback((event: React.KeyboardEvent) => {
+    const current = viewOrder.indexOf(view);
+    let next: number | null = null;
+    if (event.key === 'ArrowRight') next = (current + 1) % viewOrder.length;
+    else if (event.key === 'ArrowLeft') next = (current - 1 + viewOrder.length) % viewOrder.length;
+    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = viewOrder.length - 1;
+    if (next === null) return;
+    event.preventDefault();
+    const target = viewOrder[next];
+    setView(target);
+    document.getElementById(`oe4-results-tab-${target}`)?.focus();
+  }, [view, viewOrder]);
   const selectedScore = scores.find((entry) => entry.cellId === selectedCellId) ?? scores[0];
   const selectedAggregation = selectedScore ? aggregationByCell.get(selectedScore.cellId) : undefined;
   const weights = evidenceDocument.decisionSupport.methodology.balancedWeights;
@@ -377,7 +393,7 @@ const CampaignResultsExplorer: React.FC<CampaignResultsExplorerProps> = ({
             <div><span>Trazabilidad</span><strong>Respuesta y recibo conservados</strong></div>
           </div>
 
-          <div className="oe4-results-tabs" role="tablist" aria-label="Vistas de resultados">
+          <div className="oe4-results-tabs" role="tablist" aria-label="Vistas de resultados" onKeyDown={handleTablistKeyDown}>
             {(Object.keys(VIEW_LABELS) as ExplorerView[]).map((entry) => (
               <button
                 key={entry}
@@ -417,7 +433,7 @@ const CampaignResultsExplorer: React.FC<CampaignResultsExplorerProps> = ({
               />
             </div>
 
-            <aside className="oe4-results-selection" aria-label="Combinación seleccionada">
+            <aside className="oe4-results-selection" aria-label="Combinación seleccionada" aria-live="polite">
               <p className="oe4-eyebrow">Selección actual</p>
               <h3>{modelName(selectedScore.modelId)}</h3>
               <p>{OE4_INPUT_MODE_LABELS[selectedScore.inputMode]}</p>
@@ -445,9 +461,22 @@ const CampaignResultsExplorer: React.FC<CampaignResultsExplorerProps> = ({
                 <tbody>
                   {scores.map((entry) => {
                     const cell = aggregationByCell.get(entry.cellId);
+                    const isSelected = entry.cellId === selectedCellId;
                     return (
-                      <tr key={entry.cellId}>
-                        <th>{modelName(entry.modelId)}</th>
+                      <tr
+                        key={entry.cellId}
+                        tabIndex={0}
+                        aria-selected={isSelected}
+                        data-testid="oe4-result-row"
+                        onClick={() => selectCell(entry.cellId)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            selectCell(entry.cellId);
+                          }
+                        }}
+                      >
+                        <th scope="row">{modelName(entry.modelId)}</th>
                         <td>{OE4_INPUT_MODE_LABELS[entry.inputMode]}</td>
                         <td>{formatScore(entry.accuracy)}</td>
                         <td>{formatScore(entry.reliability)}</td>

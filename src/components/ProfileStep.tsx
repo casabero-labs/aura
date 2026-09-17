@@ -166,24 +166,31 @@ const ProfileStep: React.FC<ProfileStepProps> = ({ report, auditEvidence, file, 
             </section>
           )}
 
-          {/* E. Prioridades de limpieza (top hallazgos) */}
+          {/* E. Prioridades de limpieza (top hallazgos): una tabla, no tarjetas */}
           {topPriorities.length > 0 && (
             <section className="profile-priorities" data-testid="profile-priorities">
               <h2 className="profile-priorities-title">Prioridades principales</h2>
-              <div className="profile-priorities-list">
-                {topPriorities.map(issue => (
-                  <div key={issue.id} className="profile-priority-item">
-                    <div className="profile-priority-header">
-                      <span className="profile-priority-column">{issue.column || 'dataset'}</span>
-                      <span className={`profile-priority-severity profile-priority-severity--${issue.severity}`}>
-                        {issue.severity === IssueSeverity.CRITICAL ? 'crítico' : 'advertencia'}
-                      </span>
-                    </div>
-                    <p className="profile-priority-rule">{issue.ruleName}</p>
-                    <p className="profile-priority-impact">{formatAffectedShare(issue.count, report.rowCount)} afectados</p>
-                  </div>
-                ))}
-              </div>
+              <table className="editorial-data-table">
+                <caption>Regla, columna y evidencia. La clasificación es de la regla, no un riesgo confirmado.</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Hallazgo</th>
+                    <th scope="col">Columna</th>
+                    <th scope="col">Evidencia</th>
+                    <th scope="col">Clasificación</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {topPriorities.map(issue => (
+                    <tr key={issue.id}>
+                      <th scope="row">{issue.ruleName}</th>
+                      <td>{issue.column || 'dataset'}</td>
+                      <td>{formatAffectedShare(issue.count, report.rowCount)} afectados</td>
+                      <td>{issue.severity === IssueSeverity.CRITICAL ? 'crítico' : 'advertencia'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </section>
           )}
 
