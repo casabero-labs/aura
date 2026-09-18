@@ -835,7 +835,7 @@ const App: React.FC = () => {
             <span className="nav-logo">AURA</span>
           </button>
 
-          <div className="nav-work nav-center-menu" aria-label="Destinos de trabajo">
+          <div className="nav-work" aria-label="Destinos de trabajo">
             <button
               className={`nav-work-item nav-menu-item ${!showHome && !showExperimentCampaign ? 'active' : ''}`}
               onClick={goAudit}
