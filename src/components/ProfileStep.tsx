@@ -172,7 +172,10 @@ const ProfileStep: React.FC<ProfileStepProps> = ({ report, auditEvidence, file, 
               <h2 className="profile-priorities-title">Prioridades principales</h2>
               <div className="table-scroll" role="region" aria-label="Prioridades principales" tabIndex={0}>
               <table className="editorial-data-table">
-                <caption>Regla, columna y evidencia. La clasificación es de la regla, no un riesgo confirmado.</caption>
+                <caption>
+                  <span className="editorial-data-table-kicker">Prioridades</span>
+                  Regla, columna y evidencia
+                </caption>
                 <thead>
                   <tr>
                     <th scope="col">Hallazgo</th>
@@ -192,6 +195,7 @@ const ProfileStep: React.FC<ProfileStepProps> = ({ report, auditEvidence, file, 
                   ))}
                 </tbody>
               </table>
+              <p className="editorial-data-table-note">La clasificación es de la regla, no un riesgo confirmado.</p>
               </div>
             </section>
           )}
@@ -201,13 +205,16 @@ const ProfileStep: React.FC<ProfileStepProps> = ({ report, auditEvidence, file, 
             <h2 className="profile-priorities-title">Columnas</h2>
             <div className="table-scroll" role="region" aria-label="Columnas: tipo y completitud" tabIndex={0}>
             <table className="editorial-data-table">
-              <caption>Tipo y completitud. Selecciona una fila para el detalle.</caption>
+              <caption>
+                <span className="editorial-data-table-kicker">Estructura</span>
+                Tipo y completitud
+              </caption>
               <thead>
                 <tr>
                   <th scope="col">Columna</th>
                   <th scope="col">Tipo</th>
-                  <th scope="col">Nulos</th>
-                  <th scope="col">Distintos</th>
+                  <th scope="col" className="num">Nulos</th>
+                  <th scope="col" className="num">Distintos</th>
                 </tr>
               </thead>
               <tbody>
@@ -226,13 +233,14 @@ const ProfileStep: React.FC<ProfileStepProps> = ({ report, auditEvidence, file, 
                   >
                     <th scope="row">{col.name}</th>
                     <td>{col.inferredType || '—'}</td>
-                    <td>{col.nullCount}</td>
-                    <td>{col.uniqueCount}</td>
+                    <td className="num">{col.nullCount}</td>
+                    <td className="num">{col.uniqueCount}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
             </div>
+            <p className="editorial-data-table-note">Selecciona una fila para ver el detalle.</p>
             {selectedStats && (
               <p className="profile-decision-description" data-testid="profile-column-detail">
                 {selectedStats.name}: {selectedStats.inferredType || 'tipo no inferido'}.

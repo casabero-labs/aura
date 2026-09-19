@@ -34,26 +34,15 @@ const formatPct = (part: number, total: number): string => {
   return ((part / total) * 100).toFixed(1) + '%';
 };
 
-const semanticLabel: Record<string, { label: string; color: string }> = {
-  email:      { label: 'Email', color: '#3498db' },
-  phone:      { label: 'Teléfono', color: '#9b59b6' },
-  ip:         { label: 'IP', color: '#1abc9c' },
-  url:        { label: 'URL', color: '#2980b9' },
-  currency:   { label: 'Moneda', color: '#f39c12' },
-  percentage: { label: 'Porcentaje', color: '#e67e22' },
-  uuid:       { label: 'UUID', color: '#16a085' },
-  zip:        { label: 'Código Postal', color: '#8e44ad' },
-};
-
-const typeColor = (type: string): string => {
-  switch (type) {
-    case 'number': return '#3498db';
-    case 'string': return '#95a5a6';
-    case 'date': return '#27ae60';
-    case 'boolean': return '#9b59b6';
-    case 'mixed': return '#e74c3c';
-    default: return 'var(--ink2)';
-  }
+const semanticLabel: Record<string, { label: string }> = {
+  email:      { label: 'Email' },
+  phone:      { label: 'Teléfono' },
+  ip:         { label: 'IP' },
+  url:        { label: 'URL' },
+  currency:   { label: 'Moneda' },
+  percentage: { label: 'Porcentaje' },
+  uuid:       { label: 'UUID' },
+  zip:        { label: 'Código Postal' },
 };
 
 interface ColumnDetailProps {
@@ -63,6 +52,7 @@ interface ColumnDetailProps {
 
 const ColumnDetail: React.FC<ColumnDetailProps> = ({ col, totalRows }) => {
   const [expanded, setExpanded] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const nonNullCount = totalRows - col.nullCount;
   const hasIQR = col.iqr !== undefined && col.iqr > 0;
   const hasOutliers = (col.outlierCount ?? 0) > 0;
@@ -78,7 +68,7 @@ const ColumnDetail: React.FC<ColumnDetailProps> = ({ col, totalRows }) => {
         <span className="col-detail-name" title={`Columna: ${col.name}`}>
           {col.name}
         </span>
-        <span className="col-detail-type-badge" style={{ background: typeColor(col.inferredType) + '22', color: typeColor(col.inferredType), borderColor: typeColor(col.inferredType) + '44' }}>
+        <span className="col-detail-type-badge">
           {col.inferredType}
           {semInfo && (
             <span className="col-detail-sem" title={`Tipo semántico: ${semInfo.label}`}>
@@ -145,52 +135,10 @@ const ColumnDetail: React.FC<ColumnDetailProps> = ({ col, totalRows }) => {
                     <span className="col-stat-val">{col.median !== undefined ? formatNum(col.median, 4) : '—'}</span>
                   </div>
                   <div className="col-stat-item">
-                    <span className="col-stat-lbl">Std</span>
-                    <span className="col-stat-val">{col.std !== undefined ? formatNum(col.std, 4) : '—'}</span>
-                  </div>
-                  <div className="col-stat-item">
-                    <span className="col-stat-lbl">CV</span>
-                    <span className="col-stat-val">{col.cv !== undefined ? formatNum(col.cv, 4) : '—'}</span>
-                  </div>
-                  <div className="col-stat-item">
-                    <span className="col-stat-lbl">Skewness</span>
-                    <span className="col-stat-val">{col.skewness !== undefined ? formatNum(col.skewness, 4) : '—'}</span>
-                  </div>
-                  <div className="col-stat-item">
-                    <span className="col-stat-lbl">Q1 (25%)</span>
-                    <span className="col-stat-val">{col.q1 !== undefined ? formatNum(col.q1, 4) : '—'}</span>
-                  </div>
-                  <div className="col-stat-item">
-                    <span className="col-stat-lbl">Q3 (75%)</span>
-                    <span className="col-stat-val">{col.q3 !== undefined ? formatNum(col.q3, 4) : '—'}</span>
-                  </div>
-                  <div className="col-stat-item">
-                    <span className="col-stat-lbl">IQR</span>
-                    <span className="col-stat-val">{col.iqr !== undefined ? formatNum(col.iqr, 4) : '—'}</span>
-                  </div>
-                  <div className="col-stat-item">
-                    <span className="col-stat-lbl">Lower fence</span>
-                    <span className="col-stat-val">{col.lowerFence !== undefined ? formatNum(col.lowerFence, 4) : '—'}</span>
-                  </div>
-                  <div className="col-stat-item">
-                    <span className="col-stat-lbl">Upper fence</span>
-                    <span className="col-stat-val">{col.upperFence !== undefined ? formatNum(col.upperFence, 4) : '—'}</span>
-                  </div>
-                  <div className="col-stat-item">
                     <span className="col-stat-lbl">Outliers</span>
-                    <span className="col-stat-val" style={{ color: hasOutliers ? 'var(--error)' : 'inherit' }}>
+                    <span className="col-stat-val" style={{ fontWeight: hasOutliers ? 700 : undefined }}>
                       {col.outlierCount !== undefined ? col.outlierCount : 0}
                     </span>
-                  </div>
-                  <div className="col-stat-item">
-                    <span className="col-stat-lbl">% Outliers</span>
-                    <span className="col-stat-val">
-                      {nonNullCount > 0 ? formatPct(col.outlierCount ?? 0, nonNullCount) : '—'}
-                    </span>
-                  </div>
-                  <div className="col-stat-item">
-                    <span className="col-stat-lbl">Ceros</span>
-                    <span className="col-stat-val">{col.zeros ?? 0} ({formatPct(col.zeros ?? 0, nonNullCount)})</span>
                   </div>
                 </>
               ) : (
@@ -222,19 +170,79 @@ const ColumnDetail: React.FC<ColumnDetailProps> = ({ col, totalRows }) => {
                 <span className="col-stat-lbl">Únicos</span>
                 <span className="col-stat-val">{col.uniqueCount}</span>
               </div>
-              <div className="col-stat-item">
-                <span className="col-stat-lbl">Cardinalidad</span>
-                <span className="col-stat-val">
-                  {totalRows > 0 ? formatPct(col.uniqueCount, totalRows) : '—'}
-                </span>
-              </div>
-              {semInfo && (
-                <div className="col-stat-item">
-                  <span className="col-stat-lbl">Tipo semántico</span>
-                  <span className="col-stat-val" style={{ color: semInfo.color }}>{semInfo.label}</span>
-                </div>
-              )}
             </div>
+
+            {showAdvanced && (
+              <div className="col-detail-stats-grid col-detail-stats-grid--advanced">
+                {col.inferredType === 'number' && (
+                  <>
+                    <div className="col-stat-item">
+                      <span className="col-stat-lbl">Std</span>
+                      <span className="col-stat-val">{col.std !== undefined ? formatNum(col.std, 4) : '—'}</span>
+                    </div>
+                    <div className="col-stat-item">
+                      <span className="col-stat-lbl">CV</span>
+                      <span className="col-stat-val">{col.cv !== undefined ? formatNum(col.cv, 4) : '—'}</span>
+                    </div>
+                    <div className="col-stat-item">
+                      <span className="col-stat-lbl">Skewness</span>
+                      <span className="col-stat-val">{col.skewness !== undefined ? formatNum(col.skewness, 4) : '—'}</span>
+                    </div>
+                    <div className="col-stat-item">
+                      <span className="col-stat-lbl">Q1 (25%)</span>
+                      <span className="col-stat-val">{col.q1 !== undefined ? formatNum(col.q1, 4) : '—'}</span>
+                    </div>
+                    <div className="col-stat-item">
+                      <span className="col-stat-lbl">Q3 (75%)</span>
+                      <span className="col-stat-val">{col.q3 !== undefined ? formatNum(col.q3, 4) : '—'}</span>
+                    </div>
+                    <div className="col-stat-item">
+                      <span className="col-stat-lbl">IQR</span>
+                      <span className="col-stat-val">{col.iqr !== undefined ? formatNum(col.iqr, 4) : '—'}</span>
+                    </div>
+                    <div className="col-stat-item">
+                      <span className="col-stat-lbl">Lower fence</span>
+                      <span className="col-stat-val">{col.lowerFence !== undefined ? formatNum(col.lowerFence, 4) : '—'}</span>
+                    </div>
+                    <div className="col-stat-item">
+                      <span className="col-stat-lbl">Upper fence</span>
+                      <span className="col-stat-val">{col.upperFence !== undefined ? formatNum(col.upperFence, 4) : '—'}</span>
+                    </div>
+                    <div className="col-stat-item">
+                      <span className="col-stat-lbl">% Outliers</span>
+                      <span className="col-stat-val">
+                        {nonNullCount > 0 ? formatPct(col.outlierCount ?? 0, nonNullCount) : '—'}
+                      </span>
+                    </div>
+                    <div className="col-stat-item">
+                      <span className="col-stat-lbl">Ceros</span>
+                      <span className="col-stat-val">{col.zeros ?? 0} ({formatPct(col.zeros ?? 0, nonNullCount)})</span>
+                    </div>
+                  </>
+                )}
+                <div className="col-stat-item">
+                  <span className="col-stat-lbl">Cardinalidad</span>
+                  <span className="col-stat-val">
+                    {totalRows > 0 ? formatPct(col.uniqueCount, totalRows) : '—'}
+                  </span>
+                </div>
+                {semInfo && (
+                  <div className="col-stat-item">
+                    <span className="col-stat-lbl">Tipo semántico</span>
+                    <span className="col-stat-val">{semInfo.label}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <button
+              type="button"
+              className="col-detail-advanced-toggle"
+              onClick={() => setShowAdvanced(v => !v)}
+              aria-expanded={showAdvanced}
+            >
+              {showAdvanced ? 'Ocultar estadísticas avanzadas' : 'Ver estadísticas avanzadas'}
+            </button>
           </div>
 
           {/* ── Top Values Frequency ── */}

@@ -59,21 +59,12 @@
   color: var(--ink);
 }
 
-[data-casabero-theme="editorial"] .nav-logo-mark,
-[data-casabero-theme="editorial"] .nav-logo-mark--visible {
-  position: static;
-  opacity: 1;
-  transform: none;
-  width: 22px;
-  height: 22px;
-}
-
 [data-casabero-theme="editorial"] .nav-logo {
-  font-family: var(--font-meta);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+  font-family: var(--font-serif);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: none;
 }
 
 [data-casabero-theme="editorial"] .nav-work,
@@ -103,8 +94,8 @@
   background: transparent;
   box-shadow: none;
   color: var(--ink2);
-  font-family: var(--font-meta);
-  font-size: 13.5px;
+  font-family: var(--font-serif);
+  font-size: 14.5px;
   font-weight: 400;
   cursor: pointer;
   white-space: nowrap;
@@ -151,26 +142,193 @@
   margin-left: auto;
 }
 
-[data-casabero-theme="editorial"] .theme-toggle {
-  width: 44px;
-  height: 44px;
-  display: inline-grid;
-  place-items: center;
-  margin: 0;
+[data-casabero-theme="editorial"] .nav-settings {
+  position: relative;
 }
 
-[data-casabero-theme="editorial"] .theme-toggle input {
-  width: 28px;
+[data-casabero-theme="editorial"] .nav-settings > summary {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--editorial-nav-h, 52px);
+  padding: 0 12px;
+  color: var(--ink2);
+  font-family: var(--font-serif);
+  font-size: 14.5px;
+  font-weight: 400;
+  cursor: pointer;
+  list-style: none;
+  white-space: nowrap;
+  transition: color var(--motion-fast) var(--ease-out-expo);
+}
+
+[data-casabero-theme="editorial"] .nav-settings > summary::-webkit-details-marker {
+  display: none;
+}
+
+[data-casabero-theme="editorial"] .nav-settings > summary svg {
+  width: 14px;
   height: 14px;
+  transition: transform var(--motion-fast) var(--ease-out-expo);
+}
+
+[data-casabero-theme="editorial"] .nav-settings[open] > summary svg {
+  transform: rotate(180deg);
+}
+
+[data-casabero-theme="editorial"] .nav-settings > summary:hover {
+  color: var(--ink);
+}
+
+[data-casabero-theme="editorial"] .nav-settings > summary.active {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+[data-casabero-theme="editorial"] .nav-settings > summary.active::after {
+  content: "";
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 0;
+  height: 2px;
+  background: var(--ink);
+}
+
+[data-casabero-theme="editorial"] .nav-settings > summary:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+[data-casabero-theme="editorial"] .nav-settings__list {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 110;
+  width: min(30rem, 90vw);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 32px;
+  row-gap: 0;
   margin: 0;
-  appearance: none;
-  border: 0.5px solid var(--ink);
+  padding: 16px 24px;
+  list-style: none;
   background: var(--canvas);
+  border: 0.5px solid var(--editorial-line-strong);
+  counter-reset: aura-settings-sumario;
+}
+
+[data-casabero-theme="editorial"] .nav-settings__list li {
+  border: 0;
+}
+
+[data-casabero-theme="editorial"] .nav-settings__list button {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 0;
+  background: transparent;
+  border: 0;
+  font-family: var(--font-serif);
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.35;
+  letter-spacing: -0.014em;
+  color: var(--ink);
+  text-align: left;
   cursor: pointer;
 }
 
-[data-casabero-theme="editorial"] .theme-toggle input:checked {
+[data-casabero-theme="editorial"] .nav-settings__list button::before {
+  counter-increment: aura-settings-sumario;
+  content: counter(aura-settings-sumario, decimal-leading-zero);
+  flex: 0 0 1.75em;
+  font-family: var(--font-meta);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-muted, var(--ink3));
+}
+
+[data-casabero-theme="editorial"] .nav-settings__list button:hover,
+[data-casabero-theme="editorial"] .nav-settings__list button[aria-current="location"] {
+  text-decoration: underline;
+  text-decoration-thickness: 0.5px;
+  text-underline-offset: 3px;
+}
+
+[data-casabero-theme="editorial"] .nav-settings__list button:hover::before,
+[data-casabero-theme="editorial"] .nav-settings__list button[aria-current="location"]::before {
+  color: var(--ink);
+}
+
+[data-casabero-theme="editorial"] .nav-settings__list button[aria-current="location"] {
+  font-weight: 600;
+}
+
+[data-casabero-theme="editorial"] .nav-settings__list button:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+@media (max-width: 720px) {
+  [data-casabero-theme="editorial"] .nav-settings__list {
+    grid-template-columns: 1fr;
+    left: 0;
+    right: auto;
+    width: min(22rem, calc(100vw - 32px));
+  }
+}
+
+[data-casabero-theme="editorial"] .theme-switch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  cursor: pointer;
+  margin: 0;
+}
+
+[data-casabero-theme="editorial"] .theme-switch input {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 28px !important;
+  height: 14px !important;
+  min-width: 28px;
+  max-width: 28px;
+  margin: 0;
+  padding: 0 !important;
+  border: 0.5px solid var(--ink);
+  border-radius: 0;
+  background: transparent;
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+[data-casabero-theme="editorial"] .theme-switch input::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 8px;
+  height: 8px;
   background: var(--ink);
+  transition: transform var(--motion-base) var(--ease-out-expo);
+}
+
+[data-casabero-theme="editorial"] .theme-switch input:checked::after {
+  transform: translateX(14px);
+}
+
+[data-casabero-theme="editorial"] .theme-switch input:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
 }
 
 [data-casabero-theme="editorial"] .mobile-nav-toggle {
@@ -220,18 +378,25 @@
 }
 
 [data-casabero-theme="editorial"] .file-drop {
-  max-width: 720px;
+  max-width: 48rem;
   margin: 32px auto;
-  padding: 32px 24px;
-  border: 0.5px dashed var(--editorial-line-strong);
+  padding: 0;
+  border: 1px dashed var(--editorial-line-strong);
   border-radius: 0;
   text-align: left;
   cursor: default;
-  background: transparent;
+  background: var(--canvas);
+  position: relative;
+  transition: background-color var(--motion-fast) var(--ease-out-expo),
+    border-color var(--motion-fast) var(--ease-out-expo),
+    box-shadow var(--motion-fast) var(--ease-out-expo);
 }
 
 [data-casabero-theme="editorial"] .file-drop--active {
-  background: var(--editorial-surface-quiet);
+  border-style: solid;
+  border-color: var(--ink);
+  background: var(--surface-hover);
+  box-shadow: inset 0 0 0 1px var(--ink);
 }
 
 [data-casabero-theme="editorial"] .file-drop--error {
@@ -243,31 +408,122 @@
   display: none;
 }
 
-[data-casabero-theme="editorial"] .file-drop-main {
+[data-casabero-theme="editorial"] .file-drop-layout {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  min-height: 224px;
+}
+
+[data-casabero-theme="editorial"] .file-drop-index {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 10px;
+  border-right: 0.5px solid var(--editorial-line);
+  color: var(--ink-muted);
+  font-family: var(--font-serif);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+[data-casabero-theme="editorial"] .file-drop-count {
+  color: var(--ink);
+  font-size: 27px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+[data-casabero-theme="editorial"] .file-drop-body {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
   align-items: flex-start;
+  justify-content: center;
+  padding: 28px 32px;
+}
+
+[data-casabero-theme="editorial"] .file-drop-kicker {
+  margin: 0 0 8px;
+  color: var(--ink-muted);
+  font-family: var(--font-serif);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 [data-casabero-theme="editorial"] .file-drop h3 {
   font-family: var(--font-display);
-  font-size: 28px;
+  font-size: clamp(22px, 3vw, 28px);
   font-weight: 600;
-  margin: 0;
+  line-height: 1.15;
+  margin: 0 0 6px;
 }
 
 [data-casabero-theme="editorial"] .file-drop-hint,
 [data-casabero-theme="editorial"] .file-drop-eyebrow {
-  font-family: var(--font-meta);
+  max-width: 52ch;
+  margin: 0 0 18px;
+  font-family: var(--font-serif);
   font-size: 14px;
+  font-style: italic;
   letter-spacing: 0;
   text-transform: none;
   font-weight: 400;
   color: var(--ink2);
 }
 
+[data-casabero-theme="editorial"] .file-drop-actions {
+  margin-bottom: 4px;
+}
+
 [data-casabero-theme="editorial"] .file-drop-error {
   font-size: 14px;
   color: var(--ink);
   min-height: 1.4em;
+}
+
+[data-casabero-theme="editorial"] .file-drop-error:empty {
+  margin: 0;
+  min-height: 0;
+}
+
+[data-casabero-theme="editorial"] .file-drop-status {
+  width: 100%;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 0.5px solid var(--editorial-line);
+  color: var(--ink-muted);
+  font-family: var(--font-serif);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 640px) {
+  [data-casabero-theme="editorial"] .file-drop-layout {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+
+  [data-casabero-theme="editorial"] .file-drop-index {
+    min-height: 52px;
+    flex-direction: row;
+    border-right: none;
+    border-bottom: 0.5px solid var(--editorial-line);
+    padding: 10px 14px;
+  }
+
+  [data-casabero-theme="editorial"] .file-drop-body {
+    padding: 24px 20px;
+  }
+
+  [data-casabero-theme="editorial"] .file-drop-count {
+    font-size: 22px;
+  }
 }
 
 .utility-backdrop {
@@ -566,7 +822,13 @@
   margin: 0 0 8px;
 }
 
-[data-casabero-theme="editorial"] .file-identity-kicker code,
+[data-casabero-theme="editorial"] .file-identity-kicker code {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
 [data-casabero-theme="editorial"] .file-identity-list code {
   font-family: var(--font-mono);
   font-size: 11px;

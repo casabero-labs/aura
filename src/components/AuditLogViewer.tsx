@@ -154,11 +154,11 @@ const AuditLogViewer: React.FC<AuditLogViewerProps> = ({ onClose }) => {
                     </div>
                     <div className="audit-detail-row">
                       <span>Prompt hash</span>
-                      <code>{entry.promptHash}</code>
+                      <code className="audit-detail-row-hash">{entry.promptHash}</code>
                     </div>
                     <div className="audit-detail-row">
                       <span>Input JSON hash</span>
-                      <code>{entry.inputJsonHash}</code>
+                      <code className="audit-detail-row-hash">{entry.inputJsonHash}</code>
                     </div>
                     <div className="audit-detail-row audit-detail-row--prompt">
                       <span>Prompt enviado al modelo</span>

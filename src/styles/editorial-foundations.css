@@ -51,7 +51,7 @@
 [data-casabero-theme="editorial"] .nav-brand:focus-visible,
 [data-casabero-theme="editorial"] .nav-work-item:focus-visible,
 [data-casabero-theme="editorial"] .nav-utility:focus-visible {
-  box-shadow: 0 0 0 2px var(--canvas), 0 0 0 4px var(--ink);
+  box-shadow: var(--focus-ring);
 }
 
 [data-casabero-theme="editorial"] input:focus-visible,

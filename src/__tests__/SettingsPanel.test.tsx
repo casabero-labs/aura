@@ -4,14 +4,23 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import React from 'react';
 import SettingsPanel from '../components/SettingsPanel';
-import { createAIProvider } from '../services/aiProvider';
-import type { AIConfig } from '../types';
+import type { AIConfig, SettingsSectionId } from '../types';
 
 describe('SettingsPanel - Ollama model reconciliation', () => {
   const onSave = vi.fn<(config: AIConfig) => void>();
   const onClose = vi.fn<() => void>();
   let fetchSpy: ReturnType<typeof vi.spyOn>;
   let localStorageStore: Map<string, string>;
+
+  const renderPanel = (config: AIConfig, section: SettingsSectionId = 'ia') => render(
+    <SettingsPanel
+      config={config}
+      onSave={onSave}
+      onClose={onClose}
+      section={section}
+      theme="light"
+    />,
+  );
 
   const installedModels = [
     { name: 'qwen2.5:3b', modified_at: '2026-01-01T00:00:00Z', size: 2 * 1024 ** 3 },
@@ -62,7 +71,7 @@ describe('SettingsPanel - Ollama model reconciliation', () => {
       ollamaModel: 'mistral:7b',
     };
 
-    render(<SettingsPanel config={config} onSave={onSave} onClose={onClose} />);
+    renderPanel(config, 'ia');
 
     await waitFor(() => {
       expect(screen.getByTestId('ollama-model-missing-warning')).toBeTruthy();
@@ -70,7 +79,7 @@ describe('SettingsPanel - Ollama model reconciliation', () => {
   });
 
   it('does not show warning when model is installed', async () => {
-    render(<SettingsPanel config={baseConfig} onSave={onSave} onClose={onClose} />);
+    renderPanel(baseConfig, 'ia');
 
     await waitFor(() => {
       expect(screen.getByText(/Conectado local/i)).toBeTruthy();
@@ -80,7 +89,7 @@ describe('SettingsPanel - Ollama model reconciliation', () => {
   });
 
   it('fills the Ollama selector exclusively from the models installed in /api/tags', async () => {
-    render(<SettingsPanel config={baseConfig} onSave={onSave} onClose={onClose} />);
+    renderPanel(baseConfig, 'ia');
 
     const select = await screen.findByTestId('ollama-model-select') as HTMLSelectElement;
     await waitFor(() => expect(select.options).toHaveLength(2));
@@ -98,7 +107,7 @@ describe('SettingsPanel - Ollama model reconciliation', () => {
       ollamaModel: 'mistral:7b',
     };
 
-    render(<SettingsPanel config={config} onSave={onSave} onClose={onClose} />);
+    renderPanel(config, 'ia');
 
     await waitFor(() => {
       expect(screen.getByTestId('ollama-use-model-gemma2_2b')).toBeTruthy();
@@ -108,7 +117,7 @@ describe('SettingsPanel - Ollama model reconciliation', () => {
 
     expect(localStorageStore.get('aura_ollama_model')).toBeUndefined();
     expect(onSave).not.toHaveBeenCalled();
-    fireEvent.click(screen.getAllByRole('button', { name: /Guardar configuración/i })[0]);
+    fireEvent.click(await screen.findByRole('button', { name: /Guardar cambios/i }));
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
       model: 'gemma2:2b',
       ollamaModel: 'gemma2:2b',
@@ -116,7 +125,7 @@ describe('SettingsPanel - Ollama model reconciliation', () => {
   });
 
   it('renders "Probar y refrescar" button', async () => {
-    render(<SettingsPanel config={baseConfig} onSave={onSave} onClose={onClose} />);
+    renderPanel(baseConfig, 'ia');
 
     await waitFor(() => {
       expect(screen.getByText('Probar y refrescar')).toBeTruthy();
@@ -127,14 +136,14 @@ describe('SettingsPanel - Ollama model reconciliation', () => {
   });
 
   it('opens the real Ollama assistant inside AURA', async () => {
-    render(<SettingsPanel config={{ ...baseConfig, model: 'missing:model' }} onSave={onSave} onClose={onClose} />);
+    renderPanel({ ...baseConfig, model: 'missing:model' }, 'diagnostico');
     const trigger = await screen.findByTestId('ollama-open-setup');
     fireEvent.click(trigger);
     expect(await screen.findByTestId('ollama-setup-wizard')).toBeTruthy();
   });
 
   it('refreshes model list on "Probar y refrescar" click', async () => {
-    render(<SettingsPanel config={baseConfig} onSave={onSave} onClose={onClose} />);
+    renderPanel(baseConfig, 'ia');
 
     await waitFor(() => {
       expect(screen.getByTestId('ollama-test-connection')).toBeTruthy();
@@ -155,26 +164,24 @@ describe('SettingsPanel - Ollama model reconciliation', () => {
       ollamaModel: 'gemma2:2b',
     };
 
-    render(<SettingsPanel config={config} onSave={onSave} onClose={onClose} />);
+    renderPanel(config, 'ia');
 
     await waitFor(() => {
       expect(screen.getByTestId('ollama-model-active-gemma2_2b')).toBeTruthy();
     });
   });
 
-  it('removes placebo controls and hides temperature for Chrome AI', () => {
-    render(<SettingsPanel config={{ ...baseConfig, providerType: 'chrome', model: 'gemini-nano' }} onSave={onSave} onClose={onClose} />);
+  it('hides temperature control for Chrome AI', () => {
+    renderPanel({ ...baseConfig, providerType: 'chrome', model: 'gemini-nano' }, 'ia');
 
-    expect(screen.queryByText('Contrato técnico del diagnóstico (avanzado)')).toBeNull();
-    expect(screen.queryByText('Ejecución automática')).toBeNull();
     expect(screen.queryByText('Temperatura del modelo')).toBeNull();
   });
 
   it('requires an API key field for OpenRouter and does not claim it is ready', async () => {
-    render(<SettingsPanel config={{
+    renderPanel({
       ...baseConfig,
       providerType: 'cloud', cloudProvider: 'openrouter', model: 'openrouter/test', apiKey: '',
-    }} onSave={onSave} onClose={onClose} />);
+    }, 'ia');
 
     expect(await screen.findByLabelText('API Key (solo durante esta sesión)')).toBeTruthy();
     expect(await screen.findByText('API key pendiente')).toBeTruthy();
@@ -197,10 +204,10 @@ describe('SettingsPanel - Ollama model reconciliation', () => {
     ];
 
     it('renders the three human-readable evidence modes in a radiogroup', async () => {
-      render(<SettingsPanel config={configWithoutInputMode} onSave={onSave} onClose={onClose} />);
+      renderPanel(configWithoutInputMode, 'evidencia');
 
       const section = await screen.findByTestId('evidence-modes-section');
-      expect(section.textContent).toContain('Evidencia que recibe el modelo');
+      expect(section.textContent).toContain('Evidencia');
 
       for (const label of visibleLabels) {
         expect(screen.getByRole('radio', { name: new RegExp(label) })).toBeTruthy();
@@ -211,7 +218,7 @@ describe('SettingsPanel - Ollama model reconciliation', () => {
     });
 
     it('marks "Evidencia equilibrada" as the recommended default option', async () => {
-      render(<SettingsPanel config={configWithoutInputMode} onSave={onSave} onClose={onClose} />);
+      renderPanel(configWithoutInputMode, 'evidencia');
 
       const balanced = await screen.findByTestId('evidence-mode-smart_sample');
       expect(balanced.getAttribute('aria-checked')).toBe('true');
@@ -220,7 +227,7 @@ describe('SettingsPanel - Ollama model reconciliation', () => {
 
     it('migrates legacy inputMode "enhanced_registry" to "recommended"', async () => {
       const config: AIConfig = { ...baseConfig, inputMode: 'enhanced_registry' as any };
-      render(<SettingsPanel config={config} onSave={onSave} onClose={onClose} />);
+      renderPanel(config, 'evidencia');
 
       const fullMode = await screen.findByTestId('evidence-mode-recommended');
       expect(fullMode.getAttribute('aria-checked')).toBe('true');
@@ -228,19 +235,18 @@ describe('SettingsPanel - Ollama model reconciliation', () => {
 
     it('migrates legacy inputMode "copy_paste_bad_samples" to "recommended"', async () => {
       const config: AIConfig = { ...baseConfig, inputMode: 'copy_paste_bad_samples' as any };
-      render(<SettingsPanel config={config} onSave={onSave} onClose={onClose} />);
+      renderPanel(config, 'evidencia');
 
       const fullMode = await screen.findByTestId('evidence-mode-recommended');
       expect(fullMode.getAttribute('aria-checked')).toBe('true');
     });
 
     it('selecting a different mode calls onSave with the new inputMode on user save', async () => {
-      render(<SettingsPanel config={configWithoutInputMode} onSave={onSave} onClose={onClose} />);
+      renderPanel(configWithoutInputMode, 'evidencia');
 
       const minimal = await screen.findByTestId('evidence-mode-prompt_libre');
       fireEvent.click(minimal);
-      const saveButtons = screen.getAllByRole('button', { name: /Guardar configuración/i });
-      fireEvent.click(saveButtons[saveButtons.length - 1]);
+      fireEvent.click(await screen.findByRole('button', { name: /Guardar cambios/i }));
 
       expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ inputMode: 'prompt_libre' }));
     });

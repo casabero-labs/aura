@@ -42,7 +42,7 @@ Tono: confianza verificable. La calma editorial sirve para que un hallazgo se pu
 
 Emoción objetivo: «puedo defender esto». No deleite, no prisa, no solemnidad académica de gaceta.
 
-Marca de producto: wordmark **AURA** y exactamente tres elipses (`AuraMark`, `currentColor`, `stroke-width: 1.55`). Favicon alineado a esa marca. UNIR, el TFM y el autor viven en la memoria; no en nav, lockup ni PDF operativo.
+Marca de producto: wordmark **AURA** en serif, solo texto — sin icono ni mark gráfico en el chrome del producto (decisión 2026-09-19, reemplaza el `AuraMark` de tres elipses usado antes). UNIR, el TFM y el autor viven en la memoria; no en nav, lockup ni PDF operativo.
 
 ### Aesthetic Direction
 

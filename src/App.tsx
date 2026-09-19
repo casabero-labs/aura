@@ -17,7 +17,6 @@ import AuditLogViewer from './components/AuditLogViewer';
 import SettingsPanel from './components/SettingsPanel';
 import HelpCenter from './components/HelpCenter';
 import ProgressDisclosure from './components/ProgressDisclosure';
-import AuraMark from './components/AuraMark';
 import MainPipeline, { PipelineData } from './components/MainPipeline';
 import { loadFromApi, syncToApi } from './services/api';
 import { createAIProvider } from './services/aiProvider';
@@ -37,7 +36,7 @@ import {
 import { buildExportArtifactIdentity } from './services/exportArtifactIdentity';
 import { savePipelineSession, loadPipelineSession, clearPipelineSession, sessionNeedsReimport } from './services/pipelineSession';
 import { downloadBlob, downloadTextFile } from './utils/download';
-import { AIConfig, AuditReport, DeterministicValidationReport, EvidenceManifest, ExecutiveReportContent, IssueSeverity } from './types';
+import { AIConfig, AuditReport, DeterministicValidationReport, EvidenceManifest, ExecutiveReportContent, IssueSeverity, SettingsSectionId } from './types';
 import { formatPipelineStage } from './services/issuePresentation';
 import { createFormalCampaignBundle, buildFormalEvidenceEnvelope } from './services/benchmark/formalCampaignFactory';
 import { buildEnvelopeRef, processDiagnosisResponseV2, type DiagnosisFailureEvidenceV2, type DiagnosisExecutionResult } from './contracts/llm';
@@ -123,6 +122,14 @@ const INITIAL_PIPELINE_DATA: PipelineData = {
   logs: [],
 };
 
+const SETTINGS_SECTIONS: { id: SettingsSectionId; label: string }[] = [
+  { id: 'general', label: 'General' },
+  { id: 'ia', label: 'IA y proveedores' },
+  { id: 'evidencia', label: 'Evidencia' },
+  { id: 'privacidad', label: 'Privacidad y datos' },
+  { id: 'diagnostico', label: 'Diagnóstico avanzado' },
+];
+
 const App: React.FC = () => {
   const oe4E2eHarnessEnabled = Oe4CampaignE2eHarness !== null;
   // ── Pipeline data (recibido de MainPipeline) ──
@@ -173,7 +180,9 @@ const App: React.FC = () => {
     } catch { return false; }
   });
   // ── UI state ──
-  const [showSettings, setShowSettings] = useState(false);  const [showHelp, setShowHelp] = useState(false);
+  const [settingsSection, setSettingsSection] = useState<SettingsSectionId | null>(null);
+  const showSettings = settingsSection !== null;
+  const [showHelp, setShowHelp] = useState(false);
   const [showExperimentCampaign, setShowExperimentCampaign] = useState(false);
   const [showHome, setShowHome] = useState(true);
   const [showAuditLog, setShowAuditLog] = useState(false);
@@ -698,7 +707,7 @@ const App: React.FC = () => {
     setShowHome(true);
     setShowExperimentCampaign(false);
     setShowAuditLog(false);
-    setShowSettings(false);
+    setSettingsSection(null);
     setShowHelp(false);
     closeMobileNavigation(showMobileNav);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -708,7 +717,7 @@ const App: React.FC = () => {
     setShowHome(false);
     setShowExperimentCampaign(false);
     setShowAuditLog(false);
-    setShowSettings(false);
+    setSettingsSection(null);
     setShowHelp(false);
     closeMobileNavigation(showMobileNav);
     requestAnimationFrame(() => scrollTo('sistema'));
@@ -718,27 +727,28 @@ const App: React.FC = () => {
     setShowHome(false);
     setShowExperimentCampaign(true);
     setShowAuditLog(false);
-    setShowSettings(false);
+    setSettingsSection(null);
     setShowHelp(false);
     closeMobileNavigation(showMobileNav);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const openSettings = () => {
+  const openSettings = (section: SettingsSectionId = 'general') => {
     setShowHelp(false);
-    setShowSettings(true);
+    setSettingsSection(section);
     closeMobileNavigation(showMobileNav);
   };
 
   const openHelp = () => {
-    setShowSettings(false);
+    setSettingsSection(null);
     setShowHelp(true);
     closeMobileNavigation(showMobileNav);
   };
 
   // Sin drawers: Configuración y Ayuda son vistas exclusivas. Al volver,
   // el foco regresa al disparador de la nav.
-  const settingsNavRef = useRef<HTMLButtonElement>(null);
+  const settingsNavRef = useRef<HTMLElement>(null);
+  const settingsDetailsRef = useRef<HTMLDetailsElement>(null);
   const helpNavRef = useRef<HTMLButtonElement>(null);
   const settingsViewRef = useRef<HTMLElement>(null);
   const helpViewRef = useRef<HTMLElement>(null);
@@ -751,8 +761,41 @@ const App: React.FC = () => {
     if (showHelp) helpViewRef.current?.focus();
   }, [showHelp]);
 
+  // Menú desplegable "Configuración": cierra con Escape, clic fuera o foco fuera.
+  useEffect(() => {
+    const details = settingsDetailsRef.current;
+    if (!details) return;
+
+    const closeMenu = (restoreFocus = false) => {
+      details.open = false;
+      if (restoreFocus) settingsNavRef.current?.focus();
+    };
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && details.open) {
+        event.preventDefault();
+        closeMenu(true);
+      }
+    };
+    const onDocClick = (event: MouseEvent) => {
+      if (details.open && !details.contains(event.target as Node)) closeMenu();
+    };
+    const onFocusIn = (event: FocusEvent) => {
+      if (details.open && !details.contains(event.target as Node)) closeMenu();
+    };
+
+    document.addEventListener('keydown', onKeyDown);
+    document.addEventListener('click', onDocClick);
+    document.addEventListener('focusin', onFocusIn);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      document.removeEventListener('click', onDocClick);
+      document.removeEventListener('focusin', onFocusIn);
+    };
+  }, []);
+
   const closeSettings = useCallback(() => {
-    setShowSettings(false);
+    setSettingsSection(null);
     requestAnimationFrame(() => settingsNavRef.current?.focus());
   }, []);
 
@@ -798,7 +841,7 @@ const App: React.FC = () => {
     setShowHome(true);
     setShowExperimentCampaign(false);
     setShowAuditLog(false);
-    setShowSettings(false);
+    setSettingsSection(null);
     setShowHelp(false);
     setShowChangelog(false);
     setShowMobileNav(false);
@@ -829,9 +872,6 @@ const App: React.FC = () => {
             aria-current={showHome ? 'page' : undefined}
             type="button"
           >
-            <span className="nav-logo-mark nav-logo-mark--visible" aria-hidden="true">
-              <AuraMark />
-            </span>
             <span className="nav-logo">AURA</span>
           </button>
 
@@ -855,15 +895,32 @@ const App: React.FC = () => {
           </div>
 
           <div className="nav-utilities">
-            <button
-              className="nav-utility"
-              onClick={openSettings}
-              ref={settingsNavRef}
-              aria-current={showSettings ? 'page' : undefined}
-              type="button"
-            >
-              Configuración
-            </button>
+            <details className="nav-settings" ref={settingsDetailsRef}>
+              <summary
+                ref={settingsNavRef}
+                role="button"
+                className={showSettings ? 'active' : ''}
+                aria-current={showSettings ? 'page' : undefined}
+              >
+                Configuración
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </summary>
+              <ul className="nav-settings__list">
+                {SETTINGS_SECTIONS.map((section) => (
+                  <li key={section.id}>
+                    <button
+                      type="button"
+                      onClick={() => { openSettings(section.id); if (settingsDetailsRef.current) settingsDetailsRef.current.open = false; }}
+                      aria-current={settingsSection === section.id ? 'location' : undefined}
+                    >
+                      {section.label}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </details>
             <button
               className="nav-utility"
               onClick={openHelp}
@@ -883,11 +940,22 @@ const App: React.FC = () => {
                 Nuevo análisis
               </button>
             )}
+            <label className="theme-switch">
+              <span className="sr-only">Usar tema oscuro</span>
+              <input
+                type="checkbox"
+                role="switch"
+                checked={theme === 'dark'}
+                onChange={(e) => setTheme(e.target.checked ? 'dark' : 'light')}
+                aria-label="Usar tema oscuro"
+                data-testid="nav-theme-switch"
+              />
+            </label>
           </div>
         </div>
       </nav>
 
-      {showSettings && (
+      {showSettings && settingsSection && (
         <section
           className="utility-view"
           data-testid="settings-view"
@@ -895,22 +963,14 @@ const App: React.FC = () => {
           ref={settingsViewRef}
           tabIndex={-1}
         >
-          <p className="sec-eye" id="settings-view-title">Configuración</p>
-          <div className="drawer-appearance">
-            <span className="drawer-appearance-label" id="appearance-label">Apariencia</span>
-            <label className="theme-toggle" aria-labelledby="appearance-label">
-              <span className="drawer-appearance-name">Usar tema oscuro</span>
-              <input
-                type="checkbox"
-                role="switch"
-                checked={theme === 'dark'}
-                onChange={(e) => setTheme(e.target.checked ? 'dark' : 'light')}
-                aria-label="Usar tema oscuro"
-                data-testid="appearance-theme-switch"
-              />
-            </label>
-          </div>
-          <SettingsPanel config={aiConfig} onSave={setAiConfig} onClose={closeSettings} />
+          <span id="settings-view-title" className="sr-only">Configuración</span>
+          <SettingsPanel
+            config={aiConfig}
+            onSave={setAiConfig}
+            onClose={closeSettings}
+            section={settingsSection}
+            theme={theme}
+          />
         </section>
       )}
 

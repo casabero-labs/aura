@@ -37,21 +37,12 @@ describe('App - Casabero brand contract', () => {
     vi.restoreAllMocks();
   });
 
-  it('renders the exact three-ellipse AuraMark and preserves the AURA lockup', () => {
+  it('renders the AURA wordmark as text only, with no icon mark', () => {
     render(<App />);
 
     const brand = screen.getByLabelText('Ir al inicio');
-    const mark = brand.querySelector('svg');
 
-    expect(mark).not.toBeNull();
-    expect(mark?.getAttribute('viewBox')).toBe('0 0 64 64');
-    expect(mark?.getAttribute('fill')).toBe('none');
-    expect(mark?.getAttribute('stroke')).toBe('currentColor');
-    expect(mark?.getAttribute('stroke-width')).toBe('1.55');
-    expect(mark?.getAttribute('aria-hidden')).toBe('true');
-    expect(mark?.querySelectorAll('ellipse')).toHaveLength(3);
-    expect(mark?.querySelectorAll('rect, path, circle, polygon, polyline, line')).toHaveLength(0);
-    expect(mark?.querySelectorAll('[stroke]:not(svg)')).toHaveLength(0);
+    expect(brand.querySelector('svg')).toBeNull();
     expect(brand.textContent).toContain('AURA');
   });
 

@@ -221,6 +221,8 @@ export interface PromptContractConfig {
 
 export type InputMode = 'prompt_libre' | 'smart_sample' | 'enhanced_registry' | 'copy_paste_bad_samples' | 'recommended';
 
+export type SettingsSectionId = 'general' | 'ia' | 'evidencia' | 'privacidad' | 'diagnostico';
+
 export interface AIConfig {
   model: string;
   temperature: number;

@@ -88,6 +88,7 @@ describe('App - accessible global navigation', () => {
 
     expect(screen.getByRole('heading', { name: 'Auditar un CSV' })).toBeTruthy();
     await user.click(screen.getByRole('button', { name: 'Configuración' }));
+    await user.click(screen.getByRole('button', { name: 'General' }));
 
     expect(screen.getByTestId('settings-view')).toBeTruthy();
     expect(screen.getByTestId('settings-workspace')).toBeTruthy();
@@ -101,6 +102,7 @@ describe('App - accessible global navigation', () => {
 
     const config = screen.getByRole('button', { name: 'Configuración' });
     await user.click(config);
+    await user.click(screen.getByRole('button', { name: 'General' }));
     await user.click(screen.getByRole('button', { name: 'Volver a auditoría' }));
 
     await waitFor(() => expect(document.activeElement).toBe(config));

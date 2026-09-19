@@ -38,9 +38,15 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect }) => {
     acceptFile(event.dataTransfer.files?.[0]);
   }, [acceptFile]);
 
+  const titleId = useId();
+  const statusText = selectedName ? `Archivo listo: ${selectedName}` : 'Sin archivo en la bandeja.';
+
   return (
     <div
       className={`file-drop ${isDragging ? 'file-drop--active' : ''} ${error ? 'file-drop--error' : ''}`}
+      role="group"
+      aria-labelledby={titleId}
+      aria-describedby={`${hintId} ${errorId}`}
       onDrop={handleDrop}
       onDragOver={(event) => {
         event.preventDefault();
@@ -48,18 +54,25 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect }) => {
       }}
       onDragLeave={() => setIsDragging(false)}
     >
-      <div className="file-drop-main">
-        <h3>{uploadCopy.title}</h3>
-        <p className="file-drop-eyebrow" id={hintId}>{uploadCopy.privacy} {uploadCopy.hint}</p>
-        <div className="file-drop-actions">
-          <label className="btn-p btn-sm" htmlFor={inputId}>Seleccionar archivo</label>
-          <span className="file-drop-status" data-testid="file-drop-status">
-            {selectedName || 'Ningún archivo seleccionado'}
-          </span>
+      <div className="file-drop-layout">
+        <div className="file-drop-index" aria-hidden="true">
+          <span>Entrada</span>
+          <strong className="file-drop-count">{selectedName ? '01' : '00'}</strong>
         </div>
-        <p className="file-drop-error" id={errorId} role={error ? 'alert' : undefined}>
-          {error}
-        </p>
+        <div className="file-drop-body">
+          <p className="file-drop-kicker">Registro de archivos</p>
+          <h3 id={titleId}>{uploadCopy.title}</h3>
+          <p className="file-drop-eyebrow" id={hintId}>{uploadCopy.privacy} {uploadCopy.hint}</p>
+          <div className="file-drop-actions">
+            <label className="btn-p btn-sm" htmlFor={inputId}>Seleccionar archivo</label>
+          </div>
+          <p className="file-drop-error" id={errorId} role={error ? 'alert' : undefined}>
+            {error}
+          </p>
+          <p className="file-drop-status" data-testid="file-drop-status" role="status" aria-live="polite">
+            {statusText}
+          </p>
+        </div>
       </div>
       <input
         ref={inputRef}
