@@ -10,7 +10,7 @@ import { migrate } from './db/migrate.js';
 const app = new Hono();
 
 app.use('*', cors({
-  origin: ['http://localhost:5173', 'https://aura.casabero.com', 'http://aura.casabero.com'],
+  origin: ['http://localhost:5173', 'https://aura.casabero.com'],
   credentials: true,
 }));
 
