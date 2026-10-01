@@ -44,6 +44,20 @@ Los bloques de código, JSON y logs van sobre el lienzo con filete, sin fondo gr
 
 **Fase 4. Verificación.** Barrido de estilos calculados en cada recorrido (J01–J20), en claro y oscuro, a 390 y 1280 px: cero fondos fuera de las excepciones. E2E de los recorridos y capturas de antes y después.
 
-## Pendiente
+## Decidido después
 
-- Lienzo del modo oscuro: `#161614` (contrato de AURA) o `#000000` (estándar). Sin decidir; se mantiene `#161614`.
+- Lienzo del modo oscuro: negro puro `#000000` y tinta `#FFFFFF`, como el estándar. Se retira `#161614` / `#F2F1EC`.
+
+## Estado
+
+- **Fases 0 y 1** (commit `62d09ad`): contrato, test de control y tokens neutros. De ~370 a 172 rellenos.
+- **Fase 2**: 0 rellenos heredados; el test de control queda en presupuesto 0.
+  - 122 declaraciones de `index.css` reescritas: superficies a `transparent`; marcas de datos a tinta o huecas en estado fallido o pendiente; pistas a línea base de 1 px; filas activas con filete izquierdo de tinta.
+  - Una corrida fallida del Laboratorio se distingue ahora por borde discontinuo. Antes solo la separaba un tinte, porque `--success` y `--error` son tinta.
+  - 16 rejillas del Laboratorio dibujaban filetes con `gap: 1px` sobre fondo de línea; con una fila incompleta dejaban un bloque gris. Ahora llevan bordes reales en las celdas.
+  - Tokens heredados de `index.css` convertidos en alias de los tokens Editoriales. Resaltado de código Python y JSON en monocromo (peso e itálica). `::selection` en inversión de tinta.
+  - `ImprovementRunPanel`, `ImprovementRunExportCard`, `HealthDeltaDashboard` y `ExecutionLogsPanel` pierden la paleta Tailwind, los radios de 8 a 999 px y `system-ui`.
+  - Oscuro en negro puro `#000000` / `#FFFFFF`.
+  - Excepción documentada: las reglas de impresión conservan `#000`, `#ccc` y `#666` (papel).
+- **Fase 3** pendiente: bordes de tarjeta, tarjetas de métricas (Diagnóstico y Laboratorio), badges con forma de pill, el bloque de tinta invertida `.oe4-configuration-identity` y las etiquetas en inglés de `HealthDeltaDashboard` («Improved», «Worsened»).
+

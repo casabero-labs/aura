@@ -63,7 +63,7 @@ test.describe('LOOP-01 Editorial — Inicio y carga', () => {
     await page.getByRole('switch', { name: 'Usar tema oscuro' }).click();
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
     const dark = await page.locator('html').evaluate((el) => getComputedStyle(el).getPropertyValue('--bg').trim());
-    expect(dark.toLowerCase()).toBe('#161614');
+    expect(dark.toLowerCase()).toBe('#000000');
     await page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('button', { name: 'Ir al inicio' }).click();
     await expect(page.getByTestId('settings-view')).toHaveCount(0);
   });

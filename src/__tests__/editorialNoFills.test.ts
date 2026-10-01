@@ -18,8 +18,8 @@ import { describe, expect, it } from 'vitest';
 const SRC = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(SRC, file), 'utf-8');
 
-/** Bajar este número cada vez que se eliminan rellenos. Meta: 0. */
-const LEGACY_FILL_BUDGET = 172;
+/** Fase 2 cerrada el 2026-10-01: 0 rellenos heredados. No subir. */
+const LEGACY_FILL_BUDGET = 0;
 
 const NEUTRAL_VARS = new Set([
   'bg', 'canvas', 'editorial-canvas',
@@ -36,7 +36,9 @@ const LINE_VARS = new Set([
   'editorial-line', 'editorial-line-soft', 'editorial-line-strong', 'ink-faint',
 ]);
 const KEYWORDS = new Set(['transparent', 'none', 'inherit', 'initial', 'unset', 'currentcolor']);
-const SCRIM_SELECTOR = /overlay|backdrop|scrim/i;
+const SCRIM_SELECTOR = /overlay|backdrop|scrim|\.prompt-modal(?![\w-])/i;
+// Filete: elemento de 0.5–2 px. Las rejillas con gap sobre fondo de línea no
+// cuentan: una fila incompleta deja un bloque gris.
 const HAIRLINE = /\b(height|width|min-height|block-size|inline-size)\s*:\s*(0\.5|1|1\.5|2)px/;
 const LITERAL_COLOR = /#[0-9a-f]{3,8}\b|\brgba?\(|\bhsla?\(|\bcolor-mix\(|\b(white|black|gray|grey|silver|whitesmoke|gainsboro)\b/i;
 

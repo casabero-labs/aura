@@ -202,14 +202,14 @@ const ImprovementRunPanel: React.FC<Props> = ({
         <div
           data-testid="demo-mode-banner"
           style={{
-            background: '#fef3c7',
-            border: '1px solid #fbbf24',
-            borderRadius: 8,
+            background: 'transparent',
+            border: '1px solid var(--line)',
+            borderRadius: 0,
             padding: '8px 14px',
             marginBottom: 12,
           }}
         >
-          <p style={{ margin: 0, fontSize: 12, color: '#92400e', fontWeight: 600, lineHeight: 1.5 }}>
+          <p style={{ margin: 0, fontSize: 12, color: 'var(--ink)', fontWeight: 600, lineHeight: 1.5 }}>
             {DEMO_MODE_NOTICE}
           </p>
         </div>
@@ -237,38 +237,38 @@ const ImprovementRunPanel: React.FC<Props> = ({
 function IdleState({ datasetName, beforeCsvSize, afterCsvSize, onRun }: { datasetName: string; beforeCsvSize: number; afterCsvSize: number; onRun: () => void }) {
   return (
     <div data-testid="idle-state" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '12px 16px' }}>
-        <p style={{ margin: 0, fontSize: 13, color: '#166534', lineHeight: 1.6 }}>
+      <div style={{ background: 'transparent', border: '1px solid var(--line)', borderRadius: 0, padding: '12px 16px' }}>
+        <p style={{ margin: 0, fontSize: 13, color: 'var(--ink)', lineHeight: 1.6 }}>
           This run executes the full improvement pipeline over a <strong>controlled fixture copy</strong> of the dataset. No original data is modified.
         </p>
       </div>
 
-      <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8, padding: '12px 16px' }}>
+      <div style={{ background: 'transparent', border: '1px solid var(--line)', borderRadius: 0, padding: '12px 16px' }}>
         <table style={{ margin: 0, borderCollapse: 'collapse', width: '100%', fontSize: 13 }}>
           <tbody>
             <tr>
-              <td style={{ color: '#6b7280', padding: '2px 0', width: '40%' }}>Fixture dataset</td>
-              <td style={{ fontWeight: 500, color: '#111827', padding: '2px 0' }}>{datasetName}</td>
+              <td style={{ color: 'var(--ink-muted)', padding: '2px 0', width: '40%' }}>Fixture dataset</td>
+              <td style={{ fontWeight: 500, color: 'var(--ink)', padding: '2px 0' }}>{datasetName}</td>
             </tr>
             <tr>
-              <td style={{ color: '#6b7280', padding: '2px 0' }}>Before fixture</td>
-              <td style={{ color: '#374151', padding: '2px 0', fontFamily: 'monospace', fontSize: 12 }}>{beforeCsvSize} bytes</td>
+              <td style={{ color: 'var(--ink-muted)', padding: '2px 0' }}>Before fixture</td>
+              <td style={{ color: 'var(--ink2)', padding: '2px 0', fontFamily: 'monospace', fontSize: 12 }}>{beforeCsvSize} bytes</td>
             </tr>
             <tr>
-              <td style={{ color: '#6b7280', padding: '2px 0' }}>After fixture</td>
-              <td style={{ color: '#374151', padding: '2px 0', fontFamily: 'monospace', fontSize: 12 }}>{afterCsvSize} bytes</td>
+              <td style={{ color: 'var(--ink-muted)', padding: '2px 0' }}>After fixture</td>
+              <td style={{ color: 'var(--ink2)', padding: '2px 0', fontFamily: 'monospace', fontSize: 12 }}>{afterCsvSize} bytes</td>
             </tr>
           </tbody>
         </table>
       </div>
 
       <button data-testid="run-button" className="run-button" onClick={onRun}
-        style={{ padding: '10px 20px', fontSize: 14, borderRadius: 6, border: 'none', background: '#111827', color: '#fff', cursor: 'pointer', fontWeight: 500 }}>
+        style={{ padding: '10px 20px', fontSize: 14, borderRadius: 0, border: '1px solid var(--ink)', background: 'transparent', color: 'var(--ink)', cursor: 'pointer', fontWeight: 500 }}>
         Run Improvement Flow
       </button>
 
-      <div data-testid="colab-notice" style={{ background: '#fefce8', border: '1px solid #fde047', borderRadius: 8, padding: '10px 14px' }}>
-        <p style={{ margin: 0, fontSize: 12, color: '#854d0e', lineHeight: 1.5 }}>
+      <div data-testid="colab-notice" style={{ background: 'transparent', border: '1px solid var(--line)', borderRadius: 0, padding: '10px 14px' }}>
+        <p style={{ margin: 0, fontSize: 12, color: 'var(--ink)', lineHeight: 1.5 }}>
           <strong>NOTE:</strong> AURA does <em>not</em> execute Python inside the browser. The pipeline delegates Python execution to an external Colab notebook. No real datasets are accessed.
         </p>
       </div>
@@ -281,23 +281,23 @@ function RunningState() {
     <div data-testid="running-state" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, padding: '24px 0' }}>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
         <div style={{
-          width: 20, height: 20, border: '2px solid #e5e7eb', borderTop: '2px solid #111827',
+          width: 20, height: 20, border: '2px solid var(--line)', borderTop: '2px solid var(--ink)',
           borderRadius: '50%', animation: 'spin 0.8s linear infinite',
         }} />
-        <span style={{ fontSize: 14, fontWeight: 500, color: '#111827' }}>Running improvement flow…</span>
+        <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>Running improvement flow…</span>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%', maxWidth: 400 }}>
         {RUNTIME_STEPS.map((step, i) => (
-          <div key={i} data-testid={`step-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#374151' }}>
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#d1d5db', flexShrink: 0 }} />
+          <div key={i} data-testid={`step-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink2)' }}>
+            <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'transparent', boxShadow: 'inset 0 0 0 1px var(--ink)', flexShrink: 0 }} />
             <span>{step}</span>
           </div>
         ))}
       </div>
 
-      <div style={{ background: '#fefce8', border: '1px solid #fde047', borderRadius: 8, padding: '10px 14px', maxWidth: 480 }}>
-        <p style={{ margin: 0, fontSize: 12, color: '#854d0e', lineHeight: 1.5 }}>
+      <div style={{ background: 'transparent', border: '1px solid var(--line)', borderRadius: 0, padding: '10px 14px', maxWidth: 480 }}>
+        <p style={{ margin: 0, fontSize: 12, color: 'var(--ink)', lineHeight: 1.5 }}>
           <strong>NOTE:</strong> AURA is <em>not</em> executing Python directly. The Colab notebook runs externally with the controlled fixture copy.
         </p>
       </div>
@@ -311,28 +311,28 @@ function DoneState({ result, onRunAgain }: { result: RunResult; onRunAgain: () =
   return (
     <div data-testid="done-state" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div style={{
-        background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '10px 14px',
+        background: 'transparent', border: '1px solid var(--line)', borderRadius: 0, padding: '10px 14px',
         display: 'flex', alignItems: 'center', gap: 8,
       }}>
-        <span style={{ fontSize: 14, color: '#166534' }}>✓ Run complete — </span>
-        <span data-testid="run-id" style={{ fontSize: 13, fontFamily: 'monospace', color: '#166534' }}>{result.improvementRun.runId}</span>
+        <span style={{ fontSize: 14, color: 'var(--ink)' }}>✓ Run complete — </span>
+        <span data-testid="run-id" style={{ fontSize: 13, fontFamily: 'monospace', color: 'var(--ink)' }}>{result.improvementRun.runId}</span>
       </div>
 
-      <div data-testid="fixture-notice" style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '10px 14px' }}>
-        <p style={{ margin: 0, fontSize: 12, color: '#166534', lineHeight: 1.5 }}>
+      <div data-testid="fixture-notice" style={{ background: 'transparent', border: '1px solid var(--line)', borderRadius: 0, padding: '10px 14px' }}>
+        <p style={{ margin: 0, fontSize: 12, color: 'var(--ink)', lineHeight: 1.5 }}>
           <strong>NOTE:</strong> This run used a <strong>controlled fixture copy</strong> of the dataset. No original data was modified.
         </p>
       </div>
 
-      <div data-testid="colab-notice" style={{ background: '#fefce8', border: '1px solid #fde047', borderRadius: 8, padding: '10px 14px' }}>
-        <p style={{ margin: 0, fontSize: 12, color: '#854d0e', lineHeight: 1.5 }}>
+      <div data-testid="colab-notice" style={{ background: 'transparent', border: '1px solid var(--line)', borderRadius: 0, padding: '10px 14px' }}>
+        <p style={{ margin: 0, fontSize: 12, color: 'var(--ink)', lineHeight: 1.5 }}>
           <strong>NOTE:</strong> AURA does <em>not</em> execute Python. The pipeline executed externally via a Colab notebook with the controlled fixture copy.
         </p>
       </div>
 
-      <div style={{ border: '1px solid #e5e7eb', borderRadius: 8, overflow: 'hidden' }}>
-        <div style={{ background: '#f9fafb', padding: '10px 16px', borderBottom: '1px solid #e5e7eb' }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>Health Delta</span>
+      <div style={{ border: '1px solid var(--line)', borderRadius: 0, overflow: 'hidden' }}>
+        <div style={{ background: 'transparent', padding: '10px 16px', borderBottom: '1px solid var(--line)' }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink2)' }}>Health Delta</span>
         </div>
         <div style={{ padding: 16 }}>
           <HealthDeltaDashboard
@@ -354,9 +354,9 @@ function DoneState({ result, onRunAgain }: { result: RunResult; onRunAgain: () =
         </div>
       </div>
 
-      <div style={{ border: '1px solid #e5e7eb', borderRadius: 8, overflow: 'hidden' }}>
-        <div style={{ background: '#f9fafb', padding: '10px 16px', borderBottom: '1px solid #e5e7eb' }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>Execution Logs</span>
+      <div style={{ border: '1px solid var(--line)', borderRadius: 0, overflow: 'hidden' }}>
+        <div style={{ background: 'transparent', padding: '10px 16px', borderBottom: '1px solid var(--line)' }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink2)' }}>Execution Logs</span>
         </div>
         <div style={{ padding: 16 }}>
           <ExecutionLogsPanel
@@ -366,9 +366,9 @@ function DoneState({ result, onRunAgain }: { result: RunResult; onRunAgain: () =
         </div>
       </div>
 
-      <div style={{ border: '1px solid #e5e7eb', borderRadius: 8, overflow: 'hidden' }}>
-        <div style={{ background: '#f9fafb', padding: '10px 16px', borderBottom: '1px solid #e5e7eb' }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>Export</span>
+      <div style={{ border: '1px solid var(--line)', borderRadius: 0, overflow: 'hidden' }}>
+        <div style={{ background: 'transparent', padding: '10px 16px', borderBottom: '1px solid var(--line)' }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink2)' }}>Export</span>
         </div>
         <div style={{ padding: 16 }}>
           <ImprovementRunExportCard improvementRun={result.improvementRun} />
@@ -377,7 +377,7 @@ function DoneState({ result, onRunAgain }: { result: RunResult; onRunAgain: () =
 
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
         <button data-testid="run-again-button" className="run-button" onClick={onRunAgain}
-          style={{ padding: '8px 16px', fontSize: 13, borderRadius: 6, border: '1px solid #d1d5db', background: '#fff', cursor: 'pointer', color: '#374151' }}>
+          style={{ padding: '8px 16px', fontSize: 13, borderRadius: 0, border: '1px solid var(--border-strong)', background: 'var(--bg)', cursor: 'pointer', color: 'var(--ink2)' }}>
           Run Again
         </button>
       </div>
@@ -388,19 +388,19 @@ function DoneState({ result, onRunAgain }: { result: RunResult; onRunAgain: () =
 function ErrorState({ message, onRetry }: { message: string | null; onRetry: () => void }) {
   return (
     <div data-testid="error-state" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8, padding: '12px 16px' }}>
+      <div style={{ background: 'transparent', border: '1px solid var(--line)', borderRadius: 0, padding: '12px 16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-          <span style={{ fontSize: 16, color: '#dc2626' }}>✗</span>
-          <span style={{ fontSize: 14, fontWeight: 600, color: '#991b1b' }}>Run failed</span>
+          <span style={{ fontSize: 16, color: 'var(--ink)' }}>✗</span>
+          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>Run failed</span>
         </div>
-        <p data-testid="error-message" style={{ margin: 0, fontSize: 13, color: '#991b1b', fontFamily: 'monospace', lineHeight: 1.6, wordBreak: 'break-all' }}>
+        <p data-testid="error-message" style={{ margin: 0, fontSize: 13, color: 'var(--ink)', fontFamily: 'monospace', lineHeight: 1.6, wordBreak: 'break-all' }}>
           {message ?? 'Unknown error occurred.'}
         </p>
       </div>
 
-      <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8, padding: '12px 16px' }}>
-        <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 8 }}>Possible causes</p>
-        <ul style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: '#6b7280', lineHeight: 1.8 }}>
+      <div style={{ background: 'transparent', border: '1px solid var(--line)', borderRadius: 0, padding: '12px 16px' }}>
+        <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--ink2)', marginBottom: 8 }}>Possible causes</p>
+        <ul style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: 'var(--ink-muted)', lineHeight: 1.8 }}>
           <li>Contract validation failed — script or plan mismatch</li>
           <li>Preflight or sandbox gate blocked the execution</li>
           <li>Colab output fixture could not be imported</li>
@@ -408,25 +408,25 @@ function ErrorState({ message, onRetry }: { message: string | null; onRetry: () 
         </ul>
       </div>
 
-      <div style={{ background: '#fefce8', border: '1px solid #fde047', borderRadius: 8, padding: '10px 14px' }}>
-        <p style={{ margin: 0, fontSize: 12, color: '#854d0e', lineHeight: 1.5 }}>
+      <div style={{ background: 'transparent', border: '1px solid var(--line)', borderRadius: 0, padding: '10px 14px' }}>
+        <p style={{ margin: 0, fontSize: 12, color: 'var(--ink)', lineHeight: 1.5 }}>
           <strong>NOTE:</strong> The original dataset was <em>not</em> modified. This run used a controlled fixture copy.
         </p>
       </div>
 
-      <div data-testid="colab-notice" style={{ background: '#fefce8', border: '1px solid #fde047', borderRadius: 8, padding: '10px 14px' }}>
-        <p style={{ margin: 0, fontSize: 12, color: '#854d0e', lineHeight: 1.5 }}>
+      <div data-testid="colab-notice" style={{ background: 'transparent', border: '1px solid var(--line)', borderRadius: 0, padding: '10px 14px' }}>
+        <p style={{ margin: 0, fontSize: 12, color: 'var(--ink)', lineHeight: 1.5 }}>
           <strong>NOTE:</strong> AURA does <em>not</em> execute Python. Pipeline execution is delegated to an external Colab notebook.
         </p>
       </div>
 
       <div style={{ display: 'flex', gap: 8 }}>
         <button data-testid="retry-button" className="run-button" onClick={onRetry}
-          style={{ padding: '8px 16px', fontSize: 13, borderRadius: 6, border: 'none', background: '#111827', color: '#fff', cursor: 'pointer' }}>
+          style={{ padding: '8px 16px', fontSize: 13, borderRadius: 0, border: '1px solid var(--ink)', background: 'transparent', color: 'var(--ink)', cursor: 'pointer' }}>
           Retry
         </button>
         <button onClick={() => window.location.reload()}
-          style={{ padding: '8px 16px', fontSize: 13, borderRadius: 6, border: '1px solid #d1d5db', background: '#fff', cursor: 'pointer', color: '#374151' }}>
+          style={{ padding: '8px 16px', fontSize: 13, borderRadius: 0, border: '1px solid var(--border-strong)', background: 'var(--bg)', cursor: 'pointer', color: 'var(--ink2)' }}>
           Reload page
         </button>
       </div>

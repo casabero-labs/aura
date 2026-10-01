@@ -21,11 +21,11 @@ colors:
   ink-muted: "#6B6B67"
   line: "#D9D9D4"
   line-strong: "#A7A7A0"
-  surface: "#F7F7F4"
-  surface-quiet: "#FBFBF9"
+  surface: canvas   # sin rellenos tintados (2026-10-01)
+  surface-quiet: canvas
 dark:
-  canvas: "#161614"
-  ink: "#F2F1EC"
+  canvas: "#000000"
+  ink: "#FFFFFF"
 typography:
   font-display: '"Source Serif 4", Georgia, "Times New Roman", serif'
   font-body: '"Source Serif 4", Georgia, "Times New Roman", serif'

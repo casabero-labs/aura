@@ -919,9 +919,9 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
                     style={{
                       marginBottom: 'var(--space-md)',
                       padding: '10px 12px',
-                      background: 'var(--surface1)',
-                      borderRadius: '6px',
-                      borderLeft: '3px solid var(--accent)',
+                      background: 'transparent',
+                      borderRadius: 0,
+                      borderLeft: '3px solid var(--ink)',
                     }}
                   >
                     <p style={{ fontSize: '12px', color: 'var(--ink2)', margin: 0 }}>
@@ -939,7 +939,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
                   <div style={{ marginBottom: 'var(--space-md)' }}>
                     <h4 style={{ fontSize: '13px', fontWeight: 600, marginBottom: '8px', color: 'var(--ink2)' }}>Observaciones y Recomendaciones</h4>
                     {structuredDiagnosis.diagnosis.diagnosisBlocks.map((block, i) => (
-                      <div key={i} className="diagnosis-block" style={{ marginBottom: '12px', padding: '10px', background: 'var(--surface2)', borderRadius: '6px', borderLeft: '3px solid var(--accent)' }}>
+                      <div key={i} className="diagnosis-block" style={{ marginBottom: '12px', padding: '10px', background: 'transparent', borderRadius: 0, borderLeft: '3px solid var(--ink)' }}>
                         <div style={{ fontSize: '12px', color: 'var(--ink3)', marginBottom: '4px' }}>
                           {block.ruleId}{block.columnId ? ` · ${block.columnId}` : ''}
                         </div>
@@ -957,7 +957,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
                   <div style={{ marginBottom: 'var(--space-md)' }}>
                     <h4 style={{ fontSize: '13px', fontWeight: 600, marginBottom: '8px', color: 'var(--ink2)' }}>Hallazgos</h4>
                     {structuredDiagnosis.diagnosis.issues.map((issue, i) => (
-                      <div key={i} className="diagnosis-issue" style={{ marginBottom: '10px', padding: '8px', background: 'var(--surface1)', borderRadius: '4px' }}>
+                      <div key={i} className="diagnosis-issue" style={{ marginBottom: '10px', padding: '8px', background: 'transparent', borderRadius: 0 }}>
                         <div style={{ fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>
                           {issue.hypothesis}
                           {issue.requiresHumanReview && (
@@ -979,7 +979,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
                   </div>
                 )}
                 {structuredDiagnosis.diagnosis.limitations.length > 0 && (
-                  <div style={{ marginBottom: 'var(--space-md)', padding: '10px', background: 'var(--surface1)', borderRadius: '6px', borderLeft: '3px solid var(--warning)' }}>
+                  <div style={{ marginBottom: 'var(--space-md)', padding: '10px', background: 'transparent', borderRadius: 0, borderLeft: '3px solid var(--ink)' }}>
                     <h4 style={{ fontSize: '12px', fontWeight: 600, marginBottom: '6px', color: 'var(--ink2)' }}>Limitaciones</h4>
                     {structuredDiagnosis.diagnosis.limitations.map((lim, i) => (
                       <div key={i} style={{ fontSize: '12px', color: 'var(--ink3)', marginBottom: '4px' }}>{lim}</div>

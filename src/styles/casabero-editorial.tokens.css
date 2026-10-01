@@ -110,18 +110,20 @@
   --transition-theme: var(--editorial-motion-enter) var(--ease-out-expo);
 }
 
+/* Oscuro Editorial del estándar: negro puro y tinta blanca (decisión 2026-10-01).
+   Se retira el tinte Warm #161614 / #F2F1EC. */
 [data-casabero-theme="editorial"][data-theme="dark"] {
-  --editorial-canvas: #161614;
-  --editorial-ink: #f2f1ec;
-  --editorial-ink-secondary: #b8b6b0;
-  --editorial-ink-muted: #8a8882;
-  --editorial-line: #2e2e2a;
-  --editorial-line-soft: #2e2e2a;
-  --editorial-line-strong: #5c5c56;
+  --editorial-canvas: #000000;
+  --editorial-ink: #ffffff;
+  --editorial-ink-secondary: #b3b3b3;
+  --editorial-ink-muted: #8a8a8a;
+  --editorial-line: #2a2a2a;
+  --editorial-line-soft: #2a2a2a;
+  --editorial-line-strong: #4d4d4d;
   --editorial-surface: var(--editorial-canvas);
   --editorial-surface-quiet: var(--editorial-canvas);
-  --editorial-tone-start: #2e2e2a;
-  --editorial-tone-end: #f2f1ec;
+  --editorial-tone-start: #2a2a2a;
+  --editorial-tone-end: #ffffff;
   --editorial-border-hairline: 0.5px solid var(--editorial-line);
   --editorial-border-strong: 1px solid var(--editorial-line-strong);
   --editorial-focus-ring: 2px solid var(--editorial-ink);

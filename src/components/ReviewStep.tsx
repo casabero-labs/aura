@@ -394,7 +394,7 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
           )}
 
           {(healthDelta.scoreDelta < 0 || healthDelta.criticalDelta > 0) && (
-            <div className="review-delta-zero-warning" style={{ borderColor: 'var(--error)', background: 'color-mix(in srgb, var(--error) 8%, transparent)' }}>
+            <div className="review-delta-zero-warning" style={{ borderColor: 'var(--ink)', background: 'transparent' }}>
               <TriangleAlert size={16} style={{ color: 'var(--error)', flexShrink: 0 }} />
               <div>
                 <strong>Preservación de deuda de fuente: el score no mejora.</strong>

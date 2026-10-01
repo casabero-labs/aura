@@ -1222,3 +1222,37 @@
     padding: 12px var(--space-md);
   }
 }
+
+/* Rejillas de datos del Laboratorio: filetes reales en las celdas.
+   Antes dibujaban filetes con gap de 1 px sobre fondo de línea, y una fila
+   incompleta dejaba un bloque gris (sin rellenos tintados, 2026-10-01). */
+[data-casabero-theme="editorial"] :is(
+  .oe4-installed-models ul, .oe4-inference-summary, .oe4-protocol-grid, .oe4-progress,
+  .oe4-live-execution-grid, .oe4-run-meta, .oe4-run-technical dl, .reaudit-period-grid dl,
+  .oe4-evaluation-strip, .oe4-report-blockers, .oe4-score-method dl, .oe4-results-trust-strip,
+  .oe4-results-selection dl, .oe4-configuration-summary, .oe4-configuration-summary dl,
+  .oe4-configuration-evidence
+) {
+  gap: 0;
+  padding: 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+  border-left: 1px solid var(--border);
+}
+
+[data-casabero-theme="editorial"] :is(
+  .oe4-installed-models ul, .oe4-inference-summary, .oe4-protocol-grid, .oe4-progress,
+  .oe4-live-execution-grid, .oe4-run-meta, .oe4-run-technical dl, .reaudit-period-grid dl,
+  .oe4-evaluation-strip, .oe4-report-blockers, .oe4-score-method dl, .oe4-results-trust-strip,
+  .oe4-results-selection dl, .oe4-configuration-summary, .oe4-configuration-evidence
+) > * {
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+/* La lista anidada ya recibe el filete de su celda contenedora. */
+[data-casabero-theme="editorial"] .oe4-configuration-summary > dl {
+  border-top: 0;
+  border-left: 0;
+  border-right: 0;
+}
