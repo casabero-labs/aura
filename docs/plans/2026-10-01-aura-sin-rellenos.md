@@ -68,5 +68,12 @@ Los bloques de código, JSON y logs van sobre el lienzo con filete, sin fondo gr
   - Se quitan iconos decorativos de Diagnóstico avanzado, Ayuda y Exportación, y el eyebrow duplicado de Ayuda. Se eliminan los filetes dobles entre encabezados y secciones.
   - Las tablas conservan su rejilla, como prescribe el estándar.
 - **Fuera de alcance:** el subsistema `ImprovementRun` (`ImprovementRunPanel`, `HealthDeltaDashboard`, `ExecutionLogsPanel`, `ImprovementRunExportCard`) sigue en inglés. Es trabajo de i18n, no visual.
-- **Fase 4** pendiente: barrido automatizado de estilos calculados en todos los recorridos (J01–J20), incluidas las vistas de resultados del Laboratorio, que necesitan una campaña.
+- **Fase 4**: barrido de estilos calculados en `src/tests/e2e/editorial-no-fills.spec.ts`. Claro y oscuro, 390 y 1280 px: 8 pasadas, 0 rellenos fuera del contrato.
+  - Mide lo que el navegador pinta (Tailwind, inline, cascada), en cada elemento visible y en `::before` / `::after`. Complementa a `editorialNoFills.test.ts`, que vigila el CSS fuente.
+  - Vistas: Inicio, las cinco páginas de Configuración, Ayuda, Laboratorio vacío, carga y error de carga (J01–J02), perfil (J03), diagnóstico y drawer (J04), informe determinista (J07), exportación, diálogo de nuevo análisis (J15), rama de corrección con diagnóstico inyectado (informe, script, revisión, ejecución), standalone de Ollama (J17).
+  - Laboratorio con campaña controlada (harness OE4; se simula solo el catálogo `/api/tags`): campaña creada, corrida en curso, reporte y matriz, y las tres pestañas de resultados.
+  - Excepciones que acepta, y solo esas: filetes de 2 px o menos, velo de diálogo fijo a pantalla completa, tinta en controles (botones, enlaces, progreso, interruptor, radio, casilla) y marcas de tinta de 12 px o menos (puntos de paso, barras de datos). Radio y casilla pueden pintarse con gradiente de tinta y lienzo.
+  - Control negativo: un gris inyectado en Configuración, Ayuda, script, revisión y resultados del Laboratorio hace fallar el barrido.
+  - Sin capturas de antes: las fases 2 y 3 ya estaban en main cuando se escribió el barrido.
+  - No cubre estados de hover ni el modo impresión (excepción documentada en la fase 2).
 
