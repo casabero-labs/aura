@@ -48,7 +48,7 @@ Marca de producto: wordmark **AURA** en serif, solo texto — sin icono ni mark 
 
 **Tema:** Casabero Editorial 1.2. Selector `[data-casabero-theme="editorial"]`. Claro y oscuro son modos (`data-theme="light|dark"`), no temas distintos. Cero Ink y cero Warm en el entregable.
 
-**Visual:** blanco puro `#FFFFFF`, tinta `#191919`, secundaria `#4D4D4A`, metadata `#6B6B67`, líneas `#D9D9D4` / `#A7A7A0`, superficies puntuales `#F7F7F4` / `#FBFBF9`. Oscuro `#161614` / `#F2F1EC`. Preset Web estándar: Source Serif 4 en títulos y conclusiones; Source Sans 3 en nav, botones, formularios, tablas y metadata. Mono solo para código y hashes. `--font-sans` permanece sans.
+**Visual:** blanco puro `#FFFFFF`, tinta `#191919`, secundaria `#4D4D4A`, metadata `#6B6B67`, líneas `#D9D9D4` / `#A7A7A0`. **Sin rellenos tintados** (decisión 2026-10-01): ni tarjetas grises, ni cajas de estado, ni botones secundarios rellenos, ni bandas; el fondo es siempre el lienzo, la estructura se marca con filete y el estado con texto y peso. Excepciones: inversión tinta/lienzo en hover de botones, velo de diálogos, progreso, interruptor y marcas de radio. Plan: `docs/plans/2026-10-01-aura-sin-rellenos.md`. Oscuro `#161614` / `#F2F1EC`. Preset Web estándar: Source Serif 4 en títulos y conclusiones; Source Sans 3 en nav, botones, formularios, tablas y metadata. Mono solo para código y hashes. `--font-sans` permanece sans.
 
 **Composición:** documento operativo (sección + filete), no tarjetas. Una primaria por contexto, outline. Nav 52 px; targets 44 px. Lectura 17–19 px, 55–75 caracteres. Tablas a ancho útil, sans tabular.
 

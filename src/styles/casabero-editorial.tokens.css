@@ -11,8 +11,11 @@
   --editorial-line: #d9d9d4;
   --editorial-line-soft: #d9d9d4;
   --editorial-line-strong: #a7a7a0;
-  --editorial-surface: #f7f7f4;
-  --editorial-surface-quiet: #fbfbf9;
+  /* Sin rellenos tintados (decisión 2026-10-01, docs/plans/2026-10-01-aura-sin-rellenos.md):
+     toda superficie resuelve al lienzo. El estándar conserva #F7F7F4 / #FBFBF9
+     solo para documentos y Slides. */
+  --editorial-surface: var(--editorial-canvas);
+  --editorial-surface-quiet: var(--editorial-canvas);
   --editorial-tone-start: #d9d9d4;
   --editorial-tone-end: #191919;
 
@@ -67,6 +70,12 @@
   --surface2: var(--editorial-surface-quiet);
   --surface-raised: var(--editorial-surface);
   --surface-hover: var(--editorial-surface-quiet);
+  /* Tintes de estado heredados de index.css: el estado se lee por texto y peso. */
+  --green-bg: transparent;
+  --warning-bg: transparent;
+  --error-bg: transparent;
+  --error-surface: var(--editorial-canvas);
+  --code-bg: var(--editorial-canvas);
   --font-serif: var(--editorial-font-serif);
   --font-sans: var(--editorial-font-sans);
   --font-meta: var(--editorial-font-meta);
@@ -109,8 +118,8 @@
   --editorial-line: #2e2e2a;
   --editorial-line-soft: #2e2e2a;
   --editorial-line-strong: #5c5c56;
-  --editorial-surface: #1c1c19;
-  --editorial-surface-quiet: #191916;
+  --editorial-surface: var(--editorial-canvas);
+  --editorial-surface-quiet: var(--editorial-canvas);
   --editorial-tone-start: #2e2e2a;
   --editorial-tone-end: #f2f1ec;
   --editorial-border-hairline: 0.5px solid var(--editorial-line);
