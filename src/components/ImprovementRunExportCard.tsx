@@ -15,7 +15,7 @@ const ImprovementRunExportCard: React.FC<Props> = ({ improvementRun }) => {
   try {
     jsonString = exportImprovementRunJSON(improvementRun);
   } catch {
-    jsonString = JSON.stringify({ error: 'Failed to export improvement run.' }, null, 2);
+    jsonString = JSON.stringify({ error: 'No se pudo exportar la ejecución de mejora.' }, null, 2);
   }
 
   const previewLines = jsonString.split('\n');
@@ -49,8 +49,8 @@ const ImprovementRunExportCard: React.FC<Props> = ({ improvementRun }) => {
 
   return (
     <div data-testid="export-card" style={{ border: '1px solid var(--line)', borderRadius: 0, padding: '16px', background: 'var(--bg)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-        <h4 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>Export Improvement Run</h4>
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 12 }}>
+        <h4 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>Exportar ejecución de mejora</h4>
         <span style={{ fontSize: 11, color: 'var(--ink-muted)', fontFamily: 'monospace' }}>{improvementRun.runId}</span>
       </div>
 
@@ -60,14 +60,14 @@ const ImprovementRunExportCard: React.FC<Props> = ({ improvementRun }) => {
           onClick={handleDownload}
           style={{ padding: '6px 12px', fontSize: 13, borderRadius: 0, border: '1px solid var(--border-strong)', background: 'transparent', cursor: 'pointer' }}
         >
-          Download JSON
+          Descargar JSON
         </button>
         <button
           data-testid="copy-button"
           onClick={handleCopy}
           style={{ padding: '6px 12px', fontSize: 13, borderRadius: 0, border: '1px solid var(--border-strong)', background: 'transparent', color: 'var(--ink)', fontWeight: copied ? 600 : 400, cursor: 'pointer' }}
         >
-          {copied ? 'Copied!' : 'Copy to clipboard'}
+          {copied ? 'Copiado' : 'Copiar al portapapeles'}
         </button>
       </div>
 
@@ -77,7 +77,7 @@ const ImprovementRunExportCard: React.FC<Props> = ({ improvementRun }) => {
           onClick={() => setPreviewOpen(o => !o)}
           style={{ background: 'none', border: 'none', padding: 0, fontSize: 12, color: 'var(--ink-muted)', cursor: 'pointer', marginBottom: 4 }}
         >
-          {previewOpen ? '▲ Hide preview' : '▶ Show preview'}
+          {previewOpen ? '▲ Ocultar vista previa' : '▶ Ver vista previa'}
         </button>
         {previewOpen && (
           <SyntaxDisplay
@@ -91,7 +91,7 @@ const ImprovementRunExportCard: React.FC<Props> = ({ improvementRun }) => {
       </div>
 
       <p data-testid="export-notice" style={{ fontSize: 11, color: 'var(--ink-muted)', margin: 0, lineHeight: 1.5 }}>
-        Export reflects controlled fixture run, not real dataset validation.
+        La exportación refleja una ejecución sobre datos de prueba controlados, no la validación de un dataset real.
       </p>
     </div>
   );

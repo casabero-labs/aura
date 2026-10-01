@@ -21,6 +21,13 @@ const levelColors: Record<LogLevel, { bg: string; border: string; dot: string }>
   error: { bg: 'transparent', border: 'var(--line)', dot: 'var(--ink)' },
 };
 
+const STATUS_LABEL: Record<ExecutionSummaryV1['status'], string> = {
+  success: 'correcta',
+  failed: 'fallida',
+  blocked: 'bloqueada',
+  timeout: 'tiempo agotado',
+};
+
 const ExecutionLogsPanel: React.FC<Props> = ({ logs, execution }) => {
   const [expanded, setExpanded] = useState(false);
 
@@ -37,9 +44,9 @@ const ExecutionLogsPanel: React.FC<Props> = ({ logs, execution }) => {
 
   return (
     <div data-testid="execution-logs-panel" style={{ border: '1px solid var(--line)', borderRadius: 0, padding: '16px', background: 'var(--bg)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-        <h4 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>Execution Logs</h4>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 12 }}>
+        <h4 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>Registro de ejecución</h4>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
           {execution && (
             <>
               <span
@@ -50,9 +57,9 @@ const ExecutionLogsPanel: React.FC<Props> = ({ logs, execution }) => {
               </span>
               <span
                 data-testid="status-badge"
-                style={{ fontSize: 11, padding: '2px 6px', borderRadius: 4, background: 'transparent', color: statusColor[execution.status] ?? 'var(--ink-muted)', fontFamily: 'monospace' }}
+                style={{ fontSize: 11, padding: '2px 6px', borderRadius: 4, background: 'transparent', color: statusColor[execution.status] ?? 'var(--ink-muted)' }}
               >
-                {execution.status}
+                {STATUS_LABEL[execution.status] ?? execution.status}
               </span>
               {execution.durationMs != null && (
                 <span data-testid="duration" style={{ fontSize: 11, color: 'var(--ink-muted)' }}>
@@ -66,7 +73,7 @@ const ExecutionLogsPanel: React.FC<Props> = ({ logs, execution }) => {
 
       <div style={{ maxHeight: expanded ? 'none' : 280, overflow: 'hidden', marginBottom: 12 }}>
         {visible.length === 0 ? (
-          <p data-testid="no-logs" style={{ fontSize: 12, color: 'var(--ink-muted)', margin: 0 }}>No logs available.</p>
+          <p data-testid="no-logs" style={{ fontSize: 12, color: 'var(--ink-muted)', margin: 0 }}>No hay entradas en el registro.</p>
         ) : (
           <ul data-testid="log-list" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
             {visible.map((line, i) => {
@@ -103,12 +110,12 @@ const ExecutionLogsPanel: React.FC<Props> = ({ logs, execution }) => {
           onClick={() => setExpanded(e => !e)}
           style={{ background: 'none', border: 'none', padding: 0, fontSize: 12, color: 'var(--ink-muted)', cursor: 'pointer', marginBottom: 12, display: 'block' }}
         >
-          {expanded ? '▲ Show less' : `▶ Show ${logs.length - MAX_VISIBLE} more`}
+          {expanded ? '▲ Mostrar menos' : `▶ Mostrar ${logs.length - MAX_VISIBLE} más`}
         </button>
       )}
 
       <p data-testid="logs-notice" style={{ fontSize: 11, color: 'var(--ink-muted)', margin: 0, lineHeight: 1.5 }}>
-        Logs describe AURA orchestration. Python execution remains external to Colab.
+        El registro describe la orquestación de AURA. Python se ejecuta fuera, en Colab.
       </p>
     </div>
   );

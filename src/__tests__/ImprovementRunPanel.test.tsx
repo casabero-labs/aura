@@ -1,11 +1,13 @@
 /**
  * ImprovementRunPanel Tests — Phase 6 Loop 1
  *
- * Validates component module load, service mock, and result shape.
+ * Validates component module load, Spanish idle copy, service mock, and result shape.
  * Node environment to avoid vitest worker timeout with heavy modules.
  */
 
 import { describe, expect, it, vi } from 'vitest';
+import { createElement } from 'react';
+import { renderToString } from 'react-dom/server';
 
 vi.mock('../services/improvementRunService', () => ({
   runImprovementFlow: vi.fn(),
@@ -16,6 +18,22 @@ describe('ImprovementRunPanel', () => {
     it('exports default component function', async () => {
       const mod = await import('../components/ImprovementRunPanel');
       expect(typeof mod.default).toBe('function');
+    });
+  });
+
+  describe('idle copy', () => {
+    it('renders the idle state in Spanish', async () => {
+      const mod = await import('../components/ImprovementRunPanel');
+      const html = renderToString(createElement(mod.default));
+      expect(html).toContain('data-testid="idle-state"');
+      expect(html).toContain('Ejecución de mejora');
+      expect(html).toContain('Dataset de prueba');
+      expect(html).toContain('CSV antes');
+      expect(html).toContain('CSV después');
+      expect(html).toContain('copia de prueba controlada');
+      expect(html).toContain('Ejecutar flujo de mejora');
+      expect(html).toContain('AURA <em>no</em> ejecuta Python');
+      expect(html).not.toMatch(/Run Improvement Flow|Fixture dataset|Before fixture|After fixture|NOTE:/);
     });
   });
 

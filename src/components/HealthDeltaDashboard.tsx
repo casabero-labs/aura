@@ -24,10 +24,10 @@ interface Props {
 }
 
 const LABEL: Record<DeltaStatus, string> = {
-  improved: 'Improved',
-  unchanged: 'Unchanged',
-  worsened: 'Worsened',
-  inconclusive: 'Inconclusive',
+  improved: 'Mejoró',
+  unchanged: 'Sin cambios',
+  worsened: 'Empeoró',
+  inconclusive: 'No concluyente',
 };
 
 const STATUS_COLOR: Record<DeltaStatus, string> = {
@@ -122,15 +122,15 @@ const HealthDeltaDashboard: React.FC<Props> = ({
       {/* ── Issues ── */}
       <div style={{ display: 'flex', gap: 24, marginBottom: 20 }}>
         <div>
-          <div style={{ fontSize: 12, color: 'var(--ink-muted)', marginBottom: 2 }}>Issues before</div>
+          <div style={{ fontSize: 12, color: 'var(--ink-muted)', marginBottom: 2 }}>Hallazgos antes</div>
           <div data-testid="issues-before" style={{ fontSize: 20, fontWeight: 700 }}>{beforeIssueCount}</div>
         </div>
         <div>
-          <div style={{ fontSize: 12, color: 'var(--ink-muted)', marginBottom: 2 }}>Issues after</div>
+          <div style={{ fontSize: 12, color: 'var(--ink-muted)', marginBottom: 2 }}>Hallazgos después</div>
           <div data-testid="issues-after" style={{ fontSize: 20, fontWeight: 700, color: afterIssueCount > beforeIssueCount ? 'var(--ink)' : color }}>{afterIssueCount}</div>
         </div>
         <div>
-          <div style={{ fontSize: 12, color: 'var(--ink-muted)', marginBottom: 2 }}>Issue delta</div>
+          <div style={{ fontSize: 12, color: 'var(--ink-muted)', marginBottom: 2 }}>Diferencia de hallazgos</div>
           <div data-testid="issue-delta" style={{ fontSize: 20, fontWeight: 700, color: issueDelta === 0 ? 'var(--ink-muted)' : 'var(--ink)' }}>{nfmt(issueDelta)}</div>
         </div>
       </div>
@@ -138,15 +138,15 @@ const HealthDeltaDashboard: React.FC<Props> = ({
       {/* ── Output dataset ── */}
       {(outputRowCountBefore != null || outputColumnCountBefore != null) && (
         <div data-testid="output-summary" style={{ marginBottom: 16, padding: 12, background: 'transparent', borderRadius: 0, fontSize: 13 }}>
-          <div style={{ fontWeight: 600, marginBottom: 6, fontSize: 12, color: 'var(--ink-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Output Dataset</div>
+          <div style={{ fontWeight: 600, marginBottom: 6, fontSize: 12, color: 'var(--ink-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Dataset resultante</div>
           {outputRowCountBefore != null && (
-            <div>Rows: <strong data-testid="output-rows">{outputRowCountBefore}</strong> → <strong>{outputRowCountAfter ?? '—'}</strong></div>
+            <div>Filas: <strong data-testid="output-rows">{outputRowCountBefore}</strong> → <strong>{outputRowCountAfter ?? '—'}</strong></div>
           )}
           {outputColumnCountBefore != null && (
-            <div>Columns: <strong data-testid="output-cols">{outputColumnCountBefore}</strong> → <strong>{outputColumnCountAfter ?? '—'}</strong></div>
+            <div>Columnas: <strong data-testid="output-cols">{outputColumnCountBefore}</strong> → <strong>{outputColumnCountAfter ?? '—'}</strong></div>
           )}
           {changedCellsEstimate != null && (
-            <div data-testid="changed-cells">Changed cells: <strong>{changedCellsEstimate}</strong> {outputRowCountBefore != null ? pct(changedCellsEstimate, outputRowCountBefore * (outputColumnCountBefore ?? 1)) : ''}</div>
+            <div data-testid="changed-cells">Celdas modificadas: <strong>{changedCellsEstimate}</strong> {outputRowCountBefore != null ? pct(changedCellsEstimate, outputRowCountBefore * (outputColumnCountBefore ?? 1)) : ''}</div>
           )}
         </div>
       )}
@@ -159,7 +159,7 @@ const HealthDeltaDashboard: React.FC<Props> = ({
       {/* ── Caveats ── */}
       {caveats.length > 0 && (
         <div data-testid="caveats" style={{ marginBottom: 16, padding: 12, border: '1px solid var(--line)', background: 'transparent', borderRadius: 0 }}>
-          <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 6, color: 'var(--ink)' }}>Caveats</div>
+          <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 6, color: 'var(--ink)' }}>Salvedades</div>
           <ul style={{ margin: 0, paddingLeft: 18 }}>
             {caveats.map((c, i) => (
               <li key={i} style={{ fontSize: 13, color: 'var(--ink)', marginBottom: 4 }}>{c}</li>
@@ -170,7 +170,7 @@ const HealthDeltaDashboard: React.FC<Props> = ({
 
       {/* ── Limitation notice ── */}
       <div data-testid="limitation-notice" style={{ fontSize: 12, color: 'var(--ink-muted)', borderTop: '1px solid var(--line)', paddingTop: 12, marginTop: 8 }}>
-        HealthDelta is computed over controlled fixtures using AURA runAudit. It is not independent external validation.
+        El cambio de salud se calcula sobre datos de prueba controlados con el motor determinista de AURA (runAudit). No es una validación externa independiente.
       </div>
     </div>
   );
