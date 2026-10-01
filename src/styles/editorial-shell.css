@@ -898,3 +898,327 @@
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
 }
+
+/* ── Configuración: elección y resolución (auditoría 2026-10-01) ──
+   Configuración y Ayuda no tienen botón de retorno: se sale por el menú.
+   .settings-back-btn queda solo para la pestaña standalone de Ollama, que no tiene nav.
+   Documento operativo: sección + filete, sin tarjetas. Una primaria outline
+   por bloque. Etiquetas visibles en sentence case; estado como texto. */
+
+[data-casabero-theme="editorial"] .settings-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-meta);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink2);
+  text-decoration: underline;
+  text-decoration-thickness: 0.5px;
+  text-underline-offset: 4px;
+}
+
+[data-casabero-theme="editorial"] .settings-back-btn:hover {
+  color: var(--ink);
+}
+
+[data-casabero-theme="editorial"] .settings-back-btn:focus-visible,
+[data-casabero-theme="editorial"] .settings-link:focus-visible {
+  outline: var(--editorial-focus-ring);
+  outline-offset: var(--editorial-focus-offset);
+}
+
+[data-casabero-theme="editorial"] .settings-section-desc,
+[data-casabero-theme="editorial"] .settings-section-title + .settings-section-desc {
+  font-size: 15px;
+  line-height: 1.6;
+  letter-spacing: normal;
+  max-width: 68ch;
+}
+
+[data-casabero-theme="editorial"] .settings-label {
+  font-family: var(--font-meta);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+
+[data-casabero-theme="editorial"] .settings-input,
+[data-casabero-theme="editorial"] .settings-select {
+  min-height: 44px;
+  font-family: var(--font-meta);
+  font-size: 15px;
+  background-color: var(--canvas);
+  border: 1px solid var(--border-strong);
+  border-radius: 0;
+  transition: box-shadow var(--editorial-motion-fast) var(--ease-out-expo),
+              border-color var(--editorial-motion-fast) var(--ease-out-expo);
+}
+
+[data-casabero-theme="editorial"] .settings-select {
+  padding-right: 40px;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--ink) 50%),
+    linear-gradient(135deg, var(--ink) 50%, transparent 50%);
+  background-position: calc(100% - 20px) 50%, calc(100% - 15px) 50%;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+}
+
+/* Un solo perímetro de foco: el borde cede su lugar al filete inset. */
+[data-casabero-theme="editorial"] .settings-input:focus,
+[data-casabero-theme="editorial"] .settings-select:focus {
+  border-color: transparent;
+  box-shadow: inset 0 0 0 2px var(--ink);
+}
+
+[data-casabero-theme="editorial"] .settings-field-hint,
+[data-casabero-theme="editorial"] .settings-field-error {
+  margin: 6px 0 0;
+  font-family: var(--font-meta);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink2);
+}
+
+[data-casabero-theme="editorial"] .settings-field-error {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+[data-casabero-theme="editorial"] .settings-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0;
+  background: none;
+  border: 0;
+  font-family: var(--font-meta);
+  font-size: 14px;
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-thickness: 0.5px;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+
+/* Elección exclusiva: radios nativos con filete entre opciones. */
+[data-casabero-theme="editorial"] .settings-choice-list {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+[data-casabero-theme="editorial"] .settings-choice-list > legend {
+  padding: 0;
+  margin-bottom: 12px;
+}
+
+[data-casabero-theme="editorial"] .settings-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 0;
+  border-top: 0.5px solid var(--editorial-line);
+  cursor: pointer;
+}
+
+[data-casabero-theme="editorial"] .settings-choice:last-of-type {
+  border-bottom: 0.5px solid var(--editorial-line);
+}
+
+[data-casabero-theme="editorial"] .settings-choice input {
+  appearance: none;
+  box-sizing: border-box;
+  flex: 0 0 16px;
+  width: 16px;
+  min-width: 16px;
+  height: 16px;
+  min-height: 0;
+  padding: 0;
+  margin: 5px 0 0;
+  border: 1px solid var(--ink);
+  border-radius: 50%;
+  background: var(--canvas);
+}
+
+[data-casabero-theme="editorial"] .settings-choice input:checked {
+  background: radial-gradient(circle at center, var(--ink) 0 4.5px, var(--canvas) 5px);
+}
+
+[data-casabero-theme="editorial"] .settings-choice input:focus-visible {
+  outline: var(--editorial-focus-ring);
+  outline-offset: var(--editorial-focus-offset);
+  box-shadow: none;
+}
+
+[data-casabero-theme="editorial"] .settings-choice-body {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+[data-casabero-theme="editorial"] .settings-choice-label {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  font-weight: 400;
+  color: var(--ink);
+}
+
+[data-casabero-theme="editorial"] .settings-choice--active .settings-choice-label {
+  font-weight: 600;
+}
+
+[data-casabero-theme="editorial"] .settings-choice-desc {
+  font-family: var(--font-meta);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--ink2);
+}
+
+[data-casabero-theme="editorial"] .settings-choice-status {
+  font-family: var(--font-meta);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-muted);
+}
+
+[data-casabero-theme="editorial"] .settings-choice-note {
+  margin: 0;
+  font-family: var(--font-meta);
+  font-size: 14px;
+  color: var(--ink-muted);
+}
+
+/* Resolución del proveedor elegido: estado, pasos y acciones en la misma página. */
+[data-casabero-theme="editorial"] .settings-resolution .settings-provider-details,
+[data-casabero-theme="editorial"] .settings-resolution {
+  background: transparent;
+  box-shadow: none;
+}
+
+[data-casabero-theme="editorial"] .settings-resolution-status {
+  margin: 0;
+  max-width: 68ch;
+  font-family: var(--font-serif);
+  font-size: 17px;
+  line-height: 1.55;
+  color: var(--ink);
+}
+
+[data-casabero-theme="editorial"] .settings-resolution-steps {
+  margin: 0;
+  padding-left: 1.4em;
+  max-width: 68ch;
+  font-family: var(--font-meta);
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--ink2);
+}
+
+[data-casabero-theme="editorial"] .settings-resolution-steps li + li {
+  margin-top: 4px;
+}
+
+[data-casabero-theme="editorial"] .settings-resolution-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+[data-casabero-theme="editorial"] .settings-resolution-actions .btn-p,
+[data-casabero-theme="editorial"] .settings-resolution-actions .btn-s,
+[data-casabero-theme="editorial"] .settings-resolution .settings-field-row .btn-s {
+  min-height: 44px;
+  width: auto;
+}
+
+[data-casabero-theme="editorial"] .settings-resolution-more {
+  margin: 0;
+}
+
+[data-casabero-theme="editorial"] .settings-resolution-progress {
+  display: grid;
+  gap: 8px;
+  max-width: 68ch;
+}
+
+[data-casabero-theme="editorial"] .settings-resolution-progress-label {
+  margin: 0;
+  font-family: var(--font-meta);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink2);
+}
+
+[data-casabero-theme="editorial"] .settings-resolution .settings-progress-track {
+  height: 1px;
+  border-radius: 0;
+  background: var(--editorial-line);
+  overflow: visible;
+}
+
+[data-casabero-theme="editorial"] .settings-resolution .settings-progress-fill {
+  width: 100%;
+  height: 1px;
+  background: var(--ink);
+  transform-origin: left;
+  transition: transform var(--editorial-motion-base) var(--ease-out-expo);
+}
+
+/* Lista etiqueta → valor (Privacidad). */
+[data-casabero-theme="editorial"] .settings-meta-list {
+  display: grid;
+  grid-template-columns: minmax(120px, 180px) minmax(0, 1fr);
+  gap: 12px 24px;
+  margin: 0;
+  max-width: 68ch;
+}
+
+[data-casabero-theme="editorial"] .settings-meta-list dt {
+  font-family: var(--font-meta);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+[data-casabero-theme="editorial"] .settings-meta-list dd {
+  margin: 0;
+  font-family: var(--font-meta);
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--ink2);
+}
+
+@media (max-width: 560px) {
+  [data-casabero-theme="editorial"] .settings-meta-list {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  [data-casabero-theme="editorial"] .settings-meta-list dd + dt {
+    margin-top: 12px;
+  }
+}
+
+/* La barra de guardado no desborda la vista: sin márgenes negativos. */
+[data-casabero-theme="editorial"] .settings-save-bar--sticky {
+  margin: 24px 0 0;
+  padding: 12px 2.5rem;
+}
+
+@media (max-width: 768px) {
+  [data-casabero-theme="editorial"] .settings-save-bar--sticky {
+    padding: 12px var(--space-md);
+  }
+}

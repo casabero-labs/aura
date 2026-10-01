@@ -30,14 +30,16 @@ test.describe('LOOP-01 Editorial — Inicio y carga', () => {
     await expect(page.getByTestId('csv-file-input')).toBeEnabled();
   });
 
-  test('J14 — Configuración abre vista y Volver restaura el origen', async ({ page }) => {
-    const config = page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('button', { name: 'Configuración' });
-    await config.click();
+  test('J14 — Configuración abre vista sin botón de retorno; se sale por el menú', async ({ page }) => {
+    const nav = page.getByRole('navigation', { name: 'Navegación principal' });
+    await nav.getByRole('button', { name: 'Configuración' }).click();
+    await page.getByRole('button', { name: 'General' }).click();
     await expect(page.getByTestId('settings-view')).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Auditar un CSV' })).toHaveCount(0);
-    await page.getByRole('button', { name: 'Volver a auditoría' }).click();
+    await expect(page.getByRole('button', { name: /^Volver/ })).toHaveCount(0);
+    await nav.getByRole('button', { name: 'Ir al inicio' }).click();
     await expect(page.getByTestId('settings-view')).toHaveCount(0);
-    await expect(config).toBeFocused();
+    await expect(page.getByRole('heading', { name: 'Auditar un CSV' })).toBeVisible();
   });
 
   test('J15 — Empezar otra pide confirmación cuando hay datos', async ({ page }) => {
@@ -56,12 +58,13 @@ test.describe('LOOP-01 Editorial — Inicio y carga', () => {
     const canvas = await page.locator('html').evaluate((el) => getComputedStyle(el).getPropertyValue('--bg').trim());
     expect(canvas.toLowerCase()).toBe('#ffffff');
     await page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('button', { name: 'Configuración' }).click();
+    await page.getByRole('button', { name: 'General' }).click();
     await expect(page.getByTestId('settings-view')).toBeVisible();
     await page.getByRole('switch', { name: 'Usar tema oscuro' }).click();
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
     const dark = await page.locator('html').evaluate((el) => getComputedStyle(el).getPropertyValue('--bg').trim());
     expect(dark.toLowerCase()).toBe('#161614');
-    await page.getByRole('button', { name: 'Volver a auditoría' }).click();
+    await page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('button', { name: 'Ir al inicio' }).click();
     await expect(page.getByTestId('settings-view')).toHaveCount(0);
   });
 

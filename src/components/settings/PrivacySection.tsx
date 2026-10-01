@@ -1,70 +1,60 @@
 import React from 'react';
-import { Cloud, Server, Shield } from 'lucide-react';
-
-type ProviderChoice = 'chrome' | 'ollama' | 'cloud';
+import type { ProviderChoice } from './ProvidersSection';
+import { api } from '../../services/api';
 
 interface PrivacySectionProps {
   activeProviderType: ProviderChoice;
-  apiKeyPresent: boolean;
 }
 
-const PROVIDER_PRIVACY_COPY: Record<ProviderChoice, { label: string; Icon: typeof Shield; note: string }> = {
+const PROVIDER_PRIVACY_COPY: Record<ProviderChoice, { label: string; note: string }> = {
   chrome: {
     label: 'Chrome AI',
-    Icon: Shield,
-    note: 'Ningún dato sale del dispositivo mientras este modo esté activo.',
+    note: 'Gemini Nano se ejecuta dentro del navegador. Ningún dato sale del dispositivo.',
   },
   ollama: {
     label: 'Ollama local',
-    Icon: Server,
-    note: 'La inferencia ocurre en tu máquina vía servidor local. Ningún dato sale del dispositivo.',
-  },
-  cloud: {
-    label: 'Cloud',
-    Icon: Cloud,
-    note: 'Se envía un paquete estructurado (columnas, estadísticas, hallazgos) al proveedor. No se envía el archivo CSV completo.',
+    note: 'La inferencia ocurre en este equipo a través del servidor local de Ollama. Ningún dato sale del dispositivo.',
   },
 };
 
-const PrivacySection: React.FC<PrivacySectionProps> = ({ activeProviderType, apiKeyPresent }) => {
+const PrivacySection: React.FC<PrivacySectionProps> = ({ activeProviderType }) => {
   const active = PROVIDER_PRIVACY_COPY[activeProviderType];
-  const ActiveIcon = active.Icon;
 
   return (
     <>
       <header className="settings-section-header">
         <p className="settings-section-breadcrumb">Configuración / Privacidad y datos</p>
         <h1 className="settings-section-h1">Privacidad y datos</h1>
-        <p className="settings-section-lead">Controla cómo AURA procesa, almacena y transmite la información.</p>
+        <p className="settings-section-lead">Qué procesa AURA en este equipo y qué podría salir de él.</p>
       </header>
 
-      <section className="settings-workspace-section">
-        <p className="settings-section-desc">Privacidad actual</p>
-        <div className="settings-active-provider-card">
-          <div>
-            <div className="settings-active-provider-title">
-              <span className="settings-active-provider-icon"><ActiveIcon size={18} /></span>
-              <div>
-                <strong>{active.label}</strong>
-                <span className="settings-active-provider-status">
-                  {activeProviderType === 'cloud' ? 'Puede salir del dispositivo' : '100 % local'}
-                </span>
-              </div>
-            </div>
-            <p>{active.note}</p>
-          </div>
-        </div>
+      <section className="settings-workspace-section" data-testid="privacy-current">
+        <h2 className="settings-section-title">Privacidad actual</h2>
+        <p className="settings-resolution-status">
+          <strong>{active.label} · 100 % local.</strong> {active.note}
+        </p>
       </section>
 
       <section className="settings-workspace-section">
         <h2 className="settings-section-title">Qué sale y qué se queda en tu navegador</h2>
-        <ul className="settings-privacy-list">
-          <li><strong>Chrome AI:</strong> Gemini Nano se ejecuta en el navegador. Ningún dato sale de tu dispositivo mientras este modo esté activo.</li>
-          <li><strong>Ollama local:</strong> La inferencia ocurre en tu máquina vía servidor local.</li>
-          <li><strong>Cloud:</strong> Se envía un paquete estructurado al proveedor. No se envía el archivo CSV completo.</li>
-          <li><strong>API keys:</strong> Permanecen solo en esta sesión del navegador ({apiKeyPresent ? 'clave presente' : 'sin clave guardada'}); no se guardan en almacenamiento persistente, sync ni exportaciones.</li>
-          <li><strong>Exportación:</strong> Tú decides qué exportar. Nada se exporta sin tu acción explícita.</li>
-        </ul>
+        <dl className="settings-meta-list">
+          <dt>Archivo CSV</dt>
+          <dd>Se procesa en el navegador. AURA no lo sube a ningún servicio.</dd>
+          <dt>Chrome AI</dt>
+          <dd>{PROVIDER_PRIVACY_COPY.chrome.note}</dd>
+          <dt>Ollama local</dt>
+          <dd>{PROVIDER_PRIVACY_COPY.ollama.note}</dd>
+          <dt>Proveedores cloud</dt>
+          <dd>Implementación futura. Esta versión no envía evidencia a servicios externos ni pide API keys.</dd>
+          {api.available() && (
+            <>
+              <dt>Preferencias</dt>
+              <dd data-testid="privacy-config-sync">Se sincronizan con la API de AURA configurada en este despliegue: proveedor, modelo y parámetros. Nunca el CSV ni sus filas.</dd>
+            </>
+          )}
+          <dt>Exportación</dt>
+          <dd>Tú decides qué exportar. Nada se exporta sin tu acción explícita.</dd>
+        </dl>
       </section>
     </>
   );

@@ -1,16 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, Save } from 'lucide-react';
+import { Save } from 'lucide-react';
 import { AIConfig, ProviderProgressEvent, SettingsSectionId } from '../types';
 import { getChromeAiDiagnostic } from '../services/aiProvider';
 import type { ChromeAiDiagnostic } from '../services/aiProvider';
-import { OLLAMA_SUGGESTED_MODELS, OllamaProvider } from '../services/providers/ollamaProvider';
+import { OllamaProvider } from '../services/providers/ollamaProvider';
 import type { OllamaModel } from '../services/providers/ollamaProvider';
 import OllamaSetupWizard from './OllamaSetupWizard';
 import { DEFAULT_OLLAMA_MODEL_ID } from '../services/modelRegistry';
 import { migrateFormalModelId } from '../services/aiConfigStorage';
 import { refreshOllamaModelCatalog } from '../services/ollamaModelCatalog';
 import GeneralSection from './settings/GeneralSection';
-import ProvidersSection, { isProviderChoice, type ProviderChoice } from './settings/ProvidersSection';
+import ProvidersSection, { DEFAULT_OLLAMA_ENDPOINT, isProviderChoice, type ProviderChoice } from './settings/ProvidersSection';
 import EvidenceSection, { migrateLegacyInputMode } from './settings/EvidenceSection';
 import PrivacySection from './settings/PrivacySection';
 import AdvancedDiagnosticsSection from './settings/AdvancedDiagnosticsSection';
@@ -20,10 +20,13 @@ interface SettingsPanelProps {
   onSave: (config: AIConfig) => void;
   onClose: () => void;
   section: SettingsSectionId;
+  onSectionChange?: (section: SettingsSectionId) => void;
   theme: 'dark' | 'light';
 }
 
-const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose, section, theme }) => {
+const SettingsPanel: React.FC<SettingsPanelProps> = ({
+  config, onSave, onClose, section, onSectionChange, theme,
+}) => {
   const [localConfig, setLocalConfig] = useState<AIConfig>(() => ({
     ...config,
     inputMode: migrateLegacyInputMode(config.inputMode),
@@ -45,6 +48,11 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose, 
     void checkChromeDiagnostic();
     void checkOllamaConnection();
   }, []);
+
+  // Cambiar de página de Configuración empieza por su título, no a mitad de la anterior.
+  useEffect(() => {
+    if (typeof window.scrollTo === 'function') window.scrollTo({ top: 0 });
+  }, [section]);
 
   useEffect(() => {
     if (chromeDiagnostic?.status === 'downloading' && !chromeProgress) {
@@ -73,7 +81,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose, 
   const checkOllamaConnection = async () => {
     setOllamaConnected(null);
     try {
-      const baseUrl = localConfig.ollamaBaseUrl || 'http://localhost:11434';
+      const baseUrl = localConfig.ollamaBaseUrl || DEFAULT_OLLAMA_ENDPOINT;
       const snapshot = await refreshOllamaModelCatalog(baseUrl);
       setOllamaConnected(true);
       setOllamaModels(snapshot.models);
@@ -91,18 +99,12 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose, 
         ...localConfig,
         providerType: 'ollama',
         model: savedModel || localConfig.ollamaModel || DEFAULT_OLLAMA_MODEL_ID,
-        ollamaBaseUrl: savedEndpoint || localConfig.ollamaBaseUrl || 'http://127.0.0.1:11434',
+        ollamaBaseUrl: savedEndpoint || localConfig.ollamaBaseUrl || DEFAULT_OLLAMA_ENDPOINT,
       });
       if (ollamaConnected !== true) sessionStorage.setItem('aura_ollama_setup_started', 'true');
       return;
     }
-    const defaults: Record<'chrome' | 'cloud', string> = { chrome: 'gemini-nano', cloud: 'gemini-2.5-flash' };
-    setLocalConfig({
-      ...localConfig,
-      providerType: type,
-      model: defaults[type],
-      cloudProvider: type === 'cloud' ? (localConfig.cloudProvider || 'google') : undefined,
-    });
+    setLocalConfig({ ...localConfig, providerType: 'chrome', model: 'gemini-nano', cloudProvider: undefined });
   };
 
   const handlePrepareChrome = async () => {
@@ -141,7 +143,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose, 
     const model = ollamaPullModel || localConfig.model || DEFAULT_OLLAMA_MODEL_ID;
     setOllamaPullProgress({ stage: 'downloading', progress: 0, message: 'Iniciando descarga...' });
     try {
-      const baseUrl = localConfig.ollamaBaseUrl || 'http://localhost:11434';
+      const baseUrl = localConfig.ollamaBaseUrl || DEFAULT_OLLAMA_ENDPOINT;
       const provider = new OllamaProvider(model, localConfig.temperature, baseUrl);
       await provider.pullModel(model, (progress, message) => {
         setOllamaPullProgress({ stage: 'downloading', progress, message });
@@ -163,16 +165,10 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose, 
     onClose();
   };
 
-  const activeProviderType: ProviderChoice = isProviderChoice(localConfig.providerType) ? localConfig.providerType : 'cloud';
+  const activeProviderType: ProviderChoice = isProviderChoice(localConfig.providerType) ? localConfig.providerType : 'chrome';
 
   return (
     <main className="settings-workspace" data-testid="settings-workspace">
-      <div className="settings-workspace-header">
-        <button className="settings-back-btn" onClick={onClose}>
-          <ArrowLeft size={14} /> Volver a auditoría
-        </button>
-      </div>
-
       <div className="settings-workspace-body">
         {section === 'general' && (
           <GeneralSection theme={theme} />
@@ -183,13 +179,17 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose, 
             config={localConfig}
             onChange={setLocalConfig}
             setProviderType={setProviderType}
+            onSectionChange={onSectionChange}
             chromeDiagnostic={chromeDiagnostic}
+            chromeProgress={chromeProgress}
             isPreparingChrome={isPreparingChrome}
             onCheckChrome={checkChromeDiagnostic}
+            onPrepareChrome={handlePrepareChrome}
             ollamaConnected={ollamaConnected}
             ollamaModels={ollamaModels}
             ollamaLoading={ollamaLoading}
             onTestOllama={handleFetchOllamaModels}
+            onOpenOllamaWizard={() => setShowOllamaWizard(true)}
             onUseOllamaModel={handleUseOllamaModel}
           />
         )}
@@ -202,7 +202,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onSave, onClose, 
         )}
 
         {section === 'privacidad' && (
-          <PrivacySection activeProviderType={activeProviderType} apiKeyPresent={!!localConfig.apiKey} />
+          <PrivacySection activeProviderType={activeProviderType} />
         )}
 
         {section === 'diagnostico' && (

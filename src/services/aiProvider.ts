@@ -13,6 +13,7 @@ import type { ChromePromptProvider } from './providers/chromeProvider';
 import type { GeminiProvider } from './providers/geminiProvider';
 import type { OpenAIProvider } from './providers/openaiProvider';
 import { CLOUD_MODELS, DEFAULT_OLLAMA_MODEL_ID } from './modelRegistry';
+import { enforceProviderAvailability } from './providerAvailability';
 
 export { AVAILABLE_MODELS, LOCAL_MODELS, CLOUD_MODELS, CHROME_MODELS, OLLAMA_MODELS } from './modelRegistry';
 export { checkModelDownloaded, deleteDownloadedModel, getDownloadedModels, getLocalModelStatus, markPreloadVerified, clearPreloadVerification } from './modelManager';
@@ -262,8 +263,8 @@ class LazyCloudProvider implements AIProvider {
 // ── Factory ──
 
 export const createAIProvider = (config: AIConfig): AIProvider => {
-  // Migrate legacy 'local' providerType
-  const migrated = migrateLegacyConfig(config);
+  // Migrate legacy 'local' providerType; cloud stays disabled (future implementation)
+  const migrated = enforceProviderAvailability(migrateLegacyConfig(config));
 
   switch (migrated.providerType) {
     case 'chrome':

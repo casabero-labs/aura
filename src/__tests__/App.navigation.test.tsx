@@ -94,18 +94,35 @@ describe('App - accessible global navigation', () => {
     expect(screen.getByTestId('settings-workspace')).toBeTruthy();
     expect(screen.queryByRole('heading', { name: 'Auditar un CSV' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Configuración' }).getAttribute('aria-current')).toBe('page');
+    // Solo la utilidad abierta es la página actual; el origen no compite.
+    expect(screen.getByRole('button', { name: 'Ir al inicio' }).getAttribute('aria-current')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Auditoría' }).getAttribute('aria-current')).toBeNull();
   });
 
-  it('returns focus to Configuración after leaving the view with Volver', async () => {
+  it('has no return button in Configuración or Ayuda: the menu is the way out', async () => {
     const user = userEvent.setup();
     render(<App />);
 
-    const config = screen.getByRole('button', { name: 'Configuración' });
-    await user.click(config);
+    await user.click(screen.getByRole('button', { name: 'Laboratorio' }));
+    await user.click(screen.getByRole('button', { name: 'Configuración' }));
     await user.click(screen.getByRole('button', { name: 'General' }));
-    await user.click(screen.getByRole('button', { name: 'Volver a auditoría' }));
+    expect(screen.queryByRole('button', { name: /^Volver/i })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Laboratorio' }).getAttribute('aria-current')).toBeNull();
 
-    await waitFor(() => expect(document.activeElement).toBe(config));
+    await user.click(screen.getByRole('button', { name: 'Ayuda' }));
+    expect(screen.getByTestId('help-view')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /^Volver/i })).toBeNull();
+  });
+
+  it('leaves Configuración through a menu destination', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: 'Configuración' }));
+    await user.click(screen.getByRole('button', { name: 'General' }));
+    await user.click(screen.getByRole('button', { name: 'Ir al inicio' }));
+
     expect(screen.queryByTestId('settings-view')).toBeNull();
+    expect(screen.getByRole('heading', { name: 'Auditar un CSV' })).toBeTruthy();
   });
 });

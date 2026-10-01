@@ -100,7 +100,7 @@ describe('SettingsPanel - Ollama model reconciliation', () => {
     expect(Array.from(select.options).some((option) => option.value === 'mistral:7b')).toBe(false);
   });
 
-  it('"Usar este modelo" remains a draft until the user saves', async () => {
+  it('choosing a model remains a draft until the user saves', async () => {
     const config: AIConfig = {
       ...baseConfig,
       model: 'mistral:7b',
@@ -109,11 +109,8 @@ describe('SettingsPanel - Ollama model reconciliation', () => {
 
     renderPanel(config, 'ia');
 
-    await waitFor(() => {
-      expect(screen.getByTestId('ollama-use-model-gemma2_2b')).toBeTruthy();
-    });
-
-    fireEvent.click(screen.getByTestId('ollama-use-model-gemma2_2b'));
+    const select = await screen.findByTestId('ollama-model-select') as HTMLSelectElement;
+    fireEvent.change(select, { target: { value: 'gemma2:2b' } });
 
     expect(localStorageStore.get('aura_ollama_model')).toBeUndefined();
     expect(onSave).not.toHaveBeenCalled();
@@ -157,7 +154,7 @@ describe('SettingsPanel - Ollama model reconciliation', () => {
     });
   });
 
-  it('marks currently active model with check icon', async () => {
+  it('shows the configured model as the single selected option', async () => {
     const config: AIConfig = {
       ...baseConfig,
       model: 'gemma2:2b',
@@ -166,9 +163,19 @@ describe('SettingsPanel - Ollama model reconciliation', () => {
 
     renderPanel(config, 'ia');
 
-    await waitFor(() => {
-      expect(screen.getByTestId('ollama-model-active-gemma2_2b')).toBeTruthy();
-    });
+    const select = await screen.findByTestId('ollama-model-select') as HTMLSelectElement;
+    await waitFor(() => expect(select.value).toBe('gemma2:2b'));
+    expect(screen.queryByText('Usar este modelo')).toBeNull();
+  });
+
+  it('offers the Ollama assistant on the provider page when the connection fails', async () => {
+    fetchSpy.mockImplementation(() => Promise.reject(new TypeError('Failed to fetch')));
+    renderPanel(baseConfig, 'ia');
+
+    const trigger = await screen.findByTestId('ollama-open-setup');
+    expect(trigger.textContent).toBe('Conectar Ollama de este equipo');
+    expect(screen.getByTestId('ollama-retry-connection')).toBeTruthy();
+    expect(screen.queryByText(/revisa el estado en Diagnóstico avanzado/i)).toBeNull();
   });
 
   it('hides temperature control for Chrome AI', () => {
@@ -177,14 +184,78 @@ describe('SettingsPanel - Ollama model reconciliation', () => {
     expect(screen.queryByText('Temperatura del modelo')).toBeNull();
   });
 
-  it('requires an API key field for OpenRouter and does not claim it is ready', async () => {
+  it('does not offer cloud providers: they are a future implementation', async () => {
     renderPanel({
       ...baseConfig,
       providerType: 'cloud', cloudProvider: 'openrouter', model: 'openrouter/test', apiKey: '',
     }, 'ia');
 
-    expect(await screen.findByLabelText('API Key (solo durante esta sesión)')).toBeTruthy();
-    expect(await screen.findByText('API key pendiente')).toBeTruthy();
+    expect(screen.queryByTestId('provider-mode-cloud')).toBeNull();
+    expect(screen.queryByLabelText(/API Key/i)).toBeNull();
+    expect((screen.getByTestId('provider-mode-chrome') as HTMLInputElement).checked).toBe(true);
+    expect(screen.getByTestId('provider-cloud-future').textContent).toMatch(/implementación futura/i);
+  });
+
+  it('has no return button: leaving Configuración is done from the menu', () => {
+    renderPanel(baseConfig, 'general');
+    expect(screen.queryByRole('button', { name: /^Volver/i })).toBeNull();
+  });
+
+  describe('Chrome AI resolution on the provider page', () => {
+    afterEach(() => {
+      delete (globalThis as any).LanguageModel;
+    });
+
+    it('offers "Preparar Gemini Nano" where the missing download is reported', async () => {
+      (globalThis as any).LanguageModel = {
+        availability: vi.fn().mockResolvedValue({ available: 'after-download' }),
+      };
+      renderPanel({ ...baseConfig, providerType: 'chrome', model: 'gemini-nano' }, 'ia');
+
+      const prepare = await screen.findByTestId('chrome-ai-prepare');
+      expect(prepare.textContent).toBe('Preparar Gemini Nano');
+      expect(screen.getByTestId('provider-status-chrome').textContent).toBe('Requiere descargar Gemini Nano');
+    });
+
+    it('lists the activation steps and a local alternative when Chrome AI is unavailable', async () => {
+      const onSectionChange = vi.fn();
+      render(
+        <SettingsPanel
+          config={{ ...baseConfig, providerType: 'chrome', model: 'gemini-nano' }}
+          onSave={onSave}
+          onClose={onClose}
+          section="ia"
+          onSectionChange={onSectionChange}
+          theme="light"
+        />,
+      );
+
+      const steps = await screen.findByTestId('chrome-ai-steps');
+      expect(steps.textContent).toMatch(/chrome:\/\/flags/);
+      expect(steps.textContent).not.toMatch(/Cloud/);
+      expect(screen.queryByTestId('chrome-ai-prepare')).toBeNull();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Usar Ollama local' }));
+      expect((screen.getByTestId('provider-mode-ollama') as HTMLInputElement).checked).toBe(true);
+    });
+
+    it('links to the full activation guide without losing the draft', async () => {
+      const onSectionChange = vi.fn();
+      render(
+        <SettingsPanel
+          config={{ ...baseConfig, providerType: 'chrome', model: 'gemini-nano' }}
+          onSave={onSave}
+          onClose={onClose}
+          section="ia"
+          onSectionChange={onSectionChange}
+          theme="light"
+        />,
+      );
+
+      fireEvent.click(await screen.findByRole('button', { name: /Guía completa de activación/i }));
+      expect(onSectionChange).toHaveBeenCalledWith('diagnostico');
+      expect(onSave).not.toHaveBeenCalled();
+    });
   });
 
   describe('Evidence modes (Issue #25)', () => {

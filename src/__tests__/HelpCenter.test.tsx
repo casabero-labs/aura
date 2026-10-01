@@ -14,14 +14,14 @@
  */
 
 import React from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import HelpCenter from '../components/HelpCenter';
 
 describe('HelpCenter — contrato coherente con el flujo real', () => {
   it('enumera las cinco etapas principales del flujo', () => {
-    render(<HelpCenter onClose={vi.fn()} />);
+    render(<HelpCenter />);
 
     const flow = screen.getByTestId('help-section-flujo-completo');
     const text = flow.textContent ?? '';
@@ -34,7 +34,7 @@ describe('HelpCenter — contrato coherente con el flujo real', () => {
   });
 
   it('declara script, revisión y ejecución como rama opcional de remediación', () => {
-    render(<HelpCenter onClose={vi.fn()} />);
+    render(<HelpCenter />);
 
     const flow = screen.getByTestId('help-section-flujo-completo');
     const text = flow.textContent ?? '';
@@ -48,7 +48,7 @@ describe('HelpCenter — contrato coherente con el flujo real', () => {
 
   it('buscar literalmente "proveedor no disponible" devuelve la sección pertinente', async () => {
     const user = userEvent.setup();
-    render(<HelpCenter onClose={vi.fn()} />);
+    render(<HelpCenter />);
 
     await user.type(screen.getByPlaceholderText(/Buscar/i), 'proveedor no disponible');
 
@@ -60,20 +60,33 @@ describe('HelpCenter — contrato coherente con el flujo real', () => {
 
     expect(content).toContain('Continuar con informe determinista');
     expect(content).toContain('Cambiar proveedor');
-    expect(content).toMatch(/API key/i);
     expect(content).toMatch(/Ollama/i);
   });
 
-  it('la sección de proveedor distingue cloud sin API key de Ollama apagado', async () => {
+  it('declara los proveedores cloud como implementación futura, sin pedir API keys', () => {
+    render(<HelpCenter />);
+
+    const privacy = screen.getByTestId('help-section-privacidad').textContent ?? '';
+    expect(privacy).toMatch(/implementación futura/i);
+    expect(privacy).not.toMatch(/localStorage/);
+  });
+
+  it('no tiene botón de retorno: se sale por el menú', () => {
+    render(<HelpCenter />);
+    expect(screen.queryByRole('button', { name: /^Volver/i })).toBeNull();
+  });
+
+  it('la sección de proveedor explica Ollama apagado y Chrome AI con su salida real', async () => {
     const user = userEvent.setup();
-    render(<HelpCenter onClose={vi.fn()} />);
+    render(<HelpCenter />);
 
     await user.type(screen.getByPlaceholderText(/Buscar/i), 'proveedor no disponible');
     const section = screen.getByTestId('help-section-proveedor-no-disponible');
     await user.click(section.querySelector('.help-center-section-header') as HTMLElement);
 
     const content = section.textContent ?? '';
-    expect(content).toMatch(/sin API key/i);
+    expect(content).toMatch(/Ollama no disponible/i);
+    expect(content).toMatch(/Preparar|preparar Gemini Nano/);
     expect(content).toMatch(/Configuración/);
     expect(content).toMatch(/no fabrica|sin fabricar|no inventa/i);
   });

@@ -21,6 +21,7 @@ import MainPipeline, { PipelineData } from './components/MainPipeline';
 import { loadFromApi, syncToApi } from './services/api';
 import { createAIProvider } from './services/aiProvider';
 import { loadAIConfig, persistAIConfig, sanitizeAIConfig } from './services/aiConfigStorage';
+import { enforceProviderAvailability } from './services/providerAvailability';
 import { generatePdfReport } from './services/pdfGenerator';
 import { generateDiagnosticPdfReport } from './services/diagnosticReport';
 import { buildEvidenceManifest } from './services/evidenceManifest';
@@ -242,7 +243,7 @@ const App: React.FC = () => {
   useEffect(() => {
     loadFromApi<AIConfig>('ai_config', aiConfig).then((remote) => {
       if (!remote) return;
-      const safeRemote = sanitizeAIConfig(remote);
+      const safeRemote = enforceProviderAvailability(sanitizeAIConfig(remote));
       if (JSON.stringify(safeRemote) !== JSON.stringify(sanitizeAIConfig(aiConfig))) {
         setAiConfig((current) => ({ ...safeRemote, apiKey: current.apiKey }));
       }
@@ -745,11 +746,10 @@ const App: React.FC = () => {
     closeMobileNavigation(showMobileNav);
   };
 
-  // Sin drawers: Configuración y Ayuda son vistas exclusivas. Al volver,
-  // el foco regresa al disparador de la nav.
+  // Sin drawers: Configuración y Ayuda son vistas exclusivas. Al guardar o
+  // cancelar Configuración, el foco regresa al disparador de la nav.
   const settingsNavRef = useRef<HTMLElement>(null);
   const settingsDetailsRef = useRef<HTMLDetailsElement>(null);
-  const helpNavRef = useRef<HTMLButtonElement>(null);
   const settingsViewRef = useRef<HTMLElement>(null);
   const helpViewRef = useRef<HTMLElement>(null);
 
@@ -799,18 +799,18 @@ const App: React.FC = () => {
     requestAnimationFrame(() => settingsNavRef.current?.focus());
   }, []);
 
-  const closeHelp = useCallback(() => {
-    setShowHelp(false);
-    requestAnimationFrame(() => helpNavRef.current?.focus());
-  }, []);
-
   const showUtilityView = showSettings || showHelp;
+  // Configuración y Ayuda no tienen botón de retorno: se sale por el menú.
+  // Con una utilidad abierta, solo ella es la página actual de la nav.
+  const isAuditCurrent = !showHome && !showExperimentCampaign && !showUtilityView;
+  const isLabCurrent = showExperimentCampaign && !showUtilityView;
 
   const applyCampaignPipelineConfiguration = (configuration: CampaignPipelineConfigurationV1) => {
     setAiConfig((current) => applyCampaignConfigurationToAIConfig(current, configuration));
   };
 
-  const goSettings = openSettings;
+  // Desde el diagnóstico, «Cambiar proveedor» abre la página donde se cambia, no General.
+  const goProviderSettings = () => openSettings('ia');
 
   const handleDestroySession = () => {
     setShowDestroySessionDialog(true);
@@ -869,7 +869,7 @@ const App: React.FC = () => {
             className="nav-brand"
             onClick={goHome}
             aria-label="Ir al inicio"
-            aria-current={showHome ? 'page' : undefined}
+            aria-current={showHome && !showUtilityView ? 'page' : undefined}
             type="button"
           >
             <span className="nav-logo">AURA</span>
@@ -877,17 +877,17 @@ const App: React.FC = () => {
 
           <div className="nav-work" aria-label="Destinos de trabajo">
             <button
-              className={`nav-work-item nav-menu-item ${!showHome && !showExperimentCampaign ? 'active' : ''}`}
+              className={`nav-work-item nav-menu-item ${isAuditCurrent ? 'active' : ''}`}
               onClick={goAudit}
-              aria-current={!showHome && !showExperimentCampaign ? 'page' : undefined}
+              aria-current={isAuditCurrent ? 'page' : undefined}
               type="button"
             >
               Auditoría
             </button>
             <button
-              className={`nav-work-item nav-menu-item ${showExperimentCampaign ? 'active' : ''}`}
+              className={`nav-work-item nav-menu-item ${isLabCurrent ? 'active' : ''}`}
               onClick={goExperimentCampaign}
-              aria-current={showExperimentCampaign ? 'page' : undefined}
+              aria-current={isLabCurrent ? 'page' : undefined}
               type="button"
             >
               Laboratorio
@@ -924,7 +924,6 @@ const App: React.FC = () => {
             <button
               className="nav-utility"
               onClick={openHelp}
-              ref={helpNavRef}
               aria-current={showHelp ? 'page' : undefined}
               type="button"
             >
@@ -969,6 +968,7 @@ const App: React.FC = () => {
             onSave={setAiConfig}
             onClose={closeSettings}
             section={settingsSection}
+            onSectionChange={openSettings}
             theme={theme}
           />
         </section>
@@ -983,7 +983,7 @@ const App: React.FC = () => {
           tabIndex={-1}
         >
           <p className="sec-eye" id="help-view-title">Ayuda</p>
-          <HelpCenter onClose={closeHelp} />
+          <HelpCenter />
         </section>
       )}
 
@@ -1089,7 +1089,7 @@ const App: React.FC = () => {
               initialData={pipelineData}
               onPipelineChange={setPipelineData}
               onAiConfigChange={setAiConfig}
-              onOpenSettings={goSettings}
+              onOpenSettings={goProviderSettings}
               onLog={(stage, msg) => { /* logs handled internally by MainPipeline */ }}
             />
           </section>

@@ -66,7 +66,7 @@ Marca de producto: wordmark **AURA** en serif, solo texto — sin icono ni mark 
 
 2. **Autorizar no es seleccionar.** Checkbox, foco y fila activa no aprueban. Aprobar, ejecutar, descargar y verificar son verbos distintos. Un recibo válido no afirma integridad semántica. Preservar `001`, `120.00`, vacíos y acentos.
 
-3. **Un sistema, dos destinos.** Auditoría y Laboratorio son el trabajo. Inicio es la marca. Configuración y Ayuda son utilidades etiquetadas con retorno al origen. Sin hero, sin tercer flujo principal, sin clonar el catálogo dentro del producto.
+3. **Un sistema, dos destinos.** Auditoría y Laboratorio son el trabajo. Inicio es la marca. Configuración y Ayuda son utilidades etiquetadas en el menú, sin botón de retorno: se sale por la navegación (decisión 2026-10-01). Solo la pestaña standalone de Ollama, que no tiene menú, conserva «Cerrar y volver a AURA». Sin hero, sin tercer flujo principal, sin clonar el catálogo dentro del producto.
 
 4. **Geometría y foco estables.** El layout no baila al cambiar de etiqueta. El campo tiene un solo perímetro de foco. El movimiento explica estado (progreso, overlay, confirmación), no adorna. Oscuro es Editorial, no inversión.
 

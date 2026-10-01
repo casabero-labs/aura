@@ -251,8 +251,12 @@ const RECOVERY_VIEWPORTS = [
 const isBrowserNoise = (message: string): boolean =>
   message.includes('favicon') || message.includes('ResizeObserver');
 
-/** Proveedor cloud sin API key: determinista y sin tráfico de red. */
-async function seedCloudWithoutApiKey(page: any) {
+/**
+ * Configuración cloud heredada. Cloud es implementación futura: AURA la
+ * restaura como Chrome AI, que en Chromium de Playwright no existe. Resultado
+ * determinista y sin tráfico de red: proveedor local no disponible.
+ */
+async function seedRetiredCloudConfig(page: any) {
   await page.addInitScript(() => {
     window.localStorage.setItem('aura_ai_config', JSON.stringify({
       providerType: 'cloud',
@@ -301,7 +305,7 @@ async function walkToDiagnosisWithoutProvider(page: any) {
 test.describe('Issue #38 — L12B Recuperación explícita del proveedor', () => {
 
   for (const viewport of RECOVERY_VIEWPORTS) {
-    test(`L12B-01 — recorrido humano hasta el informe con cloud sin API key (${viewport.name})`, async ({ page }) => {
+    test(`L12B-01 — recorrido humano hasta el informe con cloud heredado y Chrome AI ausente (${viewport.name})`, async ({ page }) => {
       const pageErrors: string[] = [];
       const consoleErrors: string[] = [];
       page.on('pageerror', (err: Error) => pageErrors.push(err.message));
@@ -310,7 +314,7 @@ test.describe('Issue #38 — L12B Recuperación explícita del proveedor', () =>
       });
 
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
-      await seedCloudWithoutApiKey(page);
+      await seedRetiredCloudConfig(page);
       await walkToDiagnosisWithoutProvider(page);
 
       // 1. Estado de recuperación con causa específica del proveedor actual.
@@ -320,13 +324,18 @@ test.describe('Issue #38 — L12B Recuperación explícita del proveedor', () =>
 
       const cause = page.getByTestId('provider-recovery-cause');
       await expect(cause).toBeVisible();
-      await expect(cause).toContainText(/API key/i);
-      await expect(cause).toContainText(/Google/i);
-      await expect(cause).not.toContainText(/Ollama/i);
+      // Cloud no reaparece: la configuración heredada se restauró como Chrome AI.
+      await expect(cause).toContainText(/Chrome AI|Gemini Nano/i);
+      await expect(cause).not.toContainText(/API key|Cloud/i);
 
       // 2. CTA asistida deshabilitada mientras la causa es visible.
       const assistedCta = page.getByTestId('diagnosis-generate');
       await expect(assistedCta).toBeDisabled();
+      // La verificación de Chrome AI es asíncrona: esperar a que termine la
+      // transición del estado deshabilitado antes de leer su estilo.
+      await expect.poll(() => assistedCta.evaluate((element) => (
+        Number.parseFloat(window.getComputedStyle(element).opacity)
+      ))).toBeLessThan(1);
       const assistedCtaStyle = await assistedCta.evaluate((element) => {
         const style = window.getComputedStyle(element);
         return {
@@ -392,7 +401,7 @@ test.describe('Issue #38 — L12B Recuperación explícita del proveedor', () =>
     page.on('pageerror', (err: Error) => pageErrors.push(err.message));
 
     await page.setViewportSize({ width: 1440, height: 900 });
-    await seedCloudWithoutApiKey(page);
+    await seedRetiredCloudConfig(page);
     await walkToDiagnosisWithoutProvider(page);
 
     await expect(page.getByTestId('provider-recovery-alert')).toBeVisible({ timeout: 15_000 });
@@ -439,7 +448,7 @@ test.describe('Issue #38 — L12B Recuperación explícita del proveedor', () =>
     page.on('pageerror', (err: Error) => pageErrors.push(err.message));
 
     await page.setViewportSize({ width: 1440, height: 900 });
-    await seedCloudWithoutApiKey(page);
+    await seedRetiredCloudConfig(page);
     await walkToDiagnosisWithoutProvider(page);
 
     const settingsBtn = page.getByTestId('provider-recovery-settings');

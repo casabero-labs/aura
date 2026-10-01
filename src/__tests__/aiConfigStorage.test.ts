@@ -25,6 +25,15 @@ describe('AI configuration storage', () => {
     expect(loaded.apiKey).toBe('session-secret');
   });
 
+  it('never restores a cloud provider while cloud is a future implementation', () => {
+    const loaded = loadAIConfig(config, {
+      getItem: () => JSON.stringify(config),
+    }, { getItem: () => null });
+    expect(loaded.providerType).toBe('chrome');
+    expect(loaded.model).toBe('gemini-nano');
+    expect(loaded.cloudProvider).toBeUndefined();
+  });
+
   it('migrates superseded formal Ollama models before restoring or syncing', () => {
     const legacyQwen = 'hf.co/unsloth/Qwen3-8B-GGUF:UD-Q4_K_XL';
     const legacyGemma = 'hf.co/unsloth/gemma-3-4b-it-qat-GGUF:UD-Q4_K_XL';

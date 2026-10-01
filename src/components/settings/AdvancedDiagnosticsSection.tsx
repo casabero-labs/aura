@@ -1,11 +1,11 @@
 import React from 'react';
-import { AlertTriangle, CheckCircle, Cloud, Download, HelpCircle, Info, Loader2, Server } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Download, HelpCircle, Info, Loader2, Server } from 'lucide-react';
 import { AIConfig, ProviderProgressEvent } from '../../types';
 import type { ChromeAiDiagnostic } from '../../services/aiProvider';
 import { DEFAULT_OLLAMA_MODEL_ID } from '../../services/modelRegistry';
 import { OLLAMA_SUGGESTED_MODELS } from '../../services/providers/ollamaProvider';
 import type { OllamaModel } from '../../services/providers/ollamaProvider';
-import type { ProviderChoice } from './ProvidersSection';
+import { DEFAULT_OLLAMA_ENDPOINT, type ProviderChoice } from './ProvidersSection';
 
 const chromeStatusTone = (status?: ChromeAiDiagnostic['status']) => (status === 'available' ? 'ok' : 'warn');
 
@@ -88,8 +88,7 @@ const AdvancedDiagnosticsSection: React.FC<AdvancedDiagnosticsSectionProps> = ({
                       {isPreparingChrome ? 'Preparando...' : 'Preparar Gemini Nano'}
                     </button>
                   )}
-                  <button className="btn-s btn-sm" onClick={() => setProviderType('ollama')}>Usar Ollama</button>
-                  <button className="btn-s btn-sm" onClick={() => setProviderType('cloud')}>Usar Cloud</button>
+                  <button className="btn-s btn-sm" onClick={() => setProviderType('ollama')}>Usar Ollama local</button>
                 </div>
               )}
             </div>
@@ -106,7 +105,7 @@ const AdvancedDiagnosticsSection: React.FC<AdvancedDiagnosticsSectionProps> = ({
                     <p><strong>Ollama todavía no está conectado</strong></p>
                     <p className="settings-status-meta">AURA necesita conectarse con Ollama en este equipo.</p>
                     <div className="settings-field-row">
-                      <button className="btn-p btn-sm" onClick={onOpenOllamaWizard} data-testid="ollama-open-setup">Configurar Ollama en este equipo</button>
+                      <button className="btn-p btn-sm" onClick={onOpenOllamaWizard} data-testid="ollama-open-setup">Conectar Ollama de este equipo</button>
                       <button className="btn-s btn-sm" onClick={onTestOllama} data-testid="ollama-retry-connection">Volver a intentar</button>
                     </div>
                   </div>
@@ -116,7 +115,7 @@ const AdvancedDiagnosticsSection: React.FC<AdvancedDiagnosticsSectionProps> = ({
                 <>
                   <div className="settings-status-card settings-status-card--ok">
                     <CheckCircle size={14} className="settings-status-icon" />
-                    <p>Ollama conectado en {config.ollamaBaseUrl || 'http://localhost:11434'}. {ollamaModels.length} modelos encontrados.</p>
+                    <p>Ollama conectado en {config.ollamaBaseUrl || DEFAULT_OLLAMA_ENDPOINT}. {ollamaModels.length} modelos encontrados.</p>
                   </div>
                   <button className="btn-s btn-sm" onClick={onOpenOllamaWizard} data-testid="ollama-open-setup">Administrar conexión y modelos</button>
                 </>
@@ -192,7 +191,6 @@ const AdvancedDiagnosticsSection: React.FC<AdvancedDiagnosticsSectionProps> = ({
               <li><strong>Gemini Nano descargando sin avanzar:</strong> libera espacio en disco, reinicia Chrome y revisa <code>chrome://on-device-internals</code>.</li>
               <li><strong>Chrome AI no disponible:</strong> habilita <code>chrome://flags/#prompt-api-for-gemini-nano</code> y <code>Optimization Guide On Device Model</code>.</li>
               <li><strong>Ollama no responde:</strong> verifica que Ollama esté abierto y que el endpoint sea localhost o 127.0.0.1.</li>
-              <li><strong>API key inválida:</strong> verifica que la key sea correcta y tenga créditos disponibles.</li>
               <li><strong>Diagnóstico vacío:</strong> puedes continuar con el script determinista. El motor de reglas no depende del LLM.</li>
             </ul>
           </div>
@@ -202,7 +200,7 @@ const AdvancedDiagnosticsSection: React.FC<AdvancedDiagnosticsSectionProps> = ({
       <section className="settings-workspace-section">
         <div className="settings-info-box">
           <Info size={14} />
-          <p>Gemini Nano está integrado en Chrome, sin API key. Ollama ejecuta modelos locales en tu máquina. En modo Cloud, AURA envía solo el paquete estructurado, nunca el CSV completo.</p>
+          <p>Gemini Nano está integrado en Chrome, sin API key. Ollama ejecuta modelos locales en tu máquina. Los proveedores cloud son una implementación futura.</p>
         </div>
       </section>
     </>

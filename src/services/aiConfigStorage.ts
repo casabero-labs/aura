@@ -1,5 +1,6 @@
 import type { AIConfig } from '../types';
 import { FINAL_EVALUATION_OLLAMA_MODEL_IDS } from './modelRegistry';
+import { enforceProviderAvailability } from './providerAvailability';
 
 export const AI_CONFIG_STORAGE_KEY = 'aura_ai_config';
 export const AI_CONFIG_SECRET_KEY = 'aura_ai_api_key_session';
@@ -35,11 +36,11 @@ export const loadAIConfig = (
   } catch {
     safe = {};
   }
-  return {
+  return enforceProviderAvailability({
     ...fallback,
     ...safe,
     apiKey: session.getItem(AI_CONFIG_SECRET_KEY) || '',
-  };
+  });
 };
 
 export const persistAIConfig = (

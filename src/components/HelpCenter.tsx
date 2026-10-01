@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  ArrowLeft,
   Search,
   ChevronDown,
   Info,
@@ -18,10 +17,6 @@ import {
   FileCode2,
 } from 'lucide-react';
 
-interface HelpCenterProps {
-  onClose: () => void;
-}
-
 interface HelpSection {
   id: string;
   title: string;
@@ -30,7 +25,7 @@ interface HelpSection {
   content: React.ReactNode;
 }
 
-const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
+const HelpCenter: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
     new Set(['inicio-rapido', 'flujo-completo', 'privacidad'])
@@ -61,7 +56,7 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
           <ul className="help-checklist">
             <li>Usa <strong>Auditoría</strong> para cargar, perfilar, diagnosticar, generar el reporte diagnóstico y exportar; la remediación con script es opcional.</li>
             <li>Usa <strong>Laboratorio</strong> cuando ya tienes un reporte y quieres comparar modelos o configuraciones.</li>
-            <li>Usa <strong>Configuración</strong> para elegir Chrome AI, Ollama o Cloud, ajustar temperatura y revisar privacidad.</li>
+            <li>Usa <strong>Configuración</strong> para elegir Chrome AI u Ollama, ajustar temperatura y revisar privacidad.</li>
             <li>Exporta evidencia antes de cerrar si necesitas defender el análisis después.</li>
           </ul>
         </div>
@@ -137,15 +132,14 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
       id: 'privacidad',
       title: 'D. Privacidad y datos',
       icon: <Lock size={14} />,
-      searchText: 'privacidad local chrome ai ollama cloud api key datos sensibles csv navegador',
+      searchText: 'privacidad local chrome ai ollama cloud externo datos sensibles csv navegador',
       content: (
         <div className="help-section-body">
           <ul>
             <li><strong>CSV original:</strong> se procesa en el navegador. AURA no lo sube automáticamente.</li>
             <li><strong>Chrome AI:</strong> ejecuta el modelo integrado en el navegador cuando está disponible.</li>
             <li><strong>Ollama:</strong> usa un servidor local en <code>localhost:11434</code>. Los datos no salen de tu máquina salvo que tu configuración de red lo haga.</li>
-            <li><strong>Cloud:</strong> envía evidencia estructurada al proveedor elegido: nombres de columnas, estadísticas agregadas, hallazgos y resumen. No envía el archivo completo por diseño.</li>
-            <li><strong>API keys:</strong> se guardan en <code>localStorage</code> del navegador. No las pegues en reportes, capturas o issues públicos.</li>
+            <li><strong>Proveedores cloud:</strong> implementación futura. Esta versión no envía evidencia a servicios externos ni pide API keys.</li>
           </ul>
           <div className="help-callout help-callout--warning">
             <strong>Datos sensibles:</strong>
@@ -164,7 +158,7 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
           <dl className="help-glossary">
             <dt>Chrome AI</dt><dd>Opción local recomendada cuando el navegador la soporta. Ideal para privacidad y baja fricción, con disponibilidad dependiente de Chrome y del modelo instalado.</dd>
             <dt>Ollama local</dt><dd>Opción local robusta si ya tienes modelos instalados. Requiere abrir Ollama y permitir el origen de AURA si el navegador bloquea CORS.</dd>
-            <dt>Cloud</dt><dd>Útil cuando necesitas más capacidad o estabilidad de respuesta. Implica enviar evidencia estructurada a un proveedor externo.</dd>
+            <dt>Cloud</dt><dd>Implementación futura. Cuando exista, implicará enviar evidencia estructurada a un proveedor externo; hoy no está disponible.</dd>
             <dt>Temperatura</dt><dd>Para auditoría usa valores bajos, normalmente 0.1 o 0.2. Valores altos aumentan variación y riesgo de respuestas inventadas.</dd>
             <dt>Contrato</dt><dd>Instrucciones que limitan cómo debe responder el modelo. Si no sabes qué tocar, conserva el valor por defecto.</dd>
             <dt>¿Por qué aparecen inglés y español?</dt><dd>No son dos diagnósticos ni dos llamadas. En V2, AURA conserva en inglés la instrucción técnica estable, incorpora en español la evidencia procedente del motor y compone ambas piezas en una sola solicitud exacta, certificada por su hash. Un prompt completamente en español solo identifica una sesión histórica V1.</dd>
@@ -230,15 +224,13 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
       id: 'proveedor-no-disponible',
       title: 'I. Proveedor no disponible',
       icon: <ShieldAlert size={14} />,
-      searchText: 'proveedor no disponible cloud sin api key ollama apagado cors chrome ai webgpu continuar con informe determinista cambiar proveedor configuracion global recuperacion',
+      searchText: 'proveedor no disponible ollama apagado cors chrome ai gemini nano webgpu continuar con informe determinista cambiar proveedor configuracion global recuperacion',
       content: (
         <div className="help-section-body">
           <p>Cuando AURA verifica el proveedor asistido y no puede usarlo, la etapa de diagnóstico muestra el estado <strong>«Proveedor no disponible»</strong> con la causa concreta, el impacto y dos salidas reales. No necesitas el stepper ni otra superficie para entender qué pasó ni para avanzar.</p>
           <dl className="help-glossary">
-            <dt>Cloud sin API key</dt><dd>El proveedor cloud exige una clave para autenticar cada solicitud y no hay ninguna guardada en este navegador. Agrégala en Configuración. No es lo mismo que un servidor local apagado.</dd>
-            <dt>Cloud con clave que no responde</dt><dd>Existe una API key guardada pero el proveedor la rechaza o no contesta: puede ser inválida, estar vencida o carecer de permisos.</dd>
             <dt>Ollama no disponible</dt><dd>El servidor local no responde en <code>localhost:11434</code>, el modelo no está instalado o el navegador bloquea CORS. La causa que ves proviene del diagnóstico local de Ollama; abre la aplicación Ollama o usa «Conectar Ollama de este equipo».</dd>
-            <dt>Chrome AI / WebGPU</dt><dd>Dependen del navegador: Chrome AI requiere Gemini Nano instalado y WebLLM requiere WebGPU activo. La etapa muestra los pasos de activación cuando aplican.</dd>
+            <dt>Chrome AI / WebGPU</dt><dd>Dependen del navegador: Chrome AI requiere Gemini Nano instalado y WebLLM requiere WebGPU activo. La etapa muestra los pasos de activación cuando aplican; en Configuración → IA y proveedores puedes preparar Gemini Nano.</dd>
           </dl>
           <ul className="help-checklist">
             <li><strong>Continuar con informe determinista:</strong> genera el reporte diagnóstico con la evidencia del motor. No fabrica una respuesta del modelo: el informe declara que el diagnóstico asistido no se ejecutó.</li>
@@ -281,7 +273,7 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
             <dt>¿AURA modifica mi CSV?</dt><dd>No. Lee el archivo y simula sobre copias en memoria. Para aplicar cambios debes ejecutar el script aprobado fuera de AURA.</dd>
             <dt>¿Puedo usar AURA sin IA?</dt><dd>Sí. El perfil determinista y parte de la evidencia siguen siendo útiles aunque no ejecutes diagnóstico LLM.</dd>
             <dt>¿Qué exporto para entregar evidencia?</dt><dd>PDF para lectura, JSON para auditoría técnica, CSV de hallazgos para análisis y script aprobado si hubo propuesta de limpieza.</dd>
-            <dt>¿Qué proveedor conviene?</dt><dd>Chrome AI si está disponible y quieres privacidad inmediata; Ollama si tienes modelos locales; Cloud si necesitas capacidad externa y aceptas enviar evidencia estructurada.</dd>
+            <dt>¿Qué proveedor conviene?</dt><dd>Chrome AI si está disponible y quieres privacidad inmediata; Ollama si tienes modelos locales. Los proveedores cloud son una implementación futura.</dd>
             <dt>¿Qué hago si el modelo se equivoca?</dt><dd>Prioriza el perfil determinista, registra la limitación y ajusta configuración o proveedor desde Laboratorio.</dd>
           </dl>
         </div>
@@ -323,9 +315,6 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
   return (
     <main className="help-center" data-testid="help-center">
       <div className="help-center-header">
-        <button className="settings-back-btn" onClick={onClose}>
-          <ArrowLeft size={14} /> Volver a auditoría
-        </button>
         <div>
           <p className="sec-eye">centro de ayuda</p>
           <h1 className="sec-title">Ayuda de AURA</h1>

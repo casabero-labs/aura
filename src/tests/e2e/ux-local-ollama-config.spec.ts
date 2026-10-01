@@ -39,7 +39,7 @@ test.describe('Local Ollama configuration', () => {
 
     await page.reload({ waitUntil: 'domcontentloaded' });
     await page.getByRole('button', { name: 'Configuración' }).click();
-    await expect(page.getByTestId('provider-mode-ollama')).toHaveClass(/settings-provider-card--active/);
+    await expect(page.getByTestId('provider-mode-ollama')).toBeChecked();
     await expect(page.getByTestId('ollama-model-select')).toHaveValue(QWEN);
     await expect(page.getByText(/modelo: hf\.co\/unsloth\/Qwen3\.5-4B-GGUF:UD-Q4_K_XL/)).toBeVisible();
   });

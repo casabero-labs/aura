@@ -394,7 +394,7 @@ export const ChromeAiStatusPanel: React.FC<ChromeAiStatusPanelProps> = ({
     <div className="chrome-ai-api-missing-state">
       <div className="chrome-ai-status-message">
         <p><strong>API de Chrome AI no detectada en este navegador.</strong></p>
-        <p>El flujo determinístico de AURA y el resto de proveedores (Ollama, Cloud) no dependen de Chrome AI. Puedes continuar sin problema.</p>
+        <p>El flujo determinístico de AURA y Ollama local no dependen de Chrome AI. Puedes continuar sin problema.</p>
       </div>
       <div className="chrome-ai-actions-row">
         <button 

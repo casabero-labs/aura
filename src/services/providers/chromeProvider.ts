@@ -183,7 +183,7 @@ export async function getChromeAiDiagnostic(): Promise<ChromeAiDiagnostic> {
         'Abre chrome://flags y busca "Prompt API" o "Built-in AI".',
         'Activa las opciones disponibles y reinicia Chrome.',
         'Revisa chrome://on-device-internals para ver modelos descargados.',
-        'Prueba con Ollama o Cloud como alternativa.',
+        'Prueba con Ollama local como alternativa.',
       ];
       break;
     default:
@@ -199,7 +199,7 @@ export async function getChromeAiDiagnostic(): Promise<ChromeAiDiagnostic> {
         'Chrome AI fue detectado, pero la sesión falló al iniciar.',
         'Error: ' + (smokeTest.error || 'desconocido'),
         'Reinicia Chrome e intenta de nuevo.',
-        'Si el problema persiste, prueba con Ollama o Cloud.',
+        'Si el problema persiste, prueba con Ollama local.',
       ];
     }
   }
@@ -355,7 +355,7 @@ export class ChromePromptProvider implements AIProvider {
         throw new Error('Chrome requiere interacción del usuario para activar Gemini Nano. Pulsa "Preparar Gemini Nano".');
       }
       if (msg.includes('session')) {
-        throw new Error('Chrome AI fue detectado, pero la sesión falló al iniciar. Acciones: Probar sesión simple, Reiniciar Chrome, Usar Ollama, Usar Cloud');
+        throw new Error('Chrome AI fue detectado, pero la sesión falló al iniciar. Acciones: Probar sesión simple, Reiniciar Chrome, Usar Ollama local');
       }
       throw err;
     }

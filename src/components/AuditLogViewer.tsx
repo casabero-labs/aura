@@ -96,7 +96,7 @@ const AuditLogViewer: React.FC<AuditLogViewerProps> = ({ onClose }) => {
                   {expandedId === entry.id ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
                 </span>
                 <span className="audit-entry-provider">
-                  {entry.providerType === 'local' ? <Database size={10} /> : <CloudIcon size={10} />}
+                  {entry.providerType === 'cloud' ? <CloudIcon size={10} /> : <Database size={10} />}
                   {entry.provider}
                 </span>
                 <span className="audit-entry-model">{entry.model}</span>
