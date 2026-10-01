@@ -16,6 +16,7 @@ describe('ExecutionLogsPanel', () => {
   it('shows no logs message when empty', () => {
     const html = renderHtml({ logs: [] });
     expect(html).toContain('data-testid="no-logs"');
+    expect(html).toContain('No hay entradas en el registro.');
   });
 
   it('renders log list', () => {
@@ -47,7 +48,7 @@ describe('ExecutionLogsPanel', () => {
     const logs = Array.from({ length: 25 }, (_, i) => `log entry ${i}`);
     const html = renderHtml({ logs });
     expect(html).toContain('data-testid="toggle-logs"');
-    expect(html).toContain('Show 5 more');
+    expect(html).toContain('Mostrar 5 más');
   });
 
   it('does not show toggle when logs within limit', () => {
@@ -58,7 +59,7 @@ describe('ExecutionLogsPanel', () => {
   it('shows logs notice about AURA orchestration', () => {
     const html = renderHtml({ logs: [] });
     expect(html).toContain('data-testid="logs-notice"');
-    expect(html).toContain('AURA orchestration');
+    expect(html).toContain('orquestación de AURA');
   });
 
   it('renders runtime badge when execution provided', () => {
@@ -92,7 +93,7 @@ describe('ExecutionLogsPanel', () => {
     };
     const html = renderHtml({ logs: [], execution });
     expect(html).toContain('data-testid="status-badge"');
-    expect(html).toContain('failed');
+    expect(html).toContain('fallida');
   });
 
   it('shows duration when available', () => {
@@ -135,7 +136,7 @@ describe('ExecutionLogsPanel', () => {
 
   it('renders panel with empty execution logs', () => {
     const html = renderHtml({ logs: [] });
-    expect(html).toContain('Execution Logs');
+    expect(html).toContain('Registro de ejecución');
   });
 
   it('classifies failed log as error', () => {

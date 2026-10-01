@@ -43,7 +43,7 @@ export const PROHIBITED_CLAIMS: readonly string[] = [
   'external independent validation',
 ];
 
-export const DEMO_MODE_NOTICE = 'DEMO / EVIDENCE MODE — controlled fixture only';
+export const DEMO_MODE_NOTICE = 'MODO DEMO / EVIDENCIA — solo datos de prueba controlados';
 
 export function isProhibitedClaim(text: string): boolean {
   const lower = text.toLowerCase();

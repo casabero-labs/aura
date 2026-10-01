@@ -133,6 +133,6 @@ describe('isProhibitedClaim — Phase 8 L1 claims guard', () => {
 
   it('exports a recognizable demo notice constant', () => {
     expect(DEMO_MODE_NOTICE).toContain('DEMO');
-    expect(DEMO_MODE_NOTICE).toContain('fixture');
+    expect(DEMO_MODE_NOTICE).toContain('datos de prueba controlados');
   });
 });
