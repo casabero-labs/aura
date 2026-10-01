@@ -65,7 +65,7 @@ Preservado como compatibilidad interna (no se borra):
 - `src/services/improvementRunService.ts`, `improvementService.ts`, `reauditService.ts`
 - Tipos `HealthDelta`, `ImprovementRun`, `HitlDecision` en `src/types.ts`
 - Campos `improvementRun`, `healthDelta`, `hitlDecision` en el paquete de exportación
-- `src/tests/e2e/phase7-claims-visible.spec.ts` y `phase8-boundary.spec.ts` (archivados como evidencia histórica de Phase 5–7)
+- `src/tests/e2e/phase7-claims-visible.spec.ts`, `phase7-no-regression.spec.ts` y `phase8-boundary.spec.ts`: llegan al panel por su único montaje vigente (detalles técnicos de `ReviewStep` tras aprobar un script de la ruta histórica) vía `tests/e2e/helpers/improvementRunPanel.ts`. `phase7-healthdelta-screenshots.spec.ts` se retiró el 2026-10-01: escribía capturas en una carpeta de entrega ya archivada y sus aserciones las cubren `phase7-claims-visible` y `phase8-boundary` (003/004).
 - Documentación archivada de Phase 5–7
 
 ## 6. Cambios por archivo

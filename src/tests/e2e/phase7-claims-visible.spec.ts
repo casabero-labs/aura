@@ -2,7 +2,7 @@
  * Phase 7 Loop 3 — Claims Visible Verification.
  *
  * Verifies presence of required claims and absence of prohibited claims
- * in Health Delta UI across all visual states.
+ * in the improvement run panel (Health Delta) across all visual states.
  *
  * States tested:
  * - idle: real navigation, no execution
@@ -18,6 +18,7 @@
  */
 
 import { test, expect, type Page } from '@playwright/test';
+import { openImprovementRunPanel } from './helpers/improvementRunPanel';
 
 const PROHIBITED_PHRASES = [
   { pattern: /python ejecutado por aura/i, label: 'python ejecutado por aura' },
@@ -67,10 +68,7 @@ const CLAIM_NO_REAL = /no real datasets|no original data|not original data|fixtu
 const CLAIM_NOT_INDEPENDENT = /not independent|not external|external colab notebook|external runtime|same audit|reaudit/i;
 
 async function goToHealthDeltaIdle(page: Page) {
-  await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 60_000 });
-  await page.locator('.sys-nav').waitFor({ state: 'visible', timeout: 15_000 });
-  await page.locator('.nav-center-menu').getByRole('button', { name: 'Health Delta' }).click();
-  await page.waitForTimeout(300);
+  await openImprovementRunPanel(page);
 }
 
 test.describe('Phase 7 L3 — Claims Visible Verification', () => {
@@ -98,10 +96,7 @@ test.describe('Phase 7 L3 — Claims Visible Verification', () => {
   });
 
   test('E2E-CLM-001 — no prohibited claims in running state (harness)', async ({ page }) => {
-    await page.goto('/?phase7Visual=running', { waitUntil: 'domcontentloaded', timeout: 60_000 });
-    await page.locator('.sys-nav').waitFor({ state: 'visible', timeout: 15_000 });
-    await page.locator('.nav-center-menu').getByRole('button', { name: 'Health Delta' }).click();
-    await page.waitForTimeout(300);
+    await openImprovementRunPanel(page, '?phase7Visual=running');
     await page.locator('[data-testid="running-state"]').waitFor({ state: 'visible', timeout: 5000 });
     const text = await getPanelText(page);
     for (const { pattern, label } of PROHIBITED_PHRASES) {
@@ -111,10 +106,7 @@ test.describe('Phase 7 L3 — Claims Visible Verification', () => {
   });
 
   test('E2E-CLM-001 — no prohibited claims in error state (harness)', async ({ page }) => {
-    await page.goto('/?phase7Visual=error', { waitUntil: 'domcontentloaded', timeout: 60_000 });
-    await page.locator('.sys-nav').waitFor({ state: 'visible', timeout: 15_000 });
-    await page.locator('.nav-center-menu').getByRole('button', { name: 'Health Delta' }).click();
-    await page.waitForTimeout(300);
+    await openImprovementRunPanel(page, '?phase7Visual=error');
     await page.locator('[data-testid="error-state"]').waitFor({ state: 'visible', timeout: 5000 });
     const text = await getPanelText(page);
     for (const { pattern, label } of PROHIBITED_PHRASES) {
@@ -140,10 +132,7 @@ test.describe('Phase 7 L3 — Claims Visible Verification', () => {
   });
 
   test('E2E-CLM-003 — Colab external claim in running state (harness)', async ({ page }) => {
-    await page.goto('/?phase7Visual=running', { waitUntil: 'domcontentloaded', timeout: 60_000 });
-    await page.locator('.sys-nav').waitFor({ state: 'visible', timeout: 15_000 });
-    await page.locator('.nav-center-menu').getByRole('button', { name: 'Health Delta' }).click();
-    await page.waitForTimeout(300);
+    await openImprovementRunPanel(page, '?phase7Visual=running');
     await page.locator('[data-testid="running-state"]').waitFor({ state: 'visible', timeout: 5000 });
     const text = await getPanelText(page);
     expect(text).toMatch(CLAIM_COLAB);
@@ -158,10 +147,7 @@ test.describe('Phase 7 L3 — Claims Visible Verification', () => {
   });
 
   test('E2E-CLM-003 — Colab external claim in error state (harness)', async ({ page }) => {
-    await page.goto('/?phase7Visual=error', { waitUntil: 'domcontentloaded', timeout: 60_000 });
-    await page.locator('.sys-nav').waitFor({ state: 'visible', timeout: 15_000 });
-    await page.locator('.nav-center-menu').getByRole('button', { name: 'Health Delta' }).click();
-    await page.waitForTimeout(300);
+    await openImprovementRunPanel(page, '?phase7Visual=error');
     await page.locator('[data-testid="error-state"]').waitFor({ state: 'visible', timeout: 5000 });
     const text = await getPanelText(page);
     expect(text).toMatch(CLAIM_COLAB);
@@ -176,10 +162,7 @@ test.describe('Phase 7 L3 — Claims Visible Verification', () => {
   });
 
   test('E2E-CLM-004 — no real datasets claim in running state (harness)', async ({ page }) => {
-    await page.goto('/?phase7Visual=running', { waitUntil: 'domcontentloaded', timeout: 60_000 });
-    await page.locator('.sys-nav').waitFor({ state: 'visible', timeout: 15_000 });
-    await page.locator('.nav-center-menu').getByRole('button', { name: 'Health Delta' }).click();
-    await page.waitForTimeout(300);
+    await openImprovementRunPanel(page, '?phase7Visual=running');
     await page.locator('[data-testid="running-state"]').waitFor({ state: 'visible', timeout: 5000 });
     const text = await getPanelText(page);
     expect(text).toMatch(CLAIM_NO_REAL);
@@ -194,10 +177,7 @@ test.describe('Phase 7 L3 — Claims Visible Verification', () => {
   });
 
   test('E2E-CLM-004 — no real datasets claim in error state (harness)', async ({ page }) => {
-    await page.goto('/?phase7Visual=error', { waitUntil: 'domcontentloaded', timeout: 60_000 });
-    await page.locator('.sys-nav').waitFor({ state: 'visible', timeout: 15_000 });
-    await page.locator('.nav-center-menu').getByRole('button', { name: 'Health Delta' }).click();
-    await page.waitForTimeout(300);
+    await openImprovementRunPanel(page, '?phase7Visual=error');
     await page.locator('[data-testid="error-state"]').waitFor({ state: 'visible', timeout: 5000 });
     const text = await getPanelText(page);
     expect(text).toMatch(CLAIM_NO_REAL);
@@ -212,10 +192,7 @@ test.describe('Phase 7 L3 — Claims Visible Verification', () => {
   });
 
   test('E2E-CLM-005 — not independent claim in running state (harness)', async ({ page }) => {
-    await page.goto('/?phase7Visual=running', { waitUntil: 'domcontentloaded', timeout: 60_000 });
-    await page.locator('.sys-nav').waitFor({ state: 'visible', timeout: 15_000 });
-    await page.locator('.nav-center-menu').getByRole('button', { name: 'Health Delta' }).click();
-    await page.waitForTimeout(300);
+    await openImprovementRunPanel(page, '?phase7Visual=running');
     await page.locator('[data-testid="running-state"]').waitFor({ state: 'visible', timeout: 5000 });
     const text = await getPanelText(page);
     expect(text).toMatch(CLAIM_NOT_INDEPENDENT);
@@ -230,10 +207,7 @@ test.describe('Phase 7 L3 — Claims Visible Verification', () => {
   });
 
   test('E2E-CLM-005 — not independent claim in error state (harness)', async ({ page }) => {
-    await page.goto('/?phase7Visual=error', { waitUntil: 'domcontentloaded', timeout: 60_000 });
-    await page.locator('.sys-nav').waitFor({ state: 'visible', timeout: 15_000 });
-    await page.locator('.nav-center-menu').getByRole('button', { name: 'Health Delta' }).click();
-    await page.waitForTimeout(300);
+    await openImprovementRunPanel(page, '?phase7Visual=error');
     await page.locator('[data-testid="error-state"]').waitFor({ state: 'visible', timeout: 5000 });
     const text = await getPanelText(page);
     expect(text).toMatch(CLAIM_NOT_INDEPENDENT);
