@@ -1256,3 +1256,200 @@
   border-left: 0;
   border-right: 0;
 }
+
+/* ══ Fase 3 sin rellenos: estructura con filete, no con cajas (2026-10-01) ══
+   docs/plans/2026-10-01-aura-sin-rellenos.md. Sección = filete superior y aire;
+   aviso = borde izquierdo sobre el lienzo; código = filete arriba y abajo;
+   estado = texto, nunca pill. */
+
+/* Secciones y desplegables: un filete superior, sin marco ni sangría de caja. */
+[data-casabero-theme="editorial"] :is(
+  .settings-collapsible-section, .settings-workspace-section > details,
+  .diagnosis-tech-disclosure, .diagnosis-tech-section, .diagnosis-prompt-trace,
+  .diagnostic-report-disclosure, .diagnostic-report-tech-disclosure, .diagnostic-report-tech-section,
+  .diagnostic-report-remediation-lite, .technical-details, .colstats-full-panel,
+  .help-center-section, .export-delivery-block,
+  .oe4-setup, .oe4-installed-models, .oe4-inference-config
+) {
+  border: 0;
+  border-top: 0.5px solid var(--editorial-line);
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+[data-casabero-theme="editorial"] :is(
+  .settings-collapsible-summary, .settings-collapsible-body,
+  .help-center-section-header, .help-center-section-content
+) {
+  padding-left: 0;
+  padding-right: 0;
+  border-left: 0;
+  border-right: 0;
+  border-radius: 0;
+}
+
+/* Avisos y estados: borde izquierdo de tinta sobre el lienzo. */
+[data-casabero-theme="editorial"] :is(
+  .settings-status-card, .settings-info-box, .provider-recovery-alert,
+  .help-callout, .chrome-ai-status-strip, .export-session-block,
+  .oe4-configuration-identity
+) {
+  border: 0;
+  border-left: 2px solid var(--ink);
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  color: var(--ink);
+  padding: 4px 0 4px 16px;
+}
+
+/* Tiras de cifras: una línea de ficha entre filetes, sin marco ni separadores verticales. */
+[data-casabero-theme="editorial"] :is(
+  .diagnosis-summary-strip, .profile-summary-strip, .diagnostic-report-summary-strip
+) {
+  border: 0;
+  border-top: 0.5px solid var(--editorial-line);
+  border-bottom: 0.5px solid var(--editorial-line);
+  border-radius: 0;
+  box-shadow: none;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+[data-casabero-theme="editorial"] :is(
+  .diagnosis-summary-strip, .profile-summary-strip, .diagnostic-report-summary-strip
+) > * {
+  border-left: 0;
+  border-right: 0;
+}
+
+[data-casabero-theme="editorial"] :is(
+  .diagnosis-summary-strip, .profile-summary-strip, .diagnostic-report-summary-strip
+) > :first-child {
+  padding-left: 0;
+}
+
+/* Código, JSON y logs: filete arriba y abajo, como el catálogo. */
+[data-casabero-theme="editorial"] .syntax-display {
+  border: 0;
+  border-top: 0.5px solid var(--editorial-line);
+  border-bottom: 0.5px solid var(--editorial-line);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* Rejillas de datos del Laboratorio: solo filetes horizontales entre filas. */
+[data-casabero-theme="editorial"] :is(
+  .oe4-installed-models ul, .oe4-inference-summary, .oe4-protocol-grid, .oe4-progress,
+  .oe4-live-execution-grid, .oe4-run-meta, .oe4-run-technical dl, .reaudit-period-grid dl,
+  .oe4-evaluation-strip, .oe4-report-blockers, .oe4-score-method dl, .oe4-results-trust-strip,
+  .oe4-results-selection dl, .oe4-configuration-summary, .oe4-configuration-summary dl,
+  .oe4-configuration-evidence
+) {
+  border-left: 0;
+}
+
+[data-casabero-theme="editorial"] :is(
+  .oe4-installed-models ul, .oe4-inference-summary, .oe4-protocol-grid, .oe4-progress,
+  .oe4-live-execution-grid, .oe4-run-meta, .oe4-run-technical dl, .reaudit-period-grid dl,
+  .oe4-evaluation-strip, .oe4-report-blockers, .oe4-score-method dl, .oe4-results-trust-strip,
+  .oe4-results-selection dl, .oe4-configuration-summary, .oe4-configuration-evidence
+) > * {
+  border-right: 0;
+  padding-left: 0;
+}
+
+/* Pasos del flujo en Ayuda: lista con filete, no tarjetas. */
+[data-casabero-theme="editorial"] .help-flow-list > li,
+[data-casabero-theme="editorial"] .help-artifact-grid > * {
+  border: 0;
+  border-top: 0.5px solid var(--editorial-line);
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* Estado como texto, nunca pill. */
+[data-casabero-theme="editorial"] :is(.oe4-status, .stepper-branch, .rounded-full) {
+  border-radius: 0;
+}
+
+[data-casabero-theme="editorial"] .oe4-status {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  font-weight: 600;
+}
+
+/* Pistas y barras de datos con extremos rectos. */
+[data-casabero-theme="editorial"] :is(
+  .settings-progress-track, .profile-score-bar, .profile-score-fill, .profile-sev-bar-bg,
+  .profile-sev-bar-fill, .diagnostic-chart-track, .diagnostic-chart-fill,
+  .progress-disclosure-track, .progress-disclosure-fill, .ollama-model-download-track,
+  .oe4-live-progress-track
+) {
+  border-radius: 0;
+}
+
+/* «Cancelar» es ghost: texto subrayado, sin caja. */
+[data-casabero-theme="editorial"] .settings-save-bar .btn-s {
+  border-color: transparent;
+  text-decoration: underline;
+  text-decoration-thickness: 0.5px;
+  text-underline-offset: 4px;
+}
+
+/* Los botones de un campo no se estiran al ancho de la columna. */
+[data-casabero-theme="editorial"] .settings-field > :is(.btn-s, .btn-p) {
+  align-self: flex-start;
+  width: auto;
+}
+
+/* El encabezado del Laboratorio ya cierra con filete: el panel no repite otro. */
+[data-casabero-theme="editorial"] .oe4-setup {
+  border-top: 0;
+}
+
+/* La sección siguiente abre con su filete: el encabezado no cierra con otro. */
+[data-casabero-theme="editorial"] .diagnostic-report-hero {
+  border-bottom: 0;
+}
+
+[data-casabero-theme="editorial"] :is(.profile-editorial-header) {
+  border-bottom: 0;
+}
+
+/* El stepper ya cierra con filete: el panel del diagnóstico no abre con otro. */
+[data-casabero-theme="editorial"] .diagnosis-hero-panel {
+  border-top: 0;
+}
+
+/* Celdas de la tira alineadas al eje izquierdo también en la segunda fila. */
+[data-casabero-theme="editorial"] :is(
+  .diagnosis-summary-strip, .profile-summary-strip, .diagnostic-report-summary-strip
+) > * {
+  padding-left: 0;
+  padding-right: 24px;
+}
+
+/* Asistente de Ollama: sin marco propio (en diálogo, el diálogo ya enmarca;
+   en la pestaña standalone, es el documento). El diagrama es una figura entre filetes. */
+[data-casabero-theme="editorial"] .ollama-wizard {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+[data-casabero-theme="editorial"] .ollama-wizard-diagram {
+  border: 0;
+  border-top: 0.5px solid var(--editorial-line);
+  border-bottom: 0.5px solid var(--editorial-line);
+  border-radius: 0;
+  background: transparent;
+}

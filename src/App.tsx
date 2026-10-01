@@ -9,7 +9,7 @@ if (typeof __AURA_BUILD_SHA__ !== 'undefined') {
     'color: #888; font-size: 11px; font-family: monospace;',
   );
 }
-import { ArrowLeft, Download, FileJson, FileText, AlertTriangle, Trash2, X } from 'lucide-react';
+import { ArrowLeft, Download, AlertTriangle, Trash2, X } from 'lucide-react';
 import ChangelogModal from './components/ChangelogModal';
 import DestructiveSessionDialog from './components/DestructiveSessionDialog';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -982,7 +982,7 @@ const App: React.FC = () => {
           ref={helpViewRef}
           tabIndex={-1}
         >
-          <p className="sec-eye" id="help-view-title">Ayuda</p>
+          <span id="help-view-title" className="sr-only">Ayuda</span>
           <HelpCenter />
         </section>
       )}
@@ -1207,7 +1207,6 @@ const App: React.FC = () => {
 
                 <article className="export-delivery-card">
                   <div className="export-delivery-card-head">
-                    <FileText size={20} />
                     <div>
                       <h4>Informe diagnóstico PDF</h4>
                       <p>Documento de lectura del diagnóstico inicial. No incorpora el resumen de una reauditoría posterior.</p>
@@ -1238,7 +1237,6 @@ const App: React.FC = () => {
 
                 <article className="export-delivery-card">
                   <div className="export-delivery-card-head">
-                    <FileJson size={18} />
                     <div>
                       <h4>JSON técnico</h4>
                       <p>Expediente estructurado completo para auditoría, reproducción técnica o integración externa.</p>
@@ -1261,7 +1259,6 @@ const App: React.FC = () => {
 
                 <article className="export-delivery-card">
                   <div className="export-delivery-card-head">
-                    <Download size={18} />
                     <div>
                       <h4>CSV de hallazgos</h4>
                       <p>Vista tabular de los hallazgos para hojas de cálculo o revisión QA.</p>

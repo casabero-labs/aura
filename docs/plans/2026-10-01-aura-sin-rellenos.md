@@ -59,5 +59,14 @@ Los bloques de código, JSON y logs van sobre el lienzo con filete, sin fondo gr
   - `ImprovementRunPanel`, `ImprovementRunExportCard`, `HealthDeltaDashboard` y `ExecutionLogsPanel` pierden la paleta Tailwind, los radios de 8 a 999 px y `system-ui`.
   - Oscuro en negro puro `#000000` / `#FFFFFF`.
   - Excepción documentada: las reglas de impresión conservan `#000`, `#ccc` y `#666` (papel).
-- **Fase 3** pendiente: bordes de tarjeta, tarjetas de métricas (Diagnóstico y Laboratorio), badges con forma de pill, el bloque de tinta invertida `.oe4-configuration-identity` y las etiquetas en inglés de `HealthDeltaDashboard` («Improved», «Worsened»).
+- **Fase 3**: estructura con filete, sin cajas. Reglas en `styles/editorial-shell.css`.
+  - Secciones y desplegables (Diagnóstico avanzado, Ayuda, detalle técnico de Diagnóstico y Reporte, paneles del Laboratorio, Exportación, panel de columnas): un filete superior, sin marco.
+  - Avisos (estado de proveedores, «Proveedor no disponible», recuadros de Ayuda, sesión local, configuración elegida del Laboratorio): borde izquierdo de tinta. El bloque invertido `.oe4-configuration-identity` pasa a aviso.
+  - Tiras de cifras de Perfil, Diagnóstico y Reporte: una línea de ficha entre filetes. Rejillas del Laboratorio: solo filetes horizontales.
+  - Código entre filetes, como el catálogo. Asistente de Ollama sin marco y diagrama como figura.
+  - `.oe4-status` como texto; barras con extremos rectos; «Cancelar» de Configuración como ghost.
+  - Se quitan iconos decorativos de Diagnóstico avanzado, Ayuda y Exportación, y el eyebrow duplicado de Ayuda. Se eliminan los filetes dobles entre encabezados y secciones.
+  - Las tablas conservan su rejilla, como prescribe el estándar.
+- **Fuera de alcance:** el subsistema `ImprovementRun` (`ImprovementRunPanel`, `HealthDeltaDashboard`, `ExecutionLogsPanel`, `ImprovementRunExportCard`) sigue en inglés. Es trabajo de i18n, no visual.
+- **Fase 4** pendiente: barrido automatizado de estilos calculados en todos los recorridos (J01–J20), incluidas las vistas de resultados del Laboratorio, que necesitan una campaña.
 

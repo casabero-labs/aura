@@ -2,25 +2,11 @@ import React, { useState } from 'react';
 import {
   Search,
   ChevronDown,
-  Info,
-  Lock,
-  AlertTriangle,
-  HelpCircle,
-  FileText,
-  ClipboardList,
-  Brain,
-  Download,
-  FlaskConical,
-  ShieldAlert,
-  ShieldCheck,
-  Settings,
-  FileCode2,
 } from 'lucide-react';
 
 interface HelpSection {
   id: string;
   title: string;
-  icon: React.ReactNode;
   searchText: string;
   content: React.ReactNode;
 }
@@ -44,7 +30,6 @@ const HelpCenter: React.FC = () => {
     {
       id: 'inicio-rapido',
       title: 'A. Inicio rápido',
-      icon: <Info size={14} />,
       searchText: 'inicio rapido que es aura auditoria csv diagnostico local first navegador',
       content: (
         <div className="help-section-body">
@@ -65,7 +50,6 @@ const HelpCenter: React.FC = () => {
     {
       id: 'flujo-completo',
       title: 'B. Flujo completo de auditoría',
-      icon: <ClipboardList size={14} />,
       searchText: 'flujo completo cinco etapas carga perfil base diagnostico reporte diagnostico exportacion remediacion opcional script revision ejecucion',
       content: (
         <div className="help-section-body">
@@ -107,7 +91,6 @@ const HelpCenter: React.FC = () => {
     {
       id: 'lectura-resultados',
       title: 'C. Cómo leer los resultados',
-      icon: <Brain size={14} />,
       searchText: 'score severidad critico warning informativo hallazgos motor determinista evidencia',
       content: (
         <div className="help-section-body">
@@ -131,7 +114,6 @@ const HelpCenter: React.FC = () => {
     {
       id: 'privacidad',
       title: 'D. Privacidad y datos',
-      icon: <Lock size={14} />,
       searchText: 'privacidad local chrome ai ollama cloud externo datos sensibles csv navegador',
       content: (
         <div className="help-section-body">
@@ -151,7 +133,6 @@ const HelpCenter: React.FC = () => {
     {
       id: 'configuracion',
       title: 'E. Configuración de modelos',
-      icon: <Settings size={14} />,
       searchText: 'configuracion modelos chrome ai gemini nano ollama cloud temperatura contrato prompt idioma ingles español una llamada webgpu',
       content: (
         <div className="help-section-body">
@@ -170,7 +151,6 @@ const HelpCenter: React.FC = () => {
     {
       id: 'exportables',
       title: 'F. Exportables y evidencia',
-      icon: <Download size={14} />,
       searchText: 'exportar pdf json csv hallazgos script notebook colab evidencia manifest reproducibilidad',
       content: (
         <div className="help-section-body">
@@ -189,7 +169,6 @@ const HelpCenter: React.FC = () => {
     {
       id: 'laboratorio',
       title: 'G. Laboratorio de modelos',
-      icon: <FlaskConical size={14} />,
       searchText: 'laboratorio benchmark modelos configuraciones comparar corridas alucinaciones calibracion',
       content: (
         <div className="help-section-body">
@@ -206,7 +185,6 @@ const HelpCenter: React.FC = () => {
     {
       id: 'script',
       title: 'H. Script y revisión humana',
-      icon: <FileCode2 size={14} />,
       searchText: 'script pandas limpieza revision humana hitl simulacion copia delta salud aprobar rechazar',
       content: (
         <div className="help-section-body">
@@ -223,7 +201,6 @@ const HelpCenter: React.FC = () => {
     {
       id: 'proveedor-no-disponible',
       title: 'I. Proveedor no disponible',
-      icon: <ShieldAlert size={14} />,
       searchText: 'proveedor no disponible ollama apagado cors chrome ai gemini nano webgpu continuar con informe determinista cambiar proveedor configuracion global recuperacion',
       content: (
         <div className="help-section-body">
@@ -246,7 +223,6 @@ const HelpCenter: React.FC = () => {
     {
       id: 'errores',
       title: 'J. Errores frecuentes',
-      icon: <AlertTriangle size={14} />,
       searchText: 'errores frecuentes ollama chrome ai webgpu cache api key diagnostico vacio script simulacion',
       content: (
         <div className="help-section-body">
@@ -265,7 +241,6 @@ const HelpCenter: React.FC = () => {
     {
       id: 'faq',
       title: 'K. Preguntas frecuentes',
-      icon: <HelpCircle size={14} />,
       searchText: 'preguntas frecuentes modifica archivo original confiar script que exportar proveedor conviene',
       content: (
         <div className="help-section-body">
@@ -282,7 +257,6 @@ const HelpCenter: React.FC = () => {
     {
       id: 'glosario',
       title: 'L. Glosario',
-      icon: <FileText size={14} />,
       searchText: 'glosario dataset csv delimitador score hallazgo outlier iqr hitl manifest benchmark local first',
       content: (
         <div className="help-section-body">
@@ -343,7 +317,6 @@ const HelpCenter: React.FC = () => {
               onClick={() => toggleSection(section.id)}
               aria-expanded={expandedSections.has(section.id)}
             >
-              <span className="help-center-section-icon">{section.icon}</span>
               <span className="help-center-section-title">{section.title}</span>
               <ChevronDown size={14} className={`help-center-section-chevron ${expandedSections.has(section.id) ? 'help-center-section-chevron--open' : ''}`} />
             </button>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, CheckCircle, Download, HelpCircle, Info, Loader2, Server } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Download, Info, Loader2 } from 'lucide-react';
 import { AIConfig, ProviderProgressEvent } from '../../types';
 import type { ChromeAiDiagnostic } from '../../services/aiProvider';
 import { DEFAULT_OLLAMA_MODEL_ID } from '../../services/modelRegistry';
@@ -47,7 +47,6 @@ const AdvancedDiagnosticsSection: React.FC<AdvancedDiagnosticsSectionProps> = ({
       <section className="settings-workspace-section">
         <details className="settings-collapsible-section" open>
           <summary className="settings-collapsible-summary">
-            <Server size={14} />
             <span>Estado del sistema</span>
             <span className="settings-collapsible-hint">Chrome AI y Ollama</span>
           </summary>
@@ -128,7 +127,6 @@ const AdvancedDiagnosticsSection: React.FC<AdvancedDiagnosticsSectionProps> = ({
       <section className="settings-workspace-section">
         <details className="settings-collapsible-section">
           <summary className="settings-collapsible-summary">
-            <Download size={14} />
             <span>Compatibilidad e instalación</span>
             <span className="settings-collapsible-hint">Activar Chrome AI y descargar modelos Ollama</span>
           </summary>
@@ -182,7 +180,6 @@ const AdvancedDiagnosticsSection: React.FC<AdvancedDiagnosticsSectionProps> = ({
       <section className="settings-workspace-section">
         <details className="settings-collapsible-section">
           <summary className="settings-collapsible-summary">
-            <HelpCircle size={14} />
             <span>Solución de problemas</span>
             <span className="settings-collapsible-hint">Errores frecuentes y cómo resolverlos</span>
           </summary>
