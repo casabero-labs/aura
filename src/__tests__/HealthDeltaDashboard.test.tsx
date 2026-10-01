@@ -18,19 +18,19 @@ function renderHtml(props: Record<string, unknown>): string {
 describe('HealthDeltaDashboard', () => {
   describe('status rendering', () => {
     it('renders improved status', () => {
-      expect(renderHtml({ status: 'improved' })).toContain('Improved');
+      expect(renderHtml({ status: 'improved' })).toContain('Mejoró');
     });
 
     it('renders unchanged status', () => {
-      expect(renderHtml({ status: 'unchanged' })).toContain('Unchanged');
+      expect(renderHtml({ status: 'unchanged' })).toContain('Sin cambios');
     });
 
     it('renders worsened status', () => {
-      expect(renderHtml({ status: 'worsened' })).toContain('Worsened');
+      expect(renderHtml({ status: 'worsened' })).toContain('Empeoró');
     });
 
     it('renders inconclusive status', () => {
-      expect(renderHtml({ status: 'inconclusive' })).toContain('Inconclusive');
+      expect(renderHtml({ status: 'inconclusive' })).toContain('No concluyente');
     });
 
     it('renders status badge with data-testid', () => {
@@ -71,6 +71,8 @@ describe('HealthDeltaDashboard', () => {
     it('shows issues before and after', () => {
       const html = renderHtml({ status: 'improved', beforeIssueCount: 5, afterIssueCount: 1 });
       expect(html).toContain('data-testid="issues-before"');
+      expect(html).toContain('Hallazgos antes');
+      expect(html).toContain('Hallazgos después');
       expect(html).toContain('5');
       expect(html).toContain('1');
     });
@@ -78,6 +80,7 @@ describe('HealthDeltaDashboard', () => {
     it('shows issue delta', () => {
       const html = renderHtml({ status: 'improved', issueDelta: -4, beforeIssueCount: 5, afterIssueCount: 1 });
       expect(html).toContain('data-testid="issue-delta"');
+      expect(html).toContain('Diferencia de hallazgos');
       expect(html).toContain('-4');
     });
 
@@ -102,6 +105,7 @@ describe('HealthDeltaDashboard', () => {
     it('renders changed cells', () => {
       const html = renderHtml({ status: 'improved', changedCellsEstimate: 10, outputRowCountBefore: 3, outputColumnCountBefore: 2 });
       expect(html).toContain('data-testid="changed-cells"');
+      expect(html).toContain('Celdas modificadas');
       expect(html).toContain('10');
     });
 
@@ -115,6 +119,7 @@ describe('HealthDeltaDashboard', () => {
     it('renders caveats list when present', () => {
       const html = renderHtml({ status: 'improved', caveats: ['CAVEAT_A', 'CAVEAT_B'] });
       expect(html).toContain('data-testid="caveats"');
+      expect(html).toContain('Salvedades');
       expect(html).toContain('CAVEAT_A');
       expect(html).toContain('CAVEAT_B');
     });
@@ -137,8 +142,8 @@ describe('HealthDeltaDashboard', () => {
     it('always includes the notice about controlled fixtures', () => {
       const html = renderHtml({ status: 'improved' });
       expect(html).toContain('data-testid="limitation-notice"');
-      expect(html).toContain('HealthDelta is computed');
-      expect(html).toContain('not independent external validation');
+      expect(html).toContain('El cambio de salud se calcula');
+      expect(html).toContain('No es una validación externa independiente');
     });
   });
 });

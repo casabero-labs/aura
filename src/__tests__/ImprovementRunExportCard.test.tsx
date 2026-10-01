@@ -81,11 +81,13 @@ describe('ImprovementRunExportCard', () => {
   it('renders download button', () => {
     const html = renderHtml({ improvementRun: mockRun });
     expect(html).toContain('data-testid="download-button"');
+    expect(html).toContain('Descargar JSON');
   });
 
   it('renders copy button', () => {
     const html = renderHtml({ improvementRun: mockRun });
     expect(html).toContain('data-testid="copy-button"');
+    expect(html).toContain('Copiar al portapapeles');
   });
 
   it('shows preview toggle', () => {
@@ -95,7 +97,7 @@ describe('ImprovementRunExportCard', () => {
 
   it('shows preview collapsed by default for full JSON', () => {
     const html = renderHtml({ improvementRun: mockRun });
-    expect(html).toContain('▶ Show preview');
+    expect(html).toContain('▶ Ver vista previa');
   });
 
   it('does not show json-preview when collapsed', () => {
@@ -106,7 +108,7 @@ describe('ImprovementRunExportCard', () => {
   it('shows export notice about controlled fixtures', () => {
     const html = renderHtml({ improvementRun: mockRun });
     expect(html).toContain('data-testid="export-notice"');
-    expect(html).toContain('controlled fixture');
+    expect(html).toContain('datos de prueba controlados');
   });
 
   it('renders improved status run', () => {
