@@ -61,10 +61,11 @@ function getPanelText(page: Page): Promise<string> {
   });
 }
 
-const CLAIM_FIXTURE = /controlled fixture|fixture copy|fixture only|fixture controlado/i;
-const CLAIM_COLAB = /colab external|colab notebook|external colab|external runtime|google colab/i;
-const CLAIM_NO_REAL = /no real datasets|no original data|not original data|fixture only|controlled fixture|fixture copy/i;
-const CLAIM_NOT_INDEPENDENT = /not independent|not external|external colab notebook|external runtime|same audit|reaudit/i;
+// Inglés heredado y español actual (traducción de ImprovementRun, 2026-10-01).
+const CLAIM_FIXTURE = /controlled fixture|fixture copy|fixture only|fixture controlado|copia de prueba controlada|datos de prueba controlados/i;
+const CLAIM_COLAB = /colab external|colab notebook|external colab|external runtime|google colab|notebook colab|colab externo/i;
+const CLAIM_NO_REAL = /no real datasets|no original data|not original data|fixture only|controlled fixture|fixture copy|no se accede a datasets reales|ningún dato original|dataset original no se modificó|copia de prueba controlada/i;
+const CLAIM_NOT_INDEPENDENT = /not independent|not external|external colab notebook|external runtime|same audit|reaudit|no es una validación externa independiente|notebook colab externo|se ejecuta fuera|se ejecutó fuera/i;
 
 async function goToHealthDeltaIdle(page: Page) {
   await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 60_000 });
@@ -88,7 +89,7 @@ test.describe('Phase 7 L3 — Claims Visible Verification', () => {
 
   test('E2E-CLM-001 — no prohibited claims in done state', async ({ page }) => {
     await goToHealthDeltaIdle(page);
-    await page.getByRole('button', { name: /Run Improvement Flow/i }).click();
+    await page.getByRole('button', { name: /Ejecutar flujo de mejora|Run Improvement Flow/i }).click();
     await page.locator('[data-testid="done-state"]').waitFor({ state: 'visible', timeout: 15_000 });
     const text = await getPanelText(page);
     for (const { pattern, label } of PROHIBITED_PHRASES) {
@@ -151,7 +152,7 @@ test.describe('Phase 7 L3 — Claims Visible Verification', () => {
 
   test('E2E-CLM-003 — Colab external claim in done state', async ({ page }) => {
     await goToHealthDeltaIdle(page);
-    await page.getByRole('button', { name: /Run Improvement Flow/i }).click();
+    await page.getByRole('button', { name: /Ejecutar flujo de mejora|Run Improvement Flow/i }).click();
     await page.locator('[data-testid="done-state"]').waitFor({ state: 'visible', timeout: 15_000 });
     const text = await getPanelText(page);
     expect(text).toMatch(CLAIM_COLAB);
@@ -187,7 +188,7 @@ test.describe('Phase 7 L3 — Claims Visible Verification', () => {
 
   test('E2E-CLM-004 — no real datasets claim in done state', async ({ page }) => {
     await goToHealthDeltaIdle(page);
-    await page.getByRole('button', { name: /Run Improvement Flow/i }).click();
+    await page.getByRole('button', { name: /Ejecutar flujo de mejora|Run Improvement Flow/i }).click();
     await page.locator('[data-testid="done-state"]').waitFor({ state: 'visible', timeout: 15_000 });
     const text = await getPanelText(page);
     expect(text).toMatch(CLAIM_NO_REAL);
@@ -223,7 +224,7 @@ test.describe('Phase 7 L3 — Claims Visible Verification', () => {
 
   test('E2E-CLM-005 — not independent claim in done state', async ({ page }) => {
     await goToHealthDeltaIdle(page);
-    await page.getByRole('button', { name: /Run Improvement Flow/i }).click();
+    await page.getByRole('button', { name: /Ejecutar flujo de mejora|Run Improvement Flow/i }).click();
     await page.locator('[data-testid="done-state"]').waitFor({ state: 'visible', timeout: 15_000 });
     const text = await getPanelText(page);
     expect(text).toMatch(CLAIM_NOT_INDEPENDENT);
