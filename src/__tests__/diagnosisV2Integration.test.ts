@@ -5,7 +5,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 process.env.CONTRACTS_V2_ENABLED = 'true';
 
-// Set import.meta.env for vitest (needed by buildEvidenceEnvelopeV2)
 (import.meta as any).env = { ...((import.meta as any).env || {}), VITE_CONTRACTS_V2_ENABLED: 'true' };
 
 vi.mock('../contracts/llm/contractRegistry', () => ({ isContractsV2Enabled: vi.fn() }));
@@ -13,12 +12,16 @@ vi.mock('../contracts/llm/contractRegistry', () => ({ isContractsV2Enabled: vi.f
 import { runStructuredDiagnosis } from '../contracts/llm';
 import { isContractsV2Enabled } from '../contracts/llm/contractRegistry';
 import { _buildEvidenceEnvelopeV2 } from '../contracts/llm/evidenceEnvelopeV2';
-import { buildDiagnosisPromptV2 } from '../contracts/llm/diagnosisPromptV2';
+import { buildDiagnosisInputPackageV2_5 } from '../contracts/llm/diagnosisInputPackageV2_5';
+import type { DiagnosisInputPackageV2_5 } from '../contracts/llm/diagnosisEvidenceIdentityV1';
 import type { AuditReportInput } from '../contracts/llm/evidenceEnvelopeV2';
+import type { EvidenceEnvelopeV2 } from '../contracts/llm/types';
 import type { AIProvider } from '../types';
 
+const TEST_TIMESTAMP = '2026-07-19T00:00:00.000Z';
+
 function makeProvider(type: AIProvider['type'] = 'cloud'): AIProvider {
-  const p: AIProvider = {
+  const provider: AIProvider = {
     name: type === 'cloud' ? 'Google Gemini' : type === 'ollama' ? 'Ollama' : 'WebLLM',
     type,
     analyzeStream: vi.fn().mockResolvedValue({ latencyMs: 0, tokensGenerated: 0, model: '', provider: '', isLocal: false }),
@@ -28,7 +31,7 @@ function makeProvider(type: AIProvider['type'] = 'cloud'): AIProvider {
     generateTextWithProgress: vi.fn(),
     isAvailable: vi.fn().mockResolvedValue(true),
   };
-  return p;
+  return provider;
 }
 
 const minimalReport: AuditReportInput = {
@@ -49,36 +52,90 @@ const auditEvidence = { datasetSha256: DATASET_SHA256, datasetFingerprint: DATAS
 
 const envLocal = _buildEvidenceEnvelopeV2(minimalReport, { privacyLevel: 'local_full', datasetSha256: DATASET_SHA256, delimiter: ',' });
 const envCloud = _buildEvidenceEnvelopeV2(minimalReport, { privacyLevel: 'cloud_minimized', datasetSha256: DATASET_SHA256, delimiter: ',' });
-const ppLocal = buildDiagnosisPromptV2(envLocal);
-const ppCloud = buildDiagnosisPromptV2(envCloud);
+const inputLocal = buildDiagnosisInputPackageV2_5(minimalReport, envLocal, 'smart_sample');
+const inputCloud = buildDiagnosisInputPackageV2_5(minimalReport, envCloud, 'smart_sample');
 
-function validResponseForProviderType(type: string, withoutEvidenceRefs = false): string {
-  const env = type === 'cloud' ? envCloud : envLocal;
-  const pp = type === 'cloud' ? ppCloud : ppLocal;
-  const ref = pp.evidenceEnvelopeRef;
-  const iss0 = env.issues[0];
-  const iss1 = env.issues[1];
-  return JSON.stringify({
+const aliasesByIssue = (input: DiagnosisInputPackageV2_5): Record<string, string[]> => {
+  const grouped: Record<string, string[]> = {};
+  for (const entry of input.evidenceAliasMap.entries) {
+    grouped[entry.issueId] = [...(grouped[entry.issueId] ?? []), entry.alias];
+  }
+  return grouped;
+};
+
+const responseObject = (
+  env: EvidenceEnvelopeV2,
+  evidenceEnvelopeRef: string,
+  refsByIssueId: Record<string, string[]>,
+) => {
+  const issue0 = env.issues[0];
+  const issue1 = env.issues[1];
+  return {
     contractId: 'aura.diagnosis.v2', contractVersion: '2.0.0',
-    evidenceEnvelopeRef: ref, responseId: 'diag-test-001',
+    evidenceEnvelopeRef, responseId: 'diag-test-001',
     issues: [
-      { issueId: iss0.issueId, evidenceRefs: withoutEvidenceRefs ? [] : iss0.evidenceRefs, hypothesis: 'Whitespace padding', confidence: 0.9, requiresHumanReview: true, limits: [] },
-      { issueId: iss1.issueId, evidenceRefs: withoutEvidenceRefs ? [] : iss1.evidenceRefs, hypothesis: 'Null values in Age', confidence: 0.85, requiresHumanReview: true, limits: [] },
+      { issueId: issue0.issueId, evidenceRefs: refsByIssueId[issue0.issueId] ?? [], hypothesis: 'Whitespace padding', confidence: 0.9, requiresHumanReview: true, limits: [] },
+      { issueId: issue1.issueId, evidenceRefs: refsByIssueId[issue1.issueId] ?? [], hypothesis: 'Null values in Age', confidence: 0.85, requiresHumanReview: true, limits: [] },
     ],
     diagnosisBlocks: [
-      { issueId: iss0.issueId, ruleId: iss0.ruleId, columnId: iss0.columnId, scope: iss0.scope, observation: '2 whitespace values', recommendation: 'Trim at ingestion' },
-      { issueId: iss1.issueId, ruleId: iss1.ruleId, columnId: iss1.columnId, scope: iss1.scope, observation: '177 null values', recommendation: 'Investigate collection' },
+      { issueId: issue0.issueId, ruleId: issue0.ruleId, columnId: issue0.columnId, scope: issue0.scope, observation: '2 whitespace values', recommendation: 'Trim at ingestion' },
+      { issueId: issue1.issueId, ruleId: issue1.ruleId, columnId: issue1.columnId, scope: issue1.scope, observation: '177 null values', recommendation: 'Investigate collection' },
     ],
     limitations: ['Sample based'],
     generatedAt: new Date().toISOString(),
-  });
+  };
+};
+
+function validResponseForProviderType(type: string): string {
+  const env = type === 'cloud' ? envCloud : envLocal;
+  const input = type === 'cloud' ? inputCloud : inputLocal;
+  return JSON.stringify(responseObject(env, input.evidenceEnvelopeRef, aliasesByIssue(input)));
 }
 
-function setupValidProvider(p: AIProvider, model = 'gemini-2.5-flash') {
-  p.generateTextWithProgress = vi.fn().mockResolvedValue({
-    text: validResponseForProviderType(p.type),
-    metrics: { latencyMs: 800, tokensGenerated: 250, model, provider: p.type === 'cloud' ? 'google' : p.name, isLocal: p.type !== 'cloud' },
-  });
+function sourceRefResponseForProviderType(type: string): string {
+  const env = type === 'cloud' ? envCloud : envLocal;
+  return JSON.stringify(responseObject(
+    env,
+    type === 'cloud' ? inputCloud.evidenceEnvelopeRef : inputLocal.evidenceEnvelopeRef,
+    Object.fromEntries(env.issues.map((issue) => [issue.issueId, issue.evidenceRefs])),
+  ));
+}
+
+const payloadFromExactPrompt = (prompt: string) => {
+  const prefix = '=== INPUT EVIDENCE ===\n';
+  const suffix = '\n\n=== REQUIRED RESPONSE JSON SCHEMA ===';
+  const start = prompt.indexOf(prefix);
+  const end = prompt.indexOf(suffix, start + prefix.length);
+  if (start < 0 || end < 0) throw new Error('Exact prompt does not contain the canonical payload markers.');
+  return JSON.parse(prompt.slice(start + prefix.length, end)) as {
+    evidenceEnvelopeRef: string;
+    inputMode: string;
+    task: { allowedEvidenceAliasesByIssueId?: Record<string, string[]> };
+  };
+};
+
+function validResponseForExactPrompt(prompt: string, env: EvidenceEnvelopeV2): string {
+  const payload = payloadFromExactPrompt(prompt);
+  return JSON.stringify(responseObject(
+    env,
+    payload.evidenceEnvelopeRef,
+    payload.task.allowedEvidenceAliasesByIssueId ?? {},
+  ));
+}
+
+function setupValidProvider(provider: AIProvider, model = 'gemini-2.5-flash') {
+  provider.generateTextWithProgress = vi.fn(async (prompt) => ({
+    text: validResponseForExactPrompt(prompt, provider.type === 'cloud' ? envCloud : envLocal),
+    metrics: {
+      latencyMs: 800,
+      firstTokenMs: 1,
+      tokensGenerated: 250,
+      model,
+      provider: provider.type === 'cloud' ? 'google' : provider.name,
+      isLocal: provider.type !== 'cloud',
+      timestamp: TEST_TIMESTAMP,
+    },
+  }));
 }
 
 describe('always-on v2 selection', () => {
@@ -86,34 +143,34 @@ describe('always-on v2 selection', () => {
   afterEach(() => { vi.mocked(isContractsV2Enabled).mockReset(); });
 
   it('a historical false flag cannot route a new diagnosis to legacy', async () => {
-    const p = makeProvider('cloud');
-    setupValidProvider(p);
-    const r = await runStructuredDiagnosis(minimalReport, {
-      provider: p,
+    const provider = makeProvider('cloud');
+    setupValidProvider(provider);
+    const result = await runStructuredDiagnosis(minimalReport, {
+      provider,
       auditEvidence,
       requestedModel: 'gemini-2.5-flash',
     });
-    expect('success' in r && r.success).toBe(true);
+    expect('success' in result && result.success).toBe(true);
   });
 
   it('flag true → success with structured result', async () => {
     vi.mocked(isContractsV2Enabled).mockReturnValue(true);
-    const p = makeProvider('cloud');
-    setupValidProvider(p);
-    const r = await runStructuredDiagnosis(minimalReport, { provider: p, auditEvidence, requestedModel: 'gemini-2.5-flash' });
-    expect('success' in r && r.success).toBe(true);
-    if ('success' in r && r.success) {
-      expect(r.result.version).toBe(2);
-      expect(r.result.diagnosis.contractId).toBe('aura.diagnosis.v2');
-      expect(r.result.diagnosis.issues).toHaveLength(2);
-      expect(r.result.diagnosis.diagnosisBlocks).toHaveLength(2);
-      expect(r.result.metrics.tokensGenerated).toBe(250);
-      expect(r.result.inputMode).toBe('smart_sample');
-      expect(r.result.inputSnapshot?.contractId).toBe('aura.input-snapshot.v2');
-      expect(r.result.executionReceipt?.validationStatus).toBe('valid');
-      expect(r.result.executionReceipt?.inputHash).toBe(r.result.inputHash);
+    const provider = makeProvider('cloud');
+    setupValidProvider(provider);
+    const result = await runStructuredDiagnosis(minimalReport, { provider, auditEvidence, requestedModel: 'gemini-2.5-flash' });
+    expect('success' in result && result.success).toBe(true);
+    if ('success' in result && result.success) {
+      expect(result.result.version).toBe(2);
+      expect(result.result.diagnosis.contractId).toBe('aura.diagnosis.v2');
+      expect(result.result.diagnosis.issues).toHaveLength(2);
+      expect(result.result.diagnosis.diagnosisBlocks).toHaveLength(2);
+      expect(result.result.metrics.tokensGenerated).toBe(250);
+      expect(result.result.inputMode).toBe('smart_sample');
+      expect(result.result.inputSnapshot?.contractId).toBe('aura.input-snapshot.v2');
+      expect(result.result.executionReceipt?.validationStatus).toBe('valid');
+      expect(result.result.executionReceipt?.inputHash).toBe(result.result.inputHash);
     }
-    expect(p.generateTextWithProgress).toHaveBeenCalledWith(
+    expect(provider.generateTextWithProgress).toHaveBeenCalledWith(
       expect.stringContaining('=== REQUIRED RESPONSE JSON SCHEMA ==='),
       expect.any(Function),
       expect.objectContaining({
@@ -126,7 +183,7 @@ describe('always-on v2 selection', () => {
         }),
       }),
     );
-    expect(vi.mocked(p.generateTextWithProgress!).mock.calls[0][0]).toContain('"contractId"');
+    expect(vi.mocked(provider.generateTextWithProgress!).mock.calls[0][0]).toContain('"contractId"');
   });
 });
 
@@ -135,28 +192,28 @@ describe('fingerprint enforcement', () => {
   afterEach(() => { vi.mocked(isContractsV2Enabled).mockReset(); });
 
   it('null → DIAGNOSIS_ADAPTER_ERROR', async () => {
-    const p = makeProvider('cloud');
-    const r = await runStructuredDiagnosis(minimalReport, { provider: p, auditEvidence: null });
-    expect('success' in r && r.success).toBe(false);
-    expect((r as unknown as { success: false; code: string; message: string }).code).toBe('DIAGNOSIS_ADAPTER_ERROR');
-    expect((r as unknown as { success: false; code: string; message: string }).message).toContain('datasetSha256');
+    const provider = makeProvider('cloud');
+    const result = await runStructuredDiagnosis(minimalReport, { provider, auditEvidence: null });
+    expect('success' in result && result.success).toBe(false);
+    expect((result as unknown as { success: false; code: string; message: string }).code).toBe('DIAGNOSIS_ADAPTER_ERROR');
+    expect((result as unknown as { success: false; code: string; message: string }).message).toContain('datasetSha256');
   });
 
   it('empty → DIAGNOSIS_ADAPTER_ERROR', async () => {
-    const p = makeProvider('cloud');
-    const r = await runStructuredDiagnosis(minimalReport, { provider: p, auditEvidence: { datasetSha256: '' } });
-    expect('success' in r && r.success).toBe(false);
-    expect((r as unknown as { success: false; code: string }).code).toBe('DIAGNOSIS_ADAPTER_ERROR');
+    const provider = makeProvider('cloud');
+    const result = await runStructuredDiagnosis(minimalReport, { provider, auditEvidence: { datasetSha256: '' } });
+    expect('success' in result && result.success).toBe(false);
+    expect((result as unknown as { success: false; code: string }).code).toBe('DIAGNOSIS_ADAPTER_ERROR');
   });
 
   it('non-64-hex sha256 → DIAGNOSIS_ADAPTER_ERROR', async () => {
-    const p = makeProvider('cloud');
-    const r = await runStructuredDiagnosis(minimalReport, {
-      provider: p,
+    const provider = makeProvider('cloud');
+    const result = await runStructuredDiagnosis(minimalReport, {
+      provider,
       auditEvidence: { datasetSha256: 'short-fingerprint' },
     });
-    expect('success' in r && r.success).toBe(false);
-    expect((r as unknown as { success: false; code: string; details: { reason: string } }).details.reason).toBe('invalid_dataset_sha256');
+    expect('success' in result && result.success).toBe(false);
+    expect((result as unknown as { success: false; code: string; details: { reason: string } }).details.reason).toBe('invalid_dataset_sha256');
   });
 });
 
@@ -164,9 +221,9 @@ describe('privacy derivation', () => {
   beforeEach(() => { vi.mocked(isContractsV2Enabled).mockReturnValue(true); });
   afterEach(() => { vi.mocked(isContractsV2Enabled).mockReset(); });
 
-  it('cloud → success', async () => { const p = makeProvider('cloud'); setupValidProvider(p); const r = await runStructuredDiagnosis(minimalReport, { provider: p, auditEvidence, requestedModel: 'gemini-2.5-flash' }); expect('success' in r && r.success).toBe(true); });
-  it('ollama → success', async () => { const p = makeProvider('ollama'); setupValidProvider(p, 'qwen2.5:3b'); const r = await runStructuredDiagnosis(minimalReport, { provider: p, auditEvidence, requestedModel: 'qwen2.5:3b' }); expect('success' in r && r.success).toBe(true); });
-  it('local → success', async () => { const p = makeProvider('local'); setupValidProvider(p, 'gemma3-4b-it'); const r = await runStructuredDiagnosis(minimalReport, { provider: p, auditEvidence, requestedModel: 'gemma3-4b-it' }); expect('success' in r && r.success).toBe(true); });
+  it('cloud → success', async () => { const provider = makeProvider('cloud'); setupValidProvider(provider); const result = await runStructuredDiagnosis(minimalReport, { provider, auditEvidence, requestedModel: 'gemini-2.5-flash' }); expect('success' in result && result.success).toBe(true); });
+  it('ollama → success', async () => { const provider = makeProvider('ollama'); setupValidProvider(provider, 'qwen2.5:3b'); const result = await runStructuredDiagnosis(minimalReport, { provider, auditEvidence, requestedModel: 'qwen2.5:3b' }); expect('success' in result && result.success).toBe(true); });
+  it('local → success', async () => { const provider = makeProvider('local'); setupValidProvider(provider, 'gemma3-4b-it'); const result = await runStructuredDiagnosis(minimalReport, { provider, auditEvidence, requestedModel: 'gemma3-4b-it' }); expect('success' in result && result.success).toBe(true); });
 });
 
 describe('result structure', () => {
@@ -174,20 +231,31 @@ describe('result structure', () => {
   afterEach(() => { vi.mocked(isContractsV2Enabled).mockReset(); });
 
   it('success narrowing → all fields present', async () => {
-    const p = makeProvider('cloud');
-    const rawResponse = validResponseForProviderType('cloud');
-    p.generateTextWithProgress = vi.fn().mockResolvedValue({
-      text: rawResponse,
-      metrics: { latencyMs: 800, tokensGenerated: 250, model: 'gemini-2.5-flash', provider: 'google', isLocal: false },
+    const provider = makeProvider('cloud');
+    let rawResponse = '';
+    provider.generateTextWithProgress = vi.fn(async (prompt) => {
+      rawResponse = validResponseForExactPrompt(prompt, envCloud);
+      return {
+        text: rawResponse,
+        metrics: {
+          latencyMs: 800,
+          firstTokenMs: 1,
+          tokensGenerated: 250,
+          model: 'gemini-2.5-flash',
+          provider: 'google',
+          isLocal: false,
+          timestamp: TEST_TIMESTAMP,
+        },
+      };
     });
-    const r = await runStructuredDiagnosis(minimalReport, { provider: p, auditEvidence, requestedModel: 'gemini-2.5-flash' });
-    expect('success' in r && r.success).toBe(true);
-    if ('success' in r && r.success) {
-      expect(r.result.version).toBe(2);
-      expect(r.result.diagnosis.contractId).toBe('aura.diagnosis.v2');
-      expect(r.result.metrics.latencyMs).toBeGreaterThan(0);
-      expect(r.result.rawResponse).toBe(rawResponse);
-      expect(r.result.rawResponseHash).toBe(r.result.executionReceipt.rawResponseHash);
+    const result = await runStructuredDiagnosis(minimalReport, { provider, auditEvidence, requestedModel: 'gemini-2.5-flash' });
+    expect('success' in result && result.success).toBe(true);
+    if ('success' in result && result.success) {
+      expect(result.result.version).toBe(2);
+      expect(result.result.diagnosis.contractId).toBe('aura.diagnosis.v2');
+      expect(result.result.metrics.latencyMs).toBeGreaterThan(0);
+      expect(result.result.rawResponse).toBe(rawResponse);
+      expect(result.result.rawResponseHash).toBe(result.result.executionReceipt.rawResponseHash);
     }
   });
 
@@ -216,11 +284,18 @@ describe('result structure', () => {
     ['another-model', 'different observed model'],
   ])('persists canonical failure evidence for %s', async (observedModel) => {
     const provider = makeProvider('ollama');
-    const rawResponse = validResponseForProviderType('ollama');
-    provider.generateTextWithProgress = vi.fn().mockResolvedValue({
-      text: rawResponse,
-      metrics: { latencyMs: 10, tokensGenerated: 20, model: observedModel, provider: 'Ollama', isLocal: true },
-    });
+    provider.generateTextWithProgress = vi.fn(async (prompt) => ({
+      text: validResponseForExactPrompt(prompt, envLocal),
+      metrics: {
+        latencyMs: 10,
+        firstTokenMs: 1,
+        tokensGenerated: 20,
+        model: observedModel,
+        provider: 'Ollama',
+        isLocal: true,
+        timestamp: TEST_TIMESTAMP,
+      },
+    }));
 
     const result = await runStructuredDiagnosis(minimalReport, {
       provider,
@@ -236,7 +311,6 @@ describe('result structure', () => {
       expect(result.executionReceipt.validationStatus).toBe('invalid');
       expect(result.executionReceipt.observedModel).toBe(observedModel);
       expect(result.rawResponseHash).toBe(result.executionReceipt.rawResponseHash);
-      expect(result.rawResponse).toBe(rawResponse);
     }
   });
 
@@ -264,11 +338,13 @@ describe('result structure', () => {
       text: rawResponse,
       metrics: {
         latencyMs: 10,
+        firstTokenMs: 1,
         tokensGenerated: 4096,
         model: 'model-a',
         provider: 'Ollama',
         finishReason: 'length',
         isLocal: true,
+        timestamp: TEST_TIMESTAMP,
       },
     });
 
@@ -303,7 +379,7 @@ describe('canonical input propagation', () => {
       provider.generateTextWithProgress = vi.fn(async (prompt) => {
         observed.push(prompt);
         return {
-          text: validResponseForProviderType('ollama', prompt.includes('"inputMode":"prompt_libre"')),
+          text: validResponseForExactPrompt(prompt, envLocal),
           metrics: {
             latencyMs: 10, firstTokenMs: 1, tokensGenerated: 20,
             model: 'model-a', provider: 'Ollama', isLocal: true,
@@ -332,7 +408,7 @@ describe('canonical input propagation', () => {
   it('rejects a prompt_libre response that guesses envelope-valid hidden refs', async () => {
     const provider = makeProvider('ollama');
     provider.generateTextWithProgress = vi.fn().mockResolvedValue({
-      text: validResponseForProviderType('ollama'),
+      text: sourceRefResponseForProviderType('ollama'),
       metrics: {
         latencyMs: 10,
         firstTokenMs: 1,
@@ -340,6 +416,7 @@ describe('canonical input propagation', () => {
         model: 'model-a',
         provider: 'Ollama',
         isLocal: true,
+        timestamp: TEST_TIMESTAMP,
       },
     });
 
