@@ -237,7 +237,7 @@ describe('computeHealthDelta', () => {
     const reaudit = makeMockReauditResult(0, 0, 100, 100);
     const delta = computeHealthDelta(reaudit);
     expect(delta.status).toBe('unchanged');
-    expect(delta.summary).toContain('No issues detected');
+    expect(delta.summary).toContain('Sin hallazgos antes ni después');
   });
 
   it('returns inconclusive when score decreases but issues decrease', () => {
@@ -246,8 +246,8 @@ describe('computeHealthDelta', () => {
     expect(delta.status).toBe('inconclusive');
     expect(delta.delta).toBe(-10);
     expect(delta.caveats.length).toBeGreaterThan(0);
-    expect(delta.caveats.some(c => c.includes('Score decreased'))).toBe(true);
-    expect(delta.summary).toContain('inconclusive');
+    expect(delta.caveats.some(c => c.includes('El score bajó'))).toBe(true);
+    expect(delta.summary).toContain('no es concluyente');
   });
 
   it('returns inconclusive when score increases but issues increase', () => {
@@ -256,8 +256,8 @@ describe('computeHealthDelta', () => {
     expect(delta.status).toBe('inconclusive');
     expect(delta.delta).toBe(10);
     expect(delta.caveats.length).toBeGreaterThan(0);
-    expect(delta.caveats.some(c => c.includes('Score increased'))).toBe(true);
-    expect(delta.summary).toContain('inconclusive');
+    expect(delta.caveats.some(c => c.includes('El score subió'))).toBe(true);
+    expect(delta.summary).toContain('no es concluyente');
   });
 
   it('adds caveat when delta is 0 with remaining issues', () => {
@@ -265,7 +265,7 @@ describe('computeHealthDelta', () => {
     const delta = computeHealthDelta(reaudit);
     expect(delta.status).toBe('unchanged');
     expect(delta.delta).toBe(0);
-    expect(delta.caveats.some(c => c.includes('Score delta is 0'))).toBe(true);
+    expect(delta.caveats.some(c => c.includes('La diferencia de score es 0'))).toBe(true);
   });
 
   it('includes summary string', () => {
@@ -327,8 +327,8 @@ describe('buildImprovementRunV1', () => {
 
     const run = buildImprovementRunV1(contract, executionResult, reauditResult, healthDelta, mockOptions);
 
-    expect(run.limitations.some(l => l.includes('worsened'))).toBe(true);
-    expect(run.claims.permitted.some(c => c.includes('issues were reduced'))).toBe(false);
+    expect(run.limitations.some(l => l.includes('empeoró'))).toBe(true);
+    expect(run.claims.permitted.some(c => c.includes('los hallazgos bajaron'))).toBe(false);
   });
 
   it('adds improved claims when status is improved', () => {
@@ -341,7 +341,7 @@ describe('buildImprovementRunV1', () => {
 
     const run = buildImprovementRunV1(contract, executionResult, reauditResult, healthDelta, mockOptions);
 
-    expect(run.claims.permitted.some(c => c.includes('issues were reduced'))).toBe(true);
+    expect(run.claims.permitted.some(c => c.includes('los hallazgos bajaron'))).toBe(true);
   });
 
   it('includes correct script contract ref', () => {
@@ -473,7 +473,7 @@ describe('runImprovementFlow', () => {
 
     const improved = result.healthDelta.status === 'improved';
     if (improved) {
-      expect(result.improvementRun.claims.permitted.some(c => c.includes('issues were reduced'))).toBe(true);
+      expect(result.improvementRun.claims.permitted.some(c => c.includes('los hallazgos bajaron'))).toBe(true);
     }
   });
 
@@ -488,8 +488,8 @@ describe('runImprovementFlow', () => {
       afterCsv: AFTER_CSV,
     });
 
-    expect(result.improvementRun.claims.prohibited).toContain('Do NOT claim that AURA executed Python directly — execution delegated to Google Colab.');
-    expect(result.improvementRun.claims.prohibited).toContain('Do NOT claim that HealthDelta is a formal measurement outside the AURA audit engine.');
+    expect(result.improvementRun.claims.prohibited).toContain('No afirmar que AURA ejecutó Python directamente: la ejecución se delega a Google Colab.');
+    expect(result.improvementRun.claims.prohibited).toContain('No afirmar que el cambio de salud es una medición formal fuera del motor de auditoría de AURA.');
   });
 
   it('includes execution limitations', () => {
@@ -519,7 +519,7 @@ describe('runImprovementFlow', () => {
       beforeEvidenceRef: 'env:original',
       beforeCsv: BEFORE_CSV,
       afterCsv: AFTER_CSV,
-    })).toThrow('Execution gate failed');
+    })).toThrow('La ejecución no pasó sus controles');
   });
 
   it('throws when afterCsv import fails', () => {
@@ -531,7 +531,7 @@ describe('runImprovementFlow', () => {
       beforeEvidenceRef: 'env:original',
       beforeCsv: BEFORE_CSV,
       afterCsv: '', // invalid
-    })).toThrow('Failed to import Colab output');
+    })).toThrow('No se pudo importar la salida de Colab');
   });
 
   it('records acceptedActionIds from contract', () => {

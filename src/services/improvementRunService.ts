@@ -78,38 +78,38 @@ export function computeHealthDelta(reauditResult: ReauditResult): HealthDeltaV1 
   // Determine status based on issue delta (primary signal)
   if (issueBefore === 0 && issueAfter === 0) {
     status = 'unchanged';
-    summary = `No issues detected before or after execution (score: ${scoreBefore} → ${scoreAfter}).`;
+    summary = `Sin hallazgos antes ni después de la ejecución (score: ${scoreBefore} → ${scoreAfter}).`;
   } else if (issueAfter < issueBefore) {
     status = 'improved';
-    summary = `Issues reduced from ${issueBefore} to ${issueAfter} after Colab execution (score: ${scoreBefore} → ${scoreAfter}, delta: ${delta > 0 ? '+' : ''}${delta}).`;
+    summary = `Los hallazgos bajaron de ${issueBefore} a ${issueAfter} tras la ejecución en Colab (score: ${scoreBefore} → ${scoreAfter}, diferencia: ${delta > 0 ? '+' : ''}${delta}).`;
   } else if (issueAfter === issueBefore) {
     status = 'unchanged';
-    summary = `Issue count unchanged (${issueBefore} → ${issueAfter}) despite Colab execution (score: ${scoreBefore} → ${scoreAfter}).`;
+    summary = `Los hallazgos no cambiaron (${issueBefore} → ${issueAfter}) pese a la ejecución en Colab (score: ${scoreBefore} → ${scoreAfter}).`;
     if (delta !== 0) {
-      caveats.push(`Score changed by ${delta > 0 ? '+' : ''}${delta} despite stable issue count — score movement may reflect distribution shifts not captured by issue count.`);
+      caveats.push(`El score cambió ${delta > 0 ? '+' : ''}${delta} con los mismos hallazgos: el movimiento puede reflejar cambios de distribución que el conteo de hallazgos no captura.`);
     }
   } else {
     status = 'worsened';
-    summary = `Issues increased from ${issueBefore} to ${issueAfter} after Colab execution (score: ${scoreBefore} → ${scoreAfter}, delta: ${delta > 0 ? '+' : ''}${delta}).`;
+    summary = `Los hallazgos subieron de ${issueBefore} a ${issueAfter} tras la ejecución en Colab (score: ${scoreBefore} → ${scoreAfter}, diferencia: ${delta > 0 ? '+' : ''}${delta}).`;
   }
 
   // Inconclusive: score and issues move in opposite directions
   if (status === 'improved' && delta < 0) {
     status = 'inconclusive';
-    summary = `Issues reduced from ${issueBefore} to ${issueAfter} but score decreased from ${scoreBefore} to ${scoreAfter} (delta: ${delta}). Score and issue signals contradict — HealthDelta is inconclusive.`;
-    caveats.push(`Score decreased (${delta}) despite issue reduction — investigate score computation methodology.`);
+    summary = `Los hallazgos bajaron de ${issueBefore} a ${issueAfter}, pero el score bajó de ${scoreBefore} a ${scoreAfter} (diferencia: ${delta}). Las dos señales se contradicen: el cambio de salud no es concluyente.`;
+    caveats.push(`El score bajó (${delta}) aunque bajaron los hallazgos: revisar cómo se calcula el score.`);
   }
 
   // Inconclusive: score and issues move in opposite directions
   if (status === 'worsened' && delta > 0) {
     status = 'inconclusive';
-    summary = `Issues increased from ${issueBefore} to ${issueAfter} but score increased from ${scoreBefore} to ${scoreAfter} (delta: ${delta}). Score and issue signals contradict — HealthDelta is inconclusive.`;
-    caveats.push(`Score increased (${delta}) despite issue increase — score weighting may compensate for new issues.`);
+    summary = `Los hallazgos subieron de ${issueBefore} a ${issueAfter}, pero el score subió de ${scoreBefore} a ${scoreAfter} (diferencia: ${delta}). Las dos señales se contradicen: el cambio de salud no es concluyente.`;
+    caveats.push(`El score subió (${delta}) aunque subieron los hallazgos: la ponderación del score puede compensar los hallazgos nuevos.`);
   }
 
   // Stale score: zero delta with issues
   if (delta === 0 && issueBefore > 0 && issueAfter > 0) {
-    caveats.push('Score delta is 0 — score may be capped or formula insensitive to remaining issues.');
+    caveats.push('La diferencia de score es 0: el score puede estar topado o la fórmula no responder a los hallazgos que quedan.');
   }
 
   return {
@@ -134,40 +134,40 @@ export function buildImprovementRunV1(
   const createdAt = new Date().toISOString();
 
   const limitations: string[] = [
-    'clean_dataset(df) executes in Google Colab (external), not inside AURA.',
-    'Reaudit uses AURA runAudit engine — same engine as initial audit (reproducible, not independent validation).',
-    'Output CSV imported as fixture — no access to original dataset rows used in Colab.',
-    'Score delta may not reflect true data quality improvement if script operations do not address root causes.',
-    'Script modifications after contract approval are not reflected in this run.',
+    'clean_dataset(df) se ejecuta fuera de AURA, en Google Colab.',
+    'La reauditoría usa el motor runAudit de AURA, el mismo de la auditoría inicial: es reproducible, no es una validación independiente.',
+    'El CSV de salida se importa como dato de prueba: AURA no accede a las filas originales usadas en Colab.',
+    'La diferencia de score puede no reflejar una mejora real de calidad si las operaciones del script no atacan las causas de fondo.',
+    'Los cambios al script posteriores a la aprobación del contrato no se reflejan en esta ejecución.',
   ];
 
   if (healthDelta.status === 'worsened') {
-    limitations.push('HealthDelta status is worsened — dataset quality degraded after execution. Do not use output without manual review.');
+    limitations.push('El cambio de salud empeoró: la calidad del dataset bajó tras la ejecución. No usar la salida sin revisión manual.');
   }
 
   if (healthDelta.status === 'inconclusive') {
-    limitations.push('HealthDelta status is inconclusive — comparison could not determine clear improvement or degradation.');
+    limitations.push('El cambio de salud no es concluyente: la comparación no permite afirmar mejora ni empeoramiento.');
   }
 
   const permitted: string[] = [
-    'Claim that issue counts were compared before/after using AURA runAudit engine.',
-    'Claim that execution was prepared via executeControlledRun (gates passed).',
-    'Claim that notebook was generated for Colab runtime.',
-    'Claim that reaudit is reproducible using the same audit engine.',
-    'Claim dataset original was never touched by AURA (fixture copy only).',
+    'Afirmar que los hallazgos se compararon antes y después con el motor runAudit de AURA.',
+    'Afirmar que la ejecución se preparó con executeControlledRun y pasó sus controles.',
+    'Afirmar que se generó un notebook para ejecutar en Colab.',
+    'Afirmar que la reauditoría es reproducible con el mismo motor de auditoría.',
+    'Afirmar que AURA nunca tocó el dataset original (solo una copia de prueba).',
   ];
 
   if (healthDelta.status === 'improved') {
-    permitted.push('Claim that issues were reduced after Colab execution (per runAudit engine).');
-    permitted.push('Claim that output dataset was produced via Colab and reaudited.');
+    permitted.push('Afirmar que los hallazgos bajaron tras la ejecución en Colab, según runAudit.');
+    permitted.push('Afirmar que el dataset de salida se produjo en Colab y se reauditó.');
   }
 
   const prohibited: string[] = [
-    'Do NOT claim that AURA executed Python directly — execution delegated to Google Colab.',
-    'Do NOT claim that HealthDelta is a formal measurement outside the AURA audit engine.',
-    'Do NOT claim the output dataset is automatically correct or trustworthy without manual review.',
-    'Do NOT claim that score improvement equals data quality improvement without domain validation.',
-    'Do NOT claim this run replaces manual data stewardship or domain expert review.',
+    'No afirmar que AURA ejecutó Python directamente: la ejecución se delega a Google Colab.',
+    'No afirmar que el cambio de salud es una medición formal fuera del motor de auditoría de AURA.',
+    'No afirmar que el dataset de salida es correcto o confiable sin revisión manual.',
+    'No afirmar que subir el score equivale a mejorar la calidad de los datos sin validación de dominio.',
+    'No afirmar que esta ejecución reemplaza la custodia manual de los datos ni la revisión de un experto de dominio.',
   ];
 
   return {
@@ -224,7 +224,7 @@ export function runImprovementFlow(
 
   if (executionResult.execution.status === 'blocked' || executionResult.execution.status === 'failed') {
     logs.push('execution gate failed — returning partial result');
-    throw new Error(`Execution gate failed: ${executionResult.execution.error ?? 'unknown'}`);
+    throw new Error(`La ejecución no pasó sus controles: ${executionResult.execution.error ?? 'causa desconocida'}`);
   }
 
   // ── Step 2: Import Colab output ──
@@ -234,7 +234,7 @@ export function runImprovementFlow(
     afterOutput = importColabOutput(options.afterCsv, { datasetName: options.datasetName });
     logs.push(`after output: ${afterOutput.rowCount} rows, ${afterOutput.colCount} cols`);
   } catch (err) {
-    throw new Error(`Failed to import Colab output: ${err instanceof Error ? err.message : String(err)}`);
+    throw new Error(`No se pudo importar la salida de Colab: ${err instanceof Error ? err.message : String(err)}`);
   }
 
   // ── Step 3: Run reaudit ──
@@ -244,7 +244,7 @@ export function runImprovementFlow(
     reauditResult = runReaudit(options.beforeCsv, options.afterCsv, options.beforeEvidenceRef);
     logs.push(`reaudit: ${reauditResult.summary.beforeIssueCount} → ${reauditResult.summary.afterIssueCount} issues`);
   } catch (err) {
-    throw new Error(`Reaudit failed: ${err instanceof Error ? err.message : String(err)}`);
+    throw new Error(`La reauditoría falló: ${err instanceof Error ? err.message : String(err)}`);
   }
 
   // ── Step 4: Compute HealthDelta ──

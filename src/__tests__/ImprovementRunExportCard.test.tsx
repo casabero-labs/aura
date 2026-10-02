@@ -53,7 +53,7 @@ const mockRun = {
     scoreAfter: 0.95,
     delta: 0.25,
     issueDelta: -7,
-    summary: 'Issues reduced.',
+    summary: 'Los hallazgos bajaron.',
     caveats: [],
   },
   limitations: ['Controlled fixture only.'],

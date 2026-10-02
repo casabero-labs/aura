@@ -372,7 +372,7 @@ describe('E2E: inconclusive HealthDelta', () => {
     expect(delta.delta).toBe(-10);
     expect(delta.issueDelta).toBe(-3);
     expect(delta.caveats.length).toBeGreaterThan(0);
-    expect(delta.summary).toContain('inconclusive');
+    expect(delta.summary).toContain('no es concluyente');
   });
 
   it('returns inconclusive when worsened but score increases', () => {
@@ -382,7 +382,7 @@ describe('E2E: inconclusive HealthDelta', () => {
     expect(delta.status).toBe('inconclusive');
     expect(delta.delta).toBe(20);
     expect(delta.issueDelta).toBe(4);
-    expect(delta.summary).toContain('inconclusive');
+    expect(delta.summary).toContain('no es concluyente');
   });
 });
 
