@@ -4,6 +4,7 @@ import { exactDiagnosisPromptV2 } from './diagnosisInputPackageV2';
 import type {
   DiagnosisInputPackageV2,
   ExecutionReceiptV1,
+  FragmentedExecutionV1,
   InferenceSnapshotV1,
 } from './types';
 
@@ -39,6 +40,8 @@ export interface BuildExecutionReceiptInput {
   rawValidationStatus?: ExecutionReceiptV1['rawValidationStatus'];
   rawValidationErrorCodes?: string[];
   normalizationApplied?: boolean;
+  /** Per-issue execution (Gemini Nano). Omitted for single-request runs. */
+  fragmentedExecution?: FragmentedExecutionV1;
 }
 
 export const buildExecutionReceiptV1 = (source: BuildExecutionReceiptInput): ExecutionReceiptV1 => {
@@ -100,6 +103,7 @@ export const buildExecutionReceiptV1 = (source: BuildExecutionReceiptInput): Exe
     ...(source.normalizationApplied ? { normalizationApplied: true } : {}),
     ...(rawValidStatus !== undefined ? { rawValidationStatus: rawValidStatus } : {}),
     ...(rawErrorCodes !== undefined ? { rawValidationErrorCodes: [...rawErrorCodes] } : {}),
+    ...(source.fragmentedExecution ? { fragmentedExecution: source.fragmentedExecution } : {}),
   };
   if (source.validationStatus === 'valid') {
     if (!source.observedModel || (typeof source.observedModel === 'string' && source.observedModel.trim() === '')) {

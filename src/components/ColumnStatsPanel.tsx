@@ -22,16 +22,38 @@ interface ColumnStatsPanelProps {
   totalRows?: number;
 }
 
-const formatNum = (n?: number | string, decimals = 2): string => {
+const LOCALE = 'es-ES';
+
+export const formatNum = (n?: number | string, decimals = 2): string => {
   if (n === undefined || n === null) return '—';
   const num = typeof n === 'string' ? parseFloat(n) : n;
   if (isNaN(num)) return '—';
-  return num.toFixed(decimals);
+  return num.toLocaleString(LOCALE, { maximumFractionDigits: decimals });
 };
 
-const formatPct = (part: number, total: number): string => {
-  if (total === 0) return '0%';
-  return ((part / total) * 100).toFixed(1) + '%';
+const formatInt = (n: number): string => n.toLocaleString(LOCALE);
+
+export const formatPct = (part: number, total: number): string => {
+  const value = total === 0 ? 0 : (part / total) * 100;
+  return value.toLocaleString(LOCALE, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
+};
+
+type OutlierStatus = NonNullable<ColumnStats['outlierStatus']>;
+
+/** Estado del recuento IQR; para estadísticas antiguas sin `outlierStatus` se deduce de `iqr`. */
+export const resolveOutlierStatus = (col: ColumnStats): OutlierStatus | undefined => {
+  if (col.outlierStatus) return col.outlierStatus;
+  if (col.iqr === undefined) return undefined;
+  return col.iqr > 0 ? 'computed' : 'iqr_zero';
+};
+
+/** Texto del recuento de atípicos: «n/a» cuando la cerca IQR no aplica. */
+export const formatOutlierCount = (col: ColumnStats, count: number | undefined): string => {
+  const status = resolveOutlierStatus(col);
+  if (status === 'iqr_zero') return 'n/a — IQR = 0';
+  if (status === 'too_few_values') return 'n/a — ≤ 10 valores';
+  if (status === undefined || count === undefined) return '—';
+  return formatInt(count);
 };
 
 const semanticLabel: Record<string, { label: string }> = {
@@ -54,8 +76,9 @@ const ColumnDetail: React.FC<ColumnDetailProps> = ({ col, totalRows }) => {
   const [expanded, setExpanded] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const nonNullCount = totalRows - col.nullCount;
-  const hasIQR = col.iqr !== undefined && col.iqr > 0;
-  const hasOutliers = (col.outlierCount ?? 0) > 0;
+  const outlierStatus = resolveOutlierStatus(col);
+  const hasIQR = outlierStatus === 'computed';
+  const hasOutliers = hasIQR && (col.outlierCount ?? 0) > 0;
   const sem = col.semanticType;
   const semInfo = sem ? semanticLabel[sem] : null;
 
@@ -77,26 +100,26 @@ const ColumnDetail: React.FC<ColumnDetailProps> = ({ col, totalRows }) => {
           )}
         </span>
         <span className="col-detail-stats-compact">
-          <span title="Valores no nulos">{nonNullCount.toLocaleString('es-CO')} datos</span>
+          <span title="Valores no nulos">{formatInt(nonNullCount)} datos</span>
           <span className="col-detail-sep">·</span>
-          <span title="Valores únicos">{col.uniqueCount.toLocaleString('es-CO')} únicos</span>
+          <span title="Valores únicos">{formatInt(col.uniqueCount)} únicos</span>
           {col.nullCount > 0 && (
             <>
               <span className="col-detail-sep">·</span>
-              <span className="col-detail-nulls" title="Valores nulos">{col.nullCount} nulos</span>
+              <span className="col-detail-nulls" title="Valores nulos">{formatInt(col.nullCount)} nulos</span>
             </>
           )}
           {hasIQR && (
             <>
               <span className="col-detail-sep">·</span>
-              <span title={`IQR = ${col.iqr}`}>IQR={formatNum(col.iqr)}</span>
+              <span title={`IQR = ${formatNum(col.iqr, 4)}`}>IQR = {formatNum(col.iqr)}</span>
             </>
           )}
           {hasOutliers && (
             <>
               <span className="col-detail-sep">·</span>
-              <span className="col-detail-outliers" title="Outliers detectados">
-                <AlertTriangle size={10} /> {col.outlierCount}
+              <span className="col-detail-outliers" title="Atípicos extremos (IQR 3×)">
+                <AlertTriangle size={10} /> {formatInt(col.outlierCount ?? 0)}
               </span>
             </>
           )}
@@ -119,56 +142,62 @@ const ColumnDetail: React.FC<ColumnDetailProps> = ({ col, totalRows }) => {
               {col.inferredType === 'number' ? (
                 <>
                   <div className="col-stat-item">
-                    <span className="col-stat-lbl">Min</span>
+                    <span className="col-stat-lbl">Mínimo</span>
                     <span className="col-stat-val">{col.min !== undefined ? formatNum(col.min, 4) : '—'}</span>
                   </div>
                   <div className="col-stat-item">
-                    <span className="col-stat-lbl">Max</span>
+                    <span className="col-stat-lbl">Máximo</span>
                     <span className="col-stat-val">{col.max !== undefined ? formatNum(col.max, 4) : '—'}</span>
                   </div>
                   <div className="col-stat-item">
-                    <span className="col-stat-lbl">Mean</span>
+                    <span className="col-stat-lbl">Media</span>
                     <span className="col-stat-val">{col.mean !== undefined ? formatNum(col.mean, 4) : '—'}</span>
                   </div>
                   <div className="col-stat-item">
-                    <span className="col-stat-lbl">Median</span>
+                    <span className="col-stat-lbl">Mediana</span>
                     <span className="col-stat-val">{col.median !== undefined ? formatNum(col.median, 4) : '—'}</span>
                   </div>
                   <div className="col-stat-item">
-                    <span className="col-stat-lbl">Outliers</span>
+                    <span className="col-stat-lbl">Atípicos extremos (IQR 3×)</span>
                     <span className="col-stat-val" style={{ fontWeight: hasOutliers ? 700 : undefined }}>
-                      {col.outlierCount !== undefined ? col.outlierCount : 0}
+                      {formatOutlierCount(col, col.outlierCount)}
+                    </span>
+                  </div>
+                  <div className="col-stat-item">
+                    <span className="col-stat-lbl">Atípicos leves (IQR 1,5×)</span>
+                    <span className="col-stat-val">
+                      {formatOutlierCount(col, col.outlierCountTukey)}
                     </span>
                   </div>
                 </>
               ) : (
                 <>
                   <div className="col-stat-item">
-                    <span className="col-stat-lbl">Min longitud</span>
+                    <span className="col-stat-lbl">Longitud mínima</span>
                     <span className="col-stat-val">
-                      {col.sampleValues ? Math.min(...col.sampleValues.map(v => String(v).length)).toString() : '—'}
+                      {col.minLength !== undefined ? formatInt(col.minLength) : '—'}
                     </span>
                   </div>
                   <div className="col-stat-item">
-                    <span className="col-stat-lbl">Max longitud</span>
+                    <span className="col-stat-lbl">Longitud máxima</span>
                     <span className="col-stat-val">
-                      {col.sampleValues ? Math.max(...col.sampleValues.map(v => String(v).length)).toString() : '—'}
+                      {col.maxLength !== undefined ? formatInt(col.maxLength) : '—'}
                     </span>
                   </div>
                   <div className="col-stat-item">
-                    <span className="col-stat-lbl">Zeros</span>
-                    <span className="col-stat-val">{col.zeros ?? 0}</span>
+                    <span className="col-stat-lbl">Ceros</span>
+                    <span className="col-stat-val">{formatInt(col.zeros ?? 0)}</span>
                   </div>
                 </>
               )}
 
               <div className="col-stat-item">
                 <span className="col-stat-lbl">Nulos</span>
-                <span className="col-stat-val">{col.nullCount} ({formatPct(col.nullCount, totalRows)})</span>
+                <span className="col-stat-val">{formatInt(col.nullCount)} ({formatPct(col.nullCount, totalRows)})</span>
               </div>
               <div className="col-stat-item">
                 <span className="col-stat-lbl">Únicos</span>
-                <span className="col-stat-val">{col.uniqueCount}</span>
+                <span className="col-stat-val">{formatInt(col.uniqueCount)}</span>
               </div>
             </div>
 
@@ -177,7 +206,7 @@ const ColumnDetail: React.FC<ColumnDetailProps> = ({ col, totalRows }) => {
                 {col.inferredType === 'number' && (
                   <>
                     <div className="col-stat-item">
-                      <span className="col-stat-lbl">Std</span>
+                      <span className="col-stat-lbl">Desv. estándar</span>
                       <span className="col-stat-val">{col.std !== undefined ? formatNum(col.std, 4) : '—'}</span>
                     </div>
                     <div className="col-stat-item">
@@ -185,7 +214,7 @@ const ColumnDetail: React.FC<ColumnDetailProps> = ({ col, totalRows }) => {
                       <span className="col-stat-val">{col.cv !== undefined ? formatNum(col.cv, 4) : '—'}</span>
                     </div>
                     <div className="col-stat-item">
-                      <span className="col-stat-lbl">Skewness</span>
+                      <span className="col-stat-lbl">Asimetría</span>
                       <span className="col-stat-val">{col.skewness !== undefined ? formatNum(col.skewness, 4) : '—'}</span>
                     </div>
                     <div className="col-stat-item">
@@ -201,22 +230,22 @@ const ColumnDetail: React.FC<ColumnDetailProps> = ({ col, totalRows }) => {
                       <span className="col-stat-val">{col.iqr !== undefined ? formatNum(col.iqr, 4) : '—'}</span>
                     </div>
                     <div className="col-stat-item">
-                      <span className="col-stat-lbl">Lower fence</span>
+                      <span className="col-stat-lbl">Límite inferior (3×)</span>
                       <span className="col-stat-val">{col.lowerFence !== undefined ? formatNum(col.lowerFence, 4) : '—'}</span>
                     </div>
                     <div className="col-stat-item">
-                      <span className="col-stat-lbl">Upper fence</span>
+                      <span className="col-stat-lbl">Límite superior (3×)</span>
                       <span className="col-stat-val">{col.upperFence !== undefined ? formatNum(col.upperFence, 4) : '—'}</span>
                     </div>
                     <div className="col-stat-item">
-                      <span className="col-stat-lbl">% Outliers</span>
+                      <span className="col-stat-lbl">% atípicos extremos</span>
                       <span className="col-stat-val">
-                        {nonNullCount > 0 ? formatPct(col.outlierCount ?? 0, nonNullCount) : '—'}
+                        {hasIQR && nonNullCount > 0 ? formatPct(col.outlierCount ?? 0, nonNullCount) : formatOutlierCount(col, undefined)}
                       </span>
                     </div>
                     <div className="col-stat-item">
                       <span className="col-stat-lbl">Ceros</span>
-                      <span className="col-stat-val">{col.zeros ?? 0} ({formatPct(col.zeros ?? 0, nonNullCount)})</span>
+                      <span className="col-stat-val">{formatInt(col.zeros ?? 0)} ({formatPct(col.zeros ?? 0, nonNullCount)})</span>
                     </div>
                   </>
                 )}
@@ -264,8 +293,8 @@ const ColumnDetail: React.FC<ColumnDetailProps> = ({ col, totalRows }) => {
                         {String(item.value).substring(0, 40)}
                         {String(item.value).length > 40 ? '…' : ''}
                       </code>
-                      <span className="col-freq-count">{item.count.toLocaleString('es-CO')}</span>
-                      <span className="col-freq-pct">{pct.toFixed(1)}%</span>
+                      <span className="col-freq-count">{formatInt(item.count)}</span>
+                      <span className="col-freq-pct">{formatPct(item.count, nonNullCount)}</span>
                       <div className="col-freq-bar-bg">
                         <div
                           className="col-freq-bar-fill"
@@ -297,27 +326,27 @@ const ColumnDetail: React.FC<ColumnDetailProps> = ({ col, totalRows }) => {
           {/* ── IQR Bounds Detail ── */}
           {hasIQR && (
             <div className="col-detail-section">
-              <p className="col-detail-section-label">IQR OUTLIER BOUNDS</p>
+              <p className="col-detail-section-label">LÍMITES DE ATÍPICOS (IQR 3×)</p>
               <div className="col-iqr-visual">
                 <div className="col-iqr-bar">
                   <div className="col-iqr-lower" style={{ left: '0%', width: '15%' }}>
-                    <span className="col-iqr-bound-label">lower={formatNum(col.lowerFence, 2)}</span>
+                    <span className="col-iqr-bound-label">inferior = {formatNum(col.lowerFence, 2)}</span>
                   </div>
                   <div className="col-iqr-q1" style={{ left: '20%', width: '15%' }}>
-                    <span className="col-iqr-bound-label">Q1={formatNum(col.q1, 2)}</span>
+                    <span className="col-iqr-bound-label">Q1 = {formatNum(col.q1, 2)}</span>
                   </div>
                   <div className="col-iqr-box" style={{ left: '35%', width: '30%' }}>
-                    <span className="col-iqr-iqr-label">IQR={formatNum(col.iqr, 2)}</span>
+                    <span className="col-iqr-iqr-label">IQR = {formatNum(col.iqr, 2)}</span>
                   </div>
                   <div className="col-iqr-q3" style={{ left: '65%', width: '15%' }}>
-                    <span className="col-iqr-bound-label">Q3={formatNum(col.q3, 2)}</span>
+                    <span className="col-iqr-bound-label">Q3 = {formatNum(col.q3, 2)}</span>
                   </div>
                   <div className="col-iqr-upper" style={{ left: '80%', width: '20%' }}>
-                    <span className="col-iqr-bound-label">upper={formatNum(col.upperFence, 2)}</span>
+                    <span className="col-iqr-bound-label">superior = {formatNum(col.upperFence, 2)}</span>
                   </div>
                 </div>
                 <p className="col-iqr-note">
-                  Valores fuera de [{formatNum(col.lowerFence, 2)}, {formatNum(col.upperFence, 2)}] se marcan como outliers
+                  Valores fuera de [{formatNum(col.lowerFence, 2)}; {formatNum(col.upperFence, 2)}] se marcan como atípicos extremos
                 </p>
               </div>
             </div>
@@ -330,6 +359,7 @@ const ColumnDetail: React.FC<ColumnDetailProps> = ({ col, totalRows }) => {
 
 const ColumnStatsPanel: React.FC<ColumnStatsPanelProps> = ({ columnStats, totalRows }) => {
   const columns = Object.values(columnStats);
+  const [showAll, setShowAll] = useState(false);
 
   if (columns.length === 0) {
     return <p className="text-muted">Sin estadísticas disponibles.</p>;
@@ -340,7 +370,6 @@ const ColumnStatsPanel: React.FC<ColumnStatsPanelProps> = ({ columnStats, totalR
     0,
   );
 
-  const [showAll, setShowAll] = useState(false);
   const displayedCols = showAll ? columns : columns.slice(0, 10);
   const hiddenCount = columns.length - displayedCols.length;
 

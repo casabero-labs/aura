@@ -12,8 +12,16 @@ export const diagnosisPromptTraceCopy = {
   summary: 'AURA realiza una única llamada al modelo. Las tres vistas siguientes separan sus componentes para que puedas comprobar exactamente qué se envió.',
   system: 'Instrucción del sistema: contrato estable de seguridad y formato. Se conserva en inglés técnico para mantener el mismo protocolo entre modelos; no es un segundo diagnóstico.',
   payload: 'Carga de evidencia: JSON con el contexto permitido. Sus nombres y descripciones pueden estar en español porque provienen del motor y del dataset.',
-  exact: 'Solicitud exacta: composición de instrucción, evidencia y esquema. Esta única composición se envía a Ollama y es la que certifica el promptHash.',
+  exact: 'Solicitud exacta: composición de instrucción, evidencia y esquema. Esta única composición se envía al modelo y es la que certifica el promptHash.',
   legacy: 'Compatibilidad histórica: algunas sesiones antiguas conservan un único prompt V1 redactado en español. No se mezcla con el contrato V2 ni se utiliza en diagnósticos nuevos.',
+} as const;
+
+/** Gemini Nano: one request per issue (see contracts/llm/diagnosisFragmentsV2.ts). */
+export const diagnosisFragmentTraceCopy = {
+  title: 'Una solicitud por hallazgo',
+  summary: (count: number) => `Gemini Nano tiene un contexto de unos 9.000 tokens, insuficiente para diagnosticar todos los hallazgos en una sola respuesta. AURA envió ${count} solicitudes, una por hallazgo, y ensambló el contrato con los identificadores del motor. El resultado pasó por el mismo validador estricto.`,
+  canonical: 'Paquete de entrada canónico: instrucción, evidencia y esquema completos. El promptHash identifica este paquete; cada solicitud por hallazgo es una proyección suya y nunca muestra evidencia que el paquete oculte.',
+  fragments: 'Solicitudes enviadas: la evidencia visible de un hallazgo y la respuesta literal del modelo, con su hash.',
 } as const;
 import { DiagnosisHeroPanel } from './diagnosis';
 import { AIConfig, AIProvider, AuditReport, AuditExecutionEvidence, ProviderMetrics, LocalModelStatus, DiagnosisEvent, ProgressDisclosureStatus, InputMode } from '../types';
@@ -125,8 +133,10 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
   const [elapsedSec, setElapsedSec] = useState(0);
   const diagnosisRun = useRef(0);
   const diagnosisTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const diagnosisAbort = useRef<AbortController | null>(null);
   useEffect(() => () => {
     diagnosisRun.current += 1;
+    diagnosisAbort.current?.abort();
     if (diagnosisTimer.current) clearInterval(diagnosisTimer.current);
   }, []);
 
@@ -421,6 +431,9 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
     if (isLoading) return;
     const runId = ++diagnosisRun.current;
     const isCurrentRun = () => diagnosisRun.current === runId;
+    diagnosisAbort.current?.abort();
+    const abortController = new AbortController();
+    diagnosisAbort.current = abortController;
     setIsLoading(true);
     setError(null);
     setStructuredDiagnosis(null);
@@ -435,6 +448,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
     setProgressStep('Preparando contexto del dataset...');
     setProgressStatus('running');
     let finalText = '';
+    let fragmentStep: string | null = null;
 
     const prompt = diagnosisPrompt;
     const promptHash = computePromptHash(prompt);
@@ -469,13 +483,22 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
               : 'smart_sample',
             requestedModel: aiConfig.model,
             inference: resolveOllamaInferenceConfig(aiConfig),
+            signal: abortController.signal,
             onInputPrepared: (input) => { if (isCurrentRun()) setPreparedInputSnapshot(input); },
             onProgress: (event) => {
               if (!isCurrentRun()) return;
-              if (event.type === 'chunk') {
+              if (event.type === 'fragment') {
+                const header = `${event.index === 0 ? '' : '\n\n'}// ${event.index + 1}/${event.total} · ${event.issueId}\n`;
+                finalText += header;
+                fragmentStep = `Diagnosticando hallazgo ${event.index + 1} de ${event.total}`;
+                setLiveModelOutput((current) => current + header);
+                setProgressIndeterminate(false);
+                setProgressValue(Math.round((event.index / event.total) * 100));
+                setProgressStep(fragmentStep);
+              } else if (event.type === 'chunk') {
                 finalText += event.text;
                 setLiveModelOutput((current) => current + event.text);
-                setProgressStep('Recibiendo respuesta');
+                setProgressStep(fragmentStep ?? 'Recibiendo respuesta');
               } else {
                 pushEvent('info', event.text);
                 setProgressStep(event.text || 'Esperando respuesta del modelo');
@@ -658,6 +681,8 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
     ?? diagnosisFailureEvidence?.executionReceipt
     ?? null;
   const exactPrompt = activeInputSnapshot ? exactDiagnosisPromptV2(activeInputSnapshot) : '';
+  const activeFragments = structuredDiagnosis?.fragments ?? diagnosisFailureEvidence?.fragments ?? null;
+  const activeRawResponse = structuredDiagnosis?.rawResponse ?? diagnosisFailureEvidence?.rawResponse ?? '';
   const isResponseContractFailure = isDiagnosisResponseContractFailure(diagnosisFailureEvidence?.code);
   const displayedErrorTitle = isResponseContractFailure
     ? 'La respuesta del modelo no cumple el contrato'
@@ -731,8 +756,8 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
           <ProgressDisclosure
             title={progressStatus === 'running' ? 'AURA está trabajando' : progressStatus === 'success' ? 'Diagnóstico completado' : progressStatus === 'warning' ? 'Diagnóstico cancelado' : 'Diagnóstico fallido'}
             description={progressStatus === 'running'
-              ? `${elapsedSec}s transcurridos. El estado refleja la solicitud, no un trabajo cognitivo interno.`
-              : aiConfig.providerType === 'chrome' ? 'Chrome puede descargar Gemini Nano la primera vez. No cierres esta pestaña.' : undefined}
+              ? `${elapsedSec} s transcurridos.${aiConfig.providerType === 'chrome' ? ' La primera vez Chrome puede descargar Gemini Nano; no cierres esta pestaña.' : ''}`
+              : undefined}
             value={progressValue}
             indeterminate={progressIndeterminate}
             status={progressStatus}
@@ -740,11 +765,13 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
             compact={progressStatus !== 'running'}
             onCancel={progressStatus === 'running' ? () => {
               diagnosisRun.current += 1;
+              diagnosisAbort.current?.abort();
+              diagnosisAbort.current = null;
               if (diagnosisTimer.current) clearInterval(diagnosisTimer.current);
               diagnosisTimer.current = null;
               if (aiConfig.providerType === 'chrome') stopNetworkMonitoring();
               setProgressStatus('warning');
-              setProgressStep('Diagnóstico cancelado. Se descartará cualquier respuesta pendiente del proveedor.');
+              setProgressStep('Diagnóstico cancelado. La solicitud al modelo se detuvo.');
               setProgressIndeterminate(false);
               setIsLoading(false);
             } : undefined}
@@ -1147,18 +1174,31 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
                 )}
 
                 {/* System instruction + user payload */}
+                {activeInputSnapshot && activeFragments && (
+                  <div className="diagnosis-prompt-trace" data-testid="diagnosis-prompt-trace-explanation">
+                    <p className="diagnosis-prompt-trace__eyebrow">Arquitectura del prompt</p>
+                    <h4>{diagnosisFragmentTraceCopy.title}</h4>
+                    <p>{diagnosisFragmentTraceCopy.summary(activeFragments.length)}</p>
+                    <ol>
+                      <li>{diagnosisFragmentTraceCopy.canonical}</li>
+                      <li>{diagnosisFragmentTraceCopy.fragments}</li>
+                    </ol>
+                  </div>
+                )}
                 {activeInputSnapshot && (
                   <>
-                    <div className="diagnosis-prompt-trace" data-testid="diagnosis-prompt-trace-explanation">
-                      <p className="diagnosis-prompt-trace__eyebrow">Arquitectura del prompt</p>
-                      <h4>{diagnosisPromptTraceCopy.title}</h4>
-                      <p>{diagnosisPromptTraceCopy.summary}</p>
-                      <ol>
-                        <li>{diagnosisPromptTraceCopy.system}</li>
-                        <li>{diagnosisPromptTraceCopy.payload}</li>
-                        <li>{diagnosisPromptTraceCopy.exact}</li>
-                      </ol>
-                    </div>
+                    {!activeFragments && (
+                      <div className="diagnosis-prompt-trace" data-testid="diagnosis-prompt-trace-explanation">
+                        <p className="diagnosis-prompt-trace__eyebrow">Arquitectura del prompt</p>
+                        <h4>{diagnosisPromptTraceCopy.title}</h4>
+                        <p>{diagnosisPromptTraceCopy.summary}</p>
+                        <ol>
+                          <li>{diagnosisPromptTraceCopy.system}</li>
+                          <li>{diagnosisPromptTraceCopy.payload}</li>
+                          <li>{diagnosisPromptTraceCopy.exact}</li>
+                        </ol>
+                      </div>
+                    )}
                     <div className="diagnosis-tech-section">
                       <SyntaxDisplay filename="01-system-instruction.en.txt" content={activeInputSnapshot.systemInstruction} maxHeight={320} />
                     </div>
@@ -1166,19 +1206,46 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
                       <SyntaxDisplay filename="02-evidence-payload.json" content={activeInputSnapshot.userPayload} maxHeight={320} />
                     </div>
                     <div className="diagnosis-tech-section">
-                      <SyntaxDisplay filename="03-request-sent-once.txt" content={exactPrompt} maxHeight={320} />
+                      <SyntaxDisplay
+                        filename={activeFragments ? '03-canonical-request.txt' : '03-request-sent-once.txt'}
+                        content={exactPrompt}
+                        maxHeight={320}
+                      />
                     </div>
                   </>
                 )}
 
+                {/* Per-issue requests and verbatim responses (Gemini Nano) */}
+                {activeFragments?.map((fragment, index) => (
+                  <div className="diagnosis-tech-section" key={fragment.issueId} data-testid="diagnosis-fragment">
+                    <SyntaxDisplay
+                      filename={`fragment-${String(index + 1).padStart(2, '0')}-${fragment.issueId}.txt`}
+                      content={[
+                        `promptHash: ${fragment.promptHash}`,
+                        `rawResponseHash: ${fragment.rawResponseHash}`,
+                        `intentos: ${fragment.attempts} · ${(fragment.latencyMs / 1000).toFixed(1)} s`,
+                        '',
+                        '— Solicitud —',
+                        fragment.prompt,
+                        '',
+                        '— Respuesta literal del modelo —',
+                        fragment.rawResponse || '(vacía)',
+                      ].join('\n')}
+                      maxHeight={240}
+                      wrap
+                    />
+                  </div>
+                ))}
+
                 {/* Raw response */}
                 <div className="diagnosis-tech-section">
                   <SyntaxDisplay
-                    filename="provider-response.raw.json"
-                    content={liveModelOutput || (structuredDiagnosis
+                    filename={activeFragments ? 'provider-response.assembled.json' : 'provider-response.raw.json'}
+                    content={activeRawResponse || liveModelOutput || (structuredDiagnosis
                       ? JSON.stringify(structuredDiagnosis.diagnosis, null, 2)
-                      : 'La respuesta cruda no está disponible en esta sesión; su hash permanece en el recibo.')}
+                      : 'El modelo no devolvió respuesta; su hash vacío queda en el recibo.')}
                     maxHeight={320}
+                    wrap
                   />
                 </div>
               </>

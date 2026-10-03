@@ -331,7 +331,17 @@ const calculateStats = (data: any[], fields: string[]): Record<string, ColumnSta
 
     // Get a few random samples for context (start, middle, end)
     const sampleIndices = [0, Math.floor(values.length / 2), values.length - 1].filter(i => i >= 0 && i < values.length);
-    const sampleValues = sampleIndices.map(i => values[i]).filter(v => v !== null && v !== undefined).slice(0, 3);
+    const sampleValues = sampleIndices.map(i => values[i]).filter(v => v !== null && v !== undefined && v !== '').slice(0, 3);
+
+    // Longitud como texto sobre TODOS los valores no nulos ni vacíos (no sobre la muestra).
+    // Bucle explícito: Math.min(...arr) lanza RangeError con arrays grandes.
+    let minLength: number | undefined;
+    let maxLength: number | undefined;
+    for (const v of nonNulls) {
+      const len = String(v).length;
+      if (minLength === undefined || len < minLength) minLength = len;
+      if (maxLength === undefined || len > maxLength) maxLength = len;
+    }
 
     stats[field] = {
       name: field,
@@ -343,12 +353,19 @@ const calculateStats = (data: any[], fields: string[]): Record<string, ColumnSta
       uniqueCount: freqMap.size,
       topFreq: sortedFreq,
       zeros: numValues.filter(n => n === 0).length,
-      sampleValues: sampleValues
+      sampleValues: sampleValues,
+      ...(minLength !== undefined ? { minLength, maxLength } : {}),
     };
 
     if (inferredType === 'number' && numValues.length > 0) {
-      stats[field].min = Math.min(...numValues);
-      stats[field].max = Math.max(...numValues);
+      let min = numValues[0];
+      let max = numValues[0];
+      for (const n of numValues) {
+        if (n < min) min = n;
+        if (n > max) max = n;
+      }
+      stats[field].min = min;
+      stats[field].max = max;
       const sum = numValues.reduce((a, b) => a + b, 0);
       const mean = sum / numValues.length;
       stats[field].mean = mean;
@@ -378,16 +395,40 @@ const calculateStats = (data: any[], fields: string[]): Record<string, ColumnSta
       stats[field].q3 = q3;
       stats[field].iqr = iqr;
 
-      // WARNING: 3× IQR (extreme outliers)
-      stats[field].lowerFence = q1 - 3 * iqr;
-      stats[field].upperFence = q3 + 3 * iqr;
-      stats[field].outlierCount = numValues.filter(n => n < stats[field].lowerFence! || n > stats[field].upperFence!).length;
-      stats[field].outlierSeverity = stats[field].outlierCount > 0 ? 'WARNING' : undefined;
-
-      // INFO: 1.5× IQR (Tukey mild outliers)
-      stats[field].lowerFenceTukey = q1 - 1.5 * iqr;
-      stats[field].upperFenceTukey = q3 + 1.5 * iqr;
-      stats[field].outlierCountTukey = numValues.filter(n => n < stats[field].lowerFenceTukey! || n > stats[field].upperFenceTukey!).length;
+      // Mismas guardas que las reglas 15 / Tukey del motor: con ≤ 10 valores o IQR = 0
+      // (Q1 = Q3) las cercas colapsan y cualquier valor distinto sería «atípico».
+      // En ese caso no se informan atípicos ni cercas.
+      if (numValues.length <= 10) {
+        stats[field].outlierStatus = 'too_few_values';
+        stats[field].outlierCount = 0;
+        stats[field].outlierCountTukey = 0;
+      } else if (!(iqr > 0)) {
+        stats[field].outlierStatus = 'iqr_zero';
+        stats[field].outlierCount = 0;
+        stats[field].outlierCountTukey = 0;
+      } else {
+        stats[field].outlierStatus = 'computed';
+        // WARNING: 3× IQR (extreme outliers)
+        const lowerFence = q1 - 3 * iqr;
+        const upperFence = q3 + 3 * iqr;
+        // INFO: 1.5× IQR (Tukey mild outliers)
+        const lowerFenceTukey = q1 - 1.5 * iqr;
+        const upperFenceTukey = q3 + 1.5 * iqr;
+        let extreme = 0;
+        let mild = 0;
+        for (const n of numValues) {
+          if (n < lowerFence || n > upperFence) extreme++;
+          else if (n < lowerFenceTukey || n > upperFenceTukey) mild++;
+        }
+        stats[field].lowerFence = lowerFence;
+        stats[field].upperFence = upperFence;
+        stats[field].lowerFenceTukey = lowerFenceTukey;
+        stats[field].upperFenceTukey = upperFenceTukey;
+        stats[field].outlierCount = extreme;
+        stats[field].outlierSeverity = extreme > 0 ? 'WARNING' : undefined;
+        // Solo leves (entre 1,5× y 3×), igual que la regla «Outliers Leves (Tukey 1.5×)».
+        stats[field].outlierCountTukey = mild;
+      }
     }
   });
 

@@ -289,4 +289,70 @@ describe('pipelineSession', () => {
     expect(parsed.executionReceipt.inputReceiptRef).toBe('f'.repeat(64));
     expect(parsed.executionReceipt.evidenceEnvelopeRef).toBe('env:' + '0'.repeat(64));
   });
+
+  const baseData = (overrides: Record<string, unknown> = {}) => ({
+    state: 'review' as const,
+    file: new File(['Name,Age\nAna,30\n'], 'personas.csv', { type: 'text/csv' }),
+    report: { rowCount: 2, colCount: 2, score: 80, issues: [] } as any,
+    auditEvidence: { datasetSha256: 'a'.repeat(64), fileName: 'personas.csv' } as any,
+    rawData: [{ Name: 'Zuleima', Age: '30' }, { Name: 'Luis', Age: '001' }],
+    csvFields: ['Name', 'Age'], csvDelimiter: ',',
+    cleaningScript: '', approvedScript: '', healthDelta: null, aiAnalysis: 'diagnóstico',
+    structuredDiagnosis: null, diagnosisFailureEvidence: null, diagnosticReport: null,
+    remediationPlan: null, scriptContractV2: null, scriptContractVerificationV2: null,
+    benchmarkResults: [], improvementRun: null, scriptValidation: null,
+    deterministicValidation: null, logs: [],
+    ...overrides,
+  });
+
+  it('never persists dataset rows (rawData, improvementRun.simulatedData)', () => {
+    savePipelineSession(baseData({
+      improvementRun: {
+        id: 'run-1', evidenceStatus: 'simulated', initialReport: { rowCount: 2 },
+        benchmarkResults: [], remediationActions: [], createdAt: '2026-10-03T00:00:00.000Z',
+        simulatedData: [{ Name: 'Xiomara', Age: '30' }],
+        simulatedReport: { rowCount: 2 },
+      } as any,
+    }) as any);
+
+    const stored = mockLs.setItem.mock.calls.at(-1)?.[1] ?? '';
+    expect(stored).not.toContain('Luis');
+    expect(stored).not.toContain('Zuleima');
+    expect(stored).not.toContain('Xiomara');
+    const parsed = JSON.parse(stored);
+    expect(parsed.rawData).toEqual([]);
+    expect(parsed.improvementRun.simulatedData).toBeUndefined();
+    expect(parsed.improvementRun.simulatedReport).toEqual({ rowCount: 2 });
+    // Processed artifacts survive.
+    expect(parsed.report.rowCount).toBe(2);
+    expect(parsed.auditEvidence.datasetSha256).toBe('a'.repeat(64));
+    expect(parsed.aiAnalysis).toBe('diagnóstico');
+
+    const restored = loadPipelineSession();
+    expect(restored?.rawData).toEqual([]);
+  });
+
+  it('purges rows from a legacy snapshot on load', () => {
+    mockLs.setItem('aura_pipeline_session_v1', JSON.stringify({
+      state: 'review',
+      report: { rowCount: 2, colCount: 2, score: 80, issues: [] },
+      rawData: [{ Name: 'Ana' }, { Name: 'Luis' }],
+    }));
+    const restored = loadPipelineSession();
+    expect(restored?.rawData).toEqual([]);
+    expect(mockLs.getItem('aura_pipeline_session_v1')).not.toContain('Luis');
+  });
+
+  it('removes the stale snapshot when saving fails (quota)', () => {
+    savePipelineSession(baseData({ auditEvidence: { datasetSha256: 'b'.repeat(64), fileName: 'antiguo.csv' } }) as any);
+    expect(loadPipelineSession()?.auditEvidence?.fileName).toBe('antiguo.csv');
+
+    mockLs.setItem.mockImplementationOnce(() => {
+      throw new DOMException('quota', 'QuotaExceededError');
+    });
+    savePipelineSession(baseData({ auditEvidence: { datasetSha256: 'c'.repeat(64), fileName: 'nuevo.csv' } }) as any);
+
+    expect(mockLs.removeItem).toHaveBeenCalledWith('aura_pipeline_session_v1');
+    expect(loadPipelineSession()).toBeNull();
+  });
 });

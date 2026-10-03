@@ -106,7 +106,16 @@ export interface ColumnStats {
   upperFenceTukey?: number;
   outlierCount?: number;
   outlierSeverity?: 'INFO' | 'WARNING';
+  /** Valores fuera de 1,5× IQR pero dentro de 3× IQR (atípicos leves, igual que la regla Tukey). */
   outlierCountTukey?: number;
+  /**
+   * Si el recuento IQR aplica. 'iqr_zero': Q1 = Q3, las cercas colapsan y no se
+   * informan atípicos; 'too_few_values': ≤ 10 valores numéricos (misma guarda que la regla).
+   */
+  outlierStatus?: 'computed' | 'iqr_zero' | 'too_few_values';
+  /** Longitud mínima/máxima sobre todos los valores no nulos ni vacíos (como texto). */
+  minLength?: number;
+  maxLength?: number;
   zeros?: number;
   topFreq?: { value: string; count: number }[];
   sampleValues?: any[];
@@ -208,6 +217,17 @@ export interface ProviderProgressEvent {
 export interface ProviderTextRequestOptions {
   /** Provider-native JSON Schema constraint for structured outputs. */
   responseSchema?: Record<string, unknown>;
+  /** Aborts the provider request (cancel button). */
+  signal?: AbortSignal;
+}
+
+/** One JSON request with its own system instruction and native schema. */
+export interface StructuredFragmentRequest {
+  systemInstruction: string;
+  prompt: string;
+  responseSchema: Record<string, unknown>;
+  signal?: AbortSignal;
+  onChunk?: (chunk: string) => void;
 }
 
 export interface PromptContractConfig {
@@ -577,6 +597,13 @@ export interface AIProvider {
     onProgress: (event: ProviderProgressEvent) => void,
     options?: ProviderTextRequestOptions,
   ): Promise<ProviderTextResult>;
+
+  /**
+   * Diagnóstico por hallazgo: una solicitud corta con instrucción de sistema y
+   * esquema nativo. Solo la implementan proveedores con contexto pequeño
+   * (Gemini Nano).
+   */
+  generateStructuredFragment?(request: StructuredFragmentRequest): Promise<ProviderTextResult>;
 
   /** Verifica si el proveedor está disponible en el entorno actual */
   isAvailable(): Promise<boolean>;

@@ -51,7 +51,12 @@ interface ReviewStepProps {
   onHealthDelta?: (delta: HealthDelta) => void;
   onLog?: (stage: string, msg: string) => void;
   onContinue?: () => void;
+  /** Sesión restaurada sin filas: reimporta el mismo archivo. Devuelve un error o null. */
+  onReimportSource?: (file: File) => Promise<string | null>;
 }
+
+const ROWS_MISSING_MESSAGE =
+  'Las filas del archivo no se guardan en el navegador. Para simular la corrección, vuelve a seleccionar el mismo archivo; AURA comprueba su SHA-256.';
 
 type ReviewStage = 'pending' | 'simulating' | 'validating' | 'completed';
 
@@ -74,6 +79,7 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
   onHealthDelta,
   onLog,
   onContinue,
+  onReimportSource,
 }) => {
   const [stage, setStage] = useState<ReviewStage>('pending');
   const [draftScript, setDraftScript] = useState<string>(cleaningScript);
@@ -84,11 +90,35 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
   const [v2VerifyError, setV2VerifyError] = useState<string | null>(null);
   const [v2Approved, setV2Approved] = useState<boolean>(false);
 
+  const [reimportError, setReimportError] = useState<string | null>(null);
+  const [reimporting, setReimporting] = useState(false);
+
   const isV2Review = !!scriptContractV2 && isContractsV2Enabled();
+  // Guard: una sesión restaurada trae informe pero no filas. Simular sobre []
+  // daría un resultado falso; se bloquea hasta reimportar el mismo archivo.
+  const rowsMissing = rawData.length === 0 && report.rowCount > 0;
+
+  const handleReimport = async (files: FileList | null) => {
+    const candidate = files?.[0];
+    if (!candidate || !onReimportSource) return;
+    setReimporting(true);
+    try {
+      setReimportError(await onReimportSource(candidate));
+    } catch (err: any) {
+      setReimportError(`No se pudo leer el archivo: ${err?.message ?? 'error desconocido'}`);
+    } finally {
+      setReimporting(false);
+    }
+  };
 
   const handleApprove = (script: string) => {
     if (isV2Review && scriptContractV2) {
       handleApproveV2(script);
+      return;
+    }
+    if (rowsMissing) {
+      setReimportError(ROWS_MISSING_MESSAGE);
+      onLog?.('review.blocked', 'Sesión restaurada sin filas: se requiere reimportar el archivo');
       return;
     }
     setCurrentApprovedScript(script);
@@ -224,6 +254,11 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
   const scriptStatusColor = approvedScript ? 'var(--success)' : cleaningScript ? 'var(--orange)' : 'var(--error)';
 
   const runSimulation = async (script: string, decision: HitlDecision) => {
+    if (rowsMissing) {
+      setReimportError(ROWS_MISSING_MESSAGE);
+      setStage('pending');
+      return;
+    }
     setStage('simulating');
     onLog?.('review.approve', `Script aprobado · safetyScore=${decision.safetyScoreAtApproval} · cobertura=${decision.coverageAtApproval}%`);
 
@@ -323,6 +358,30 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
           </div>
         )}
       </div>
+
+      {rowsMissing && (
+        <div className="review-rows-missing" role="note" data-testid="review-rows-missing">
+          <p>{ROWS_MISSING_MESSAGE}</p>
+          {reimportError && reimportError !== ROWS_MISSING_MESSAGE && (
+            <p role="alert" data-testid="review-reimport-error">{reimportError}</p>
+          )}
+          {onReimportSource && (
+            <div className="btn-row">
+              <label className="btn-s btn-sm" style={{ cursor: reimporting ? 'progress' : 'pointer' }}>
+                {reimporting ? 'Comprobando archivo…' : 'Seleccionar el mismo archivo'}
+                <input
+                  type="file"
+                  accept=".csv,text/csv"
+                  disabled={reimporting}
+                  style={{ position: 'absolute', width: '1px', height: '1px', margin: '-1px', overflow: 'hidden', clip: 'rect(0,0,0,0)' }}
+                  onChange={(e) => { void handleReimport(e.target.files); e.target.value = ''; }}
+                  data-testid="review-reimport-source"
+                />
+              </label>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="mt-6">
         <ScriptReview

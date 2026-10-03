@@ -142,7 +142,8 @@ const App: React.FC = () => {
         file: null,
         report: snap.report,
         auditEvidence: snap.auditEvidence,
-        rawData: snap.rawData,
+        // Las filas nunca se persisten: los pasos que las necesitan piden el archivo.
+        rawData: [],
         csvFields: snap.csvFields,
         csvDelimiter: snap.csvDelimiter,
         cleaningScript: snap.cleaningScript,
@@ -172,7 +173,7 @@ const App: React.FC = () => {
     return INITIAL_PIPELINE_DATA;
   });
 
-  // J11 — la recarga conserva etapa y datos, nunca el File original.
+  // J11 — la recarga conserva etapa y resultados, nunca el File ni sus filas.
   const [restoredWithoutFile] = useState(() => {
     try {
       const raw = localStorage.getItem('aura_pipeline_session_v1');
@@ -1026,11 +1027,11 @@ const App: React.FC = () => {
               <>
                 <h1 className="home-title">Reanudar el análisis</h1>
                 <p className="home-desc">
-                  La etapa y los datos procesados se conservan en esta sesión. El archivo original no se guarda en el navegador.
+                  La etapa y los resultados procesados se guardan en este navegador hasta que cierres la sesión o empieces otra auditoría. Las filas del archivo no se guardan.
                 </p>
                 {restoredWithoutFile && !pipelineData.file && (
                   <p className="home-reimport-note" role="note" data-testid="home-reimport-notice">
-                    Para reprocesar o verificar el hash, reimportá el archivo desde la etapa Carga del flujo.
+                    Para simular o aplicar una corrección tendrás que volver a seleccionar el mismo archivo; AURA comprueba su SHA-256.
                   </p>
                 )}
                 <p className="home-resume-meta" data-testid="home-resume-meta">

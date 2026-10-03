@@ -92,7 +92,7 @@ test.describe('LOOP-01 Editorial — Inicio y carga', () => {
     await expect(page.getByTestId('home-resume-meta')).toContainText('titanic-mini.csv');
     const notice = page.getByTestId('home-reimport-notice');
     await expect(notice).toBeVisible();
-    await expect(notice).toContainText('reimportá el archivo');
-    await expect(page.getByText('El archivo original no se guarda en el navegador')).toBeVisible();
+    await expect(notice).toContainText('volver a seleccionar el mismo archivo');
+    await expect(page.getByText('Las filas del archivo no se guardan')).toBeVisible();
   });
 });

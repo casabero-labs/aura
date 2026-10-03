@@ -414,6 +414,46 @@ export interface ExecutionReceiptV1 {
    * normalization ran.
    */
   normalizationApplied?: boolean;
+  /**
+   * Present only when the diagnosis was produced with one request per issue
+   * (Gemini Nano). `promptHash` above still identifies the canonical input
+   * package; each fragment lists the hash of the request actually sent and
+   * of the exact text the model returned. Absent for single-request runs,
+   * so their receipt hashes are unchanged.
+   */
+  fragmentedExecution?: FragmentedExecutionV1;
+}
+
+export interface FragmentedExecutionV1 {
+  strategy: 'per_issue';
+  requestCount: number;
+  systemInstructionHash: string;
+  fragments: Array<{
+    issueId: string;
+    promptHash: string;
+    rawResponseHash: string;
+    attempts: number;
+  }>;
+}
+
+/** One request sent to the model for a single issue. */
+export interface DiagnosisFragmentRequestV2 {
+  issueId: string;
+  systemInstruction: string;
+  prompt: string;
+  responseSchema: Record<string, unknown>;
+  promptHash: string;
+}
+
+/** What the model returned for one issue, kept verbatim for the evidence. */
+export interface DiagnosisFragmentRecordV2 {
+  issueId: string;
+  promptHash: string;
+  prompt: string;
+  rawResponse: string;
+  rawResponseHash: string;
+  attempts: number;
+  latencyMs: number;
 }
 
 // ── Diagnosis Error Codes ──
@@ -631,6 +671,8 @@ export interface DiagnosisExecutionResult {
    * Surfaced in receipts, exports and the diagnostic report UI.
    */
   normalizationEvidence?: DiagnosisNormalizationEvidenceV2;
+  /** Per-issue requests and verbatim responses (fragmented runs only). */
+  fragments?: DiagnosisFragmentRecordV2[];
 }
 
 /**
@@ -651,6 +693,8 @@ export interface DiagnosisFailureEvidenceV2 {
   rawResponseHash: string;
   /** Exact invalid provider body when one was received. */
   rawResponse?: string;
+  /** Per-issue requests and verbatim responses (fragmented runs only). */
+  fragments?: DiagnosisFragmentRecordV2[];
 }
 
 export const isDiagnosisFailureEvidenceV2 = (

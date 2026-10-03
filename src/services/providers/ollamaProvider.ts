@@ -298,6 +298,7 @@ export class OllamaProvider implements AIProvider {
           keep_alive: this.keepAlive,
           stream: true,
         }),
+        signal: requestOptions?.signal,
       });
 
       if (!response.ok) {

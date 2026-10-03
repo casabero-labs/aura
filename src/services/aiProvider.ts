@@ -153,6 +153,15 @@ class LazyChromeProvider implements AIProvider {
   async generateTextWithProgress(...args: Parameters<NonNullable<AIProvider['generateTextWithProgress']>>) {
     return (await this.provider()).generateTextWithProgress?.(...args);
   }
+  async generateStructuredFragment(...args: Parameters<NonNullable<AIProvider['generateStructuredFragment']>>) {
+    return (await this.provider()).generateStructuredFragment!(...args);
+  }
+  async preloadModel(...args: Parameters<NonNullable<AIProvider['preloadModel']>>) {
+    return (await this.provider()).preloadModel?.(...args);
+  }
+  async unloadModel() {
+    return (await this.provider()).unloadModel?.();
+  }
   async isAvailable() {
     return (await this.provider()).isAvailable();
   }

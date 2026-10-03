@@ -231,8 +231,26 @@ export const buildEvidenceArchive = async ({
     addFile(files, 'diagnosis/response-schema.json', json(snapshot.responseSchema), 'application/json', 'JSON Schema exigido a la respuesta.');
   }
   addFile(files, 'diagnosis/execution-receipt.json', diagnosis.executionReceipt ? json(diagnosis.executionReceipt) : null, 'application/json', 'Recibo de modelo, método, tiempos y hashes.');
+  const fragmentSource = isRecord(diagnosis.structuredDiagnosis)
+    ? diagnosis.structuredDiagnosis
+    : isRecord(diagnosis.failureEvidence) ? diagnosis.failureEvidence : null;
+  const fragments = fragmentSource && Array.isArray(fragmentSource.fragments) ? fragmentSource.fragments : [];
+  fragments.forEach((fragment, index) => {
+    if (!isRecord(fragment)) return;
+    addFile(
+      files,
+      `diagnosis/fragments/${String(index + 1).padStart(2, '0')}-${String(fragment.issueId)}.json`,
+      json(fragment),
+      'application/json',
+      'Solicitud de un hallazgo y respuesta literal de Gemini Nano.',
+    );
+  });
   if (typeof diagnosis.rawResponse === 'string' && diagnosis.rawResponse.length > 0) {
-    addFile(files, 'diagnosis/provider-response.raw.json', diagnosis.rawResponse, 'application/json', 'Respuesta exacta recibida del proveedor.');
+    if (fragments.length > 0) {
+      addFile(files, 'diagnosis/provider-response.assembled.json', diagnosis.rawResponse, 'application/json', 'Contrato ensamblado por AURA a partir de las respuestas literales por hallazgo.');
+    } else {
+      addFile(files, 'diagnosis/provider-response.raw.json', diagnosis.rawResponse, 'application/json', 'Respuesta exacta recibida del proveedor.');
+    }
   } else if (isRecord(diagnosis.structuredDiagnosis) && isRecord(diagnosis.structuredDiagnosis.diagnosis)) {
     addFile(files, 'diagnosis/provider-response.normalized.json', json(diagnosis.structuredDiagnosis.diagnosis), 'application/json', 'Respuesta estructurada normalizada; la sesión no conservó el cuerpo crudo.');
   }

@@ -11,6 +11,8 @@ import type {
   ExecutionReceiptV1,
   InferenceSnapshotV1,
   DiagnosisFailureEvidenceV2,
+  DiagnosisFragmentRecordV2,
+  FragmentedExecutionV1,
 } from './index';
 import {
   buildEvidenceEnvelopeV2,
@@ -23,6 +25,12 @@ import { sha256hex } from './hash';
 import { AIProviderDiagnosisAdapter } from '../../services/providers/diagnosisAdapter';
 import type { DiagnosisAdapterProgressEvent } from '../../services/providers/diagnosisAdapter';
 import { buildRemediationContext } from './remediationContextV2';
+import {
+  assembleDiagnosisFromFragmentsV2,
+  buildDiagnosisFragmentRequestsV2,
+  buildFragmentedExecutionV1,
+  parseDiagnosisFragmentV2,
+} from './diagnosisFragmentsV2';
 
 export { isContractsV2Enabled } from './contractRegistry';
 
@@ -50,6 +58,8 @@ export interface DiagnosisSelectorOptions {
   inference?: InferenceSnapshotV1;
   onProgress?: (event: DiagnosisAdapterProgressEvent) => void;
   onInputPrepared?: (input: DiagnosisInputPackageV2) => void;
+  /** Cancels the provider request(s); the run then fails as cancelled. */
+  signal?: AbortSignal;
 }
 
 export interface StructuredDiagnosisResult {
@@ -82,6 +92,7 @@ function makeFailureEvidence(
   inputPackage: DiagnosisInputPackageV2,
   receipt: ExecutionReceiptV1,
   rawResponse: string,
+  fragments?: DiagnosisFragmentRecordV2[],
 ): DiagnosisFailureEvidenceV2 {
   return {
     contractId: 'aura.diagnosis-failure-evidence.v2',
@@ -92,6 +103,7 @@ function makeFailureEvidence(
     executionReceipt: receipt,
     rawResponseHash: receipt.rawResponseHash,
     rawResponse,
+    ...(fragments ? { fragments } : {}),
   };
 }
 
@@ -107,6 +119,7 @@ function makeInvalidReceipt(
   startedAt: string,
   rawResponse: string,
   errorCodes: string[],
+  fragmentedExecution?: FragmentedExecutionV1,
 ): ExecutionReceiptV1 {
   return buildExecutionReceiptV1({
     input: inputPackage,
@@ -122,7 +135,95 @@ function makeInvalidReceipt(
     rawResponse: rawResponse || '',
     validationStatus: 'invalid',
     validationErrorCodes: errorCodes,
+    ...(fragmentedExecution ? { fragmentedExecution } : {}),
   });
+}
+
+const FRAGMENT_MAX_ATTEMPTS = 2;
+
+/** Gemini Nano's context (~9k tokens) cannot hold the single-request prompt and its answer. */
+const usesPerIssueDiagnosis = (provider: AIProvider): boolean =>
+  provider.type === 'chrome' && typeof provider.generateStructuredFragment === 'function';
+
+/**
+ * Run one request per issue. A fragment whose output is not a JSON object is
+ * asked once more; every attempt is counted in the receipt. Nothing is
+ * repaired: the last verbatim output is what the assembler parses.
+ */
+async function runDiagnosisFragments(
+  provider: AIProvider,
+  inputPackage: DiagnosisInputPackageV2,
+  onProgress: ((event: DiagnosisAdapterProgressEvent) => void) | undefined,
+  signal: AbortSignal | undefined,
+): Promise<{ records: DiagnosisFragmentRecordV2[]; metrics: ProviderMetrics }> {
+  const requests = buildDiagnosisFragmentRequestsV2(inputPackage);
+  const startedAt = performance.now();
+  const records: DiagnosisFragmentRecordV2[] = [];
+  let firstTokenMs = 0;
+  let tokensGenerated = 0;
+  let model: string | null = null;
+
+  for (const [index, request] of requests.entries()) {
+    if (signal?.aborted) throw new DOMException('Diagnóstico cancelado', 'AbortError');
+    onProgress?.({
+      type: 'fragment',
+      text: `Hallazgo ${index + 1} de ${requests.length}`,
+      issueId: request.issueId,
+      index,
+      total: requests.length,
+    });
+    const fragmentStartedAt = performance.now();
+    let attempts = 0;
+    let text = '';
+    while (attempts < FRAGMENT_MAX_ATTEMPTS) {
+      attempts += 1;
+      try {
+        const result = await provider.generateStructuredFragment!({
+          systemInstruction: request.systemInstruction,
+          prompt: request.prompt,
+          responseSchema: request.responseSchema,
+          signal,
+          onChunk: (chunk) => onProgress?.({ type: 'chunk', text: chunk }),
+        });
+        text = result.text;
+        model = result.metrics.model ?? model;
+        tokensGenerated += result.metrics.tokensGenerated;
+        if (firstTokenMs === 0 && result.metrics.firstTokenMs > 0) {
+          firstTokenMs = Math.round(fragmentStartedAt - startedAt + result.metrics.firstTokenMs);
+        }
+      } catch (error) {
+        if (signal?.aborted) throw error;
+        if (!(error instanceof Error && error.name === 'ChromeStreamDegeneratedError')) throw error;
+        text = (error as Error & { partialText?: string }).partialText ?? '';
+      }
+      if (parseDiagnosisFragmentV2(text).ok) break;
+      if (attempts < FRAGMENT_MAX_ATTEMPTS) {
+        onProgress?.({ type: 'status', text: `La respuesta del hallazgo ${index + 1} no era JSON válido; se pide de nuevo.` });
+      }
+    }
+    records.push({
+      issueId: request.issueId,
+      promptHash: request.promptHash,
+      prompt: request.prompt,
+      rawResponse: text,
+      rawResponseHash: sha256hex(text),
+      attempts,
+      latencyMs: Math.round(performance.now() - fragmentStartedAt),
+    });
+  }
+
+  return {
+    records,
+    metrics: {
+      provider: provider.name,
+      model,
+      latencyMs: Math.round(performance.now() - startedAt),
+      firstTokenMs,
+      tokensGenerated,
+      isLocal: true,
+      timestamp: new Date().toISOString(),
+    },
+  };
 }
 
 export async function runStructuredDiagnosis(
@@ -215,15 +316,55 @@ export async function runStructuredDiagnosis(
   let capturedMetrics: ProviderMetrics | null = null;
   let rawResponse = '';
   const startedAt = new Date().toISOString();
+  let fragmentRecords: DiagnosisFragmentRecordV2[] | undefined;
+  let fragmentedExecution: FragmentedExecutionV1 | undefined;
 
-  const pipelineAdapter = async (_pkg: DiagnosisPromptPackageV2): Promise<string> => {
-    const { text, metrics } = await adapter.diagnoseWithProgress(exactPrompt, (event) => {
-      options.onProgress?.(event);
-    }, inputPackage.responseSchema);
-    capturedMetrics = metrics;
-    rawResponse = text;
-    return text;
-  };
+  if (usesPerIssueDiagnosis(options.provider)) {
+    let fragmentRun: Awaited<ReturnType<typeof runDiagnosisFragments>>;
+    try {
+      fragmentRun = await runDiagnosisFragments(options.provider, inputPackage, options.onProgress, options.signal);
+    } catch (err) {
+      const cause = err instanceof Error ? err.message : String(err);
+      const inference = options.inference ?? defaultInference();
+      const invalidReceipt = makeInvalidReceipt(
+        inputPackage, inputMode, exactPrompt,
+        options.provider.name ?? 'unknown', options.requestedModel, null, options.modelDigest,
+        inference, startedAt, '', ['DIAGNOSIS_ADAPTER_ERROR'],
+      );
+      return makeFailureEvidence('DIAGNOSIS_ADAPTER_ERROR', `Adapter error: ${cause}`, 'adapter', inputPackage, invalidReceipt, '');
+    }
+    fragmentRecords = fragmentRun.records;
+    fragmentedExecution = buildFragmentedExecutionV1(fragmentRecords);
+    capturedMetrics = fragmentRun.metrics;
+    const assembly = assembleDiagnosisFromFragmentsV2(inputPackage, envelope, fragmentRecords, new Date().toISOString());
+    if ('code' in assembly) {
+      // The raw evidence of a failed fragment run is every verbatim fragment.
+      rawResponse = JSON.stringify(fragmentRecords.map(({ issueId, rawResponse: text }) => ({ issueId, rawResponse: text })));
+      const inference = options.inference ?? defaultInference();
+      const invalidReceipt = makeInvalidReceipt(
+        inputPackage, inputMode, exactPrompt,
+        fragmentRun.metrics.provider, options.requestedModel, fragmentRun.metrics.model, options.modelDigest,
+        inference, startedAt, rawResponse, [assembly.code], fragmentedExecution,
+      );
+      return makeFailureEvidence(
+        assembly.code,
+        `La respuesta del hallazgo ${assembly.issueId} no cumple el contrato: ${assembly.message}`,
+        assembly.path, inputPackage, invalidReceipt, rawResponse, fragmentRecords,
+      );
+    }
+    rawResponse = assembly.rawResponse;
+  }
+
+  const pipelineAdapter = fragmentRecords
+    ? async (_pkg: DiagnosisPromptPackageV2): Promise<string> => rawResponse
+    : async (_pkg: DiagnosisPromptPackageV2): Promise<string> => {
+      const { text, metrics } = await adapter.diagnoseWithProgress(exactPrompt, (event) => {
+        options.onProgress?.(event);
+      }, inputPackage.responseSchema, options.signal);
+      capturedMetrics = metrics;
+      rawResponse = text;
+      return text;
+    };
 
   const outcome = await runDiagnosisPipeline(
     envelope,
@@ -237,7 +378,7 @@ export async function runStructuredDiagnosis(
     const responseWasTruncated = capturedMetrics?.finishReason === 'length';
     const failureCode = responseWasTruncated ? 'DIAGNOSIS_RESPONSE_TRUNCATED' : failure.code;
     const failureMessage = responseWasTruncated
-      ? `Ollama alcanzó el límite de salida después de ${capturedMetrics?.tokensGenerated ?? 'un número desconocido de'} tokens antes de completar la respuesta JSON.`
+      ? `El modelo alcanzó el límite de salida después de ${capturedMetrics?.tokensGenerated ?? 'un número desconocido de'} tokens antes de completar la respuesta JSON.`
       : failure.message;
     const failurePath = responseWasTruncated ? '$' : failure.path;
     const inference = options.inference ?? defaultInference();
@@ -248,11 +389,11 @@ export async function runStructuredDiagnosis(
       capturedMetrics?.model ?? null,
       options.modelDigest,
       inference, startedAt, rawResponse,
-      [failureCode],
+      [failureCode], fragmentedExecution,
     );
     return makeFailureEvidence(
       failureCode, failureMessage, failurePath,
-      inputPackage, invalidReceipt, rawResponse,
+      inputPackage, invalidReceipt, rawResponse, fragmentRecords,
     );
   }
 
@@ -264,13 +405,13 @@ export async function runStructuredDiagnosis(
       options.requestedModel,
       null, options.modelDigest,
       inference, startedAt, rawResponse,
-      ['DIAGNOSIS_ADAPTER_ERROR'],
+      ['DIAGNOSIS_ADAPTER_ERROR'], fragmentedExecution,
     );
     return makeFailureEvidence(
       'DIAGNOSIS_ADAPTER_ERROR',
       'Adapter did not capture metrics',
       'adapter',
-      inputPackage, invalidReceipt, rawResponse,
+      inputPackage, invalidReceipt, rawResponse, fragmentRecords,
     );
   }
 
@@ -283,13 +424,13 @@ export async function runStructuredDiagnosis(
       capturedMetrics.model,
       options.modelDigest,
       inference, startedAt, rawResponse,
-      ['DIAGNOSIS_MODEL_MISMATCH'],
+      ['DIAGNOSIS_MODEL_MISMATCH'], fragmentedExecution,
     );
     return makeFailureEvidence(
       'DIAGNOSIS_MODEL_MISMATCH',
       `Requested ${options.requestedModel}, observed ${capturedMetrics.model ?? 'null'}`,
       'metrics.model',
-      inputPackage, invalidReceipt, rawResponse,
+      inputPackage, invalidReceipt, rawResponse, fragmentRecords,
     );
   }
 
@@ -307,6 +448,7 @@ export async function runStructuredDiagnosis(
     completedAt: new Date().toISOString(),
     rawResponse,
     validationStatus: 'valid',
+    ...(fragmentedExecution ? { fragmentedExecution } : {}),
     ...(outcome.normalizationEvidence.applied
       ? {
           normalizationApplied: true,
@@ -339,6 +481,7 @@ export async function runStructuredDiagnosis(
     rawDiagnosis: outcome.rawResponse,
     rawValidation: outcome.rawValidation,
     normalizationEvidence: outcome.normalizationEvidence,
+    ...(fragmentRecords ? { fragments: fragmentRecords } : {}),
     remediationContext: (() => {
       const ctx = buildRemediationContext(envelope);
       ctx.evidenceEnvelopeRef = promptPackage.evidenceEnvelopeRef;

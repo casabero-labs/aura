@@ -56,6 +56,9 @@ export type {
   DiagnosisError,
   DiagnosisExecutionResult,
   DiagnosisFailureEvidenceV2,
+  DiagnosisFragmentRecordV2,
+  DiagnosisFragmentRequestV2,
+  FragmentedExecutionV1,
   RemediationActionTypeV2,
   RemediationParametersV2,
   RemediationContextV2,
@@ -305,3 +308,12 @@ export {
   verifyScriptContractV2,
 } from './scriptValidatorV2';
 export type { PythonSyntaxCheckResultV2, ScriptValidationOptionsV2 } from './scriptValidatorV2';
+
+export {
+  DIAGNOSIS_FRAGMENT_SYSTEM_INSTRUCTION_ES,
+  DIAGNOSIS_FRAGMENT_LIMITATION_ES,
+  buildDiagnosisFragmentRequestsV2,
+  assembleDiagnosisFromFragmentsV2,
+  buildFragmentedExecutionV1,
+  parseDiagnosisFragmentV2,
+} from './diagnosisFragmentsV2';

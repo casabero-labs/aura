@@ -104,6 +104,82 @@ const DEFAULT_SCOPE: IssueScope = 'column';
 
 // ── Input types ──
 
+export interface ColumnStatsInput {
+  inferredType?: string;
+  semanticType?: string;
+  distinctCount?: number;
+  nullCount?: number;
+  nullPercentage?: number;
+  topValues?: Array<{ value: string; count: number; percentage: number }>;
+  stats?: Record<string, number>;
+  // Audit engine (`ColumnStats` in src/types.ts) field names.
+  uniqueCount?: number;
+  topFreq?: Array<{ value: string; count: number }>;
+  min?: number | string;
+  max?: number | string;
+  mean?: number;
+  median?: number;
+  std?: number;
+  q1?: number;
+  q3?: number;
+  iqr?: number;
+  outlierCount?: number;
+  outlierCountTukey?: number;
+  zeros?: number;
+}
+
+const ENGINE_NUMERIC_STATS = [
+  'min', 'max', 'mean', 'median', 'std', 'q1', 'q3', 'iqr',
+  'outlierCount', 'outlierCountTukey', 'zeros',
+] as const;
+
+const round2 = (value: number) => Math.round(value * 100) / 100;
+
+/**
+ * The envelope used to read `distinctCount`, `nullPercentage`, `topValues`
+ * and `stats` only, while the audit engine emits `uniqueCount`, `topFreq`
+ * and flat numeric fields. Every column therefore reached the model as
+ * zeros and `{}`. Prefer the envelope-native field and fall back to the
+ * engine field; never default a missing measurement to a false zero when
+ * the engine provides it.
+ */
+export function normalizeColumnStatsInput(raw: ColumnStatsInput, rowCount: number): {
+  inferredType: string;
+  semanticType: string;
+  distinctCount: number;
+  nullCount: number;
+  nullPercentage: number;
+  topValues: Array<{ value: string; count: number; percentage: number }>;
+  stats: Record<string, number>;
+} {
+  const nullCount = raw.nullCount ?? 0;
+  const nullPercentage = raw.nullPercentage
+    ?? (rowCount > 0 ? round2((nullCount / rowCount) * 100) : 0);
+  const topValues = raw.topValues
+    ?? (raw.topFreq ?? []).map((entry) => ({
+      value: String(entry.value),
+      count: entry.count,
+      percentage: rowCount > 0 ? round2((entry.count / rowCount) * 100) : 0,
+    }));
+  let stats = raw.stats;
+  if (!stats) {
+    stats = {};
+    for (const key of ENGINE_NUMERIC_STATS) {
+      const value = raw[key];
+      if (typeof value === 'number' && Number.isFinite(value)) stats[key] = round2(value);
+    }
+  }
+  return {
+    inferredType: raw.inferredType || 'unknown',
+    semanticType: raw.semanticType || 'unknown',
+    distinctCount: raw.distinctCount ?? raw.uniqueCount ?? 0,
+    nullCount,
+    nullPercentage,
+    topValues,
+    stats,
+  };
+}
+
 export interface AuditReportInput {
   score: number;
   rowCount: number;
@@ -123,15 +199,13 @@ export interface AuditReportInput {
     sampleValues?: (string | number | null)[];
     automaticAuthorization?: AutomaticAuthorization;
   }>;
-  columnStats?: Record<string, {
-    inferredType?: string;
-    semanticType?: string;
-    distinctCount?: number;
-    nullCount?: number;
-    nullPercentage?: number;
-    topValues?: Array<{ value: string; count: number; percentage: number }>;
-    stats?: Record<string, number>;
-  }>;
+  /**
+   * Accepts both the envelope-native shape (distinctCount / nullPercentage /
+   * topValues / stats) and the audit engine's `ColumnStats` shape
+   * (uniqueCount / topFreq / flat numeric fields). See
+   * `normalizeColumnStatsInput`.
+   */
+  columnStats?: Record<string, ColumnStatsInput>;
   datasetProfile?: {
     columns?: Array<{
       name: string;
@@ -308,12 +382,13 @@ export function _buildEvidenceEnvelopeV2(
   // 7. Column stats
   const columnStats: Record<string, ColumnStatsV2> = {};
   for (const col of finalCols) {
-    const rawStats = report.columnStats?.[col.name];
-    if (!rawStats) continue;
+    const sourceStats = report.columnStats?.[col.name];
+    if (!sourceStats) continue;
+    const rawStats = normalizeColumnStatsInput(sourceStats, report.rowCount);
     const colMeta = (report.datasetProfile?.columns || []).find(c => c.name === col.name);
     const shouldHash = shouldHashColumn(col.name, colMeta?.semanticType, undefined, piiConfig);
 
-    let topValues = (rawStats.topValues || []).map(tv => ({
+    let topValues = rawStats.topValues.map(tv => ({
       value: shouldHash ? hashValue(String(tv.value)) : isPII(String(tv.value), piiConfig) ? redactValue(String(tv.value)) : String(tv.value),
       count: tv.count,
       percentage: tv.percentage,
@@ -325,13 +400,13 @@ export function _buildEvidenceEnvelopeV2(
 
     columnStats[col.columnId] = {
       columnId: col.columnId,
-      inferredType: rawStats.inferredType || 'unknown',
-      semanticType: rawStats.semanticType || 'unknown',
-      distinctCount: rawStats.distinctCount || 0,
-      nullCount: rawStats.nullCount || 0,
-      nullPercentage: rawStats.nullPercentage || 0,
+      inferredType: rawStats.inferredType,
+      semanticType: rawStats.semanticType,
+      distinctCount: rawStats.distinctCount,
+      nullCount: rawStats.nullCount,
+      nullPercentage: rawStats.nullPercentage,
       topValues,
-      stats: rawStats.stats || {},
+      stats: rawStats.stats,
     };
   }
 

@@ -3,7 +3,9 @@ import type { ProviderMetrics, ProviderProgressEvent } from '../../types';
 
 export type DiagnosisAdapterProgressEvent =
   | { type: 'status'; text: string }
-  | { type: 'chunk'; text: string };
+  | { type: 'chunk'; text: string }
+  /** Per-issue diagnosis: a fragment request started (index is 0-based). */
+  | { type: 'fragment'; text: string; issueId: string; index: number; total: number };
 
 export interface DiagnosisAdapterConfig {
   provider: AIProvider;
@@ -21,8 +23,8 @@ export class AIProviderDiagnosisAdapter {
     this.provider = config.provider;
   }
 
-  async diagnose(prompt: string, responseSchema?: Record<string, unknown>): Promise<DiagnosisAdapterResult> {
-    const result = await this.provider.generateText(prompt, { responseSchema });
+  async diagnose(prompt: string, responseSchema?: Record<string, unknown>, signal?: AbortSignal): Promise<DiagnosisAdapterResult> {
+    const result = await this.provider.generateText(prompt, { responseSchema, signal });
     return {
       text: result.text,
       metrics: result.metrics,
@@ -33,14 +35,15 @@ export class AIProviderDiagnosisAdapter {
     prompt: string,
     onProgress: (event: DiagnosisAdapterProgressEvent) => void,
     responseSchema?: Record<string, unknown>,
+    signal?: AbortSignal,
   ): Promise<DiagnosisAdapterResult> {
     if (!this.provider.generateTextWithProgress) {
-      return this.diagnose(prompt, responseSchema);
+      return this.diagnose(prompt, responseSchema, signal);
     }
     const result = await this.provider.generateTextWithProgress(prompt, (event: ProviderProgressEvent) => {
       if (event.chunk) onProgress({ type: 'chunk', text: event.chunk });
       else onProgress({ type: 'status', text: event.message });
-    }, { responseSchema });
+    }, { responseSchema, signal });
     return {
       text: result.text,
       metrics: result.metrics,

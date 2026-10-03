@@ -13,7 +13,7 @@
  * - M5: Structured JSON output
  */
 
-import { AuditReport, AIProvider, ProviderMetrics, ExecutiveReportContent, ProviderProgressEvent } from '../../types';
+import { AuditReport, AIProvider, ProviderMetrics, ExecutiveReportContent, ProviderProgressEvent, ProviderTextRequestOptions, StructuredFragmentRequest } from '../../types';
 import { buildAnalysisPrompt, buildExecutivePrompt } from './prompts';
 import { detectChromeAiAvailability, NormalizedAvailability, NormalizedStatus } from '../chromeAvailability';
 import { NetworkGuard, NetworkGuardResult } from '../networkGuard';
@@ -33,18 +33,20 @@ interface DownloadMonitor extends EventTarget {
 }
 
 /** Modern global LanguageModel (Chrome 138+) */
+interface LanguageModelCreateOptions {
+  systemPrompt?: string;
+  temperature?: number;
+  topK?: number;
+  initialPrompts?: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>;
+  expectedInputs?: Array<{ type: 'text'; languages?: string[] }>;
+  expectedOutputs?: Array<{ type: 'text'; languages?: string[] }>;
+  monitor?: (m: DownloadMonitor) => void;
+  signal?: AbortSignal;
+}
+
 interface GlobalLanguageModel {
   availability(options?: { expectedInputLanguages?: string[] }): Promise<{ available: 'readily' | 'after-download' | 'no' }>;
-  create(options?: {
-    systemPrompt?: string;
-    temperature?: number;
-    topK?: number;
-    monitor?: (m: DownloadMonitor) => void;
-  }): Promise<{
-    prompt(input: string): Promise<string>;
-    promptStreaming(input: string): ReadableStream;
-    destroy(): void;
-  }>;
+  create(options?: LanguageModelCreateOptions): Promise<ChromeSession>;
 }
 
 /** window.ai bridge (older Chrome 127-137) */
@@ -215,10 +217,80 @@ export async function getChromeAiDiagnostic(): Promise<ChromeAiDiagnostic> {
 
 // ── Session (internal) ──
 
+interface ChromePromptOptions {
+  responseConstraint?: Record<string, unknown>;
+  signal?: AbortSignal;
+}
+
 interface ChromeSession {
-  prompt(input: string): Promise<string>;
-  promptStreaming(input: string): ReadableStream;
+  prompt(input: string, options?: ChromePromptOptions): Promise<string>;
+  promptStreaming(input: string, options?: ChromePromptOptions): ReadableStream<string | BufferSource>;
+  clone?(options?: { signal?: AbortSignal }): Promise<ChromeSession>;
   destroy(): void;
+}
+
+/**
+ * A run of whitespace this long means constrained decoding degenerated: the
+ * JSON grammar allows unlimited whitespace and Gemini Nano can keep emitting
+ * newlines until the context window is exhausted.
+ */
+export const DEGENERATE_WHITESPACE_RUN = 64;
+
+export class ChromeStreamDegeneratedError extends Error {
+  constructor(readonly partialText: string) {
+    super(`Gemini Nano emitió más de ${DEGENERATE_WHITESPACE_RUN} espacios seguidos; la respuesta se interrumpió.`);
+    this.name = 'ChromeStreamDegeneratedError';
+  }
+}
+
+const trailingWhitespace = (text: string): number => text.length - text.trimEnd().length;
+
+/**
+ * Read a Prompt API stream into text. Current Chrome emits string deltas;
+ * Chrome 127-137 emitted the cumulative text so far; some builds emit bytes.
+ * The previous implementation passed strings to `TextDecoder.decode`, which
+ * throws, and then silently re-ran the whole generation with `prompt()`.
+ */
+export async function readPromptStream(
+  stream: ReadableStream<string | BufferSource>,
+  onDelta: (delta: string) => void,
+  options: { guardWhitespace?: boolean } = {},
+): Promise<{ text: string; firstChunkMs: number }> {
+  const startedAt = performance.now();
+  const reader = stream.getReader();
+  const decoder = new TextDecoder();
+  let text = '';
+  let firstChunkMs = 0;
+  let whitespaceRun = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const chunk = typeof value === 'string' ? value : decoder.decode(value, { stream: true });
+      if (!chunk) continue;
+      if (firstChunkMs === 0) firstChunkMs = performance.now() - startedAt;
+      const delta = text.length > 0 && chunk.length > text.length && chunk.startsWith(text)
+        ? chunk.slice(text.length)
+        : chunk;
+      text += delta;
+      onDelta(delta);
+      if (options.guardWhitespace) {
+        whitespaceRun = delta.trim().length === 0 ? whitespaceRun + delta.length : trailingWhitespace(delta);
+        if (whitespaceRun > DEGENERATE_WHITESPACE_RUN) {
+          await reader.cancel().catch(() => undefined);
+          throw new ChromeStreamDegeneratedError(text);
+        }
+      }
+    }
+    const tail = decoder.decode();
+    if (tail) {
+      text += tail;
+      onDelta(tail);
+    }
+  } finally {
+    reader.releaseLock?.();
+  }
+  return { text, firstChunkMs };
 }
 
 // ── Provider ──
@@ -235,6 +307,8 @@ export class ChromePromptProvider implements AIProvider {
   private privacyReceiptService: PrivacyReceiptService | null = null;
   private _sessionCreated: boolean = false;
   private _generationMethod: 'promptStreaming' | 'prompt' | 'failed' = 'failed';
+  /** Session primed with a system instruction; cloned for every fragment, never prompted. */
+  private fragmentBase: { systemInstruction: string; session: Promise<ChromeSession> } | null = null;
 
   getApiSurface(): ChromeAiApiSurface {
     return detectApiSurface();
@@ -370,6 +444,108 @@ export class ChromePromptProvider implements AIProvider {
     return this.sessionPromise;
   }
 
+  /**
+   * A clean session per request. The cached session from `getSession()` only
+   * guarantees the model is downloaded; prompting it would keep every earlier
+   * diagnosis in its 9k-token context.
+   */
+  private async createPromptSession(
+    options: { systemInstruction?: string; signal?: AbortSignal } = {},
+  ): Promise<ChromeSession> {
+    const surface = detectApiSurface();
+    if (surface === 'LanguageModel') {
+      const initialPrompts = options.systemInstruction
+        ? [{ role: 'system' as const, content: options.systemInstruction }]
+        : undefined;
+      try {
+        return await globalThis.LanguageModel!.create({
+          ...(initialPrompts ? { initialPrompts } : {}),
+          expectedInputs: [{ type: 'text', languages: ['es', 'en'] }],
+          expectedOutputs: [{ type: 'text', languages: ['es'] }],
+          ...(options.signal ? { signal: options.signal } : {}),
+        });
+      } catch (error) {
+        if (options.signal?.aborted) throw error;
+        // Builds without language hints reject the options object.
+        return globalThis.LanguageModel!.create(initialPrompts ? { initialPrompts } : undefined);
+      }
+    }
+    if (surface === 'window.ai.languageModel') {
+      return window.ai!.languageModel!.create(
+        options.systemInstruction ? { systemPrompt: options.systemInstruction } : undefined,
+      ) as unknown as Promise<ChromeSession>;
+    }
+    if (surface === 'window.ai.assistant') {
+      const ai = await window.ai!.assistant!();
+      return ai.create(
+        options.systemInstruction ? { systemPrompt: options.systemInstruction } : undefined,
+      ) as unknown as Promise<ChromeSession>;
+    }
+    throw new Error('Chrome AI API no detectada en este navegador.');
+  }
+
+  /**
+   * Stream one prompt on a fresh session. Falls back to `prompt()` only when
+   * the stream cannot start; a stream that fails midway is an error, not a
+   * reason to generate the whole answer again.
+   */
+  private async runPrompt(
+    prompt: string,
+    onDelta: (delta: string) => void,
+    options: { signal?: AbortSignal; responseConstraint?: Record<string, unknown>; guardWhitespace?: boolean; session?: ChromeSession } = {},
+  ): Promise<{ text: string; firstChunkMs: number }> {
+    const session = options.session ?? await this.createPromptSession({ signal: options.signal });
+    this._sessionCreated = true;
+    const promptOptions: ChromePromptOptions = {
+      ...(options.responseConstraint ? { responseConstraint: options.responseConstraint } : {}),
+      ...(options.signal ? { signal: options.signal } : {}),
+    };
+    try {
+      let stream: ReadableStream<string | BufferSource> | null = null;
+      try {
+        stream = session.promptStreaming(prompt, promptOptions);
+      } catch (startError) {
+        if (options.signal?.aborted) throw startError;
+        stream = null;
+      }
+      if (!stream) {
+        const text = await session.prompt(prompt, promptOptions);
+        this._generationMethod = 'prompt';
+        onDelta(text);
+        return { text, firstChunkMs: 0 };
+      }
+      const result = await readPromptStream(stream, onDelta, { guardWhitespace: options.guardWhitespace });
+      this._generationMethod = 'promptStreaming';
+      return result;
+    } catch (error) {
+      this._generationMethod = 'failed';
+      throw error;
+    } finally {
+      try { session.destroy(); } catch { /* ignore */ }
+    }
+  }
+
+  private metricsFor(startTime: number, firstChunkMs: number, text: string): ProviderMetrics {
+    return {
+      provider: this.name,
+      model: this.model,
+      latencyMs: Math.round(performance.now() - startTime),
+      firstTokenMs: Math.round(firstChunkMs),
+      tokensGenerated: Math.round(text.length / 4),
+      isLocal: true,
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  private parseExecutiveContent(report: AuditReport, text: string): ExecutiveReportContent {
+    try {
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      return jsonMatch ? JSON.parse(jsonMatch[0]) : this.fallbackContent(report, text);
+    } catch {
+      return this.fallbackContent(report, text);
+    }
+  }
+
   // ── AIProvider Implementation ──
 
   async analyzeStream(
@@ -382,115 +558,21 @@ export class ChromePromptProvider implements AIProvider {
       return this.emptyMetrics();
     }
 
-    const prompt = buildAnalysisPrompt(report);
     const startTime = performance.now();
-    let firstTokenTime = 0;
-    let tokensGenerated = 0;
-
     try {
-      const session = await this.getSession();
-      let fullText = '';
-
-      try {
-        const stream = session.promptStreaming(prompt);
-        const reader = stream.getReader();
-        const decoder = new TextDecoder();
-        let previousText = '';
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          const text = decoder.decode(value);
-          if (firstTokenTime === 0) firstTokenTime = performance.now() - startTime;
-
-          const delta = text.slice(previousText.length);
-          if (delta) {
-            tokensGenerated += Math.round(delta.length / 4);
-            onChunk(delta);
-            fullText += delta;
-          }
-          previousText = text;
-        }
-      } catch (streamingError) {
-        // Fallback: use session.prompt() if promptStreaming fails
-        const response = await session.prompt(prompt);
-        fullText = response;
-        tokensGenerated = Math.round(response.length / 4);
-        onChunk(response);
-      }
+      const { text, firstChunkMs } = await this.runPrompt(buildAnalysisPrompt(report), onChunk);
+      return this.metricsFor(startTime, firstChunkMs, text);
     } catch (error) {
       console.error('Chrome AI Error:', error);
       onChunk(`\n\n**Error:** ${(error as Error).message}`);
+      return this.metricsFor(startTime, 0, '');
     }
-
-    const totalTime = performance.now() - startTime;
-    return {
-      provider: this.name,
-      model: this.model,
-      latencyMs: Math.round(totalTime),
-      firstTokenMs: Math.round(firstTokenTime),
-      tokensGenerated,
-      isLocal: true,
-      timestamp: new Date().toISOString(),
-    };
   }
 
   async generateExecutiveReport(
     report: AuditReport,
   ): Promise<{ content: ExecutiveReportContent; metrics: ProviderMetrics }> {
-    const availability = await detectChromeAiAvailability();
-    if (availability.status !== 'ready') throw new Error(availability.message);
-
-    const prompt = buildExecutivePrompt(report);
-    const startTime = performance.now();
-
-    try {
-      const session = await this.getSession();
-      let response: string;
-
-      try {
-        const stream = session.promptStreaming(prompt);
-        const reader = stream.getReader();
-        const decoder = new TextDecoder();
-        let fullText = '';
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          fullText += decoder.decode(value);
-        }
-        response = fullText;
-      } catch (streamingError) {
-        // Fallback: use session.prompt() if promptStreaming fails
-        response = await session.prompt(prompt);
-      }
-
-      const totalTime = performance.now() - startTime;
-
-      let content: ExecutiveReportContent;
-      try {
-        const jsonMatch = response.match(/\{[\s\S]*\}/);
-        content = jsonMatch ? JSON.parse(jsonMatch[0]) : this.fallbackContent(report, response);
-      } catch {
-        content = this.fallbackContent(report, response);
-      }
-
-      return {
-        content,
-        metrics: {
-          provider: this.name,
-          model: this.model,
-          latencyMs: Math.round(totalTime),
-          firstTokenMs: Math.round(totalTime),
-          tokensGenerated: Math.round(response.length / 4),
-          isLocal: true,
-          timestamp: new Date().toISOString(),
-        },
-      };
-    } catch (error) {
-      throw new Error(`Chrome AI error: ${(error as Error).message}`);
-    }
+    return this.generateExecutiveReportStream(report, () => undefined);
   }
 
   async generateExecutiveReportStream(
@@ -500,250 +582,97 @@ export class ChromePromptProvider implements AIProvider {
     const availability = await detectChromeAiAvailability();
     if (availability.status !== 'ready') throw new Error(availability.message);
 
-    const prompt = buildExecutivePrompt(report);
     const startTime = performance.now();
-    let firstTokenTime = 0;
-    let tokensGenerated = 0;
-    let fullText = '';
-
     try {
-      const session = await this.getSession();
-
-      try {
-        const stream = session.promptStreaming(prompt);
-        const reader = stream.getReader();
-        const decoder = new TextDecoder();
-        let previousText = '';
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          const text = decoder.decode(value);
-          if (firstTokenTime === 0) firstTokenTime = performance.now() - startTime;
-
-          const delta = text.slice(previousText.length);
-          if (delta) {
-            tokensGenerated += Math.round(delta.length / 4);
-            fullText += delta;
-            onChunk(delta);
-          }
-          previousText = text;
-        }
-      } catch (streamingError) {
-        // Fallback: use session.prompt() if promptStreaming fails
-        fullText = await session.prompt(prompt);
-        tokensGenerated = Math.round(fullText.length / 4);
-        onChunk(fullText);
-      }
+      const { text, firstChunkMs } = await this.runPrompt(buildExecutivePrompt(report), onChunk);
+      return { content: this.parseExecutiveContent(report, text), metrics: this.metricsFor(startTime, firstChunkMs, text) };
     } catch (error) {
       throw new Error(`Chrome AI streaming error: ${(error as Error).message}`);
     }
-
-    const totalTime = performance.now() - startTime;
-    let content: ExecutiveReportContent;
-    try {
-      const jsonMatch = fullText.match(/\{[\s\S]*\}/);
-      content = jsonMatch ? JSON.parse(jsonMatch[0]) : this.fallbackContent(report, fullText);
-    } catch {
-      content = this.fallbackContent(report, fullText);
-    }
-
-    return {
-      content,
-      metrics: {
-        provider: this.name,
-        model: this.model,
-        latencyMs: Math.round(totalTime),
-        firstTokenMs: Math.round(firstTokenTime),
-        tokensGenerated,
-        isLocal: true,
-        timestamp: new Date().toISOString(),
-      },
-    };
   }
 
-  async generateText(prompt: string): Promise<{ text: string; metrics: ProviderMetrics }> {
+  async generateText(
+    prompt: string,
+    options?: ProviderTextRequestOptions,
+  ): Promise<{ text: string; metrics: ProviderMetrics }> {
     const availability = await detectChromeAiAvailability();
     if (availability.status !== 'ready') throw new Error(availability.message);
 
     const startTime = performance.now();
-    const session = await this.getSession();
-    let response: string;
-
-    try {
-      const stream = session.promptStreaming(prompt);
-      const reader = stream.getReader();
-      const decoder = new TextDecoder();
-      let fullText = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        fullText += decoder.decode(value);
-      }
-      response = fullText;
-    } catch (streamingError) {
-      // Fallback: use session.prompt() if promptStreaming fails
-      response = await session.prompt(prompt);
-    }
-
-    const totalTime = performance.now() - startTime;
-
-    return {
-      text: response,
-      metrics: {
-        provider: this.name,
-        model: this.model,
-        latencyMs: Math.round(totalTime),
-        firstTokenMs: Math.round(totalTime),
-        tokensGenerated: Math.round(response.length / 4),
-        isLocal: true,
-        timestamp: new Date().toISOString(),
-      },
-    };
+    const { text, firstChunkMs } = await this.runPrompt(prompt, () => undefined, { signal: options?.signal });
+    return { text, metrics: this.metricsFor(startTime, firstChunkMs, text) };
   }
 
   async generateTextWithProgress(
     prompt: string,
     onProgress: (event: ProviderProgressEvent) => void,
+    options?: ProviderTextRequestOptions,
   ): Promise<{ text: string; metrics: ProviderMetrics }> {
     onProgress({ stage: 'checking', message: 'Verificando disponibilidad de Chrome AI' });
+    await this.ensureModelReady(onProgress);
 
-    const availability = await detectChromeAiAvailability();
-
-    if (availability.status === 'downloadable' || availability.status === 'downloading') {
-      onProgress({
-        stage: 'downloading',
-        progress: 0,
-        message: 'Gemini Nano necesita descargarse. Iniciando descarga...',
-      });
-
-      const session = await this.getSession((pct, msg) => {
-        onProgress({ stage: 'downloading', progress: pct, message: msg });
-      });
-      this._sessionCreated = true;
-
-      onProgress({ stage: 'loading', message: 'Modelo descargado. Creando sesión...' });
-
-      const startTime = performance.now();
-      let firstTokenTime = 0;
-      let tokensGenerated = 0;
-      let fullText = '';
-
-      try {
-        onProgress({ stage: 'generating', message: 'Generando diagnóstico con Gemini Nano' });
-
-        try {
-          const stream = session.promptStreaming(prompt);
-          const reader = stream.getReader();
-          const decoder = new TextDecoder();
-          let previousText = '';
-
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            const text = decoder.decode(value);
-            if (firstTokenTime === 0) firstTokenTime = performance.now() - startTime;
-            const delta = text.slice(previousText.length);
-            if (delta) {
-              tokensGenerated += Math.round(delta.length / 4);
-              fullText += delta;
-            }
-            previousText = text;
-          }
-          this._generationMethod = 'promptStreaming';
-        } catch (streamingError) {
-          // Fallback: use session.prompt() if promptStreaming fails
-          fullText = await session.prompt(prompt);
-          tokensGenerated = Math.round(fullText.length / 4);
-          this._generationMethod = 'prompt';
-        }
-
-        const totalTime = performance.now() - startTime;
-        onProgress({ stage: 'completed', progress: 100, message: 'Diagnóstico completado con Chrome AI' });
-
-        return {
-          text: fullText,
-          metrics: {
-            provider: this.name,
-            model: this.model,
-            latencyMs: Math.round(totalTime),
-            firstTokenMs: Math.round(firstTokenTime),
-            tokensGenerated,
-            isLocal: true,
-            timestamp: new Date().toISOString(),
-          },
-        };
-      } catch (error) {
-        this._generationMethod = 'failed';
-        onProgress({ stage: 'error', message: (error as Error).message });
-        throw error;
-      }
+    onProgress({ stage: 'loading', message: 'Creando sesión de Gemini Nano' });
+    const startTime = performance.now();
+    try {
+      const session = await this.createPromptSession({ signal: options?.signal });
+      onProgress({ stage: 'generating', message: 'Generando respuesta con Gemini Nano' });
+      const { text, firstChunkMs } = await this.runPrompt(
+        prompt,
+        (delta) => onProgress({ stage: 'generating', message: 'Recibiendo respuesta de Gemini Nano', chunk: delta }),
+        { signal: options?.signal, session },
+      );
+      onProgress({ stage: 'completed', progress: 100, message: 'Respuesta recibida de Chrome AI' });
+      return { text, metrics: this.metricsFor(startTime, firstChunkMs, text) };
+    } catch (error) {
+      onProgress({ stage: 'error', message: (error as Error).message });
+      throw error;
     }
+  }
 
+  /**
+   * One short JSON request for a single issue (diagnosis per issue). The
+   * system instruction is primed once and the session is cloned per request
+   * so no fragment sees another fragment's text.
+   */
+  async generateStructuredFragment(
+    request: StructuredFragmentRequest,
+  ): Promise<{ text: string; metrics: ProviderMetrics }> {
+    const startTime = performance.now();
+    if (!this.fragmentBase || this.fragmentBase.systemInstruction !== request.systemInstruction) {
+      const previous = this.fragmentBase;
+      this.fragmentBase = {
+        systemInstruction: request.systemInstruction,
+        session: this.createPromptSession({ systemInstruction: request.systemInstruction }),
+      };
+      previous?.session.then((session) => session.destroy()).catch(() => undefined);
+      this.fragmentBase.session.catch(() => { this.fragmentBase = null; });
+    }
+    const base = await this.fragmentBase.session;
+    const session = base.clone
+      ? await base.clone(request.signal ? { signal: request.signal } : undefined)
+      : await this.createPromptSession({ systemInstruction: request.systemInstruction, signal: request.signal });
+    const { text, firstChunkMs } = await this.runPrompt(request.prompt, request.onChunk ?? (() => undefined), {
+      session,
+      signal: request.signal,
+      responseConstraint: request.responseSchema,
+      guardWhitespace: true,
+    });
+    return { text, metrics: this.metricsFor(startTime, firstChunkMs, text) };
+  }
+
+  /** Download the model when needed; throw when Chrome AI cannot run here. */
+  async ensureModelReady(onProgress: (event: ProviderProgressEvent) => void = () => undefined): Promise<void> {
+    const availability = await detectChromeAiAvailability();
+    if (availability.status === 'downloadable' || availability.status === 'downloading') {
+      onProgress({ stage: 'downloading', progress: 0, message: 'Gemini Nano necesita descargarse. Iniciando descarga...' });
+      await this.getSession((pct, msg) => onProgress({ stage: 'downloading', progress: pct, message: msg }));
+      this._sessionCreated = true;
+      onProgress({ stage: 'loading', message: 'Modelo descargado.' });
+      return;
+    }
     if (availability.status !== 'ready') {
       onProgress({ stage: 'error', message: availability.message });
       throw new Error(availability.message);
-    }
-
-    onProgress({ stage: 'loading', message: 'Creando sesión de Gemini Nano' });
-
-    const startTime = performance.now();
-    let firstTokenTime = 0;
-    let tokensGenerated = 0;
-    let fullText = '';
-
-    try {
-      const session = await this.getSession();
-      this._sessionCreated = true;
-      onProgress({ stage: 'generating', message: 'Generando diagnóstico con Gemini Nano' });
-
-      try {
-        const stream = session.promptStreaming(prompt);
-        const reader = stream.getReader();
-        const decoder = new TextDecoder();
-        let previousText = '';
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          const text = decoder.decode(value);
-          if (firstTokenTime === 0) firstTokenTime = performance.now() - startTime;
-          const delta = text.slice(previousText.length);
-          if (delta) {
-            tokensGenerated += Math.round(delta.length / 4);
-            fullText += delta;
-          }
-          previousText = text;
-        }
-        this._generationMethod = 'promptStreaming';
-      } catch (streamingError) {
-        // Fallback: use session.prompt() if promptStreaming fails
-        fullText = await session.prompt(prompt);
-        tokensGenerated = Math.round(fullText.length / 4);
-        this._generationMethod = 'prompt';
-      }
-
-      const totalTime = performance.now() - startTime;
-      onProgress({ stage: 'completed', progress: 100, message: 'Diagnóstico completado con Chrome AI' });
-
-      return {
-        text: fullText,
-        metrics: {
-          provider: this.name,
-          model: this.model,
-          latencyMs: Math.round(totalTime),
-          firstTokenMs: Math.round(firstTokenTime),
-          tokensGenerated,
-          isLocal: true,
-          timestamp: new Date().toISOString(),
-        },
-      };
-    } catch (error) {
-      this._generationMethod = 'failed';
-      onProgress({ stage: 'error', message: (error as Error).message });
-      throw error;
     }
   }
 
@@ -775,6 +704,9 @@ export class ChromePromptProvider implements AIProvider {
   }
 
   async unloadModel(): Promise<void> {
+    const fragmentBase = this.fragmentBase;
+    this.fragmentBase = null;
+    fragmentBase?.session.then((session) => session.destroy()).catch(() => undefined);
     if (this.session) {
       try { this.session.destroy(); } catch { /* ignore */ }
       this.session = null;

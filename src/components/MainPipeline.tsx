@@ -563,6 +563,26 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
     onLog?.('pipeline', msg);
   };
 
+  // ── Sesión restaurada: las filas no se persisten ──
+  // Reimporta el MISMO archivo (SHA-256 contra auditEvidence.datasetSha256) sin
+  // reiniciar el análisis: solo rehidrata File y filas en memoria.
+  const reimportSourceRows = async (candidate: File): Promise<string | null> => {
+    const expected = auditEvidence?.datasetSha256 ?? null;
+    if (!expected) {
+      return 'Esta sesión no registra el SHA-256 del archivo auditado; empieza otra auditoría para corregir una copia.';
+    }
+    const hash = await computeFileSha256(candidate);
+    if (hash !== expected) {
+      addLog(`session.reimport.rejected :: SHA256=${hash.slice(0, 12)} ≠ ${expected.slice(0, 12)}`);
+      return 'El archivo seleccionado no es el mismo que se auditó (SHA-256 distinto).';
+    }
+    const { data } = await parseCsv(candidate);
+    setFile(candidate);
+    setRawData(data);
+    addLog(`session.reimport :: ${data.length} filas · SHA256=${hash.slice(0, 12)}`);
+    return null;
+  };
+
   // ── Verified execution → real reaudit ──
   // Runs immediately after AURA validates corrected.csv + receipt.json.
   // The verified Python execution and the reaudit keep separate states: if
@@ -1006,6 +1026,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
             remediationPlanV2={remediationPlan}
             structuredDiagnosis={structuredDiagnosis}
             sourceDatasetFingerprint={getScriptDatasetSha256(auditEvidence)}
+            onReimportSource={reimportSourceRows}
           />
         </>
       )}
