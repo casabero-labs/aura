@@ -1,0 +1,15 @@
+{
+  "encoding": "utf-8",
+  "bom": true,
+  "delimiter": ",",
+  "rows": 30,
+  "columns": 4,
+  "preserveLiterally": [
+    "=SUM(A1)",
+    "+cmd",
+    "-2+3",
+    "@user",
+    "🙂"
+  ],
+  "csvInjection": "issues.csv debe prefijar ' en celdas que empiezan con = + - @"
+}

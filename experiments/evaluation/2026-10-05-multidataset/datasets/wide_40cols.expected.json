@@ -1,0 +1,11 @@
+{
+  "encoding": "utf-8",
+  "rows": 200,
+  "columns": 40,
+  "preserveLiterally": [
+    "00000",
+    "00001"
+  ],
+  "constantColumn": "c01",
+  "envelopeColumnLimit": 16
+}

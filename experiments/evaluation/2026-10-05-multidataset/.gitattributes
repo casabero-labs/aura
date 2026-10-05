@@ -1,0 +1,2 @@
+# Bytes exactos: codificación, BOM y finales de línea son parte de la prueba
+datasets/*.csv -text

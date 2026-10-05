@@ -1,0 +1,16 @@
+{
+  "encoding": "windows-1252",
+  "delimiter": ";",
+  "lineEnding": "CRLF",
+  "rows": 30,
+  "columns": 5,
+  "preserveLiterally": [
+    "001",
+    "120.00",
+    "120",
+    "-0",
+    "Bogotá",
+    "Ñandú",
+    "São Paulo"
+  ]
+}

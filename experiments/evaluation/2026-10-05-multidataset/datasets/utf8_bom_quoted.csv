@@ -1,0 +1,41 @@
+﻿id,texto,formula,emoji
+1,"línea 1, con coma",+cmd,x
+2,"línea 2, con coma",-2+3,x
+3,"dos
+líneas 3",@user,x
+4,"línea 4, con coma",normal,🙂
+5,"línea 5, con coma",=SUM(A1),x
+6,"dos
+líneas 6",+cmd,x
+7,"línea 7, con coma",-2+3,x
+8,"línea 8, con coma",@user,🙂
+9,"dos
+líneas 9",normal,x
+10,"línea 10, con coma",=SUM(A1),x
+11,"línea 11, con coma",+cmd,x
+12,"dos
+líneas 12",-2+3,🙂
+13,"línea 13, con coma",@user,x
+14,"línea 14, con coma",normal,x
+15,"dos
+líneas 15",=SUM(A1),x
+16,"línea 16, con coma",+cmd,🙂
+17,"línea 17, con coma",-2+3,x
+18,"dos
+líneas 18",@user,x
+19,"línea 19, con coma",normal,x
+20,"línea 20, con coma",=SUM(A1),🙂
+21,"dos
+líneas 21",+cmd,x
+22,"línea 22, con coma",-2+3,x
+23,"línea 23, con coma",@user,x
+24,"dos
+líneas 24",normal,🙂
+25,"línea 25, con coma",=SUM(A1),x
+26,"línea 26, con coma",+cmd,x
+27,"dos
+líneas 27",-2+3,x
+28,"línea 28, con coma",@user,🙂
+29,"línea 29, con coma",normal,x
+30,"dos
+líneas 30",=SUM(A1),x
