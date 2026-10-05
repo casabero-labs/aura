@@ -12,6 +12,7 @@ Resueltos los puntos 1–9, 11, 12, 14 y 16 de la sección 2 (`e3cbf16`), ademá
 - **17, cifras de Nano.** Las cifras sin comillas no se validan.
 - **Specs de Playwright** que recorren la pantalla de script V1 eliminada: `aura-development-loops`, `aura-qa-screenshots` y `aura-qa-audit`.
 - **Toda la sección 3 de UX/UI.**
+- **Evaluación multidataset (2026-10-05).** `experiments/evaluation/2026-10-05-multidataset/REPORT.md`. Verificado como resuelto: Latin-1 y `;` (D7, puntos 5 y 7), inyección de fórmulas (punto 12), parseo estricto en carga. Nuevos: **P1-B1** (columnas `name`/`id` bloquean la rama B), **P1-N1** (un fragmento con `requiresHumanReview=false` hunde el diagnóstico), **P1-T1** (el recorte de hallazgos no se declara). Confirmados REP-1, REP-2, EXP-1.
 
 Blindaje activo:
 

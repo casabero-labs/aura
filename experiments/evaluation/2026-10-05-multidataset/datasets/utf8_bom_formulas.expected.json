@@ -1,0 +1,8 @@
+{
+ "derivedFrom": "utf8_bom_quoted.csv",
+ "encoding": "utf-8",
+ "bom": true,
+ "rows": 30,
+ "columns": 5,
+ "csvInjection": "columna 'campo' con valores que empiezan por = + - @ y espacio final; issues.csv debe prefijar '"
+}

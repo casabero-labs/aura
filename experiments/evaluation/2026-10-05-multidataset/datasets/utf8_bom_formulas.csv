@@ -1,0 +1,41 @@
+﻿id,texto,formula,emoji,campo
+1,"línea 1, con coma",+cmd,x,+1+1 
+2,"línea 2, con coma",-2+3,x,-5+2 
+3,"dos
+líneas 3",@user,x,normal
+4,"línea 4, con coma",normal,🙂,=cmd|' /C calc'!A0 
+5,"línea 5, con coma",=SUM(A1),x,"=HYPERLINK(""http://x.test"") "
+6,"dos
+líneas 6",+cmd,x,normal
+7,"línea 7, con coma",-2+3,x,-5+2 
+8,"línea 8, con coma",@user,🙂,@SUM(1) 
+9,"dos
+líneas 9",normal,x,normal
+10,"línea 10, con coma",=SUM(A1),x,"=HYPERLINK(""http://x.test"") "
+11,"línea 11, con coma",+cmd,x,+1+1 
+12,"dos
+líneas 12",-2+3,🙂,normal
+13,"línea 13, con coma",@user,x,@SUM(1) 
+14,"línea 14, con coma",normal,x,=cmd|' /C calc'!A0 
+15,"dos
+líneas 15",=SUM(A1),x,normal
+16,"línea 16, con coma",+cmd,🙂,+1+1 
+17,"línea 17, con coma",-2+3,x,-5+2 
+18,"dos
+líneas 18",@user,x,normal
+19,"línea 19, con coma",normal,x,=cmd|' /C calc'!A0 
+20,"línea 20, con coma",=SUM(A1),🙂,"=HYPERLINK(""http://x.test"") "
+21,"dos
+líneas 21",+cmd,x,normal
+22,"línea 22, con coma",-2+3,x,-5+2 
+23,"línea 23, con coma",@user,x,@SUM(1) 
+24,"dos
+líneas 24",normal,🙂,normal
+25,"línea 25, con coma",=SUM(A1),x,"=HYPERLINK(""http://x.test"") "
+26,"línea 26, con coma",+cmd,x,+1+1 
+27,"dos
+líneas 27",-2+3,x,normal
+28,"línea 28, con coma",@user,🙂,@SUM(1) 
+29,"línea 29, con coma",normal,x,=cmd|' /C calc'!A0 
+30,"dos
+líneas 30",=SUM(A1),x,normal

@@ -220,14 +220,13 @@
   "hallazgos": {
    "antes": 26
   },
-  "zip": null,
   "defectos": []
  },
  {
   "dataset": "D3b",
   "recorrido": "A1",
   "completado": false,
-  "etapaFallida": "diagnóstico: DIAGNOSIS_REVIEW_DOWNGRADE (2 intentos, 3 y 2 fragmentos con requiresHumanReview=false)",
+  "etapaFallida": "diagnóstico: DIAGNOSIS_REVIEW_DOWNGRADE (2/2 intentos)",
   "tiemposMs": {
    "diagnostico": 328000
   },
@@ -237,7 +236,8 @@
    "valido": false
   },
   "defectos": [
-   "P1-N1"
+   "P1-N1",
+   "P1-T1"
   ]
  },
  {
@@ -247,6 +247,260 @@
   "etapaFallida": "depende de A1",
   "defectos": [
    "P1-N1"
+  ]
+ },
+ {
+  "dataset": "D5",
+  "recorrido": "carga",
+  "completado": false,
+  "etapaFallida": "carga: registro 5 (5 campos en cabecera de 4) — falla clara",
+  "defectos": [
+   "PLAN-D5"
+  ]
+ },
+ {
+  "dataset": "D6",
+  "recorrido": "A0",
+  "completado": true,
+  "puntuacion": {
+   "antes": 100
+  },
+  "hallazgos": {
+   "antes": 0
+  },
+  "zip": {
+   "passed": 5,
+   "total": 6
+  },
+  "defectos": [
+   "EXP-1"
+  ]
+ },
+ {
+  "dataset": "D6",
+  "recorrido": "A1",
+  "completado": false,
+  "etapaFallida": "diagnóstico: DIAGNOSIS_MODEL_MISMATCH con 0 hallazgos",
+  "nano": {
+   "solicitudes": 0,
+   "valido": false
+  },
+  "defectos": [
+   "P2-N2"
+  ]
+ },
+ {
+  "dataset": "D8",
+  "recorrido": "A0",
+  "completado": true,
+  "puntuacion": {
+   "antes": 100
+  },
+  "hallazgos": {
+   "antes": 0
+  },
+  "zip": {
+   "passed": 5,
+   "total": 6
+  },
+  "defectos": [
+   "EXP-1"
+  ],
+  "nota": "BOM detectado, 30x4, celdas multilínea OK"
+ },
+ {
+  "dataset": "D8",
+  "recorrido": "A1",
+  "completado": false,
+  "etapaFallida": "MODEL_MISMATCH con 0 hallazgos",
+  "defectos": [
+   "P2-N2"
+  ]
+ },
+ {
+  "dataset": "D8b",
+  "recorrido": "A0",
+  "completado": true,
+  "puntuacion": {
+   "antes": 96
+  },
+  "hallazgos": {
+   "antes": 1
+  },
+  "zip": {
+   "passed": 5,
+   "total": 6
+  },
+  "defectos": [
+   "EXP-1"
+  ],
+  "nota": "issues.csv prefija ' en sampleValues: inyección CSV mitigada"
+ },
+ {
+  "dataset": "D8b",
+  "recorrido": "A1",
+  "completado": false,
+  "etapaFallida": "REVIEW_DOWNGRADE (2/2): recomendación con verbo destructivo y requiresHumanReview=false",
+  "defectos": [
+   "P1-N1"
+  ]
+ },
+ {
+  "dataset": "D8b",
+  "recorrido": "B",
+  "completado": false,
+  "etapaFallida": "depende de A1",
+  "defectos": [
+   "P1-N1"
+  ]
+ },
+ {
+  "dataset": "D11",
+  "recorrido": "A0",
+  "completado": true,
+  "puntuacion": {
+   "antes": 0
+  },
+  "hallazgos": {
+   "antes": 17
+  },
+  "zip": {
+   "passed": 5,
+   "total": 6
+  },
+  "defectos": [
+   "EXP-1"
+  ]
+ },
+ {
+  "dataset": "D11",
+  "recorrido": "A1",
+  "completado": true,
+  "tiemposMs": {
+   "diagnostico": 78700
+  },
+  "hallazgos": {
+   "antes": 17
+  },
+  "nano": {
+   "solicitudes": 7,
+   "reintentos": 0,
+   "valido": true
+  },
+  "zip": {
+   "passed": 10,
+   "total": 11
+  },
+  "defectos": [
+   "P1-T1",
+   "REP-1",
+   "REP-2",
+   "EXP-1"
+  ]
+ },
+ {
+  "dataset": "D4",
+  "recorrido": "A0",
+  "completado": true,
+  "puntuacion": {
+   "antes": 80
+  },
+  "hallazgos": {
+   "antes": 12
+  },
+  "sessionKB": 196,
+  "erroresConsola": 0,
+  "zip": {
+   "passed": 5,
+   "total": 6
+  },
+  "defectos": [
+   "EXP-1",
+   "P2-PERF"
+  ],
+  "nota": "carga 48.842 filas: bloqueo máx ~1 s; ZIP: ~4,5 s; heap 51-82 MB"
+ },
+ {
+  "dataset": "D4",
+  "recorrido": "A1",
+  "completado": true,
+  "tiemposMs": {
+   "diagnostico": 149000
+  },
+  "hallazgos": {
+   "antes": 12
+  },
+  "nano": {
+   "solicitudes": 12,
+   "reintentos": 0,
+   "valido": true
+  },
+  "zip": {
+   "passed": 10,
+   "total": 11
+  },
+  "defectos": [
+   "EXP-1"
+  ]
+ },
+ {
+  "dataset": "D4",
+  "recorrido": "B",
+  "completado": null,
+  "nota": "no ejecutado: tiempo"
+ },
+ {
+  "dataset": "D9",
+  "recorrido": "carga",
+  "completado": true,
+  "nota": "falla clara (registro 8; la primera fila irregular es la 5)",
+  "defectos": [
+   "P2-L1"
+  ]
+ },
+ {
+  "dataset": "D10",
+  "recorrido": "carga",
+  "completado": true,
+  "nota": "vacío y solo cabecera: mensaje claro"
+ },
+ {
+  "dataset": "D1",
+  "recorrido": "L",
+  "completado": null,
+  "nota": "parcial: Laboratorio abre y 'Crear experimento' no inicia diagnóstico ni toca la sesión; matriz de 27 corridas y rechazo de URL no local en UI no ejecutados"
+ },
+ {
+  "dataset": "D1-prod",
+  "recorrido": "A1",
+  "completado": true,
+  "tiemposMs": {
+   "diagnostico": 135100
+  },
+  "hallazgos": {
+   "antes": 8
+  },
+  "puntuacion": {
+   "antes": 64
+  },
+  "nano": {
+   "solicitudes": 8,
+   "valido": true
+  },
+  "defectos": [
+   "REP-1",
+   "REP-2",
+   "P1-B1"
+  ],
+  "nota": "build servido = 365dee6 = production; idéntico a local"
+ },
+ {
+  "dataset": "D1-prod",
+  "recorrido": "B",
+  "completado": false,
+  "etapaFallida": "contrato: 0 aceptadas (P1-B1)",
+  "defectos": [
+   "P1-B1"
   ]
  }
 ]
