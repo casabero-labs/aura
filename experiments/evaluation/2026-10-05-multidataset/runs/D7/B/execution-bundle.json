@@ -1,0 +1,45 @@
+{
+  "contractId": "aura.python-execution-bundle.v1",
+  "contractVersion": "1.0.0",
+  "generatedAt": "2026-10-05T14:00:12.128Z",
+  "executionId": "exec:94c3207b84a7",
+  "runId": "exec:94c3207b84a7",
+  "approvedScriptHash": "97f3020fb25530d1eac09ec404f5c8909e25650556edc5428a80e4d7b45f2c73",
+  "scriptTextSha256": "31abd39913024614d166263bd37a3c45f9094ff288bc0e908bc8b31507cdc70f",
+  "beforeDatasetSha256": "94c3207b84a75519225cfff24214257d6f222a5c08bf3d71355e373a1e2308a2",
+  "scriptText": "# AURA diagnosis input mode: smart_sample\n# AURA input receipt: 25d267a03933450bf95c8dc65746c9d08cf831914102458650ef461db616f0d4\n# AURA prompt hash: c2ebef42c5aff8d95a948daea8a38e66643b4125a250b95f8c63443c4991ca42\n# AURA input hash: 604cc8a9d144533c60dd45b2743f903c19d27461f31f1d777306a9a11e54dccb\n# AURA evidence envelope: env:029741620ba1b59939d23e945c9948982973ed047ce984ab7efd06c4bfe4b33a\n\nimport pandas as pd\nimport numpy as np\n\n_c = {\n    \"col:66c132b9f764eca1\": \"id\",\n    \"col:96892afc6657dc38\": \"ciudad\",\n    \"col:148f59a4e6320451\": \"importe\",\n    \"col:407bb8254eeabe02\": \"codigo\",\n    \"col:a71ab97511ea781f\": \"nota\"\n}\n\ndef clean_dataset(df):\n    df_clean = df.copy()\n    df_clean[_c[\"col:407bb8254eeabe02\"]] = pd.to_numeric(\n        df_clean[_c[\"col:407bb8254eeabe02\"]].astype(\"string\").str.replace(\",\", \".\", regex=False),\n        errors=\"coerce\",\n    )\n    return df_clean\n",
+  "scriptHashPayload": {
+    "remediationRef": "plan:d82e1ddb",
+    "inputReceiptRef": "25d267a03933450bf95c8dc65746c9d08cf831914102458650ef461db616f0d4",
+    "inputTrace": {
+      "inputMode": "smart_sample",
+      "promptHash": "c2ebef42c5aff8d95a948daea8a38e66643b4125a250b95f8c63443c4991ca42",
+      "inputHash": "604cc8a9d144533c60dd45b2743f903c19d27461f31f1d777306a9a11e54dccb",
+      "evidenceEnvelopeRef": "env:029741620ba1b59939d23e945c9948982973ed047ce984ab7efd06c4bfe4b33a"
+    },
+    "datasetFingerprint": "94c3207b84a75519225cfff24214257d6f222a5c08bf3d71355e373a1e2308a2",
+    "acceptedActionIds": [
+      "act:c5c01841"
+    ],
+    "columnRefs": [
+      {
+        "columnId": "col:407bb8254eeabe02",
+        "name": "codigo",
+        "position": 3,
+        "duplicateOrdinal": 0,
+        "pythonLiteral": "_c[\"col:407bb8254eeabe02\"]",
+        "isAmbiguous": false,
+        "isDuplicate": false,
+        "isReservedWord": false
+      }
+    ],
+    "rendererVersion": "2.0.0",
+    "placeholderVocabularyVersion": "1.0.0",
+    "scriptText": "# AURA diagnosis input mode: smart_sample\n# AURA input receipt: 25d267a03933450bf95c8dc65746c9d08cf831914102458650ef461db616f0d4\n# AURA prompt hash: c2ebef42c5aff8d95a948daea8a38e66643b4125a250b95f8c63443c4991ca42\n# AURA input hash: 604cc8a9d144533c60dd45b2743f903c19d27461f31f1d777306a9a11e54dccb\n# AURA evidence envelope: env:029741620ba1b59939d23e945c9948982973ed047ce984ab7efd06c4bfe4b33a\n\nimport pandas as pd\nimport numpy as np\n\n_c = {\n    \"col:66c132b9f764eca1\": \"id\",\n    \"col:96892afc6657dc38\": \"ciudad\",\n    \"col:148f59a4e6320451\": \"importe\",\n    \"col:407bb8254eeabe02\": \"codigo\",\n    \"col:a71ab97511ea781f\": \"nota\"\n}\n\ndef clean_dataset(df):\n    df_clean = df.copy()\n    df_clean[_c[\"col:407bb8254eeabe02\"]] = pd.to_numeric(\n        df_clean[_c[\"col:407bb8254eeabe02\"]].astype(\"string\").str.replace(\",\", \".\", regex=False),\n        errors=\"coerce\",\n    )\n    return df_clean\n",
+    "cleanDatasetFn": "clean_dataset"
+  },
+  "inputReceiptRef": "25d267a03933450bf95c8dc65746c9d08cf831914102458650ef461db616f0d4",
+  "evidenceEnvelopeRef": "env:029741620ba1b59939d23e945c9948982973ed047ce984ab7efd06c4bfe4b33a",
+  "sourceEncoding": "windows-1252",
+  "bundleHash": "30b1b7f7ef34f338d5155c64d47e1f5dd7d9d7474bc58e5792e9369a0fd8dbaf"
+}

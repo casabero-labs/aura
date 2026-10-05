@@ -1,0 +1,31 @@
+id;ciudad;importe;codigo;nota
+1;Medellín;293,69;1;ok
+2;São Paulo;313,51;2;ok
+3;Ñandú;168,12;3;ok
+4;Kali;576,66;4;ok
+5;Quito;120.00;5;ok
+6;Bogotá;120;6;ok
+7;Medellín;-0;7;
+8;São Paulo;;8;ok
+9;Ñandú;462,82;9;ok
+10;Cali;433,75;10;ok
+11;Quito;733,48;11;ok
+12;Bogotá;242,01;12;ok
+13;Medellín;163,46;13;ok
+14;São Paulo;425,47;14;
+15;Ñandú;310,48;15;ok
+16;Cali;290,37;16;ok
+17;Quito;164,06;17;ok
+18;Bogotá;798,27;18;ok
+19;Medellín;787,20;19;ok
+20;São Paulo;277,39;20;ok
+21;Ñandú;641,91;21;
+22;Cali;798,66;22;ok
+23;Quito;738,99;23;ok
+24;Bogotá;521,29;24;ok
+25;Medellín;24,96;25;ok
+26;São Paulo;771,22;26;ok
+27;Ñandú;543,60;27;ok
+28;Cali;649,17;28;
+29;Quito;443,72;29;ok
+30;Bogotá;339,46;30;ok

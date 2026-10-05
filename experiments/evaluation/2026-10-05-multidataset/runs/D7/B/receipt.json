@@ -1,0 +1,33 @@
+{
+  "contractId": "aura.python-execution-receipt.v1",
+  "contractVersion": "1.0.0",
+  "runId": "exec:94c3207b84a7",
+  "approvedScriptHash": "97f3020fb25530d1eac09ec404f5c8909e25650556edc5428a80e4d7b45f2c73",
+  "scriptTextSha256": "31abd39913024614d166263bd37a3c45f9094ff288bc0e908bc8b31507cdc70f",
+  "beforeDatasetSha256": "94c3207b84a75519225cfff24214257d6f222a5c08bf3d71355e373a1e2308a2",
+  "afterDatasetSha256": "ac9156f9882ec0bf32ce1454cd50376065af42262699a35b3cad8f15a645a36b",
+  "pythonVersion": "3.14.7",
+  "pandasVersion": "3.0.3",
+  "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+  "bundleHash": "30b1b7f7ef34f338d5155c64d47e1f5dd7d9d7474bc58e5792e9369a0fd8dbaf",
+  "inputReceiptRef": "25d267a03933450bf95c8dc65746c9d08cf831914102458650ef461db616f0d4",
+  "evidenceEnvelopeRef": "env:029741620ba1b59939d23e945c9948982973ed047ce984ab7efd06c4bfe4b33a",
+  "syntax": {
+    "status": "passed",
+    "error": null
+  },
+  "execution": {
+    "status": "passed",
+    "startedAt": "2026-10-05T14:00:28.112Z",
+    "completedAt": "2026-10-05T14:00:29.001Z",
+    "durationMs": 884,
+    "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "error": null
+  },
+  "output": {
+    "rowCount": 30,
+    "columnCount": 5
+  },
+  "receiptHash": "10716730edb6ddbcdd8949652015281f6ecee358853e977e9be38ab55d126b83"
+}
