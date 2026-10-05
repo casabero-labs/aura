@@ -1,56 +1,60 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { getDb } from '../db.js';
-
-export const settingsRoutes = new Hono();
+import type { DbProvider } from '../db.js';
 
 const SettingsSchema = z.object({
   key: z.string().min(1).max(255),
   value: z.record(z.unknown()),
 });
 
-settingsRoutes.get('/', async (c) => {
-  const sql = getDb();
-  const settings = await sql`SELECT key, value, updated_at FROM user_settings ORDER BY key`;
-  return c.json({ settings });
-});
+export function createSettingsRoutes(getDb: DbProvider) {
+  const settingsRoutes = new Hono();
 
-settingsRoutes.get('/:key', async (c) => {
-  const key = c.req.param('key');
-  const sql = getDb();
-  const result = await sql`SELECT key, value, updated_at FROM user_settings WHERE key = ${key}`;
+  settingsRoutes.get('/', async (c) => {
+    const sql = getDb();
+    const settings = await sql`SELECT key, value, updated_at FROM user_settings ORDER BY key`;
+    return c.json({ settings });
+  });
 
-  if (result.length === 0) {
-    return c.json({ error: 'Setting not found' }, 404);
-  }
+  settingsRoutes.get('/:key', async (c) => {
+    const key = c.req.param('key');
+    const sql = getDb();
+    const result = await sql`SELECT key, value, updated_at FROM user_settings WHERE key = ${key}`;
 
-  return c.json(result[0]);
-});
+    if (result.length === 0) {
+      return c.json({ error: 'Setting not found' }, 404);
+    }
 
-settingsRoutes.post('/', async (c) => {
-  const body = await c.req.json();
-  const parsed = SettingsSchema.safeParse(body);
+    return c.json(result[0]);
+  });
 
-  if (!parsed.success) {
-    return c.json({ error: 'Invalid input', details: parsed.error.flatten() }, 400);
-  }
+  settingsRoutes.post('/', async (c) => {
+    const body = await c.req.json();
+    const parsed = SettingsSchema.safeParse(body);
 
-  const { key, value } = parsed.data;
-  const sql = getDb();
+    if (!parsed.success) {
+      return c.json({ error: 'Invalid input', details: parsed.error.flatten() }, 400);
+    }
 
-  const result = await sql`
-    INSERT INTO user_settings (key, value)
-    VALUES (${key}, ${JSON.stringify(value)}::jsonb)
-    ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()
-    RETURNING key, value, updated_at
-  `;
+    const { key, value } = parsed.data;
+    const sql = getDb();
 
-  return c.json(result[0], 201);
-});
+    const result = await sql`
+      INSERT INTO user_settings (key, value)
+      VALUES (${key}, ${JSON.stringify(value)}::jsonb)
+      ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()
+      RETURNING key, value, updated_at
+    `;
 
-settingsRoutes.delete('/:key', async (c) => {
-  const key = c.req.param('key');
-  const sql = getDb();
-  await sql`DELETE FROM user_settings WHERE key = ${key}`;
-  return c.json({ deleted: key });
-});
+    return c.json(result[0], 201);
+  });
+
+  settingsRoutes.delete('/:key', async (c) => {
+    const key = c.req.param('key');
+    const sql = getDb();
+    await sql`DELETE FROM user_settings WHERE key = ${key}`;
+    return c.json({ deleted: key });
+  });
+
+  return settingsRoutes;
+}

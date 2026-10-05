@@ -190,6 +190,7 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
         scriptHashPayload: hashPayload,
         inputReceiptRef: structuredDiagnosis?.executionReceipt?.receiptHash,
         evidenceEnvelopeRef: structuredDiagnosis?.evidenceEnvelopeRef,
+        sourceEncoding: (auditEvidence as { encoding?: 'utf-8' | 'windows-1252' } | null | undefined)?.encoding,
       });
       const json = JSON.stringify(bundle, null, 2);
       onBundleJsonChange(json);
@@ -202,7 +203,7 @@ const ApplyVerifyStep: React.FC<ApplyVerifyStepProps> = ({
       onLog('execution.prepare.error', msg);
       onStateChange('not_prepared');
     }
-  }, [preconditions, sourceFile, scriptContractV2, structuredDiagnosis, onBundleJsonChange, onStateChange, onErrorChange, onLog]);
+  }, [preconditions, sourceFile, scriptContractV2, structuredDiagnosis, auditEvidence, onBundleJsonChange, onStateChange, onErrorChange, onLog]);
 
   const downloadBundle = () => {
     if (storedBundleJson) {

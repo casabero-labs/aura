@@ -55,10 +55,10 @@ describe('UX-08 value preservation', () => {
       const receipt = parsePythonExecutionReceipt(await readFile(join(dir, 'receipt.json'), 'utf8'));
       if (passes) {
         const output = await readFile(join(dir, 'corrected.csv'), 'utf8');
-        expect(output).toBe('id,amount,code,flag\n001,120,NA,false\n002,120.00,,TRUE\n003,-12.50,null,false\n');
+        expect(output).toBe('id;amount;code;flag\n001;120;NA;false\n002;120.00;;TRUE\n003;-12.50;null;false\n');
         expect(validatePythonExecutionChain({ bundle, receipt, sourceCsv: SOURCE, outputCsv: output })).toEqual([]);
         // A valid, self-consistent receipt cannot hide changed protected values.
-        const damaged = output.replace('001,', '1,');
+        const damaged = output.replace('001;', '1;');
         const { buildPythonExecutionReceipt } = await import('../services/remediationExecution/pythonExecutionContract');
         const { receiptHash: _hash, ...payload } = receipt;
         const changedReceipt = buildPythonExecutionReceipt({ ...payload, afterDatasetSha256: sha256hex(damaged) });

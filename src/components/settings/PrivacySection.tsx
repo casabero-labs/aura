@@ -1,9 +1,11 @@
 import React from 'react';
 import type { ProviderChoice } from './ProvidersSection';
-import { api } from '../../services/api';
+import { describeEndpointHost, isLocalLoopback } from '../../services/loopback';
 
 interface PrivacySectionProps {
   activeProviderType: ProviderChoice;
+  /** Configured Ollama endpoint; when omitted the copy states the rule only. */
+  ollamaBaseUrl?: string;
 }
 
 const PROVIDER_PRIVACY_COPY: Record<ProviderChoice, { label: string; note: string }> = {
@@ -13,12 +15,16 @@ const PROVIDER_PRIVACY_COPY: Record<ProviderChoice, { label: string; note: strin
   },
   ollama: {
     label: 'Ollama local',
-    note: 'La inferencia ocurre en este equipo a través del servidor local de Ollama. Ningún dato sale del dispositivo.',
+    note: 'La inferencia ocurre en este equipo a través del servidor local de Ollama. AURA solo se conecta a localhost, 127.0.0.1 o ::1 y rechaza cualquier otra dirección antes de enviar nada, así que ningún dato sale del dispositivo.',
   },
 };
 
-const PrivacySection: React.FC<PrivacySectionProps> = ({ activeProviderType }) => {
+const PrivacySection: React.FC<PrivacySectionProps> = ({ activeProviderType, ollamaBaseUrl }) => {
   const active = PROVIDER_PRIVACY_COPY[activeProviderType];
+  const ollamaEndpointBlocked = activeProviderType === 'ollama'
+    && typeof ollamaBaseUrl === 'string'
+    && ollamaBaseUrl.trim().length > 0
+    && !isLocalLoopback(ollamaBaseUrl);
 
   return (
     <>
@@ -30,9 +36,15 @@ const PrivacySection: React.FC<PrivacySectionProps> = ({ activeProviderType }) =
 
       <section className="settings-workspace-section" data-testid="privacy-current">
         <h2 className="settings-section-title">Privacidad actual</h2>
-        <p className="settings-resolution-status">
-          <strong>{active.label} · 100 % local.</strong> {active.note}
-        </p>
+        {ollamaEndpointBlocked ? (
+          <p className="settings-resolution-status" data-testid="privacy-ollama-blocked">
+            <strong>{active.label} · bloqueado.</strong> El endpoint configurado («{describeEndpointHost(ollamaBaseUrl!)}») no es de este equipo. AURA no envía datos ahí: el diagnóstico no se ejecuta hasta que el endpoint sea localhost, 127.0.0.1 o ::1.
+          </p>
+        ) : (
+          <p className="settings-resolution-status">
+            <strong>{active.label} · 100 % local.</strong> {active.note}
+          </p>
+        )}
       </section>
 
       <section className="settings-workspace-section">
@@ -46,12 +58,6 @@ const PrivacySection: React.FC<PrivacySectionProps> = ({ activeProviderType }) =
           <dd>{PROVIDER_PRIVACY_COPY.ollama.note}</dd>
           <dt>Proveedores cloud</dt>
           <dd>Implementación futura. Esta versión no envía evidencia a servicios externos ni pide API keys.</dd>
-          {api.available() && (
-            <>
-              <dt>Preferencias</dt>
-              <dd data-testid="privacy-config-sync">Se sincronizan con la API de AURA configurada en este despliegue: proveedor, modelo y parámetros. Nunca el CSV ni sus filas.</dd>
-            </>
-          )}
           <dt>Exportación</dt>
           <dd>Tú decides qué exportar. Nada se exporta sin tu acción explícita.</dd>
         </dl>

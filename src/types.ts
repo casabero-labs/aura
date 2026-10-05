@@ -140,6 +140,8 @@ export interface AuditReport {
   scoreBreakdown: ScoreDeduction[];
   delimiterDetected: string;
   datasetProfile?: import('./services/columnProfiler').DatasetProfile;
+  /** ISO instant used by time-relative rules (future dates); makes the run reproducible. */
+  auditReferenceDate?: string;
 }
 
 export interface ExecutionTraceEvent {

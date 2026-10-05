@@ -102,15 +102,32 @@ describe('AuditEngine - Deterministic Rules', () => {
     });
 
     it('detects categorical long tails that need macro-category review', () => {
-      const data = Array.from({ length: 60 }, (_, i) => ({
-        OriginalCrimeTypeName: i % 2 === 0 ? `Crime variant ${i}` : `Administrative code ${i}`,
-      }));
+      // 60 rows over 30 categories (each repeated twice): many categories, low
+      // top-5 coverage, but values DO repeat — a categorical, not an identifier.
+      // (The previous fixture had 60/60 distinct values, which is exactly the
+      // identifier-like shape the rule must now skip.)
+      const data = Array.from({ length: 60 }, (_, i) => {
+        const category = Math.floor(i / 2);
+        return {
+          OriginalCrimeTypeName: category % 2 === 0 ? `Crime variant ${category}` : `Administrative code ${category}`,
+        };
+      });
 
       const result = runAudit(data, ['OriginalCrimeTypeName'], ',');
       const issue = result.issues.find(i => i.id === 'semantic-long-tail-OriginalCrimeTypeName');
 
       expect(issue).toBeDefined();
       expect(issue!.ruleName).toBe('Cola Larga Categórica');
+    });
+
+    it('does not report a long tail on an identifier-like column (one distinct value per row)', () => {
+      const data = Array.from({ length: 60 }, (_, i) => ({
+        OriginalCrimeTypeName: i % 2 === 0 ? `Crime variant ${i}` : `Administrative code ${i}`,
+      }));
+
+      const result = runAudit(data, ['OriginalCrimeTypeName'], ',');
+
+      expect(result.issues.some(i => i.ruleId === 'rule:long-tail-categorical')).toBe(false);
     });
   });
 

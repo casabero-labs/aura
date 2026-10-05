@@ -85,6 +85,17 @@ const defaultInference = (): InferenceSnapshotV1 => ({
   think: false, seed: null, keepAlive: '10m', timeoutSeconds: 600,
 });
 
+/** Gemini Nano runs with Chrome's defaults; AURA sets none of these. */
+export const CHROME_PROVIDER_DEFAULT_INFERENCE: InferenceSnapshotV1 = Object.freeze({
+  temperature: null, topP: null, numCtx: null, numPredict: null,
+  think: false, seed: null, keepAlive: null, timeoutSeconds: null,
+});
+
+const resolveInference = (options: DiagnosisSelectorOptions): InferenceSnapshotV1 =>
+  options.provider.type === 'chrome'
+    ? CHROME_PROVIDER_DEFAULT_INFERENCE
+    : options.inference ?? defaultInference();
+
 function makeFailureEvidence(
   code: string,
   message: string,
@@ -266,7 +277,7 @@ export async function runStructuredDiagnosis(
     options.onInputPrepared?.(inputPackage);
     const exactPrompt = exactDiagnosisPromptV2(inputPackage);
     const startedAt = new Date().toISOString();
-    const inference = options.inference ?? defaultInference();
+    const inference = resolveInference(options);
     const invalidReceipt = makeInvalidReceipt(
       inputPackage, inputMode, exactPrompt,
       options.provider.name, null, null, options.modelDigest,
@@ -325,7 +336,7 @@ export async function runStructuredDiagnosis(
       fragmentRun = await runDiagnosisFragments(options.provider, inputPackage, options.onProgress, options.signal);
     } catch (err) {
       const cause = err instanceof Error ? err.message : String(err);
-      const inference = options.inference ?? defaultInference();
+      const inference = resolveInference(options);
       const invalidReceipt = makeInvalidReceipt(
         inputPackage, inputMode, exactPrompt,
         options.provider.name ?? 'unknown', options.requestedModel, null, options.modelDigest,
@@ -340,7 +351,7 @@ export async function runStructuredDiagnosis(
     if ('code' in assembly) {
       // The raw evidence of a failed fragment run is every verbatim fragment.
       rawResponse = JSON.stringify(fragmentRecords.map(({ issueId, rawResponse: text }) => ({ issueId, rawResponse: text })));
-      const inference = options.inference ?? defaultInference();
+      const inference = resolveInference(options);
       const invalidReceipt = makeInvalidReceipt(
         inputPackage, inputMode, exactPrompt,
         fragmentRun.metrics.provider, options.requestedModel, fragmentRun.metrics.model, options.modelDigest,
@@ -381,7 +392,7 @@ export async function runStructuredDiagnosis(
       ? `El modelo alcanzó el límite de salida después de ${capturedMetrics?.tokensGenerated ?? 'un número desconocido de'} tokens antes de completar la respuesta JSON.`
       : failure.message;
     const failurePath = responseWasTruncated ? '$' : failure.path;
-    const inference = options.inference ?? defaultInference();
+    const inference = resolveInference(options);
     const invalidReceipt = makeInvalidReceipt(
       inputPackage, inputMode, exactPrompt,
       capturedMetrics?.provider ?? options.provider.name ?? 'unknown',
@@ -398,7 +409,7 @@ export async function runStructuredDiagnosis(
   }
 
   if (!capturedMetrics) {
-    const inference = options.inference ?? defaultInference();
+    const inference = resolveInference(options);
     const invalidReceipt = makeInvalidReceipt(
       inputPackage, inputMode, exactPrompt,
       options.provider.name ?? 'unknown',
@@ -416,7 +427,7 @@ export async function runStructuredDiagnosis(
   }
 
   if (!capturedMetrics.model || capturedMetrics.model !== options.requestedModel) {
-    const inference = options.inference ?? defaultInference();
+    const inference = resolveInference(options);
     const invalidReceipt = makeInvalidReceipt(
       inputPackage, inputMode, exactPrompt,
       capturedMetrics.provider,
@@ -434,7 +445,7 @@ export async function runStructuredDiagnosis(
     );
   }
 
-  const inference: InferenceSnapshotV1 = options.inference ?? defaultInference();
+  const inference: InferenceSnapshotV1 = resolveInference(options);
   const executionReceipt = buildExecutionReceiptV1({
     input: inputPackage,
     requestedInputMode: inputMode,

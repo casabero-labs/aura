@@ -311,23 +311,6 @@ Devuelve solo un bloque de codigo Python. El script debe:
 `;
 };
 
-export const buildDiagnosisSummaryPrompt = (diagnosisText: string): string => `
-Resume el siguiente diagnostico de calidad de datos para alimentar un generador de script Python/Pandas.
-
-No agregues problemas nuevos. No inventes columnas. Extrae solo decisiones operativas utiles para script.
-
-Formato obligatorio:
-## Resumen operativo para script
-- Problemas priorizados:
-- Acciones automatizables:
-- Acciones que requieren HITL:
-- Columnas que NO deben modificarse automaticamente:
-- Riesgos del script:
-
-Diagnostico:
-${diagnosisText}
-`;
-
 export const buildDiagnosisScriptBrief = (diagnosisText: string): string => {
   const cleaned = diagnosisText
     .replace(/```[\s\S]*?```/g, '')

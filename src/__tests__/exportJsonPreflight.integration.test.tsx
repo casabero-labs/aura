@@ -30,13 +30,6 @@ vi.mock('../services/pipelineSession', () => ({
   clearPipelineSession: vi.fn(),
 }));
 
-vi.mock('../services/api', () => ({
-  loadFromApi: vi.fn(
-    async (_key: string, fallback: unknown): Promise<unknown> => fallback,
-  ),
-  syncToApi: vi.fn(),
-}));
-
 vi.mock('../services/aiProvider', () => ({
   createAIProvider: vi.fn(() => ({})),
 }));

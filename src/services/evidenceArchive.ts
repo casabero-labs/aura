@@ -221,7 +221,7 @@ export const buildEvidenceArchive = async ({
   addFile(files, 'profile/audit-evidence.json', json(technicalExport.profile.auditEvidence), 'application/json', 'Trazas de carga, SHA-256 y ejecución del motor.');
   addFile(files, 'profile/deterministic-validation.json', technicalExport.deterministicValidation ? json(technicalExport.deterministicValidation) : null, 'application/json', 'Comparación contra ground truth cuando existe.');
   addFile(files, 'report/diagnostic-report.json', technicalExport.diagnosticReport ? json(technicalExport.diagnosticReport) : null, 'application/json', 'Modelo canónico usado para PDF y lectura humana.');
-  addFile(files, 'report/diagnostic-report.pdf', diagnosticPdf, 'application/pdf', 'Informe diagnóstico Showcase Ink.');
+  addFile(files, 'report/diagnostic-report.pdf', diagnosticPdf, 'application/pdf', 'Informe diagnóstico en PDF.');
   addFile(files, 'findings/issues.csv', issuesCsv, 'text/csv', 'Hallazgos deterministas en formato tabular.');
 
   if (snapshot) {

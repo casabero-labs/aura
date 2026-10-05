@@ -15,6 +15,8 @@
     "test:e2e": "playwright test",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
+    "test:invariants": "vitest run __tests__/invariants",
+    "verify": "tsc --noEmit -p . && vitest run __tests__/invariants && vitest run",
     "evidence:deterministic": "npx tsx ../experiments/benchmarks/generate_final_deterministic_evidence.ts",
     "diagnosis:campaign-baseline": "npx tsx ../experiments/benchmarks/analyze_diagnosis_campaign.ts",
     "contracts:baseline": "npx tsx ../experiments/contracts-v2/baseline/run-baseline.mjs",

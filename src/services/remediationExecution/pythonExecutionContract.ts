@@ -47,6 +47,8 @@ export interface PythonExecutionBundleV1 {
   scriptHashPayload: Record<string, unknown>;
   inputReceiptRef?: string;
   evidenceEnvelopeRef?: string;
+  /** Encoding of the source CSV bytes; the runner reads and writes with it. */
+  sourceEncoding?: 'utf-8' | 'windows-1252';
   bundleHash?: string;
 }
 
@@ -60,6 +62,7 @@ export interface PythonExecutionBundleInput {
   scriptHashPayload: Record<string, unknown>;
   inputReceiptRef?: string;
   evidenceEnvelopeRef?: string;
+  sourceEncoding?: 'utf-8' | 'windows-1252';
   computeBundleHash?: boolean;
 }
 
@@ -162,6 +165,7 @@ export const buildPythonExecutionBundle = (
     scriptHashPayload: structuredClone(input.scriptHashPayload),
     ...(input.inputReceiptRef === undefined ? {} : { inputReceiptRef: input.inputReceiptRef }),
     ...(input.evidenceEnvelopeRef === undefined ? {} : { evidenceEnvelopeRef: input.evidenceEnvelopeRef }),
+    ...(input.sourceEncoding === undefined ? {} : { sourceEncoding: input.sourceEncoding }),
   };
   if (input.computeBundleHash !== false) {
     draft.bundleHash = computePythonBundleHash(draft);

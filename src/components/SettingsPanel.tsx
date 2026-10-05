@@ -202,7 +202,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
         )}
 
         {section === 'privacidad' && (
-          <PrivacySection activeProviderType={activeProviderType} />
+          <PrivacySection activeProviderType={activeProviderType} ollamaBaseUrl={localConfig.ollamaBaseUrl} />
         )}
 
         {section === 'diagnostico' && (

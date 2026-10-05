@@ -1,6 +1,7 @@
 import type { AuditReport, QualityIssue } from '../../types';
 import { sha256BytesHex } from '../../contracts/llm/hash';
 import { runReaudit, type ReauditResult } from '../reauditService';
+import { decodeCsvBytes, isSupportedCsvEncoding, type CsvEncoding } from '../csvEncoding.mjs';
 import {
   validatePythonExecutionChain,
   type PythonExecutionBundleV1,
@@ -62,6 +63,12 @@ export interface BuildRemediationVerificationInput {
   correctedCsv: Uint8Array;
   evidenceEnvelopeRef: string;
   delimiter?: string;
+  /**
+   * Encoding recorded at upload (audit evidence). Falls back to the bundle's
+   * optional `sourceEncoding`, then to deterministic detection over the same
+   * source bytes. The corrected copy is always decoded with this encoding.
+   */
+  sourceEncoding?: CsvEncoding;
 }
 
 export interface RemediationVerificationBuildEvidence {
@@ -196,13 +203,24 @@ export function buildRemediationVerificationWithReaudit(
 
   let sourceCsv: string;
   let correctedCsv: string;
+  let encoding: CsvEncoding;
+  const bundleEncoding = (input.bundle as { sourceEncoding?: unknown }).sourceEncoding;
+  if (bundleEncoding !== undefined && !isSupportedCsvEncoding(bundleEncoding)) {
+    throw new Error('REMEDIATION_VERIFICATION_SOURCE_ENCODING_INVALID');
+  }
+  if (input.sourceEncoding !== undefined && bundleEncoding !== undefined && input.sourceEncoding !== bundleEncoding) {
+    throw new Error('REMEDIATION_VERIFICATION_SOURCE_ENCODING_MISMATCH');
+  }
+  const recordedEncoding = input.sourceEncoding ?? (bundleEncoding as CsvEncoding | undefined);
   try {
-    sourceCsv = new TextDecoder('utf-8', { fatal: true }).decode(input.sourceCsv);
+    const decoded = decodeCsvBytes(input.sourceCsv, recordedEncoding);
+    sourceCsv = decoded.text;
+    encoding = decoded.encoding;
   } catch {
     throw new Error('REMEDIATION_VERIFICATION_SOURCE_CSV_DECODE_FAILED');
   }
   try {
-    correctedCsv = new TextDecoder('utf-8', { fatal: true }).decode(input.correctedCsv);
+    correctedCsv = decodeCsvBytes(input.correctedCsv, encoding).text;
   } catch {
     throw new Error('REMEDIATION_VERIFICATION_CORRECTED_CSV_DECODE_FAILED');
   }

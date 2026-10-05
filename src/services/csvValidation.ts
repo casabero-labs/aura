@@ -1,9 +1,16 @@
-/** Reject unusable input before building any profile, score or positive report. */
-export function assertUsableCsv(result: {
+/**
+ * Admission rules shared by upload (csvService.parseCsv) and re-audit
+ * (reauditService.parseCsvString). A file rejected at upload must be rejected
+ * the same way when it reaches verification as a source or corrected copy.
+ */
+export interface CsvAdmissionInput {
   data: Record<string, unknown>[];
   meta: { fields?: string[]; renamedHeaders?: Record<string, string> };
   errors?: { type: string; code: string; row?: number }[];
-}): void {
+}
+
+/** Reject unusable input before building any profile, score or positive report. */
+export function assertUsableCsv(result: CsvAdmissionInput): void {
   const structuralError = result.errors?.find(error => error.type === 'Quotes' || error.type === 'FieldMismatch');
   if (structuralError) {
     const position = structuralError.row === undefined ? '' : ` (registro ${structuralError.row + 1})`;

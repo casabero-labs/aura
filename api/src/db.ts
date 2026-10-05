@@ -1,8 +1,11 @@
 import postgres from 'postgres';
 
-let _sql: ReturnType<typeof postgres> | null = null;
+export type Sql = ReturnType<typeof postgres>;
+export type DbProvider = () => Sql;
 
-export function getDb() {
+let _sql: Sql | null = null;
+
+export function getDb(): Sql {
   if (!_sql) {
     const dbUrl = process.env.DATABASE_URL;
     if (!dbUrl) {

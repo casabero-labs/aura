@@ -31,7 +31,7 @@ import { recordLlmCall, computePromptHash, computeInputHash } from '../services/
 import { normalizeAiProviderError, NormalizedProviderError } from '../services/providers/errors';
 import { detectChromeAiAvailability, NormalizedAvailability } from '../services/chromeAvailability';
 import { startNetworkMonitoring, stopNetworkMonitoring, NetworkGuardResult } from '../services/networkGuard';
-import { generateQuickReceipt, PrivacyReceipt } from '../services/privacyReceipt';
+import { buildDiagnosisPrivacyReceipt, type DiagnosisPrivacyReceiptV2 } from '../services/privacyReceipt';
 import {
   exactDiagnosisPromptV2,
   runStructuredDiagnosis,
@@ -156,7 +156,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
   const [isPreparingChrome, setIsPreparingChrome] = useState(false);
   const [chromeDownloadProgress, setChromeDownloadProgress] = useState<number | undefined>(undefined);
   const [chromeDownloadMessage, setChromeDownloadMessage] = useState<string>('');
-  const [privacyReceipt, setPrivacyReceipt] = useState<PrivacyReceipt | null>(null);
+  const [privacyReceipt, setPrivacyReceipt] = useState<DiagnosisPrivacyReceiptV2 | null>(null);
   const [showPrivacyDetails, setShowPrivacyDetails] = useState(false);
   const [networkResult, setNetworkResult] = useState<NetworkGuardResult | null>(null);
   const [ollamaDiagnostic, setOllamaDiagnostic] = useState<OllamaLocalDiagnostic | null>(null);
@@ -409,15 +409,11 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
         });
       }
       
+      // Preparing the model sends no dataset content, so it issues no
+      // privacy receipt; only the network observation is kept.
       const networkGuardResult = stopNetworkMonitoring();
       setNetworkResult(networkGuardResult);
-      
-      const availability = await detectChromeAiAvailability();
-      const placeholderData = [['placeholder']];
-      const placeholderColumns = ['column'];
-      const receipt = await generateQuickReceipt(placeholderData, placeholderColumns, networkGuardResult!, availability);
-      setPrivacyReceipt(receipt);
-      
+
       pushEvent('success', 'Gemini Nano preparado correctamente');
     } catch (error) {
       pushEvent('error', `Error preparando Gemini Nano: ${(error as Error).message}`);
@@ -464,8 +460,41 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
     onLog?.('diagnosis', `Iniciando diagnóstico con ${aiConfig?.model} (${aiConfig?.providerType})`);
     setProgressStep('Enviando solicitud al modelo');
 
+    setPrivacyReceipt(null);
+
     try {
       let chromeMonitoringStarted = false;
+
+      /**
+       * Privacy receipt of THIS run, built from its real evidence: dataset
+       * identity (auditEvidence), the hashes of what was sent (execution
+       * receipt; one hash per request for Gemini Nano) and the network guard.
+       */
+      const issuePrivacyReceipt = (outcome: {
+        diagnosis?: DiagnosisExecutionResult;
+        failure?: DiagnosisFailureEvidenceV2;
+      }) => {
+        let observedNetwork: NetworkGuardResult | null = null;
+        if (chromeMonitoringStarted) {
+          observedNetwork = stopNetworkMonitoring();
+          chromeMonitoringStarted = false;
+          setNetworkResult(observedNetwork);
+        }
+        if (!isCurrentRun()) return;
+        setPrivacyReceipt(buildDiagnosisPrivacyReceipt({
+          providerType: aiConfig.providerType,
+          providerLabel: aiConfig.providerType === 'chrome' ? 'Chrome AI / Gemini Nano'
+            : aiConfig.providerType === 'ollama' ? 'Ollama local'
+            : aiConfig.providerType === 'webllm_experimental' ? 'WebLLM'
+            : (aiConfig.cloudProvider || 'Cloud'),
+          requestedModel: aiConfig.model,
+          report,
+          auditEvidence,
+          diagnosis: outcome.diagnosis ?? null,
+          failure: outcome.failure ?? null,
+          networkResult: observedNetwork,
+        }));
+      };
 
       try {
           if (aiConfig?.providerType === 'chrome') {
@@ -520,6 +549,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
             setDiagnosisFailureEvidence(failureEvidence);
             setPreparedInputSnapshot(failureEvidence.inputSnapshot);
             onDiagnosisFailure?.(failureEvidence);
+            issuePrivacyReceipt({ failure: failureEvidence });
             recordLlmCall({
               callType: 'diagnosis',
               providerType: aiConfig.providerType as 'local' | 'cloud' | 'chrome' | 'ollama',
@@ -551,6 +581,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
             setNormalizedError(normalized);
             setStructuredDiagnosis(null);
             setDiagnosisFailureEvidence(null);
+            issuePrivacyReceipt({});
             pushEvent('error', `Diagnóstico fallido: ${v2Failure.code}`);
             setProgressStatus('error');
             setProgressStep(`Error: ${v2Failure.code}`);
@@ -608,16 +639,7 @@ const DiagnosisStep: React.FC<DiagnosisStepProps> = ({
               status: 'completed',
             });
 
-            if (aiConfig.providerType === 'chrome') {
-              const networkGuardResult = stopNetworkMonitoring();
-              chromeMonitoringStarted = false;
-              setNetworkResult(networkGuardResult);
-              const availability = await detectChromeAiAvailability();
-              const placeholderData = [['placeholder']];
-              const placeholderColumns = ['column'];
-              const receipt = await generateQuickReceipt(placeholderData, placeholderColumns, networkGuardResult!, availability);
-              if (isCurrentRun()) setPrivacyReceipt(receipt);
-            }
+            issuePrivacyReceipt({ diagnosis: v2Success.result });
           }
       } finally {
         if (chromeMonitoringStarted && isCurrentRun()) {

@@ -8,6 +8,7 @@
 import Papa from 'papaparse';
 import { sha256hex } from '../contracts/llm/hash';
 import { runAudit } from './auditEngine';
+import { assertUsableCsv } from './csvValidation';
 import type { AuditReport, HealthDelta } from '../types';
 import type { ReauditEvidenceV1 } from './benchmark/experimentTypes';
 
@@ -74,9 +75,15 @@ export function parseCsvString(csvString: string, forcedDelimiter?: string): {
     dynamicTyping: false,
   });
 
-  const fatalErrors = result.errors.filter((error) => error.type === 'Quotes');
-  if (fatalErrors.length > 0) {
-    throw new Error(`CSV_PARSE_FAILED: ${fatalErrors.map((error) => error.code).join(', ')}`);
+  // Same admission rule as upload: quotes, ragged rows, headers and empty data.
+  try {
+    assertUsableCsv(result);
+  } catch (error) {
+    const codes = [...new Set(result.errors
+      .filter((parseError) => parseError.type === 'Quotes' || parseError.type === 'FieldMismatch')
+      .map((parseError) => parseError.code))];
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`CSV_PARSE_FAILED: ${codes.length ? `${codes.join(', ')} · ` : ''}${message}`);
   }
 
   return {
@@ -183,12 +190,14 @@ export function runReaudit(
   }
 
   // ── Run audits ──
+  // One reference date for both runs, so date rules judge before/after alike.
+  const referenceDate = new Date();
   logs.push('running before audit...');
-  const beforeReport = runAudit(beforeOutput.data, beforeOutput.fields, beforeOutput.delimiter);
+  const beforeReport = runAudit(beforeOutput.data, beforeOutput.fields, beforeOutput.delimiter, { referenceDate });
   logs.push(`before report: score=${beforeReport.score}, issues=${beforeReport.issues.length}`);
 
   logs.push('running after audit...');
-  const afterReport = runAudit(afterOutput.data, afterOutput.fields, afterOutput.delimiter);
+  const afterReport = runAudit(afterOutput.data, afterOutput.fields, afterOutput.delimiter, { referenceDate });
   logs.push(`after report: score=${afterReport.score}, issues=${afterReport.issues.length}`);
 
   // ── Build envelope refs ──

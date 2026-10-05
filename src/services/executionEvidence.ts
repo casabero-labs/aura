@@ -1,4 +1,13 @@
 import { AuditExecutionEvidence, AuditReport, ExecutionTraceEvent } from '../types';
+import type { CsvEncoding } from './csvEncoding.mjs';
+
+/** Text decoding applied to the original bytes; datasetSha256 stays over those bytes. */
+export interface SourceEncodingEvidence {
+  encoding?: CsvEncoding;
+  bom?: boolean;
+}
+
+export type AuditExecutionEvidenceWithEncoding = AuditExecutionEvidence & SourceEncodingEvidence;
 
 const hashString = (input: string) => {
   let hash = 2166136261;
@@ -15,10 +24,13 @@ export const fingerprintDataset = (data: Record<string, any>[], fields: string[]
   return hashString(JSON.stringify({ rows: data.length, fields, sample, tail }));
 };
 
-export const computeFileSha256 = async (file: Pick<Blob, 'arrayBuffer'>): Promise<string> => {
-  const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
+export const computeBytesSha256 = async (bytes: Uint8Array | ArrayBuffer): Promise<string> => {
+  const digest = await crypto.subtle.digest('SHA-256', bytes as BufferSource);
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
 };
+
+export const computeFileSha256 = async (file: Pick<Blob, 'arrayBuffer'>): Promise<string> =>
+  computeBytesSha256(await file.arrayBuffer());
 
 export const fingerprintReport = (report: AuditReport) =>
   hashString(JSON.stringify({
@@ -51,7 +63,7 @@ export const createTraceRecorder = () => {
   return { mark, events, startedAtMs };
 };
 
-export interface IngestionEvidenceParams {
+export interface IngestionEvidenceParams extends SourceEncodingEvidence {
   fileName?: string;
   fileSize?: number;
   datasetFingerprint: string;
@@ -73,7 +85,12 @@ export interface BuildAuditEvidenceParams extends IngestionEvidenceParams {
   trace: ExecutionTraceEvent[];
 }
 
-export const buildIngestionEvidence = (params: IngestionEvidenceParams): Omit<AuditExecutionEvidence, 'id' | 'auditDurationMs' | 'totalDurationMs' | 'issueCount' | 'score' | 'trace'> & { id: string } => ({
+const encodingFields = (params: SourceEncodingEvidence): SourceEncodingEvidence => ({
+  ...(params.encoding === undefined ? {} : { encoding: params.encoding }),
+  ...(params.bom === undefined ? {} : { bom: params.bom }),
+});
+
+export const buildIngestionEvidence = (params: IngestionEvidenceParams): Omit<AuditExecutionEvidenceWithEncoding, 'id' | 'auditDurationMs' | 'totalDurationMs' | 'issueCount' | 'score' | 'trace'> & { id: string } => ({
   id: `ingest-${Date.now()}`,
   fileName: params.fileName,
   fileSize: params.fileSize,
@@ -88,9 +105,10 @@ export const buildIngestionEvidence = (params: IngestionEvidenceParams): Omit<Au
   truncated: params.truncated,
   ingestionStatus: params.ingestionStatus,
   ingestionError: params.ingestionError,
+  ...encodingFields(params),
 });
 
-export const buildAuditEvidence = (params: BuildAuditEvidenceParams): AuditExecutionEvidence => ({
+export const buildAuditEvidence = (params: BuildAuditEvidenceParams): AuditExecutionEvidenceWithEncoding => ({
   id: `audit-${Date.now()}`,
   fileName: params.fileName,
   fileSize: params.fileSize,
@@ -107,6 +125,7 @@ export const buildAuditEvidence = (params: BuildAuditEvidenceParams): AuditExecu
   truncated: params.truncated,
   ingestionStatus: params.ingestionStatus,
   ingestionError: params.ingestionError,
+  ...encodingFields(params),
   issueCount: params.report.issues.length,
   score: params.report.score,
   trace: params.trace,

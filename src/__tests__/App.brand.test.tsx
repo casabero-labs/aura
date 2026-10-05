@@ -7,11 +7,6 @@ vi.mock('../components/benchmark/BenchmarkCampaignLab', () => ({
   default: () => <div data-testid="benchmark-campaign-lab-stub" />,
 }));
 
-vi.mock('../services/api', () => ({
-  loadFromApi: vi.fn().mockResolvedValue(null),
-  syncToApi: vi.fn().mockResolvedValue(undefined),
-}));
-
 vi.mock('../services/pipelineSession', () => ({
   loadPipelineSession: () => null,
   savePipelineSession: vi.fn(),

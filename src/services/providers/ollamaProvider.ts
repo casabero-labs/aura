@@ -4,7 +4,10 @@
  * Connects to a local Ollama instance (default http://localhost:11434).
  * Supports model listing, downloading, and chat/generate with streaming.
  * 
- * Security: only localhost endpoints by default.
+ * Security: loopback endpoints only (localhost, 127.0.0.0/8, ::1,
+ * *.localhost). Every request is refused before `fetch` when the configured
+ * base URL points elsewhere, so dataset-derived prompts never leave the
+ * device through this provider.
  */
 
 import { AuditReport, AIProvider, ProviderMetrics, ExecutiveReportContent, ProviderProgressEvent, AIConfig, ProviderTextResult, ProviderTextRequestOptions } from '../../types';
@@ -12,6 +15,7 @@ import { buildAnalysisPrompt, buildExecutivePrompt, buildCompactAnalysisPrompt }
 import { normalizeAiProviderError } from './errors';
 import { DEFAULT_OLLAMA_MODEL_ID, OLLAMA_MODELS } from '../modelRegistry';
 import { resolveOllamaInferenceConfig } from '../ollamaInferenceConfig';
+import { assertLocalLoopback, isLocalLoopback } from '../loopback';
 
 export interface OllamaModel {
   name: string;
@@ -84,6 +88,16 @@ export class OllamaProvider implements AIProvider {
     this.timeoutSeconds = inference.timeoutSeconds;
   }
 
+  /**
+   * Returns the absolute URL for an Ollama API path. Throws
+   * `NonLocalEndpointError` when the base URL is not loopback, so no request
+   * (and no dataset-derived prompt) is sent to another machine.
+   */
+  private endpoint(path: string): string {
+    assertLocalLoopback(this.baseUrl);
+    return `${this.baseUrl.replace(/\/+$/, '')}${path}`;
+  }
+
   private buildOptions(): Record<string, unknown> {
     return {
       temperature: this.temperature,
@@ -131,8 +145,9 @@ export class OllamaProvider implements AIProvider {
   }
 
   async isAvailable(): Promise<boolean> {
+    if (!isLocalLoopback(this.baseUrl)) return false;
     try {
-      const response = await fetch(`${this.baseUrl}/api/tags`, {
+      const response = await fetch(this.endpoint('/api/tags'), {
         signal: AbortSignal.timeout(5000),
       });
       return response.ok;
@@ -142,7 +157,7 @@ export class OllamaProvider implements AIProvider {
   }
 
   async listModels(): Promise<OllamaModel[]> {
-    const response = await fetch(`${this.baseUrl}/api/tags`);
+    const response = await fetch(this.endpoint('/api/tags'));
     if (!response.ok) {
       throw new Error(`Ollama no responde: ${response.status}`);
     }
@@ -154,7 +169,7 @@ export class OllamaProvider implements AIProvider {
     model: string,
     onProgress?: (progress: number, message: string) => void,
   ): Promise<void> {
-    const response = await fetch(`${this.baseUrl}/api/pull`, {
+    const response = await fetch(this.endpoint('/api/pull'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ model, stream: true }),
@@ -196,11 +211,12 @@ export class OllamaProvider implements AIProvider {
   }
 
   async generateText(prompt: string, requestOptions?: ProviderTextRequestOptions): Promise<ProviderTextResult> {
+    assertLocalLoopback(this.baseUrl);
     const startTime = performance.now();
     let fullText = '';
 
     try {
-      const response = await fetch(`${this.baseUrl}/api/chat`, {
+      const response = await fetch(this.endpoint('/api/chat'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -266,6 +282,7 @@ export class OllamaProvider implements AIProvider {
     onProgress: (event: ProviderProgressEvent) => void,
     requestOptions?: ProviderTextRequestOptions,
   ): Promise<ProviderTextResult> {
+    assertLocalLoopback(this.baseUrl);
     onProgress({ stage: 'checking', message: 'Verificando conexión con Ollama' });
 
     if (!(await this.isAvailable())) {
@@ -286,7 +303,7 @@ export class OllamaProvider implements AIProvider {
     try {
       onProgress({ stage: 'generating', message: 'Generando respuesta' });
 
-      const response = await fetch(`${this.baseUrl}/api/chat`, {
+      const response = await fetch(this.endpoint('/api/chat'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -384,6 +401,7 @@ export class OllamaProvider implements AIProvider {
     report: AuditReport,
     onChunk: (text: string) => void,
   ): Promise<ProviderMetrics> {
+    assertLocalLoopback(this.baseUrl);
     if (!(await this.isAvailable())) {
       onChunk('⚠️ Ollama no disponible. Verifica que el servidor esté abierto en ' + this.baseUrl);
       return this.emptyMetrics();
@@ -400,7 +418,7 @@ export class OllamaProvider implements AIProvider {
     let observedModel: string | undefined;
 
     try {
-      const response = await fetch(`${this.baseUrl}/api/chat`, {
+      const response = await fetch(this.endpoint('/api/chat'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -463,6 +481,7 @@ export class OllamaProvider implements AIProvider {
   async generateExecutiveReport(
     report: AuditReport,
   ): Promise<{ content: ExecutiveReportContent; metrics: ProviderMetrics }> {
+    assertLocalLoopback(this.baseUrl);
     if (!(await this.isAvailable())) {
       throw new Error('Ollama no disponible');
     }
@@ -470,7 +489,7 @@ export class OllamaProvider implements AIProvider {
     const prompt = buildExecutivePrompt(report);
     const startTime = performance.now();
 
-    const response = await fetch(`${this.baseUrl}/api/chat`, {
+    const response = await fetch(this.endpoint('/api/chat'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -508,6 +527,7 @@ export class OllamaProvider implements AIProvider {
     report: AuditReport,
     onChunk: (text: string) => void,
   ): Promise<{ content: ExecutiveReportContent; metrics: ProviderMetrics }> {
+    assertLocalLoopback(this.baseUrl);
     if (!(await this.isAvailable())) {
       throw new Error('Ollama no disponible');
     }
@@ -520,7 +540,7 @@ export class OllamaProvider implements AIProvider {
     let usage: OllamaUsageFields = {};
     let observedModel: string | undefined;
 
-      const response = await fetch(`${this.baseUrl}/api/chat`, {
+      const response = await fetch(this.endpoint('/api/chat'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -590,6 +610,7 @@ export class OllamaProvider implements AIProvider {
   }
 
   async preloadModel(onProgress?: (progress: number, message: string) => void): Promise<void> {
+    assertLocalLoopback(this.baseUrl);
     const available = await this.isAvailable();
     if (!available) {
       onProgress?.(0, 'Ollama no disponible');

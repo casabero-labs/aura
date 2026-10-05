@@ -4,6 +4,7 @@ import { AIConfig, ProviderProgressEvent, SettingsSectionId } from '../../types'
 import type { ChromeAiDiagnostic } from '../../services/aiProvider';
 import type { OllamaModel } from '../../services/providers/ollamaProvider';
 import { ollamaModelDisplayName, ollamaModelId } from '../../services/ollamaModelCatalog';
+import { describeEndpointHost, isLocalLoopback } from '../../services/loopback';
 
 /**
  * Proveedores que esta versión ofrece. Cloud es implementación futura
@@ -68,6 +69,7 @@ const ProvidersSection: React.FC<ProvidersSectionProps> = ({
 }) => {
   const activeProviderType: ProviderChoice = isProviderChoice(config.providerType) ? config.providerType : 'chrome';
   const ollamaBaseUrl = config.ollamaBaseUrl || DEFAULT_OLLAMA_ENDPOINT;
+  const ollamaEndpointIsLocal = isLocalLoopback(ollamaBaseUrl);
   const chromeStatus = chromeDiagnostic?.status;
   const canPrepareChrome = chromeStatus === 'downloadable' || chromeStatus === 'downloading';
   const chromeSteps = (chromeDiagnostic?.actions ?? []).filter(action => !isRedundantChromeAction(action));
@@ -190,23 +192,36 @@ const ProvidersSection: React.FC<ProvidersSectionProps> = ({
                 className="settings-input"
                 data-testid="ollama-endpoint-input"
                 autoComplete="off"
+                aria-invalid={ollamaEndpointIsLocal ? undefined : true}
+                aria-describedby="aura-ollama-endpoint-hint"
               />
-              <button className="btn-s" onClick={onTestOllama} disabled={ollamaLoading} data-testid="ollama-test-connection">
+              <button className="btn-s" onClick={onTestOllama} disabled={ollamaLoading || !ollamaEndpointIsLocal} data-testid="ollama-test-connection">
                 <RefreshCw size={12} aria-hidden="true" className={ollamaLoading ? 'animate-spin' : ''} /> Probar y refrescar
               </button>
             </div>
+            {ollamaEndpointIsLocal ? (
+              <p className="settings-field-hint" id="aura-ollama-endpoint-hint">
+                Solo direcciones de este equipo: localhost, 127.0.0.1 o ::1. AURA no envía datos a otra máquina.
+              </p>
+            ) : (
+              <p className="settings-field-error" id="aura-ollama-endpoint-hint" role="alert" data-testid="ollama-endpoint-not-local">
+                «{describeEndpointHost(ollamaBaseUrl)}» no es una dirección de este equipo. AURA no se conecta ni envía datos ahí; el diagnóstico con Ollama queda bloqueado hasta usar localhost, 127.0.0.1 o ::1.
+              </p>
+            )}
           </div>
 
-          <p className="settings-resolution-status" role="status">
-            {ollamaConnected === null && 'Comprobando la conexión con Ollama…'}
-            {ollamaConnected === true && <><strong>Conectado local.</strong> {ollamaModels.length} {ollamaModels.length === 1 ? 'modelo instalado' : 'modelos instalados'} en {ollamaBaseUrl}.</>}
-            {ollamaConnected === false && <><strong>Sin conexión.</strong> AURA no obtiene respuesta de {ollamaBaseUrl}. Abre la aplicación Ollama o usa el asistente para permitir el origen de AURA.</>}
-          </p>
+          {ollamaEndpointIsLocal && (
+            <p className="settings-resolution-status" role="status">
+              {ollamaConnected === null && 'Comprobando la conexión con Ollama…'}
+              {ollamaConnected === true && <><strong>Conectado local.</strong> {ollamaModels.length} {ollamaModels.length === 1 ? 'modelo instalado' : 'modelos instalados'} en {ollamaBaseUrl}.</>}
+              {ollamaConnected === false && <><strong>Sin conexión.</strong> AURA no obtiene respuesta de {ollamaBaseUrl}. Abre la aplicación Ollama o usa el asistente para permitir el origen de AURA.</>}
+            </p>
+          )}
 
           {ollamaConnected === false && (
             <div className="settings-resolution-actions">
               <button className="btn-p" onClick={onOpenOllamaWizard} data-testid="ollama-open-setup">Conectar Ollama de este equipo</button>
-              <button className="btn-s" onClick={onTestOllama} disabled={ollamaLoading} data-testid="ollama-retry-connection">Volver a intentar</button>
+              <button className="btn-s" onClick={onTestOllama} disabled={ollamaLoading || !ollamaEndpointIsLocal} data-testid="ollama-retry-connection">Volver a intentar</button>
             </div>
           )}
 

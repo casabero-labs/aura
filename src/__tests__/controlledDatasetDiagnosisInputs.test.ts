@@ -64,7 +64,9 @@ describe('controlled Phase 8 diagnosis inputs', () => {
   it('builds the real evidence envelope and all three input modes', () => {
     const { report, envelope } = buildControlledInput(datasetPath);
 
-    expect(report.issues).toHaveLength(29);
+    // 28: «Cola Larga Categórica» no longer fires on full_name (one distinct
+    // value per row = identifier/free text, not a categorical long tail).
+    expect(report.issues).toHaveLength(28);
     expect(envelope.issues).toHaveLength(24);
     expect(envelope.evidence.samples.length).toBeGreaterThan(0);
     expect(Object.keys(envelope.evidence.columnStats)).toHaveLength(15);

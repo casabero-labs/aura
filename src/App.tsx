@@ -18,10 +18,9 @@ import SettingsPanel from './components/SettingsPanel';
 import HelpCenter from './components/HelpCenter';
 import ProgressDisclosure from './components/ProgressDisclosure';
 import MainPipeline, { PipelineData } from './components/MainPipeline';
-import { loadFromApi, syncToApi } from './services/api';
 import { createAIProvider } from './services/aiProvider';
-import { loadAIConfig, persistAIConfig, sanitizeAIConfig } from './services/aiConfigStorage';
-import { enforceProviderAvailability } from './services/providerAvailability';
+import { loadAIConfig, persistAIConfig } from './services/aiConfigStorage';
+import { csvCell } from './utils/csvCell';
 import { generatePdfReport } from './services/pdfGenerator';
 import { generateDiagnosticPdfReport } from './services/diagnosticReport';
 import { buildEvidenceManifest } from './services/evidenceManifest';
@@ -62,11 +61,6 @@ const AvFixture = import.meta.env.DEV
 
 const countBySeverity = (report: AuditReport | null, severity: IssueSeverity) =>
   report?.issues.filter((issue) => issue.severity === severity).length ?? 0;
-
-const csvCell = (value: unknown) => {
-  const text = value === undefined || value === null ? '' : String(value);
-  return `"${text.replace(/"/g, '""')}"`;
-};
 
 const buildDeterministicPdfContent = (auditReport: AuditReport, approvedScript?: string): ExecutiveReportContent => {
   const criticalIssues = auditReport.issues.filter((issue) => issue.severity === IssueSeverity.CRITICAL);
@@ -241,19 +235,10 @@ const App: React.FC = () => {
     });
   });
 
+  // Local-first: la configuración de IA vive solo en este navegador
+  // (aiConfigStorage). No se lee ni se escribe en ningún servidor compartido.
   useEffect(() => {
-    loadFromApi<AIConfig>('ai_config', aiConfig).then((remote) => {
-      if (!remote) return;
-      const safeRemote = enforceProviderAvailability(sanitizeAIConfig(remote));
-      if (JSON.stringify(safeRemote) !== JSON.stringify(sanitizeAIConfig(aiConfig))) {
-        setAiConfig((current) => ({ ...safeRemote, apiKey: current.apiKey }));
-      }
-    });
-  }, []);
-
-  useEffect(() => {
-    const safe = persistAIConfig(aiConfig);
-    syncToApi('ai_config', safe);
+    persistAIConfig(aiConfig);
   }, [aiConfig]);
 
   const aiProvider = useMemo(() => createAIProvider(aiConfig), [aiConfig]);

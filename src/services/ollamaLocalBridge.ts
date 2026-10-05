@@ -7,6 +7,7 @@
 
 import { detectPlatform, PlatformInfo } from './platformDetection';
 import { FINAL_EVALUATION_OLLAMA_MODEL_IDS } from './modelRegistry';
+import { assertLocalLoopback, isLocalLoopback, isLoopbackHost } from './loopback';
 
 export type OllamaLocalStatus =
   | 'not_configured'
@@ -71,8 +72,6 @@ const RECOMMENDED_MODEL = FINAL_EVALUATION_OLLAMA_MODEL_IDS[0];
 const ALTERNATIVE_MODEL = FINAL_EVALUATION_OLLAMA_MODEL_IDS[1];
 const MODEL_HEAVY_BYTES = 10 * 1024 * 1024 * 1024; // 10 GB
 
-const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost', '::1', '[::1]']);
-
 export function normalizeEndpoint(rawUrl?: string): string {
   if (!rawUrl || !rawUrl.trim()) {
     return DEFAULT_ENDPOINT;
@@ -93,17 +92,7 @@ export function normalizeEndpoint(rawUrl?: string): string {
   return url;
 }
 
-export function isLocalLoopback(url: string): boolean {
-  try {
-    const parsed = new URL(url);
-    return LOOPBACK_HOSTS.has(parsed.hostname.toLowerCase()) ||
-      parsed.hostname === '127.0.0.1' ||
-      parsed.hostname === '::1' ||
-      parsed.hostname === 'localhost';
-  } catch {
-    return false;
-  }
-}
+export { isLocalLoopback };
 
 export function isPublicEndpoint(url: string): boolean {
   try {
@@ -153,6 +142,7 @@ export async function testOllamaEndpoint(endpoint: string): Promise<{
 }
 
 export async function fetchOllamaModels(endpoint: string): Promise<OllamaModelInfo[]> {
+  assertLocalLoopback(endpoint);
   const resp = await tryFetch(`${endpoint}/api/tags`);
   if (!resp.ok) {
     throw new Error(`Ollama returned ${resp.status}`);
@@ -298,7 +288,7 @@ export async function diagnoseOllamaLocal(
     }
   }
 
-  if (isPublicEndpoint(endpoint)) {
+  if (!isLocalLoopback(endpoint)) {
     return {
       ...baseDiagnostic,
       status: 'not_configured',
@@ -439,7 +429,7 @@ export async function diagnoseOllamaLocal(
 
 export function classifyEndpointHost(host: string): 'loopback' | 'private_lan' | 'public' {
   const lower = host.toLowerCase().trim();
-  if (lower === 'localhost' || lower === '127.0.0.1' || lower === '::1' || lower === '[::1]') {
+  if (isLoopbackHost(lower)) {
     return 'loopback';
   }
   const parts = lower.split('.');
@@ -456,12 +446,7 @@ export function classifyEndpointHost(host: string): 'loopback' | 'private_lan' |
 }
 
 export function isLoopbackEndpoint(url: string): boolean {
-  try {
-    const parsed = new URL(url);
-    return classifyEndpointHost(parsed.hostname) === 'loopback';
-  } catch {
-    return false;
-  }
+  return isLocalLoopback(url);
 }
 
 export function isPrivateLanEndpoint(url: string): boolean {

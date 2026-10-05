@@ -5,7 +5,9 @@
  * - Actionability: ruleId → defaultActionability lookup. BANNED: regex, heuristic, fabrication
  * - auto_safe only when automaticAuthorization.authorized === true
  * - ruleId and automaticAuthorization copied from engine-issued QualityIssue
- * - cloud_minimized: preserves real minimized samples (redacted/hashed)
+ * - local_full / cloud_minimized: real minimized samples (PII columns hashed,
+ *   PII-shaped values redacted); numbers are never masked by digit count alone
+ * - Masking for samples and top values goes through `minimizeEvidenceValue`
  * - maxCharacters: throws BUDGET_UNSATISFIABLE if cannot comply
  * - Duplicate columns: columnId+position, NEVER rawName lookup
  */
@@ -19,12 +21,9 @@ import type { AmbiguousLookupError } from './types';
 import {
   buildPrivacyPolicy,
   shouldHashColumn,
-  isPII,
-  redactValue,
-  hashValue,
-  allowsRawSamples,
   allowsTopValues,
   buildPIIConfig,
+  minimizeEvidenceValue,
 } from './privacyPolicy';
 import {
   buildTokenBudget,
@@ -343,6 +342,7 @@ export function _buildEvidenceEnvelopeV2(
     const colMeta = (report.datasetProfile?.columns || []).find(c => c.name === rawIssue.column);
     const colStats = report.columnStats?.[rawIssue.column || ''];
     const semanticType = colMeta?.semanticType || colStats?.semanticType;
+    const inferredType = colMeta?.inferredType || colStats?.inferredType;
     const shouldHash = shouldHashColumn(rawIssue.column || '', semanticType, rawIssue.category, piiConfig);
 
     const issueSamples = applySlice(rawSamples, tokenBudget.maxSamplesPerIssue, (actual) =>
@@ -356,24 +356,24 @@ export function _buildEvidenceEnvelopeV2(
       const ref = `ev-${String(refCounter).padStart(4, '0')}`;
       refCounter++;
 
-      let processedVal: string | number | null;
-      const valStr = String(val ?? '');
-
-      if (shouldHash) {
-        processedVal = hashValue(valStr);
-      } else if (isPII(valStr, piiConfig)) {
-        processedVal = redactValue(valStr);
-      } else {
-        processedVal = val;
-      }
+      const minimized = minimizeEvidenceValue(val, {
+        hashColumn: shouldHash,
+        config: piiConfig,
+        context: { inferredType, semanticType },
+      });
 
       refs.push(ref);
       samples.push({
         evidenceRef: ref,
         issueId: issue.issueId,
         columnId: issue.columnId,
-        values: [processedVal],
-        metadata: { hashed: shouldHash, pii: isPII(valStr, piiConfig) },
+        values: [minimized.value],
+        metadata: {
+          hashed: minimized.hashed,
+          redacted: minimized.redacted,
+          pii: minimized.pii,
+          privacyLevel: privacyPolicy.level,
+        },
       });
     }
     issue.evidenceRefs = refs;
@@ -386,10 +386,15 @@ export function _buildEvidenceEnvelopeV2(
     if (!sourceStats) continue;
     const rawStats = normalizeColumnStatsInput(sourceStats, report.rowCount);
     const colMeta = (report.datasetProfile?.columns || []).find(c => c.name === col.name);
-    const shouldHash = shouldHashColumn(col.name, colMeta?.semanticType, undefined, piiConfig);
+    const columnSemanticType = colMeta?.semanticType || sourceStats.semanticType;
+    const shouldHash = shouldHashColumn(col.name, columnSemanticType, undefined, piiConfig);
 
     let topValues = rawStats.topValues.map(tv => ({
-      value: shouldHash ? hashValue(String(tv.value)) : isPII(String(tv.value), piiConfig) ? redactValue(String(tv.value)) : String(tv.value),
+      value: String(minimizeEvidenceValue(String(tv.value), {
+        hashColumn: shouldHash,
+        config: piiConfig,
+        context: { inferredType: rawStats.inferredType, semanticType: columnSemanticType },
+      }).value ?? ''),
       count: tv.count,
       percentage: tv.percentage,
     }));

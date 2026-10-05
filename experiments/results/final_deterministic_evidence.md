@@ -1,8 +1,8 @@
 # Evidencia determinista final de AURA
 
 - Evidencia: `aura.final-deterministic-evidence.v1`
-- Generada: 2026-07-10T19:22:22.514Z
-- Commit del motor: `450ba6a334812e25d67201250eaf8b0b7bd75992`
+- Generada: 2026-10-05T11:31:30.508Z
+- Commit del motor: `da343a1bca0b0bc65fc588b0e9cf05ea3c2974a9`
 - Sustituye: `experiments/results/deterministic_validation.json`
 - Unidad primaria: activación binaria de regla
 - Detecciones no anotadas: reportadas aparte, sin puntuación
@@ -12,8 +12,8 @@
 | Dataset | Filas | Score AURA | Reglas | TP | FP | FN | Precisión | Recall | F1 | Adicionales no puntuadas |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | synthetic_ground_truth | 15 | 0 | 12 | 12 | 0 | 0 | 100.00% | 100.00% | 100.00% | 0 |
-| titanic | 891 | 58 | 3 | 3 | 0 | 0 | 100.00% | 100.00% | 100.00% | 7 |
-| controlled_customers_phase8 | 50 | 0 | 29 | 16 | 0 | 13 | 100.00% | 55.17% | 71.11% | 13 |
+| titanic | 891 | 64 | 3 | 3 | 0 | 0 | 100.00% | 100.00% | 100.00% | 5 |
+| controlled_customers_phase8 | 50 | 0 | 29 | 16 | 0 | 13 | 100.00% | 55.17% | 71.11% | 12 |
 
 > Precisión `conditional_no_negative_labels` significa que no existen etiquetas negativas exhaustivas; no debe presentarse como precisión global del motor.
 
@@ -21,7 +21,7 @@
 
 ```bash
 cd /Users/casabero/Documents/GitHub/aura/src
-AURA_EVIDENCE_COMMIT=450ba6a334812e25d67201250eaf8b0b7bd75992 AURA_EVIDENCE_GENERATED_AT=2026-07-10T19:22:22.514Z npm run evidence:deterministic
+AURA_EVIDENCE_COMMIT=da343a1bca0b0bc65fc588b0e9cf05ea3c2974a9 AURA_EVIDENCE_GENERATED_AT=2026-10-05T11:31:30.508Z npm run evidence:deterministic
 ```
 
 ## synthetic_ground_truth

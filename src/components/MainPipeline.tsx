@@ -11,7 +11,7 @@ import ScriptGenerationStepV2 from './ScriptGenerationStepV2';
 import { OptionalRemediationNotice, RemediationBranchActions, RemediationBranchHeader } from './remediation';
 import { runAudit } from '../services/auditEngine';
 import { parseCsv } from '../services/csvService';
-import { buildAuditEvidence, buildIngestionEvidence, computeFileSha256, createTraceRecorder, fingerprintDataset } from '../services/executionEvidence';
+import { buildAuditEvidence, buildIngestionEvidence, computeBytesSha256, computeFileSha256, createTraceRecorder, fingerprintDataset } from '../services/executionEvidence';
 import { matchGroundTruth, buildDeterministicValidationReport } from '../services/deterministicValidation';
 import { validateCleaningScript } from '../services/scriptValidationService';
 import { buildScriptContractInputKey, buildUiScriptContext } from '../services/scriptContractUiContext';
@@ -649,14 +649,15 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
       addLog('csv.parse.start :: leyendo archivo en navegador');
 
       const parseStart = performance.now();
-      const { data, meta } = await parseCsv(uploadedFile);
+      const { data, meta, source } = await parseCsv(uploadedFile);
       const parseDurationMs = Math.round(performance.now() - parseStart);
-      trace.mark('csv.parse.end', { rows: data.length, columns: meta.fields?.length ?? 0, delimiter: meta.delimiter, truncated: meta.truncated, durationMs: parseDurationMs });
+      trace.mark('csv.parse.end', { rows: data.length, columns: meta.fields?.length ?? 0, delimiter: meta.delimiter, encoding: source.encoding, bom: source.bom, truncated: meta.truncated, durationMs: parseDurationMs });
       setRawData(data); setCsvFields(meta.fields); setCsvDelimiter(meta.delimiter);
-      addLog(`csv.parse.end :: ${data.length} registros · ${meta.fields?.length ?? 0} columnas · ${parseDurationMs}ms`);
+      addLog(`csv.parse.end :: ${data.length} registros · ${meta.fields?.length ?? 0} columnas · codificación ${source.encoding}${source.bom ? ' con BOM' : ''} · ${parseDurationMs}ms`);
 
       const datasetFingerprint = fingerprintDataset(data, meta.fields);
-      const datasetSha256 = await computeFileSha256(uploadedFile);
+      // SHA-256 over the original bytes read once by parseCsv, never the decoded text.
+      const datasetSha256 = await computeBytesSha256(source.bytes);
       trace.mark('audit.run.start', { datasetFingerprint });
       addLog(`audit.run.start :: fingerprint=${datasetFingerprint}`);
       setProcessProgressStep('Ejecutando auditoría determinista');
@@ -672,6 +673,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
         datasetFingerprint, datasetSha256, startedAt, completedAt,
         parseDurationMs, auditDurationMs, rowsProcessed: data.length,
         columnsProcessed: meta.fields.length, delimiter: meta.delimiter,
+        encoding: source.encoding, bom: source.bom,
         truncated: meta.truncated, ingestionStatus: 'success',
         report: auditResult, trace: trace.events,
       });

@@ -8,6 +8,7 @@ import { basename, dirname, isAbsolute, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { readCsvTable, validateValuePreservation } from '../../src/services/remediationExecution/valuePreservation.mjs';
+import { decodeCsvBytes, encodeCsvText, isSupportedCsvEncoding, SUPPORTED_CSV_ENCODINGS } from '../../src/services/csvEncoding.mjs';
 
 const exec = promisify(execFile);
 const SHA256 = /^[a-f0-9]{64}$/;
@@ -29,11 +30,11 @@ const canonicalJson = (value) => {
 
 const isRecord = (value) => typeof value === 'object' && value !== null && !Array.isArray(value);
 
-const usage = (commandName) => `Uso: node ${commandName} --bundle execution-bundle.json --input source.csv --output corrected.csv --receipt receipt.json [--python python3]\n`;
+const usage = (commandName) => `Uso: node ${commandName} --bundle execution-bundle.json --input source.csv --output corrected.csv --receipt receipt.json [--python python3] [--encoding ${SUPPORTED_CSV_ENCODINGS.join('|')}]\n`;
 
 const parseArguments = (args) => {
   const values = new Map();
-  const allowed = new Set(['--bundle', '--input', '--output', '--receipt', '--python']);
+  const allowed = new Set(['--bundle', '--input', '--output', '--receipt', '--python', '--encoding']);
   for (let index = 0; index < args.length; index += 2) {
     const name = args[index];
     const value = args[index + 1];
@@ -45,7 +46,9 @@ const parseArguments = (args) => {
   const output = values.get('--output');
   const receipt = values.get('--receipt');
   if (!bundle || !input || !output || !receipt) return null;
-  return { bundle, input, output, receipt, python: values.get('--python') ?? 'python3' };
+  const encoding = values.get('--encoding');
+  if (encoding !== undefined && !isSupportedCsvEncoding(encoding)) return null;
+  return { bundle, input, output, receipt, python: values.get('--python') ?? 'python3', encoding };
 };
 
 const safeRealpath = (path) => {
@@ -156,6 +159,7 @@ const validateBundle = (bundle) => {
   if (sha256(canonicalJson(bundle.scriptHashPayload)) !== bundle.approvedScriptHash) throw new Error('El hash del contrato aprobado no coincide con el bundle.');
   if (bundle.inputReceiptRef !== undefined && !SHA256.test(bundle.inputReceiptRef)) throw new Error('La referencia del recibo de diagnóstico es inválida.');
   if (bundle.evidenceEnvelopeRef !== undefined && !ENVELOPE_REF.test(bundle.evidenceEnvelopeRef)) throw new Error('La referencia del envelope de evidencia es inválida.');
+  if (bundle.sourceEncoding !== undefined && !isSupportedCsvEncoding(bundle.sourceEncoding)) throw new Error('La codificación del CSV fuente declarada en el bundle no es compatible.');
   if (bundle.bundleHash !== undefined) {
     if (!SHA256.test(bundle.bundleHash)) throw new Error('El bundleHash del bundle es inválido.');
     if (computeBundleHash(bundle) !== bundle.bundleHash) throw new Error('El bundleHash del bundle no coincide con su contenido.');
@@ -205,7 +209,22 @@ const inspectEnvironment = async (python) => {
   }
 };
 
-const executeBundle = async ({ bundle, inputPath, outputPath, receiptPath, python }) => {
+/**
+ * Recorded encoding wins (bundle, then CLI); both must agree. Without one, the
+ * shared deterministic detection over the hash-pinned bytes is used.
+ */
+const resolveSourceEncoding = (bundle, cliEncoding, sourceBytes) => {
+  if (bundle.sourceEncoding !== undefined && cliEncoding !== undefined && bundle.sourceEncoding !== cliEncoding) {
+    throw new Error('La codificación de --encoding no coincide con la del bundle.');
+  }
+  try {
+    return decodeCsvBytes(sourceBytes, bundle.sourceEncoding ?? cliEncoding);
+  } catch {
+    throw new Error('El CSV fuente no se puede decodificar con la codificación registrada.');
+  }
+};
+
+const executeBundle = async ({ bundle, inputPath, outputPath, receiptPath, python, encoding }) => {
   const workDir = await mkdtemp(join(tmpdir(), 'aura-remediation-'));
   const scriptPath = join(workDir, 'approved-script.py');
   const temporaryOutputPath = join(workDir, 'corrected.csv');
@@ -242,10 +261,12 @@ const executeBundle = async ({ bundle, inputPath, outputPath, receiptPath, pytho
 
     if (syntax.status === 'passed') {
       const sourceBytes = await readFile(inputPath);
-      await writeFile(sourceTablePath, JSON.stringify(readCsvTable(sourceBytes)), 'utf8');
+      const sourceText = resolveSourceEncoding(bundle, encoding, sourceBytes);
+      const sourceTable = readCsvTable(sourceText.text);
+      await writeFile(sourceTablePath, JSON.stringify(sourceTable), 'utf8');
       const wrapper = [
         'import importlib.util,json,pandas as pd,sys',
-        'script_path,input_path,output_path,metadata_path=sys.argv[1:5]',
+        'script_path,input_path,output_path,metadata_path,sep,lineterminator=sys.argv[1:7]',
         'spec=importlib.util.spec_from_file_location("aura_approved_script",script_path)',
         'module=importlib.util.module_from_spec(spec)',
         'spec.loader.exec_module(module)',
@@ -253,12 +274,13 @@ const executeBundle = async ({ bundle, inputPath, outputPath, receiptPath, pytho
         'source=pd.DataFrame(table["rows"],columns=table["fields"],dtype=object)',
         'result=module.clean_dataset(source.copy(deep=True))',
         'assert isinstance(result,pd.DataFrame), "clean_dataset must return a pandas DataFrame"',
-        'result.to_csv(output_path,index=False,lineterminator="\\n")',
+        'result.to_csv(output_path,index=False,sep=sep,lineterminator=lineterminator,encoding="utf-8")',
         'open(metadata_path,"w",encoding="utf-8").write(json.dumps({"rowCount":int(result.shape[0]),"columnCount":int(result.shape[1])}))',
       ].join(';');
       try {
         const result = await exec(python, [
           '-c', wrapper, scriptPath, sourceTablePath, temporaryOutputPath, metadataPath,
+          sourceTable.delimiter, sourceTable.linebreak,
         ], {
           timeout: EXECUTION_TIMEOUT_MS,
           maxBuffer: MAX_BUFFER_BYTES,
@@ -266,8 +288,10 @@ const executeBundle = async ({ bundle, inputPath, outputPath, receiptPath, pytho
         stdout = result.stdout;
         stderr = result.stderr;
         output = JSON.parse(await readFile(metadataPath, 'utf8'));
-        const outputBytes = await readFile(temporaryOutputPath);
-        const preservationErrors = validateValuePreservation(bundle, sourceBytes, outputBytes);
+        // Python writes UTF-8; the corrected copy goes back in the source encoding.
+        const pythonText = decodeCsvBytes(await readFile(temporaryOutputPath), 'utf-8').text;
+        const outputBytes = encodeCsvText(pythonText, sourceText.encoding, { bom: sourceText.bom });
+        const preservationErrors = validateValuePreservation(bundle, sourceBytes, outputBytes, { encoding: sourceText.encoding });
         if (preservationErrors.length) throw new Error(preservationErrors.join('; '));
         afterDatasetSha256 = sha256(outputBytes);
         await writeFile(outputPath, outputBytes);
@@ -277,9 +301,12 @@ const executeBundle = async ({ bundle, inputPath, outputPath, receiptPath, pytho
         afterDatasetSha256 = null;
         stdout = String(error?.stdout ?? '');
         stderr = String(error?.stderr ?? error?.message ?? '');
-        executionError = String(error?.message ?? '').startsWith('PRESERVATION_')
+        const message = String(error?.message ?? '');
+        executionError = message.startsWith('PRESERVATION_')
           ? 'PRESERVATION_FAILED: el resultado modifica valores o filas fuera del alcance aprobado.'
-          : 'Python execution failed.';
+          : message.startsWith('CSV_ENCODING_')
+            ? `ENCODING_FAILED: el resultado no se puede escribir en ${sourceText.encoding} sin alterar caracteres.`
+            : 'Python execution failed.';
       }
     }
 
@@ -371,6 +398,7 @@ export const runAuraRemediationCli = async (
       outputPath: paths.output,
       receiptPath: paths.receipt,
       python: parsed.python,
+      encoding: parsed.encoding,
     });
     stdout.write(`${result.passed ? 'OK' : 'FAILED'} ${basename(paths.receipt)} ${result.receipt.receiptHash}\n`);
     return result.passed ? 0 : 1;

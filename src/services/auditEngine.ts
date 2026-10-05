@@ -50,6 +50,39 @@ const REGEX_ZIP = /^\d{4,10}(?:-\d{3,6})?$/;
 const REGEX_BURNED_RANGE = /(?:\bde\s+\d{1,3}\s+a\s+\d{1,3}\b|\bmen(?:os|or)\s+de\s+\d{1,3}\b|\bmas\s+de\s+\d{1,3}\b|\b\d{1,3}\s*[-–]\s*\d{1,3}\b|\b\d{1,3}\s*\+)/i;
 const REGEX_HEADER_QUESTION = /[¿?]/;
 
+// --- Rule thresholds (named so score changes stay deliberate) ---
+
+/**
+ * Distinct/non-null ratio from which a text column is treated as an identifier
+ * or free text (one value per row, e.g. a passenger name) rather than a
+ * categorical. Same idea as the report's «columna única o casi única compatible
+ * con identificador» signal (diagnosticReportBuilder, ≥ 0.95), slightly lower
+ * so a few repeated names do not turn the column into a «long tail».
+ */
+export const IDENTIFIER_LIKE_DISTINCT_RATIO = 0.9;
+
+/** «Cola Larga Categórica»: minimum rows, distinct values, cardinality and max top-5 coverage. */
+const LONG_TAIL_MIN_ROWS = 30;
+const LONG_TAIL_MIN_DISTINCT = 20;
+const LONG_TAIL_MIN_CARDINALITY_RATIO = 0.35;
+const LONG_TAIL_MAX_TOP_COVERAGE = 0.6;
+
+/** IQR outlier rules need more than this many numeric values (same guard as calculateStats). */
+const OUTLIER_MIN_NUMERIC_VALUES = 10;
+
+/** «Fechas Futuras»: a date is suspicious when it is later than the reference date + this grace. */
+export const FUTURE_DATE_GRACE_DAYS = 30;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+export interface RunAuditOptions {
+  /**
+   * Reference instant for time-relative rules (future dates). Defaults to now.
+   * It is recorded in `AuditReport.auditReferenceDate` so the same file audited
+   * with the same reference date always produces the same issues and score.
+   */
+  referenceDate?: Date | string;
+}
+
 const CONTROLLED_VOCABULARIES: Record<string, string[]> = {
   masculino: ['hombre', 'masculino', 'male', 'm'],
   femenino: ['mujer', 'femenino', 'female', 'f'],
@@ -288,17 +321,33 @@ const getQuartiles = (values: number[]) => {
   return { q1, q3, iqr: q3 - q1 };
 };
 
-const calculateStats = (data: any[], fields: string[]): Record<string, ColumnStats> => {
+const isPresentValue = (v: unknown): boolean =>
+  v !== null &&
+  v !== undefined &&
+  v !== '' &&
+  (!TOXIC_PLACEHOLDERS.includes(String(v).toLowerCase().trim()) || isNumericSentinel(v));
+
+/**
+ * `data` holds the disposable statistical view (auditValue: "120.00" → 120) and
+ * is used ONLY for type inference and numeric statistics. `originalRows` holds
+ * the text as read from the file: frequencies, distinct counts (and therefore
+ * constant-column detection), text lengths and sample values come from it, so
+ * "120" and "120.00" stay two values and "001" stays "001".
+ */
+const calculateStats = (
+  data: any[],
+  fields: string[],
+  originalRows: Record<string, any>[] = data,
+): Record<string, ColumnStats> => {
   const stats: Record<string, ColumnStats> = {};
 
   fields.forEach(field => {
     const values = data.map(row => row[field]);
-    const nonNulls = values.filter(v => 
-      v !== null && 
-      v !== undefined && 
-      v !== '' && 
-      (!TOXIC_PLACEHOLDERS.includes(String(v).toLowerCase().trim()) || isNumericSentinel(v))
-    );
+    const rawValues = originalRows.map(row => row[field]);
+    const presentIndexes: number[] = [];
+    values.forEach((v, index) => { if (isPresentValue(v)) presentIndexes.push(index); });
+    const nonNulls = presentIndexes.map(index => values[index]);
+    const rawNonNulls = presentIndexes.map(index => rawValues[index]);
     const numValues = nonNulls.filter(v => typeof v === 'number').map(Number);
     const strValues = nonNulls.filter(v => typeof v === 'string').map(String);
     const dateMatches = strValues.filter(v => isDate(v)).length;
@@ -316,9 +365,9 @@ const calculateStats = (data: any[], fields: string[]): Record<string, ColumnSta
       else if (numPct > 0.1 && strPct > 0.1) inferredType = 'mixed';
     }
 
-    // Frequencies
+    // Frequencies — keyed by the original text, never by the coerced value.
     const freqMap = new Map<string, number>();
-    nonNulls.forEach(v => {
+    rawNonNulls.forEach(v => {
       const s = String(v);
       freqMap.set(s, (freqMap.get(s) || 0) + 1);
     });
@@ -331,13 +380,14 @@ const calculateStats = (data: any[], fields: string[]): Record<string, ColumnSta
 
     // Get a few random samples for context (start, middle, end)
     const sampleIndices = [0, Math.floor(values.length / 2), values.length - 1].filter(i => i >= 0 && i < values.length);
-    const sampleValues = sampleIndices.map(i => values[i]).filter(v => v !== null && v !== undefined && v !== '').slice(0, 3);
+    const sampleValues = sampleIndices.map(i => rawValues[i]).filter(v => v !== null && v !== undefined && v !== '').slice(0, 3);
 
     // Longitud como texto sobre TODOS los valores no nulos ni vacíos (no sobre la muestra).
+    // Se mide el texto original ("120.00" tiene 6 caracteres, no 3).
     // Bucle explícito: Math.min(...arr) lanza RangeError con arrays grandes.
     let minLength: number | undefined;
     let maxLength: number | undefined;
-    for (const v of nonNulls) {
+    for (const v of rawNonNulls) {
       const len = String(v).length;
       if (minLength === undefined || len < minLength) minLength = len;
       if (maxLength === undefined || len > maxLength) maxLength = len;
@@ -437,7 +487,24 @@ const calculateStats = (data: any[], fields: string[]): Record<string, ColumnSta
 
 // --- Main Audit Function ---
 
-export const runAudit = (data: Record<string, any>[], fields: string[], delimiter: string): AuditReport => {
+const resolveReferenceDate = (raw: RunAuditOptions['referenceDate']): Date => {
+  if (raw === undefined) return new Date();
+  const parsed = raw instanceof Date ? new Date(raw.getTime()) : new Date(raw);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new RangeError(`runAudit: referenceDate inválida (${String(raw)})`);
+  }
+  return parsed;
+};
+
+export const runAudit = (
+  data: Record<string, any>[],
+  fields: string[],
+  delimiter: string,
+  options: RunAuditOptions = {},
+): AuditReport => {
+  const referenceDate = resolveReferenceDate(options.referenceDate);
+  const futureDateThreshold = new Date(referenceDate.getTime() + FUTURE_DATE_GRACE_DAYS * DAY_MS);
+  const referenceDay = referenceDate.toISOString().slice(0, 10);
   const originalRows = data;
   data = data.map(row => Object.fromEntries(Object.entries(row).map(([key, value]) => [key, auditValue(value)])));
   const issues: QualityIssue[] = [];
@@ -468,7 +535,7 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
   };
 
   // 0. Calculate Basic Stats (Deterministic Layer)
-  const colStats = calculateStats(data, fields);
+  const colStats = calculateStats(data, fields, originalRows);
 
   // --- Group 1: Integrity & Structure ---
 
@@ -518,7 +585,11 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
 
   fields.forEach(col => {
     const stats = colStats[col];
+    // `values` is the statistical view (numbers coerced); `rawValues` is the
+    // file's text. Type/number checks read `values`; every sample shown to a
+    // person or sent to a model reads `rawValues`.
     const values = data.map(r => r[col]);
+    const rawValues = originalRows.map(r => r[col]);
 
     // 2. Critical Nulls
     const nullPct = (stats.nullCount / rowCount) * 100;
@@ -564,7 +635,7 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
     const isCodeCol = col.toLowerCase().includes('ticket') || col.toLowerCase().includes('code') || col.toLowerCase().includes('ref') || col.toLowerCase().includes('num') || col.toLowerCase().includes('nro');
     if (stats.inferredType === 'mixed' && !isCodeCol) {
       addDeduction(`Tipos Mixtos en [${col}]`, 10, IssueCategory.INTEGRITY, RULE_IDS.MIXED_TYPES);
-      const numSample = values.find(v => typeof v === 'number');
+      const numSample = rawValues[values.findIndex(v => typeof v === 'number')];
       const strSample = values.find(v => typeof v === 'string');
       addIssue({
         id: `integrity-mixed-${col}`,
@@ -629,11 +700,15 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
       doubleSpace: [], url: [], symbol: [], futureDate: [], mixedDate: [], burnedRange: []
     };
 
-    // IQR Calculation for Logic Rule 15
-    const numericValues = values.filter(v => typeof v === 'number') as number[];
+    // IQR Calculation for Logic Rule 15.
+    // Only numeric columns: in a mixed/string column (ticket codes such as
+    // "A/5 21171" next to "347082") the numeric subset is an identifier
+    // fragment, not a measurement, so it has no meaningful IQR.
+    const runsOutlierRules = stats.inferredType === 'number';
+    const numericValues = runsOutlierRules ? values.filter(v => typeof v === 'number') as number[] : [];
     let lowerBound = -Infinity, upperBound = Infinity;
     let lowerBoundTukey = -Infinity, upperBoundTukey = Infinity;
-    if (numericValues.length > 10) {
+    if (numericValues.length > OUTLIER_MIN_NUMERIC_VALUES) {
       const { q1, q3, iqr } = getQuartiles(numericValues);
       if (iqr > 0) {
         lowerBound = q1 - 3 * iqr;   // WARNING: extreme outlier
@@ -654,9 +729,11 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
     const isCategoricalTaxonomy = stats.inferredType === 'string' && stats.uniqueCount <= Math.max(20, rowCount * 0.3);
 
     // --- Row Iteration ---
-    values.forEach(val => {
+    values.forEach((val, rowIndex) => {
       if (val === null || val === undefined) return;
       const strVal = String(val);
+      // Original text of this cell, for samples ("120.00", not 120).
+      const raw = rawValues[rowIndex];
 
       // Group 2: Hygiene
       // 5. Ghost Spaces
@@ -674,7 +751,7 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
       // 8. Toxic Placeholders
       if (TOXIC_PLACEHOLDERS.includes(strVal.toLowerCase().trim())) {
         toxicCount++;
-        if (samples.toxic.length < 3) samples.toxic.push(val);
+        if (samples.toxic.length < 3) samples.toxic.push(raw);
       }
 
       // 9. Text Overflow
@@ -707,7 +784,7 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
       // 10. Disguised Numbers
       if (stats.inferredType === 'string' && !isNaN(Number(val)) && val !== '' && !isPhoneCol && !isIdCol && !isDateTimeLikeColumn) {
         disguisedNumberCount++;
-        if (samples.disguised.length < 3) samples.disguised.push(val);
+        if (samples.disguised.length < 3) samples.disguised.push(raw);
       }
 
       // 11. Hidden Dates
@@ -715,8 +792,9 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
         hiddenDateCount++;
       }
 
-      // 12. Corrupt IDs (e.g., "1234.0")
-      if (isIdCol && typeof val === 'string' && val.endsWith('.0')) {
+      // 12. Corrupt IDs (e.g., "1234.0") — a text pattern, so read the original
+      // text: the statistical view has already turned "1234.0" into 1234.
+      if (isIdCol && typeof raw === 'string' && raw.trim().endsWith('.0')) {
         corruptIdCount++;
       }
 
@@ -725,15 +803,14 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
         redundantTimeCount++;
       }
 
-      // R-Freshness: Future Dates (> today + 30 days)
+      // R-Freshness: Future Dates (> referenceDate + FUTURE_DATE_GRACE_DAYS)
       if (isDateTimeLikeColumn) {
         const parsedDate = new Date(strVal);
         if (!isNaN(parsedDate.getTime())) {
-          const futureThreshold = new Date();
-          futureThreshold.setDate(futureThreshold.getDate() + 30);
-          if (parsedDate > futureThreshold) {
+          // Relative to the run's reference date, never the wall clock.
+          if (parsedDate > futureDateThreshold) {
             futureDateCount++;
-            if (samples.futureDate.length < 3) samples.futureDate.push(val);
+            if (samples.futureDate.length < 3) samples.futureDate.push(raw);
           }
         }
       }
@@ -745,15 +822,15 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
         const safeNegatives = ['diff', 'delta', 'temp', 'lat', 'lon', 'balan', 'profit', 'net', 'score'];
         if (!safeNegatives.some(k => col.toLowerCase().includes(k))) {
           negativeCount++;
-          if (samples.negative.length < 3) samples.negative.push(val);
+          if (samples.negative.length < 3) samples.negative.push(raw);
         }
       }
 
       // 15. Extreme Outliers (3× IQR)
-      if (typeof val === 'number' && numericValues.length > 10) {
+      if (runsOutlierRules && typeof val === 'number' && numericValues.length > OUTLIER_MIN_NUMERIC_VALUES) {
         if (val < lowerBound || val > upperBound) {
           outlierCount++;
-          if (samples.outlier.length < 3) samples.outlier.push(val);
+          if (samples.outlier.length < 3) samples.outlier.push(raw);
         } else if (val < lowerBoundTukey || val > upperBoundTukey) {
           // Mild outlier: outside 1.5× IQR but inside 3× IQR (Tukey)
           outlierCountTukey++;
@@ -888,7 +965,18 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
 
       const topFreqCoverage = (stats.topFreq || []).reduce((sum, item) => sum + item.count, 0) / rowCount;
       const cardinalityRatio = stats.uniqueCount / rowCount;
-      if (rowCount >= 30 && stats.uniqueCount >= 20 && cardinalityRatio >= 0.35 && topFreqCoverage < 0.6) {
+      // A column with (almost) one distinct value per present row is an
+      // identifier or free text (e.g. a person's name), not a categorical with
+      // a long tail: grouping it into macro-categories makes no sense.
+      const presentCount = rowCount - stats.nullCount;
+      const identifierLike = presentCount > 0 && stats.uniqueCount / presentCount >= IDENTIFIER_LIKE_DISTINCT_RATIO;
+      if (
+        !identifierLike
+        && rowCount >= LONG_TAIL_MIN_ROWS
+        && stats.uniqueCount >= LONG_TAIL_MIN_DISTINCT
+        && cardinalityRatio >= LONG_TAIL_MIN_CARDINALITY_RATIO
+        && topFreqCoverage < LONG_TAIL_MAX_TOP_COVERAGE
+      ) {
         addIssue({
           id: `semantic-long-tail-${col}`,
           column: col,
@@ -1002,15 +1090,15 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
       addIssue({ id: `sec-pii-${col}`, column: col, category: IssueCategory.SEMANTIC, ruleName: 'Datos Sensibles (PII)', description: 'Patrones de Tarjeta de Crédito o IP detectados.', severity: IssueSeverity.CRITICAL, count: piiCount, affectedPercentage: (piiCount / rowCount) * 100, sampleValues: samples.pii, ruleId: RULE_IDS.PII_DETECTED, automaticAuthorization: autoAuth('pii_handling', false, [], 'Security-sensitive data') });
     }
 
-    // R-Freshness: Future Dates Detection (> today + 30 days)
+    // R-Freshness: Future Dates Detection (> referenceDate + FUTURE_DATE_GRACE_DAYS)
     if (futureDateCount > 0) {
       const futurePct = (futureDateCount / rowCount) * 100;
       if (futurePct >= 20) {
         addDeduction(`Fechas Futuras Irrealistas en [${col}]`, 5, IssueCategory.LOGIC, RULE_IDS.FUTURE_DATES);
-        addIssue({ id: `logic-freshness-${col}`, column: col, category: IssueCategory.LOGIC, ruleName: 'Fechas Futuras (Freshness)', description: `>${futurePct.toFixed(1)}% de valores son fechas posteriores a hoy + 30 días (típico de defaults de migración como 2099-12-31).`, severity: IssueSeverity.CRITICAL, count: futureDateCount, affectedPercentage: futurePct, sampleValues: samples.futureDate, ruleId: RULE_IDS.FUTURE_DATES, automaticAuthorization: autoAuth('fix_future_dates', false, [], 'Migration default dates detected') });
+        addIssue({ id: `logic-freshness-${col}`, column: col, category: IssueCategory.LOGIC, ruleName: 'Fechas Futuras (Freshness)', description: `>${futurePct.toFixed(1)}% de valores son fechas posteriores a la fecha de referencia (${referenceDay}) + ${FUTURE_DATE_GRACE_DAYS} días (típico de defaults de migración como 2099-12-31).`, severity: IssueSeverity.CRITICAL, count: futureDateCount, affectedPercentage: futurePct, sampleValues: samples.futureDate, ruleId: RULE_IDS.FUTURE_DATES, automaticAuthorization: autoAuth('fix_future_dates', false, [], 'Migration default dates detected') });
       } else if (futurePct > 5) {
         addDeduction(`Fechas Futuras Irrealistas en [${col}]`, 5, IssueCategory.LOGIC, RULE_IDS.FUTURE_DATES);
-        addIssue({ id: `logic-freshness-${col}`, column: col, category: IssueCategory.LOGIC, ruleName: 'Fechas Futuras (Freshness)', description: `${futurePct.toFixed(1)}% de valores son fechas posteriores a hoy + 30 días (típico de defaults de migración como 2099-12-31).`, severity: IssueSeverity.WARNING, count: futureDateCount, affectedPercentage: futurePct, sampleValues: samples.futureDate, ruleId: RULE_IDS.FUTURE_DATES, automaticAuthorization: autoAuth('fix_future_dates', false, [], 'Migration default dates detected') });
+        addIssue({ id: `logic-freshness-${col}`, column: col, category: IssueCategory.LOGIC, ruleName: 'Fechas Futuras (Freshness)', description: `${futurePct.toFixed(1)}% de valores son fechas posteriores a la fecha de referencia (${referenceDay}) + ${FUTURE_DATE_GRACE_DAYS} días (típico de defaults de migración como 2099-12-31).`, severity: IssueSeverity.WARNING, count: futureDateCount, affectedPercentage: futurePct, sampleValues: samples.futureDate, ruleId: RULE_IDS.FUTURE_DATES, automaticAuthorization: autoAuth('fix_future_dates', false, [], 'Migration default dates detected') });
       }
     }
   });
@@ -1231,6 +1319,7 @@ export const runAudit = (data: Record<string, any>[], fields: string[], delimite
     columnStats: colStats,
     scoreBreakdown,
     delimiterDetected: delimiter,
-    datasetProfile
+    datasetProfile,
+    auditReferenceDate: referenceDate.toISOString(),
   };
 };

@@ -1,12 +1,22 @@
 /**
- * PrivacyReceiptService - Generates privacy receipts for Chrome AI diagnosis
- * 
- * Creates a verifiable record of privacy guarantees during Chrome AI usage,
- * including network monitoring results and data handling practices.
+ * Privacy receipts.
+ *
+ * - `DiagnosisPrivacyReceiptV2` (contract `aura.privacy-receipt.v2`) is the
+ *   receipt the product issues for a diagnosis run. It is built ONLY from
+ *   evidence of that run: the ingestion evidence (dataset SHA-256, rows,
+ *   columns), the V2 input package and execution receipt (prompt/input
+ *   hashes, one hash per request for fragmented Gemini Nano runs), the
+ *   provider and the network guard result. It never receives dataset rows.
+ *   Whatever cannot be known is reported as `null` and listed in `unknowns`
+ *   instead of being invented.
+ * - `PrivacyReceipt` (v1) and `PrivacyReceiptService` are kept unchanged for
+ *   ChromeProvider compatibility.
  */
 
 import { NetworkGuardResult } from './networkGuard';
 import { NormalizedAvailability } from './chromeAvailability';
+import type { AIConfig, AuditExecutionEvidence } from '../types';
+import type { DiagnosisFailureEvidenceV2, DiagnosisExecutionResult, ExecutionReceiptV1 } from '../contracts/llm';
 
 export interface PrivacyReceipt {
   // Provider information
@@ -240,16 +250,198 @@ export function createPrivacyReceiptService(): PrivacyReceiptService {
   return new PrivacyReceiptService();
 }
 
+// ── V2: receipt of a real diagnosis run ──────────────────────────────────
+
+export const PRIVACY_RECEIPT_V2_CONTRACT_ID = 'aura.privacy-receipt.v2' as const;
+
+export interface PrivacyReceiptRequestV2 {
+  /** Engine issue id for per-issue (fragmented) requests; null for a single request. */
+  issueId: string | null;
+  /** SHA-256 of the exact prompt sent in this request. */
+  promptHash: string;
+  /** SHA-256 of the literal model response; null when none was received. */
+  rawResponseHash: string | null;
+}
+
+export interface DiagnosisPrivacyReceiptV2 {
+  contractId: typeof PRIVACY_RECEIPT_V2_CONTRACT_ID;
+  contractVersion: '2.0.0';
+  receiptId: string;
+  issuedAt: string;
+  outcome: 'validated' | 'failed';
+  dataset: {
+    /** SHA-256 of the ingested file; null when the session has no ingestion evidence. */
+    sha256: string | null;
+    fingerprint: string | null;
+    rows: number;
+    columns: number;
+    truncated: boolean | null;
+    source: 'audit_evidence' | 'report';
+  };
+  provider: {
+    type: AIConfig['providerType'];
+    label: string;
+    requestedModel: string | null;
+    observedModel: string | null;
+    /** True for providers that run on this device (Chrome AI, Ollama on loopback, WebLLM). */
+    onDevice: boolean;
+  };
+  /** What left AURA towards the model. Null when no request is on record. */
+  sent: {
+    content: 'aura.input-snapshot.v2';
+    inputMode: string;
+    includedSections: string[];
+    /** Rows are never sent: the V2 package is built from the profile. */
+    rawRowsSent: false;
+    /** True when `evidence_samples` was included (individual values, redacted or hashed by the privacy policy). */
+    includesRedactedSampleValues: boolean;
+    inputHash: string;
+    promptHash: string;
+    promptVersion: string;
+    responseSchemaHash: string | null;
+    evidenceEnvelopeRef: string;
+    executionReceiptHash: string | null;
+    requestCount: number;
+    requests: PrivacyReceiptRequestV2[];
+  } | null;
+  network:
+    | {
+        monitored: true;
+        totalRequests: number;
+        outboundRequestsFromAura: number;
+        externalRequests: Array<{ type: string; url: string; method?: string; timestamp: number }>;
+      }
+    | { monitored: false; reason: string };
+  /** Plain-language list of facts this receipt cannot certify. */
+  unknowns: string[];
+}
+
+export interface BuildDiagnosisPrivacyReceiptInput {
+  providerType: AIConfig['providerType'];
+  providerLabel: string;
+  requestedModel?: string | null;
+  report: { rowCount: number; colCount: number };
+  auditEvidence?: Pick<AuditExecutionEvidence, 'datasetSha256' | 'datasetFingerprint' | 'rowsProcessed' | 'columnsProcessed' | 'truncated'> | null;
+  /** Exactly one of these describes the run; both null means nothing is on record. */
+  diagnosis?: DiagnosisExecutionResult | null;
+  failure?: DiagnosisFailureEvidenceV2 | null;
+  /** Null when the network guard was not active for this run. */
+  networkResult?: NetworkGuardResult | null;
+  now?: () => Date;
+}
+
+const ON_DEVICE_PROVIDERS = new Set<AIConfig['providerType']>(['chrome', 'ollama', 'webllm_experimental', 'local']);
+
+const requestsFromReceipt = (receipt: ExecutionReceiptV1): PrivacyReceiptRequestV2[] => {
+  const fragmented = receipt.fragmentedExecution;
+  if (fragmented && fragmented.fragments.length > 0) {
+    return fragmented.fragments.map((fragment) => ({
+      issueId: fragment.issueId,
+      promptHash: fragment.promptHash,
+      rawResponseHash: fragment.rawResponseHash || null,
+    }));
+  }
+  return [{ issueId: null, promptHash: receipt.promptHash, rawResponseHash: receipt.rawResponseHash || null }];
+};
+
 /**
- * Generate a quick privacy receipt for simple use cases
+ * Build the privacy receipt of a diagnosis run from its real evidence.
+ * Never pass dataset rows: none of the inputs carry them.
  */
-export async function generateQuickReceipt(
-  data: any[][],
-  columns: string[],
-  networkResult: NetworkGuardResult,
-  availability: NormalizedAvailability
-): Promise<PrivacyReceipt> {
-  const service = new PrivacyReceiptService();
-  service.startTracking();
-  return service.generateReceipt(data, columns, networkResult, availability);
+export function buildDiagnosisPrivacyReceipt(input: BuildDiagnosisPrivacyReceiptInput): DiagnosisPrivacyReceiptV2 {
+  const unknowns: string[] = [];
+  const evidence = input.auditEvidence ?? null;
+
+  const sha256 = evidence?.datasetSha256 || null;
+  if (!sha256) unknowns.push('SHA-256 del archivo: la sesión no conserva la evidencia de ingesta.');
+
+  const executionReceipt = input.diagnosis?.executionReceipt ?? input.failure?.executionReceipt ?? null;
+  const snapshot = input.diagnosis?.inputSnapshot ?? input.failure?.inputSnapshot ?? null;
+
+  let sent: DiagnosisPrivacyReceiptV2['sent'] = null;
+  if (executionReceipt) {
+    const requests = requestsFromReceipt(executionReceipt);
+    const includedSections = [...executionReceipt.includedSections];
+    sent = {
+      content: 'aura.input-snapshot.v2',
+      inputMode: executionReceipt.effectiveInputMode,
+      includedSections,
+      rawRowsSent: false,
+      includesRedactedSampleValues: includedSections.includes('evidence_samples'),
+      inputHash: executionReceipt.inputHash,
+      promptHash: executionReceipt.promptHash,
+      promptVersion: executionReceipt.promptVersion,
+      responseSchemaHash: executionReceipt.responseSchemaHash || null,
+      evidenceEnvelopeRef: executionReceipt.evidenceEnvelopeRef,
+      executionReceiptHash: executionReceipt.receiptHash || null,
+      requestCount: executionReceipt.fragmentedExecution?.requestCount ?? requests.length,
+      requests,
+    };
+  } else if (input.diagnosis && input.diagnosis.promptHash) {
+    const includedSections = snapshot ? [...snapshot.includedSections] : [];
+    if (!snapshot) unknowns.push('Secciones incluidas: el resultado no conserva el paquete de entrada.');
+    unknowns.push('Hash por solicitud: el resultado no incluye recibo de ejecución.');
+    sent = {
+      content: 'aura.input-snapshot.v2',
+      inputMode: input.diagnosis.inputMode ?? snapshot?.inputMode ?? 'desconocido',
+      includedSections,
+      rawRowsSent: false,
+      includesRedactedSampleValues: includedSections.includes('evidence_samples'),
+      inputHash: input.diagnosis.inputHash ?? snapshot?.inputHash ?? '',
+      promptHash: input.diagnosis.promptHash,
+      promptVersion: input.diagnosis.promptVersion,
+      responseSchemaHash: snapshot?.responseSchemaHash ?? null,
+      evidenceEnvelopeRef: input.diagnosis.evidenceEnvelopeRef,
+      executionReceiptHash: null,
+      requestCount: 1,
+      requests: [{ issueId: null, promptHash: input.diagnosis.promptHash, rawResponseHash: input.diagnosis.rawResponseHash || null }],
+    };
+  } else {
+    unknowns.push('Contenido enviado: no hay recibo de ejecución; no consta qué solicitud llegó al modelo.');
+  }
+
+  const observedModel = executionReceipt?.observedModel ?? input.diagnosis?.metrics.model ?? null;
+  if (!observedModel) unknowns.push('Modelo observado: el proveedor no informó su identidad.');
+
+  let network: DiagnosisPrivacyReceiptV2['network'];
+  if (input.networkResult) {
+    network = {
+      monitored: true,
+      totalRequests: input.networkResult.totalRequests,
+      outboundRequestsFromAura: input.networkResult.auraRequests.length,
+      externalRequests: input.networkResult.externalRequests.map(({ type, url, method, timestamp }) => ({ type, url, method, timestamp })),
+    };
+  } else {
+    const reason = input.providerType === 'chrome'
+      ? 'La vigilancia de red no estuvo activa durante esta ejecución.'
+      : 'La vigilancia de red solo se activa con Chrome AI.';
+    network = { monitored: false, reason };
+    unknowns.push(`Conexiones de red: ${reason}`);
+  }
+
+  return {
+    contractId: PRIVACY_RECEIPT_V2_CONTRACT_ID,
+    contractVersion: '2.0.0',
+    receiptId: generateReceiptId(),
+    issuedAt: (input.now ?? (() => new Date()))().toISOString(),
+    outcome: input.diagnosis ? 'validated' : 'failed',
+    dataset: {
+      sha256,
+      fingerprint: evidence?.datasetFingerprint || null,
+      rows: evidence?.rowsProcessed ?? input.report.rowCount,
+      columns: evidence?.columnsProcessed ?? input.report.colCount,
+      truncated: typeof evidence?.truncated === 'boolean' ? evidence.truncated : null,
+      source: evidence ? 'audit_evidence' : 'report',
+    },
+    provider: {
+      type: input.providerType,
+      label: input.providerLabel,
+      requestedModel: input.requestedModel || executionReceipt?.requestedModel || null,
+      observedModel,
+      onDevice: ON_DEVICE_PROVIDERS.has(input.providerType),
+    },
+    sent,
+    network,
+    unknowns,
+  };
 }

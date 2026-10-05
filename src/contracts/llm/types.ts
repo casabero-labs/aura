@@ -357,15 +357,20 @@ export interface DiagnosisInputPackageV2 {
   inputHash: string;
 }
 
+/**
+ * Inference parameters AURA actually applied. `null` means AURA does not
+ * control that parameter for this provider (Chrome's Prompt API uses its own
+ * defaults); a receipt must never certify values that were not applied.
+ */
 export interface InferenceSnapshotV1 {
-  temperature: number;
-  topP: number;
+  temperature: number | null;
+  topP: number | null;
   think: false;
-  numCtx: number;
-  numPredict: number;
+  numCtx: number | null;
+  numPredict: number | null;
   seed: number | null;
-  keepAlive: string;
-  timeoutSeconds: number;
+  keepAlive: string | null;
+  timeoutSeconds: number | null;
 }
 
 export interface ExecutionReceiptV1 {

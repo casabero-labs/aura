@@ -4,8 +4,8 @@
   "supersedes": [
     "experiments/results/deterministic_validation.json"
   ],
-  "generatedAt": "2026-07-10T19:22:22.514Z",
-  "engineCommit": "450ba6a334812e25d67201250eaf8b0b7bd75992",
+  "generatedAt": "2026-10-05T11:31:30.508Z",
+  "engineCommit": "da343a1bca0b0bc65fc588b0e9cf05ea3c2974a9",
   "methodology": {
     "primaryUnit": "binary_rule_activation",
     "occurrenceUnit": "issue_occurrences_not_unique_rows",
@@ -177,7 +177,7 @@
       "sha256": "4a437fde05fe5264e1701a7387ac6fb75393772ba38bb2c9c566405af5af4bd7",
       "rows": 891,
       "columns": 12,
-      "auraScore": 58,
+      "auraScore": 64,
       "parseWarnings": [],
       "groundTruthScope": "3 reglas positivas predeclaradas; ground truth deliberadamente parcial",
       "binaryRuleMetrics": {
@@ -250,12 +250,6 @@
           "detectedOccurrences": 12
         },
         {
-          "ruleId": "logic-outlier-Ticket",
-          "ruleName": "Outliers Extremos (IQR 3×)",
-          "column": null,
-          "detectedOccurrences": 16
-        },
-        {
           "ruleId": "logic-outlier-tukey-Age",
           "ruleName": "Outliers Leves (Tukey 1.5×)",
           "column": null,
@@ -266,12 +260,6 @@
           "ruleName": "Outliers Leves (Tukey 1.5×)",
           "column": null,
           "detectedOccurrences": 34
-        },
-        {
-          "ruleId": "semantic-long-tail-Name",
-          "ruleName": "Cola Larga Categórica",
-          "column": null,
-          "detectedOccurrences": 891
         }
       ],
       "limitations": [
@@ -718,12 +706,6 @@
           "ruleName": "Cola Larga Categórica",
           "column": "city",
           "detectedOccurrences": 30
-        },
-        {
-          "ruleId": "semantic-long-tail-full_name",
-          "ruleName": "Cola Larga Categórica",
-          "column": "full_name",
-          "detectedOccurrences": 47
         }
       ],
       "limitations": [
