@@ -4,8 +4,8 @@
   "supersedes": [
     "experiments/results/deterministic_validation.json"
   ],
-  "generatedAt": "2026-10-05T11:31:30.508Z",
-  "engineCommit": "da343a1bca0b0bc65fc588b0e9cf05ea3c2974a9",
+  "generatedAt": "2026-10-05T11:36:33.540Z",
+  "engineCommit": "e3cbf16f08b457434ef668532cde06406bf538c8",
   "methodology": {
     "primaryUnit": "binary_rule_activation",
     "occurrenceUnit": "issue_occurrences_not_unique_rows",

@@ -1,8 +1,8 @@
 # Evidencia determinista final de AURA
 
 - Evidencia: `aura.final-deterministic-evidence.v1`
-- Generada: 2026-10-05T11:31:30.508Z
-- Commit del motor: `da343a1bca0b0bc65fc588b0e9cf05ea3c2974a9`
+- Generada: 2026-10-05T11:36:33.540Z
+- Commit del motor: `e3cbf16f08b457434ef668532cde06406bf538c8`
 - Sustituye: `experiments/results/deterministic_validation.json`
 - Unidad primaria: activación binaria de regla
 - Detecciones no anotadas: reportadas aparte, sin puntuación
@@ -21,7 +21,7 @@
 
 ```bash
 cd /Users/casabero/Documents/GitHub/aura/src
-AURA_EVIDENCE_COMMIT=da343a1bca0b0bc65fc588b0e9cf05ea3c2974a9 AURA_EVIDENCE_GENERATED_AT=2026-10-05T11:31:30.508Z npm run evidence:deterministic
+AURA_EVIDENCE_COMMIT=e3cbf16f08b457434ef668532cde06406bf538c8 AURA_EVIDENCE_GENERATED_AT=2026-10-05T11:36:33.540Z npm run evidence:deterministic
 ```
 
 ## synthetic_ground_truth
