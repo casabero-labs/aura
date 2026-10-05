@@ -1,0 +1,3 @@
+# Dependencias del runner de remediación (Python + pandas).
+# CI las instala para ejecutar los tests que usan el runner real.
+pandas==3.0.3
