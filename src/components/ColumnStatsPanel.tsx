@@ -15,11 +15,12 @@
 
 import React, { useState } from 'react';
 import { BarChart3, ChevronDown, ChevronRight, AlertTriangle, CheckCircle, Hash } from 'lucide-react';
-import type { ColumnStats } from '../types';
+import type { ColumnStats, QualityIssue } from '../types';
 
 interface ColumnStatsPanelProps {
   columnStats: Record<string, ColumnStats>;
   totalRows?: number;
+  issues?: QualityIssue[];
 }
 
 const LOCALE = 'es-ES';
@@ -70,9 +71,10 @@ const semanticLabel: Record<string, { label: string }> = {
 interface ColumnDetailProps {
   col: ColumnStats;
   totalRows: number;
+  findings?: QualityIssue[];
 }
 
-const ColumnDetail: React.FC<ColumnDetailProps> = ({ col, totalRows }) => {
+const ColumnDetail: React.FC<ColumnDetailProps> = ({ col, totalRows, findings }) => {
   const [expanded, setExpanded] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const nonNullCount = totalRows - col.nullCount;
@@ -123,10 +125,13 @@ const ColumnDetail: React.FC<ColumnDetailProps> = ({ col, totalRows }) => {
               </span>
             </>
           )}
-          {!hasIQR && !hasOutliers && col.nullCount === 0 && (
+          {findings !== undefined && (
             <>
               <span className="col-detail-sep">·</span>
-              <span className="col-detail-ok"><CheckCircle size={10} /> OK</span>
+              <span className={findings.length ? 'col-detail-outliers' : 'col-detail-ok'}>
+                {findings.length ? <AlertTriangle size={10} /> : <CheckCircle size={10} />}
+                {' '}{findings.length ? `${findings.length} hallazgos` : 'Sin hallazgos en las reglas evaluadas'}
+              </span>
             </>
           )}
         </span>
@@ -357,7 +362,7 @@ const ColumnDetail: React.FC<ColumnDetailProps> = ({ col, totalRows }) => {
   );
 };
 
-const ColumnStatsPanel: React.FC<ColumnStatsPanelProps> = ({ columnStats, totalRows }) => {
+const ColumnStatsPanel: React.FC<ColumnStatsPanelProps> = ({ columnStats, totalRows, issues }) => {
   const columns = Object.values(columnStats);
   const [showAll, setShowAll] = useState(false);
 
@@ -382,13 +387,13 @@ const ColumnStatsPanel: React.FC<ColumnStatsPanelProps> = ({ columnStats, totalR
         </div>
         <p className="colstats-full-subtitle">
           Cada columna expandible muestra todas las estadísticas, distribución de frecuencias,
-          muestra de valores e IQR. Sin truncamiento.
+          muestra de valores e IQR. Las frecuencias muestran los cinco valores más comunes.
         </p>
       </div>
 
       <div className="colstats-full-list">
         {displayedCols.map(col => (
-          <ColumnDetail key={col.name} col={col} totalRows={rowCount > 0 ? rowCount : 1000} />
+          <ColumnDetail key={col.name} col={col} totalRows={rowCount > 0 ? rowCount : 0} findings={issues?.filter(issue => issue.column === col.name)} />
         ))}
       </div>
 

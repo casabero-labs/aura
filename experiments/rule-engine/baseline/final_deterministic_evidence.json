@@ -4,8 +4,8 @@
   "supersedes": [
     "experiments/results/deterministic_validation.json"
   ],
-  "generatedAt": "2026-10-05T00:00:00.000Z",
-  "engineCommit": "5e951a7+rules-working-tree",
+  "generatedAt": "2026-10-05T11:36:33.540Z",
+  "engineCommit": "e3cbf16f08b457434ef668532cde06406bf538c8",
   "methodology": {
     "primaryUnit": "binary_rule_activation",
     "occurrenceUnit": "issue_occurrences_not_unique_rows",
@@ -25,11 +25,11 @@
       "columns": 9,
       "auraScore": 0,
       "parseWarnings": [],
-      "groundTruthScope": "14 reglas declaradas, incluida 1 negativa; la clave repetida se añadió tras comprobar los registros 1 y 5",
+      "groundTruthScope": "13 reglas predeclaradas, incluida 1 regla negativa conocida",
       "binaryRuleMetrics": {
         "unit": "rule_activation",
-        "evaluatedRules": 13,
-        "tp": 13,
+        "evaluatedRules": 12,
+        "tp": 12,
         "fp": 0,
         "fn": 0,
         "precision": 1,
@@ -39,22 +39,12 @@
       },
       "occurrenceCounts": {
         "unit": "issue_occurrences_not_unique_rows",
-        "expectedPositiveOccurrences": 32,
-        "detectedOccurrencesOnExpectedKeys": 32,
+        "expectedPositiveOccurrences": 30,
+        "detectedOccurrencesOnExpectedKeys": 30,
         "knownFalsePositiveOccurrences": 0,
         "exactRowMatchingAvailable": false
       },
       "perRule": [
-        {
-          "ruleKey": "integrity-duplicate-key-id",
-          "ruleName": "Identificador repetido",
-          "expectedOccurrences": 2,
-          "detectedOccurrences": 2,
-          "tp": 1,
-          "fp": 0,
-          "fn": 0,
-          "status": "match"
-        },
         {
           "ruleKey": "integrity-dupes",
           "ruleName": "R01 — Filas Duplicadas",
@@ -187,7 +177,7 @@
       "sha256": "4a437fde05fe5264e1701a7387ac6fb75393772ba38bb2c9c566405af5af4bd7",
       "rows": 891,
       "columns": 12,
-      "auraScore": 60,
+      "auraScore": 64,
       "parseWarnings": [],
       "groundTruthScope": "3 reglas positivas predeclaradas; ground truth deliberadamente parcial",
       "binaryRuleMetrics": {
@@ -244,12 +234,6 @@
         {
           "ruleId": "hygiene-ghost-Name",
           "ruleName": "Espacios Fantasma (Trim)",
-          "column": null,
-          "detectedOccurrences": 2
-        },
-        {
-          "ruleId": "integrity-null-Embarked",
-          "ruleName": "Valores Nulos / Vacíos",
           "column": null,
           "detectedOccurrences": 2
         },
@@ -314,18 +298,18 @@
       "binaryRuleMetrics": {
         "unit": "rule_activation",
         "evaluatedRules": 29,
-        "tp": 23,
+        "tp": 16,
         "fp": 0,
-        "fn": 6,
+        "fn": 13,
         "precision": 1,
-        "recall": 0.7931034482758621,
-        "f1": 0.8846153846153846,
+        "recall": 0.5517241379310345,
+        "f1": 0.7111111111111111,
         "precisionKind": "conditional_no_negative_labels"
       },
       "occurrenceCounts": {
         "unit": "issue_occurrences_not_unique_rows",
         "expectedPositiveOccurrences": 51,
-        "detectedOccurrencesOnExpectedKeys": 92,
+        "detectedOccurrencesOnExpectedKeys": 77,
         "knownFalsePositiveOccurrences": 0,
         "exactRowMatchingAvailable": false
       },
@@ -400,12 +384,12 @@
           "ruleKey": "rule:future-dates|birth_date|column",
           "ruleName": "rule:future-dates",
           "expectedOccurrences": 1,
-          "detectedOccurrences": 1,
-          "tp": 1,
+          "detectedOccurrences": 0,
+          "tp": 0,
           "fp": 0,
-          "fn": 0,
-          "status": "match",
-          "reachability": "engine_exposed"
+          "fn": 1,
+          "status": "missed",
+          "reachability": "engine_supported_not_exposed"
         },
         {
           "ruleKey": "rule:future-dates|registration_date|column",
@@ -433,12 +417,12 @@
           "ruleKey": "rule:invalid-date|birth_date|column",
           "ruleName": "rule:invalid-date",
           "expectedOccurrences": 2,
-          "detectedOccurrences": 3,
-          "tp": 1,
+          "detectedOccurrences": 0,
+          "tp": 0,
           "fp": 0,
-          "fn": 0,
-          "status": "match",
-          "reachability": "engine_exposed"
+          "fn": 1,
+          "status": "missed",
+          "reachability": "out_of_engine_scope"
         },
         {
           "ruleKey": "rule:invalid-email|email|column",
@@ -466,18 +450,18 @@
           "ruleKey": "rule:null-values|birth_date|column",
           "ruleName": "rule:null-values",
           "expectedOccurrences": 1,
-          "detectedOccurrences": 1,
-          "tp": 1,
+          "detectedOccurrences": 0,
+          "tp": 0,
           "fp": 0,
-          "fn": 0,
-          "status": "match",
-          "reachability": "engine_exposed"
+          "fn": 1,
+          "status": "missed",
+          "reachability": "engine_supported_not_exposed"
         },
         {
           "ruleKey": "rule:null-values|city|column",
           "ruleName": "rule:null-values",
           "expectedOccurrences": 5,
-          "detectedOccurrences": 7,
+          "detectedOccurrences": 5,
           "tp": 1,
           "fp": 0,
           "fn": 0,
@@ -543,34 +527,34 @@
           "ruleKey": "rule:null-values|registration_date|column",
           "ruleName": "rule:null-values",
           "expectedOccurrences": 1,
-          "detectedOccurrences": 1,
-          "tp": 1,
+          "detectedOccurrences": 0,
+          "tp": 0,
           "fp": 0,
-          "fn": 0,
-          "status": "match",
-          "reachability": "engine_exposed"
+          "fn": 1,
+          "status": "missed",
+          "reachability": "engine_supported_not_exposed"
         },
         {
           "ruleKey": "rule:null-values|total_credits|column",
           "ruleName": "rule:null-values",
           "expectedOccurrences": 2,
-          "detectedOccurrences": 2,
-          "tp": 1,
+          "detectedOccurrences": 0,
+          "tp": 0,
           "fp": 0,
-          "fn": 0,
-          "status": "match",
-          "reachability": "engine_exposed"
+          "fn": 1,
+          "status": "missed",
+          "reachability": "engine_supported_not_exposed"
         },
         {
           "ruleKey": "rule:toxic-placeholders|city|column",
           "ruleName": "rule:toxic-placeholders",
           "expectedOccurrences": 2,
-          "detectedOccurrences": 2,
-          "tp": 1,
+          "detectedOccurrences": 0,
+          "tp": 0,
           "fp": 0,
-          "fn": 0,
-          "status": "match",
-          "reachability": "engine_exposed"
+          "fn": 1,
+          "status": "missed",
+          "reachability": "engine_supported_not_exposed"
         },
         {
           "ruleKey": "rule:toxic-placeholders|email|column",
@@ -642,12 +626,12 @@
           "ruleKey": "rule:variable-phone-length|phone|column",
           "ruleName": "rule:variable-phone-length",
           "expectedOccurrences": 1,
-          "detectedOccurrences": 3,
-          "tp": 1,
+          "detectedOccurrences": 0,
+          "tp": 0,
           "fp": 0,
-          "fn": 0,
-          "status": "match",
-          "reachability": "engine_exposed"
+          "fn": 1,
+          "status": "missed",
+          "reachability": "engine_supported_not_exposed"
         }
       ],
       "additionalDetections": [
@@ -670,6 +654,12 @@
           "detectedOccurrences": 1
         },
         {
+          "ruleId": "hygiene-symbol-full_name",
+          "ruleName": "Símbolos Sospechosos",
+          "column": "full_name",
+          "detectedOccurrences": 1
+        },
+        {
           "ruleId": "integrity-mixed-company",
           "ruleName": "Tipos Mixtos (Dirty Object)",
           "column": "company",
@@ -686,12 +676,6 @@
           "ruleName": "Valores Nulos / Vacíos",
           "column": "notes",
           "detectedOccurrences": 18
-        },
-        {
-          "ruleId": "integrity-null-status",
-          "ruleName": "Valores Nulos / Vacíos",
-          "column": "status",
-          "detectedOccurrences": 2
         },
         {
           "ruleId": "integrity-null-tax_id",
@@ -721,7 +705,7 @@
           "ruleId": "semantic-long-tail-city",
           "ruleName": "Cola Larga Categórica",
           "column": "city",
-          "detectedOccurrences": 29
+          "detectedOccurrences": 30
         }
       ],
       "limitations": [

@@ -2,6 +2,8 @@ import { AuditReport, IssueSeverity, QualityIssue, IssueCategory, ColumnStats, S
 import { profileColumns, type DatasetProfile } from './columnProfiler';
 import { auditValue } from './auditValue';
 import { isNumericSentinel } from './issuePresentation';
+import { checkDate, isIdentifierColumn, isDateColumn, isCreditCard, validateDatasetRules, type DatasetRules, type ColumnRule } from './ruleChecks';
+import { assertUsableCsv } from './csvValidation';
 
 // --- Weighted scoring (composite quality score, pending #3) ---
 const SEVERITY_WEIGHTS: Record<IssueSeverity, number> = {
@@ -33,13 +35,20 @@ const REGEX_DATE_ISO = /^\d{4}-\d{2}-\d{2}/;
 const REGEX_DATE_DMY = /^\d{2}[/-]\d{2}[/-]\d{4}/;
 const REGEX_DATETIME = /(?:^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(?::\d{2})?|^\d{2}[/-]\d{2}[/-]\d{4}[ T]\d{2}:\d{2}(?::\d{2})?)/;
 const REGEX_TIME = /^\d{1,2}:\d{2}(?::\d{2})?$/;
-const REGEX_MOJIBAKE = /\u00C3[\u0080-\u00BF]/; // UTF-8 bytes decoded as Latin-1 (e.g. Ã± for ñ)
+const REGEX_MOJIBAKE = /[\u00C2\u00C3][\u0080-\u00BF]|\uFFFD/; // UTF-8 bytes decoded as Latin-1 (e.g. Ã± for ñ)
 const REGEX_IP = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
 const REGEX_URL = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([\/\w .-]*)*\/?$/;
+const isValidUrl = (value: string): boolean => {
+  try {
+    const url = new URL(/^[a-z][a-z0-9+.-]*:/i.test(value) ? value : `https://${value}`);
+    return /^https?:$/.test(url.protocol) && url.hostname.includes('.') && !/\s/.test(value);
+  } catch { return false; }
+};
 const REGEX_DOUBLE_SPACE = /\s\s+/;
 const REGEX_SYMBOLS = /[!@#$%^&*()_+={}\[\]|\\;:'",.<>?/]/;
 const REGEX_CREDIT_CARD = /^(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13}|6(?:011|5[0-9]{2})[0-9]{12})$/;
 const TOXIC_PLACEHOLDERS = ['nan', 'null', 'n/a', '?', 'undefined', 'none', 'nil', 'sin dato', 'no data', '999', 'unknown', '..'];
+const isToxicPlaceholder = (value: unknown): boolean => TOXIC_PLACEHOLDERS.includes(String(value).toLowerCase().trim().replace(/[_-]+/g, ' '));
 
 // --- Semantic Type Detection Patterns ---
 const REGEX_PHONE = /^[\+]?[\d\s\(\)\-]{7,20}$/;
@@ -81,6 +90,10 @@ export interface RunAuditOptions {
    * with the same reference date always produces the same issues and score.
    */
   referenceDate?: Date | string;
+  /** Rules explicitly declared by the dataset owner. No rows are modified. */
+  columns?: DatasetRules;
+  /** Exact equality alone does not prove that repeated observations are redundant. */
+  allowExactDuplicateRemoval?: boolean;
 }
 
 const CONTROLLED_VOCABULARIES: Record<string, string[]> = {
@@ -90,30 +103,17 @@ const CONTROLLED_VOCABULARIES: Record<string, string[]> = {
   robo: ['robbery', 'theft', 'steal', 'burglary', 'larceny', 'robo', 'hurto'],
 };
 
-// Simple hash to avoid massive memory usage for duplicate check
-const getFastHash = (obj: any): number => {
-  const str = JSON.stringify(obj);
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32bit integer
-  }
-  return hash;
-};
-
 // --- Helper Functions ---
 
 const isDate = (val: string): boolean => {
-  if (val.length < 8) return false;
-  return REGEX_DATE_ISO.test(val) || REGEX_DATE_DMY.test(val);
+  return checkDate(val).valid;
 };
 
 const normalizeTimeValue = (val: any): string | null => {
   if (val === null || val === undefined || val === '') return null;
   const strVal = String(val).trim();
-  const timeMatch = strVal.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?/);
-  if (!timeMatch) return null;
+  const timeMatch = strVal.match(/(?:^|[ T])(\d{1,2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?$/);
+  if (!timeMatch || Number(timeMatch[1]) > 23 || Number(timeMatch[2]) > 59 || Number(timeMatch[3] ?? 0) > 59) return null;
   const hour = timeMatch[1].padStart(2, '0');
   const minute = timeMatch[2];
   const second = timeMatch[3] || '00';
@@ -146,18 +146,19 @@ const normalizeComparableCell = (value: any): string => normalizeCategoryValue(v
 
 const isLikelyTextDimension = (col: string, stats: ColumnStats, rowCount: number): boolean => {
   const lower = col.toLowerCase();
-  const excludedHints = ['id', 'uuid', 'guid', 'email', 'mail', 'phone', 'tel', 'url', 'link', 'observacion', 'notes'];
+  const excludedHints = ['uuid', 'guid', 'email', 'mail', 'phone', 'tel', 'url', 'link', 'observacion', 'notes'];
   return stats.inferredType === 'string'
     && rowCount > 0
     && stats.uniqueCount > 1
     && stats.uniqueCount <= rowCount
+    && !isIdentifierColumn(col)
     && !excludedHints.some(hint => lower.includes(hint));
 };
 
 const R07_EXCLUDED_SEMANTIC_TYPES = new Set<ColumnStats['semanticType']>(['date', 'email', 'phone', 'url', 'uuid', 'zip']);
 const R07_EXCLUDED_NAME_HINTS = [
   'datetime', 'date_time', 'timestamp', 'fecha_hora', 'calltime', 'call_time', 'calldatetime',
-  'date', 'fecha', 'time', 'hora', 'id', 'uuid', 'guid', 'email', 'mail', 'correo', 'phone',
+  'date', 'fecha', 'time', 'hora', 'uuid', 'guid', 'email', 'mail', 'correo', 'phone',
   'tel', 'cel', 'movil', 'url', 'link', 'web', 'zip', 'postal', 'codigo_postal', 'zipcode'
 ];
 
@@ -168,6 +169,7 @@ const shouldSkipCapitalizationChaos = (
   rowCount: number
 ): boolean => {
   const lower = col.toLowerCase().replace(/[^a-z0-9_]/g, '');
+  if (isIdentifierColumn(col)) return true;
   return stats.inferredType !== 'string'
     || R07_EXCLUDED_SEMANTIC_TYPES.has(stats.semanticType)
     || R07_EXCLUDED_NAME_HINTS.some(hint => lower.includes(hint.replace(/[^a-z0-9_]/g, '')))
@@ -208,8 +210,7 @@ const detectCapitalizationVariantGroups = (
       variants: Array.from(group.variants),
       rowIndexes: group.rowIndexes
     }))
-    .filter(group => group.variants.length > 1)
-    .filter(group => new Set(group.variants.map(variant => variant.toLocaleLowerCase('es-CO'))).size === 1);
+    .filter(group => group.variants.length > 1);
 
   const affectedRowIndexes = new Set<number>();
   variantGroups.forEach(group => group.rowIndexes.forEach(rowIndex => affectedRowIndexes.add(rowIndex)));
@@ -321,11 +322,11 @@ const getQuartiles = (values: number[]) => {
   return { q1, q3, iqr: q3 - q1 };
 };
 
-const isPresentValue = (v: unknown): boolean =>
-  v !== null &&
-  v !== undefined &&
-  v !== '' &&
-  (!TOXIC_PLACEHOLDERS.includes(String(v).toLowerCase().trim()) || isNumericSentinel(v));
+const isPresentValue = (v: unknown, rule?: ColumnRule): boolean => {
+  if (v === null || v === undefined) return false;
+  if (rule?.allowedValues?.includes(String(v))) return true;
+  return String(v).trim() !== '' && (!isToxicPlaceholder(v) || isNumericSentinel(v));
+};
 
 /**
  * `data` holds the disposable statistical view (auditValue: "120.00" → 120) and
@@ -338,14 +339,15 @@ const calculateStats = (
   data: any[],
   fields: string[],
   originalRows: Record<string, any>[] = data,
+  rules: DatasetRules = {},
 ): Record<string, ColumnStats> => {
-  const stats: Record<string, ColumnStats> = {};
+  const stats: Record<string, ColumnStats> = Object.create(null);
 
   fields.forEach(field => {
     const values = data.map(row => row[field]);
     const rawValues = originalRows.map(row => row[field]);
     const presentIndexes: number[] = [];
-    values.forEach((v, index) => { if (isPresentValue(v)) presentIndexes.push(index); });
+    values.forEach((_v, index) => { if (isPresentValue(rawValues[index], rules[field])) presentIndexes.push(index); });
     const nonNulls = presentIndexes.map(index => values[index]);
     const rawNonNulls = presentIndexes.map(index => rawValues[index]);
     const numValues = nonNulls.filter(v => typeof v === 'number').map(Number);
@@ -364,6 +366,12 @@ const calculateStats = (
       else if (datePct > 0.8) inferredType = 'date';
       else if (numPct > 0.1 && strPct > 0.1) inferredType = 'mixed';
     }
+
+    const rule = rules[field];
+    if (rule?.type === 'identifier' || (!rule?.type && isIdentifierColumn(field))) inferredType = 'string';
+    else if (rule?.type === 'string') inferredType = 'string';
+    else if (rule?.type === 'date' || rule?.dateFormat) inferredType = 'date';
+    else if (rule?.type === 'number') inferredType = numValues.length === nonNulls.length ? 'number' : 'mixed';
 
     // Frequencies — keyed by the original text, never by the coerced value.
     const freqMap = new Map<string, number>();
@@ -398,7 +406,8 @@ const calculateStats = (
       inferredType,
       semanticType: inferredType === 'date'
         ? 'date'
-        : detectSemanticType(field, strValues, numValues, nonNulls.length),
+        : (rule?.type === 'identifier' || (!rule?.type && isIdentifierColumn(field)))
+          ? 'string' : detectSemanticType(field, strValues, numValues, nonNulls.length),
       nullCount: values.length - nonNulls.length,
       uniqueCount: freqMap.size,
       topFreq: sortedFreq,
@@ -502,15 +511,24 @@ export const runAudit = (
   delimiter: string,
   options: RunAuditOptions = {},
 ): AuditReport => {
+  assertUsableCsv({ data, meta: { fields } });
+  const rules = options.columns ?? {};
+  validateDatasetRules(rules, fields);
   const referenceDate = resolveReferenceDate(options.referenceDate);
   const futureDateThreshold = new Date(referenceDate.getTime() + FUTURE_DATE_GRACE_DAYS * DAY_MS);
   const referenceDay = referenceDate.toISOString().slice(0, 10);
   const originalRows = data;
-  data = data.map(row => Object.fromEntries(Object.entries(row).map(([key, value]) => [key, auditValue(value)])));
+  data = data.map(row => Object.fromEntries(Object.entries(row).map(([key, value]) => {
+    const numericRule = rules[key]?.type === 'number';
+    const isNumericText = typeof value === 'string' && /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(value.trim());
+    return [key, numericRule && isNumericText && Number.isFinite(Number(value)) && Math.abs(Number(value)) <= Number.MAX_SAFE_INTEGER ? Number(value) : auditValue(value)];
+  })));
+
   const issues: QualityIssue[] = [];
   const scoreBreakdown: ScoreDeduction[] = [];
   const rowCount = data.length;
   let penaltyPoints = 0;
+  let pendingDeduction: { index: number; basePoints: number } | null = null;
 
   const addDeduction = (
     reason: string,
@@ -522,6 +540,7 @@ export const runAudit = (
     const weighted = computeWeightedDeduction(points, severity, category);
     penaltyPoints += weighted;
     scoreBreakdown.push({ reason, points: weighted, weight: SEVERITY_WEIGHTS[severity] * CATEGORY_WEIGHTS[category], category, severity, ruleId });
+    pendingDeduction = { index: scoreBreakdown.length - 1, basePoints: points };
   };
 
   const autoAuth = (actionType: string, authorized: boolean, conditionsMet: string[], reason: string): AutomaticAuthorization => ({
@@ -530,12 +549,20 @@ export const runAudit = (
 
   const addIssue = (issue: Omit<QualityIssue, 'ruleId'> & { ruleId: string }): QualityIssue => {
     const withRuleId: QualityIssue = { ...issue, ruleId: issue.ruleId };
+    if (pendingDeduction) {
+      const deduction = scoreBreakdown[pendingDeduction.index];
+      if (deduction.ruleId !== issue.ruleId) throw new Error('La puntuación no coincide con la regla.');
+      const points = computeWeightedDeduction(pendingDeduction.basePoints, issue.severity, issue.category);
+      penaltyPoints += points - deduction.points;
+      Object.assign(deduction, { points, severity: issue.severity, weight: SEVERITY_WEIGHTS[issue.severity] * CATEGORY_WEIGHTS[issue.category] });
+      pendingDeduction = null;
+    }
     issues.push(withRuleId);
     return withRuleId;
   };
 
   // 0. Calculate Basic Stats (Deterministic Layer)
-  const colStats = calculateStats(data, fields, originalRows);
+  const colStats = calculateStats(data, fields, originalRows, rules);
 
   // --- Group 1: Integrity & Structure ---
 
@@ -557,13 +584,15 @@ export const runAudit = (
       id: 'integrity-dupes',
       ruleName: 'Filas Duplicadas',
       category: IssueCategory.INTEGRITY,
-      description: `Se encontraron ${duplicateCount} filas idénticas que afectan la integridad estructural.`,
-      severity: IssueSeverity.CRITICAL,
+      description: `Se encontraron ${duplicateCount} filas iguales. Confirma si son duplicados o mediciones independientes.`,
+      severity: options.allowExactDuplicateRemoval === true ? IssueSeverity.CRITICAL : IssueSeverity.WARNING,
       count: duplicateCount,
       affectedPercentage: pct,
       sampleValues: [],
       ruleId: RULE_IDS.EXACT_DUPLICATES,
-      automaticAuthorization: autoAuth('drop_exact_duplicates', true, ['full-row-equality-confirmed', 'duplicate-count-positive'], 'Deterministic exact-row duplicate authorization')
+      automaticAuthorization: autoAuth('drop_exact_duplicates', options.allowExactDuplicateRemoval === true,
+        options.allowExactDuplicateRemoval === true ? ['full-row-equality-confirmed', 'owner-confirmed-redundancy'] : ['full-row-equality-confirmed'],
+        'Owner must confirm redundancy')
     });
   }
 
@@ -592,9 +621,10 @@ export const runAudit = (
     const rawValues = originalRows.map(r => r[col]);
 
     // 2. Critical Nulls
+    const rule = rules[col] ?? {};
     const nullPct = (stats.nullCount / rowCount) * 100;
-    if (nullPct > 5) {
-      const isCritical = nullPct > 20;
+    if (stats.nullCount > 0) {
+      const isCritical = rule.required === true || nullPct > 20;
       const points = isCritical ? 10 : 2;
       const severity = isCritical ? IssueSeverity.CRITICAL : IssueSeverity.WARNING;
       addDeduction(`Valores Nulos en [${col}]`, points, IssueCategory.INTEGRITY, RULE_IDS.NULL_VALUES);
@@ -608,6 +638,7 @@ export const runAudit = (
         count: stats.nullCount,
         affectedPercentage: nullPct,
         sampleValues: [],
+        rowNumbers: rawValues.flatMap((value, index) => isPresentValue(value, rule) ? [] : [index + 1]).slice(0, 20),
         ruleId: RULE_IDS.NULL_VALUES,
         automaticAuthorization: autoAuth('handle_nulls', false, [], 'Requires domain decision on null meaning')
       });
@@ -621,7 +652,7 @@ export const runAudit = (
         column: col,
         ruleName: 'Columna Constante',
         category: IssueCategory.INTEGRITY,
-        description: `Todos los valores son idénticos ('${stats.topFreq?.[0]?.value}'). No aporta información.`,
+        description: `El valor no cambia ('${stats.topFreq?.[0]?.value}'). Puede ser un metadato útil; revisa antes de eliminar la columna.`,
         severity: IssueSeverity.WARNING,
         count: rowCount,
         affectedPercentage: 100,
@@ -671,6 +702,73 @@ export const runAudit = (
       });
     }
 
+    const emitSourceCheck = (
+      ruleId: string, suffix: string, ruleName: string, description: string,
+      indexes: number[], severity: IssueSeverity, category: IssueCategory, basePoints: number,
+    ) => {
+      if (!indexes.length) return;
+      addDeduction(`${ruleName} en [${col}]`, basePoints, category, ruleId);
+      addIssue({ id: `${suffix}-${col}`, column: col, ruleId, ruleName, description,
+        severity, category, count: indexes.length, affectedPercentage: indexes.length / rowCount * 100,
+        sampleValues: indexes.slice(0, 3).map(index => rawValues[index]),
+        rowNumbers: indexes.slice(0, 20).map(index => index + 1),
+        automaticAuthorization: autoAuth('review_source_values', false, [], 'Owner review required') });
+    };
+    const presentRows = rawValues.flatMap((value, index) => isPresentValue(value, rule) ? [index] : []);
+    const dateColumn = rule.type === 'date' || !!rule.dateFormat || stats.inferredType === 'date'
+      || isDateColumn(col);
+    if (dateColumn) {
+      emitSourceCheck(RULE_IDS.INVALID_DATE, 'logic-invalid-date', 'Fecha no válida',
+        'Hay fechas imposibles o valores que no son fechas.',
+        presentRows.filter(index => !checkDate(rawValues[index], rule.dateFormat).valid),
+        IssueSeverity.CRITICAL, IssueCategory.LOGIC, 10);
+      if (rule.dateFormat) {
+        emitSourceCheck(RULE_IDS.DOMAIN_VALUES, 'logic-date-format', 'Formato de fecha no permitido',
+          `El archivo exige fechas ${rule.dateFormat}. No se convierten fechas sin revisión.`,
+          presentRows.filter(index => {
+            const date = checkDate(rawValues[index], rule.dateFormat);
+            return date.valid && date.format !== rule.dateFormat;
+          }), IssueSeverity.WARNING, IssueCategory.LOGIC, 5);
+      }
+    }
+    if (rule.allowedValues) {
+      const allowed = new Set(rule.allowedValues);
+      emitSourceCheck(RULE_IDS.DOMAIN_VALUES, 'logic-domain-values', 'Valor no permitido',
+        'El valor no pertenece a la lista permitida por el responsable del archivo.',
+        presentRows.filter(index => !allowed.has(String(rawValues[index]))),
+        IssueSeverity.CRITICAL, IssueCategory.LOGIC, 5);
+    }
+    if (rule.type === 'number' || rule.min !== undefined || rule.max !== undefined || rule.integer) {
+      emitSourceCheck(RULE_IDS.DOMAIN_NUMBER, 'logic-domain-number', 'Número fuera de la regla declarada',
+        'El valor no es un número válido o incumple los límites o la condición de entero declarados.',
+        presentRows.filter(index => {
+          const raw = rawValues[index];
+          if (typeof raw !== 'number' && (typeof raw !== 'string' || !/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(raw.trim()))) return true;
+          const value = Number(raw);
+          return !Number.isFinite(value) || Math.abs(value) > Number.MAX_SAFE_INTEGER || (rule.integer === true && !Number.isSafeInteger(value))
+            || (rule.min !== undefined && value < rule.min) || (rule.max !== undefined && value > rule.max);
+        }), IssueSeverity.CRITICAL, IssueCategory.LOGIC, 5);
+    }
+    if (rule.length !== undefined) {
+      emitSourceCheck(RULE_IDS.IDENTIFIER_FORMAT, 'type-identifier-format', 'Longitud no permitida',
+        `El archivo exige ${rule.length} caracteres; los ceros iniciales cuentan.`,
+        presentRows.filter(index => String(rawValues[index]).length !== rule.length),
+        IssueSeverity.WARNING, IssueCategory.TYPES, 5);
+    }
+    if (rule.unique !== false && (rule.unique || (rule.type !== 'number' && rule.type !== 'string' && isIdentifierColumn(col)) || rule.type === 'identifier')) {
+      const groups = new Map<string, number[]>();
+      presentRows.forEach(index => {
+        const key = String(rawValues[index]);
+        const group = groups.get(key) ?? []; group.push(index); groups.set(key, group);
+      });
+      const repeated = [...groups.values()].filter(group => group.length > 1);
+      emitSourceCheck(RULE_IDS.DUPLICATE_KEY, 'integrity-duplicate-key', 'Identificador repetido',
+        rule.unique ? 'La clave declarada como única aparece en más de un registro.'
+          : 'Identificador repetido. Confirma si los registros son la misma entidad.',
+        repeated.flat(), rule.unique ? IssueSeverity.CRITICAL : IssueSeverity.WARNING,
+        IssueCategory.INTEGRITY, 5);
+    }
+
     // Prepare for row iteration
     let ghostSpaceCount = 0;
     let mojibakeCount = 0;
@@ -718,12 +816,12 @@ export const runAudit = (
       }
     }
 
-    const isEmailCol = col.toLowerCase().includes('mail') || col.toLowerCase().includes('correo');
-    const isPhoneCol = col.toLowerCase().includes('phone') || col.toLowerCase().includes('tel') || col.toLowerCase().includes('cel') || col.toLowerCase().includes('movil');
-    const isIdCol = col.toLowerCase().includes('id') || col.toLowerCase().endsWith('cod') || col.toLowerCase().endsWith('code') || col.toLowerCase().endsWith('key');
-    const isUrlCol = /\b(?:url|web|link|sitio|website|href)\b/i.test(col);
+    const isEmailCol = col.toLowerCase().includes('mail') || col.toLowerCase().includes('correo') || stats.semanticType === 'email';
+    const isPhoneCol = /(?:^|[_ -])(?:phone|tel|telefono|teléfono|cel|celular|movil|móvil)(?:$|[_ -])/i.test(col) || /(?:phone|telephone)$/i.test(col) || stats.semanticType === 'phone';
+    const isIdCol = rule.type === 'identifier' || isIdentifierColumn(col) || /(?:^|_)(?:cod|code|key)$/.test(col.toLowerCase());
+    const isUrlCol = /(?:^|[_ -])(?:url|web|link|sitio|website|href)(?:$|[_ -])/i.test(col) || stats.semanticType === 'url';
     const isNameCol = col.toLowerCase().includes('name') || col.toLowerCase().includes('nombre') || col.toLowerCase().includes('ape');
-    const isDateTimeLikeColumn = looksLikeDateTimeColumn(col, values, rowCount);
+    const isDateTimeLikeColumn = stats.inferredType === 'date' || isDateColumn(col) || looksLikeDateTimeColumn(col, values, rowCount);
 
     // A categorical taxonomy column should not be treated as an ID or name for symbol chaos
     const isCategoricalTaxonomy = stats.inferredType === 'string' && stats.uniqueCount <= Math.max(20, rowCount * 0.3);
@@ -749,7 +847,7 @@ export const runAudit = (
       }
 
       // 8. Toxic Placeholders
-      if (TOXIC_PLACEHOLDERS.includes(strVal.toLowerCase().trim())) {
+      if (isToxicPlaceholder(strVal) && !rule.allowedValues?.includes(String(raw))) {
         toxicCount++;
         if (samples.toxic.length < 3) samples.toxic.push(raw);
       }
@@ -782,7 +880,10 @@ export const runAudit = (
       }
 
       // 10. Disguised Numbers
-      if (stats.inferredType === 'string' && !isNaN(Number(val)) && val !== '' && !isPhoneCol && !isIdCol && !isDateTimeLikeColumn) {
+      if (stats.inferredType === 'string' && rule.type !== 'string' && isPresentValue(val, rule)
+        && Number.isFinite(Number(val)) && Math.abs(Number(val)) <= Number.MAX_SAFE_INTEGER
+        && !/^[-+]?0\d/.test(String(raw).trim())
+        && !isPhoneCol && !isIdCol && !isDateTimeLikeColumn) {
         disguisedNumberCount++;
         if (samples.disguised.length < 3) samples.disguised.push(raw);
       }
@@ -805,8 +906,8 @@ export const runAudit = (
 
       // R-Freshness: Future Dates (> referenceDate + FUTURE_DATE_GRACE_DAYS)
       if (isDateTimeLikeColumn) {
-        const parsedDate = new Date(strVal);
-        if (!isNaN(parsedDate.getTime())) {
+        const parsedDate = checkDate(strVal, rule.dateFormat).instant;
+        if (parsedDate) {
           // Relative to the run's reference date, never the wall clock.
           if (parsedDate > futureDateThreshold) {
             futureDateCount++;
@@ -817,10 +918,10 @@ export const runAudit = (
 
       // Group 4: Logic
       // 14. Impossible Negatives
-      if (typeof val === 'number' && val < 0) {
+      if (!isIdCol && rule.type !== 'string' && rule.min === undefined && typeof val === 'number' && val < 0) {
         // Safe words for negatives
-        const safeNegatives = ['diff', 'delta', 'temp', 'lat', 'lon', 'balan', 'profit', 'net', 'score'];
-        if (!safeNegatives.some(k => col.toLowerCase().includes(k))) {
+        const safeNegatives = /(?:^|[_ -])(?:diff|delta|temp|temperature|temperatura|lat|latitude|latitud|lon|longitude|longitud|balance|profit|net|score)(?:$|[_ -])/i;
+        if (!safeNegatives.test(col)) {
           negativeCount++;
           if (samples.negative.length < 3) samples.negative.push(raw);
         }
@@ -839,7 +940,7 @@ export const runAudit = (
 
       // 17. Invalid Email (skip known placeholders — already caught by R08)
       if (isEmailCol && typeof val === 'string') {
-        if (!TOXIC_PLACEHOLDERS.includes(strVal.toLowerCase().trim()) && !REGEX_EMAIL.test(val)) {
+        if (isPresentValue(val) && !REGEX_EMAIL.test(val)) {
           invalidEmailCount++;
           if (samples.email.length < 3) samples.email.push(val);
         }
@@ -853,11 +954,12 @@ export const runAudit = (
 
       // Group 5: Semantic & Security
       // 19. PII (Sensitive Data)
-      if (typeof val === 'string') {
-        if (REGEX_IP.test(val) || REGEX_CREDIT_CARD.test(val.replace(/[\s-]/g, ''))) {
+      if (raw !== null && raw !== undefined && isPresentValue(raw)) {
+        const sensitiveText = String(raw);
+        if (REGEX_IP.test(sensitiveText) || isCreditCard(sensitiveText)) {
           // If column name is obviously PII, it's less of an anomaly, but still a security risk to be aware of
           piiCount++;
-          if (samples.pii.length < 3) samples.pii.push(val);
+          if (samples.pii.length < 3) samples.pii.push(raw);
         }
       }
 
@@ -868,24 +970,26 @@ export const runAudit = (
       }
 
       // 21. URL Detection
-      if (typeof val === 'string' && (isUrlCol || val.startsWith('http'))) {
-        if (!REGEX_URL.test(val)) {
+      if (typeof val === 'string' && isPresentValue(val) && (isUrlCol || val.startsWith('http'))) {
+        if (!isValidUrl(val)) {
           urlPatternCount++;
           if (samples.url.length < 3) samples.url.push(val);
         }
       }
 
       // 22. Symbol Chaos in Clean Columns
-      if (typeof val === 'string' && (isIdCol || isNameCol) && !isCategoricalTaxonomy && REGEX_SYMBOLS.test(val)) {
-        if (!val.includes('.') || (isIdCol && REGEX_SYMBOLS.test(val.replace(/\./g, '')))) {
-          symbolChaosCount++;
-          if (samples.symbol.length < 3) samples.symbol.push(val);
-        }
+      const suspiciousNameSymbols = /[<>{}\[\]|\\^$%*+=@#]/;
+      if (typeof val === 'string' && !isCategoricalTaxonomy
+        && ((isIdCol && REGEX_SYMBOLS.test(val.replace(/\./g, '')))
+          || (isNameCol && suspiciousNameSymbols.test(val)))) {
+        symbolChaosCount++;
+        if (samples.symbol.length < 3) samples.symbol.push(val);
       }
 
       // 24. Burned demographic ranges
       if (
         typeof val === 'string'
+        && !dateColumn && !isIdCol && !isPhoneCol && !isUrlCol && !isCodeCol
         && stats.inferredType !== 'date'
         && !isDate(val)
         && REGEX_BURNED_RANGE.test(normalizeText(val))
@@ -909,9 +1013,6 @@ export const runAudit = (
     }
 
     if (toxicCount > 0) {
-      if (values.some(value => TOXIC_PLACEHOLDERS.includes(String(value).toLowerCase().trim()) && !isNumericSentinel(value))) {
-        addDeduction(`Placeholders Tóxicos en [${col}]`, 5, IssueCategory.HYGIENE, RULE_IDS.TOXIC_PLACEHOLDERS);
-      }
       const toxicSamples = samples.toxic.map(value => String(value)).join(', ');
       const sentinelNote = samples.toxic.some(isNumericSentinel)
         ? ' Un valor como 999 puede ser un identificador o código válido; confirma el contexto antes de tratarlo como nulo.'
@@ -933,7 +1034,7 @@ export const runAudit = (
           column: col,
           category: IssueCategory.HYGIENE,
           ruleName: 'Caos de Capitalización',
-          description: 'Mismos valores escritos con distintas mayúsculas en una misma columna categórica.',
+          description: 'Hay variantes de mayúsculas o tildes. Revisa si representan el mismo valor antes de unirlas.',
           severity: IssueSeverity.INFO,
           count: capitalizationVariants.affectedRows,
           affectedPercentage: (capitalizationVariants.affectedRows / rowCount) * 100,
@@ -1014,7 +1115,7 @@ export const runAudit = (
 
     // Group 3 Checks
     if (disguisedNumberCount > rowCount * 0.95 && stats.inferredType !== 'number') {
-      penaltyPoints += 2;
+      addDeduction(`Números Disfrazados en [${col}]`, 2, IssueCategory.TYPES, RULE_IDS.DISGUISED_NUMBERS);
       addIssue({ id: `type-disguised-${col}`, column: col, category: IssueCategory.TYPES, ruleName: 'Números Disfrazados', description: 'Columna de texto que es 100% numérica.', severity: IssueSeverity.INFO, count: disguisedNumberCount, affectedPercentage: (disguisedNumberCount / rowCount) * 100, sampleValues: samples.disguised, ruleId: RULE_IDS.DISGUISED_NUMBERS, automaticAuthorization: autoAuth('convert_to_number', false, [], 'Type coercion decision') });
     }
 
@@ -1023,7 +1124,7 @@ export const runAudit = (
     }
 
     if (corruptIdCount > 0) {
-      penaltyPoints += 5;
+      addDeduction(`IDs Corruptos en [${col}]`, 5, IssueCategory.TYPES, RULE_IDS.CORRUPT_IDS);
       addIssue({ id: `type-corrupt-${col}`, column: col, category: IssueCategory.TYPES, ruleName: 'IDs Corruptos', description: 'IDs enteros convertidos a float (123.0).', severity: IssueSeverity.WARNING, count: corruptIdCount, affectedPercentage: (corruptIdCount / rowCount) * 100, sampleValues: [], ruleId: RULE_IDS.CORRUPT_IDS, automaticAuthorization: autoAuth('fix_float_ids', false, [], 'Integer reconstruction from float representation') });
     }
 
@@ -1078,7 +1179,7 @@ export const runAudit = (
       modeMap.forEach((freq, len) => { if (freq > maxFreq) { maxFreq = freq; mode = len; } });
 
       const variableCount = phoneLengths.filter(l => l !== mode).length;
-      if (variableCount > phoneLengths.length * 0.1) { // If >10% differ from standard length
+      if (variableCount > 0) { // A single unusual length still deserves review.
         addDeduction(`Longitud Teléfonos Variable [${col}]`, 5, IssueCategory.LOGIC, RULE_IDS.VARIABLE_PHONE_LENGTH);
         addIssue({ id: `logic-phone-${col}`, column: col, category: IssueCategory.LOGIC, ruleName: 'Longitud de Teléfonos', description: `Longitud variable (Moda: ${mode} dígitos).`, severity: IssueSeverity.WARNING, count: variableCount, affectedPercentage: (variableCount / phoneLengths.length) * 100, sampleValues: [], ruleId: RULE_IDS.VARIABLE_PHONE_LENGTH, automaticAuthorization: autoAuth('normalize_phone_length', false, [], 'International format handling') });
       }
@@ -1095,10 +1196,10 @@ export const runAudit = (
       const futurePct = (futureDateCount / rowCount) * 100;
       if (futurePct >= 20) {
         addDeduction(`Fechas Futuras Irrealistas en [${col}]`, 5, IssueCategory.LOGIC, RULE_IDS.FUTURE_DATES);
-        addIssue({ id: `logic-freshness-${col}`, column: col, category: IssueCategory.LOGIC, ruleName: 'Fechas Futuras (Freshness)', description: `>${futurePct.toFixed(1)}% de valores son fechas posteriores a la fecha de referencia (${referenceDay}) + ${FUTURE_DATE_GRACE_DAYS} días (típico de defaults de migración como 2099-12-31).`, severity: IssueSeverity.CRITICAL, count: futureDateCount, affectedPercentage: futurePct, sampleValues: samples.futureDate, ruleId: RULE_IDS.FUTURE_DATES, automaticAuthorization: autoAuth('fix_future_dates', false, [], 'Migration default dates detected') });
-      } else if (futurePct > 5) {
+        addIssue({ id: `logic-freshness-${col}`, column: col, category: IssueCategory.LOGIC, ruleName: 'Fechas Futuras (Freshness)', description: `>${futurePct.toFixed(1)}% de valores son fechas posteriores a la fecha de referencia (${referenceDay}) + ${FUTURE_DATE_GRACE_DAYS} días Revisa si esas fechas están permitidas.`, severity: IssueSeverity.CRITICAL, count: futureDateCount, affectedPercentage: futurePct, sampleValues: samples.futureDate, ruleId: RULE_IDS.FUTURE_DATES, automaticAuthorization: autoAuth('fix_future_dates', false, [], 'Future dates need owner review') });
+      } else if (futurePct > 0) {
         addDeduction(`Fechas Futuras Irrealistas en [${col}]`, 5, IssueCategory.LOGIC, RULE_IDS.FUTURE_DATES);
-        addIssue({ id: `logic-freshness-${col}`, column: col, category: IssueCategory.LOGIC, ruleName: 'Fechas Futuras (Freshness)', description: `${futurePct.toFixed(1)}% de valores son fechas posteriores a la fecha de referencia (${referenceDay}) + ${FUTURE_DATE_GRACE_DAYS} días (típico de defaults de migración como 2099-12-31).`, severity: IssueSeverity.WARNING, count: futureDateCount, affectedPercentage: futurePct, sampleValues: samples.futureDate, ruleId: RULE_IDS.FUTURE_DATES, automaticAuthorization: autoAuth('fix_future_dates', false, [], 'Migration default dates detected') });
+        addIssue({ id: `logic-freshness-${col}`, column: col, category: IssueCategory.LOGIC, ruleName: 'Fechas Futuras (Freshness)', description: `${futurePct.toFixed(1)}% de valores son fechas posteriores a la fecha de referencia (${referenceDay}) + ${FUTURE_DATE_GRACE_DAYS} días Revisa si esas fechas están permitidas.`, severity: IssueSeverity.WARNING, count: futureDateCount, affectedPercentage: futurePct, sampleValues: samples.futureDate, ruleId: RULE_IDS.FUTURE_DATES, automaticAuthorization: autoAuth('fix_future_dates', false, [], 'Future dates need owner review') });
       }
     }
   });
@@ -1109,9 +1210,10 @@ export const runAudit = (
     const sampleInconsistent: any[] = [];
 
     for (let i = 0; i < data.length; i++) {
-      const start = new Date(data[i][pair.start]);
-      const end = new Date(data[i][pair.end]);
-      if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+      if (!isPresentValue(data[i][pair.start]) || !isPresentValue(data[i][pair.end])) continue;
+      const start = checkDate(data[i][pair.start], rules[pair.start]?.dateFormat).instant;
+      const end = checkDate(data[i][pair.end], rules[pair.end]?.dateFormat).instant;
+      if (start && end) {
         if (end < start) {
           inconsistentCount++;
           if (sampleInconsistent.length < 3) sampleInconsistent.push(`${data[i][pair.end]} < ${data[i][pair.start]}`);
@@ -1238,7 +1340,7 @@ export const runAudit = (
   // 26. Semantic ID Contamination — Cross Column
   const looksLikeIdentifierColumn = (col: string, stats: ColumnStats): boolean => {
     const lower = col.toLowerCase();
-    return lower.includes('id') || lower.endsWith('code') || lower.endsWith('key') || stats.semanticType === 'uuid';
+    return isIdentifierColumn(col) || lower.endsWith('code') || lower.endsWith('key') || stats.semanticType === 'uuid';
   };
 
   const detectVocabularyLeakage = (
@@ -1300,13 +1402,10 @@ export const runAudit = (
     }
   });
 
-  let normalizedPenalty = penaltyPoints;
-  if (rowCount < 100) {
-    normalizedPenalty = penaltyPoints * 1.5;
-  } else if (rowCount > 10000) {
-    normalizedPenalty = penaltyPoints / 2;
-  }
-  const totalScore = Math.max(0, Math.min(100, Math.round(100 - normalizedPenalty)));
+  if (pendingDeduction) throw new Error('Hay puntos sin un hallazgo que los explique.');
+
+  // The same deductions have the same weight at every dataset size.
+  const totalScore = Math.max(0, Math.min(100, Math.round(100 - penaltyPoints)));
 
   const datasetProfile: DatasetProfile = profileColumns(data, fields, colStats);
 
@@ -1321,5 +1420,8 @@ export const runAudit = (
     delimiterDetected: delimiter,
     datasetProfile,
     auditReferenceDate: referenceDate.toISOString(),
+    auditRules: structuredClone(rules),
+    scoreVersion: 'rules-v2',
+    scoreNormalizationFactor: 1,
   };
 };

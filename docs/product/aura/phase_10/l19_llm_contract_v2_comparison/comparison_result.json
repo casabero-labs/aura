@@ -10,9 +10,10 @@
   "sameTaskAsBaseline": true,
   "runs": 1,
   "baselineObserved": {
-    "automaticActions": [],
+    "automaticActions": [
+      "trim_whitespace"
+    ],
     "humanReview": [
-      "hygiene-ghost-Name",
       "missing_age",
       "age_outlier",
       "passenger_id_identifier"

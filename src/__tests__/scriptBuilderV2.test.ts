@@ -247,14 +247,25 @@ describe('Partition: exclusion rules', () => {
   });
 
   it('ambiguous column goes to excluded (ambiguous_column)', () => {
-    const columns = buildColumnRegistry(['col']); // 'col' is ambiguous
+    const columns = buildColumnRegistry(['l1l1']); // visually confusing identifier
     const plan = makePlan([
       makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false }, 'approved'),
     ]);
-    const ctx = makeBuildContext(plan, ['col']);
+    const ctx = makeBuildContext(plan, ['l1l1']);
     const candidate = buildScriptCandidateCoreV2(plan, ctx);
     expect(candidate.excludedActionIds).toHaveLength(1);
     expect(candidate.excludedActionIds[0].reason).toBe('ambiguous_column');
+  });
+
+  it.each(['Name', 'id', 'value', 'key', 'data'])('permits an approved safe whitespace trim on ordinary column %s', name => {
+    const columns = buildColumnRegistry([name]);
+    const plan = makePlan([
+      makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false }, 'approved'),
+    ]);
+    const candidate = buildScriptCandidateCoreV2(plan, makeBuildContext(plan, [name]));
+    expect(candidate.acceptedActionIds).toHaveLength(1);
+    expect(candidate.excludedActionIds).toEqual([]);
+    expect(candidate.scriptText).toContain('.str.strip()');
   });
 
   it('exact coverage of all plan actions', () => {

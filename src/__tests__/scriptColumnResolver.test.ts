@@ -219,7 +219,7 @@ describe('resolveScriptColumn edge cases', () => {
   });
 
   it('returns ambiguous_column for ambiguous column', () => {
-    const cols = buildColumnRegistry(['col']);
+    const cols = buildColumnRegistry(['l1l1']);
     const ctx = makeContext(cols);
     const result = resolveScriptColumn(cols[0].columnId, ctx);
     expect(result.ok).toBe(false);
@@ -328,7 +328,7 @@ describe('isColumnStructurallyRenderable', () => {
   });
 
   it('returns false for ambiguous column', () => {
-    const cols = buildColumnRegistry(['col']);
+    const cols = buildColumnRegistry(['l1l1']);
     expect(isColumnStructurallyRenderable(cols[0])).toBe(false);
   });
 });

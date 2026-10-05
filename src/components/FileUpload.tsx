@@ -1,7 +1,8 @@
 import React, { useCallback, useId, useRef, useState } from 'react';
+import { parseDatasetRules, type DatasetRules } from '../services/ruleChecks';
 
 interface FileUploadProps {
-  onFileSelect: (file: File) => void;
+  onFileSelect: (file: File, rules?: DatasetRules) => void;
 }
 
 export const uploadCopy = {
@@ -18,9 +19,19 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [selectedName, setSelectedName] = useState('');
   const [error, setError] = useState('');
+  const rulesId = useId();
+  const [rules, setRules] = useState<DatasetRules | undefined>();
+  const [rulesError, setRulesError] = useState('');
+  const [rulesLoading, setRulesLoading] = useState(false);
+  const [rulesName, setRulesName] = useState('');
+  const rulesRead = useRef(0);
 
   const acceptFile = useCallback((selected?: File) => {
     if (!selected) return;
+    if (rulesLoading || rulesError) {
+      setError(rulesLoading ? 'Espera a que termine la lectura de las reglas.' : 'Corrige o retira el archivo de reglas antes de cargar el CSV.');
+      return;
+    }
     if (!selected.name.toLowerCase().endsWith('.csv')) {
       setError('Selecciona un archivo .csv para iniciar el perfilamiento.');
       setSelectedName('');
@@ -29,8 +40,8 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect }) => {
 
     setError('');
     setSelectedName(selected.name);
-    onFileSelect(selected);
-  }, [onFileSelect]);
+    onFileSelect(selected, rules);
+  }, [onFileSelect, rules, rulesError, rulesLoading]);
 
   const handleDrop = useCallback((event: React.DragEvent) => {
     event.preventDefault();
@@ -63,6 +74,32 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect }) => {
           <p className="file-drop-kicker">Registro de archivos</p>
           <h3 id={titleId}>{uploadCopy.title}</h3>
           <p className="file-drop-eyebrow" id={hintId}>{uploadCopy.privacy} {uploadCopy.hint}</p>
+          <details>
+            <summary>Reglas propias del archivo (opcional)</summary>
+            <p>Antes de cargar el CSV, puedes elegir un archivo de reglas para indicar valores permitidos, claves únicas y límites. Sin estas reglas, AURA aplica solo sus comprobaciones generales.</p>
+            <label htmlFor={rulesId}>Archivo de reglas (.json)</label>
+            <input id={rulesId} type="file" accept=".json" onChange={async event => {
+              const selected = event.target.files?.[0];
+              const read = ++rulesRead.current;
+              setRules(undefined); setRulesError(''); setRulesName('');
+              if (!selected) { setRulesLoading(false); return; }
+              setRulesLoading(true);
+              try {
+                if (selected.size > 65536) throw new Error('El archivo de reglas debe pesar menos de 64 KB.');
+                const parsed = parseDatasetRules(await selected.text());
+                if (read === rulesRead.current) { setRules(parsed); setRulesName(selected.name); }
+              } catch (error) {
+                if (read === rulesRead.current) setRulesError(error instanceof Error ? error.message : 'No se pudieron leer las reglas.');
+              } finally { if (read === rulesRead.current) setRulesLoading(false); }
+            }} />
+            {rulesError && <p role="alert">{rulesError}</p>}
+            <p role="status">{rulesLoading ? 'Leyendo reglas…' : rulesName ? `Reglas listas: ${rulesName}` : 'Sin reglas propias.'}</p>
+            <button type="button" className="btn-s btn-sm" onClick={() => {
+              rulesRead.current++; setRules(undefined); setRulesError(''); setRulesName(''); setRulesLoading(false); setError('');
+              const input = document.getElementById(rulesId) as HTMLInputElement | null;
+              if (input) input.value = '';
+            }}>Retirar reglas</button>
+          </details>
           <div className="file-drop-actions">
             <label className="btn-p btn-sm" htmlFor={inputId}>Seleccionar archivo</label>
           </div>

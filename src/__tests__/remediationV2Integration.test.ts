@@ -125,11 +125,13 @@ describe('RemediationPlanV2 — integration', () => {
 
   it('actionabilityMap altered fails', () => {
     const { diagExec, plan } = buildFixture();
+    const reviewOnlyId = Object.keys(plan.actionabilityMap).find(id => plan.actionabilityMap[id] === 'review_only');
+    expect(reviewOnlyId).toBeDefined();
     const tampered = {
       ...plan,
       actionabilityMap: {
         ...plan.actionabilityMap,
-        [Object.keys(plan.actionabilityMap)[0]]: 'auto_safe' as Actionability,
+        [reviewOnlyId!]: 'auto_safe' as Actionability,
       },
     };
     const v = validateRemediationPlanV2(tampered, diagExec);

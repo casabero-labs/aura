@@ -131,7 +131,7 @@ describe('AURA-CIERRE-DETERMINISTIC-HITL-02-R2 — Laboratory scores RAW', () =>
     const mandatoryFalse = gemma.issues.filter(
       (issue) => mandatoryIds.includes(issue.issueId) && issue.requiresHumanReview === false,
     );
-    expect(mandatoryFalse).toHaveLength(10);
+    expect(mandatoryFalse).toHaveLength(11);
   });
 
   it('extractContractEvidence reports contractCompliant: false with DIAGNOSIS_REVIEW_DOWNGRADE', () => {
@@ -233,7 +233,7 @@ describe('AURA-CIERRE-DETERMINISTIC-HITL-02-R2 — Laboratory scores RAW', () =>
     // No normalization happened — the raw values are exactly as the model
     // produced them. The effective response is NOT present.
     const issuesWithReviewFalse = gemma.issues.filter((i) => i.requiresHumanReview === false);
-    expect(issuesWithReviewFalse.length).toBe(10);
+    expect(issuesWithReviewFalse.length).toBe(11);
   });
 
   it('the Laboratory receives the RAW diagnosis, not the normalized effective one', () => {
@@ -249,7 +249,7 @@ describe('AURA-CIERRE-DETERMINISTIC-HITL-02-R2 — Laboratory scores RAW', () =>
     const rawValidation = validateDiagnosisResponseV2(gemma, envelope);
     expect(rawValidation.valid).toBe(false);
     const downgradeErrors = rawValidation.errors.filter((e) => e.code === 'DIAGNOSIS_REVIEW_DOWNGRADE');
-    // At least 10 downgrade errors — the fixture has 10 mandatory-review
+    // At least 10 downgrade errors — the fixture has 11 mandatory-review
     // IDs marked false by the model.
     expect(downgradeErrors.length).toBeGreaterThanOrEqual(10);
 
@@ -259,6 +259,6 @@ describe('AURA-CIERRE-DETERMINISTIC-HITL-02-R2 — Laboratory scores RAW', () =>
     const rawFalseCount = gemma.issues.filter(
       (i) => mandatorySet.has(i.issueId) && i.requiresHumanReview === false,
     ).length;
-    expect(rawFalseCount).toBe(10);
+    expect(rawFalseCount).toBe(11);
   });
 });

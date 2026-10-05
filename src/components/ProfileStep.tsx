@@ -23,16 +23,14 @@ const ProfileStep: React.FC<ProfileStepProps> = ({ report, auditEvidence, file, 
   const infoCount = report ? report.issues.filter(i => i.severity === IssueSeverity.INFO).length : 0;
   const totalFindings = report ? report.issues.length : 0;
 
-  // Solo mostrar los 3 hallazgos más importantes
+  // Mostrar todos los hallazgos, ordenados por gravedad.
   const topPriorities = useMemo(() => {
     if (!report) return [];
     return [...report.issues]
-      .filter(i => i.severity === IssueSeverity.CRITICAL || i.severity === IssueSeverity.WARNING)
       .sort((a, b) => {
         const w = { [IssueSeverity.CRITICAL]: 0, [IssueSeverity.WARNING]: 1, [IssueSeverity.INFO]: 2 };
-        return w[a.severity] - w[b.severity] || b.affectedPercentage - a.affectedPercentage;
-      })
-      .slice(0, 3);
+        return (w[a.severity] ?? 3) - (w[b.severity] ?? 3) || b.affectedPercentage - a.affectedPercentage;
+      });
   }, [report]);
 
   // Top columnas afectadas (por número de hallazgos, deduplicado)
@@ -169,8 +167,8 @@ const ProfileStep: React.FC<ProfileStepProps> = ({ report, auditEvidence, file, 
           {/* E. Prioridades de limpieza (top hallazgos): una tabla, no tarjetas */}
           {topPriorities.length > 0 && (
             <section className="profile-priorities" data-testid="profile-priorities">
-              <h2 className="profile-priorities-title">Prioridades principales</h2>
-              <div className="table-scroll" role="region" aria-label="Prioridades principales" tabIndex={0}>
+              <h2 className="profile-priorities-title">Todos los hallazgos</h2>
+              <div className="table-scroll" role="region" aria-label="Todos los hallazgos" tabIndex={0}>
               <table className="editorial-data-table">
                 <caption>
                   <span className="editorial-data-table-kicker">Prioridades</span>
@@ -189,8 +187,10 @@ const ProfileStep: React.FC<ProfileStepProps> = ({ report, auditEvidence, file, 
                     <tr key={issue.id}>
                       <th scope="row">{issue.ruleName}</th>
                       <td>{issue.column || 'dataset'}</td>
-                      <td>{formatAffectedShare(issue.count, report.rowCount)} afectados</td>
-                      <td>{issue.severity === IssueSeverity.CRITICAL ? 'crítico' : 'advertencia'}</td>
+                      <td>{formatAffectedShare(issue.count, report.rowCount)} afectados
+                        {issue.rowNumbers?.length ? <span> · Registros: {issue.rowNumbers.join(', ')}{issue.rowNumbers.length < issue.count ? ' (muestra)' : ''}</span> : null}
+                      </td>
+                      <td>{issue.severity === IssueSeverity.CRITICAL ? 'crítico' : issue.severity === IssueSeverity.WARNING ? 'advertencia' : 'informativo'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -268,6 +268,13 @@ const ProfileStep: React.FC<ProfileStepProps> = ({ report, auditEvidence, file, 
               <span className="technical-details-hint">IQR es el rango entre cuartiles; cardinalidad es cuántos valores distintos hay</span>
             </summary>
             <div className="technical-details-body">
+              <details>
+                <summary>Cómo se calculó la puntuación</summary>
+                <p>Parte de 100 y resta los puntos de las reglas. Es una orientación, no una medida de exactitud.</p>
+                <ul>{report.scoreBreakdown.map((deduction, index) => <li key={index}>{deduction.reason}: {deduction.points.toLocaleString('es-CO', { maximumFractionDigits: 2 })} puntos.</li>)}</ul>
+                <p>Se suman estos puntos y se restan de 100. El resultado se redondea y queda entre 0 y 100: {report.score}/100.</p>
+                {report.scoreVersion !== 'rules-v2' && <p>Este informe usa la fórmula anterior, con un ajuste por tamaño del archivo.</p>}
+              </details>
 
               <section className="profile-block" aria-labelledby="profile-characterization-title">
                 <div className="profile-block-header">
@@ -279,7 +286,7 @@ const ProfileStep: React.FC<ProfileStepProps> = ({ report, auditEvidence, file, 
                 </div>
 
                 <section className="section section-nested profile-statistics-group" id="column-profile">
-                  <ColumnStatsPanel columnStats={report.columnStats} totalRows={report.rowCount} />
+                  <ColumnStatsPanel columnStats={report.columnStats} totalRows={report.rowCount} issues={report.issues} />
                 </section>
               </section>
 

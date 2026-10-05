@@ -78,8 +78,8 @@ describe('final deterministic evidence', () => {
 
     const synthetic = byId.get('synthetic_ground_truth');
     expect(synthetic?.binaryRuleMetrics).toMatchObject({
-      evaluatedRules: 12,
-      tp: 12,
+      evaluatedRules: 13,
+      tp: 13,
       fp: 0,
       fn: 0,
       precisionKind: 'scoped_with_explicit_negatives',
@@ -101,24 +101,24 @@ describe('final deterministic evidence', () => {
       precisionKind: 'conditional_no_negative_labels',
     });
     expect(titanic?.occurrenceCounts.expectedPositiveOccurrences).toBe(927);
-    // 5 (was 7): «Cola Larga Categórica» no longer fires on Name (891/891
+    // 6: missing Embarked cells below 5% are now reported. «Cola Larga Categórica» no longer fires on Name (891/891
     // distinct = identifier/free text) and «Outliers Extremos» no longer runs
     // on Ticket (inferredType mixed: ticket codes, not a measurement).
-    expect(titanic?.additionalDetections).toHaveLength(5);
+    expect(titanic?.additionalDetections).toHaveLength(6);
 
     const phase8 = byId.get('controlled_customers_phase8');
     expect(phase8?.binaryRuleMetrics).toMatchObject({
       evaluatedRules: 29,
-      tp: 16,
+      tp: 23,
       fp: 0,
-      fn: 13,
+      fn: 6,
       precision: 1,
       precisionKind: 'conditional_no_negative_labels',
     });
-    expect(phase8?.binaryRuleMetrics.recall).toBeCloseTo(16 / 29, 12);
-    expect(phase8?.binaryRuleMetrics.f1).toBeCloseTo(32 / 45, 12);
+    expect(phase8?.binaryRuleMetrics.recall).toBeCloseTo(23 / 29, 12);
+    expect(phase8?.binaryRuleMetrics.f1).toBeCloseTo(46 / 52, 12);
     expect(phase8?.occurrenceCounts.expectedPositiveOccurrences).toBe(51);
-    // 12 (was 13): no «Cola Larga Categórica» on full_name (one value per row).
+    // Calendar and missing-cell checks are reported; ordinary name punctuation is accepted.
     expect(phase8?.additionalDetections).toHaveLength(12);
     expect(phase8?.parseWarnings.map((warning) => ({ code: warning.code, row: warning.row }))).toEqual([
       { code: 'TooManyFields', row: 12 },

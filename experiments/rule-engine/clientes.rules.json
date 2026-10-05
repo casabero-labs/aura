@@ -1,0 +1,7 @@
+{
+  "documento": { "type": "identifier", "unique": true, "required": true, "length": 10 },
+  "nombre": { "type": "string", "required": true },
+  "estado": { "allowedValues": ["activo", "inactivo", "pendiente"] },
+  "fecha_alta": { "type": "date", "dateFormat": "ISO" },
+  "monto_ultima_compra": { "type": "number", "min": 0, "integer": true }
+}

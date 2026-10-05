@@ -15,6 +15,15 @@ export const SYNTHETIC_GROUND_TRUTH: DeterministicGroundTruth = {
   matchFieldSet: ['id', 'nombre', 'edad', 'salario', 'email', 'departamento', 'fecha_ingreso', 'estado', 'ip_acceso'],
   rulesExpected: [
     {
+      ruleIdPrefix: 'integrity-duplicate-key-id',
+      ruleName: 'Identificador repetido',
+      category: IssueCategory.INTEGRITY,
+      expectedTP: 2,
+      expectedFP: 0,
+      column: 'id',
+      description: 'Los registros 1 y 5 comparten el id 1, comprobado en el CSV original.',
+    },
+    {
       ruleIdPrefix: 'integrity-dupes',
       ruleName: 'R01 — Filas Duplicadas',
       category: IssueCategory.INTEGRITY,

@@ -1,0 +1,1476 @@
+{
+  "baselineCommit": "5e951a7",
+  "checkoutCommit": "95e70fe51ef8311b8e37ea5fe69417f7d6fd414e",
+  "sourceHashes": {
+    "src/services/auditEngine.ts": "59ca27e3b69b745ec3f06dd9cb5313e7a7ef4c96e97a901f23bf7354726d6c22",
+    "src/services/ruleChecks.ts": "279c5fce623f7686965255d250677b6594710b4c4391ec838fc29425043d3245",
+    "src/services/columnProfiler.ts": "bdb4a81409fed80f94959d8d35a07e437861634aede872b0acef50a1e616869f",
+    "src/contracts/llm/columnRegistry.ts": "6590d9146422409c009a503055179ec1b1a60aee3ca0227841032acca8b0c52a"
+  },
+  "referenceDate": "2026-10-05T00:00:00.000Z",
+  "scoreIsAccuracy": false,
+  "results": [
+    {
+      "name": "clientes_sucio",
+      "before": {
+        "rows": 12,
+        "columns": 8,
+        "score": 31,
+        "critical": 2,
+        "issues": [
+          {
+            "id": "integrity-null-nombre",
+            "ruleId": "rule:null-values",
+            "column": "nombre",
+            "count": 1,
+            "severity": "warning"
+          },
+          {
+            "id": "hygiene-ghost-nombre",
+            "ruleId": "rule:trim-whitespace",
+            "column": "nombre",
+            "count": 1,
+            "severity": "info"
+          },
+          {
+            "id": "hygiene-toxic-nombre",
+            "ruleId": "rule:toxic-placeholders",
+            "column": "nombre",
+            "count": 1,
+            "severity": "warning"
+          },
+          {
+            "id": "integrity-null-documento",
+            "ruleId": "rule:null-values",
+            "column": "documento",
+            "count": 1,
+            "severity": "warning"
+          },
+          {
+            "id": "logic-email-email",
+            "ruleId": "rule:invalid-email",
+            "column": "email",
+            "count": 2,
+            "severity": "critical"
+          },
+          {
+            "id": "integrity-null-fecha_alta",
+            "ruleId": "rule:null-values",
+            "column": "fecha_alta",
+            "count": 1,
+            "severity": "warning"
+          },
+          {
+            "id": "logic-mixed-date-fecha_alta",
+            "ruleId": "rule:mixed-date-formats",
+            "column": "fecha_alta",
+            "count": 1,
+            "severity": "warning"
+          },
+          {
+            "id": "logic-neg-monto_ultima_compra",
+            "ruleId": "rule:impossible-negatives",
+            "column": "monto_ultima_compra",
+            "count": 1,
+            "severity": "critical"
+          },
+          {
+            "id": "hygiene-case-estado",
+            "ruleId": "rule:capitalization-chaos",
+            "column": "estado",
+            "count": 9,
+            "severity": "info"
+          }
+        ],
+        "documentType": "number"
+      },
+      "after": {
+        "rows": 12,
+        "columns": 8,
+        "score": 22,
+        "critical": 3,
+        "issues": [
+          {
+            "id": "integrity-null-nombre",
+            "ruleId": "rule:null-values",
+            "column": "nombre",
+            "count": 2,
+            "severity": "warning",
+            "rowNumbers": [
+              6,
+              12
+            ]
+          },
+          {
+            "id": "hygiene-ghost-nombre",
+            "ruleId": "rule:trim-whitespace",
+            "column": "nombre",
+            "count": 1,
+            "severity": "info"
+          },
+          {
+            "id": "hygiene-toxic-nombre",
+            "ruleId": "rule:toxic-placeholders",
+            "column": "nombre",
+            "count": 1,
+            "severity": "warning"
+          },
+          {
+            "id": "hygiene-case-nombre",
+            "ruleId": "rule:capitalization-chaos",
+            "column": "nombre",
+            "count": 2,
+            "severity": "info"
+          },
+          {
+            "id": "integrity-null-documento",
+            "ruleId": "rule:null-values",
+            "column": "documento",
+            "count": 1,
+            "severity": "warning",
+            "rowNumbers": [
+              4
+            ]
+          },
+          {
+            "id": "integrity-duplicate-key-documento",
+            "ruleId": "rule:duplicate-key",
+            "column": "documento",
+            "count": 6,
+            "severity": "warning",
+            "rowNumbers": [
+              1,
+              3,
+              7,
+              8,
+              10,
+              11
+            ]
+          },
+          {
+            "id": "logic-email-email",
+            "ruleId": "rule:invalid-email",
+            "column": "email",
+            "count": 2,
+            "severity": "critical"
+          },
+          {
+            "id": "hygiene-case-ciudad",
+            "ruleId": "rule:capitalization-chaos",
+            "column": "ciudad",
+            "count": 5,
+            "severity": "info"
+          },
+          {
+            "id": "integrity-null-fecha_alta",
+            "ruleId": "rule:null-values",
+            "column": "fecha_alta",
+            "count": 1,
+            "severity": "warning",
+            "rowNumbers": [
+              10
+            ]
+          },
+          {
+            "id": "logic-invalid-date-fecha_alta",
+            "ruleId": "rule:invalid-date",
+            "column": "fecha_alta",
+            "count": 1,
+            "severity": "critical",
+            "rowNumbers": [
+              6
+            ]
+          },
+          {
+            "id": "logic-mixed-date-fecha_alta",
+            "ruleId": "rule:mixed-date-formats",
+            "column": "fecha_alta",
+            "count": 1,
+            "severity": "warning"
+          },
+          {
+            "id": "logic-neg-monto_ultima_compra",
+            "ruleId": "rule:impossible-negatives",
+            "column": "monto_ultima_compra",
+            "count": 1,
+            "severity": "critical"
+          },
+          {
+            "id": "hygiene-case-estado",
+            "ruleId": "rule:capitalization-chaos",
+            "column": "estado",
+            "count": 9,
+            "severity": "info"
+          }
+        ],
+        "documentType": "string"
+      },
+      "withDeclaredRules": {
+        "rows": 12,
+        "columns": 8,
+        "score": 0,
+        "critical": 7,
+        "issues": [
+          {
+            "id": "integrity-null-nombre",
+            "ruleId": "rule:null-values",
+            "column": "nombre",
+            "count": 2,
+            "severity": "critical",
+            "rowNumbers": [
+              6,
+              12
+            ]
+          },
+          {
+            "id": "hygiene-ghost-nombre",
+            "ruleId": "rule:trim-whitespace",
+            "column": "nombre",
+            "count": 1,
+            "severity": "info"
+          },
+          {
+            "id": "hygiene-toxic-nombre",
+            "ruleId": "rule:toxic-placeholders",
+            "column": "nombre",
+            "count": 1,
+            "severity": "warning"
+          },
+          {
+            "id": "hygiene-case-nombre",
+            "ruleId": "rule:capitalization-chaos",
+            "column": "nombre",
+            "count": 2,
+            "severity": "info"
+          },
+          {
+            "id": "integrity-null-documento",
+            "ruleId": "rule:null-values",
+            "column": "documento",
+            "count": 1,
+            "severity": "critical",
+            "rowNumbers": [
+              4
+            ]
+          },
+          {
+            "id": "type-identifier-format-documento",
+            "ruleId": "rule:identifier-format",
+            "column": "documento",
+            "count": 1,
+            "severity": "warning",
+            "rowNumbers": [
+              2
+            ]
+          },
+          {
+            "id": "integrity-duplicate-key-documento",
+            "ruleId": "rule:duplicate-key",
+            "column": "documento",
+            "count": 6,
+            "severity": "critical",
+            "rowNumbers": [
+              1,
+              3,
+              7,
+              8,
+              10,
+              11
+            ]
+          },
+          {
+            "id": "logic-email-email",
+            "ruleId": "rule:invalid-email",
+            "column": "email",
+            "count": 2,
+            "severity": "critical"
+          },
+          {
+            "id": "hygiene-case-ciudad",
+            "ruleId": "rule:capitalization-chaos",
+            "column": "ciudad",
+            "count": 5,
+            "severity": "info"
+          },
+          {
+            "id": "integrity-null-fecha_alta",
+            "ruleId": "rule:null-values",
+            "column": "fecha_alta",
+            "count": 1,
+            "severity": "warning",
+            "rowNumbers": [
+              10
+            ]
+          },
+          {
+            "id": "logic-invalid-date-fecha_alta",
+            "ruleId": "rule:invalid-date",
+            "column": "fecha_alta",
+            "count": 1,
+            "severity": "critical",
+            "rowNumbers": [
+              6
+            ]
+          },
+          {
+            "id": "logic-date-format-fecha_alta",
+            "ruleId": "rule:domain-values",
+            "column": "fecha_alta",
+            "count": 1,
+            "severity": "warning",
+            "rowNumbers": [
+              4
+            ]
+          },
+          {
+            "id": "logic-mixed-date-fecha_alta",
+            "ruleId": "rule:mixed-date-formats",
+            "column": "fecha_alta",
+            "count": 1,
+            "severity": "warning"
+          },
+          {
+            "id": "logic-domain-number-monto_ultima_compra",
+            "ruleId": "rule:domain-number",
+            "column": "monto_ultima_compra",
+            "count": 2,
+            "severity": "critical",
+            "rowNumbers": [
+              5,
+              9
+            ]
+          },
+          {
+            "id": "logic-domain-values-estado",
+            "ruleId": "rule:domain-values",
+            "column": "estado",
+            "count": 2,
+            "severity": "critical",
+            "rowNumbers": [
+              4,
+              12
+            ]
+          },
+          {
+            "id": "hygiene-case-estado",
+            "ruleId": "rule:capitalization-chaos",
+            "column": "estado",
+            "count": 9,
+            "severity": "info"
+          }
+        ],
+        "documentType": "string"
+      },
+      "sourcePreserved": true
+    },
+    {
+      "name": "clientes_groundtruth",
+      "before": {
+        "rows": 7,
+        "columns": 8,
+        "score": 82,
+        "critical": 1,
+        "issues": [
+          {
+            "id": "integrity-mixed-documento",
+            "ruleId": "rule:mixed-types",
+            "column": "documento",
+            "count": 7,
+            "severity": "critical"
+          }
+        ],
+        "documentType": "mixed"
+      },
+      "after": {
+        "rows": 7,
+        "columns": 8,
+        "score": 100,
+        "critical": 0,
+        "issues": [],
+        "documentType": "string"
+      },
+      "withDeclaredRules": {
+        "rows": 7,
+        "columns": 8,
+        "score": 100,
+        "critical": 0,
+        "issues": [],
+        "documentType": "string"
+      },
+      "sourcePreserved": true
+    },
+    {
+      "name": "iris_uci",
+      "before": {
+        "rows": 150,
+        "columns": 5,
+        "score": 85,
+        "critical": 1,
+        "issues": [
+          {
+            "id": "integrity-dupes",
+            "ruleId": "rule:exact-duplicates",
+            "count": 3,
+            "severity": "critical"
+          },
+          {
+            "id": "type-corrupt-sepal_width",
+            "ruleId": "rule:corrupt-ids",
+            "column": "sepal_width",
+            "count": 28,
+            "severity": "warning"
+          },
+          {
+            "id": "logic-outlier-tukey-sepal_width",
+            "ruleId": "rule:mild-outliers",
+            "column": "sepal_width",
+            "count": 4,
+            "severity": "info"
+          },
+          {
+            "id": "type-corrupt-petal_width",
+            "ruleId": "rule:corrupt-ids",
+            "column": "petal_width",
+            "count": 13,
+            "severity": "warning"
+          }
+        ]
+      },
+      "after": {
+        "rows": 150,
+        "columns": 5,
+        "score": 96,
+        "critical": 0,
+        "issues": [
+          {
+            "id": "integrity-dupes",
+            "ruleId": "rule:exact-duplicates",
+            "count": 3,
+            "severity": "warning"
+          },
+          {
+            "id": "logic-outlier-tukey-sepal_width",
+            "ruleId": "rule:mild-outliers",
+            "column": "sepal_width",
+            "count": 4,
+            "severity": "info"
+          }
+        ]
+      },
+      "sourcePreserved": true
+    },
+    {
+      "name": "titanic",
+      "before": {
+        "rows": 891,
+        "columns": 12,
+        "score": 64,
+        "critical": 1,
+        "issues": [
+          {
+            "id": "hygiene-ghost-Name",
+            "ruleId": "rule:trim-whitespace",
+            "column": "Name",
+            "count": 2,
+            "severity": "info"
+          },
+          {
+            "id": "integrity-null-Age",
+            "ruleId": "rule:null-values",
+            "column": "Age",
+            "count": 177,
+            "severity": "warning"
+          },
+          {
+            "id": "logic-outlier-tukey-Age",
+            "ruleId": "rule:mild-outliers",
+            "column": "Age",
+            "count": 8,
+            "severity": "info"
+          },
+          {
+            "id": "logic-outlier-SibSp",
+            "ruleId": "rule:extreme-outliers",
+            "column": "SibSp",
+            "count": 12,
+            "severity": "warning"
+          },
+          {
+            "id": "logic-outlier-tukey-SibSp",
+            "ruleId": "rule:mild-outliers",
+            "column": "SibSp",
+            "count": 34,
+            "severity": "info"
+          },
+          {
+            "id": "logic-outlier-Fare",
+            "ruleId": "rule:extreme-outliers",
+            "column": "Fare",
+            "count": 53,
+            "severity": "warning"
+          },
+          {
+            "id": "logic-outlier-tukey-Fare",
+            "ruleId": "rule:mild-outliers",
+            "column": "Fare",
+            "count": 63,
+            "severity": "info"
+          },
+          {
+            "id": "integrity-null-Cabin",
+            "ruleId": "rule:null-values",
+            "column": "Cabin",
+            "count": 687,
+            "severity": "critical"
+          }
+        ]
+      },
+      "after": {
+        "rows": 891,
+        "columns": 12,
+        "score": 60,
+        "critical": 1,
+        "issues": [
+          {
+            "id": "hygiene-ghost-Name",
+            "ruleId": "rule:trim-whitespace",
+            "column": "Name",
+            "count": 2,
+            "severity": "info"
+          },
+          {
+            "id": "integrity-null-Age",
+            "ruleId": "rule:null-values",
+            "column": "Age",
+            "count": 177,
+            "severity": "warning",
+            "rowNumbers": [
+              6,
+              18,
+              20,
+              27,
+              29,
+              30,
+              32,
+              33,
+              37,
+              43,
+              46,
+              47,
+              48,
+              49,
+              56,
+              65,
+              66,
+              77,
+              78,
+              83
+            ]
+          },
+          {
+            "id": "logic-outlier-tukey-Age",
+            "ruleId": "rule:mild-outliers",
+            "column": "Age",
+            "count": 8,
+            "severity": "info"
+          },
+          {
+            "id": "logic-outlier-SibSp",
+            "ruleId": "rule:extreme-outliers",
+            "column": "SibSp",
+            "count": 12,
+            "severity": "warning"
+          },
+          {
+            "id": "logic-outlier-tukey-SibSp",
+            "ruleId": "rule:mild-outliers",
+            "column": "SibSp",
+            "count": 34,
+            "severity": "info"
+          },
+          {
+            "id": "logic-outlier-Fare",
+            "ruleId": "rule:extreme-outliers",
+            "column": "Fare",
+            "count": 53,
+            "severity": "warning"
+          },
+          {
+            "id": "logic-outlier-tukey-Fare",
+            "ruleId": "rule:mild-outliers",
+            "column": "Fare",
+            "count": 63,
+            "severity": "info"
+          },
+          {
+            "id": "integrity-null-Cabin",
+            "ruleId": "rule:null-values",
+            "column": "Cabin",
+            "count": 687,
+            "severity": "critical",
+            "rowNumbers": [
+              1,
+              3,
+              5,
+              6,
+              8,
+              9,
+              10,
+              13,
+              14,
+              15,
+              16,
+              17,
+              18,
+              19,
+              20,
+              21,
+              23,
+              25,
+              26,
+              27
+            ]
+          },
+          {
+            "id": "integrity-null-Embarked",
+            "ruleId": "rule:null-values",
+            "column": "Embarked",
+            "count": 2,
+            "severity": "warning",
+            "rowNumbers": [
+              62,
+              830
+            ]
+          }
+        ]
+      },
+      "sourcePreserved": true
+    },
+    {
+      "name": "synthetic",
+      "before": {
+        "rows": 15,
+        "columns": 9,
+        "score": 0,
+        "critical": 4,
+        "issues": [
+          {
+            "id": "integrity-dupes",
+            "ruleId": "rule:exact-duplicates",
+            "count": 1,
+            "severity": "critical"
+          },
+          {
+            "id": "integrity-null-nombre",
+            "ruleId": "rule:null-values",
+            "column": "nombre",
+            "count": 1,
+            "severity": "warning"
+          },
+          {
+            "id": "hygiene-moji-nombre",
+            "ruleId": "rule:mojibake",
+            "column": "nombre",
+            "count": 1,
+            "severity": "warning"
+          },
+          {
+            "id": "integrity-null-edad",
+            "ruleId": "rule:null-values",
+            "column": "edad",
+            "count": 1,
+            "severity": "warning"
+          },
+          {
+            "id": "hygiene-toxic-edad",
+            "ruleId": "rule:toxic-placeholders",
+            "column": "edad",
+            "count": 1,
+            "severity": "warning"
+          },
+          {
+            "id": "logic-outlier-edad",
+            "ruleId": "rule:extreme-outliers",
+            "column": "edad",
+            "count": 1,
+            "severity": "warning"
+          },
+          {
+            "id": "logic-neg-salario",
+            "ruleId": "rule:impossible-negatives",
+            "column": "salario",
+            "count": 1,
+            "severity": "critical"
+          },
+          {
+            "id": "logic-outlier-salario",
+            "ruleId": "rule:extreme-outliers",
+            "column": "salario",
+            "count": 2,
+            "severity": "warning"
+          },
+          {
+            "id": "integrity-null-email",
+            "ruleId": "rule:null-values",
+            "column": "email",
+            "count": 1,
+            "severity": "warning"
+          },
+          {
+            "id": "hygiene-toxic-email",
+            "ruleId": "rule:toxic-placeholders",
+            "column": "email",
+            "count": 1,
+            "severity": "warning"
+          },
+          {
+            "id": "logic-email-email",
+            "ruleId": "rule:invalid-email",
+            "column": "email",
+            "count": 1,
+            "severity": "critical"
+          },
+          {
+            "id": "logic-mixed-date-fecha_ingreso",
+            "ruleId": "rule:mixed-date-formats",
+            "column": "fecha_ingreso",
+            "count": 1,
+            "severity": "warning"
+          },
+          {
+            "id": "integrity-null-estado",
+            "ruleId": "rule:null-values",
+            "column": "estado",
+            "count": 1,
+            "severity": "warning"
+          },
+          {
+            "id": "hygiene-toxic-estado",
+            "ruleId": "rule:toxic-placeholders",
+            "column": "estado",
+            "count": 1,
+            "severity": "warning"
+          },
+          {
+            "id": "sec-pii-ip_acceso",
+            "ruleId": "rule:pii-detected",
+            "column": "ip_acceso",
+            "count": 15,
+            "severity": "critical"
+          }
+        ]
+      },
+      "after": {
+        "rows": 15,
+        "columns": 9,
+        "score": 0,
+        "critical": 3,
+        "issues": [
+          {
+            "id": "integrity-dupes",
+            "ruleId": "rule:exact-duplicates",
+            "count": 1,
+            "severity": "warning"
+          },
+          {
+            "id": "integrity-duplicate-key-id",
+            "ruleId": "rule:duplicate-key",
+            "column": "id",
+            "count": 2,
+            "severity": "warning",
+            "rowNumbers": [
+              1,
+              5
+            ]
+          },
+          {
+            "id": "integrity-null-nombre",
+            "ruleId": "rule:null-values",
+            "column": "nombre",
+            "count": 1,
+            "severity": "warning",
+            "rowNumbers": [
+              7
+            ]
+          },
+          {
+            "id": "hygiene-moji-nombre",
+            "ruleId": "rule:mojibake",
+            "column": "nombre",
+            "count": 1,
+            "severity": "warning"
+          },
+          {
+            "id": "integrity-null-edad",
+            "ruleId": "rule:null-values",
+            "column": "edad",
+            "count": 1,
+            "severity": "warning",
+            "rowNumbers": [
+              11
+            ]
+          },
+          {
+            "id": "hygiene-toxic-edad",
+            "ruleId": "rule:toxic-placeholders",
+            "column": "edad",
+            "count": 1,
+            "severity": "warning"
+          },
+          {
+            "id": "logic-outlier-edad",
+            "ruleId": "rule:extreme-outliers",
+            "column": "edad",
+            "count": 1,
+            "severity": "warning"
+          },
+          {
+            "id": "logic-neg-salario",
+            "ruleId": "rule:impossible-negatives",
+            "column": "salario",
+            "count": 1,
+            "severity": "critical"
+          },
+          {
+            "id": "logic-outlier-salario",
+            "ruleId": "rule:extreme-outliers",
+            "column": "salario",
+            "count": 2,
+            "severity": "warning"
+          },
+          {
+            "id": "integrity-null-email",
+            "ruleId": "rule:null-values",
+            "column": "email",
+            "count": 1,
+            "severity": "warning",
+            "rowNumbers": [
+              12
+            ]
+          },
+          {
+            "id": "hygiene-toxic-email",
+            "ruleId": "rule:toxic-placeholders",
+            "column": "email",
+            "count": 1,
+            "severity": "warning"
+          },
+          {
+            "id": "logic-email-email",
+            "ruleId": "rule:invalid-email",
+            "column": "email",
+            "count": 1,
+            "severity": "critical"
+          },
+          {
+            "id": "logic-mixed-date-fecha_ingreso",
+            "ruleId": "rule:mixed-date-formats",
+            "column": "fecha_ingreso",
+            "count": 1,
+            "severity": "warning"
+          },
+          {
+            "id": "integrity-null-estado",
+            "ruleId": "rule:null-values",
+            "column": "estado",
+            "count": 1,
+            "severity": "warning",
+            "rowNumbers": [
+              13
+            ]
+          },
+          {
+            "id": "hygiene-toxic-estado",
+            "ruleId": "rule:toxic-placeholders",
+            "column": "estado",
+            "count": 1,
+            "severity": "warning"
+          },
+          {
+            "id": "sec-pii-ip_acceso",
+            "ruleId": "rule:pii-detected",
+            "column": "ip_acceso",
+            "count": 15,
+            "severity": "critical"
+          }
+        ]
+      },
+      "sourcePreserved": true
+    },
+    {
+      "name": "phase8",
+      "before": {
+        "rows": 50,
+        "columns": 15,
+        "score": 0,
+        "critical": 6,
+        "issues": [
+          {
+            "id": "integrity-null-full_name",
+            "ruleId": "rule:null-values",
+            "column": "full_name",
+            "count": 3,
+            "severity": "warning"
+          },
+          {
+            "id": "hygiene-ghost-full_name",
+            "ruleId": "rule:trim-whitespace",
+            "column": "full_name",
+            "count": 2,
+            "severity": "info"
+          },
+          {
+            "id": "hygiene-toxic-full_name",
+            "ruleId": "rule:toxic-placeholders",
+            "column": "full_name",
+            "count": 1,
+            "severity": "warning"
+          },
+          {
+            "id": "hygiene-space-full_name",
+            "ruleId": "rule:double-spaces",
+            "column": "full_name",
+            "count": 2,
+            "severity": "info"
+          },
+          {
+            "id": "hygiene-symbol-full_name",
+            "ruleId": "rule:suspicious-symbols",
+            "column": "full_name",
+            "count": 1,
+            "severity": "warning"
+          },
+          {
+            "id": "integrity-null-email",
+            "ruleId": "rule:null-values",
+            "column": "email",
+            "count": 4,
+            "severity": "warning"
+          },
+          {
+            "id": "hygiene-toxic-email",
+            "ruleId": "rule:toxic-placeholders",
+            "column": "email",
+            "count": 2,
+            "severity": "warning"
+          },
+          {
+            "id": "logic-email-email",
+            "ruleId": "rule:invalid-email",
+            "column": "email",
+            "count": 5,
+            "severity": "critical"
+          },
+          {
+            "id": "integrity-null-phone",
+            "ruleId": "rule:null-values",
+            "column": "phone",
+            "count": 3,
+            "severity": "warning"
+          },
+          {
+            "id": "hygiene-ghost-phone",
+            "ruleId": "rule:trim-whitespace",
+            "column": "phone",
+            "count": 1,
+            "severity": "info"
+          },
+          {
+            "id": "hygiene-toxic-phone",
+            "ruleId": "rule:toxic-placeholders",
+            "column": "phone",
+            "count": 1,
+            "severity": "warning"
+          },
+          {
+            "id": "hygiene-space-phone",
+            "ruleId": "rule:double-spaces",
+            "column": "phone",
+            "count": 1,
+            "severity": "info"
+          },
+          {
+            "id": "integrity-null-city",
+            "ruleId": "rule:null-values",
+            "column": "city",
+            "count": 5,
+            "severity": "warning"
+          },
+          {
+            "id": "hygiene-ghost-city",
+            "ruleId": "rule:trim-whitespace",
+            "column": "city",
+            "count": 2,
+            "severity": "info"
+          },
+          {
+            "id": "hygiene-case-city",
+            "ruleId": "rule:capitalization-chaos",
+            "column": "city",
+            "count": 3,
+            "severity": "info"
+          },
+          {
+            "id": "semantic-long-tail-city",
+            "ruleId": "rule:long-tail-categorical",
+            "column": "city",
+            "count": 30,
+            "severity": "info"
+          },
+          {
+            "id": "hygiene-space-city",
+            "ruleId": "rule:double-spaces",
+            "column": "city",
+            "count": 2,
+            "severity": "info"
+          },
+          {
+            "id": "integrity-null-country",
+            "ruleId": "rule:null-values",
+            "column": "country",
+            "count": 3,
+            "severity": "warning"
+          },
+          {
+            "id": "integrity-null-plan_type",
+            "ruleId": "rule:null-values",
+            "column": "plan_type",
+            "count": 3,
+            "severity": "warning"
+          },
+          {
+            "id": "hygiene-case-plan_type",
+            "ruleId": "rule:capitalization-chaos",
+            "column": "plan_type",
+            "count": 40,
+            "severity": "info"
+          },
+          {
+            "id": "logic-neg-credits_used",
+            "ruleId": "rule:impossible-negatives",
+            "column": "credits_used",
+            "count": 1,
+            "severity": "critical"
+          },
+          {
+            "id": "logic-outlier-credits_used",
+            "ruleId": "rule:extreme-outliers",
+            "column": "credits_used",
+            "count": 4,
+            "severity": "warning"
+          },
+          {
+            "id": "logic-outlier-total_credits",
+            "ruleId": "rule:extreme-outliers",
+            "column": "total_credits",
+            "count": 4,
+            "severity": "warning"
+          },
+          {
+            "id": "logic-outlier-tukey-total_credits",
+            "ruleId": "rule:mild-outliers",
+            "column": "total_credits",
+            "count": 1,
+            "severity": "info"
+          },
+          {
+            "id": "integrity-null-company",
+            "ruleId": "rule:null-values",
+            "column": "company",
+            "count": 22,
+            "severity": "critical"
+          },
+          {
+            "id": "integrity-mixed-company",
+            "ruleId": "rule:mixed-types",
+            "column": "company",
+            "count": 50,
+            "severity": "critical"
+          },
+          {
+            "id": "integrity-null-tax_id",
+            "ruleId": "rule:null-values",
+            "column": "tax_id",
+            "count": 16,
+            "severity": "critical"
+          },
+          {
+            "id": "integrity-null-notes",
+            "ruleId": "rule:null-values",
+            "column": "notes",
+            "count": 18,
+            "severity": "critical"
+          }
+        ]
+      },
+      "after": {
+        "rows": 50,
+        "columns": 15,
+        "score": 0,
+        "critical": 7,
+        "issues": [
+          {
+            "id": "integrity-null-full_name",
+            "ruleId": "rule:null-values",
+            "column": "full_name",
+            "count": 3,
+            "severity": "warning",
+            "rowNumbers": [
+              3,
+              7,
+              48
+            ]
+          },
+          {
+            "id": "hygiene-ghost-full_name",
+            "ruleId": "rule:trim-whitespace",
+            "column": "full_name",
+            "count": 2,
+            "severity": "info"
+          },
+          {
+            "id": "hygiene-toxic-full_name",
+            "ruleId": "rule:toxic-placeholders",
+            "column": "full_name",
+            "count": 1,
+            "severity": "warning"
+          },
+          {
+            "id": "hygiene-space-full_name",
+            "ruleId": "rule:double-spaces",
+            "column": "full_name",
+            "count": 2,
+            "severity": "info"
+          },
+          {
+            "id": "integrity-null-email",
+            "ruleId": "rule:null-values",
+            "column": "email",
+            "count": 4,
+            "severity": "warning",
+            "rowNumbers": [
+              6,
+              7,
+              27,
+              48
+            ]
+          },
+          {
+            "id": "hygiene-toxic-email",
+            "ruleId": "rule:toxic-placeholders",
+            "column": "email",
+            "count": 2,
+            "severity": "warning"
+          },
+          {
+            "id": "logic-email-email",
+            "ruleId": "rule:invalid-email",
+            "column": "email",
+            "count": 3,
+            "severity": "critical"
+          },
+          {
+            "id": "integrity-null-phone",
+            "ruleId": "rule:null-values",
+            "column": "phone",
+            "count": 3,
+            "severity": "warning",
+            "rowNumbers": [
+              7,
+              35,
+              46
+            ]
+          },
+          {
+            "id": "hygiene-ghost-phone",
+            "ruleId": "rule:trim-whitespace",
+            "column": "phone",
+            "count": 1,
+            "severity": "info"
+          },
+          {
+            "id": "hygiene-toxic-phone",
+            "ruleId": "rule:toxic-placeholders",
+            "column": "phone",
+            "count": 1,
+            "severity": "warning"
+          },
+          {
+            "id": "hygiene-space-phone",
+            "ruleId": "rule:double-spaces",
+            "column": "phone",
+            "count": 1,
+            "severity": "info"
+          },
+          {
+            "id": "logic-phone-phone",
+            "ruleId": "rule:variable-phone-length",
+            "column": "phone",
+            "count": 3,
+            "severity": "warning"
+          },
+          {
+            "id": "integrity-null-birth_date",
+            "ruleId": "rule:null-values",
+            "column": "birth_date",
+            "count": 1,
+            "severity": "warning",
+            "rowNumbers": [
+              8
+            ]
+          },
+          {
+            "id": "logic-invalid-date-birth_date",
+            "ruleId": "rule:invalid-date",
+            "column": "birth_date",
+            "count": 3,
+            "severity": "critical",
+            "rowNumbers": [
+              7,
+              41,
+              42
+            ]
+          },
+          {
+            "id": "logic-freshness-birth_date",
+            "ruleId": "rule:future-dates",
+            "column": "birth_date",
+            "count": 1,
+            "severity": "warning"
+          },
+          {
+            "id": "integrity-null-registration_date",
+            "ruleId": "rule:null-values",
+            "column": "registration_date",
+            "count": 1,
+            "severity": "warning",
+            "rowNumbers": [
+              7
+            ]
+          },
+          {
+            "id": "integrity-null-city",
+            "ruleId": "rule:null-values",
+            "column": "city",
+            "count": 7,
+            "severity": "warning",
+            "rowNumbers": [
+              7,
+              13,
+              19,
+              20,
+              36,
+              38,
+              48
+            ]
+          },
+          {
+            "id": "hygiene-ghost-city",
+            "ruleId": "rule:trim-whitespace",
+            "column": "city",
+            "count": 2,
+            "severity": "info"
+          },
+          {
+            "id": "hygiene-toxic-city",
+            "ruleId": "rule:toxic-placeholders",
+            "column": "city",
+            "count": 2,
+            "severity": "warning"
+          },
+          {
+            "id": "hygiene-case-city",
+            "ruleId": "rule:capitalization-chaos",
+            "column": "city",
+            "count": 3,
+            "severity": "info"
+          },
+          {
+            "id": "semantic-long-tail-city",
+            "ruleId": "rule:long-tail-categorical",
+            "column": "city",
+            "count": 29,
+            "severity": "info"
+          },
+          {
+            "id": "hygiene-space-city",
+            "ruleId": "rule:double-spaces",
+            "column": "city",
+            "count": 2,
+            "severity": "info"
+          },
+          {
+            "id": "integrity-null-country",
+            "ruleId": "rule:null-values",
+            "column": "country",
+            "count": 3,
+            "severity": "warning",
+            "rowNumbers": [
+              13,
+              19,
+              32
+            ]
+          },
+          {
+            "id": "integrity-null-plan_type",
+            "ruleId": "rule:null-values",
+            "column": "plan_type",
+            "count": 3,
+            "severity": "warning",
+            "rowNumbers": [
+              13,
+              19,
+              36
+            ]
+          },
+          {
+            "id": "hygiene-case-plan_type",
+            "ruleId": "rule:capitalization-chaos",
+            "column": "plan_type",
+            "count": 40,
+            "severity": "info"
+          },
+          {
+            "id": "logic-neg-credits_used",
+            "ruleId": "rule:impossible-negatives",
+            "column": "credits_used",
+            "count": 1,
+            "severity": "critical"
+          },
+          {
+            "id": "logic-outlier-credits_used",
+            "ruleId": "rule:extreme-outliers",
+            "column": "credits_used",
+            "count": 4,
+            "severity": "warning"
+          },
+          {
+            "id": "integrity-null-total_credits",
+            "ruleId": "rule:null-values",
+            "column": "total_credits",
+            "count": 2,
+            "severity": "warning",
+            "rowNumbers": [
+              14,
+              32
+            ]
+          },
+          {
+            "id": "logic-outlier-total_credits",
+            "ruleId": "rule:extreme-outliers",
+            "column": "total_credits",
+            "count": 4,
+            "severity": "warning"
+          },
+          {
+            "id": "logic-outlier-tukey-total_credits",
+            "ruleId": "rule:mild-outliers",
+            "column": "total_credits",
+            "count": 1,
+            "severity": "info"
+          },
+          {
+            "id": "integrity-null-company",
+            "ruleId": "rule:null-values",
+            "column": "company",
+            "count": 22,
+            "severity": "critical",
+            "rowNumbers": [
+              2,
+              7,
+              8,
+              11,
+              15,
+              17,
+              20,
+              22,
+              24,
+              26,
+              29,
+              31,
+              32,
+              34,
+              36,
+              42,
+              43,
+              45,
+              46,
+              47
+            ]
+          },
+          {
+            "id": "integrity-mixed-company",
+            "ruleId": "rule:mixed-types",
+            "column": "company",
+            "count": 50,
+            "severity": "critical"
+          },
+          {
+            "id": "integrity-null-tax_id",
+            "ruleId": "rule:null-values",
+            "column": "tax_id",
+            "count": 16,
+            "severity": "critical",
+            "rowNumbers": [
+              4,
+              11,
+              13,
+              17,
+              19,
+              22,
+              24,
+              26,
+              31,
+              33,
+              36,
+              39,
+              42,
+              43,
+              46,
+              48
+            ]
+          },
+          {
+            "id": "integrity-null-status",
+            "ruleId": "rule:null-values",
+            "column": "status",
+            "count": 2,
+            "severity": "warning",
+            "rowNumbers": [
+              13,
+              19
+            ]
+          },
+          {
+            "id": "integrity-null-notes",
+            "ruleId": "rule:null-values",
+            "column": "notes",
+            "count": 18,
+            "severity": "critical",
+            "rowNumbers": [
+              1,
+              2,
+              9,
+              10,
+              12,
+              15,
+              22,
+              25,
+              26,
+              28,
+              29,
+              30,
+              31,
+              33,
+              37,
+              40,
+              49,
+              50
+            ]
+          }
+        ]
+      },
+      "sourcePreserved": true
+    }
+  ]
+}

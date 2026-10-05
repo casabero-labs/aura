@@ -10,6 +10,7 @@ import ScriptGenerationStep from './ScriptGenerationStep';
 import ScriptGenerationStepV2 from './ScriptGenerationStepV2';
 import { OptionalRemediationNotice, RemediationBranchActions, RemediationBranchHeader } from './remediation';
 import { runAudit } from '../services/auditEngine';
+import type { DatasetRules } from '../services/ruleChecks';
 import { parseCsv } from '../services/csvService';
 import { buildAuditEvidence, buildIngestionEvidence, computeBytesSha256, computeFileSha256, createTraceRecorder, fingerprintDataset } from '../services/executionEvidence';
 import { matchGroundTruth, buildDeterministicValidationReport } from '../services/deterministicValidation';
@@ -612,6 +613,8 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
         correctedCsv: correctedBuf,
         evidenceEnvelopeRef,
         delimiter: csvDelimiter,
+        columns: report?.auditRules,
+        referenceDate: report?.auditReferenceDate,
       });
       setVerifiedEvidence(evidence);
       setReauditState('completed');
@@ -626,7 +629,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
     }
   };
 
-  const processFile = async (uploadedFile: File) => {
+  const processFile = async (uploadedFile: File, columns?: DatasetRules) => {
     setFile(uploadedFile);
     setIsProcessing(true);
     setReport(null); setRawData([]); setCsvFields([]); setCsvDelimiter(',');
@@ -663,7 +666,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
       setProcessProgressStep('Ejecutando auditoría determinista');
 
       const auditStart = performance.now();
-      const auditResult = runAudit(data, meta.fields, meta.delimiter);
+      const auditResult = runAudit(data, meta.fields, meta.delimiter, { columns });
       const auditDurationMs = Math.round(performance.now() - auditStart);
       trace.mark('audit.run.end', { durationMs: auditDurationMs, score: auditResult.score, issues: auditResult.issues.length, duplicateRows: auditResult.duplicateRows });
 

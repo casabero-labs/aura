@@ -234,11 +234,10 @@ describe('Phase 10 L18 — LLM Contract Baseline', () => {
     expect(diagnosisResponse.diagnosisBlocks).toHaveLength(envelope.issues.length);
   });
 
-  it('14. diagnosis forces human_review when column is ambiguous', () => {
-    // Name column is ambiguous per columnRegistry.ts → forces all Name issues to review
+  it('14. ordinary Name column does not force human review for authorized whitespace trimming', () => {
     const nameIssue = diagnosisResponse.issues.find(i => i.issueId === 'hygiene-ghost-Name');
     expect(nameIssue).toBeDefined();
-    expect(nameIssue!.requiresHumanReview).toBe(true);
+    expect(nameIssue!.requiresHumanReview).toBe(false);
   });
 
   // ── Remediation plan: final contract output ──
@@ -250,11 +249,10 @@ describe('Phase 10 L18 — LLM Contract Baseline', () => {
     expect(plan.diagnosisRef).toMatch(/^diag:/);
   });
 
-  it('16. plan actionability: trim_whitespace is review_only (column ambiguous)', () => {
-    // Even though envelope says auto_safe, column ambiguity forces review_only
+  it('16. plan permits the authorized whitespace trim on Name', () => {
     const action = plan.plan.find(a => a.actionType === 'trim_whitespace');
     expect(action).toBeDefined();
-    expect(action!.actionability).toBe('review_only');
+    expect(action!.actionability).toBe('auto_safe');
   });
 
   it('17. plan excludes not_actionable issues', () => {
@@ -326,8 +324,7 @@ describe('Phase 10 L18 — LLM Contract Baseline', () => {
     expect(baseline.changedProductionContract).toBe(false);
     expect(baseline.limits.length).toBeGreaterThanOrEqual(4);
 
-    // Currently: column ambiguity → all actions reviewed, none automatic
-    expect(observedAuto).toHaveLength(0);
+    expect(observedAuto).toEqual(['trim_whitespace']);
     expect(observedReview.length).toBeGreaterThanOrEqual(3);
 
     // Write baseline JSON

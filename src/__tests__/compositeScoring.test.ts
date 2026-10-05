@@ -49,7 +49,7 @@ describe('auditEngine — scoring compuesto (Pendiente #3)', () => {
     expect(result.score).toBeLessThanOrEqual(90);
   });
 
-  it('Score-4 (snapshot): ruleId/automaticAuthorization wiring does not change Titanic score', () => {
+  it('Score-4: deductions follow actual finding severities and retain authorization metadata', () => {
     const csv = fs.readFileSync(
       path.resolve(__dirname, '../experiments/datasets/titanic.csv'),
       'utf-8'
@@ -83,7 +83,8 @@ describe('auditEngine — scoring compuesto (Pendiente #3)', () => {
       expect(typeof d.ruleId).toBe('string');
       expect(d.ruleId.length).toBeGreaterThan(0);
       expect(d.points).toBeGreaterThan(0);
-      expect(d.severity).toBe('warning');
+      const matchingIssues = result.issues.filter(issue => issue.ruleId === d.ruleId && (!issue.column || d.reason.includes(`[${issue.column}]`)));
+      expect(matchingIssues.some(issue => issue.severity === d.severity)).toBe(true);
       expect(d.weight).toBeGreaterThan(0);
     }
 

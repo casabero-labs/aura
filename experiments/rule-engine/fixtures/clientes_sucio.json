@@ -1,0 +1,122 @@
+[
+  {
+    "id": "1",
+    "nombre": "Ana Ruiz",
+    "documento": "1234567890",
+    "email": "ana.ruiz@mail.com",
+    "ciudad": "Monteria",
+    "fecha_alta": "2024-01-15",
+    "monto_ultima_compra": "150000",
+    "estado": "activo"
+  },
+  {
+    "id": "2",
+    "nombre": "Luis Gomez",
+    "documento": "987654321",
+    "email": "luis.gomez@mail.com",
+    "ciudad": "Sincelejo",
+    "fecha_alta": "2023-11-02",
+    "monto_ultima_compra": "0",
+    "estado": "activo"
+  },
+  {
+    "id": "3",
+    "nombre": "Ana Ruiz",
+    "documento": "1234567890",
+    "email": "ana.ruiz@mail.com",
+    "ciudad": "Montería",
+    "fecha_alta": "2024-01-15",
+    "monto_ultima_compra": "150000",
+    "estado": "activo"
+  },
+  {
+    "id": "4",
+    "nombre": "Marta P.",
+    "documento": "",
+    "email": "marta.p@",
+    "ciudad": "Cienaga de Oro",
+    "fecha_alta": "15/03/2024",
+    "monto_ultima_compra": "45000",
+    "estado": "actvo"
+  },
+  {
+    "id": "5",
+    "nombre": "Pedro Nieto",
+    "documento": "1122334455",
+    "email": "pedro.nieto@mail.com",
+    "ciudad": "Monteria",
+    "fecha_alta": "2022-07-30",
+    "monto_ultima_compra": "-12000",
+    "estado": "inactivo"
+  },
+  {
+    "id": "6",
+    "nombre": " ",
+    "documento": "4455667788",
+    "email": "carlos@mail.com",
+    "ciudad": "Cartagena",
+    "fecha_alta": "2024-13-01",
+    "monto_ultima_compra": "80000",
+    "estado": "activo"
+  },
+  {
+    "id": "7",
+    "nombre": "Sofia Lara",
+    "documento": "5566778899",
+    "email": "sofia.lara@mail.com",
+    "ciudad": "MONTERIA",
+    "fecha_alta": "2021-05-18",
+    "monto_ultima_compra": "220000",
+    "estado": "activo"
+  },
+  {
+    "id": "8",
+    "nombre": "Sofía Lara",
+    "documento": "5566778899",
+    "email": "sofia.lara@mail.com",
+    "ciudad": "Montería",
+    "fecha_alta": "2021-05-18",
+    "monto_ultima_compra": "220000",
+    "estado": "activo"
+  },
+  {
+    "id": "9",
+    "nombre": "Jorge Diaz",
+    "documento": "0011223344",
+    "email": "jorge.diaz@mail.com",
+    "ciudad": "Cerete",
+    "fecha_alta": "2020-09-09",
+    "monto_ultima_compra": "17500.5",
+    "estado": "pendiente"
+  },
+  {
+    "id": "10",
+    "nombre": "Elena Vivas",
+    "documento": "7788990011",
+    "email": "elena.vivas@mail.com",
+    "ciudad": "Lorica",
+    "fecha_alta": "",
+    "monto_ultima_compra": "96000",
+    "estado": "activo"
+  },
+  {
+    "id": "11",
+    "nombre": "Elena Vivas",
+    "documento": "7788990011",
+    "email": "elena.vivas@mail.com",
+    "ciudad": "Lorica",
+    "fecha_alta": "2019-12-01",
+    "monto_ultima_compra": "96000",
+    "estado": "activo"
+  },
+  {
+    "id": "12",
+    "nombre": "null",
+    "documento": "3344556677",
+    "email": "no-es-email",
+    "ciudad": "Sahagun",
+    "fecha_alta": "2024-06-06",
+    "monto_ultima_compra": "30000",
+    "estado": "ACTIVO"
+  }
+]

@@ -1,8 +1,8 @@
 # Evidencia determinista final de AURA
 
 - Evidencia: `aura.final-deterministic-evidence.v1`
-- Generada: 2026-10-05T00:00:00.000Z
-- Commit del motor: `5e951a7+rules-working-tree`
+- Generada: 2026-10-05T11:36:33.540Z
+- Commit del motor: `e3cbf16f08b457434ef668532cde06406bf538c8`
 - Sustituye: `experiments/results/deterministic_validation.json`
 - Unidad primaria: activación binaria de regla
 - Detecciones no anotadas: reportadas aparte, sin puntuación
@@ -11,9 +11,9 @@
 
 | Dataset | Filas | Score AURA | Reglas | TP | FP | FN | Precisión | Recall | F1 | Adicionales no puntuadas |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| synthetic_ground_truth | 15 | 0 | 13 | 13 | 0 | 0 | 100.00% | 100.00% | 100.00% | 0 |
-| titanic | 891 | 60 | 3 | 3 | 0 | 0 | 100.00% | 100.00% | 100.00% | 6 |
-| controlled_customers_phase8 | 50 | 0 | 29 | 23 | 0 | 6 | 100.00% | 79.31% | 88.46% | 12 |
+| synthetic_ground_truth | 15 | 0 | 12 | 12 | 0 | 0 | 100.00% | 100.00% | 100.00% | 0 |
+| titanic | 891 | 64 | 3 | 3 | 0 | 0 | 100.00% | 100.00% | 100.00% | 5 |
+| controlled_customers_phase8 | 50 | 0 | 29 | 16 | 0 | 13 | 100.00% | 55.17% | 71.11% | 12 |
 
 > Precisión `conditional_no_negative_labels` significa que no existen etiquetas negativas exhaustivas; no debe presentarse como precisión global del motor.
 
@@ -21,18 +21,18 @@
 
 ```bash
 cd /Users/casabero/Documents/GitHub/aura/src
-AURA_EVIDENCE_COMMIT=5e951a7+rules-working-tree AURA_EVIDENCE_GENERATED_AT=2026-10-05T00:00:00.000Z npm run evidence:deterministic
+AURA_EVIDENCE_COMMIT=e3cbf16f08b457434ef668532cde06406bf538c8 AURA_EVIDENCE_GENERATED_AT=2026-10-05T11:36:33.540Z npm run evidence:deterministic
 ```
 
 ## synthetic_ground_truth
 
 - Archivo: `experiments/datasets/synthetic_ground_truth.csv`
 - SHA-256: `4e7d358f2141c6463146417a66f1c2312c7c3cdf6a39005780c92b061ff7ac49`
-- Alcance del ground truth: 14 reglas declaradas, incluida 1 negativa; la clave repetida se añadió tras comprobar los registros 1 y 5
+- Alcance del ground truth: 13 reglas predeclaradas, incluida 1 regla negativa conocida
 - Interpretación de precisión: `scoped_with_explicit_negatives`
 - Advertencias de parseo CSV: 0
-- Ocurrencias positivas esperadas: 32
-- Ocurrencias detectadas sobre claves esperadas: 32
+- Ocurrencias positivas esperadas: 30
+- Ocurrencias detectadas sobre claves esperadas: 30
 - Ocurrencias de FP conocidos: 0
 - Reglas omitidas: ninguna
 
@@ -65,9 +65,9 @@ Limitaciones:
 - Interpretación de precisión: `conditional_no_negative_labels`
 - Advertencias de parseo CSV: 3
 - Ocurrencias positivas esperadas: 51
-- Ocurrencias detectadas sobre claves esperadas: 92
+- Ocurrencias detectadas sobre claves esperadas: 77
 - Ocurrencias de FP conocidos: 0
-- Reglas omitidas: `rule:cross-constraint|credits_used,total_credits|dataset`, `rule:domain-allowed|country|column`, `rule:domain-allowed|plan_type|column`, `rule:unique-id|customer_id|column`, `rule:future-dates|registration_date|column`, `rule:invalid-format|birth_date|column`
+- Reglas omitidas: `rule:cross-constraint|credits_used,total_credits|dataset`, `rule:domain-allowed|country|column`, `rule:domain-allowed|plan_type|column`, `rule:unique-id|customer_id|column`, `rule:future-dates|birth_date|column`, `rule:future-dates|registration_date|column`, `rule:invalid-date|birth_date|column`, `rule:invalid-format|birth_date|column`, `rule:null-values|birth_date|column`, `rule:null-values|registration_date|column`, `rule:null-values|total_credits|column`, `rule:toxic-placeholders|city|column`, `rule:variable-phone-length|phone|column`
 
 Limitaciones:
 

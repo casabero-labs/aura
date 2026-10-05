@@ -68,7 +68,7 @@ function validResponseForEnvelope() {
         evidenceRefs: issue1.evidenceRefs,
         hypothesis: 'Whitespace in Name',
         confidence: 0.9,
-        requiresHumanReview: true, // Name column is ambiguous → must be true
+        requiresHumanReview: true, // Explicit model request for human review
         limits: [],
       },
       {
@@ -246,14 +246,14 @@ describe('HITL — ambiguous column forces review before auto_safe check', () =>
   afterEach(() => { vi.mocked(isContractsV2Enabled).mockReset(); });
 
   it('rejects requiresHumanReview=false for ambiguous column even with auto_safe authorized=true — raw still fails but pipeline normalizes', async () => {
-    // 'name' matches AMBIGUOUS_PATTERNS regex (case-insensitive)
+    // A visually confusing name still requires review
     const ambiguousReport: AuditReportInput = {
       score: 80, rowCount: 50, colCount: 2, duplicateRows: 0, delimiterDetected: ',',
       issues: [
-        { id: 'col-ambiguous', column: 'name', category: 'Columna Ambigua', ruleName: 'Ambiguous Column', description: 'ambiguous', severity: 'warning', count: 1, affectedPercentage: 100, sampleValues: ['x'], ruleId: 'rule:ambiguous-column', automaticAuthorization: { actionType: 'review_column', authorized: true, conditionsMet: [], reason: 'Ambiguous name' } },
+        { id: 'col-ambiguous', column: 'l1l1', category: 'Columna Ambigua', ruleName: 'Ambiguous Column', description: 'ambiguous', severity: 'warning', count: 1, affectedPercentage: 100, sampleValues: ['x'], ruleId: 'rule:ambiguous-column', automaticAuthorization: { actionType: 'review_column', authorized: true, conditionsMet: [], reason: 'Ambiguous name' } },
       ],
-      columnStats: { name: { inferredType: 'string', semanticType: 'unknown', distinctCount: 1, nullCount: 0, nullPercentage: 0, topValues: [], stats: {} } },
-      datasetProfile: { columns: [{ name: 'name' }] },
+      columnStats: { l1l1: { inferredType: 'string', semanticType: 'unknown', distinctCount: 1, nullCount: 0, nullPercentage: 0, topValues: [], stats: {} } },
+      datasetProfile: { columns: [{ name: 'l1l1' }] },
     };
     const ambEnvelope = _buildEvidenceEnvelopeV2(ambiguousReport, opts());
     const ambIssue = ambEnvelope.issues[0];

@@ -20,8 +20,9 @@ const PYTHON_RESERVED = new Set([
 ]);
 
 const AMBIGUOUS_PATTERNS = [
+  // Ordinary labels such as Name, id and value are resolved through the registry.
+  // Only unreadable or visually confusing labels force review by name alone.
   /^[il1|]{2,}$/i, /^[0oO]{2,}$/, /^\s*$/, /^\W+$/,
-  /^(column|col|field|attr|var|val|key|id|name|value|data|row|item|entry)_?\d*$/i,
 ];
 
 function makeColumnId(name: string, position: number, duplicateOrdinal: number): string {

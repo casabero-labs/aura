@@ -444,11 +444,11 @@ describe('Partition: HITL rules and intersections', () => {
 
 describe('Columns: registry matching', () => {
   it('rejects ambiguous column in accepted', () => {
-    const columns = buildColumnRegistry(['col']);
+    const columns = buildColumnRegistry(['l1l1']);
     const plan = makePlan([makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false }, 'approved', { actionId: 'act:amb' })]);
-    const ctx = makeBuildContext(plan, ['col']);
+    const ctx = makeBuildContext(plan, ['l1l1']);
     const candidate = {
-      ...buildValidCandidate([], ['col']),
+      ...buildValidCandidate([], ['l1l1']),
       acceptedActionIds: ['act:amb'],
       columnRefs: [ctx.columnRegistry.byColumnId.get(columns[0].columnId)!],
       datasetFingerprint: plan.datasetFingerprint,
@@ -1488,12 +1488,12 @@ describe('Exclusion reasons: direct derivation', () => {
   });
 
   it('approved + ambiguous column → excluded with "ambiguous_column"', () => {
-    const columns = buildColumnRegistry(['col']);
+    const columns = buildColumnRegistry(['l1l1']);
     const plan = makePlan([makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false }, 'approved', { actionId: 'act:amb' })]);
-    const ctx = makeBuildContext(plan, ['col']);
+    const ctx = makeBuildContext(plan, ['l1l1']);
     const ambCol = ctx.columnRegistry.byColumnId.get(columns[0].columnId)!;
     const candidate = {
-      ...buildValidCandidate([makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false }, 'approved', { actionId: 'act:amb' })], ['col']),
+      ...buildValidCandidate([makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false }, 'approved', { actionId: 'act:amb' })], ['l1l1']),
       acceptedActionIds: [],
       rejectedActionIds: [],
       excludedActionIds: [{ actionId: 'act:amb', reason: 'ambiguous_column' as const }],
@@ -1505,11 +1505,11 @@ describe('Exclusion reasons: direct derivation', () => {
   });
 
   it('approved + ambiguous column in accepted → SCRIPT_COLUMN_AMBIGUOUS', () => {
-    const columns = buildColumnRegistry(['col']);
+    const columns = buildColumnRegistry(['l1l1']);
     const plan = makePlan([makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false }, 'approved', { actionId: 'act:amb' })]);
-    const ctx = makeBuildContext(plan, ['col']);
+    const ctx = makeBuildContext(plan, ['l1l1']);
     const candidate = {
-      ...buildValidCandidate([makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false }, 'approved', { actionId: 'act:amb' })], ['col']),
+      ...buildValidCandidate([makeAction('trim_whitespace', columns[0].columnId, { trimEdges: true, collapseInternalWhitespace: false }, 'approved', { actionId: 'act:amb' })], ['l1l1']),
       acceptedActionIds: ['act:amb'],
       rejectedActionIds: [],
       excludedActionIds: [],

@@ -25,6 +25,11 @@ export enum IssueCategory {
 
 export const RULE_IDS = {
   EXACT_DUPLICATES: 'rule:exact-duplicates',
+  DUPLICATE_KEY: 'rule:duplicate-key',
+  INVALID_DATE: 'rule:invalid-date',
+  DOMAIN_VALUES: 'rule:domain-values',
+  DOMAIN_NUMBER: 'rule:domain-number',
+  IDENTIFIER_FORMAT: 'rule:identifier-format',
   TRIM_WHITESPACE: 'rule:trim-whitespace',
   NULL_VALUES: 'rule:null-values',
   CONSTANT_COLUMN: 'rule:constant-column',
@@ -79,6 +84,8 @@ export interface QualityIssue {
   affectedPercentage: number;
   sampleValues: any[];
   evidenceNote?: string;
+  /** Sample record numbers, starting at 1; not physical CSV line numbers. */
+  rowNumbers?: number[];
   automaticAuthorization?: AutomaticAuthorization;
 }
 
@@ -142,6 +149,9 @@ export interface AuditReport {
   datasetProfile?: import('./services/columnProfiler').DatasetProfile;
   /** ISO instant used by time-relative rules (future dates); makes the run reproducible. */
   auditReferenceDate?: string;
+  auditRules?: import('./services/ruleChecks').DatasetRules;
+  scoreVersion?: string;
+  scoreNormalizationFactor?: number;
 }
 
 export interface ExecutionTraceEvent {

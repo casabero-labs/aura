@@ -15,7 +15,7 @@ function mkStats(name: string, overrides: Partial<ColumnStats> = {}): ColumnStat
 }
 
 describe('columnProfiler — Fase 1', () => {
-  it('Test 1: a column with a single unique value is classified as constant and recommended for drop', () => {
+  it('Test 1: a column with a single unique value is classified as constant and requires review before removal', () => {
     const data = Array.from({ length: 20 }, (_, i) => ({ always_same: 'X', id: i }));
     const fields = ['always_same', 'id'];
     const columnStats: Record<string, ColumnStats> = {
@@ -27,7 +27,7 @@ describe('columnProfiler — Fase 1', () => {
 
     const col = profile.columns.find(c => c.name === 'always_same')!;
     expect(col.cardinality).toBe('constant');
-    expect(col.pruneRecommendation).toBe('drop');
+    expect(col.pruneRecommendation).toBe('review');
     expect(profile.pruningCandidates).toContain('always_same');
   });
 

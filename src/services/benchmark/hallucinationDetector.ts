@@ -239,6 +239,13 @@ const detectUnsupportedClaims = (report: AuditReport, text: string): ClaimIssue[
     // Solo verificar números entre 1 y el máximo rowCount * 2 (para porcentajes)
     if (reported < 1 || reported > report.rowCount * 2) continue;
 
+    // A row count cannot be justified by an unrelated score with the same number.
+    const afterNumber = text.substring(m.index + m[1].length, m.index + m[1].length + 32).toLowerCase();
+    if (reported > report.rowCount && /^\s*(?:nulos|vacíos|vacios|faltantes|duplicados)\b/.test(afterNumber)) {
+      claims.push({ claim: String(reported), expected: report.rowCount, actual: reported, claimType: 'unknown' });
+      continue;
+    }
+
     // Buscar si algún valor verificable coincide aproximadamente
     const match = verifiableValues.find(v => matchesApproximately(reported, v.value));
 

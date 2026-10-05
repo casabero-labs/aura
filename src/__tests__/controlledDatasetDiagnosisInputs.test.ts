@@ -64,9 +64,10 @@ describe('controlled Phase 8 diagnosis inputs', () => {
   it('builds the real evidence envelope and all three input modes', () => {
     const { report, envelope } = buildControlledInput(datasetPath);
 
-    // 28: «Cola Larga Categórica» no longer fires on full_name (one distinct
+    // The new checks report invalid dates, low-frequency missing cells and repeated keys.
+    // «Cola Larga Categórica» no longer fires on full_name (one distinct
     // value per row = identifier/free text, not a categorical long tail).
-    expect(report.issues).toHaveLength(28);
+    expect(report.issues).toHaveLength(35);
     expect(envelope.issues).toHaveLength(24);
     expect(envelope.evidence.samples.length).toBeGreaterThan(0);
     expect(Object.keys(envelope.evidence.columnStats)).toHaveLength(15);
@@ -84,7 +85,7 @@ describe('controlled Phase 8 diagnosis inputs', () => {
 
     expect(report.rowCount).toBe(15);
     expect(report.colCount).toBe(9);
-    expect(report.issues).toHaveLength(15);
+    expect(report.issues).toHaveLength(16);
     expect(envelope.issues).toHaveLength(report.issues.length);
     expect(envelope.selectionManifest.excludedIssues).toBe(0);
     expect(envelope.truncationManifest.truncatedIssues).toHaveLength(0);
@@ -94,20 +95,20 @@ describe('controlled Phase 8 diagnosis inputs', () => {
     expect(new Set(packages.map((input) => input.inputHash))).toHaveLength(3);
   });
 
-  it('AURA-CIERRE-SMART-SAMPLE-HITL-01 R1: integrity-dupes (auto_safe + authorized + zero evidence) still demands human review in smart_sample', () => {
+  it('AURA-CIERRE-SMART-SAMPLE-HITL-01 R1: repeated observations are review-only by default in smart_sample', () => {
     const { report, envelope } = buildControlledInput(tfmDatasetPath);
 
     const integrityDupes = envelope.issues.find((issue) => issue.issueId === 'integrity-dupes');
     expect(integrityDupes).toBeDefined();
     if (!integrityDupes) return;
 
-    expect(integrityDupes.actionability).toBe('auto_safe');
-    expect(integrityDupes.automaticAuthorization.authorized).toBe(true);
+    expect(integrityDupes.actionability).toBe('review_only');
+    expect(integrityDupes.automaticAuthorization.authorized).toBe(false);
     expect(integrityDupes.evidenceRefs).toEqual([]);
 
     const requiredList = computeIssueIdsRequiringHumanReview(envelope);
     expect(requiredList).toContain('integrity-dupes');
-    expect(requiredList).toHaveLength(15);
+    expect(requiredList).toHaveLength(16);
 
     const envRef = buildEnvelopeRef(envelope);
 

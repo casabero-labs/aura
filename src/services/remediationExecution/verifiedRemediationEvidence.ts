@@ -43,6 +43,8 @@ export interface BuildVerifiedRemediationEvidenceInput {
   correctedCsv: Uint8Array;
   evidenceEnvelopeRef: string;
   delimiter?: string;
+  columns?: import('../ruleChecks').DatasetRules;
+  referenceDate?: string;
 }
 
 const decode = (bytes: Uint8Array): string => new TextDecoder().decode(bytes);

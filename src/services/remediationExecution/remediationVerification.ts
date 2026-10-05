@@ -63,6 +63,8 @@ export interface BuildRemediationVerificationInput {
   correctedCsv: Uint8Array;
   evidenceEnvelopeRef: string;
   delimiter?: string;
+  columns?: import('../ruleChecks').DatasetRules;
+  referenceDate?: string;
   /**
    * Encoding recorded at upload (audit evidence). Falls back to the bundle's
    * optional `sourceEncoding`, then to deterministic detection over the same
@@ -226,6 +228,8 @@ export function buildRemediationVerificationWithReaudit(
   }
   const reaudit = runReaudit(sourceCsv, correctedCsv, input.evidenceEnvelopeRef, {
     delimiter: input.delimiter,
+    columns: input.columns,
+    referenceDate: input.referenceDate,
   });
 
   if (

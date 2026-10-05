@@ -41,6 +41,8 @@ export interface ImportedCsvOutput {
 }
 
 export interface ReauditOptions {
+  columns?: import('./ruleChecks').DatasetRules;
+  referenceDate?: string;
   delimiter?: string;
   beforeEvidenceRef?: string;
   afterEvidenceRef?: string;
@@ -191,13 +193,13 @@ export function runReaudit(
 
   // ── Run audits ──
   // One reference date for both runs, so date rules judge before/after alike.
-  const referenceDate = new Date();
+  const referenceDate = options?.referenceDate ?? new Date();
   logs.push('running before audit...');
-  const beforeReport = runAudit(beforeOutput.data, beforeOutput.fields, beforeOutput.delimiter, { referenceDate });
+  const beforeReport = runAudit(beforeOutput.data, beforeOutput.fields, beforeOutput.delimiter, { referenceDate, columns: options?.columns });
   logs.push(`before report: score=${beforeReport.score}, issues=${beforeReport.issues.length}`);
 
   logs.push('running after audit...');
-  const afterReport = runAudit(afterOutput.data, afterOutput.fields, afterOutput.delimiter, { referenceDate });
+  const afterReport = runAudit(afterOutput.data, afterOutput.fields, afterOutput.delimiter, { referenceDate, columns: options?.columns });
   logs.push(`after report: score=${afterReport.score}, issues=${afterReport.issues.length}`);
 
   // ── Build envelope refs ──

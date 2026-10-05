@@ -1,0 +1,72 @@
+[
+  {
+    "id": "1",
+    "nombre": "Ana Ruiz",
+    "documento": "1234567890",
+    "email": "ana.ruiz@mail.com",
+    "ciudad": "Montería",
+    "fecha_alta": "2024-01-15",
+    "monto_ultima_compra": "150000",
+    "estado": "activo"
+  },
+  {
+    "id": "2",
+    "nombre": "Luis Gomez",
+    "documento": "0987654321",
+    "email": "luis.gomez@mail.com",
+    "ciudad": "Sincelejo",
+    "fecha_alta": "2023-11-02",
+    "monto_ultima_compra": "0",
+    "estado": "activo"
+  },
+  {
+    "id": "4",
+    "nombre": "Marta Pineda",
+    "documento": "6677889900",
+    "email": "marta.pineda@mail.com",
+    "ciudad": "Ciénaga de Oro",
+    "fecha_alta": "2024-03-15",
+    "monto_ultima_compra": "45000",
+    "estado": "activo"
+  },
+  {
+    "id": "5",
+    "nombre": "Pedro Nieto",
+    "documento": "1122334455",
+    "email": "pedro.nieto@mail.com",
+    "ciudad": "Montería",
+    "fecha_alta": "2022-07-30",
+    "monto_ultima_compra": "12000",
+    "estado": "inactivo"
+  },
+  {
+    "id": "7",
+    "nombre": "Sofía Lara",
+    "documento": "5566778899",
+    "email": "sofia.lara@mail.com",
+    "ciudad": "Montería",
+    "fecha_alta": "2021-05-18",
+    "monto_ultima_compra": "220000",
+    "estado": "activo"
+  },
+  {
+    "id": "9",
+    "nombre": "Jorge Díaz",
+    "documento": "0011223344",
+    "email": "jorge.diaz@mail.com",
+    "ciudad": "Cereté",
+    "fecha_alta": "2020-09-09",
+    "monto_ultima_compra": "17500",
+    "estado": "pendiente"
+  },
+  {
+    "id": "10",
+    "nombre": "Elena Vivas",
+    "documento": "7788990011",
+    "email": "elena.vivas@mail.com",
+    "ciudad": "Lorica",
+    "fecha_alta": "2019-12-01",
+    "monto_ultima_compra": "96000",
+    "estado": "activo"
+  }
+]

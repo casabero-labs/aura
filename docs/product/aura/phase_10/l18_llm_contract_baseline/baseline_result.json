@@ -17,9 +17,10 @@
     ]
   },
   "observedBehavior": {
-    "automaticActions": [],
+    "automaticActions": [
+      "trim_whitespace"
+    ],
     "humanReview": [
-      "hygiene-ghost-Name",
       "missing_age",
       "age_outlier",
       "passenger_id_identifier"
@@ -37,10 +38,10 @@
     "not provider comparison",
     "not production replacement"
   ],
-  "envelopeRef": "env:139ff6db4e97b2c92729d6d8c2faaf117fb9c6ac33eba825a68d5dc479b10f79",
-  "planId": "plan:f16e24ed",
+  "envelopeRef": "env:a7325e33d98e23b8fa618669f036ae2c788f34ebf083fb7bf7942246043616df",
+  "planId": "plan:da43394d",
   "actionabilityMap": {
-    "hygiene-ghost-Name": "review_only",
+    "hygiene-ghost-Name": "auto_safe",
     "integrity-null-Age": "review_only",
     "logic-outlier-tukey-Age": "review_only",
     "semantic-long-tail-Ticket": "not_actionable",

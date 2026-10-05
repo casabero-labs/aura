@@ -43,7 +43,7 @@ export function classifyColumn(
 
   if (rowCount > 10 && uniqueCount === 1) {
     cardinality = 'constant';
-    pruneRecommendation = 'drop';
+    pruneRecommendation = 'review';
   } else if (uniqueRatio < 0.05) {
     cardinality = 'low';
     pruneRecommendation = sparsity > 0.6 ? 'review' : 'keep';

@@ -2,13 +2,13 @@
  * AURA-CIERRE-DETERMINISTIC-HITL-02 — normalization regression tests.
  *
  * Fixture represents the real Gemma balanced-evidence failure: 15 issues,
- * 10 mandatory issues returned with `requiresHumanReview: false`, 5 with
+ * 11 mandatory issues returned with `requiresHumanReview: false`, 5 with
  * `true`. All other contract fields are otherwise valid. The pipeline
  * must split this into:
  *
  *   - RAW model result — preserves the original response and records
  *     `DIAGNOSIS_REVIEW_DOWNGRADE` against the model's values.
- *   - EFFECTIVE product result — AURA forces the 10 mandatory issues to
+ *   - EFFECTIVE product result — AURA forces the 11 mandatory issues to
  *     `requiresHumanReview: true` and validates the response with the
  *     strict validator before letting the diagnosis continue.
  *
@@ -137,8 +137,8 @@ describe('AURA-CIERRE-DETERMINISTIC-HITL-02 — Gemma balanced-evidence regressi
     const rawValidation = validateDiagnosisResponseV2(gemma, fixture.envelope);
     expect(rawValidation.valid).toBe(false);
     expect(rawValidation.errors.some((e) => e.code === 'DIAGNOSIS_REVIEW_DOWNGRADE')).toBe(true);
-    // Gemma set 5 to true and 10 to false. Mandatory ids = 15.
-    expect(findMandatoryFalseCount(gemma, fixture.mandatoryIds)).toBe(10);
+    // The new repeated-key finding adds one mandatory review: 5 true and 11 false.
+    expect(findMandatoryFalseCount(gemma, fixture.mandatoryIds)).toBe(11);
   });
 
   it('R2: raw compliance remains failed for Laboratory purposes', () => {
@@ -154,7 +154,7 @@ describe('AURA-CIERRE-DETERMINISTIC-HITL-02 — Gemma balanced-evidence regressi
     expect(result.rawValidation.downgradeCount).toBeGreaterThan(0);
     // Raw response kept the 10 false values — Laboratory sees the same
     // model output the provider produced.
-    expect(findMandatoryFalseCount(result.rawResponse, fixture.mandatoryIds)).toBe(10);
+    expect(findMandatoryFalseCount(result.rawResponse, fixture.mandatoryIds)).toBe(11);
   });
 
   it('R3: product normalization changes only requiresHumanReview', () => {
@@ -187,12 +187,12 @@ describe('AURA-CIERRE-DETERMINISTIC-HITL-02 — Gemma balanced-evidence regressi
     expect(effectiveValidation.errors).toHaveLength(0);
   });
 
-  it('R6: normalization evidence lists the exact 10 modified issue IDs', () => {
+  it('R6: normalization evidence lists the exact 11 modified issue IDs', () => {
     const fixture = buildSyntheticGroundTruthEnvelope();
     const gemma = buildGemmaBalancedFailure(fixture.envelope, fixture.mandatoryIds);
     const result = normalizeHumanReview(gemma, fixture.envelope);
     expect(result.evidence.applied).toBe(true);
-    expect(result.evidence.normalizedIssueIds).toHaveLength(10);
+    expect(result.evidence.normalizedIssueIds).toHaveLength(11);
     expect(result.evidence.normalizedIssueIds.sort()).toEqual(
       fixture.mandatoryIds.slice(5).sort(),
     );
@@ -299,7 +299,7 @@ describe('AURA-CIERRE-DETERMINISTIC-HITL-02 — Gemma balanced-evidence regressi
     expect(canonicalJson(resultA.evidence)).toBe(canonicalJson(resultB.evidence));
     expect(canonicalJson(resultA.effectiveResponse)).toBe(canonicalJson(resultB.effectiveResponse));
     expect(buildGovernanceNormalizationMessage(resultA.evidence)).toMatch(
-      /AURA aplicó revisión humana obligatoria a 10 hallazgos/,
+      /AURA aplicó revisión humana obligatoria a 11 hallazgos/,
     );
   });
 });
@@ -318,9 +318,9 @@ describe('AURA-CIERRE-DETERMINISTIC-HITL-02 — pipeline integration', () => {
       expect(pipeline.rawValidation.valid).toBe(false);
       expect(pipeline.rawValidation.errorCodes).toContain('DIAGNOSIS_REVIEW_DOWNGRADE');
       expect(pipeline.normalizationEvidence.applied).toBe(true);
-      expect(pipeline.normalizationEvidence.normalizedIssueIds).toHaveLength(10);
+      expect(pipeline.normalizationEvidence.normalizedIssueIds).toHaveLength(11);
       // Raw response preserved.
-      expect(findMandatoryFalseCount(pipeline.rawResponse, fixture.mandatoryIds)).toBe(10);
+      expect(findMandatoryFalseCount(pipeline.rawResponse, fixture.mandatoryIds)).toBe(11);
       // Effective response flipped.
       expect(findMandatoryFalseCount(pipeline.response, fixture.mandatoryIds)).toBe(0);
     }

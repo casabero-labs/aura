@@ -1,5 +1,5 @@
 /**
- * Golden fixture — a real Gemini Nano run (Chrome 154, titanic.csv, 10 issues).
+ * Golden fixture — a real Gemini Nano run (Chrome 154, titanic.csv, 9 issues).
  *
  * The fragments are the model's verbatim outputs. This test replays them
  * through the current code: envelope → input package → fragment requests →

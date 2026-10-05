@@ -234,6 +234,9 @@ export const canonicalizePhase8Issue = (issue: QualityIssue): string | null => {
     ['hygiene-toxic-', 'rule:toxic-placeholders'],
     ['hygiene-case-', 'rule:capitalization-chaos'],
     ['logic-neg-', 'rule:impossible-negatives'],
+    ['logic-invalid-date-', 'rule:invalid-date'],
+    ['logic-freshness-', 'rule:future-dates'],
+    ['logic-phone-', 'rule:variable-phone-length'],
   ];
   for (const [prefix, canonicalRule] of mappings) {
     if (issue.id.startsWith(prefix)) return `${canonicalRule}|${column}|column`;
@@ -266,7 +269,7 @@ const buildPhase8Evidence = (input: Phase8AuditInput): FinalDeterministicDataset
       fp: 0,
       fn: detected ? 0 : 1,
       status: detected ? 'match' : 'missed',
-      reachability: finding.reachability,
+      reachability: detected ? 'engine_exposed' : finding.reachability,
     };
   });
   const tp = perRule.reduce((total, rule) => total + rule.tp, 0);
@@ -340,7 +343,7 @@ export const buildFinalDeterministicEvidence = (
       'synthetic_ground_truth',
       input.datasets.synthetic,
       SYNTHETIC_GROUND_TRUTH,
-      '13 reglas predeclaradas, incluida 1 regla negativa conocida',
+      '14 reglas declaradas, incluida 1 negativa; la clave repetida se añadió tras comprobar los registros 1 y 5',
       'scoped_with_explicit_negatives',
       ['La evaluación es binaria por activación; los conteos agregados no prueban coincidencia exacta por fila.'],
     ),
