@@ -325,6 +325,38 @@ describe('buildDiagnosticReport', () => {
     expect(diagnosticReport.exportReadiness.pdfReady).toBe(true);
   });
 
+  it('declara cuántos hallazgos interpretó la IA cuando no cubrió todos', () => {
+    const report = buildTitanicReport();
+    const covered = structuredDiagnosis.diagnosis.issues.length;
+    const total = report.issues.length;
+    const diagnosticReport = buildDiagnosticReport({ report, auditEvidence, structuredDiagnosis });
+    const { executiveSummary, limitations } = diagnosticReport.diagnosisSummary;
+    if (covered < total) {
+      expect(executiveSummary).toContain(`la IA interpretó ${covered} de ${total}`);
+      expect(limitations.join(' ')).toContain(`${total - covered} hallazgo(s) solo tienen el análisis básico`);
+    } else {
+      expect(executiveSummary).not.toContain('la IA interpretó');
+    }
+  });
+
+  it('no inventa un aviso de cobertura parcial si la IA cubrió todos los hallazgos', () => {
+    const report = buildTitanicReport();
+    const full = structuredClone(structuredDiagnosis);
+    full.diagnosis.issues = report.issues.map((issue, index) => ({ ...structuredDiagnosis.diagnosis.issues[0], issueId: issue.id ?? `issue-${index}` }));
+    const diagnosticReport = buildDiagnosticReport({ report, auditEvidence, structuredDiagnosis: full });
+    expect(diagnosticReport.diagnosisSummary.executiveSummary).not.toContain('la IA interpretó');
+  });
+
+  it('con la IA cubriendo solo una parte, lo dice en el resumen y en los límites', () => {
+    const report = buildTitanicReport();
+    const partial = structuredClone(structuredDiagnosis);
+    partial.diagnosis.issues = partial.diagnosis.issues.slice(0, 1);
+    const diagnosticReport = buildDiagnosticReport({ report, auditEvidence, structuredDiagnosis: partial });
+    const { executiveSummary, limitations } = diagnosticReport.diagnosisSummary;
+    expect(executiveSummary).toContain(`la IA interpretó 1 de ${report.issues.length}`);
+    expect(limitations.join(' ')).toContain(`${report.issues.length - 1} hallazgo(s) solo tienen el análisis básico`);
+  });
+
   it('integra structuredDiagnosis cuando existe', () => {
     const diagnosticReport = buildDiagnosticReport({
       report: buildTitanicReport(),

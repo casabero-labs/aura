@@ -255,10 +255,13 @@ const buildDiagnosisSummary = ({
       executionReceipt: structuredDiagnosis.executionReceipt
         ? structuredClone(structuredDiagnosis.executionReceipt)
         : undefined,
-      executiveSummary: buildStructuredExecutiveSummary(report, observations),
+      executiveSummary: buildStructuredExecutiveSummary(report, observations, structuredDiagnosis.diagnosis.issues.length),
       observations,
       limitations: [
         ...structuredDiagnosis.diagnosis.limitations.map((limitation) => truncateText(limitation, 280)),
+        ...(structuredDiagnosis.diagnosis.issues.length < report.issues.length
+          ? [`La IA interpretó ${structuredDiagnosis.diagnosis.issues.length} de ${report.issues.length} hallazgos; ${report.issues.length - structuredDiagnosis.diagnosis.issues.length} hallazgo(s) solo tienen el análisis básico (límite de hallazgos por diagnóstico).`]
+          : []),
         'El diagnóstico asistido contextualiza evidencia; no modifica el score ni convierte interpretación en validación formal.',
         ...(deterministicValidation?.groundTruthMatched ? [] : ['Sin validacion determinista formal asociada a ground truth en este reporte.']),
         ...(structuredDiagnosis.normalizationEvidence?.applied
@@ -806,8 +809,11 @@ const splitLegacyObservations = (legacyText: string): DiagnosticObservation[] =>
 const buildStructuredExecutiveSummary = (
   report: AuditReport,
   observations: DiagnosticObservation[],
+  interpretedCount: number,
 ) => {
-  const lead = `Diagnóstico estructurado construido sobre ${report.issues.length} hallazgo(s) determinista(s), score base ${report.score}/100.`;
+  const total = report.issues.length;
+  const coverage = interpretedCount < total ? ` (la IA interpretó ${interpretedCount} de ${total})` : '';
+  const lead = `Diagnóstico estructurado construido sobre ${total} hallazgo(s) determinista(s)${coverage}, score base ${report.score}/100.`;
   if (observations.length === 0) return lead;
   return `${lead} Observacion principal: ${observations[0].text}`;
 };
