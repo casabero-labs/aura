@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { AppliedDatasetRules } from './DatasetRulesEditor';
-import ColumnStatsPanel from './ColumnStatsPanel';
+import ColumnReview from './ColumnReview';
 import IngestionEvidenceCard from './IngestionEvidenceCard';
 import { AuditExecutionEvidence, AuditReport, DeterministicValidationReport, IssueSeverity, QualityIssue, RULE_IDS } from '../types';
 import { formatAffectedShare } from '../services/issuePresentation';
@@ -47,7 +47,6 @@ interface ProfileStepProps {
 }
 
 export default function ProfileStep({ report, auditEvidence, file, onContinue, onRetry }: ProfileStepProps) {
-  const [selectedColumn, setSelectedColumn] = useState('');
   useEffect(() => { window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); }, []);
   const sorted = useMemo(() => [...(report?.issues ?? [])].sort((a, b) => {
     const weight = { [IssueSeverity.CRITICAL]: 0, [IssueSeverity.WARNING]: 1, [IssueSeverity.INFO]: 2 };
@@ -64,7 +63,6 @@ export default function ProfileStep({ report, auditEvidence, file, onContinue, o
   const info = sorted.filter(issue => issue.severity === IssueSeverity.INFO);
   const first = (critical.length ? critical : warnings).slice(0, 3);
   const columns = Object.values(report.columnStats);
-  const selected = report.columnStats[selectedColumn];
   const hasConditions = Object.values(report.auditRules ?? {}).some(rule => Object.keys(rule).length);
 
   return <div className="profile-step profile-simple">
@@ -110,11 +108,9 @@ export default function ProfileStep({ report, auditEvidence, file, onContinue, o
       </details>}
 
       <details className="profile-disclosure" data-testid="profile-tech-disclosure">
-        <summary>Ver columnas y estadísticas ({columns.length})</summary>
-        <div className="profile-disclosure-body" data-testid="profile-column-table">
-          <p className="profile-reading-note">Elige una columna para ver sus datos y estadísticas. El tipo estimado no garantiza que todos sus valores sean válidos.</p>
-          <div className="profile-column-picker"><label htmlFor="profile-column-select">Columna</label><select id="profile-column-select" value={selectedColumn} onChange={event => setSelectedColumn(event.target.value)}><option value="">Selecciona una columna</option>{columns.map(column => <option key={column.name} value={column.name}>{column.name}</option>)}</select></div>
-          {selected && <div data-testid="profile-column-detail"><ColumnStatsPanel key={selected.name} columnStats={{ [selected.name]: selected }} totalRows={report.rowCount} issues={report.issues} initiallyExpanded compact /></div>}
+        <summary>Ver las columnas del archivo ({columns.length})</summary>
+        <div className="profile-disclosure-body">
+          <ColumnReview report={report} issueName={issue => readableNames[issue.ruleId] ?? issue.ruleName} renderEvidence={issue => <IssueEvidence issue={issue} />} />
         </div>
       </details>
 

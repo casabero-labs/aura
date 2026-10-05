@@ -21,8 +21,6 @@
 .profile-disclosure-body > ul { padding-left: 24px; }
 .profile-row-detail summary { cursor: pointer; min-height: 44px; padding: 12px 0; }
 .profile-row-detail .profile-issue-evidence { padding-left: 0; min-width: 180px; }
-.profile-column-picker { display: flex; flex-direction: column; gap: 8px; font-family: var(--font-sans); font-size: 16px; max-width: 32rem; margin: 24px 0; }
-.profile-column-picker select { min-height: 44px; width: 100%; font: inherit; background: var(--canvas); color: var(--ink); border: 1px solid var(--border); border-radius: 0; padding: 8px 12px; }
 .profile-simple .dataset-rules-summary { margin: 0; padding: 0; border: 0; }
 @media (max-width: 640px) {
   [data-casabero-theme="editorial"] .profile-simple .profile-actions { flex-direction: column; align-items: flex-start; gap: 8px; }
@@ -32,4 +30,35 @@
   [data-casabero-theme="editorial"] .main-pipeline:has(.profile-simple) .stepper-track { flex-wrap: wrap; overflow: visible; gap: 0 12px; }
   [data-casabero-theme="editorial"] .main-pipeline:has(.profile-simple) .stepper-step { flex: 0 0 auto; }
   [data-casabero-theme="editorial"] .main-pipeline:has(.profile-simple) .stepper-line { display: none; }
+}
+
+.column-review-table th, .column-review-table td { overflow-wrap: anywhere; }
+[data-casabero-theme="editorial"] .column-review .table-scroll .column-review-table { min-width: 0; table-layout: fixed; }
+.column-review-table thead th:first-child { width: 40%; }
+.column-review-table thead th:nth-child(2) { width: 26%; }
+.column-review-table thead th:nth-child(3) { width: 14%; }
+.column-review-table thead th:last-child { width: 20%; }
+.column-review-table button[aria-current="true"] { font-weight: 600; border-color: var(--ink); }
+.column-review-search { max-width: 32rem; display: flex; flex-direction: column; gap: 8px; font-family: var(--font-sans); margin: 16px 0; }
+.column-review-search input { min-height: 44px; border: 1px solid var(--border); border-radius: 0; padding: 8px 12px; background: var(--canvas); color: var(--ink); font: inherit; }
+.column-review-detail { border-top: 1px solid var(--border); margin-top: 32px; padding-top: 24px; font-family: var(--font-sans); }
+.column-review-heading { display: flex; align-items: start; justify-content: space-between; gap: 16px; }
+.column-review-heading h2 { margin: 0; font-family: var(--font-display); font-size: 28px; overflow-wrap: anywhere; scroll-margin-top: 84px; }
+.column-review-detail > p { font-size: 16px; line-height: 1.5; max-width: 70ch; }
+.column-review-type { margin: 16px 0 8px; color: var(--ink2); }
+.column-review-detail h3 { font-family: var(--font-display); font-size: 22px; margin: 24px 0 12px; }
+.column-review-examples { padding-left: 24px; }
+.column-review-examples li { margin: 6px 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 16px; }
+.column-review-issue { border-bottom: 1px solid var(--border); }
+.column-review-issue > summary, .column-review-calculations > summary { min-height: 48px; padding: 12px 0; font-size: 16px; cursor: pointer; overflow-wrap: anywhere; }
+.column-review-issue summary > span { font-size: 14px; color: var(--ink2); }
+.column-review-calculations { border-top: 1px solid var(--border); margin-top: 32px; }
+@media (max-width: 640px) {
+  .column-review-heading { flex-direction: column; }
+  .column-review-heading h2 { scroll-margin-top: 200px; }
+  [data-casabero-theme="editorial"] .column-review .column-review-table th, [data-casabero-theme="editorial"] .column-review .column-review-table td { padding-inline: 6px; }
+  [data-casabero-theme="editorial"] .column-review .column-review-table thead th { font-size: 12px; letter-spacing: 0; text-transform: none; }
+  .column-review-table thead th:first-child { width: 34%; }
+  .column-review-table thead th:nth-child(3) { width: 20%; }
+  [data-casabero-theme="editorial"] .column-review-table .btn-s { padding-inline: 6px; min-width: 44px; min-height: 44px; white-space: nowrap; }
 }

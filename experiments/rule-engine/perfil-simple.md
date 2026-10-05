@@ -17,7 +17,7 @@ Cada aviso se abre para ver su explicación, los números de registro y las mues
 Los detalles tienen accesos separados:
 
 - **Ver todos los hallazgos**: lista completa, ordenada por importancia. Cada fila permite abrir sus registros y valores.
-- **Ver columnas y estadísticas**: selector de una columna, con sus estadísticas y muestras. No repite toda la lista de columnas en varias secciones.
+- **Ver las columnas del archivo**: lista con nombre, registros con datos y cantidad de avisos. El botón **Ver** abre una sola columna, con su tipo estimado, ejemplos originales y avisos. Los cálculos quedan dentro de **Ver cálculos estadísticos**, cerrado al entrar.
 - **Ver las reglas aplicadas**: condiciones elegidas antes de analizar, incluidas las excepciones.
 - **Puntuación orientativa**: cálculo completo y explicación de que no es un porcentaje de datos correctos ni una medida de precisión.
 
@@ -41,3 +41,13 @@ El CSV controlado conserva 14 hallazgos, tres críticos en el motor y 16/100. El
 - Detector visual sin observaciones en los componentes revisados. Se actualizó el grafo de navegación.
 
 Las pruebas que dependen de proveedores externos no se ejecutaron como parte de esta revisión de presentación.
+
+## Segunda revisión: columnas más claras
+
+Se sustituyó el selector que abría directamente el panel estadístico por una lista breve. Elegir una columna lleva el foco a su detalle; cerrar el detalle devuelve el foco al botón de esa columna. Para archivos de más de 12 columnas aparece una búsqueda. Los nombres largos pueden partirse, mientras que los botones permanecen legibles en móvil.
+
+Los ejemplos conservan el texto original, incluidos los ceros iniciales de los documentos. «Valores diferentes» sustituye a «únicos» para evitar confundir el número de valores distintos con la ausencia de duplicados. El tipo se presenta como estimado: no certifica que todas las fechas o números sean válidos. La ausencia de avisos se limita explícitamente a las reglas evaluadas.
+
+Esta revisión no modifica el motor, la puntuación ni la evidencia enviada a Nano. Comprobaciones: 168 archivos de pruebas, 2.247 pruebas aprobadas y seis omitidas; 16 pruebas de navegador aprobadas, incluida la apertura de columnas y cálculos en móvil; compilación aprobada. El detector no encontró observaciones en los componentes revisados. También se revisaron las capturas, porque esas comprobaciones no bastan para juzgar la claridad visual.
+
+[Lista de columnas en móvil](screenshots/columnas-lista-mobile.png) · [Detalle en escritorio](screenshots/columna-documento.png) · [Detalle en móvil](screenshots/columna-documento-mobile.png).
