@@ -1,0 +1,35 @@
+[data-casabero-theme="editorial"] .profile-simple { max-width: 64rem; margin-inline: auto; }
+[data-casabero-theme="editorial"] .profile-simple .profile-editorial-header { max-width: none; padding: 24px 0; }
+.profile-simple .profile-file-identity { font-family: var(--font-sans); color: var(--ink2); font-size: 15px; margin: 12px 0 24px; overflow-wrap: anywhere; }
+.profile-simple .profile-editorial-desc { margin: 0 0 12px; }
+.profile-simple .profile-reading-note { font-family: var(--font-sans); font-size: 14px; line-height: 1.5; color: var(--ink2); max-width: 75ch; margin: 12px 0; }
+.profile-first-review { border-top: 1px solid var(--border); padding-top: 24px; }
+.profile-first-review h2, .profile-disclosure-body h2 { font-family: var(--font-display); font-size: 24px; margin: 0 0 16px; }
+.profile-issue { border-bottom: 1px solid var(--border); }
+.profile-issue > summary { cursor: pointer; min-height: 64px; padding: 16px 0; }
+.profile-issue-name { font-family: var(--font-sans); font-size: 18px; font-weight: 600; }
+.profile-issue-meta { display: block; font-family: var(--font-sans); font-size: 14px; color: var(--ink2); margin: 6px 0 0 20px; overflow-wrap: anywhere; }
+.profile-issue-evidence { font-family: var(--font-sans); font-size: 15px; line-height: 1.5; padding: 0 0 16px 20px; overflow-wrap: anywhere; }
+.profile-issue-evidence p { margin: 8px 0; }
+.profile-source-value { white-space: pre-wrap; overflow-wrap: anywhere; }
+[data-casabero-theme="editorial"] .profile-simple .profile-actions { margin: 24px 0 32px; padding: 0; display: flex; align-items: center; gap: 24px; border: 0; }
+.profile-detail-options { border-top: 1px solid var(--border); }
+.profile-disclosure { border-bottom: 1px solid var(--border); }
+.profile-disclosure > summary { cursor: pointer; min-height: 56px; padding: 16px 0; font-family: var(--font-sans); font-size: 16px; }
+.profile-disclosure-body { padding: 8px 0 24px; }
+.profile-disclosure-body > p, .profile-disclosure-body > ul { font-family: var(--font-sans); font-size: 15px; line-height: 1.5; }
+.profile-disclosure-body > ul { padding-left: 24px; }
+.profile-row-detail summary { cursor: pointer; min-height: 44px; padding: 12px 0; }
+.profile-row-detail .profile-issue-evidence { padding-left: 0; min-width: 180px; }
+.profile-column-picker { display: flex; flex-direction: column; gap: 8px; font-family: var(--font-sans); font-size: 16px; max-width: 32rem; margin: 24px 0; }
+.profile-column-picker select { min-height: 44px; width: 100%; font: inherit; background: var(--canvas); color: var(--ink); border: 1px solid var(--border); border-radius: 0; padding: 8px 12px; }
+.profile-simple .dataset-rules-summary { margin: 0; padding: 0; border: 0; }
+@media (max-width: 640px) {
+  [data-casabero-theme="editorial"] .profile-simple .profile-actions { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .profile-issue-name { font-size: 17px; }
+}
+@media (max-width: 720px) {
+  [data-casabero-theme="editorial"] .main-pipeline:has(.profile-simple) .stepper-track { flex-wrap: wrap; overflow: visible; gap: 0 12px; }
+  [data-casabero-theme="editorial"] .main-pipeline:has(.profile-simple) .stepper-step { flex: 0 0 auto; }
+  [data-casabero-theme="editorial"] .main-pipeline:has(.profile-simple) .stepper-line { display: none; }
+}

@@ -83,6 +83,7 @@ test.describe('AURA QA — Human-first screenshots', () => {
 
     // Upload
     await page.setInputFiles('input[type="file"]', fixtureCsv);
+    await page.getByRole('button', { name: 'Analizar dataset', exact: true }).click();
     await page.waitForTimeout(500);
     await page.screenshot({ path: path.join(screenshotDir, '02-aura-profile-desktop.png'), fullPage: false });
 
@@ -173,6 +174,7 @@ test.describe('AURA QA — Human-first screenshots', () => {
 
     // Upload on mobile
     await page.setInputFiles('input[type="file"]', fixtureCsv);
+    await page.getByRole('button', { name: 'Analizar dataset', exact: true }).click();
     await page.waitForTimeout(500);
     await page.screenshot({ path: path.join(screenshotDir, '10-aura-profile-mobile.png'), fullPage: false });
 
@@ -220,6 +222,7 @@ test.describe('AURA QA — Human-first screenshots', () => {
 
     // 02 — Upload → Profile
     await page.setInputFiles('input[type="file"]', fixtureCsv);
+    await page.getByRole('button', { name: 'Analizar dataset', exact: true }).click();
     await page.waitForTimeout(600);
     await page.screenshot({ path: path.join(aestheticDir, '02-profile-desktop.png'), fullPage: false });
 
@@ -298,6 +301,7 @@ test.describe('AURA QA — Human-first screenshots', () => {
 
     // 09 — Mobile profile
     await page.setInputFiles('input[type="file"]', fixtureCsv);
+    await page.getByRole('button', { name: 'Analizar dataset', exact: true }).click();
     await page.waitForTimeout(600);
     await page.screenshot({ path: path.join(aestheticDir, '09-profile-mobile.png'), fullPage: false });
 

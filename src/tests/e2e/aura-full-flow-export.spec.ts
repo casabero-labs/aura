@@ -113,6 +113,7 @@ test.describe('Phase 10 L10B — Full-Flow CSV → Export v2.1 (real file input)
     // This triggers the browser's native change event → handleChange → acceptFile → processFile
     // processFile is the real async handler that calls parseCsv + runAudit and sets React state.
     await page.locator('[data-testid="csv-file-input"]').setInputFiles(FIXTURE_CSV);
+    await page.getByRole('button', { name: 'Analizar dataset', exact: true }).click();
     console.log('setInputFiles done');
 
     // 4. Wait for real profile state via __PHASE4_GET_STATE__ (ref-based, survives StrictMode)

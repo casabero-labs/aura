@@ -91,6 +91,7 @@ async function injectTitanicDiagnosis(page: any) {
 async function uploadTitanicCsv(page: any) {
   await expect(page.locator('[data-testid="csv-file-input"]')).toBeAttached({ timeout: 10_000 });
   await page.locator('[data-testid="csv-file-input"]').setInputFiles(TITANIC_CSV);
+  await page.getByRole('button', { name: 'Analizar dataset', exact: true }).click();
 }
 
 test.describe('L13G — Titanic E2E Diagnostic Report Pipeline', () => {

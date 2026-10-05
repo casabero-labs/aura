@@ -1,10 +1,41 @@
-import React, { useMemo, useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { AppliedDatasetRules } from './DatasetRulesEditor';
 import ColumnStatsPanel from './ColumnStatsPanel';
 import IngestionEvidenceCard from './IngestionEvidenceCard';
-import SeverityDistributionChart from './SeverityDistributionChart';
-import { AuditExecutionEvidence, AuditReport, DeterministicValidationReport, IssueSeverity } from '../types';
+import { AuditExecutionEvidence, AuditReport, DeterministicValidationReport, IssueSeverity, QualityIssue, RULE_IDS } from '../types';
 import { formatAffectedShare } from '../services/issuePresentation';
+
+const describeCell = (value: unknown): string => {
+  if (value === null || value === undefined) return '(nulo)';
+  if (value === '') return '(vacío)';
+  if (typeof value === 'string' && !value.trim()) return '(solo espacios)';
+  const text = typeof value === 'string' ? JSON.stringify(value) : String(value);
+  return text.length > 160 ? `${text.slice(0, 160)}… (valor recortado)` : text;
+};
+
+const readableNames: Record<string, string> = {
+  [RULE_IDS.INVALID_EMAIL]: 'Correos con formato inválido',
+  [RULE_IDS.INVALID_DATE]: 'Fechas que no existen o no son válidas',
+  [RULE_IDS.IMPOSSIBLE_NEGATIVES]: 'Valores negativos que requieren revisión',
+  [RULE_IDS.NULL_VALUES]: 'Valores faltantes',
+  [RULE_IDS.DUPLICATE_KEY]: 'Identificadores repetidos',
+  [RULE_IDS.EXACT_DUPLICATES]: 'Registros completos repetidos',
+  [RULE_IDS.DOMAIN_VALUES]: 'Valores fuera de la lista permitida',
+  [RULE_IDS.DOMAIN_NUMBER]: 'Números fuera de las condiciones elegidas',
+  [RULE_IDS.FUTURE_DATES]: 'Fechas futuras que requieren revisión',
+  [RULE_IDS.PII_DETECTED]: 'Posibles datos sensibles',
+};
+const severityLabel = (severity: IssueSeverity) => severity === IssueSeverity.CRITICAL ? 'Prioritario' : severity === IssueSeverity.WARNING ? 'Para revisar' : 'Informativo';
+
+const IssueEvidence = ({ issue }: { issue: QualityIssue }) => <div className="profile-issue-evidence">
+  <p>{issue.description}</p>
+  {issue.rowNumbers?.length ? <p>Registros: {issue.rowNumbers.join(', ')}{issue.rowNumbers.length < issue.count ? ' (muestra)' : ''}</p> : <p>Este aviso no incluye números de registro.</p>}
+  {issue.rowEvidence?.length ? <div>
+    {issue.rowEvidence.map(cell => <p key={cell.rowNumber}>Registro {cell.rowNumber}: <span className="profile-source-value">{describeCell(cell.value)}</span></p>)}
+    {issue.count > issue.rowEvidence.length && <p>Se muestran {issue.rowEvidence.length} ejemplos de {issue.count} registros señalados.</p>}
+  </div> : issue.sampleValues?.length ? <p>Valores de ejemplo: {issue.sampleValues.slice(0, 3).map(describeCell).join(' · ')}</p> : null}
+  <p className="profile-reading-note">Los registros empiezan en 1, sin contar la cabecera. Son muestras de los valores originales.</p>
+</div>;
 
 interface ProfileStepProps {
   report: AuditReport | null;
@@ -15,287 +46,93 @@ interface ProfileStepProps {
   onRetry?: () => void;
 }
 
-const ProfileStep: React.FC<ProfileStepProps> = ({ report, auditEvidence, file, onContinue, onRetry }) => {
-  const isError = auditEvidence.ingestionStatus === 'error';
+export default function ProfileStep({ report, auditEvidence, file, onContinue, onRetry }: ProfileStepProps) {
+  const [selectedColumn, setSelectedColumn] = useState('');
+  useEffect(() => { window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); }, []);
+  const sorted = useMemo(() => [...(report?.issues ?? [])].sort((a, b) => {
+    const weight = { [IssueSeverity.CRITICAL]: 0, [IssueSeverity.WARNING]: 1, [IssueSeverity.INFO]: 2 };
+    return weight[a.severity] - weight[b.severity] || b.affectedPercentage - a.affectedPercentage;
+  }), [report]);
+  if (auditEvidence.ingestionStatus === 'error') return <div className="profile-step">
+    <h1 className="profile-editorial-title">No se pudo leer el archivo</h1>
+    <IngestionEvidenceCard evidence={auditEvidence} />
+    <button className="btn-p" type="button" onClick={onRetry}>Seleccionar otro archivo</button>
+  </div>;
+  if (!report) return null;
+  const critical = sorted.filter(issue => issue.severity === IssueSeverity.CRITICAL);
+  const warnings = sorted.filter(issue => issue.severity === IssueSeverity.WARNING);
+  const info = sorted.filter(issue => issue.severity === IssueSeverity.INFO);
+  const first = (critical.length ? critical : warnings).slice(0, 3);
+  const columns = Object.values(report.columnStats);
+  const selected = report.columnStats[selectedColumn];
+  const hasConditions = Object.values(report.auditRules ?? {}).some(rule => Object.keys(rule).length);
 
-  const criticalCount = report ? report.issues.filter(i => i.severity === IssueSeverity.CRITICAL).length : 0;
-  const warningCount = report ? report.issues.filter(i => i.severity === IssueSeverity.WARNING).length : 0;
-  const infoCount = report ? report.issues.filter(i => i.severity === IssueSeverity.INFO).length : 0;
-  const totalFindings = report ? report.issues.length : 0;
+  return <div className="profile-step profile-simple">
+    <header className="profile-editorial-header" data-testid="profile-hero">
+      <h1 className="profile-editorial-title">Revisión inicial</h1>
+      <p className="profile-file-identity">{file?.name || auditEvidence.fileName || 'Archivo analizado'} · {report.rowCount.toLocaleString('es-CO')} registros · {report.colCount} columnas</p>
+      <p className="profile-editorial-desc">{critical.length ? `Hay ${critical.length} avisos prioritarios para revisar.` : warnings.length ? `Hay ${warnings.length} avisos para revisar.` : 'No se encontraron avisos prioritarios.'}</p>
+      <p className="profile-reading-note">{sorted.length ? `${sorted.length} avisos en total: ${critical.length} prioritarios, ${warnings.length} para revisar y ${info.length} informativos. Un registro puede aparecer en varios avisos.` : 'No se detectaron problemas en las comprobaciones realizadas. Esto no garantiza que se haya evaluado toda condición posible.'}</p>
+    </header>
 
-  // Mostrar todos los hallazgos, ordenados por gravedad.
-  const topPriorities = useMemo(() => {
-    if (!report) return [];
-    return [...report.issues]
-      .sort((a, b) => {
-        const w = { [IssueSeverity.CRITICAL]: 0, [IssueSeverity.WARNING]: 1, [IssueSeverity.INFO]: 2 };
-        return (w[a.severity] ?? 3) - (w[b.severity] ?? 3) || b.affectedPercentage - a.affectedPercentage;
-      });
-  }, [report]);
+    {!!first.length && <section className="profile-first-review" aria-labelledby="profile-first-title" data-testid="profile-first-review">
+      <h2 id="profile-first-title">{critical.length ? 'Revisa primero' : 'Avisos para revisar'}</h2>
+      {first.map(issue => <details className="profile-issue" key={issue.id} data-testid="profile-priority-item">
+        <summary><span className="profile-issue-name">{readableNames[issue.ruleId] ?? issue.ruleName}</span><span className="profile-issue-meta">{issue.column || 'Archivo completo'} · {issue.count ? `${issue.count.toLocaleString('es-CO')} registro${issue.count === 1 ? '' : 's'} señalado${issue.count === 1 ? '' : 's'}` : 'Aviso sobre la estructura'} · Ver detalle</span></summary>
+        <IssueEvidence issue={issue} />
+      </details>)}
+      <p className="profile-reading-note">{(critical.length || warnings.length) > first.length ? `Se muestran ${first.length} de ${critical.length || warnings.length} avisos de este nivel. Todos están disponibles más abajo. ` : ''}Estos avisos provienen de las reglas; no autorizan cambios automáticos.</p>
+    </section>}
 
-  // Top columnas afectadas (por número de hallazgos, deduplicado)
-  const topAffectedColumns = useMemo(() => {
-    if (!report) return [];
-    const counts = new Map<string, number>();
-    report.issues.forEach((issue) => {
-      if (!issue.column) return;
-      counts.set(issue.column, (counts.get(issue.column) || 0) + 1);
-    });
-    return Array.from(counts.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([column, count]) => ({ column, count }));
-  }, [report]);
-
-  // Calcular estado textual del dataset
-  const datasetStatus = useMemo(() => {
-    if (!report) return { label: '', description: '' };
-    
-    if (criticalCount > 0) {
-      return {
-        label: 'Requiere limpieza',
-        description: `El dataset tiene ${criticalCount} problema${criticalCount > 1 ? 's' : ''} crítico${criticalCount > 1 ? 's' : ''} que requiere${criticalCount === 1 ? '' : 'n'} atención antes de diagnosticar causas.`
-      };
-    } else if (warningCount > 0) {
-      return {
-        label: 'Riesgo moderado',
-        description: `Se detectaron ${warningCount} advertencia${warningCount > 1 ? 's' : ''}. El dataset es usable pero tiene ${warningCount > 1 ? 'áreas' : 'área'} que puede${warningCount === 1 ? '' : 'n'} mejorar.`
-      };
-    } else {
-      return {
-        label: 'Sin alertas prioritarias en las reglas evaluadas',
-        description: 'Este resultado describe las comprobaciones realizadas. La aptitud para tu análisis requiere revisar el contexto y los controles no evaluados.'
-      };
-    }
-  }, [report, criticalCount, warningCount]);
-
-  const [selectedColumn, setSelectedColumn] = useState<string | null>(null);
-  const columnEntries = report
-    ? Object.values(report.columnStats)
-    : [];
-  const selectedStats = selectedColumn ? report?.columnStats[selectedColumn] : undefined;
-
-  return (
-    <div className="profile-step">
-      {isError && (
-        <>
-          <section className="profile-block">
-            <div className="profile-block-header">
-              <span className="profile-block-index">00</span>
-              <div>
-                <p className="sec-eye">ingestión</p>
-                <h2 className="sec-title">Evidencia de carga.</h2>
-              </div>
-            </div>
-            <IngestionEvidenceCard evidence={auditEvidence} />
-          </section>
-          <div className="context-guide">
-            <div>
-              <p className="guide-title">Error en la ingesta del archivo</p>
-              <p className="guide-desc">No se pudo procesar el CSV. Verifica que el archivo sea válido y vuelve a intentarlo.</p>
-            </div>
-            <button className="btn-p btn-sm" onClick={onRetry}>
-              Seleccionar otro archivo
-            </button>
-          </div>
-        </>
-      )}
-
-      {!isError && report && (
-        <>
-          {/* A. Hero del paso (eyebrow, título, descripción) */}
-          <div className="profile-editorial-header" data-testid="profile-hero">
-            <p className="profile-editorial-eyebrow">Perfil base</p>
-            <h1 className="profile-editorial-title">{datasetStatus.label}</h1>
-            <p className="profile-editorial-desc">{datasetStatus.description}</p>
-          </div>
-
-          <div className="profile-summary-strip" data-testid="profile-summary-strip">
-            <div className="profile-summary-item">
-              <span className="profile-summary-value" style={{ fontSize: '15px', wordBreak: 'break-all' }}>
-                {file?.name || auditEvidence.fileName || 'Archivo sin nombre'}
-              </span>
-              <span className="profile-summary-label">archivo</span>
-            </div>
-            <div className="profile-summary-item">
-              <span className="profile-summary-value">{report.rowCount.toLocaleString('es-CO')}</span>
-              <span className="profile-summary-label">filas</span>
-            </div>
-            <div className="profile-summary-item">
-              <span className="profile-summary-value">{report.colCount}</span>
-              <span className="profile-summary-label">columnas</span>
-            </div>
-            <div className="profile-summary-item">
-              <span className="profile-summary-value profile-summary-value--critical">{totalFindings}</span>
-              <span className="profile-summary-label">hallazgos</span>
-            </div>
-            <div className="profile-summary-item">
-              <span className="profile-summary-value">{report.score}/100</span>
-              <span className="profile-summary-label">puntuación determinista</span>
-            </div>
-          </div>
-
-          <section className="profile-decision-summary" data-testid="profile-decision-summary">
-            {totalFindings > 0 && (
-              <SeverityDistributionChart
-                critical={criticalCount}
-                warning={warningCount}
-                info={infoCount}
-              />
-            )}
-          </section>
-
-          {/* D. Columnas más afectadas (visible por defecto) */}
-          {topAffectedColumns.length > 0 && (
-            <section className="profile-priorities" data-testid="profile-affected-columns">
-              <h2 className="profile-priorities-title">Columnas más afectadas</h2>
-              <div className="profile-priorities-list">
-                {topAffectedColumns.map(({ column, count }) => (
-                  <div key={column} className="profile-priority-item">
-                    <div className="profile-priority-header">
-                      <span className="profile-priority-column">{column}</span>
-                      <span className="profile-priority-severity profile-priority-severity--warning">
-                        {count} {count === 1 ? 'hallazgo' : 'hallazgos'}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* E. Prioridades de limpieza (top hallazgos): una tabla, no tarjetas */}
-          {topPriorities.length > 0 && (
-            <section className="profile-priorities" data-testid="profile-priorities">
-              <h2 className="profile-priorities-title">Todos los hallazgos</h2>
-              <div className="table-scroll" role="region" aria-label="Todos los hallazgos" tabIndex={0}>
-              <table className="editorial-data-table">
-                <caption>
-                  <span className="editorial-data-table-kicker">Prioridades</span>
-                  Regla, columna y evidencia
-                </caption>
-                <thead>
-                  <tr>
-                    <th scope="col">Hallazgo</th>
-                    <th scope="col">Columna</th>
-                    <th scope="col">Evidencia</th>
-                    <th scope="col">Clasificación</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {topPriorities.map(issue => (
-                    <tr key={issue.id}>
-                      <th scope="row">{issue.ruleName}</th>
-                      <td>{issue.column || 'dataset'}</td>
-                      <td>{formatAffectedShare(issue.count, report.rowCount)} afectados
-                        {issue.rowNumbers?.length ? <span> · Registros: {issue.rowNumbers.join(', ')}{issue.rowNumbers.length < issue.count ? ' (muestra)' : ''}</span> : null}
-                      </td>
-                      <td>{issue.severity === IssueSeverity.CRITICAL ? 'crítico' : issue.severity === IssueSeverity.WARNING ? 'advertencia' : 'informativo'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <p className="editorial-data-table-note">La clasificación es de la regla, no un riesgo confirmado.</p>
-              </div>
-            </section>
-          )}
-
-          {/* F. CTA principal — único botón prominente hacia Diagnóstico */}
-          <section className="profile-columns" data-testid="profile-column-table">
-            <h2 className="profile-priorities-title">Columnas</h2>
-            <div className="table-scroll" role="region" aria-label="Columnas: tipo y completitud" tabIndex={0}>
-            <table className="editorial-data-table">
-              <caption>
-                <span className="editorial-data-table-kicker">Estructura</span>
-                Tipo y completitud
-              </caption>
-              <thead>
-                <tr>
-                  <th scope="col">Columna</th>
-                  <th scope="col">Tipo</th>
-                  <th scope="col" className="num">Nulos</th>
-                  <th scope="col" className="num">Distintos</th>
-                </tr>
-              </thead>
-              <tbody>
-                {columnEntries.map((col) => (
-                  <tr
-                    key={col.name}
-                    aria-selected={selectedColumn === col.name}
-                    onClick={() => setSelectedColumn(col.name)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault();
-                        setSelectedColumn(col.name);
-                      }
-                    }}
-                    tabIndex={0}
-                  >
-                    <th scope="row">{col.name}</th>
-                    <td>{col.inferredType || '—'}</td>
-                    <td className="num">{col.nullCount}</td>
-                    <td className="num">{col.uniqueCount}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            </div>
-            <p className="editorial-data-table-note">Selecciona una fila para ver el detalle.</p>
-            {selectedStats && (
-              <p className="profile-decision-description" data-testid="profile-column-detail">
-                {selectedStats.name}: {selectedStats.inferredType || 'tipo no inferido'}.
-                {' '}{selectedStats.nullCount} nulos de {report.rowCount} filas.
-                {selectedStats.semanticType ? ` Lectura semántica: ${selectedStats.semanticType}.` : ''}
-              </p>
-            )}
-          </section>
-
-          <div className="profile-actions" data-testid="profile-actions">
-            <button
-              className="btn-p profile-actions-primary"
-              onClick={onContinue}
-              type="button"
-              data-testid="profile-continue-diagnosis"
-            >
-              Ir al diagnóstico
-            </button>
-          </div>
-
-          <details className="technical-details" data-testid="profile-tech-disclosure">
-            <summary className="technical-details-summary">
-              <ChevronDown size={14} className="technical-details-chevron" />
-              <span>Columnas detectadas</span>
-              <span className="technical-details-hint">IQR es el rango entre cuartiles; cardinalidad es cuántos valores distintos hay</span>
-            </summary>
-            <div className="technical-details-body">
-              <details>
-                <summary>Cómo se calculó la puntuación</summary>
-                <p>Parte de 100 y resta los puntos de las reglas. Es una orientación, no una medida de exactitud.</p>
-                <ul>{report.scoreBreakdown.map((deduction, index) => <li key={index}>{deduction.reason}: {deduction.points.toLocaleString('es-CO', { maximumFractionDigits: 2 })} puntos.</li>)}</ul>
-                <p>Se suman estos puntos y se restan de 100. El resultado se redondea y queda entre 0 y 100: {report.score}/100.</p>
-                {report.scoreVersion !== 'rules-v2' && <p>Este informe usa la fórmula anterior, con un ajuste por tamaño del archivo.</p>}
-              </details>
-
-              <section className="profile-block" aria-labelledby="profile-characterization-title">
-                <div className="profile-block-header">
-                  <span className="profile-block-index">01</span>
-                  <div>
-                    <p className="sec-eye">estructura</p>
-                    <h2 id="profile-characterization-title" className="sec-title">Tipos y cobertura por columna.</h2>
-                  </div>
-                </div>
-
-                <section className="section section-nested profile-statistics-group" id="column-profile">
-                  <ColumnStatsPanel columnStats={report.columnStats} totalRows={report.rowCount} issues={report.issues} />
-                </section>
-              </section>
-
-            </div>
-          </details>
-        </>
-      )}
+    <div className="profile-actions" data-testid="profile-actions">
+      <button className="btn-p profile-actions-primary" type="button" data-testid="profile-continue-diagnosis" onClick={onContinue}>Ir al diagnóstico</button>
+      <p className="profile-reading-note">Puedes ampliar la revisión antes de pasar al diagnóstico.</p>
     </div>
-  );
-};
 
-export default ProfileStep;
+    <div className="profile-detail-options">
+      {!!sorted.length && <details className="profile-disclosure" data-testid="profile-all-disclosure">
+        <summary>Ver todos los {sorted.length} hallazgos</summary>
+        <div className="profile-disclosure-body">
+          <p className="profile-reading-note">Un hallazgo es un aviso de una regla en una columna o en el archivo. Los registros señalados pueden repetirse entre hallazgos.</p>
+          <div className="table-scroll" role="region" aria-label="Todos los hallazgos" tabIndex={0}>
+            <table className="editorial-data-table">
+              <caption>Todos los hallazgos, ordenados por importancia</caption>
+              <thead><tr><th scope="col">Hallazgo</th><th scope="col">Columna</th><th scope="col">Registros y evidencia</th><th scope="col">Clasificación</th></tr></thead>
+              <tbody>{sorted.map(issue => <tr key={issue.id}>
+                <th scope="row">{issue.ruleName}</th><td>{issue.column || 'Archivo completo'}</td>
+                <td>{formatAffectedShare(issue.count, report.rowCount)} señalados<details className="profile-row-detail"><summary>Ver registros y valores</summary><IssueEvidence issue={issue} /></details></td>
+                <td>{severityLabel(issue.severity)}</td>
+              </tr>)}</tbody>
+            </table>
+          </div>
+          <p className="profile-reading-note">La clasificación indica la prioridad asignada por la regla, no un riesgo confirmado.</p>
+        </div>
+      </details>}
+
+      <details className="profile-disclosure" data-testid="profile-tech-disclosure">
+        <summary>Ver columnas y estadísticas ({columns.length})</summary>
+        <div className="profile-disclosure-body" data-testid="profile-column-table">
+          <p className="profile-reading-note">Elige una columna para ver sus datos y estadísticas. El tipo estimado no garantiza que todos sus valores sean válidos.</p>
+          <div className="profile-column-picker"><label htmlFor="profile-column-select">Columna</label><select id="profile-column-select" value={selectedColumn} onChange={event => setSelectedColumn(event.target.value)}><option value="">Selecciona una columna</option>{columns.map(column => <option key={column.name} value={column.name}>{column.name}</option>)}</select></div>
+          {selected && <div data-testid="profile-column-detail"><ColumnStatsPanel key={selected.name} columnStats={{ [selected.name]: selected }} totalRows={report.rowCount} issues={report.issues} initiallyExpanded compact /></div>}
+        </div>
+      </details>
+
+      <details className="profile-disclosure" data-testid="profile-rules-disclosure">
+        <summary>{hasConditions ? 'Ver las reglas y excepciones aplicadas' : 'Ver qué reglas se aplicaron'}</summary>
+        <div className="profile-disclosure-body"><AppliedDatasetRules rules={report.auditRules} /></div>
+      </details>
+
+      <details className="profile-disclosure" data-testid="profile-score-disclosure">
+        <summary>Puntuación orientativa: {report.score}/100 · Ver cálculo</summary>
+        <div className="profile-disclosure-body">
+          <h2>Cómo se calculó la puntuación</h2>
+          <p>Parte de 100 y resta los puntos de las reglas. No es un porcentaje de datos correctos ni una medida de precisión.</p>
+          <ul>{report.scoreBreakdown.map((deduction, index) => <li key={index}>{deduction.reason}: {deduction.points.toLocaleString('es-CO', { maximumFractionDigits: 2 })} puntos.</li>)}</ul>
+          <p>Se suman estos puntos y se restan de 100. El resultado se redondea y queda entre 0 y 100: {report.score}/100.</p>
+          {report.scoreVersion !== 'rules-v2' && <p>Este informe usa la fórmula anterior, con un ajuste por tamaño del archivo.</p>}
+        </div>
+      </details>
+    </div>
+  </div>;
+}

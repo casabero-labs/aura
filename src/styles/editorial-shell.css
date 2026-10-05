@@ -395,7 +395,7 @@
 [data-casabero-theme="editorial"] .file-drop--active {
   border-style: solid;
   border-color: var(--ink);
-  background: var(--surface-hover);
+  background: var(--canvas);
   box-shadow: inset 0 0 0 1px var(--ink);
 }
 
@@ -470,7 +470,7 @@
   margin: 0 0 18px;
   font-family: var(--font-serif);
   font-size: 14px;
-  font-style: italic;
+  font-style: normal;
   letter-spacing: 0;
   text-transform: none;
   font-weight: 400;

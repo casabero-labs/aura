@@ -46,6 +46,7 @@ async function uploadCsv(page: any, fp: string) {
   await page.getByRole('button', { name: /Empezar auditoría/i }).click();
   await page.waitForTimeout(500);
   await page.setInputFiles('input[type="file"]', fp);
+  await page.getByRole('button', { name: 'Analizar dataset', exact: true }).click();
   await page.locator('.profile-editorial-header').first().waitFor({ state: 'visible', timeout: 30_000 });
 }
 

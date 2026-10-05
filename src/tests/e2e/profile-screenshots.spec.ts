@@ -14,6 +14,7 @@ test.describe('Profile Casabero Reset Screenshots', () => {
 
     // Upload Titanic dataset
     await page.setInputFiles('input[type="file"]', fixtureCsv);
+    await page.getByRole('button', { name: 'Analizar dataset', exact: true }).click();
     await page.waitForTimeout(1000);
 
     // Take screenshot of profile summary
@@ -25,7 +26,7 @@ test.describe('Profile Casabero Reset Screenshots', () => {
     // Verify main elements are visible
     await expect(page.locator('.profile-editorial-header')).toBeVisible();
     await expect(page.locator('.profile-decision-summary')).toBeVisible();
-    await expect(page.locator('.profile-priorities')).toBeVisible();
+    await expect(page.getByTestId('profile-first-review')).toBeVisible();
     await expect(page.locator('.profile-actions')).toBeVisible();
   });
 
@@ -36,6 +37,7 @@ test.describe('Profile Casabero Reset Screenshots', () => {
 
     // Upload Titanic dataset
     await page.setInputFiles('input[type="file"]', fixtureCsv);
+    await page.getByRole('button', { name: 'Analizar dataset', exact: true }).click();
     await page.waitForTimeout(1000);
 
     // Take screenshot with technical details closed
@@ -56,6 +58,7 @@ test.describe('Profile Casabero Reset Screenshots', () => {
 
     // Upload Titanic dataset
     await page.setInputFiles('input[type="file"]', fixtureCsv);
+    await page.getByRole('button', { name: 'Analizar dataset', exact: true }).click();
     await page.waitForTimeout(1000);
 
     // Open technical details using the button
@@ -80,6 +83,7 @@ test.describe('Profile Casabero Reset Screenshots', () => {
 
     // Upload Titanic dataset
     await page.setInputFiles('input[type="file"]', fixtureCsv);
+    await page.getByRole('button', { name: 'Analizar dataset', exact: true }).click();
     await page.waitForTimeout(1000);
 
     // Take screenshot of mobile profile

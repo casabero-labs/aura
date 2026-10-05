@@ -45,6 +45,7 @@ test.describe('LOOP-01 Editorial — Inicio y carga', () => {
   test('J15 — Empezar otra pide confirmación cuando hay datos', async ({ page }) => {
     await page.getByRole('button', { name: 'Empezar auditoría' }).click();
     await page.getByTestId('csv-file-input').setInputFiles(validCsv);
+    await page.getByRole('button', { name: 'Analizar dataset', exact: true }).click();
     const nuevo = page.getByTestId('nav-new-analysis');
     await expect(nuevo).toBeVisible({ timeout: 20_000 });
     await nuevo.click();

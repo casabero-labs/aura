@@ -172,6 +172,7 @@ for (const theme of THEMES) {
 
       // J03 perfil.
       await page.getByTestId('csv-file-input').setInputFiles(validCsv);
+      await page.getByRole('button', { name: 'Analizar dataset', exact: true }).click();
       await expect(page.getByTestId('profile-hero')).toBeVisible({ timeout: 20_000 });
       await visit('perfil (J03)');
 
@@ -204,6 +205,7 @@ for (const theme of THEMES) {
       await page.goto('/', { waitUntil: 'domcontentloaded' });
       await page.getByRole('button', { name: 'Empezar auditoría' }).click();
       await page.getByTestId('csv-file-input').setInputFiles(validCsv);
+      await page.getByRole('button', { name: 'Analizar dataset', exact: true }).click();
       await expect(page.getByTestId('profile-hero')).toBeVisible({ timeout: 20_000 });
       await setPipelineState(page, 'diagnosis');
       await injectDiagnosis(page);

@@ -38,6 +38,7 @@ async function uploadDataset(page: any, filePath: string) {
   await page.getByRole('button', { name: /Empezar auditoría/i }).click();
   await page.waitForTimeout(500);
   await page.setInputFiles('input[type="file"]', filePath);
+  await page.getByRole('button', { name: 'Analizar dataset', exact: true }).click();
   await page.waitForTimeout(1200);
 }
 

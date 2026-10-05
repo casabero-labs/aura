@@ -39,6 +39,7 @@ async function bootToAudit(page: any) {
 async function uploadCsvAndWaitForProfile(page: any) {
   const fileInput = page.locator('[data-testid="csv-file-input"]');
   await fileInput.setInputFiles(FIXTURE_CSV);
+  await page.getByRole('button', { name: 'Analizar dataset', exact: true }).click();
   await page.waitForTimeout(3000);
   const profileHeading = page.getByText(/Resumen|Health|Score|Perfil/i).first();
   try {
@@ -293,6 +294,7 @@ async function walkToDiagnosisWithoutProvider(page: any) {
   const fileInput = page.locator('[data-testid="csv-file-input"]');
   await fileInput.waitFor({ state: 'attached', timeout: 15_000 });
   await fileInput.setInputFiles(FIXTURE_CSV);
+  await page.getByRole('button', { name: 'Analizar dataset', exact: true }).click();
 
   const continueToDiagnosis = page.locator('.profile-actions')
     .getByRole('button', { name: /al diagnóstico/i });

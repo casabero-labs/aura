@@ -76,6 +76,7 @@ test.describe('AURA QA — Human-first audit (LOOP 07C)', () => {
 
     // Upload
     await page.setInputFiles('input[type="file"]', fixtureCsv);
+    await page.getByRole('button', { name: 'Analizar dataset', exact: true }).click();
     await page.waitForTimeout(500);
 
     // ── Stage 1: Profile ──
@@ -334,6 +335,7 @@ test.describe('AURA QA — Human-first audit (LOOP 07C)', () => {
     await page.waitForTimeout(300);
 
     await page.setInputFiles('input[type="file"]', fixtureCsv);
+    await page.getByRole('button', { name: 'Analizar dataset', exact: true }).click();
     await page.waitForTimeout(500);
 
     const profileMobileOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 5);

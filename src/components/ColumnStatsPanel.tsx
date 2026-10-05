@@ -21,6 +21,8 @@ interface ColumnStatsPanelProps {
   columnStats: Record<string, ColumnStats>;
   totalRows?: number;
   issues?: QualityIssue[];
+  initiallyExpanded?: boolean;
+  compact?: boolean;
 }
 
 const LOCALE = 'es-ES';
@@ -72,10 +74,11 @@ interface ColumnDetailProps {
   col: ColumnStats;
   totalRows: number;
   findings?: QualityIssue[];
+  initiallyExpanded?: boolean;
 }
 
-const ColumnDetail: React.FC<ColumnDetailProps> = ({ col, totalRows, findings }) => {
-  const [expanded, setExpanded] = useState(false);
+const ColumnDetail: React.FC<ColumnDetailProps> = ({ col, totalRows, findings, initiallyExpanded = false }) => {
+  const [expanded, setExpanded] = useState(initiallyExpanded);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const nonNullCount = totalRows - col.nullCount;
   const outlierStatus = resolveOutlierStatus(col);
@@ -86,7 +89,7 @@ const ColumnDetail: React.FC<ColumnDetailProps> = ({ col, totalRows, findings })
 
   return (
     <div className={`col-detail ${hasOutliers ? 'col-detail--warning' : ''}`}>
-      <button className="col-detail-header" onClick={() => setExpanded(e => !e)}>
+      <button type="button" aria-expanded={expanded} className="col-detail-header" onClick={() => setExpanded(e => !e)}>
         <span className="col-detail-chevron">
           {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
         </span>
@@ -362,7 +365,7 @@ const ColumnDetail: React.FC<ColumnDetailProps> = ({ col, totalRows, findings })
   );
 };
 
-const ColumnStatsPanel: React.FC<ColumnStatsPanelProps> = ({ columnStats, totalRows, issues }) => {
+const ColumnStatsPanel: React.FC<ColumnStatsPanelProps> = ({ columnStats, totalRows, issues, initiallyExpanded = false, compact = false }) => {
   const columns = Object.values(columnStats);
   const [showAll, setShowAll] = useState(false);
 
@@ -380,7 +383,7 @@ const ColumnStatsPanel: React.FC<ColumnStatsPanelProps> = ({ columnStats, totalR
 
   return (
     <div className="colstats-full-panel">
-      <div className="colstats-full-header">
+      {!compact && <div className="colstats-full-header">
         <div className="colstats-full-title">
           <BarChart3 size={14} />
           <span>PERFIL ESTADÍSTICO COMPLETO — {columns.length} COLUMNAS</span>
@@ -389,11 +392,11 @@ const ColumnStatsPanel: React.FC<ColumnStatsPanelProps> = ({ columnStats, totalR
           Cada columna expandible muestra todas las estadísticas, distribución de frecuencias,
           muestra de valores e IQR. Las frecuencias muestran los cinco valores más comunes.
         </p>
-      </div>
+      </div>}
 
       <div className="colstats-full-list">
         {displayedCols.map(col => (
-          <ColumnDetail key={col.name} col={col} totalRows={rowCount > 0 ? rowCount : 0} findings={issues?.filter(issue => issue.column === col.name)} />
+          <ColumnDetail key={col.name} initiallyExpanded={initiallyExpanded} col={col} totalRows={rowCount > 0 ? rowCount : 0} findings={issues?.filter(issue => issue.column === col.name)} />
         ))}
       </div>
 

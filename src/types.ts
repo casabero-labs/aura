@@ -86,6 +86,8 @@ export interface QualityIssue {
   evidenceNote?: string;
   /** Sample record numbers, starting at 1; not physical CSV line numbers. */
   rowNumbers?: number[];
+  /** At most three original cells for local human review, never complete rows. */
+  rowEvidence?: { rowNumber: number; value: unknown }[];
   automaticAuthorization?: AutomaticAuthorization;
 }
 

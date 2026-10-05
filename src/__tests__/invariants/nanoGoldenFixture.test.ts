@@ -10,6 +10,10 @@
  *   - the parser/validator starts rejecting what Nano really produces.
  */
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import Papa from 'papaparse';
+import { runAudit } from '../../services/auditEngine';
 import fixture from '../fixtures/nano-titanic-fragments.fixture.json';
 
 (import.meta as any).env = { ...((import.meta as any).env || {}), VITE_CONTRACTS_V2_ENABLED: 'true' };
@@ -34,6 +38,15 @@ const rebuild = () => {
 };
 
 describe('Gemini Nano golden fixture', () => {
+  it('a fresh Titanic audit sends the same evidence that the real model answered', () => {
+    const parsed = Papa.parse<Record<string, string>>(readFileSync(
+      path.resolve(__dirname, '../../../experiments/datasets/titanic.csv'), 'utf8'),
+    { header: true, dynamicTyping: false, skipEmptyLines: true });
+    const report = runAudit(parsed.data, parsed.meta.fields!, ',', { referenceDate: fixture.report.auditReferenceDate });
+    const envelope = buildEvidenceEnvelopeV2(report as any, fixture.envelopeOptions as any);
+    const input = buildDiagnosisInputPackageV2(report as any, envelope, fixture.inputMode as DiagnosisInputModeV2);
+    expect(input.inputHash, RECAPTURE).toBe(fixture.inputSnapshot.inputHash);
+  });
   it('the evidence sent to the model is unchanged', () => {
     const { input } = rebuild();
     expect(input.inputHash, RECAPTURE).toBe((fixture.inputSnapshot as DiagnosisInputPackageV2).inputHash);

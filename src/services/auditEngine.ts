@@ -4,6 +4,7 @@ import { auditValue } from './auditValue';
 import { isNumericSentinel } from './issuePresentation';
 import { checkDate, isIdentifierColumn, isDateColumn, isCreditCard, validateDatasetRules, type DatasetRules, type ColumnRule } from './ruleChecks';
 import { assertUsableCsv } from './csvValidation';
+import { findPossibleCategoryTypos } from './categoricalTypos';
 
 // --- Weighted scoring (composite quality score, pending #3) ---
 const SEVERITY_WEIGHTS: Record<IssueSeverity, number> = {
@@ -188,7 +189,7 @@ const canonicalCapitalizationVariant = (value: string): string => value.trim().r
 
 const detectCapitalizationVariantGroups = (
   values: any[]
-): { affectedRows: number; samples: string[] } => {
+): { affectedRows: number; samples: string[]; rowNumbers: number[] } => {
   const groups = new Map<string, { variants: Set<string>; rowIndexes: Set<number> }>();
 
   values.forEach((value, rowIndex) => {
@@ -217,24 +218,26 @@ const detectCapitalizationVariantGroups = (
 
   return {
     affectedRows: affectedRowIndexes.size,
+    rowNumbers: [...affectedRowIndexes].sort((a, b) => a - b).slice(0, 20).map(index => index + 1),
     samples: variantGroups
       .slice(0, 3)
       .map(group => `${group.normalizedKey}: ${group.variants.slice(0, 5).join(' | ')}`)
   };
 };
 
-const detectControlledVocabularyVariants = (values: any[]): { group: string; variants: string[]; count: number }[] => {
+const detectControlledVocabularyVariants = (values: any[]): { group: string; variants: string[]; count: number; rowNumbers: number[] }[] => {
   const normalizedValues = values
-    .filter(v => v !== null && v !== undefined && v !== '')
-    .map(normalizeCategoryValue);
+    .map((value, index) => ({ value: normalizeCategoryValue(value), rowNumber: index + 1 }))
+    .filter(item => item.value);
 
   return Object.entries(CONTROLLED_VOCABULARIES)
     .map(([group, aliases]) => {
       const aliasSet = new Set(aliases);
       const variantSet = new Set<string>();
       let count = 0;
+      const rowNumbers: number[] = [];
 
-      normalizedValues.forEach(value => {
+      normalizedValues.forEach(({ value, rowNumber }) => {
         const matched = aliases.find(alias => {
           if (value === alias) return true;
           if (alias.length <= 3) return false;
@@ -243,10 +246,11 @@ const detectControlledVocabularyVariants = (values: any[]): { group: string; var
         if (matched && aliasSet.has(matched)) {
           variantSet.add(matched);
           count++;
+          if (rowNumbers.length < 20) rowNumbers.push(rowNumber);
         }
       });
 
-      return { group, variants: Array.from(variantSet), count };
+      return { group, variants: Array.from(variantSet), count, rowNumbers };
     })
     .filter(result => result.variants.length > 1);
 };
@@ -529,6 +533,13 @@ export const runAudit = (
   const rowCount = data.length;
   let penaltyPoints = 0;
   let pendingDeduction: { index: number; basePoints: number } | null = null;
+  const evidenceRows = new Map<string, number[]>();
+  const rememberRow = (column: string, ruleId: string, rowIndex: number) => {
+    const key = JSON.stringify([column, ruleId]);
+    const rows = evidenceRows.get(key) ?? [];
+    if (rows.length < 20) rows.push(rowIndex + 1);
+    evidenceRows.set(key, rows);
+  };
 
   const addDeduction = (
     reason: string,
@@ -549,6 +560,13 @@ export const runAudit = (
 
   const addIssue = (issue: Omit<QualityIssue, 'ruleId'> & { ruleId: string }): QualityIssue => {
     const withRuleId: QualityIssue = { ...issue, ruleId: issue.ruleId };
+    const rows = issue.rowNumbers ?? (issue.column
+      ? evidenceRows.get(JSON.stringify([issue.column, issue.ruleId])) : undefined);
+    if (rows?.length) {
+      withRuleId.rowNumbers = [...new Set(rows)].sort((a, b) => a - b).slice(0, 20);
+      if (issue.column) withRuleId.rowEvidence = withRuleId.rowNumbers.slice(0, 3)
+        .map(rowNumber => ({ rowNumber, value: originalRows[rowNumber - 1][issue.column!] }));
+    }
     if (pendingDeduction) {
       const deduction = scoreBreakdown[pendingDeduction.index];
       if (deduction.ruleId !== issue.ruleId) throw new Error('La puntuación no coincide con la regla.');
@@ -569,10 +587,14 @@ export const runAudit = (
   // 1. Exact Duplicates
   const uniqueHashes = new Set();
   let duplicateCount = 0;
+  const duplicateRowNumbers: number[] = [];
 
-  originalRows.forEach(row => {
+  originalRows.forEach((row, index) => {
     const h = JSON.stringify(fields.map(field => row[field]));
-    if (uniqueHashes.has(h)) duplicateCount++;
+    if (uniqueHashes.has(h)) {
+      duplicateCount++;
+      if (duplicateRowNumbers.length < 20) duplicateRowNumbers.push(index + 1);
+    }
     else uniqueHashes.add(h);
   });
 
@@ -589,6 +611,7 @@ export const runAudit = (
       count: duplicateCount,
       affectedPercentage: pct,
       sampleValues: [],
+      rowNumbers: duplicateRowNumbers,
       ruleId: RULE_IDS.EXACT_DUPLICATES,
       automaticAuthorization: autoAuth('drop_exact_duplicates', options.allowExactDuplicateRemoval === true,
         options.allowExactDuplicateRemoval === true ? ['full-row-equality-confirmed', 'owner-confirmed-redundancy'] : ['full-row-equality-confirmed'],
@@ -623,7 +646,7 @@ export const runAudit = (
     // 2. Critical Nulls
     const rule = rules[col] ?? {};
     const nullPct = (stats.nullCount / rowCount) * 100;
-    if (stats.nullCount > 0) {
+    if (stats.nullCount > 0 && rule.required !== false) {
       const isCritical = rule.required === true || nullPct > 20;
       const points = isCritical ? 10 : 2;
       const severity = isCritical ? IssueSeverity.CRITICAL : IssueSeverity.WARNING;
@@ -657,6 +680,7 @@ export const runAudit = (
         count: rowCount,
         affectedPercentage: 100,
         sampleValues: [stats.topFreq?.[0]?.value],
+        rowNumbers: rawValues.flatMap((value, index) => isPresentValue(value, rule) ? [index + 1] : []).slice(0, 20),
         ruleId: RULE_IDS.CONSTANT_COLUMN,
         automaticAuthorization: autoAuth('drop_constant_column', false, [], 'Zero variance column provides no information')
       });
@@ -678,6 +702,7 @@ export const runAudit = (
         count: rowCount,
         affectedPercentage: 100,
         sampleValues: [numSample, strSample].filter(Boolean),
+        rowNumbers: rawValues.slice(0, 20).map((_, index) => index + 1),
         ruleId: RULE_IDS.MIXED_TYPES,
         automaticAuthorization: autoAuth('type_correction', false, [], 'Requires type coercion decision')
       });
@@ -836,19 +861,19 @@ export const runAudit = (
       // Group 2: Hygiene
       // 5. Ghost Spaces
       if (typeof val === 'string' && val.trim().length !== val.length) {
-        ghostSpaceCount++;
+        ghostSpaceCount++; rememberRow(col, RULE_IDS.TRIM_WHITESPACE, rowIndex);
         if (samples.ghost.length < 3) samples.ghost.push(val);
       }
 
       // 6. Mojibake
       if (typeof val === 'string' && REGEX_MOJIBAKE.test(val)) {
-        mojibakeCount++;
+        mojibakeCount++; rememberRow(col, RULE_IDS.MOJIBAKE, rowIndex);
         if (samples.mojibake.length < 3) samples.mojibake.push(val);
       }
 
       // 8. Toxic Placeholders
       if (isToxicPlaceholder(strVal) && !rule.allowedValues?.includes(String(raw))) {
-        toxicCount++;
+        toxicCount++; rememberRow(col, RULE_IDS.TOXIC_PLACEHOLDERS, rowIndex);
         if (samples.toxic.length < 3) samples.toxic.push(raw);
       }
 
@@ -856,7 +881,7 @@ export const runAudit = (
       if (typeof val === 'string' && val.length > 300) {
         // Exclude likely description fields
         if (!col.toLowerCase().includes('desc') && !col.toLowerCase().includes('text') && !col.toLowerCase().includes('obs')) {
-          overflowCount++;
+          overflowCount++; rememberRow(col, RULE_IDS.TEXT_OVERFLOW, rowIndex);
           if (samples.overflow.length < 3) samples.overflow.push(val.substring(0, 20) + '...');
         }
       }
@@ -884,24 +909,24 @@ export const runAudit = (
         && Number.isFinite(Number(val)) && Math.abs(Number(val)) <= Number.MAX_SAFE_INTEGER
         && !/^[-+]?0\d/.test(String(raw).trim())
         && !isPhoneCol && !isIdCol && !isDateTimeLikeColumn) {
-        disguisedNumberCount++;
+        disguisedNumberCount++; rememberRow(col, RULE_IDS.DISGUISED_NUMBERS, rowIndex);
         if (samples.disguised.length < 3) samples.disguised.push(raw);
       }
 
       // 11. Hidden Dates
       if (stats.inferredType === 'string' && isDate(strVal)) {
-        hiddenDateCount++;
+        hiddenDateCount++; rememberRow(col, RULE_IDS.HIDDEN_DATES, rowIndex);
       }
 
       // 12. Corrupt IDs (e.g., "1234.0") — a text pattern, so read the original
       // text: the statistical view has already turned "1234.0" into 1234.
       if (isIdCol && typeof raw === 'string' && raw.trim().endsWith('.0')) {
-        corruptIdCount++;
+        corruptIdCount++; rememberRow(col, RULE_IDS.CORRUPT_IDS, rowIndex);
       }
 
       // 13. Redundant Time
       if (typeof val === 'string' && (val.endsWith(' 00:00:00') || val.endsWith('T00:00:00'))) {
-        redundantTimeCount++;
+        redundantTimeCount++; rememberRow(col, RULE_IDS.REDUNDANT_TIME, rowIndex);
       }
 
       // R-Freshness: Future Dates (> referenceDate + FUTURE_DATE_GRACE_DAYS)
@@ -910,7 +935,7 @@ export const runAudit = (
         if (parsedDate) {
           // Relative to the run's reference date, never the wall clock.
           if (parsedDate > futureDateThreshold) {
-            futureDateCount++;
+            futureDateCount++; rememberRow(col, RULE_IDS.FUTURE_DATES, rowIndex);
             if (samples.futureDate.length < 3) samples.futureDate.push(raw);
           }
         }
@@ -918,11 +943,11 @@ export const runAudit = (
 
       // Group 4: Logic
       // 14. Impossible Negatives
-      if (!isIdCol && rule.type !== 'string' && rule.min === undefined && typeof val === 'number' && val < 0) {
+      if (!isIdCol && rule.type !== 'string' && rule.min === undefined && rule.allowNegative !== true && typeof val === 'number' && val < 0) {
         // Safe words for negatives
         const safeNegatives = /(?:^|[_ -])(?:diff|delta|temp|temperature|temperatura|lat|latitude|latitud|lon|longitude|longitud|balance|profit|net|score)(?:$|[_ -])/i;
         if (!safeNegatives.test(col)) {
-          negativeCount++;
+          negativeCount++; rememberRow(col, RULE_IDS.IMPOSSIBLE_NEGATIVES, rowIndex);
           if (samples.negative.length < 3) samples.negative.push(raw);
         }
       }
@@ -930,18 +955,18 @@ export const runAudit = (
       // 15. Extreme Outliers (3× IQR)
       if (runsOutlierRules && typeof val === 'number' && numericValues.length > OUTLIER_MIN_NUMERIC_VALUES) {
         if (val < lowerBound || val > upperBound) {
-          outlierCount++;
+          outlierCount++; rememberRow(col, RULE_IDS.EXTREME_OUTLIERS, rowIndex);
           if (samples.outlier.length < 3) samples.outlier.push(raw);
         } else if (val < lowerBoundTukey || val > upperBoundTukey) {
           // Mild outlier: outside 1.5× IQR but inside 3× IQR (Tukey)
-          outlierCountTukey++;
+          outlierCountTukey++; rememberRow(col, RULE_IDS.MILD_OUTLIERS, rowIndex);
         }
       }
 
       // 17. Invalid Email (skip known placeholders — already caught by R08)
       if (isEmailCol && typeof val === 'string') {
         if (isPresentValue(val) && !REGEX_EMAIL.test(val)) {
-          invalidEmailCount++;
+          invalidEmailCount++; rememberRow(col, RULE_IDS.INVALID_EMAIL, rowIndex);
           if (samples.email.length < 3) samples.email.push(val);
         }
       }
@@ -958,21 +983,21 @@ export const runAudit = (
         const sensitiveText = String(raw);
         if (REGEX_IP.test(sensitiveText) || isCreditCard(sensitiveText)) {
           // If column name is obviously PII, it's less of an anomaly, but still a security risk to be aware of
-          piiCount++;
+          piiCount++; rememberRow(col, RULE_IDS.PII_DETECTED, rowIndex);
           if (samples.pii.length < 3) samples.pii.push(raw);
         }
       }
 
       // 20. Double Spaces
       if (typeof val === 'string' && REGEX_DOUBLE_SPACE.test(val)) {
-        doubleSpaceCount++;
+        doubleSpaceCount++; rememberRow(col, RULE_IDS.DOUBLE_SPACES, rowIndex);
         if (samples.doubleSpace.length < 3) samples.doubleSpace.push(val);
       }
 
       // 21. URL Detection
       if (typeof val === 'string' && isPresentValue(val) && (isUrlCol || val.startsWith('http'))) {
         if (!isValidUrl(val)) {
-          urlPatternCount++;
+          urlPatternCount++; rememberRow(col, RULE_IDS.MALFORMED_URLS, rowIndex);
           if (samples.url.length < 3) samples.url.push(val);
         }
       }
@@ -982,7 +1007,7 @@ export const runAudit = (
       if (typeof val === 'string' && !isCategoricalTaxonomy
         && ((isIdCol && REGEX_SYMBOLS.test(val.replace(/\./g, '')))
           || (isNameCol && suspiciousNameSymbols.test(val)))) {
-        symbolChaosCount++;
+        symbolChaosCount++; rememberRow(col, RULE_IDS.SUSPICIOUS_SYMBOLS, rowIndex);
         if (samples.symbol.length < 3) samples.symbol.push(val);
       }
 
@@ -994,7 +1019,7 @@ export const runAudit = (
         && !isDate(val)
         && REGEX_BURNED_RANGE.test(normalizeText(val))
       ) {
-        burnedRangeCount++;
+        burnedRangeCount++; rememberRow(col, RULE_IDS.BURNED_DEMOGRAPHIC_RANGES, rowIndex);
         if (samples.burnedRange.length < 3) samples.burnedRange.push(val);
       }
     });
@@ -1021,6 +1046,10 @@ export const runAudit = (
     }
 
     if (isoDateCount > 0 && dmyDateCount > 0) {
+      const minorityPattern = isoDateCount <= dmyDateCount ? REGEX_DATE_ISO : REGEX_DATE_DMY;
+      rawValues.forEach((value, index) => {
+        if (minorityPattern.test(String(value)) && checkDate(String(value), rule.dateFormat).valid) rememberRow(col, RULE_IDS.MIXED_DATE_FORMATS, index);
+      });
       addDeduction(`Formatos de Fecha Mixtos en [${col}]`, 5, IssueCategory.LOGIC, RULE_IDS.MIXED_DATE_FORMATS);
       addIssue({ id: `logic-mixed-date-${col}`, column: col, category: IssueCategory.LOGIC, ruleName: 'Formatos de Fecha Mixtos', description: 'La columna mezcla fechas ISO con fechas escritas mediante barras; el orden día/mes debe confirmarse antes de convertir.', severity: IssueSeverity.WARNING, count: Math.min(isoDateCount, dmyDateCount), affectedPercentage: (Math.min(isoDateCount, dmyDateCount) / rowCount) * 100, sampleValues: samples.mixedDate, ruleId: RULE_IDS.MIXED_DATE_FORMATS, automaticAuthorization: autoAuth('standardize_date_format', false, [], 'Requires locale-aware conversion') });
     }
@@ -1039,6 +1068,7 @@ export const runAudit = (
           count: capitalizationVariants.affectedRows,
           affectedPercentage: (capitalizationVariants.affectedRows / rowCount) * 100,
           sampleValues: capitalizationVariants.samples,
+          rowNumbers: capitalizationVariants.rowNumbers,
           ruleId: RULE_IDS.CAPITALIZATION_CHAOS,
           automaticAuthorization: autoAuth('normalize_capitalization', false, [], 'Requires domain decision on canonical form')
         });
@@ -1046,6 +1076,21 @@ export const runAudit = (
     }
 
     if (isLikelyTextDimension(col, stats, rowCount)) {
+      if (!rule.allowedValues && rule.type !== 'identifier') {
+        const typos = findPossibleCategoryTypos(col, rawValues);
+        if (typos.length) {
+          const count = typos.reduce((total, typo) => total + typo.count, 0);
+          addDeduction(`Posibles errores de escritura en [${col}]`, 4, IssueCategory.SEMANTIC, RULE_IDS.SEMANTIC_VARIANTS);
+          addIssue({ id: `semantic-possible-typos-${col}`, column: col,
+            ruleId: RULE_IDS.SEMANTIC_VARIANTS, ruleName: 'Posible error de escritura',
+            description: `${typos.slice(0, 3).map(typo => `«${typo.value}» se parece a «${typo.similarValue}»`).join('; ')}. Revisa si son el mismo valor. No se cambian automáticamente.`,
+            category: IssueCategory.SEMANTIC, severity: IssueSeverity.WARNING,
+            count, affectedPercentage: count / rowCount * 100,
+            rowNumbers: typos.flatMap(typo => typo.rowNumbers).sort((a, b) => a - b).slice(0, 20),
+            sampleValues: typos.slice(0, 3).flatMap(typo => [typo.value, typo.similarValue]),
+            automaticAuthorization: autoAuth('consolidate_variants', false, [], 'Similar spelling does not prove equivalent meaning') });
+        }
+      }
       const vocabularyVariants = detectControlledVocabularyVariants(values);
       vocabularyVariants.forEach(variant => {
         addDeduction(`Variantes categóricas [${col}:${variant.group}]`, 4, IssueCategory.SEMANTIC, RULE_IDS.SEMANTIC_VARIANTS);
@@ -1059,6 +1104,7 @@ export const runAudit = (
           count: variant.count,
           affectedPercentage: (variant.count / rowCount) * 100,
           sampleValues: variant.variants,
+          rowNumbers: variant.rowNumbers,
           ruleId: RULE_IDS.SEMANTIC_VARIANTS,
           automaticAuthorization: autoAuth('consolidate_variants', false, [], 'Requires controlled vocabulary definition')
         });
@@ -1150,9 +1196,17 @@ export const runAudit = (
     }
 
     // Group 4 Checks
+    if (rule.allowNegative === false && negativeCount === 0) {
+      rawValues.forEach((value, index) => {
+        if (isPresentValue(value, rule) && Number(value) < 0) {
+          negativeCount++; rememberRow(col, RULE_IDS.IMPOSSIBLE_NEGATIVES, index);
+          if (samples.negative.length < 3) samples.negative.push(value);
+        }
+      });
+    }
     if (negativeCount > 0) {
       addDeduction(`Negativos en Campo Positivo [${col}]`, 10, IssueCategory.LOGIC, RULE_IDS.IMPOSSIBLE_NEGATIVES);
-      addIssue({ id: `logic-neg-${col}`, column: col, category: IssueCategory.LOGIC, ruleName: 'Negativos Imposibles', description: 'Valores negativos en campo lógico (Edad, Precio).', severity: IssueSeverity.CRITICAL, count: negativeCount, affectedPercentage: (negativeCount / rowCount) * 100, sampleValues: samples.negative, ruleId: RULE_IDS.IMPOSSIBLE_NEGATIVES, automaticAuthorization: autoAuth('filter_negatives', false, [], 'Logical constraint violation') });
+      addIssue({ id: `logic-neg-${col}`, column: col, category: IssueCategory.LOGIC, ruleName: 'Negativos Imposibles', description: rule.allowNegative === false ? 'Valores negativos no permitidos en esta columna.' : 'Valores negativos en campo lógico (Edad, Precio).', severity: IssueSeverity.CRITICAL, count: negativeCount, affectedPercentage: (negativeCount / rowCount) * 100, sampleValues: samples.negative, ruleId: RULE_IDS.IMPOSSIBLE_NEGATIVES, automaticAuthorization: autoAuth('filter_negatives', false, [], 'Logical constraint violation') });
     }
 
     if (outlierCount > 0) {
@@ -1180,6 +1234,10 @@ export const runAudit = (
 
       const variableCount = phoneLengths.filter(l => l !== mode).length;
       if (variableCount > 0) { // A single unusual length still deserves review.
+        rawValues.forEach((value, index) => {
+          const length = String(value ?? "").replace(/\D/g, "").length;
+          if (length > 0 && length !== mode) rememberRow(col, RULE_IDS.VARIABLE_PHONE_LENGTH, index);
+        });
         addDeduction(`Longitud Teléfonos Variable [${col}]`, 5, IssueCategory.LOGIC, RULE_IDS.VARIABLE_PHONE_LENGTH);
         addIssue({ id: `logic-phone-${col}`, column: col, category: IssueCategory.LOGIC, ruleName: 'Longitud de Teléfonos', description: `Longitud variable (Moda: ${mode} dígitos).`, severity: IssueSeverity.WARNING, count: variableCount, affectedPercentage: (variableCount / phoneLengths.length) * 100, sampleValues: [], ruleId: RULE_IDS.VARIABLE_PHONE_LENGTH, automaticAuthorization: autoAuth('normalize_phone_length', false, [], 'International format handling') });
       }
@@ -1208,6 +1266,7 @@ export const runAudit = (
   datePairs.forEach(pair => {
     let inconsistentCount = 0;
     const sampleInconsistent: any[] = [];
+    const rowNumbers: number[] = [];
 
     for (let i = 0; i < data.length; i++) {
       if (!isPresentValue(data[i][pair.start]) || !isPresentValue(data[i][pair.end])) continue;
@@ -1216,6 +1275,7 @@ export const runAudit = (
       if (start && end) {
         if (end < start) {
           inconsistentCount++;
+          if (rowNumbers.length < 20) rowNumbers.push(i + 1);
           if (sampleInconsistent.length < 3) sampleInconsistent.push(`${data[i][pair.end]} < ${data[i][pair.start]}`);
         }
       }
@@ -1232,6 +1292,9 @@ export const runAudit = (
         count: inconsistentCount,
         affectedPercentage: (inconsistentCount / rowCount) * 100,
         sampleValues: sampleInconsistent,
+        rowNumbers,
+        rowEvidence: rowNumbers.slice(0, 3).map(rowNumber => ({ rowNumber,
+          value: `${pair.end}=${originalRows[rowNumber - 1][pair.end]} < ${pair.start}=${originalRows[rowNumber - 1][pair.start]}` })),
         ruleId: RULE_IDS.TEMPORAL_INCONSISTENCY,
         automaticAuthorization: autoAuth('resolve_temporal_inconsistency', false, [], 'Logical date relationship violation')
       });
@@ -1254,6 +1317,7 @@ export const runAudit = (
       let comparable = 0;
       let matches = 0;
       const samples: any[] = [];
+      const rowNumbers: number[] = [];
 
       for (let i = 0; i < rowCount; i++) {
         const datetimeTime = normalizeTimeValue(data[i][datetimeCol.field]);
@@ -1262,6 +1326,7 @@ export const runAudit = (
         comparable++;
         if (datetimeTime === explicitTime) {
           matches++;
+          if (rowNumbers.length < 20) rowNumbers.push(i + 1);
           if (samples.length < 3) {
             samples.push(`${datetimeCol.field}=${data[i][datetimeCol.field]} -> ${timeCol.field}=${data[i][timeCol.field]}`);
           }
@@ -1281,6 +1346,7 @@ export const runAudit = (
             count: matches,
             affectedPercentage: matchPct,
             sampleValues: samples,
+            rowNumbers,
             ruleId: RULE_IDS.TEMPORAL_REDUNDANCY,
             automaticAuthorization: autoAuth('validate_redundant_column', false, [], 'Derivable column needs domain validation')
           });
@@ -1303,6 +1369,7 @@ export const runAudit = (
       let comparable = 0;
       let matches = 0;
       const samples: any[] = [];
+      const rowNumbers: number[] = [];
 
       for (let i = 0; i < rowCount; i++) {
         const leftValue = normalizeComparableCell(data[i][left]);
@@ -1312,6 +1379,7 @@ export const runAudit = (
         comparable++;
         if (leftValue === rightValue) {
           matches++;
+          if (rowNumbers.length < 20) rowNumbers.push(i + 1);
           if (samples.length < 3) samples.push(`${left}=${data[i][left]} | ${right}=${data[i][right]}`);
         }
       }
@@ -1329,6 +1397,7 @@ export const runAudit = (
             count: matches,
             affectedPercentage: matchPct,
             sampleValues: samples,
+            rowNumbers,
             ruleId: RULE_IDS.SEMANTIC_COLUMN_DUPLICATION,
             automaticAuthorization: autoAuth('coalesce_columns', false, [], 'High column overlap suggests merge')
           });
@@ -1349,7 +1418,7 @@ export const runAudit = (
     allFields: string[],
     data: Record<string, any>[],
     rowCount: number
-  ): { count: number; samples: string[]; sourceColumns: string[] } => {
+  ): { count: number; samples: string[]; sourceColumns: string[]; rowNumbers: number[] } => {
     const foreignVocabulary = new Set<string>();
     const sourceColumns = new Set<string>();
 
@@ -1369,10 +1438,11 @@ export const runAudit = (
       });
 
     const hits = values
-      .map(value => normalizeCategoryValue(value))
-      .filter(value => value && value.length > 0 && foreignVocabulary.has(value));
+      .map((value, index) => ({ value: normalizeCategoryValue(value), rowNumber: index + 1 }))
+      .filter(item => item.value && foreignVocabulary.has(item.value));
 
-    return { count: hits.length, samples: Array.from(new Set(hits)).slice(0, 5), sourceColumns: Array.from(sourceColumns) };
+    return { count: hits.length, samples: Array.from(new Set(hits.map(item => item.value))).slice(0, 5),
+      sourceColumns: Array.from(sourceColumns), rowNumbers: hits.slice(0, 20).map(item => item.rowNumber) };
   };
 
   fields.forEach(col => {
@@ -1396,6 +1466,7 @@ export const runAudit = (
         count: leakage.count,
         affectedPercentage: leakagePct,
         sampleValues: leakage.samples,
+        rowNumbers: leakage.rowNumbers,
         ruleId: RULE_IDS.ID_SEMANTIC_CONTAMINATION,
         automaticAuthorization: autoAuth('investigate_contamination', false, [], 'ID column vocabulary leak detected')
       });

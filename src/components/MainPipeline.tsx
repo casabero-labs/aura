@@ -786,7 +786,7 @@ const MainPipeline: React.FC<MainPipelineProps> = ({ aiConfig, aiProvider, initi
       {/* ── Step 1: Upload ── */}
       {state === 'upload' && (
         <section className="section" id="upload-step">
-          <FileUpload onFileSelect={processFile} />
+          <FileUpload onFileSelect={processFile} busy={isProcessing} />
           {isProcessing && (
             <div style={{ marginTop: 'var(--space-md)' }}>
               <ProgressDisclosure

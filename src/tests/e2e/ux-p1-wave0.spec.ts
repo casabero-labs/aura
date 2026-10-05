@@ -23,11 +23,11 @@ test.describe('UX P1 wave 0 — empty input, deterministic scope, destroy dialog
     await expect(page.getByText(/No se pudo auditar/i)).toBeVisible({ timeout: 20_000 });
     await expect(page.getByText(/Dataset saludable/i)).toHaveCount(0);
     await expect(page.getByRole('button', { name: /al diagnóstico/i })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: /Seleccionar otro archivo/i })).toBeVisible();
+    await expect(page.getByTestId('csv-file-input')).toBeEnabled();
     await page.screenshot({ path: join(evidenceDir, '15-csv-vacio-rechazado.png'), fullPage: true });
 
-    await page.getByRole('button', { name: /Seleccionar otro archivo/i }).click();
     await page.locator('[data-testid="csv-file-input"]').setInputFiles(validCsv);
+    await page.getByRole('button', { name: 'Analizar dataset', exact: true }).click();
     await expect(page.getByTestId('profile-hero')).toBeVisible({ timeout: 20_000 });
 
     await page.getByRole('button', { name: /al diagnóstico/i }).click();
@@ -40,7 +40,7 @@ test.describe('UX P1 wave 0 — empty input, deterministic scope, destroy dialog
     await expect(page.getByRole('button', { name: /Aplicar y verificar/i })).toHaveCount(0);
     await page.screenshot({ path: join(evidenceDir, '16-alcance-determinista.png'), fullPage: true });
 
-    await page.getByRole('button', { name: /Ir a exportación/i }).click();
+    await page.getByRole('button', { name: 'Exportar informe', exact: true }).click();
     const destroy = page.getByTestId('export-destroy-session');
     await expect(destroy).toBeVisible();
     await destroy.click();

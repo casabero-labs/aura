@@ -216,6 +216,7 @@ test.describe.serial('Phase 10 L12B — Chrome AI Real Opt-in (CDP)', () => {
 
       // ── 2. Upload step: upload CSV ──
       await page.locator('[data-testid="csv-file-input"]').setInputFiles(DIAG_FLOW_CSV);
+      await page.getByRole('button', { name: 'Analizar dataset', exact: true }).click();
       flow.uploaded = true;
 
       // ── 3. Profile stage: wait for "Continuar" button to be ready ──

@@ -5,6 +5,8 @@ import OllamaSetupStandalone from './components/OllamaSetupStandalone';
 import './styles/casabero-editorial.tokens.css';
 import './styles/editorial-foundations.css';
 import './styles/editorial-shell.css';
+import './styles/dataset-intake.css';
+import './styles/profile-simple.css';
 import './styles/editorial-audit.css';
 import './styles/editorial-remediation.css';
 

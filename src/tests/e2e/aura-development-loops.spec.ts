@@ -13,6 +13,7 @@ test('AURA: flujo completo perfil → diagnóstico → script → revisar → ex
 
   // ── Subir dataset ──
   await page.setInputFiles('input[type="file"]', fixtureCsv);
+  await page.getByRole('button', { name: 'Analizar dataset', exact: true }).click();
 
   // ── Perfil compacto ──
   const profileSummary = page.locator('.profile-decision-summary');

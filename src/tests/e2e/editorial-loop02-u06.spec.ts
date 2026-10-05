@@ -10,6 +10,7 @@ test.describe('LOOP-02 U06 — corregir una copia', () => {
     await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 60_000 });
     await page.getByRole('button', { name: 'Empezar auditoría' }).click();
     await page.getByTestId('csv-file-input').setInputFiles(validCsv);
+    await page.getByRole('button', { name: 'Analizar dataset', exact: true }).click();
     await page.getByTestId('profile-continue-diagnosis').click({ timeout: 20_000 });
     await page.getByRole('button', { name: /informe determinista|Continuar sin diagnóstico/i }).first().click();
     await expect(page.getByTestId('diagnostic-report-executive-summary')).toBeVisible({ timeout: 20_000 });
@@ -22,6 +23,7 @@ test.describe('LOOP-02 U06 — corregir una copia', () => {
     await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 60_000 });
     await page.getByRole('button', { name: 'Empezar auditoría' }).click();
     await page.getByTestId('csv-file-input').setInputFiles(validCsv);
+    await page.getByRole('button', { name: 'Analizar dataset', exact: true }).click();
     await page.getByTestId('profile-continue-diagnosis').click({ timeout: 20_000 });
     await page.getByRole('button', { name: /informe determinista|Continuar sin diagnóstico/i }).first().click();
     await expect(page.getByTestId('diagnostic-report-executive-summary')).toBeVisible({ timeout: 20_000 });

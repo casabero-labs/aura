@@ -49,10 +49,12 @@ test.describe('Local Qwen walkthrough and viewports', () => {
     await page.locator('.sys-nav').waitFor({ state: 'visible', timeout: 15_000 });
     await startAudit(page);
     await page.locator('[data-testid="csv-file-input"]').setInputFiles(csvPath);
+    await page.getByRole('button', { name: 'Analizar dataset', exact: true }).click();
     await expect(page.getByTestId('profile-hero')).toBeVisible({ timeout: 25_000 });
-    await expect(page.getByTestId('profile-priorities')).toBeVisible();
-    await expect(page.getByTestId('profile-priorities')).not.toContainText('0% de registros afectados');
-    await expect(page.getByTestId('profile-priorities')).toContainText(/de 20[01]/);
+    await page.getByTestId('profile-all-disclosure').locator('summary').first().click();
+    await expect(page.getByTestId('profile-all-disclosure')).toBeVisible();
+    await expect(page.getByTestId('profile-all-disclosure')).not.toContainText('0% de registros afectados');
+    await expect(page.getByTestId('profile-all-disclosure')).toContainText(/de 20[01]/);
     await page.locator('[data-testid="profile-tech-disclosure"] summary').click();
     await expect(page.getByText(/IQR es el rango entre cuartiles/)).toBeVisible();
     await page.screenshot({ path: join(evidenceDir, '19-perfil-conteos.png'), fullPage: true });
@@ -92,6 +94,7 @@ test.describe('Local Qwen walkthrough and viewports', () => {
     }
     if (await page.locator('[data-testid="csv-file-input"]').count()) {
       await page.locator('[data-testid="csv-file-input"]').setInputFiles(csvPath);
+      await page.getByRole('button', { name: 'Analizar dataset', exact: true }).click();
       await expect(page.getByTestId('profile-hero')).toBeVisible({ timeout: 25_000 });
     }
     if (await page.getByTestId('profile-continue-diagnosis').isVisible().catch(() => false)) {

@@ -1,0 +1,13 @@
+id,Name,documento,email,fecha_alta,value,estado,ciudad,key,data
+1,Ana Lopez,0011223344,persona1@prueba.example,2024-03-01,10000,activo,Montería,K001,web
+2,"  Beatriz Mora  ",0011223345,persona2@prueba.example,2024-03-02,15000,inactivo,Bogotá,K002,oficina
+3," ",0011223346,persona3@prueba.example,2024-03-03,20000,pendiente,Cali,K003,telefono
+4,Diana Vega,0011223344,persona4@prueba.example,2024-03-04,25000,actvo,Montería,K004,web
+5,Elena Rios,0011223348,no-es-email,2024-03-05,30000,ACTIVO,Bogotá,K005,oficina
+6,Fabio Leon,0011223349,marta@,2024-03-06,35000,pendiente,Monteria,K006,telefono
+7,Gabriela Soto,0011223350,persona7@prueba.example,2024-13-01,40000,activo,MONTERIA,K007,web
+8,Hugo Vidal,0011223351,persona8@prueba.example,15/03/2024,45000,inactivo,Bogotá,K008,oficina
+9,null,0011223352,persona9@prueba.example,2024-03-09,50000,pendiente,Cali,K009,telefono
+10,Jorge Perez,0011223353,persona10@prueba.example,2024-03-10,-12000,activo,Montería,K010,web
+11,Karen Diaz,0011223354,persona11@prueba.example,2024-03-11,250000,inactivo,Bogotá,K011,oficina
+12,Luis Torres,,persona12@prueba.example,2024-03-12,120.50,pendiente,Cali,K012,telefono

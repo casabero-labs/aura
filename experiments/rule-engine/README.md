@@ -2,6 +2,12 @@
 
 Fecha: 5 de octubre de 2026. Verificaciones realizadas sobre el código local; no certifican el despliegue público.
 
+Actualización posterior: [primera etapa de errores de escritura y evidencia visible](primera-etapa.md). Incluye la prueba controlada usando solamente CSV y los resultados nuevos. Las cifras de las secciones siguientes corresponden a la revisión anterior.
+
+Segunda etapa completada localmente: [reglas y excepciones en pantalla, con carga Editorial](reglas-y-excepciones.md). Permite elegir condiciones después de cargar el CSV y antes de analizarlo, sin necesitar un JSON.
+
+Tercera etapa: [perfil base sencillo, con detalles al pedirlos](perfil-simple.md). El resultado empieza con un resumen y hasta tres avisos prioritarios; la evidencia completa, las estadísticas, las reglas y el cálculo siguen disponibles.
+
 ## Qué estaba pasando
 
 AURA leía el archivo y calculaba estadísticas, pero algunas reglas dejaban pasar problemas reales. Otras generaban avisos sobre datos válidos. La pantalla tampoco mostraba todos los hallazgos ni permitía reconstruir con claridad el puntaje.

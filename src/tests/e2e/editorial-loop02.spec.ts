@@ -11,23 +11,28 @@ test.describe('LOOP-02 Editorial — Informe y exportar', () => {
     await page.locator('.sys-nav').waitFor({ state: 'visible', timeout: 15_000 });
   });
 
-  test('J03 — perfil concluye y la tabla de columnas es visible', async ({ page }) => {
+  test('J03 — resumen primero y detalles de columnas al pedirlos', async ({ page }) => {
     await page.getByRole('button', { name: 'Empezar auditoría' }).click();
     await page.getByTestId('csv-file-input').setInputFiles(validCsv);
+    await page.getByRole('button', { name: 'Analizar dataset', exact: true }).click();
     await expect(page.getByTestId('profile-hero')).toBeVisible({ timeout: 20_000 });
     await expect(page.getByTestId('profile-hero').locator('h1')).toBeVisible();
+    await expect(page.getByTestId('profile-column-table')).not.toBeVisible();
+    await page.getByTestId('profile-tech-disclosure').locator('summary').first().click();
     await expect(page.getByTestId('profile-column-table')).toBeVisible();
     await expect(page.getByTestId('profile-continue-diagnosis')).toHaveText(/Ir al diagnóstico/);
     // Prioridades: una tabla (regla, columna, N/M, clasificación), no tarjetas.
-    const priorities = page.getByTestId('profile-priorities').locator('table');
+    await page.getByTestId('profile-all-disclosure').locator('summary').first().click();
+    const priorities = page.getByTestId('profile-all-disclosure').locator('table');
     await expect(priorities).toBeVisible();
-    await expect(priorities.getByRole('columnheader', { name: 'Evidencia' })).toBeVisible();
+    await expect(priorities.getByRole('columnheader', { name: 'Registros y evidencia' })).toBeVisible();
     await expect(priorities.getByRole('columnheader', { name: 'Clasificación' })).toBeVisible();
   });
 
   test('J04 — diagnóstico: informe determinista y config en drawer', async ({ page }) => {
     await page.getByRole('button', { name: 'Empezar auditoría' }).click();
     await page.getByTestId('csv-file-input').setInputFiles(validCsv);
+    await page.getByRole('button', { name: 'Analizar dataset', exact: true }).click();
     await page.getByTestId('profile-continue-diagnosis').click({ timeout: 20_000 });
     await expect(page.getByTestId('diagnosis-hero-panel')).toBeVisible();
     await page.getByTestId('diagnosis-config-toggle').click();
@@ -44,6 +49,7 @@ test.describe('LOOP-02 Editorial — Informe y exportar', () => {
   test('J07 — la conclusión del informe precede a la invocación', async ({ page }) => {
     await page.getByRole('button', { name: 'Empezar auditoría' }).click();
     await page.getByTestId('csv-file-input').setInputFiles(validCsv);
+    await page.getByRole('button', { name: 'Analizar dataset', exact: true }).click();
     await page.getByTestId('profile-continue-diagnosis').click({ timeout: 20_000 });
     const deterministic = page.getByRole('button', { name: /informe determinista|Continuar sin diagnóstico/i });
     await deterministic.first().click();

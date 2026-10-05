@@ -22,6 +22,7 @@ async function up(p: any, fp: string) {
   await p.getByRole('button', { name: /Empezar auditoría/i }).click();
   await p.waitForTimeout(500);
   await p.setInputFiles('input[type="file"]', fp);
+  await p.getByRole('button', { name: 'Analizar dataset', exact: true }).click();
   await p.locator('.profile-editorial-header').first().waitFor({ state: 'visible', timeout: 30_000 });
 }
 async function h(p: any) {

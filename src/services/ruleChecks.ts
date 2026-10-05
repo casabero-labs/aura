@@ -2,6 +2,7 @@
 export interface ColumnRule {
   type?: 'identifier' | 'string' | 'number' | 'date';
   required?: boolean;
+  allowNegative?: boolean;
   unique?: boolean;
   allowedValues?: readonly string[];
   dateFormat?: 'ISO' | 'DMY' | 'MDY';
@@ -100,9 +101,9 @@ export function validateDatasetRules(rules: DatasetRules, fields: string[]): voi
   if (!rules || typeof rules !== 'object' || Array.isArray(rules)) throw new Error('Las reglas deben ser un objeto de columnas.');
   for (const [name, rule] of Object.entries(rules)) {
     if (!rule || typeof rule !== 'object' || Array.isArray(rule)) throw new Error(`Regla no válida en ${name}.`);
-    const supported = new Set(['type', 'required', 'unique', 'allowedValues', 'dateFormat', 'min', 'max', 'integer', 'length']);
+    const supported = new Set(['type', 'required', 'allowNegative', 'unique', 'allowedValues', 'dateFormat', 'min', 'max', 'integer', 'length']);
     if (Object.keys(rule).some(key => !supported.has(key))) throw new Error(`La regla de ${name} contiene una opción desconocida.`);
-    for (const flag of ['required', 'unique', 'integer'] as const) {
+    for (const flag of ['required', 'unique', 'integer', 'allowNegative'] as const) {
       if (rule[flag] !== undefined && typeof rule[flag] !== 'boolean') throw new Error(`Opción no válida en ${name}: ${flag}.`);
     }
     if (!fields.includes(name)) throw new Error(`La regla menciona una columna que no existe: ${name}.`);
