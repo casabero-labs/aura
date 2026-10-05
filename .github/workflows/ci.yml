@@ -1,8 +1,7 @@
 name: AURA CI
 
-# main recibe commits; production solo avanza cuando todo lo de abajo pasa.
-# Coolify despliega desde production, así que un cambio que rompa tipos,
-# tests, invariantes del pipeline o build nunca llega a aura.casabero.com.
+# main recibe los cambios y es la rama que publica Coolify.
+# CI verifica tipos, tests, invariantes del pipeline y compilación.
 
 on:
   push:
@@ -79,17 +78,3 @@ jobs:
 
       - name: Tests
         run: npm test --if-present
-
-  promote:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [frontend, api]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Fast-forward production to the verified commit
-        run: git push origin "${GITHUB_SHA}:refs/heads/production"

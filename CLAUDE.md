@@ -4,7 +4,7 @@ Este archivo persiste el contrato de diseño para Impeccable y sesiones futuras.
 
 El código actual (`src/index.css`, `DESIGN.md`) todavía describe Ink/Warm. **El destino obligatorio es Casabero Editorial 1.2 exclusivo.** Este contexto describe ese destino, no el CSS vigente.
 
-**Antes de tocar el pipeline** (carga, perfil, envelope, diagnóstico, providers, sesión, export): leer `AGENTS.md` § «Invariantes del pipeline». Correr `cd src && npm run verify` antes de publicar; `production` solo avanza con CI verde.
+**Antes de tocar el pipeline** (carga, perfil, envelope, diagnóstico, providers, sesión, export): leer `AGENTS.md` § «Invariantes del pipeline». Correr `cd src && npm run verify` antes de publicar y comprobar el CI del commit. Coolify publica desde `main`, por petición del usuario.
 
 Fuentes que mandan para interfaz:
 

@@ -4,7 +4,7 @@ Impeccable y cualquier trabajo visual leen `CLAUDE.md` (sección Design Context)
 
 ## Invariantes del pipeline — no romper
 
-Promesas del producto que ya se rompieron en producción. Cada una tiene un test en `src/__tests__/invariants/` que corre en el pre-push y en CI; `production` (lo que despliega Coolify) solo avanza si pasan.
+Promesas del producto que ya se rompieron en producción. Cada una tiene un test en `src/__tests__/invariants/` que corre en el pre-push y en CI. Coolify publica desde `main`, por petición del usuario; verificar el CI del commit antes de una publicación manual.
 
 | # | Invariante | Dónde vive | Test |
 |---|---|---|---|
