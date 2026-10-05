@@ -19,7 +19,7 @@ def main():
     chk("privacy.rawDatasetIncluded false", m["privacy"]["rawDatasetIncluded"] is False)
     base = ds.rsplit("/", 1)[-1]
     chk("CSV original no está en el ZIP", not any(n.endswith(base) and n != "corrected.csv" for n in names) and not any(z.read(n) == raw for n in names))
-    rcpt = next((n for n in names if n.endswith("execution-receipt.json")), None)
+    rcpt = "diagnosis/execution-receipt.json" if "diagnosis/execution-receipt.json" in names else None
     if nano:
         chk("existe execution-receipt", rcpt, rcpt)
         if rcpt:

@@ -1,0 +1,11 @@
+{
+ "derivedFrom": "../../final-evaluation/datasets/controlled_customers_phase8.csv",
+ "repairedLines": [
+  14,
+  20,
+  42
+ ],
+ "repair": "l\u00edneas 14 y 20: ',,,'\u2192',,' ; l\u00ednea 42: eliminado el campo extra 'C001' tras el customer_id",
+ "rows": 50,
+ "columns": 15
+}

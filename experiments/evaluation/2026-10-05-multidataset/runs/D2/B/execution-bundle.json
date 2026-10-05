@@ -1,0 +1,68 @@
+{
+  "contractId": "aura.python-execution-bundle.v1",
+  "contractVersion": "1.0.0",
+  "generatedAt": "2026-10-05T14:08:10.681Z",
+  "executionId": "exec:4e7d358f2141",
+  "runId": "exec:4e7d358f2141",
+  "approvedScriptHash": "1471b9955fd18239d8d5c8e5684db06255143a093ec25c8de63963e610f1a85e",
+  "scriptTextSha256": "43988ec276aef84c787d69fa0470aed2e939ea35d324ef549816228c810d6f73",
+  "beforeDatasetSha256": "4e7d358f2141c6463146417a66f1c2312c7c3cdf6a39005780c92b061ff7ac49",
+  "scriptText": "# AURA diagnosis input mode: smart_sample\n# AURA input receipt: a06580f55816ceaaad7105c1a95344d3a9111a1b8e41fc907c900231f1700b47\n# AURA prompt hash: 0a131dd1c4c935332d4f84bee2695d8d3959eabb2a06f51d3da5a8755896c0c8\n# AURA input hash: 4fdbd0d3cd1cd8d446075dc19006b91d95aa2af68fc785f02601cbbf164449fc\n# AURA evidence envelope: env:f5f578d697c301328d671b3205041d247b7e65b35c42db6961c1e5599a3d8eb3\n\nimport pandas as pd\nimport numpy as np\n\n_c = {\n    \"col:66c132b9f764eca1\": \"id\",\n    \"col:c48ed5501a3f61e9\": \"nombre\",\n    \"col:14a06a875d2805a1\": \"edad\",\n    \"col:3ccf050c2a6ae5c6\": \"salario\",\n    \"col:534000c8bf517b29\": \"email\",\n    \"col:715d2723c97715b7\": \"departamento\",\n    \"col:623e34a359a89dd3\": \"fecha_ingreso\",\n    \"col:f9b45ca6934a8296\": \"estado\",\n    \"col:e7b2c5a4df357066\": \"ip_acceso\"\n}\n\ndef clean_dataset(df):\n    df_clean = df.copy()\n    df_clean = df_clean.drop_duplicates(keep=\"first\").copy()\n    df_clean[_c[\"col:14a06a875d2805a1\"]] = df_clean[_c[\"col:14a06a875d2805a1\"]].replace([\"\", \"n/a\", \"N/A\", \"na\", \"NA\", \"null\", \"NULL\", \"none\", \"None\", \"?\", \"-\", \"--\", \"...\", \"NaN\", \"NAN\", \"nan\", \"N/a\"], np.nan)\n    df_clean[_c[\"col:534000c8bf517b29\"]] = df_clean[_c[\"col:534000c8bf517b29\"]].replace([\"\", \"n/a\", \"N/A\", \"na\", \"NA\", \"null\", \"NULL\", \"none\", \"None\", \"?\", \"-\", \"--\", \"...\", \"NaN\", \"NAN\", \"nan\", \"N/a\"], np.nan)\n    df_clean[_c[\"col:f9b45ca6934a8296\"]] = df_clean[_c[\"col:f9b45ca6934a8296\"]].replace([\"\", \"n/a\", \"N/A\", \"na\", \"NA\", \"null\", \"NULL\", \"none\", \"None\", \"?\", \"-\", \"--\", \"...\", \"NaN\", \"NAN\", \"nan\", \"N/a\"], np.nan)\n    return df_clean\n",
+  "scriptHashPayload": {
+    "remediationRef": "plan:c75b5199",
+    "inputReceiptRef": "a06580f55816ceaaad7105c1a95344d3a9111a1b8e41fc907c900231f1700b47",
+    "inputTrace": {
+      "inputMode": "smart_sample",
+      "promptHash": "0a131dd1c4c935332d4f84bee2695d8d3959eabb2a06f51d3da5a8755896c0c8",
+      "inputHash": "4fdbd0d3cd1cd8d446075dc19006b91d95aa2af68fc785f02601cbbf164449fc",
+      "evidenceEnvelopeRef": "env:f5f578d697c301328d671b3205041d247b7e65b35c42db6961c1e5599a3d8eb3"
+    },
+    "datasetFingerprint": "4e7d358f2141c6463146417a66f1c2312c7c3cdf6a39005780c92b061ff7ac49",
+    "acceptedActionIds": [
+      "act:34f491db",
+      "act:5f4a4635",
+      "act:af1fcdd3",
+      "act:c54eb8a9"
+    ],
+    "columnRefs": [
+      {
+        "columnId": "col:14a06a875d2805a1",
+        "name": "edad",
+        "position": 2,
+        "duplicateOrdinal": 0,
+        "pythonLiteral": "_c[\"col:14a06a875d2805a1\"]",
+        "isAmbiguous": false,
+        "isDuplicate": false,
+        "isReservedWord": false
+      },
+      {
+        "columnId": "col:534000c8bf517b29",
+        "name": "email",
+        "position": 4,
+        "duplicateOrdinal": 0,
+        "pythonLiteral": "_c[\"col:534000c8bf517b29\"]",
+        "isAmbiguous": false,
+        "isDuplicate": false,
+        "isReservedWord": false
+      },
+      {
+        "columnId": "col:f9b45ca6934a8296",
+        "name": "estado",
+        "position": 7,
+        "duplicateOrdinal": 0,
+        "pythonLiteral": "_c[\"col:f9b45ca6934a8296\"]",
+        "isAmbiguous": false,
+        "isDuplicate": false,
+        "isReservedWord": false
+      }
+    ],
+    "rendererVersion": "2.0.0",
+    "placeholderVocabularyVersion": "1.0.0",
+    "scriptText": "# AURA diagnosis input mode: smart_sample\n# AURA input receipt: a06580f55816ceaaad7105c1a95344d3a9111a1b8e41fc907c900231f1700b47\n# AURA prompt hash: 0a131dd1c4c935332d4f84bee2695d8d3959eabb2a06f51d3da5a8755896c0c8\n# AURA input hash: 4fdbd0d3cd1cd8d446075dc19006b91d95aa2af68fc785f02601cbbf164449fc\n# AURA evidence envelope: env:f5f578d697c301328d671b3205041d247b7e65b35c42db6961c1e5599a3d8eb3\n\nimport pandas as pd\nimport numpy as np\n\n_c = {\n    \"col:66c132b9f764eca1\": \"id\",\n    \"col:c48ed5501a3f61e9\": \"nombre\",\n    \"col:14a06a875d2805a1\": \"edad\",\n    \"col:3ccf050c2a6ae5c6\": \"salario\",\n    \"col:534000c8bf517b29\": \"email\",\n    \"col:715d2723c97715b7\": \"departamento\",\n    \"col:623e34a359a89dd3\": \"fecha_ingreso\",\n    \"col:f9b45ca6934a8296\": \"estado\",\n    \"col:e7b2c5a4df357066\": \"ip_acceso\"\n}\n\ndef clean_dataset(df):\n    df_clean = df.copy()\n    df_clean = df_clean.drop_duplicates(keep=\"first\").copy()\n    df_clean[_c[\"col:14a06a875d2805a1\"]] = df_clean[_c[\"col:14a06a875d2805a1\"]].replace([\"\", \"n/a\", \"N/A\", \"na\", \"NA\", \"null\", \"NULL\", \"none\", \"None\", \"?\", \"-\", \"--\", \"...\", \"NaN\", \"NAN\", \"nan\", \"N/a\"], np.nan)\n    df_clean[_c[\"col:534000c8bf517b29\"]] = df_clean[_c[\"col:534000c8bf517b29\"]].replace([\"\", \"n/a\", \"N/A\", \"na\", \"NA\", \"null\", \"NULL\", \"none\", \"None\", \"?\", \"-\", \"--\", \"...\", \"NaN\", \"NAN\", \"nan\", \"N/a\"], np.nan)\n    df_clean[_c[\"col:f9b45ca6934a8296\"]] = df_clean[_c[\"col:f9b45ca6934a8296\"]].replace([\"\", \"n/a\", \"N/A\", \"na\", \"NA\", \"null\", \"NULL\", \"none\", \"None\", \"?\", \"-\", \"--\", \"...\", \"NaN\", \"NAN\", \"nan\", \"N/a\"], np.nan)\n    return df_clean\n",
+    "cleanDatasetFn": "clean_dataset"
+  },
+  "inputReceiptRef": "a06580f55816ceaaad7105c1a95344d3a9111a1b8e41fc907c900231f1700b47",
+  "evidenceEnvelopeRef": "env:f5f578d697c301328d671b3205041d247b7e65b35c42db6961c1e5599a3d8eb3",
+  "sourceEncoding": "utf-8",
+  "bundleHash": "5c690952c303ee2a1a68d1626839bfc00de4660810786c55243a16e5b99cf29f"
+}

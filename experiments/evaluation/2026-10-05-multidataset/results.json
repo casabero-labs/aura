@@ -1,8 +1,252 @@
 [
- {"dataset":"D1","recorrido":"A0","completado":true,"etapaFallida":null,"tiemposMs":{"perfil":11},"puntuacion":{"antes":64,"despues":null},"hallazgos":{"antes":8,"despues":null},"nano":null,"redExterna":0,"erroresConsola":0,"sessionBytes":39511,"zip":{"passed":5,"total":6},"defectos":["EXP-1","UX-A0-1","REP-2"]},
- {"dataset":"D1","recorrido":"A1","completado":true,"etapaFallida":null,"tiemposMs":{"diagnostico":95600},"puntuacion":{"antes":64,"despues":null},"hallazgos":{"antes":8,"despues":null},"nano":{"solicitudes":8,"reintentos":0,"valido":true},"redExterna":0,"erroresConsola":0,"zip":{"passed":11,"total":11},"defectos":["REP-1","REP-2"]},
- {"dataset":"D1","recorrido":"B","completado":false,"etapaFallida":"contrato de script: 0 aceptadas","defectos":["P1-B1"]},
- {"dataset":"D7","recorrido":"A0","completado":true,"puntuacion":{"antes":66},"hallazgos":{"antes":4},"zip":{"passed":5,"total":6},"defectos":["EXP-1"]},
- {"dataset":"D7","recorrido":"A1","completado":true,"tiemposMs":{"diagnostico":75800},"puntuacion":{"antes":66},"hallazgos":{"antes":4},"nano":{"solicitudes":4,"reintentos":0,"valido":true},"zip":{"passed":10,"total":11},"defectos":["REP-2","EXP-1"]},
- {"dataset":"D7","recorrido":"B","completado":true,"puntuacion":{"antes":66,"despues":69},"hallazgos":{"antes":4,"despues":3},"zip":{"passed":13,"total":13},"defectos":["SEM-1","UX-VOSEO"]}
+ {
+  "dataset": "D1",
+  "recorrido": "A0",
+  "completado": true,
+  "etapaFallida": null,
+  "tiemposMs": {
+   "perfil": 11
+  },
+  "puntuacion": {
+   "antes": 64,
+   "despues": null
+  },
+  "hallazgos": {
+   "antes": 8,
+   "despues": null
+  },
+  "nano": null,
+  "redExterna": 0,
+  "erroresConsola": 0,
+  "sessionBytes": 39511,
+  "zip": {
+   "passed": 5,
+   "total": 6
+  },
+  "defectos": [
+   "EXP-1",
+   "UX-A0-1",
+   "REP-2"
+  ]
+ },
+ {
+  "dataset": "D1",
+  "recorrido": "A1",
+  "completado": true,
+  "etapaFallida": null,
+  "tiemposMs": {
+   "diagnostico": 95600
+  },
+  "puntuacion": {
+   "antes": 64,
+   "despues": null
+  },
+  "hallazgos": {
+   "antes": 8,
+   "despues": null
+  },
+  "nano": {
+   "solicitudes": 8,
+   "reintentos": 0,
+   "valido": true
+  },
+  "redExterna": 0,
+  "erroresConsola": 0,
+  "zip": {
+   "passed": 11,
+   "total": 11
+  },
+  "defectos": [
+   "REP-1",
+   "REP-2"
+  ]
+ },
+ {
+  "dataset": "D1",
+  "recorrido": "B",
+  "completado": false,
+  "etapaFallida": "contrato de script: 0 aceptadas",
+  "defectos": [
+   "P1-B1"
+  ]
+ },
+ {
+  "dataset": "D7",
+  "recorrido": "A0",
+  "completado": true,
+  "puntuacion": {
+   "antes": 66
+  },
+  "hallazgos": {
+   "antes": 4
+  },
+  "zip": {
+   "passed": 5,
+   "total": 6
+  },
+  "defectos": [
+   "EXP-1"
+  ]
+ },
+ {
+  "dataset": "D7",
+  "recorrido": "A1",
+  "completado": true,
+  "tiemposMs": {
+   "diagnostico": 75800
+  },
+  "puntuacion": {
+   "antes": 66
+  },
+  "hallazgos": {
+   "antes": 4
+  },
+  "nano": {
+   "solicitudes": 4,
+   "reintentos": 0,
+   "valido": true
+  },
+  "zip": {
+   "passed": 10,
+   "total": 11
+  },
+  "defectos": [
+   "REP-2",
+   "EXP-1"
+  ]
+ },
+ {
+  "dataset": "D7",
+  "recorrido": "B",
+  "completado": true,
+  "puntuacion": {
+   "antes": 66,
+   "despues": 69
+  },
+  "hallazgos": {
+   "antes": 4,
+   "despues": 3
+  },
+  "zip": {
+   "passed": 13,
+   "total": 13
+  },
+  "defectos": [
+   "SEM-1",
+   "UX-VOSEO"
+  ]
+ },
+ {
+  "dataset": "D2",
+  "recorrido": "A0",
+  "completado": true,
+  "puntuacion": {
+   "antes": 0
+  },
+  "hallazgos": {
+   "antes": 15
+  },
+  "zip": {
+   "passed": 5,
+   "total": 6
+  },
+  "defectos": [
+   "EXP-1"
+  ]
+ },
+ {
+  "dataset": "D2",
+  "recorrido": "A1",
+  "completado": true,
+  "tiemposMs": {
+   "diagnostico": 170100
+  },
+  "puntuacion": {
+   "antes": 0
+  },
+  "hallazgos": {
+   "antes": 15
+  },
+  "nano": {
+   "solicitudes": 15,
+   "reintentos": 0,
+   "valido": true
+  },
+  "zip": {
+   "passed": 10,
+   "total": 11
+  },
+  "defectos": [
+   "REP-2",
+   "EXP-1"
+  ]
+ },
+ {
+  "dataset": "D2",
+  "recorrido": "B",
+  "completado": true,
+  "puntuacion": {
+   "antes": 0,
+   "despues": 0
+  },
+  "hallazgos": {
+   "antes": 15,
+   "despues": 11
+  },
+  "zip": {
+   "passed": 13,
+   "total": 13
+  },
+  "defectos": [
+   "P2-R1"
+  ]
+ },
+ {
+  "dataset": "D3",
+  "recorrido": "carga",
+  "completado": false,
+  "etapaFallida": "carga: registro 13 (comas de más) — falla clara",
+  "defectos": [
+   "PLAN-D3"
+  ]
+ },
+ {
+  "dataset": "D3b",
+  "recorrido": "A0",
+  "completado": true,
+  "puntuacion": {
+   "antes": 0
+  },
+  "hallazgos": {
+   "antes": 26
+  },
+  "zip": null,
+  "defectos": []
+ },
+ {
+  "dataset": "D3b",
+  "recorrido": "A1",
+  "completado": false,
+  "etapaFallida": "diagnóstico: DIAGNOSIS_REVIEW_DOWNGRADE (2 intentos, 3 y 2 fragmentos con requiresHumanReview=false)",
+  "tiemposMs": {
+   "diagnostico": 328000
+  },
+  "nano": {
+   "solicitudes": 24,
+   "reintentos": 0,
+   "valido": false
+  },
+  "defectos": [
+   "P1-N1"
+  ]
+ },
+ {
+  "dataset": "D3b",
+  "recorrido": "B",
+  "completado": false,
+  "etapaFallida": "depende de A1",
+  "defectos": [
+   "P1-N1"
+  ]
+ }
 ]
