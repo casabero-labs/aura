@@ -225,20 +225,20 @@
  {
   "dataset": "D3b",
   "recorrido": "A1",
-  "completado": false,
-  "etapaFallida": "diagnóstico: DIAGNOSIS_REVIEW_DOWNGRADE (2/2 intentos)",
+  "completado": true,
+  "etapaFallida": null,
   "tiemposMs": {
-   "diagnostico": 328000
+   "diagnostico": 335000
   },
   "nano": {
-   "solicitudes": 24,
-   "reintentos": 0,
-   "valido": false
+   "solicitudes": 25,
+   "reintentos": 1,
+   "valido": true
   },
   "defectos": [
-   "P1-N1",
    "P1-T1"
-  ]
+  ],
+  "nota": "tras el arreglo de P1-N1; antes fallaba 2/2"
  },
  {
   "dataset": "D3b",
@@ -339,11 +339,15 @@
  {
   "dataset": "D8b",
   "recorrido": "A1",
-  "completado": false,
-  "etapaFallida": "REVIEW_DOWNGRADE (2/2): recomendación con verbo destructivo y requiresHumanReview=false",
-  "defectos": [
-   "P1-N1"
-  ]
+  "completado": true,
+  "etapaFallida": null,
+  "defectos": [],
+  "nano": {
+   "solicitudes": 1,
+   "reintentos": 0,
+   "valido": true
+  },
+  "nota": "tras el arreglo de P1-N1 (11,3 s); antes fallaba 2/2"
  },
  {
   "dataset": "D8b",

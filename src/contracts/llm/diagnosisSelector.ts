@@ -29,6 +29,7 @@ import {
   assembleDiagnosisFromFragmentsV2,
   buildDiagnosisFragmentRequestsV2,
   buildFragmentedExecutionV1,
+  fragmentBreaksReviewPolicy,
   parseDiagnosisFragmentV2,
 } from './diagnosisFragmentsV2';
 
@@ -158,7 +159,8 @@ const usesPerIssueDiagnosis = (provider: AIProvider): boolean =>
 
 /**
  * Run one request per issue. A fragment whose output is not a JSON object is
- * asked once more; every attempt is counted in the receipt. Nothing is
+ * asked once more, and so is a fragment that leaves requiresHumanReview=false
+ * where the policy requires true; every attempt is counted in the receipt. Nothing is
  * repaired: the last verbatim output is what the assembler parses.
  */
 async function runDiagnosisFragments(
@@ -207,9 +209,16 @@ async function runDiagnosisFragments(
         if (!(error instanceof Error && error.name === 'ChromeStreamDegeneratedError')) throw error;
         text = (error as Error & { partialText?: string }).partialText ?? '';
       }
-      if (parseDiagnosisFragmentV2(text).ok) break;
+      const validJson = parseDiagnosisFragmentV2(text).ok;
+      const breaksPolicy = validJson && fragmentBreaksReviewPolicy(text, request);
+      if (validJson && !breaksPolicy) break;
       if (attempts < FRAGMENT_MAX_ATTEMPTS) {
-        onProgress?.({ type: 'status', text: `La respuesta del hallazgo ${index + 1} no era JSON válido; se pide de nuevo.` });
+        onProgress?.({
+          type: 'status',
+          text: breaksPolicy
+            ? `La respuesta del hallazgo ${index + 1} no marcó revisión humana donde corresponde; se pide de nuevo.`
+            : `La respuesta del hallazgo ${index + 1} no era JSON válido; se pide de nuevo.`,
+        });
       }
     }
     records.push({

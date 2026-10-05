@@ -177,6 +177,38 @@ describe('runStructuredDiagnosis with Gemini Nano', () => {
     }
   });
 
+  it('asks a fragment once more when it breaks the human-review policy, and keeps the strict validator', async () => {
+    const violating = (request: StructuredFragmentRequest) => fragmentFor(issueIdOf(request), {
+      recommendation: 'Eliminar los espacios sobrantes.',
+      requiresHumanReview: false,
+    });
+    const provider = chromeProvider((request, call) => (call === 1 ? violating(request) : fragmentFor(issueIdOf(request))));
+    const outcome = await runStructuredDiagnosis(report, {
+      provider,
+      auditEvidence: { datasetSha256: DATASET_SHA256 },
+      requestedModel: 'gemini-nano',
+    });
+    expect('success' in outcome && outcome.success).toBe(true);
+    if ('success' in outcome && outcome.success) {
+      expect(outcome.result.fragments?.[0].attempts).toBe(2);
+    }
+  });
+
+  it('asks only once more and never rewrites a fragment that keeps breaking the policy', async () => {
+    const provider = chromeProvider((request) => fragmentFor(issueIdOf(request), {
+      recommendation: 'Eliminar los espacios sobrantes.',
+      requiresHumanReview: false,
+    }));
+    const outcome = await runStructuredDiagnosis(report, {
+      provider,
+      auditEvidence: { datasetSha256: DATASET_SHA256 },
+      requestedModel: 'gemini-nano',
+    });
+    const fragments = (outcome as any).result?.fragments ?? (outcome as any).fragments;
+    expect(fragments.every((fragment: any) => fragment.attempts === 2)).toBe(true);
+    expect(fragments.every((fragment: any) => JSON.parse(fragment.rawResponse).requiresHumanReview === false)).toBe(true);
+  });
+
   it('fails closed with the verbatim fragments when a fragment stays invalid', async () => {
     const provider = chromeProvider(() => 'no es json');
     const outcome = await runStructuredDiagnosis(report, {

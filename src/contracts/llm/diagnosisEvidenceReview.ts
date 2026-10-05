@@ -22,7 +22,14 @@ const QUOTED_LITERAL = /["“”]([^"“”]{1,120})["“”]|`([^`]{1,120})`/g;
 const DATA_LIKE_LITERAL = /\d|@|\/|\\|\.|^(?:n\/?a|null|none|nan|vac[ií]o)$/i;
 const ABSTRACT_SHA256_LITERAL = /^sha256:(?:\.{3}|…|\*{3,})$/i;
 const CONCRETE_SHA256_VALUE = /sha256:[a-f0-9]{64}/i;
-const DESTRUCTIVE_RECOMMENDATION = /\b(?:eliminar|borrar|descartar|drop|imputar|reemplazar|recortar|capar|capping|anonimizar|decodificar|convertir)\b/i;
+/** Verbos que, en una recomendación, obligan a revisión humana. El prompt del modelo los nombra desde esta misma lista. */
+export const DESTRUCTIVE_RECOMMENDATION_VERBS = [
+  'eliminar', 'borrar', 'descartar', 'drop', 'imputar', 'reemplazar', 'recortar',
+  'capar', 'capping', 'anonimizar', 'decodificar', 'convertir',
+] as const;
+const DESTRUCTIVE_RECOMMENDATION = new RegExp(`\\b(?:${DESTRUCTIVE_RECOMMENDATION_VERBS.join('|')})\\b`, 'i');
+
+export const recommendationIsDestructive = (text: string): boolean => DESTRUCTIVE_RECOMMENDATION.test(text);
 
 const extractDataLikeLiterals = (text: string) => {
   const literals: string[] = [];
