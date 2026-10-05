@@ -2,6 +2,23 @@
 
 Fecha: 2026-10-03. Recorrido humano en Chrome 154 sobre `aura.casabero.com` y `localhost:3000`, con `titanic.csv` (891 filas, 12 columnas) y Gemini Nano local.
 
+## Estado 2026-10-05
+
+Resueltos los puntos 1–9, 11, 12, 14 y 16 de la sección 2 (`e3cbf16`), además del recibo con `runId` por ejecución y de la codificación en el bundle. Siguen pendientes:
+
+- **10, archivos grandes.** La auditoría sigue en el hilo principal.
+- **13.** La evidencia procesada sigue en `localStorage` (las filas ya no).
+- **15, código muerto.** Siguen `GeminiAdvisor`, los proveedores cloud y los artefactos en la raíz; `api.ts` y la ruta V1 ya se eliminaron.
+- **17, cifras de Nano.** Las cifras sin comillas no se validan.
+- **Specs de Playwright** que recorren la pantalla de script V1 eliminada: `aura-development-loops`, `aura-qa-screenshots` y `aura-qa-audit`.
+- **Toda la sección 3 de UX/UI.**
+
+Blindaje activo:
+
+- **CI** (`.github/workflows/ci.yml`): tipos, invariantes, suite completa y build con Node 22 y Python 3.13 + pandas, más los tests de la API. Solo si todo pasa avanza la rama `production`, que es lo que despliega Coolify.
+- **Pre-push**: rechaza archivos sin versionar y ejecuta `npm run verify`.
+- **Invariantes**: INV-1…INV-5 en `src/__tests__/invariants/`, documentados en `AGENTS.md`.
+
 ## 1. Arreglado en esta sesión
 
 | # | Problema | Evidencia | Arreglo |
