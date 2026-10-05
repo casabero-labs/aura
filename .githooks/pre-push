@@ -1,8 +1,16 @@
 #!/bin/sh
 # AURA — barrera local antes de publicar en main.
-# Corre tipos, invariantes del pipeline y la suite completa.
+# 1) Sin archivos sin versionar: los tests locales los verían y el CI no.
+# 2) Tipos, invariantes del pipeline y suite completa (npm run verify).
 # Saltar solo en emergencia: git push --no-verify (el CI igual bloquea production).
 set -e
-cd "$(git rev-parse --show-toplevel)/src"
+root="$(git rev-parse --show-toplevel)"
+untracked="$(git -C "$root" ls-files --others --exclude-standard)"
+if [ -n "$untracked" ]; then
+  echo "AURA pre-push: hay archivos sin versionar; añádelos a git o a .gitignore:" >&2
+  echo "$untracked" | sed 's/^/  /' >&2
+  exit 1
+fi
+cd "$root/src"
 echo "AURA pre-push: tipos + invariantes + tests (npm run verify)…"
 npm run --silent verify
